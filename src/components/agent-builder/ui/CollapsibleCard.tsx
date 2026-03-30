@@ -6,7 +6,7 @@ import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/component
 interface CollapsibleCardProps {
   icon?: string;
   title: string;
-  subtitle?: string;
+  subtitle?: React.ReactNode;
   badge?: React.ReactNode;
   defaultOpen?: boolean;
   children: React.ReactNode;

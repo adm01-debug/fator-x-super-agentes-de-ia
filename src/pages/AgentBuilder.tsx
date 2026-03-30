@@ -7,6 +7,8 @@ import { RAGModule } from '@/components/agent-builder/modules/RAGModule';
 import { ToolsModule } from '@/components/agent-builder/modules/ToolsModule';
 import { PromptModule } from '@/components/agent-builder/modules/PromptModule';
 import { OrchestrationModule } from '@/components/agent-builder/modules/OrchestrationModule';
+import { GuardrailsModule } from '@/components/agent-builder/modules/GuardrailsModule';
+import { TestingModule } from '@/components/agent-builder/modules/TestingModule';
 
 function PlaceholderModule({ tabId }: { tabId: string }) {
   return (
@@ -31,6 +33,8 @@ function ActiveModule({ tabId }: { tabId: string }) {
     case 'tools': return <ToolsModule />;
     case 'prompt': return <PromptModule />;
     case 'orchestration': return <OrchestrationModule />;
+    case 'guardrails': return <GuardrailsModule />;
+    case 'testing': return <TestingModule />;
     default: return <PlaceholderModule tabId={tabId} />;
   }
 }
