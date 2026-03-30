@@ -8,6 +8,7 @@ import { NotificationsDrawer } from "@/components/shared/NotificationsDrawer";
 import { ThemeToggle } from "@/components/shared/ThemeToggle";
 import { CommandPalette } from "@/components/shared/CommandPalette";
 import { DirectionalTransition } from "@/components/shared/DirectionalTransition";
+import { ErrorBoundary } from "@/components/shared/ErrorBoundary";
 import { UnsavedChangesProvider } from "@/hooks/use-unsaved-changes";
 
 interface AppLayoutProps {
