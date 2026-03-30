@@ -13,6 +13,7 @@ const DashboardPage = lazy(() => import("./pages/DashboardPage"));
 const AgentsPage = lazy(() => import("./pages/AgentsPage"));
 const AgentDetailPage = lazy(() => import("./pages/AgentDetailPage"));
 const CreateAgentPage = lazy(() => import("./pages/CreateAgentPage"));
+const AgentBuilder = lazy(() => import("./pages/AgentBuilder"));
 const KnowledgePage = lazy(() => import("./pages/KnowledgePage"));
 const MemoryPage = lazy(() => import("./pages/MemoryPage"));
 const ToolsPage = lazy(() => import("./pages/ToolsPage"));
