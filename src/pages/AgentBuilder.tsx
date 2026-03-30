@@ -9,6 +9,8 @@ import { PromptModule } from '@/components/agent-builder/modules/PromptModule';
 import { OrchestrationModule } from '@/components/agent-builder/modules/OrchestrationModule';
 import { GuardrailsModule } from '@/components/agent-builder/modules/GuardrailsModule';
 import { TestingModule } from '@/components/agent-builder/modules/TestingModule';
+import { ObservabilityModule } from '@/components/agent-builder/modules/ObservabilityModule';
+import { DeployModule } from '@/components/agent-builder/modules/DeployModule';
 
 function PlaceholderModule({ tabId }: { tabId: string }) {
   return (
@@ -35,6 +37,8 @@ function ActiveModule({ tabId }: { tabId: string }) {
     case 'orchestration': return <OrchestrationModule />;
     case 'guardrails': return <GuardrailsModule />;
     case 'testing': return <TestingModule />;
+    case 'observability': return <ObservabilityModule />;
+    case 'deploy': return <DeployModule />;
     default: return <PlaceholderModule tabId={tabId} />;
   }
 }
