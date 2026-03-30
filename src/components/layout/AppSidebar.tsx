@@ -3,13 +3,14 @@ import { NavLink } from "@/components/NavLink";
 import {
   LayoutDashboard, Bot, BookOpen, Brain, Puzzle, FileText, GitBranch,
   FlaskConical, Rocket, Activity, Database, Shield, Users, CreditCard, Settings,
-  Sparkles,
+  Sparkles, PanelLeftClose, PanelLeft,
 } from "lucide-react";
 import {
   Sidebar, SidebarContent, SidebarGroup, SidebarGroupContent,
   SidebarMenu, SidebarMenuButton, SidebarMenuItem, SidebarHeader, SidebarFooter,
   useSidebar,
 } from "@/components/ui/sidebar";
+import { Button } from "@/components/ui/button";
 
 const navItems = [
   { title: "Dashboard", url: "/", icon: LayoutDashboard },
@@ -30,7 +31,7 @@ const navItems = [
 ];
 
 export function AppSidebar() {
-  const { state } = useSidebar();
+  const { state, toggleSidebar } = useSidebar();
   const collapsed = state === "collapsed";
   const location = useLocation();
 
@@ -77,7 +78,7 @@ export function AppSidebar() {
         </SidebarGroup>
       </SidebarContent>
 
-      <SidebarFooter className="p-3">
+      <SidebarFooter className="p-3 space-y-2">
         {!collapsed && (
           <div className="rounded-lg bg-secondary/50 p-3">
             <p className="text-[11px] font-medium text-foreground">Workspace Free</p>
@@ -87,6 +88,15 @@ export function AppSidebar() {
             </div>
           </div>
         )}
+        <Button
+          variant="ghost"
+          size="sm"
+          onClick={toggleSidebar}
+          className="w-full justify-start gap-2 text-muted-foreground hover:text-foreground text-xs"
+        >
+          {collapsed ? <PanelLeft className="h-4 w-4" /> : <PanelLeftClose className="h-4 w-4" />}
+          {!collapsed && <span>Recolher</span>}
+        </Button>
       </SidebarFooter>
     </Sidebar>
   );
