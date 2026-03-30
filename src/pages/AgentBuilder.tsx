@@ -25,6 +25,8 @@ function ActiveModule({ tabId }: { tabId: string }) {
     case 'identity': return <IdentityModule />;
     case 'brain': return <BrainModule />;
     case 'memory': return <MemoryModule />;
+    case 'rag': return <RAGModule />;
+    case 'tools': return <ToolsModule />;
     default: return <PlaceholderModule tabId={tabId} />;
   }
 }
