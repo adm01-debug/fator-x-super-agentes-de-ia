@@ -33,6 +33,8 @@ function ActiveModule({ tabId }: { tabId: string }) {
     case 'tools': return <ToolsModule />;
     case 'prompt': return <PromptModule />;
     case 'orchestration': return <OrchestrationModule />;
+    case 'guardrails': return <GuardrailsModule />;
+    case 'testing': return <TestingModule />;
     default: return <PlaceholderModule tabId={tabId} />;
   }
 }
