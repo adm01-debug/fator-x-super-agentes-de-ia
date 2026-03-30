@@ -29,6 +29,8 @@ function ActiveModule({ tabId }: { tabId: string }) {
     case 'memory': return <MemoryModule />;
     case 'rag': return <RAGModule />;
     case 'tools': return <ToolsModule />;
+    case 'prompt': return <PromptModule />;
+    case 'orchestration': return <OrchestrationModule />;
     default: return <PlaceholderModule tabId={tabId} />;
   }
 }
