@@ -73,69 +73,72 @@
   }
 
   .dark {
-    --background: 225 25% 6%;
+    --background: 230 33% 5%;
     --foreground: 210 20% 92%;
 
-    --card: 225 22% 9%;
+    --card: 232 29% 8%;
     --card-foreground: 210 20% 92%;
 
-    --popover: 225 22% 9%;
+    --popover: 232 29% 8%;
     --popover-foreground: 210 20% 92%;
 
-    --primary: 250 80% 65%;
+    --primary: 214 100% 65%;
     --primary-foreground: 0 0% 100%;
 
-    --secondary: 225 18% 14%;
+    --secondary: 232 25% 12%;
     --secondary-foreground: 210 20% 85%;
 
-    --muted: 225 18% 14%;
-    --muted-foreground: 220 12% 55%;
+    --muted: 232 25% 12%;
+    --muted-foreground: 220 10% 53%;
 
-    --accent: 170 70% 50%;
+    --accent: 142 50% 56%;
     --accent-foreground: 0 0% 100%;
 
-    --destructive: 0 72% 50%;
+    --destructive: 0 72% 55%;
     --destructive-foreground: 0 0% 100%;
 
-    --border: 225 15% 15%;
-    --input: 225 15% 15%;
-    --ring: 250 80% 65%;
+    --border: 235 30% 17%;
+    --input: 235 30% 17%;
+    --ring: 214 100% 65%;
 
-    --sidebar-background: 225 25% 7%;
+    --sidebar-background: 230 33% 6%;
     --sidebar-foreground: 220 12% 55%;
-    --sidebar-primary: 250 80% 65%;
+    --sidebar-primary: 214 100% 65%;
     --sidebar-primary-foreground: 0 0% 100%;
-    --sidebar-accent: 225 18% 12%;
+    --sidebar-accent: 232 25% 10%;
     --sidebar-accent-foreground: 210 20% 90%;
-    --sidebar-border: 225 15% 12%;
-    --sidebar-ring: 250 80% 65%;
+    --sidebar-border: 235 25% 12%;
+    --sidebar-ring: 214 100% 65%;
 
-    --nexus-glow: 250 80% 65%;
+    --nexus-glow: 214 100% 65%;
     --nexus-cyan: 185 80% 60%;
-    --nexus-emerald: 160 70% 50%;
-    --nexus-amber: 38 92% 60%;
-    --nexus-rose: 350 75% 58%;
-    --nexus-surface-1: 225 20% 10%;
-    --nexus-surface-2: 225 18% 13%;
-    --nexus-surface-3: 225 16% 16%;
-    --nexus-gradient-start: 250 80% 65%;
-    --nexus-gradient-end: 200 80% 60%;
-    --nexus-blue: 214 90% 65%;
-    --nexus-green: 142 60% 55%;
-    --nexus-yellow: 48 95% 62%;
+    --nexus-emerald: 142 50% 56%;
+    --nexus-amber: 48 95% 55%;
+    --nexus-rose: 0 75% 55%;
+    --nexus-surface-1: 232 25% 8%;
+    --nexus-surface-2: 232 22% 11%;
+    --nexus-surface-3: 232 20% 14%;
+    --nexus-gradient-start: 214 100% 65%;
+    --nexus-gradient-end: 142 50% 56%;
+    --nexus-blue: 214 100% 65%;
+    --nexus-green: 142 50% 56%;
+    --nexus-yellow: 48 95% 55%;
     --nexus-red: 0 75% 55%;
-    --nexus-purple: 280 45% 55%;
+    --nexus-purple: 280 55% 55%;
     --nexus-orange: 28 80% 52%;
     --nexus-gold: 28 50% 65%;
     --nexus-teal: 170 65% 50%;
-    --nexus-muted: 220 12% 55%;
-    --nexus-border: 225 15% 15%;
+    --nexus-muted: 220 10% 53%;
+    --nexus-border: 235 30% 17%;
   }
 }
 
 @layer base {
   * {
     @apply border-border;
+    transition-property: color, background-color, border-color, box-shadow, opacity;
+    transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
+    transition-duration: 200ms;
   }
 
   html {
@@ -155,6 +158,15 @@
     font-family: var(--font-mono);
   }
 }
+
+@layer utilities {
+  .nexus-card-hover {
+    @apply transition-all duration-300;
+  }
+  .nexus-card-hover:hover {
+    transform: scale(1.01);
+    box-shadow: 0 0 30px -10px hsl(var(--nexus-glow) / 0.15);
+  }
 
 @layer utilities {
   .nexus-gradient-text {
