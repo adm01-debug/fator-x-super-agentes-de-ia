@@ -46,6 +46,8 @@ const App = () => (
                 <Route path="/agents" element={<AgentsPage />} />
                 <Route path="/agents/new" element={<CreateAgentPage />} />
                 <Route path="/agents/:id" element={<AgentDetailPage />} />
+                <Route path="/builder" element={<AgentBuilder />} />
+                <Route path="/builder/:id" element={<AgentBuilder />} />
                 <Route path="/knowledge" element={<KnowledgePage />} />
                 <Route path="/memory" element={<MemoryPage />} />
                 <Route path="/tools" element={<ToolsPage />} />
