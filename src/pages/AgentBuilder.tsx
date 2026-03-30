@@ -1,7 +1,7 @@
 import { AgentBuilderLayout } from '@/components/agent-builder/AgentBuilderLayout';
 import { useAgentBuilderStore } from '@/stores/agentBuilderStore';
+import { IdentityModule } from '@/components/agent-builder/modules/IdentityModule';
 
-// Placeholder modules — will be replaced in Etapas 05-18
 function PlaceholderModule({ tabId }: { tabId: string }) {
   return (
     <div className="flex flex-col items-center justify-center py-20 text-center">
@@ -16,12 +16,19 @@ function PlaceholderModule({ tabId }: { tabId: string }) {
   );
 }
 
+function ActiveModule({ tabId }: { tabId: string }) {
+  switch (tabId) {
+    case 'identity': return <IdentityModule />;
+    default: return <PlaceholderModule tabId={tabId} />;
+  }
+}
+
 export default function AgentBuilder() {
   const activeTab = useAgentBuilderStore((s) => s.activeTab);
 
   return (
     <AgentBuilderLayout>
-      <PlaceholderModule tabId={activeTab} />
+      <ActiveModule tabId={activeTab} />
     </AgentBuilderLayout>
   );
 }
