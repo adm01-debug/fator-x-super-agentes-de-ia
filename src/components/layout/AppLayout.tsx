@@ -64,9 +64,11 @@ export function AppLayout({ children }: AppLayoutProps) {
               </div>
             </header>
             <main className="flex-1 overflow-auto">
-              <DirectionalTransition>
-                {children}
-              </DirectionalTransition>
+              <ErrorBoundary>
+                <DirectionalTransition>
+                  {children}
+                </DirectionalTransition>
+              </ErrorBoundary>
             </main>
           </div>
         </div>
