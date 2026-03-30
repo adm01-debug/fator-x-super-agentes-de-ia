@@ -3,6 +3,8 @@ import { useAgentBuilderStore } from '@/stores/agentBuilderStore';
 import { IdentityModule } from '@/components/agent-builder/modules/IdentityModule';
 import { BrainModule } from '@/components/agent-builder/modules/BrainModule';
 import { MemoryModule } from '@/components/agent-builder/modules/MemoryModule';
+import { RAGModule } from '@/components/agent-builder/modules/RAGModule';
+import { ToolsModule } from '@/components/agent-builder/modules/ToolsModule';
 
 function PlaceholderModule({ tabId }: { tabId: string }) {
   return (
