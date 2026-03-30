@@ -1,3 +1,4 @@
+import { useNavigate } from "react-router-dom";
 import { PageHeader } from "@/components/shared/PageHeader";
 import { InfoHint } from "@/components/shared/InfoHint";
 import { Button } from "@/components/ui/button";
