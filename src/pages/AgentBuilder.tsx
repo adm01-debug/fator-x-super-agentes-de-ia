@@ -15,6 +15,7 @@ import { BillingModule } from '@/components/agent-builder/modules/BillingModule'
 import { ReadinessModule } from '@/components/agent-builder/modules/ReadinessModule';
 import { BlueprintModule } from '@/components/agent-builder/modules/BlueprintModule';
 import { SettingsModule } from '@/components/agent-builder/modules/SettingsModule';
+import { motion, AnimatePresence } from 'framer-motion';
 
 function ActiveModule({ tabId }: { tabId: string }) {
   switch (tabId) {
@@ -48,7 +49,17 @@ export default function AgentBuilder() {
 
   return (
     <AgentBuilderLayout>
-      <ActiveModule tabId={activeTab} />
+      <AnimatePresence mode="wait">
+        <motion.div
+          key={activeTab}
+          initial={{ opacity: 0, y: 8 }}
+          animate={{ opacity: 1, y: 0 }}
+          exit={{ opacity: 0, y: -8 }}
+          transition={{ duration: 0.25, ease: 'easeOut' }}
+        >
+          <ActiveModule tabId={activeTab} />
+        </motion.div>
+      </AnimatePresence>
     </AgentBuilderLayout>
   );
 }
