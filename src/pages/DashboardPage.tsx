@@ -1,7 +1,9 @@
+import { useState, useEffect } from "react";
 import { MetricCard } from "@/components/shared/MetricCard";
 import { PageHeader } from "@/components/shared/PageHeader";
 import { StatusBadge } from "@/components/shared/StatusBadge";
 import { InfoHint } from "@/components/shared/InfoHint";
+import { DashboardSkeleton } from "@/components/shared/DashboardSkeleton";
 import { Button } from "@/components/ui/button";
 import {
   Bot, Zap, Clock, DollarSign, CheckCircle, Target, FileText, Database,
