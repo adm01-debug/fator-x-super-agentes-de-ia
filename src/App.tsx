@@ -7,6 +7,7 @@ import { AppLayout } from "@/components/layout/AppLayout";
 import DashboardPage from "./pages/DashboardPage";
 import AgentsPage from "./pages/AgentsPage";
 import AgentDetailPage from "./pages/AgentDetailPage";
+import CreateAgentPage from "./pages/CreateAgentPage";
 import KnowledgePage from "./pages/KnowledgePage";
 import MemoryPage from "./pages/MemoryPage";
 import ToolsPage from "./pages/ToolsPage";
@@ -34,6 +35,7 @@ const App = () => (
           <Routes>
             <Route path="/" element={<DashboardPage />} />
             <Route path="/agents" element={<AgentsPage />} />
+            <Route path="/agents/new" element={<CreateAgentPage />} />
             <Route path="/agents/:id" element={<AgentDetailPage />} />
             <Route path="/knowledge" element={<KnowledgePage />} />
             <Route path="/memory" element={<MemoryPage />} />

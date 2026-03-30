@@ -19,7 +19,7 @@ export default function AgentsPage() {
         title="Agents"
         description="Gerencie seus agentes de IA — crie, configure e monitore"
         actions={
-          <Button className="nexus-gradient-bg text-primary-foreground gap-2 hover:opacity-90">
+          <Button onClick={() => navigate('/agents/new')} className="nexus-gradient-bg text-primary-foreground gap-2 hover:opacity-90">
             <Plus className="h-4 w-4" /> Criar agente
           </Button>
         }

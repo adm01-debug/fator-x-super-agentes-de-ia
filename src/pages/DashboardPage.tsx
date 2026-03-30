@@ -33,7 +33,7 @@ export default function DashboardPage() {
         title="Dashboard"
         description="Visão executiva da operação de agentes de IA"
         actions={
-          <Button onClick={() => navigate('/agents')} className="nexus-gradient-bg text-primary-foreground gap-2 hover:opacity-90">
+          <Button onClick={() => navigate('/agents/new')} className="nexus-gradient-bg text-primary-foreground gap-2 hover:opacity-90">
             <Plus className="h-4 w-4" /> Criar agente
           </Button>
         }
