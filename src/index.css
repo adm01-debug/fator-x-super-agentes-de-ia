@@ -136,6 +136,9 @@
 @layer base {
   * {
     @apply border-border;
+    transition-property: color, background-color, border-color, box-shadow, opacity;
+    transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
+    transition-duration: 200ms;
   }
 
   html {
@@ -155,6 +158,15 @@
     font-family: var(--font-mono);
   }
 }
+
+@layer utilities {
+  .nexus-card-hover {
+    @apply transition-all duration-300;
+  }
+  .nexus-card-hover:hover {
+    transform: scale(1.01);
+    box-shadow: 0 0 30px -10px hsl(var(--nexus-glow) / 0.15);
+  }
 
 @layer utilities {
   .nexus-gradient-text {
