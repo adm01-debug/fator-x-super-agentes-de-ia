@@ -51,7 +51,7 @@ export function NotificationsDrawer() {
             </TabsTrigger>
           </TabsList>
 
-          <TabsContent value="alerts" className="flex-1 overflow-y-auto px-5 mt-3 space-y-2">
+          <TabsContent value="alerts" className="flex-1 overflow-y-auto px-5 mt-3 space-y-2" aria-live="polite" aria-label="Lista de alertas">
             {alerts.map((alert, i) => {
               const Icon = alertIcons[alert.type];
               const color = alertColors[alert.type];
@@ -81,7 +81,7 @@ export function NotificationsDrawer() {
             })}
           </TabsContent>
 
-          <TabsContent value="activity" className="flex-1 overflow-y-auto px-5 mt-3 space-y-2">
+          <TabsContent value="activity" className="flex-1 overflow-y-auto px-5 mt-3 space-y-2" aria-live="polite" aria-label="Lista de atividades">
             {activities.map((act, i) => (
               <motion.div key={act.id} initial={{ opacity: 0, y: 4 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.05 }}
                 className="rounded-lg border border-border/50 p-3 hover:bg-secondary/30 transition-colors cursor-pointer"
