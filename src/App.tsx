@@ -13,6 +13,7 @@ import KnowledgePage from "./pages/KnowledgePage";
 import MemoryPage from "./pages/MemoryPage";
 import ToolsPage from "./pages/ToolsPage";
 import PromptsPage from "./pages/PromptsPage";
+import PromptEditorPage from "./pages/PromptEditorPage";
 import WorkflowsPage from "./pages/WorkflowsPage";
 import EvaluationsPage from "./pages/EvaluationsPage";
 import DeploymentsPage from "./pages/DeploymentsPage";
