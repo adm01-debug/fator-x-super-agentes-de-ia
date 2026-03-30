@@ -35,6 +35,7 @@ const App = () => (
           <Routes>
             <Route path="/" element={<DashboardPage />} />
             <Route path="/agents" element={<AgentsPage />} />
+            <Route path="/agents/new" element={<CreateAgentPage />} />
             <Route path="/agents/:id" element={<AgentDetailPage />} />
             <Route path="/knowledge" element={<KnowledgePage />} />
             <Route path="/memory" element={<MemoryPage />} />
