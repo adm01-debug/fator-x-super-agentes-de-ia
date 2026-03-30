@@ -212,7 +212,7 @@ export function TestingModule() {
                   <div className="flex items-center gap-2">
                     <p className="text-sm font-medium text-foreground">{metric.name}</p>
                     {metric.is_blocker && (
-                      <span className="rounded-full bg-red-500/10 text-red-500 px-2 py-0.5 text-[10px] font-medium">
+                      <span className="rounded-full bg-destructive/10 text-destructive px-2 py-0.5 text-[10px] font-medium">
                         Blocker
                       </span>
                     )}
