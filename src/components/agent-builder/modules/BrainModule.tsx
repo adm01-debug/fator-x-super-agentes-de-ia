@@ -6,12 +6,12 @@ import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { cn } from '@/lib/utils';
 
 const MODELS = [
-  { id: 'claude-opus-4.6', icon: '🟤', title: 'Claude Opus 4.6', description: 'Anthropic · 200K ctx · $15/$75 por 1M', badge: <NexusBadge label="Premium" color="hsl(var(--nexus-gold))" />, accentColor: 'hsl(var(--nexus-gold))' },
-  { id: 'claude-sonnet-4.6', icon: '🔵', title: 'Claude Sonnet 4.6', description: 'Anthropic · 200K ctx · $3/$15 por 1M', badge: <NexusBadge label="Recomendado" color="hsl(var(--nexus-blue))" />, accentColor: 'hsl(var(--nexus-blue))' },
-  { id: 'claude-haiku-4.5', icon: '🟢', title: 'Claude Haiku 4.5', description: 'Anthropic · 200K ctx · $0.25/$1.25 por 1M', badge: <NexusBadge label="Econômico" color="hsl(var(--nexus-green))" />, accentColor: 'hsl(var(--nexus-green))' },
-  { id: 'gpt-4o', icon: '🔴', title: 'GPT-4o', description: 'OpenAI · 128K ctx · $2.50/$10 por 1M', badge: <NexusBadge label="Premium" color="hsl(var(--nexus-red))" />, accentColor: 'hsl(var(--nexus-red))' },
-  { id: 'gemini-2.5-pro', icon: '🟡', title: 'Gemini 2.5 Pro', description: 'Google · 1M ctx · $1.25/$5 por 1M', badge: <NexusBadge label="Premium" color="hsl(var(--nexus-yellow))" />, accentColor: 'hsl(var(--nexus-yellow))' },
-  { id: 'llama-4', icon: '🟣', title: 'Llama 4', description: 'Meta (Open) · 128K ctx · Custo infra', badge: <NexusBadge label="Open Source" color="hsl(var(--nexus-purple))" />, accentColor: 'hsl(var(--nexus-purple))' },
+  { id: 'claude-opus-4.6', icon: '🟤', title: 'Claude Opus 4.6', description: 'Anthropic · 200K ctx · $15/$75 por 1M', badge: <NexusBadge color="orange">Premium</NexusBadge>, accentColor: 'hsl(var(--nexus-gold))' },
+  { id: 'claude-sonnet-4.6', icon: '🔵', title: 'Claude Sonnet 4.6', description: 'Anthropic · 200K ctx · $3/$15 por 1M', badge: <NexusBadge color="blue">Recomendado</NexusBadge>, accentColor: 'hsl(var(--nexus-blue))' },
+  { id: 'claude-haiku-4.5', icon: '🟢', title: 'Claude Haiku 4.5', description: 'Anthropic · 200K ctx · $0.25/$1.25 por 1M', badge: <NexusBadge color="green">Econômico</NexusBadge>, accentColor: 'hsl(var(--nexus-green))' },
+  { id: 'gpt-4o', icon: '🔴', title: 'GPT-4o', description: 'OpenAI · 128K ctx · $2.50/$10 por 1M', badge: <NexusBadge color="red">Premium</NexusBadge>, accentColor: 'hsl(var(--nexus-red))' },
+  { id: 'gemini-2.5-pro', icon: '🟡', title: 'Gemini 2.5 Pro', description: 'Google · 1M ctx · $1.25/$5 por 1M', badge: <NexusBadge color="yellow">Premium</NexusBadge>, accentColor: 'hsl(var(--nexus-yellow))' },
+  { id: 'llama-4', icon: '🟣', title: 'Llama 4', description: 'Meta (Open) · 128K ctx · Custo infra', badge: <NexusBadge color="purple">Open Source</NexusBadge>, accentColor: 'hsl(var(--nexus-purple))' },
 ];
 
 const REASONING_OPTIONS: { id: ReasoningPattern; name: string; description: string; recommended?: boolean }[] = [
