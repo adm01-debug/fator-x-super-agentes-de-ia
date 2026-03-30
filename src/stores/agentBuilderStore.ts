@@ -24,6 +24,10 @@ interface AgentBuilderStore {
   deleteAgent: (id: string) => Promise<void>;
   duplicateAgent: (id: string) => void;
 
+  savePromptVersion: (summary: string) => Promise<void>;
+  loadPromptVersions: () => Promise<void>;
+  activatePromptVersion: (versionId: string) => Promise<void>;
+
   exportJSON: () => string;
   exportMarkdown: () => string;
 
@@ -31,6 +35,7 @@ interface AgentBuilderStore {
   getActiveMemoryTypes: () => string[];
   getActiveToolsCount: () => number;
   getActiveGuardrailsCount: () => number;
+  getEstimatedMonthlyCost: () => number;
 }
 
 export const useAgentBuilderStore = create<AgentBuilderStore>((set, get) => ({
