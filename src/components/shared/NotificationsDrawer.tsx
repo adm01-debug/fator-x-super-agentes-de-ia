@@ -27,8 +27,8 @@ export function NotificationsDrawer() {
   return (
     <Sheet open={open} onOpenChange={setOpen}>
       <SheetTrigger asChild>
-        <Button variant="ghost" size="icon" className="relative text-muted-foreground hover:text-foreground">
-          <Bell className="h-4 w-4" />
+        <Button variant="ghost" size="icon" className="relative text-muted-foreground hover:text-foreground" aria-label={`Notificações${unread > 0 ? ` (${unread} não lidas)` : ""}`}>
+          <Bell className="h-4 w-4" aria-hidden="true" />
           {unread > 0 && (
             <span className="absolute -top-0.5 -right-0.5 h-4 w-4 rounded-full nexus-gradient-bg flex items-center justify-center text-[9px] font-bold text-primary-foreground">
               {unread}
