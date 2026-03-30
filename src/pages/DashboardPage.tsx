@@ -1,7 +1,9 @@
+import { useState, useEffect } from "react";
 import { MetricCard } from "@/components/shared/MetricCard";
 import { PageHeader } from "@/components/shared/PageHeader";
 import { StatusBadge } from "@/components/shared/StatusBadge";
 import { InfoHint } from "@/components/shared/InfoHint";
+import { DashboardSkeleton } from "@/components/shared/DashboardSkeleton";
 import { Button } from "@/components/ui/button";
 import {
   Bot, Zap, Clock, DollarSign, CheckCircle, Target, FileText, Database,
@@ -25,6 +27,16 @@ const kpis = [
 
 export default function DashboardPage() {
   const navigate = useNavigate();
+  const [isLoading, setIsLoading] = useState(true);
+
+  // Simulate data loading
+  useEffect(() => {
+    const timer = setTimeout(() => setIsLoading(false), 800);
+    return () => clearTimeout(timer);
+  }, []);
+
+  if (isLoading) return <DashboardSkeleton />;
+
   const topAgents = agents.filter(a => a.status === 'active').sort((a, b) => b.sessions24h - a.sessions24h);
 
   return (
