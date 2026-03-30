@@ -13,6 +13,7 @@ import KnowledgePage from "./pages/KnowledgePage";
 import MemoryPage from "./pages/MemoryPage";
 import ToolsPage from "./pages/ToolsPage";
 import PromptsPage from "./pages/PromptsPage";
+import PromptEditorPage from "./pages/PromptEditorPage";
 import WorkflowsPage from "./pages/WorkflowsPage";
 import EvaluationsPage from "./pages/EvaluationsPage";
 import DeploymentsPage from "./pages/DeploymentsPage";
@@ -43,6 +44,7 @@ const App = () => (
               <Route path="/memory" element={<MemoryPage />} />
               <Route path="/tools" element={<ToolsPage />} />
               <Route path="/prompts" element={<PromptsPage />} />
+              <Route path="/prompts/:id" element={<PromptEditorPage />} />
               <Route path="/workflows" element={<WorkflowsPage />} />
               <Route path="/evaluations" element={<EvaluationsPage />} />
               <Route path="/deployments" element={<DeploymentsPage />} />
