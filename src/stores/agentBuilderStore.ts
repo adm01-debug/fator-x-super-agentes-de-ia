@@ -24,6 +24,10 @@ interface AgentBuilderStore {
   deleteAgent: (id: string) => Promise<void>;
   duplicateAgent: (id: string) => void;
 
+  savePromptVersion: (summary: string) => Promise<void>;
+  loadPromptVersions: () => Promise<void>;
+  activatePromptVersion: (versionId: string) => Promise<void>;
+
   exportJSON: () => string;
   exportMarkdown: () => string;
 
@@ -31,6 +35,7 @@ interface AgentBuilderStore {
   getActiveMemoryTypes: () => string[];
   getActiveToolsCount: () => number;
   getActiveGuardrailsCount: () => number;
+  getEstimatedMonthlyCost: () => number;
 }
 
 export const useAgentBuilderStore = create<AgentBuilderStore>((set, get) => ({
@@ -87,11 +92,105 @@ export const useAgentBuilderStore = create<AgentBuilderStore>((set, get) => ({
     });
   },
 
+  savePromptVersion: async (summary: string) => {
+    const { agent, promptVersions } = get();
+    const newVersion: PromptVersion = {
+      id: crypto.randomUUID(),
+      version: (promptVersions.length > 0 ? Math.max(...promptVersions.map(v => v.version)) : 0) + 1,
+      content: agent.system_prompt,
+      change_summary: summary,
+      author: 'user',
+      is_active: true,
+      created_at: new Date().toISOString(),
+    };
+    set({
+      promptVersions: [...promptVersions.map(v => ({ ...v, is_active: false })), newVersion],
+      agent: { ...agent, system_prompt_version: newVersion.version },
+    });
+  },
+
+  loadPromptVersions: async () => {
+    // Will be replaced with Supabase
+  },
+
+  activatePromptVersion: async (versionId: string) => {
+    const { promptVersions, agent } = get();
+    const target = promptVersions.find(v => v.id === versionId);
+    if (!target) return;
+    set({
+      promptVersions: promptVersions.map(v => ({ ...v, is_active: v.id === versionId })),
+      agent: { ...agent, system_prompt: target.content, system_prompt_version: target.version },
+      isDirty: true,
+    });
+  },
+
   exportJSON: () => JSON.stringify(get().agent, null, 2),
 
   exportMarkdown: () => {
     const a = get().agent;
-    return `# ${a.avatar_emoji} ${a.name}\n\n**Missão:** ${a.mission}\n**Modelo:** ${a.model}\n**Status:** ${a.status}\n`;
+    const memoryTypes = [
+      a.memory_short_term && 'Curto Prazo',
+      a.memory_episodic && 'Episódica',
+      a.memory_semantic && 'Semântica',
+      a.memory_procedural && 'Procedural',
+      a.memory_profile && 'Perfil',
+      a.memory_shared && 'Organizacional',
+    ].filter(Boolean);
+    const activeTools = a.tools.filter(t => t.enabled);
+    const activeGuardrails = a.guardrails.filter(g => g.enabled);
+
+    return [
+      `# ${a.avatar_emoji} ${a.name}`,
+      '',
+      `**Missão:** ${a.mission}`,
+      `**Persona:** ${a.persona}`,
+      `**Modelo:** ${a.model}`,
+      `**Raciocínio:** ${a.reasoning}`,
+      `**Status:** ${a.status}`,
+      `**Versão:** ${a.version}`,
+      '',
+      '## Memória',
+      memoryTypes.length > 0 ? memoryTypes.map(t => `- ${t}`).join('\n') : '- Nenhuma ativa',
+      '',
+      '## RAG',
+      `- Arquitetura: ${a.rag_architecture}`,
+      `- Vector DB: ${a.rag_vector_db}`,
+      `- Fontes: ${a.rag_sources.length}`,
+      '',
+      '## Ferramentas',
+      activeTools.length > 0 ? activeTools.map(t => `- ${t.name}`).join('\n') : '- Nenhuma ativa',
+      '',
+      '## Guardrails',
+      activeGuardrails.length > 0 ? activeGuardrails.map(g => `- ${g.name} (${g.severity})`).join('\n') : '- Nenhum ativo',
+      '',
+      '## System Prompt',
+      '```',
+      a.system_prompt || '(vazio)',
+      '```',
+      '',
+      '## Deploy',
+      `- Ambiente: ${a.deploy_environment}`,
+      `- Canais: ${a.deploy_channels.filter(c => c.enabled).length}`,
+      '',
+    ].join('\n');
+  },
+
+  getEstimatedMonthlyCost: () => {
+    const a = get().agent;
+    // Rough estimation based on model and config
+    const modelCosts: Record<string, number> = {
+      'claude-opus-4.6': 150,
+      'claude-sonnet-4.6': 50,
+      'claude-haiku-4.5': 15,
+      'gpt-4o': 60,
+      'gemini-2.5-pro': 40,
+      'llama-4': 20,
+      'custom': 50,
+    };
+    const base = modelCosts[a.model] || 50;
+    const toolMultiplier = 1 + (a.tools.filter(t => t.enabled).length * 0.05);
+    const ragMultiplier = a.rag_sources.length > 0 ? 1.2 : 1;
+    return Math.round(base * toolMultiplier * ragMultiplier);
   },
 
   getCompleteness: () => {
