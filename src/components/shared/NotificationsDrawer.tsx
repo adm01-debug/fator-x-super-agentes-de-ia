@@ -51,7 +51,7 @@ export function NotificationsDrawer() {
             </TabsTrigger>
           </TabsList>
 
-          <TabsContent value="alerts" className="flex-1 overflow-y-auto px-5 mt-3 space-y-2">
+          <TabsContent value="alerts" className="flex-1 overflow-y-auto px-5 mt-3 space-y-2" aria-live="polite" aria-label="Lista de alertas">
             {alerts.map((alert, i) => {
               const Icon = alertIcons[alert.type];
               const color = alertColors[alert.type];
