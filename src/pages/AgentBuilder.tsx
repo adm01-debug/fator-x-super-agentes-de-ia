@@ -2,6 +2,7 @@ import { AgentBuilderLayout } from '@/components/agent-builder/AgentBuilderLayou
 import { useAgentBuilderStore } from '@/stores/agentBuilderStore';
 import { IdentityModule } from '@/components/agent-builder/modules/IdentityModule';
 import { BrainModule } from '@/components/agent-builder/modules/BrainModule';
+import { MemoryModule } from '@/components/agent-builder/modules/MemoryModule';
 
 function PlaceholderModule({ tabId }: { tabId: string }) {
   return (
@@ -21,6 +22,7 @@ function ActiveModule({ tabId }: { tabId: string }) {
   switch (tabId) {
     case 'identity': return <IdentityModule />;
     case 'brain': return <BrainModule />;
+    case 'memory': return <MemoryModule />;
     default: return <PlaceholderModule tabId={tabId} />;
   }
 }
