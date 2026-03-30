@@ -85,7 +85,7 @@ export function BrainModule() {
               <div className="flex-1 min-w-0">
                 <div className="flex items-center gap-2">
                   <span className="text-sm font-semibold text-foreground">{opt.name}</span>
-                  {opt.recommended && <NexusBadge label="Recomendado" color="hsl(var(--nexus-green))" />}
+                  {opt.recommended && <NexusBadge color="green">Recomendado</NexusBadge>}
                 </div>
                 <p className="text-xs text-muted-foreground mt-0.5">{opt.description}</p>
               </div>
