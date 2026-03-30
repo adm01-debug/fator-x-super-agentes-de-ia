@@ -60,6 +60,16 @@
     --nexus-surface-3: 220 12% 88%;
     --nexus-gradient-start: 250 80% 60%;
     --nexus-gradient-end: 200 80% 55%;
+    --nexus-blue: 214 90% 65%;
+    --nexus-green: 142 60% 60%;
+    --nexus-yellow: 48 95% 62%;
+    --nexus-red: 0 75% 58%;
+    --nexus-purple: 280 45% 55%;
+    --nexus-orange: 28 80% 52%;
+    --nexus-gold: 28 50% 65%;
+    --nexus-teal: 170 65% 45%;
+    --nexus-muted: 220 10% 50%;
+    --nexus-border: 220 15% 88%;
   }
 
   .dark {
@@ -110,6 +120,16 @@
     --nexus-surface-3: 225 16% 16%;
     --nexus-gradient-start: 250 80% 65%;
     --nexus-gradient-end: 200 80% 60%;
+    --nexus-blue: 214 90% 65%;
+    --nexus-green: 142 60% 55%;
+    --nexus-yellow: 48 95% 62%;
+    --nexus-red: 0 75% 55%;
+    --nexus-purple: 280 45% 55%;
+    --nexus-orange: 28 80% 52%;
+    --nexus-gold: 28 50% 65%;
+    --nexus-teal: 170 65% 50%;
+    --nexus-muted: 220 12% 55%;
+    --nexus-border: 225 15% 15%;
   }
 }
 
@@ -223,4 +243,13 @@
 }
 ::-webkit-scrollbar-thumb:hover {
   background: hsl(var(--muted-foreground) / 0.3);
+}
+
+/* Hide scrollbar utility */
+.scrollbar-hide::-webkit-scrollbar {
+  display: none;
+}
+.scrollbar-hide {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
 }

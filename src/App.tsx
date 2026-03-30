@@ -13,6 +13,7 @@ const DashboardPage = lazy(() => import("./pages/DashboardPage"));
 const AgentsPage = lazy(() => import("./pages/AgentsPage"));
 const AgentDetailPage = lazy(() => import("./pages/AgentDetailPage"));
 const CreateAgentPage = lazy(() => import("./pages/CreateAgentPage"));
+const AgentBuilder = lazy(() => import("./pages/AgentBuilder"));
 const KnowledgePage = lazy(() => import("./pages/KnowledgePage"));
 const MemoryPage = lazy(() => import("./pages/MemoryPage"));
 const ToolsPage = lazy(() => import("./pages/ToolsPage"));
@@ -45,6 +46,8 @@ const App = () => (
                 <Route path="/agents" element={<AgentsPage />} />
                 <Route path="/agents/new" element={<CreateAgentPage />} />
                 <Route path="/agents/:id" element={<AgentDetailPage />} />
+                <Route path="/builder" element={<AgentBuilder />} />
+                <Route path="/builder/:id" element={<AgentBuilder />} />
                 <Route path="/knowledge" element={<KnowledgePage />} />
                 <Route path="/memory" element={<MemoryPage />} />
                 <Route path="/tools" element={<ToolsPage />} />
