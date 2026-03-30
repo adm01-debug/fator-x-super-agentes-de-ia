@@ -32,29 +32,30 @@ const App = () => (
       <TooltipProvider>
         <Toaster />
         <Sonner />
-        <AppLayout>
-          <Routes>
-            <Route path="/" element={<DashboardPage />} />
-            <Route path="/agents" element={<AgentsPage />} />
-            <Route path="/agents/new" element={<CreateAgentPage />} />
-            <Route path="/agents/:id" element={<AgentDetailPage />} />
-            <Route path="/knowledge" element={<KnowledgePage />} />
-            <Route path="/memory" element={<MemoryPage />} />
-            <Route path="/tools" element={<ToolsPage />} />
-            <Route path="/prompts" element={<PromptsPage />} />
-            <Route path="/workflows" element={<WorkflowsPage />} />
-            <Route path="/evaluations" element={<EvaluationsPage />} />
-            <Route path="/deployments" element={<DeploymentsPage />} />
-            <Route path="/monitoring" element={<MonitoringPage />} />
-            <Route path="/data-storage" element={<DataStoragePage />} />
-            <Route path="/security" element={<SecurityPage />} />
-            <Route path="/team" element={<TeamPage />} />
-            <Route path="/billing" element={<BillingPage />} />
-            <Route path="/settings" element={<SettingsPage />} />
-            <Route path="*" element={<NotFound />} />
-          </Routes>
-        </AppLayout>
-      </BrowserRouter>
+        <BrowserRouter>
+          <AppLayout>
+            <Routes>
+              <Route path="/" element={<DashboardPage />} />
+              <Route path="/agents" element={<AgentsPage />} />
+              <Route path="/agents/new" element={<CreateAgentPage />} />
+              <Route path="/agents/:id" element={<AgentDetailPage />} />
+              <Route path="/knowledge" element={<KnowledgePage />} />
+              <Route path="/memory" element={<MemoryPage />} />
+              <Route path="/tools" element={<ToolsPage />} />
+              <Route path="/prompts" element={<PromptsPage />} />
+              <Route path="/workflows" element={<WorkflowsPage />} />
+              <Route path="/evaluations" element={<EvaluationsPage />} />
+              <Route path="/deployments" element={<DeploymentsPage />} />
+              <Route path="/monitoring" element={<MonitoringPage />} />
+              <Route path="/data-storage" element={<DataStoragePage />} />
+              <Route path="/security" element={<SecurityPage />} />
+              <Route path="/team" element={<TeamPage />} />
+              <Route path="/billing" element={<BillingPage />} />
+              <Route path="/settings" element={<SettingsPage />} />
+              <Route path="*" element={<NotFound />} />
+            </Routes>
+          </AppLayout>
+        </BrowserRouter>
       </TooltipProvider>
     </ThemeProvider>
   </QueryClientProvider>
