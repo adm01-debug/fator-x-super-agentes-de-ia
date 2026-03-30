@@ -44,6 +44,7 @@ const App = () => (
               <Route path="/memory" element={<MemoryPage />} />
               <Route path="/tools" element={<ToolsPage />} />
               <Route path="/prompts" element={<PromptsPage />} />
+              <Route path="/prompts/:id" element={<PromptEditorPage />} />
               <Route path="/workflows" element={<WorkflowsPage />} />
               <Route path="/evaluations" element={<EvaluationsPage />} />
               <Route path="/deployments" element={<DeploymentsPage />} />
