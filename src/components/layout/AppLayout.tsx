@@ -56,10 +56,7 @@ export function AppLayout({ children }: AppLayoutProps) {
               </div>
               <div className="flex items-center gap-2">
                 <ThemeToggle />
-                <Button variant="ghost" size="icon" className="relative text-muted-foreground hover:text-foreground">
-                  <Bell className="h-4 w-4" />
-                  <span className="absolute -top-0.5 -right-0.5 h-2 w-2 rounded-full nexus-gradient-bg" />
-                </Button>
+                <NotificationsDrawer />
                 <div className="h-8 w-8 rounded-full nexus-gradient-bg flex items-center justify-center text-xs font-semibold text-primary-foreground">
                   MC
                 </div>
