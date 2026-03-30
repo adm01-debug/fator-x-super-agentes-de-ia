@@ -96,7 +96,8 @@ function useMemoryUpdate() {
       const parts = key.split('.');
       if (parts.length === 2) {
         const [configKey, field] = parts;
-        patch[configKey] = { ...(agent as Record<string, unknown>)[configKey] as Record<string, unknown>, [field]: value };
+        const current = (agent as unknown as Record<string, Record<string, unknown>>)[configKey];
+        patch[configKey] = { ...current, [field]: value };
       } else {
         patch[key] = value;
       }
