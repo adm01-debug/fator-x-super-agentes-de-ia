@@ -5,6 +5,8 @@ import { BrainModule } from '@/components/agent-builder/modules/BrainModule';
 import { MemoryModule } from '@/components/agent-builder/modules/MemoryModule';
 import { RAGModule } from '@/components/agent-builder/modules/RAGModule';
 import { ToolsModule } from '@/components/agent-builder/modules/ToolsModule';
+import { PromptModule } from '@/components/agent-builder/modules/PromptModule';
+import { OrchestrationModule } from '@/components/agent-builder/modules/OrchestrationModule';
 
 function PlaceholderModule({ tabId }: { tabId: string }) {
   return (
@@ -27,6 +29,8 @@ function ActiveModule({ tabId }: { tabId: string }) {
     case 'memory': return <MemoryModule />;
     case 'rag': return <RAGModule />;
     case 'tools': return <ToolsModule />;
+    case 'prompt': return <PromptModule />;
+    case 'orchestration': return <OrchestrationModule />;
     default: return <PlaceholderModule tabId={tabId} />;
   }
 }
