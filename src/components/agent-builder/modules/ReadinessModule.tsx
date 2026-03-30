@@ -132,8 +132,8 @@ export function ReadinessModule() {
 
   const radarData = Object.entries(readiness.categories).map(([key, cat]) => ({
     subject: key.charAt(0).toUpperCase() + key.slice(1),
-    value: Math.round((cat.score / cat.max) * 100),
-    fullMark: 100,
+    value: cat.score,
+    max: cat.max,
   }));
 
   return (

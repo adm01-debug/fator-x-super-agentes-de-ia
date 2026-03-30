@@ -11,20 +11,10 @@ import { GuardrailsModule } from '@/components/agent-builder/modules/GuardrailsM
 import { TestingModule } from '@/components/agent-builder/modules/TestingModule';
 import { ObservabilityModule } from '@/components/agent-builder/modules/ObservabilityModule';
 import { DeployModule } from '@/components/agent-builder/modules/DeployModule';
-
-function PlaceholderModule({ tabId }: { tabId: string }) {
-  return (
-    <div className="flex flex-col items-center justify-center py-20 text-center">
-      <div className="text-5xl mb-4">🚧</div>
-      <h2 className="text-lg font-semibold text-foreground mb-1">
-        Módulo: {tabId}
-      </h2>
-      <p className="text-sm text-muted-foreground">
-        Este módulo será implementado nas próximas etapas.
-      </p>
-    </div>
-  );
-}
+import { BillingModule } from '@/components/agent-builder/modules/BillingModule';
+import { ReadinessModule } from '@/components/agent-builder/modules/ReadinessModule';
+import { BlueprintModule } from '@/components/agent-builder/modules/BlueprintModule';
+import { SettingsModule } from '@/components/agent-builder/modules/SettingsModule';
 
 function ActiveModule({ tabId }: { tabId: string }) {
   switch (tabId) {
@@ -39,7 +29,17 @@ function ActiveModule({ tabId }: { tabId: string }) {
     case 'testing': return <TestingModule />;
     case 'observability': return <ObservabilityModule />;
     case 'deploy': return <DeployModule />;
-    default: return <PlaceholderModule tabId={tabId} />;
+    case 'billing': return <BillingModule />;
+    case 'readiness': return <ReadinessModule />;
+    case 'blueprint': return <BlueprintModule />;
+    case 'settings': return <SettingsModule />;
+    default: return (
+      <div className="flex flex-col items-center justify-center py-20 text-center">
+        <div className="text-5xl mb-4">🚧</div>
+        <h2 className="text-lg font-semibold text-foreground mb-1">Módulo: {tabId}</h2>
+        <p className="text-sm text-muted-foreground">Este módulo será implementado nas próximas etapas.</p>
+      </div>
+    );
   }
 }
 

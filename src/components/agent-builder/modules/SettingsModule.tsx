@@ -82,13 +82,13 @@ export function SettingsModule() {
           label="Guardrails padrão ativos"
           description="Novos agentes iniciam com guardrails essenciais pré-ativados"
           checked={true}
-          onChange={() => {}}
+          onCheckedChange={() => {}}
         />
         <ToggleField
           label="Logging habilitado por padrão"
           description="Ativar logging automaticamente em novos agentes"
           checked={true}
-          onChange={() => {}}
+          onCheckedChange={() => {}}
         />
       </div>
 

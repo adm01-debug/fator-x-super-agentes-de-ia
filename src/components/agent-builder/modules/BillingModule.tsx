@@ -131,7 +131,7 @@ export function BillingModule() {
           label="Kill switch automático ao atingir 100%"
           description="Desativa o agente automaticamente quando o budget é atingido"
           checked={agent.budget_kill_switch}
-          onChange={(v) => updateAgent({ budget_kill_switch: v })}
+          onCheckedChange={(v) => updateAgent({ budget_kill_switch: v })}
         />
         {agent.monthly_budget && (
           <div className="space-y-2 pt-2">
