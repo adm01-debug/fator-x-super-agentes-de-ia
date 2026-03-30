@@ -16,6 +16,7 @@ const prompts = [
 ];
 
 export default function PromptsPage() {
+  const navigate = useNavigate();
   return (
     <div className="p-6 space-y-6 max-w-[1400px] mx-auto">
       <PageHeader
