@@ -43,7 +43,7 @@ export default function PromptsPage() {
           </thead>
           <tbody>
             {prompts.map((p, i) => (
-              <motion.tr key={p.id} initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: i * 0.05 }} className="border-b border-border/30 hover:bg-secondary/30 transition-colors cursor-pointer">
+              <motion.tr key={p.id} initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: i * 0.05 }} className="border-b border-border/30 hover:bg-secondary/30 transition-colors cursor-pointer" onClick={() => navigate(`/prompts/${p.id}`)}>
                 <td className="px-5 py-3">
                   <div className="flex items-center gap-2.5">
                     <FileText className="h-4 w-4 text-primary" />
