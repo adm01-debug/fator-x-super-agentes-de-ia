@@ -37,6 +37,8 @@ function ActiveModule({ tabId }: { tabId: string }) {
     case 'orchestration': return <OrchestrationModule />;
     case 'guardrails': return <GuardrailsModule />;
     case 'testing': return <TestingModule />;
+    case 'observability': return <ObservabilityModule />;
+    case 'deploy': return <DeployModule />;
     default: return <PlaceholderModule tabId={tabId} />;
   }
 }
