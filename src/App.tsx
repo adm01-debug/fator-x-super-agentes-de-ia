@@ -59,6 +59,9 @@ const App = () => (
               <Route path="/auth" element={
                 <Suspense fallback={<PageLoading />}><AuthPage /></Suspense>
               } />
+              <Route path="/reset-password" element={
+                <Suspense fallback={<PageLoading />}><ResetPasswordPage /></Suspense>
+              } />
               <Route path="*" element={
                 <AuthGuard>
                   <AppLayout>
