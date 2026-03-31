@@ -14,6 +14,45 @@ export type Database = {
   }
   public: {
     Tables: {
+      agent_templates: {
+        Row: {
+          category: string | null
+          config: Json
+          created_at: string | null
+          created_by: string | null
+          description: string | null
+          icon: string | null
+          id: string
+          is_public: boolean | null
+          name: string
+          usage_count: number | null
+        }
+        Insert: {
+          category?: string | null
+          config?: Json
+          created_at?: string | null
+          created_by?: string | null
+          description?: string | null
+          icon?: string | null
+          id?: string
+          is_public?: boolean | null
+          name: string
+          usage_count?: number | null
+        }
+        Update: {
+          category?: string | null
+          config?: Json
+          created_at?: string | null
+          created_by?: string | null
+          description?: string | null
+          icon?: string | null
+          id?: string
+          is_public?: boolean | null
+          name?: string
+          usage_count?: number | null
+        }
+        Relationships: []
+      }
       agent_traces: {
         Row: {
           agent_id: string
@@ -138,6 +177,7 @@ export type Database = {
           updated_at: string
           user_id: string
           version: number | null
+          workspace_id: string | null
         }
         Insert: {
           avatar_emoji?: string | null
@@ -156,6 +196,7 @@ export type Database = {
           updated_at?: string
           user_id: string
           version?: number | null
+          workspace_id?: string | null
         }
         Update: {
           avatar_emoji?: string | null
@@ -174,8 +215,121 @@ export type Database = {
           updated_at?: string
           user_id?: string
           version?: number | null
+          workspace_id?: string | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "agents_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      evaluation_runs: {
+        Row: {
+          agent_id: string | null
+          completed_at: string | null
+          created_at: string | null
+          id: string
+          name: string
+          pass_rate: number | null
+          results: Json | null
+          status: string | null
+          test_cases: number | null
+          workspace_id: string | null
+        }
+        Insert: {
+          agent_id?: string | null
+          completed_at?: string | null
+          created_at?: string | null
+          id?: string
+          name: string
+          pass_rate?: number | null
+          results?: Json | null
+          status?: string | null
+          test_cases?: number | null
+          workspace_id?: string | null
+        }
+        Update: {
+          agent_id?: string | null
+          completed_at?: string | null
+          created_at?: string | null
+          id?: string
+          name?: string
+          pass_rate?: number | null
+          results?: Json | null
+          status?: string | null
+          test_cases?: number | null
+          workspace_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "evaluation_runs_agent_id_fkey"
+            columns: ["agent_id"]
+            isOneToOne: false
+            referencedRelation: "agents"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "evaluation_runs_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      knowledge_bases: {
+        Row: {
+          chunk_count: number | null
+          created_at: string | null
+          description: string | null
+          document_count: number | null
+          embedding_model: string | null
+          id: string
+          name: string
+          status: string | null
+          updated_at: string | null
+          vector_db: string | null
+          workspace_id: string | null
+        }
+        Insert: {
+          chunk_count?: number | null
+          created_at?: string | null
+          description?: string | null
+          document_count?: number | null
+          embedding_model?: string | null
+          id?: string
+          name: string
+          status?: string | null
+          updated_at?: string | null
+          vector_db?: string | null
+          workspace_id?: string | null
+        }
+        Update: {
+          chunk_count?: number | null
+          created_at?: string | null
+          description?: string | null
+          document_count?: number | null
+          embedding_model?: string | null
+          id?: string
+          name?: string
+          status?: string | null
+          updated_at?: string | null
+          vector_db?: string | null
+          workspace_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "knowledge_bases_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       prompt_versions: {
         Row: {
@@ -217,6 +371,74 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      workspace_members: {
+        Row: {
+          accepted_at: string | null
+          email: string | null
+          id: string
+          invited_at: string | null
+          name: string | null
+          role: string | null
+          user_id: string | null
+          workspace_id: string | null
+        }
+        Insert: {
+          accepted_at?: string | null
+          email?: string | null
+          id?: string
+          invited_at?: string | null
+          name?: string | null
+          role?: string | null
+          user_id?: string | null
+          workspace_id?: string | null
+        }
+        Update: {
+          accepted_at?: string | null
+          email?: string | null
+          id?: string
+          invited_at?: string | null
+          name?: string | null
+          role?: string | null
+          user_id?: string | null
+          workspace_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "workspace_members_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      workspaces: {
+        Row: {
+          created_at: string | null
+          id: string
+          max_agents: number | null
+          name: string
+          owner_id: string | null
+          plan: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          id?: string
+          max_agents?: number | null
+          name?: string
+          owner_id?: string | null
+          plan?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          id?: string
+          max_agents?: number | null
+          name?: string
+          owner_id?: string | null
+          plan?: string | null
+        }
+        Relationships: []
       }
     }
     Views: {
