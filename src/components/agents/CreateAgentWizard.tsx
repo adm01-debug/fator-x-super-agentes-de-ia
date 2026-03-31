@@ -187,15 +187,11 @@ export function CreateAgentWizard() {
   if (mode === "choose") {
     return (
       <div className="p-6 max-w-[900px] mx-auto space-y-8">
-        <div className="flex items-center gap-3">
-          <Button variant="ghost" size="icon" onClick={() => navigate("/agents")} className="text-muted-foreground">
-            <ArrowLeft className="h-4 w-4" />
-          </Button>
-          <div>
-            <h1 className="text-xl font-heading font-bold text-foreground">Criar novo agente</h1>
-            <p className="text-sm text-muted-foreground">Escolha como deseja começar</p>
-          </div>
-        </div>
+        <PageHeader
+          title="Criar novo agente"
+          description="Escolha como deseja começar"
+          backTo="/agents"
+        />
 
         <div className="grid gap-4 sm:grid-cols-2">
           <button onClick={() => { setMode("template"); setStep(0); }}
