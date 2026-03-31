@@ -32,7 +32,7 @@ describe("AppSidebar", () => {
 
   it("renders the brand name", () => {
     renderSidebar();
-    expect(screen.getByText("Fator X")).toBeInTheDocument();
+    expect(screen.getByText("FATOR")).toBeInTheDocument();
   });
 
   it("renders the collapse button with aria-label", () => {
