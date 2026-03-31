@@ -136,10 +136,10 @@ export async function getWorkspaceInfo() {
     .select('id', { count: 'exact', head: true });
 
   return {
-    name: workspace?.name || 'Meu Workspace',
-    plan: workspace?.plan || 'free',
-    maxAgents: workspace?.max_agents || 5,
-    agentCount: count || 0,
+    name: workspace?.name ?? 'Meu Workspace',
+    plan: (workspace?.plan ?? 'free') as string,
+    maxAgents: workspace?.max_agents ?? 5,
+    agentCount: count ?? 0,
     role: member.role,
     email: user.email || '',
     userName: user.user_metadata?.full_name || user.email?.split('@')[0] || 'Usuário',
