@@ -193,6 +193,9 @@ export default function OraclePage() {
                   <Button size="sm" variant="outline" onClick={() => { navigator.clipboard.writeText(store.results!.final_response); toast.success('Copiado!'); }}>
                     <Copy className="h-3.5 w-3.5 mr-1" /> Copiar
                   </Button>
+                  <Button size="sm" variant="outline" onClick={handleExportMd}>
+                    <FileText className="h-3.5 w-3.5 mr-1" /> Markdown
+                  </Button>
                   <Button size="sm" variant="outline" onClick={() => { store.clearResults(); store.submitQuery(); }}>
                     <RefreshCw className="h-3.5 w-3.5 mr-1" /> Refazer
                   </Button>
