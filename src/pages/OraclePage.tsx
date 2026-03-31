@@ -263,6 +263,25 @@ export default function OraclePage() {
           </Tabs>
         </motion.div>
       )}
+
+      {/* ═══ HISTORY ═══ */}
+      <div className="nexus-card">
+        <button
+          onClick={() => setShowHistory(!showHistory)}
+          className="flex items-center gap-2 w-full text-left"
+        >
+          <History className="h-4 w-4 text-muted-foreground" />
+          <span className="text-sm font-medium text-foreground">Histórico de Consultas</span>
+          {showHistory ? <ChevronUp className="h-3.5 w-3.5 text-muted-foreground ml-auto" /> : <ChevronDown className="h-3.5 w-3.5 text-muted-foreground ml-auto" />}
+        </button>
+        <AnimatePresence>
+          {showHistory && (
+            <motion.div initial={{ height: 0, opacity: 0 }} animate={{ height: 'auto', opacity: 1 }} exit={{ height: 0, opacity: 0 }} className="overflow-hidden mt-4">
+              <OracleHistory />
+            </motion.div>
+          )}
+        </AnimatePresence>
+      </div>
     </div>
   );
 }
