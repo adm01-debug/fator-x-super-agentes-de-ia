@@ -149,7 +149,9 @@ export default function DashboardPage() {
             </div>
           )}
 
-          <div className="grid lg:grid-cols-2 gap-4">
+          {/* Analytics Charts */}
+          <UsageCharts data={usageData} />
+
             {/* Recent agents */}
             <div className="nexus-card">
               <h3 className="text-sm font-heading font-semibold text-foreground mb-3">Agentes recentes</h3>
