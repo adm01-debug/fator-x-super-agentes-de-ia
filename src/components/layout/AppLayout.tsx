@@ -136,12 +136,39 @@ export function AppLayout({ children }: AppLayoutProps) {
               <div className="flex items-center gap-1.5 sm:gap-2">
                 <ThemeToggle />
                 <NotificationsDrawer />
-                <button
-                  className="h-8 w-8 rounded-full nexus-gradient-bg flex items-center justify-center text-xs font-semibold text-primary-foreground focus:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
-                  aria-label="Menu do usuário"
-                >
-                  MC
-                </button>
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <button
+                      className="h-8 w-8 rounded-full nexus-gradient-bg flex items-center justify-center text-xs font-semibold text-primary-foreground focus:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+                      aria-label="Menu do usuário"
+                    >
+                      {(user?.email?.[0] || 'U').toUpperCase()}
+                    </button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent align="end" className="w-56">
+                    <DropdownMenuLabel className="font-normal">
+                      <div className="flex flex-col space-y-1">
+                        <p className="text-sm font-medium text-foreground">Minha conta</p>
+                        <p className="text-xs text-muted-foreground truncate">{user?.email}</p>
+                      </div>
+                    </DropdownMenuLabel>
+                    <DropdownMenuSeparator />
+                    <DropdownMenuItem onClick={() => navigate('/settings')} className="gap-2 cursor-pointer">
+                      <Settings className="h-3.5 w-3.5" /> Configurações
+                    </DropdownMenuItem>
+                    <DropdownMenuItem onClick={() => {
+                      const event = new KeyboardEvent('keydown', { key: '?' });
+                      window.dispatchEvent(event);
+                    }} className="gap-2 cursor-pointer">
+                      <Keyboard className="h-3.5 w-3.5" /> Atalhos de teclado
+                      <kbd className="ml-auto text-[10px] font-mono text-muted-foreground">?</kbd>
+                    </DropdownMenuItem>
+                    <DropdownMenuSeparator />
+                    <DropdownMenuItem onClick={signOut} className="gap-2 cursor-pointer text-destructive focus:text-destructive">
+                      <LogOut className="h-3.5 w-3.5" /> Sair
+                    </DropdownMenuItem>
+                  </DropdownMenuContent>
+                </DropdownMenu>
               </div>
             </header>
             <main id="main-content" className="flex-1 overflow-auto" tabIndex={-1} aria-label={pageTitle}>
