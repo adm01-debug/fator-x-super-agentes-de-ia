@@ -16,14 +16,14 @@ const CONNECTIONS = [
 ];
 
 const ENTITIES = [
-  { name: 'Cliente', icon: '👤', source: 'bancodadosclientes.companies', records: 52235, crossDb: true },
-  { name: 'Fornecedor', icon: '🏭', source: 'bancodadosclientes.suppliers', records: 754, crossDb: true },
-  { name: 'Transportadora', icon: '🚚', source: 'bancodadosclientes.carriers', records: 112, crossDb: false },
-  { name: 'Produto', icon: '📦', source: 'supabase-fuchsia-kite.products', records: 6123, crossDb: true },
-  { name: 'Colaborador', icon: '👨‍💼', source: 'gestao_time_promo.colaboradores', records: 53, crossDb: true },
-  { name: 'Conversa WhatsApp', icon: '💬', source: 'backupgiftstore.messages', records: 8209, crossDb: false },
-  { name: 'Categoria', icon: '📂', source: 'supabase-fuchsia-kite.categories', records: 438, crossDb: false },
-  { name: 'Técnica Gravação', icon: '🎨', source: 'supabase-fuchsia-kite.tecnicas_gravacao', records: 45, crossDb: false },
+  { name: 'Cliente', icon: '👤', source: 'companies WHERE is_customer=true', records: 55864, crossDb: true, matchKey: 'email + cnpj_raiz' },
+  { name: 'Fornecedor', icon: '🏭', source: 'companies WHERE is_supplier=true', records: 754, crossDb: true, matchKey: 'cnpj_raiz (8 dígitos)' },
+  { name: 'Transportadora', icon: '🚚', source: 'companies WHERE is_carrier=true', records: 112, crossDb: false, matchKey: 'cnpj_raiz' },
+  { name: 'Produto', icon: '📦', source: 'supabase-fuchsia-kite.products', records: 6123, crossDb: true, matchKey: 'product_id' },
+  { name: 'Colaborador', icon: '👨‍💼', source: 'gestao_time_promo.colaboradores', records: 53, crossDb: true, matchKey: 'email (NÃO user_id!)' },
+  { name: 'Conversa WhatsApp', icon: '💬', source: 'backupgiftstore.messages', records: 8209, crossDb: true, matchKey: 'telefone normalizado' },
+  { name: 'Categoria', icon: '📂', source: 'supabase-fuchsia-kite.categories', records: 438, crossDb: false, matchKey: 'id' },
+  { name: 'Técnica Gravação', icon: '🎨', source: 'supabase-fuchsia-kite.tecnicas_gravacao', records: 45, crossDb: false, matchKey: 'id' },
   { name: 'Grupo Econômico', icon: '🏢', source: 'bancodadosclientes.grupos_economicos', records: 1334, crossDb: false },
   { name: 'Pedido/Venda', icon: '📋', source: 'bancodadosclientes.sales', records: 0, crossDb: false },
   { name: 'Score RFM', icon: '📊', source: 'bancodadosclientes.company_rfm_scores', records: 48616, crossDb: false },
@@ -69,6 +69,8 @@ export default function DataHubPage() {
             { id: 'connections', icon: Server, label: 'Conexões' },
             { id: 'explorer', icon: Search, label: 'Explorer' },
             { id: 'entities', icon: Map, label: 'Entidades' },
+            { id: 'identity', icon: ExternalLink, label: 'Identity Resolution' },
+            { id: 'quality', icon: Zap, label: 'Data Quality' },
             { id: 'sync', icon: RefreshCw, label: 'Sync' },
             { id: 'query', icon: Code, label: 'Query Builder' },
             { id: 'health', icon: Activity, label: 'Saúde' },
@@ -162,6 +164,7 @@ export default function DataHubPage() {
                     <p className="text-[10px] font-mono text-muted-foreground">{e.source}</p>
                   </div>
                 </div>
+                {e.matchKey && <p className="text-[9px] text-muted-foreground/70 mb-1">Match: {e.matchKey}</p>}
                 <div className="flex items-center justify-between text-xs">
                   <span className="text-muted-foreground">{e.records.toLocaleString()} registros</span>
                   {e.crossDb && <span className="px-1.5 py-0.5 rounded bg-primary/10 text-primary text-[10px]">Cross-DB</span>}
@@ -171,7 +174,115 @@ export default function DataHubPage() {
           </div>
         </TabsContent>
 
-        {/* Tab 5: Sync */}
+        {/* Tab 5: Identity Resolution */}
+        <TabsContent value="identity" className="mt-4 space-y-4">
+          <div className="nexus-card">
+            <h3 className="text-sm font-semibold text-foreground mb-3">Identity Resolution — Cross-Database Matching</h3>
+            <p className="text-xs text-muted-foreground mb-4">Resolve "quem é quem" entre os 5 bancos usando email, CNPJ (raiz 8 dígitos) e telefone normalizado.</p>
+            <div className="grid grid-cols-3 gap-3 mb-4">
+              {[
+                { label: 'Resolvidas', value: 487, color: 'text-emerald-400' },
+                { label: 'Pendentes (review)', value: 23, color: 'text-amber-400' },
+                { label: 'Irreconciliáveis', value: 8, color: 'text-rose-400' },
+              ].map(s => (
+                <div key={s.label} className="text-center p-3 rounded-lg bg-muted/20">
+                  <p className={`text-xl font-bold font-mono ${s.color}`}>{s.value}</p>
+                  <p className="text-[10px] text-muted-foreground">{s.label}</p>
+                </div>
+              ))}
+            </div>
+            <div className="overflow-x-auto">
+              <table className="w-full text-xs">
+                <thead><tr className="border-b border-border text-muted-foreground">
+                  <th className="text-left py-2 font-medium">Entidade</th>
+                  <th className="text-center py-2 font-medium">Método</th>
+                  <th className="text-center py-2 font-medium">Confiança</th>
+                  <th className="text-center py-2 font-medium">CRM</th>
+                  <th className="text-center py-2 font-medium">Catálogo</th>
+                  <th className="text-center py-2 font-medium">WhatsApp</th>
+                  <th className="text-center py-2 font-medium">RH</th>
+                </tr></thead>
+                <tbody>
+                  {[
+                    { name: 'SPOT Brindes', method: 'cnpj_raiz', conf: 95, crm: true, cat: true, wpp: false, rh: false },
+                    { name: 'Asia Import', method: 'cnpj_raiz', conf: 92, crm: true, cat: true, wpp: false, rh: false },
+                    { name: 'Joaquim Ataides', method: 'email', conf: 100, crm: true, cat: false, wpp: false, rh: true },
+                    { name: 'Sicoob Central', method: 'cnpj_raiz', conf: 88, crm: true, cat: false, wpp: true, rh: false },
+                    { name: 'XBZ Brindes', method: 'name_fuzzy', conf: 72, crm: true, cat: true, wpp: false, rh: false },
+                  ].map(row => (
+                    <tr key={row.name} className="border-b border-border/30">
+                      <td className="py-2 text-foreground font-medium">{row.name}</td>
+                      <td className="py-2 text-center"><span className="px-1.5 py-0.5 rounded bg-primary/10 text-primary text-[10px]">{row.method}</span></td>
+                      <td className={`py-2 text-center font-mono ${row.conf >= 90 ? 'text-emerald-400' : row.conf >= 70 ? 'text-amber-400' : 'text-rose-400'}`}>{row.conf}%</td>
+                      <td className="py-2 text-center">{row.crm ? '✅' : '—'}</td>
+                      <td className="py-2 text-center">{row.cat ? '✅' : '—'}</td>
+                      <td className="py-2 text-center">{row.wpp ? '✅' : '—'}</td>
+                      <td className="py-2 text-center">{row.rh ? '✅' : '—'}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </div>
+          <div className="rounded-lg bg-primary/5 border border-primary/20 p-4 text-xs text-muted-foreground">
+            <strong className="text-foreground">Chaves de matching:</strong> EMAIL (exato) → CNPJ raiz (8 dígitos) → Telefone normalizado → Nome fuzzy (pg_trgm, similarity &gt; 0.8)
+          </div>
+        </TabsContent>
+
+        {/* Tab 6: Data Quality */}
+        <TabsContent value="quality" className="mt-4 space-y-4">
+          <div className="grid grid-cols-4 gap-3">
+            {[
+              { label: 'Score Geral', value: '72/100', color: 'text-amber-400' },
+              { label: 'Completude', value: '78%', color: 'text-emerald-400' },
+              { label: 'Consistência', value: '65%', color: 'text-amber-400' },
+              { label: 'Integridade', value: '82%', color: 'text-emerald-400' },
+            ].map(s => (
+              <div key={s.label} className="nexus-card text-center py-3">
+                <p className={`text-xl font-bold font-mono ${s.color}`}>{s.value}</p>
+                <p className="text-[10px] text-muted-foreground">{s.label}</p>
+              </div>
+            ))}
+          </div>
+          <div className="space-y-3">
+            {[
+              { severity: 'critical', icon: '🔴', items: [
+                { desc: '1.383 empresas sem nenhum flag (is_customer/is_supplier/is_carrier)', records: 1383, fix: 'Classificar manualmente ou via regra de negócio' },
+                { desc: '1.804 empresas sem razão social', records: 1804, fix: 'Excluir registros fantasma ou preencher via CNPJ lookup' },
+                { desc: '67 CNPJs com tamanho inválido', records: 67, fix: 'Aplicar normalize_cnpj() e validar 14 dígitos' },
+                { desc: 'financeiro_promo HIBERNADO', records: 0, fix: 'Reativar no dashboard do Supabase' },
+              ]},
+              { severity: 'high', icon: '🟡', items: [
+                { desc: '2.201 contatos órfãos (46% sem empresa vinculada)', records: 2201, fix: 'Vincular via email/telefone ou marcar como leads' },
+                { desc: '8.540 empresas sem CNPJ (15%)', records: 8540, fix: 'Marcar como low confidence no identity map' },
+                { desc: '235 fornecedores sem CNPJ (31%)', records: 235, fix: 'Match por nome fuzzy como fallback' },
+                { desc: 'CNPJ com 3 formatos no mesmo banco', records: 5519, fix: 'Normalizar com normalize_cnpj()' },
+              ]},
+              { severity: 'medium', icon: '🟢', items: [
+                { desc: '241 contatos sem email E sem telefone', records: 241, fix: 'Registros irrecuperáveis — arquivar' },
+                { desc: '96 produtos sem imagem (1.6%)', records: 96, fix: 'Solicitar imagens aos fornecedores' },
+                { desc: '783 contatos WhatsApp sem empresa', records: 783, fix: 'Match por telefone com CRM' },
+              ]},
+            ].map(group => (
+              <div key={group.severity} className="nexus-card">
+                <h3 className="text-sm font-semibold text-foreground mb-2">{group.icon} {group.severity === 'critical' ? 'Crítico' : group.severity === 'high' ? 'Alto' : 'Médio'}</h3>
+                <div className="space-y-2">
+                  {group.items.map(item => (
+                    <div key={item.desc} className="flex items-start justify-between p-2 rounded-lg bg-muted/10 text-xs">
+                      <div className="flex-1">
+                        <p className="text-foreground">{item.desc}</p>
+                        <p className="text-[10px] text-muted-foreground mt-0.5">Fix: {item.fix}</p>
+                      </div>
+                      <span className="text-muted-foreground shrink-0 ml-2">{item.records > 0 ? `${item.records.toLocaleString()} reg.` : '—'}</span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            ))}
+          </div>
+        </TabsContent>
+
+        {/* Tab 7: Sync */}
         <TabsContent value="sync" className="mt-4">
           <div className="nexus-card">
             <h3 className="text-sm font-semibold text-foreground mb-3">Pipeline de Sincronização → Super Cérebro</h3>
