@@ -4,7 +4,7 @@ import { StatusBadge } from "@/components/shared/StatusBadge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { agents as mockAgents } from "@/lib/mock-data";
-import { Bot, Plus, Search, Filter, ArrowRight, Trash2, Copy } from "lucide-react";
+import { Plus, Search, ArrowRight, Trash2 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 import { useAgentBuilderStore } from "@/stores/agentBuilderStore";

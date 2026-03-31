@@ -1,5 +1,4 @@
 import { lazy, Suspense, useState } from "react";
-import { useLocation } from "react-router-dom";
 import { SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
 import { AppSidebar } from "./AppSidebar";
 import { Search, Command } from "lucide-react";

@@ -1,7 +1,7 @@
 import { PageHeader } from "@/components/shared/PageHeader";
 import { StatusBadge } from "@/components/shared/StatusBadge";
 import { traces } from "@/lib/mock-data";
-import { Activity, Clock, DollarSign, Wrench, ChevronRight } from "lucide-react";
+import { Clock, DollarSign, Wrench } from "lucide-react";
 import { useState } from "react";
 
 const stepColors: Record<string, string> = {

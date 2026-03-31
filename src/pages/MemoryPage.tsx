@@ -1,6 +1,6 @@
 import { PageHeader } from "@/components/shared/PageHeader";
 import { InfoHint } from "@/components/shared/InfoHint";
-import { Brain, Clock, Globe, User, Users, Database, Settings } from "lucide-react";
+import { Brain, Clock, Globe, User, Users, Database } from "lucide-react";
 
 const memoryTypes = [
   { icon: Clock, title: 'Short-term / Conversational', desc: 'Memória da conversa atual. Mantém contexto dentro de uma sessão.', retention: 'Duração da sessão', strategy: 'Sliding window', privacy: 'Isolada por sessão', items: ['Última pergunta do usuário', 'Contexto recuperado', 'Resposta anterior'] },

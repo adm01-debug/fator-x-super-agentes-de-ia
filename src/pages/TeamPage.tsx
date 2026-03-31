@@ -2,7 +2,7 @@ import { PageHeader } from "@/components/shared/PageHeader";
 import { StatusBadge } from "@/components/shared/StatusBadge";
 import { teamMembers } from "@/lib/mock-data";
 import { Button } from "@/components/ui/button";
-import { Plus, UserPlus } from "lucide-react";
+import { UserPlus } from "lucide-react";
 
 const roleLabels: Record<string, string> = { owner: 'Owner', admin: 'Admin', engineer: 'Engineer', analyst: 'Analyst', viewer: 'Viewer' };
 

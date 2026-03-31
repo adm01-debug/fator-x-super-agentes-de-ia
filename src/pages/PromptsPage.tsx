@@ -2,7 +2,7 @@ import { useNavigate } from "react-router-dom";
 import { PageHeader } from "@/components/shared/PageHeader";
 import { InfoHint } from "@/components/shared/InfoHint";
 import { Button } from "@/components/ui/button";
-import { Plus, FileText, GitBranch, Copy } from "lucide-react";
+import { Plus, FileText } from "lucide-react";
 import { StatusBadge } from "@/components/shared/StatusBadge";
 
 const prompts = [

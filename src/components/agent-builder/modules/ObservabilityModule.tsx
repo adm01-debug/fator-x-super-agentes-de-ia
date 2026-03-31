@@ -1,7 +1,7 @@
 import { useAgentBuilderStore } from '@/stores/agentBuilderStore';
 import { SectionTitle, NexusBadge, ToggleField } from '../ui';
 import { CollapsibleCard } from '../ui/CollapsibleCard';
-import { Activity, Clock, DollarSign, AlertTriangle, CheckCircle, XCircle, Search, Filter } from 'lucide-react';
+import { Activity, Clock, DollarSign, AlertTriangle, CheckCircle, XCircle, Filter } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import type { ExecutionTrace } from '@/types/agentTypes';
 import { useState } from 'react';

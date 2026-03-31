@@ -7,7 +7,7 @@ import { Input } from "@/components/ui/input";
 import { InfoHint } from "@/components/shared/InfoHint";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Bot, Zap, Clock, DollarSign, CheckCircle, Star, ArrowLeft, Hash, Wrench, Send, MessageSquare } from "lucide-react";
+import { Bot, Zap, Clock, DollarSign, CheckCircle, Star, ArrowLeft, Wrench, Send, MessageSquare } from "lucide-react";
 import { useState } from "react";
 
 const chatHistory = [

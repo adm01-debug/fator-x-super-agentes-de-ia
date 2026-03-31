@@ -4,7 +4,7 @@ import { InfoHint } from "@/components/shared/InfoHint";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { knowledgeBases } from "@/lib/mock-data";
-import { Plus, Search, BookOpen, FileText, Database, RefreshCw, ArrowRight } from "lucide-react";
+import { Plus, Search, BookOpen, RefreshCw, ArrowRight } from "lucide-react";
 
 const pipeline = ['Parsing', 'Chunking', 'Metadata', 'Embeddings', 'Indexing'];
 
