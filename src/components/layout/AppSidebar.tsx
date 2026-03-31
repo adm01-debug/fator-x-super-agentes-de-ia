@@ -3,7 +3,7 @@ import { NavLink } from "@/components/NavLink";
 import {
   LayoutDashboard, Bot, BookOpen, Brain, Puzzle, FileText, GitBranch,
   FlaskConical, Rocket, Activity, Database, Shield, Users, CreditCard, Settings,
-  Sparkles, PanelLeftClose, PanelLeft,
+  Sparkles, PanelLeftClose, PanelLeft, LogOut,
 } from "lucide-react";
 import {
   Sidebar, SidebarContent, SidebarGroup, SidebarGroupContent, SidebarGroupLabel,
@@ -12,6 +12,9 @@ import {
 } from "@/components/ui/sidebar";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
+import { useAuth } from "@/contexts/AuthContext";
+import { useEffect, useState } from "react";
+import { getWorkspaceInfo } from "@/lib/agentService";
 
 const navSections = [
   {
@@ -19,6 +22,8 @@ const navSections = [
     items: [
       { title: "Dashboard", url: "/", icon: LayoutDashboard },
       { title: "Agents", url: "/agents", icon: Bot },
+      { title: "Super Cérebro", url: "/brain", icon: Brain },
+      { title: "Oráculo", url: "/oracle", icon: Sparkles },
     ],
   },
   {
@@ -55,6 +60,19 @@ export function AppSidebar() {
   const { state, toggleSidebar } = useSidebar();
   const collapsed = state === "collapsed";
   const location = useLocation();
+  const { user, signOut } = useAuth();
+  const [wsInfo, setWsInfo] = useState<{ name: string; plan: string; maxAgents: number; agentCount: number; userName: string; email: string } | null>(null);
+
+  useEffect(() => {
+    if (user) {
+      getWorkspaceInfo().then(info => info && setWsInfo(info));
+    }
+  }, [user]);
+
+  const planLabel = wsInfo?.plan === 'pro' ? 'Pro' : wsInfo?.plan === 'enterprise' ? 'Enterprise' : 'Free';
+  const agentCount = wsInfo?.agentCount ?? 0;
+  const maxAgents = wsInfo?.maxAgents ?? 5;
+  const usage = maxAgents > 0 ? Math.min((agentCount / maxAgents) * 100, 100) : 0;
 
   return (
     <Sidebar collapsible="icon" className="border-r border-border/50">
@@ -113,13 +131,29 @@ export function AppSidebar() {
 
       <SidebarFooter className="p-3 space-y-2">
         {!collapsed && (
-          <div className="rounded-lg bg-secondary/50 p-3">
-            <p className="text-[11px] font-medium text-foreground">Workspace Free</p>
-            <p className="text-[10px] text-muted-foreground mt-0.5">3 de 5 agentes usados</p>
-            <div className="mt-2 h-1 rounded-full bg-secondary" role="progressbar" aria-valuenow={60} aria-valuemin={0} aria-valuemax={100} aria-label="Uso de agentes">
-              <div className="h-full w-3/5 rounded-full nexus-gradient-bg" />
+          <>
+            <div className="rounded-lg bg-secondary/50 p-3">
+              <p className="text-[11px] font-medium text-foreground">Workspace {planLabel}</p>
+              <p className="text-[10px] text-muted-foreground mt-0.5">{agentCount} de {maxAgents} agentes usados</p>
+              <div className="mt-2 h-1 rounded-full bg-secondary" role="progressbar" aria-valuenow={usage} aria-valuemin={0} aria-valuemax={100} aria-label="Uso de agentes">
+                <div className="h-full rounded-full nexus-gradient-bg transition-all" style={{ width: `${usage}%` }} />
+              </div>
             </div>
-          </div>
+            {user && (
+              <div className="rounded-lg bg-secondary/30 p-2.5 flex items-center gap-2">
+                <div className="h-7 w-7 rounded-full bg-primary/20 flex items-center justify-center text-xs font-bold text-primary shrink-0">
+                  {(wsInfo?.userName?.[0] || user.email?.[0] || 'U').toUpperCase()}
+                </div>
+                <div className="flex-1 min-w-0">
+                  <p className="text-[11px] font-medium text-foreground truncate">{wsInfo?.userName || 'Usuário'}</p>
+                  <p className="text-[10px] text-muted-foreground truncate">{user.email}</p>
+                </div>
+                <Button variant="ghost" size="icon" className="h-6 w-6 shrink-0 text-muted-foreground hover:text-destructive" onClick={signOut} title="Sair">
+                  <LogOut className="h-3.5 w-3.5" />
+                </Button>
+              </div>
+            )}
+          </>
         )}
         <Button
           variant="ghost"
