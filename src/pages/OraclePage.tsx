@@ -29,9 +29,17 @@ export default function OraclePage() {
   const store = useOracleStore();
   const [showPresets, setShowPresets] = useState(false);
   const [showAdvanced, setShowAdvanced] = useState(false);
+  const [showHistory, setShowHistory] = useState(false);
 
   const currentPreset = ORACLE_PRESETS.find(p => p.id === store.selectedPreset);
   const modeConfig = ORACLE_MODES[store.mode];
+
+  const handleExportMd = () => {
+    if (!store.results) return;
+    const md = exportToMarkdown(store.query, store.results, currentPreset?.name || store.selectedPreset, `${modeConfig.icon} ${modeConfig.label}`, store.chairmanModel);
+    downloadText(md, `oraculo_${Date.now()}.md`);
+    toast.success('Markdown exportado!');
+  };
 
   return (
     <div className="p-6 space-y-6 max-w-[1400px] mx-auto">
