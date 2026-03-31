@@ -56,7 +56,7 @@ export default function DashboardPage() {
   const draftCount = agents.filter(a => a.status === 'draft').length;
 
   return (
-    <div className="p-6 space-y-6 max-w-[1400px] mx-auto">
+    <div className="p-6 space-y-6 max-w-[1400px] mx-auto" role="main" aria-label="Dashboard principal">
       <PageHeader
         title="Dashboard"
         description="Visão executiva da operação de agentes de IA"
@@ -96,7 +96,7 @@ export default function DashboardPage() {
       ) : (
         <>
           {/* Metrics */}
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-4" role="region" aria-label="Métricas principais">
             <div className="nexus-card text-center">
               <div className="flex items-center justify-center gap-1.5 mb-1">
                 <Bot className="h-4 w-4 text-primary" />
@@ -154,10 +154,10 @@ export default function DashboardPage() {
 
             <div className="grid lg:grid-cols-2 gap-4">
             <div className="nexus-card">
-              <h3 className="text-sm font-heading font-semibold text-foreground mb-3">Agentes recentes</h3>
-              <div className="space-y-3">
+              <h3 className="text-sm font-heading font-semibold text-foreground mb-3" id="recent-agents-heading">Agentes recentes</h3>
+              <div className="space-y-3" role="list" aria-labelledby="recent-agents-heading">
                 {agents.slice(0, 5).map(agent => (
-                  <div key={agent.id} className="flex items-center justify-between cursor-pointer hover:bg-secondary/30 rounded-lg p-2 -mx-2 transition-colors" onClick={() => navigate(`/builder/${agent.id}`)}>
+                  <div key={agent.id} role="listitem" className="flex items-center justify-between cursor-pointer hover:bg-secondary/30 rounded-lg p-2 -mx-2 transition-colors" onClick={() => navigate(`/builder/${agent.id}`)} onKeyDown={(e) => e.key === 'Enter' && navigate(`/builder/${agent.id}`)} tabIndex={0} aria-label={`Agente ${agent.name}, status ${agent.status || 'draft'}`}>
                     <div className="flex items-center gap-2.5 min-w-0">
                       <div className="h-8 w-8 rounded-lg bg-primary/10 flex items-center justify-center text-sm">{agent.avatar_emoji || '🤖'}</div>
                       <div className="min-w-0">

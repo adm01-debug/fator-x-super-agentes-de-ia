@@ -35,7 +35,16 @@ const BillingPage = lazy(() => import("./pages/BillingPage"));
 const SettingsPage = lazy(() => import("./pages/SettingsPage"));
 const NotFound = lazy(() => import("./pages/NotFound"));
 
-const queryClient = new QueryClient();
+const queryClient = new QueryClient({
+  defaultOptions: {
+    queries: {
+      staleTime: 5 * 60 * 1000, // 5 min — reduces unnecessary refetches
+      gcTime: 10 * 60 * 1000, // 10 min garbage collection
+      retry: 2,
+      refetchOnWindowFocus: false,
+    },
+  },
+});
 
 const App = () => (
   <QueryClientProvider client={queryClient}>
