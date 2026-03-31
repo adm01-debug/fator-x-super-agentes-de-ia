@@ -204,40 +204,6 @@ export default function PromptEditorPage() {
         }
       />
 
-      <div className="hidden">
-        {/* kept for reference: old header was here */}
-        <div className="flex items-center gap-2">
-              <h1 className="text-xl font-heading font-bold text-foreground">
-                {agent?.avatar_emoji} {agent?.name || "Prompt Editor"}
-              </h1>
-              {activeVersion && (
-                <Badge variant="outline" className="text-[10px] font-mono">v{activeVersion.version}</Badge>
-              )}
-            </div>
-            <p className="text-xs text-muted-foreground mt-0.5">
-              {versions.length} versão(ões) • Editor com versionamento completo
-            </p>
-          </div>
-        </div>
-        <div className="flex items-center gap-2">
-          {activeVersion && dirty && (
-            <Button variant="outline" size="sm" className="gap-1.5 text-xs"
-              onClick={() => updateVersion.mutate(activeVersion.id)}
-              disabled={updateVersion.isPending}
-            >
-              {updateVersion.isPending ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Save className="h-3.5 w-3.5" />}
-              Atualizar v{activeVersion.version}
-            </Button>
-          )}
-          <Button size="sm" className="gap-1.5 text-xs nexus-gradient-bg text-primary-foreground hover:opacity-90"
-            onClick={() => createVersion.mutate()}
-            disabled={createVersion.isPending || !content.trim()}
-          >
-            {createVersion.isPending ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Save className="h-3.5 w-3.5" />}
-            Nova versão
-          </Button>
-        </div>
-      </div>
 
       <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
         <TabsList className="bg-secondary/50 border border-border/50">
