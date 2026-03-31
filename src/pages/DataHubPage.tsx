@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { PageHeader } from '@/components/shared/PageHeader';
 import { StatusBadge } from '@/components/shared/StatusBadge';
+import { BANK_HEALTH_SCORES } from '@/config/datahub-blacklist';
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Database, Server, Search, Map, RefreshCw, Code, Activity, Shield, Plus, ExternalLink, Zap } from 'lucide-react';
@@ -233,10 +234,10 @@ export default function DataHubPage() {
         <TabsContent value="quality" className="mt-4 space-y-4">
           <div className="grid grid-cols-4 gap-3">
             {[
-              { label: 'Score Geral', value: '72/100', color: 'text-amber-400' },
-              { label: 'Completude', value: '78%', color: 'text-emerald-400' },
-              { label: 'Consistência', value: '65%', color: 'text-amber-400' },
-              { label: 'Integridade', value: '82%', color: 'text-emerald-400' },
+              { label: 'Score Geral', value: '58/100', color: 'text-rose-400' },
+              { label: 'Gaps Críticos', value: '8', color: 'text-rose-400' },
+              { label: 'Gaps Altos', value: '9', color: 'text-amber-400' },
+              { label: 'Gaps Médios', value: '6', color: 'text-emerald-400' },
             ].map(s => (
               <div key={s.label} className="nexus-card text-center py-3">
                 <p className={`text-xl font-bold font-mono ${s.color}`}>{s.value}</p>
@@ -247,21 +248,33 @@ export default function DataHubPage() {
           <div className="space-y-3">
             {[
               { severity: 'critical', icon: '🔴', items: [
-                { desc: '1.383 empresas sem nenhum flag (is_customer/is_supplier/is_carrier)', records: 1383, fix: 'Classificar manualmente ou via regra de negócio' },
-                { desc: '1.804 empresas sem razão social', records: 1804, fix: 'Excluir registros fantasma ou preencher via CNPJ lookup' },
-                { desc: '67 CNPJs com tamanho inválido', records: 67, fix: 'Aplicar normalize_cnpj() e validar 14 dígitos' },
-                { desc: 'financeiro_promo HIBERNADO', records: 0, fix: 'Reativar no dashboard do Supabase' },
+                { desc: '287 empresas multi-role (cliente+fornecedor) — contexto ambíguo', records: 287, fix: 'Entity mapping multi-role' },
+                { desc: '97% clientes SEM pessoa de contato (só company_phones)', records: 53694, fix: 'Incluir company_phones/emails no entity mapping' },
+                { desc: 'RFM 100% "Hibernating" — scores completamente inúteis', records: 48616, fix: 'Recalcular ou excluir do sync' },
+                { desc: 'Tabela sales tem dados FAKE (João Silva, Plano Premium)', records: 18, fix: 'Excluir sales do DataHub (blacklist)' },
+                { desc: 'Pipeline sync CRM↔Bitrix24 PARADO (0 interações em 7 dias)', records: 0, fix: 'Reativar pipeline n8n urgente' },
+                { desc: 'Filiais como empresas separadas (Sicoob=10+ registros)', records: 0, fix: 'Agrupar por grupo_economico/cnpj_raiz' },
+                { desc: 'financeiro_promo HIBERNADO', records: 0, fix: 'Deshibernação no dashboard Supabase' },
+                { desc: 'IDs cross-database incompatíveis (CRM user_id=10 ≠ RH bitrix_id=1)', records: 0, fix: 'Identity map por EMAIL (20/21 matcharam)' },
               ]},
               { severity: 'high', icon: '🟡', items: [
-                { desc: '2.201 contatos órfãos (46% sem empresa vinculada)', records: 2201, fix: 'Vincular via email/telefone ou marcar como leads' },
-                { desc: '8.540 empresas sem CNPJ (15%)', records: 8540, fix: 'Marcar como low confidence no identity map' },
-                { desc: '235 fornecedores sem CNPJ (31%)', records: 235, fix: 'Match por nome fuzzy como fallback' },
-                { desc: 'CNPJ com 3 formatos no mesmo banco', records: 5519, fix: 'Normalizar com normalize_cnpj()' },
+                { desc: '2.976 clientes ativos incontactáveis (sem telefone/email/contato)', records: 2976, fix: 'Data enrichment ou flag "incontactável"' },
+                { desc: 'Coluna chama "estado" não "uf" — queries de exemplo erradas', records: 0, fix: 'Corrigir queries e entity mappings' },
+                { desc: '13.500 clientes sem vendedor atribuído (28%)', records: 13500, fix: 'Atribuição automática ou alerta' },
+                { desc: 'Própria empresa no ranking de clientes (#1 SP)', records: 1, fix: 'Filtro para excluir empresa própria' },
+                { desc: 'Técnica de gravação requer 3 JOINs (entity mapping complexo)', records: 0, fix: 'Materializar view ou cache' },
+                { desc: '53% colaboradores sem CPF', records: 28, fix: 'Compliance — preencher urgente' },
+                { desc: 'gestor_id NULL em 100% dos colaboradores', records: 53, fix: 'Mapear hierarquia organizacional' },
+                { desc: 'Tabelas de gamificação com dados fake/teste', records: 318, fix: 'Adicionar ao blacklist' },
+                { desc: 'CNPJ com 3 formatos no mesmo banco (5.519 sem pontuação)', records: 5519, fix: 'normalize_cnpj() em todas as queries' },
               ]},
               { severity: 'medium', icon: '🟢', items: [
+                { desc: '1.383 empresas sem nenhum flag (fantasmas)', records: 1383, fix: 'Classificar ou arquivar' },
+                { desc: '1.804 empresas sem razão social', records: 1804, fix: 'Excluir registros vazios' },
                 { desc: '241 contatos sem email E sem telefone', records: 241, fix: 'Registros irrecuperáveis — arquivar' },
+                { desc: '235 fornecedores sem CNPJ (31% — irreconciliáveis)', records: 235, fix: 'Match por nome fuzzy como fallback' },
                 { desc: '96 produtos sem imagem (1.6%)', records: 96, fix: 'Solicitar imagens aos fornecedores' },
-                { desc: '783 contatos WhatsApp sem empresa', records: 783, fix: 'Match por telefone com CRM' },
+                { desc: 'pgvector não instalado nos bancos externos', records: 0, fix: 'Instalar no banco Nexus (não nos externos)' },
               ]},
             ].map(group => (
               <div key={group.severity} className="nexus-card">
@@ -323,25 +336,42 @@ export default function DataHubPage() {
         </TabsContent>
 
         {/* Tab 7: Saúde */}
-        <TabsContent value="health" className="mt-4">
+        <TabsContent value="health" className="mt-4 space-y-4">
+          <div className="nexus-card text-center py-4">
+            <p className="text-3xl font-bold font-mono text-amber-400">58/100</p>
+            <p className="text-xs text-muted-foreground">Score geral do ecossistema de dados</p>
+          </div>
           <div className="space-y-3">
-            {CONNECTIONS.map(conn => (
-              <div key={conn.id} className="nexus-card flex items-center justify-between">
-                <div className="flex items-center gap-3">
-                  <span className="text-xl">{conn.icon}</span>
-                  <div>
-                    <p className="text-sm font-medium text-foreground">{conn.display}</p>
-                    <p className="text-[10px] text-muted-foreground">{conn.tables} tabelas · {conn.rows > 0 ? `${(conn.rows / 1000).toFixed(0)}K rows` : 'hibernado'}</p>
+            {CONNECTIONS.map(conn => {
+              const health = BANK_HEALTH_SCORES[conn.name];
+              return (
+              <div key={conn.id} className="nexus-card">
+                <div className="flex items-center justify-between mb-3">
+                  <div className="flex items-center gap-3">
+                    <span className="text-xl">{conn.icon}</span>
+                    <div>
+                      <p className="text-sm font-medium text-foreground">{conn.display}</p>
+                      <p className="text-[10px] text-muted-foreground">{conn.tables} tabelas · {conn.rows > 0 ? `${(conn.rows / 1000).toFixed(0)}K rows` : 'hibernado'}</p>
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-3">
+                    <span className={`text-lg font-bold font-mono ${health?.score >= 80 ? 'text-emerald-400' : health?.score >= 60 ? 'text-amber-400' : 'text-rose-400'}`}>
+                      {health?.score ?? 0}/100
+                    </span>
+                    <StatusBadge status={statusColors[conn.status]} />
                   </div>
                 </div>
-                <div className="flex items-center gap-4 text-xs">
-                  <span className={conn.latency > 0 ? (conn.latency < 50 ? 'text-emerald-400' : 'text-amber-400') : 'text-muted-foreground'}>
-                    {conn.latency > 0 ? `${conn.latency}ms` : '—'}
-                  </span>
-                  <StatusBadge status={statusColors[conn.status]} />
-                </div>
+                {health && health.score > 0 && (
+                  <div className="grid grid-cols-4 gap-2 text-center text-[10px]">
+                    <div className="rounded bg-muted/20 p-1.5"><span className="font-mono text-foreground">{health.completude}%</span><br/>Completude</div>
+                    <div className="rounded bg-muted/20 p-1.5"><span className={`font-mono ${health.freshness < 70 ? 'text-amber-400' : 'text-foreground'}`}>{health.freshness}%</span><br/>Freshness</div>
+                    <div className="rounded bg-muted/20 p-1.5"><span className="font-mono text-foreground">{health.integridade}%</span><br/>Integridade</div>
+                    <div className="rounded bg-muted/20 p-1.5"><span className={`font-mono ${health.crossLink < 50 ? 'text-rose-400' : 'text-foreground'}`}>{health.crossLink}%</span><br/>Cross-link</div>
+                  </div>
+                )}
               </div>
-            ))}
+              );
+            })}
           </div>
         </TabsContent>
 
