@@ -190,6 +190,7 @@ export function AppLayout({ children }: AppLayoutProps) {
         </div>
         <CommandPalette />
         <KeyboardShortcutsDialog />
+        <OnboardingTour />
       </SidebarProvider>
     </UnsavedChangesProvider>
   );
