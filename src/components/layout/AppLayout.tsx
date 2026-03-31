@@ -1,4 +1,5 @@
-import { useState } from "react";
+import { useState, useMemo } from "react";
+import { useNavigate } from "react-router-dom";
 import { SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
 import { AppSidebar } from "./AppSidebar";
 import { Search, Command } from "lucide-react";
@@ -8,6 +9,8 @@ import { CommandPalette } from "@/components/shared/CommandPalette";
 import { DirectionalTransition } from "@/components/shared/DirectionalTransition";
 import { ErrorBoundary } from "@/components/shared/ErrorBoundary";
 import { UnsavedChangesProvider } from "@/hooks/use-unsaved-changes";
+import { useNetworkStatus } from "@/hooks/use-network-status";
+import { useKeyboardShortcuts } from "@/hooks/use-keyboard-shortcuts";
 
 interface AppLayoutProps {
   children: React.ReactNode;
@@ -27,6 +30,18 @@ function getDefaultOpen() {
 export function AppLayout({ children }: AppLayoutProps) {
   const [cmdOpen, setCmdOpen] = useState(false);
   const [defaultOpen] = useState(getDefaultOpen);
+  const navigate = useNavigate();
+
+  // Network status detection
+  useNetworkStatus();
+
+  // Global keyboard shortcuts
+  const shortcuts = useMemo(() => [
+    { key: 'g', description: 'Go to Dashboard', handler: () => navigate('/') },
+    { key: 'a', description: 'Go to Agents', handler: () => navigate('/agents') },
+    { key: 'n', shift: true, description: 'New Agent', handler: () => navigate('/agents/new') },
+  ], [navigate]);
+  useKeyboardShortcuts(shortcuts);
 
   return (
     <UnsavedChangesProvider>
