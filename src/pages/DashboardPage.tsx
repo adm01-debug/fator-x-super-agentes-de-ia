@@ -43,7 +43,6 @@ export default function DashboardPage() {
     avgLatency: Math.round(usageData.reduce((s, u) => s + (u.avg_latency_ms || 0), 0) / usageData.length),
     totalTokens: usageData.reduce((s, u) => s + (u.tokens_input || 0) + (u.tokens_output || 0), 0),
   } : null;
-  });
 
   const { data: recentTraces = [] } = useQuery({
     queryKey: ['dashboard_traces'],
