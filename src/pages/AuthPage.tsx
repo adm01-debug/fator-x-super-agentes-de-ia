@@ -83,6 +83,28 @@ export default function AuthPage() {
     return Object.keys(errs).length === 0;
   }, [email, password, isLogin]);
 
+  const handleForgotPassword = async (e: React.FormEvent) => {
+    e.preventDefault();
+    const errs: { email?: string } = {};
+    if (!email) errs.email = 'E-mail é obrigatório';
+    else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) errs.email = 'E-mail inválido';
+    if (Object.keys(errs).length > 0) {
+      setErrors(errs);
+      return;
+    }
+    setLoading(true);
+    const { error } = await resetPassword(email);
+    if (error) {
+      toast.error("Erro ao enviar e-mail", { description: error.message });
+    } else {
+      toast.success("E-mail enviado!", {
+        description: "Verifique sua caixa de entrada para redefinir a senha.",
+      });
+      setIsForgotPassword(false);
+    }
+    setLoading(false);
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (isLockedOut) {
