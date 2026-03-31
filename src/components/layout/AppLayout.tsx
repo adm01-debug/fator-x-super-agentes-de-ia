@@ -37,6 +37,7 @@ export function AppLayout({ children }: AppLayoutProps) {
   const [defaultOpen] = useState(getDefaultOpen);
   const navigate = useNavigate();
   const location = useLocation();
+  const isMobile = useIsMobile();
 
   // Network status detection
   useNetworkStatus();
