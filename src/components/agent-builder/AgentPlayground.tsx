@@ -34,7 +34,7 @@ export function AgentPlayground() {
   }, [messages]);
 
   const buildSystemPrompt = () => {
-    const parts = [];
+    const parts: string[] = [];
     if (agent.system_prompt) {
       parts.push(agent.system_prompt);
     } else {
