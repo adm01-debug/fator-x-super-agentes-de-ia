@@ -8,12 +8,13 @@ import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
-  ArrowLeft, Save, GitBranch, CheckCircle, AlertTriangle,
+  Save, GitBranch, CheckCircle, AlertTriangle,
   RotateCcw, Trash2, Loader2, FileText,
 } from "lucide-react";
 import { motion } from "framer-motion";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
+import { PageHeader } from "@/components/shared/PageHeader";
 
 export default function PromptEditorPage() {
   const { id: agentId } = useParams();
@@ -25,7 +26,7 @@ export default function PromptEditorPage() {
     queryKey: ["agent", agentId],
     queryFn: async () => {
       if (!agentId) return null;
-      const { data, error } = await supabase.from("agents").select("id, name, avatar_emoji").eq("id", agentId).single();
+      const { data, error } = await supabase.from("agents").select("id, name, avatar_emoji").eq("id", agentId).maybeSingle();
       if (error) throw error;
       return data;
     },
@@ -178,44 +179,32 @@ export default function PromptEditorPage() {
   return (
     <div className="p-6 max-w-[1400px] mx-auto space-y-5">
       {/* Header */}
-      <div className="flex items-center justify-between">
-        <div className="flex items-center gap-3">
-          <Button variant="ghost" size="icon" onClick={() => navigate("/prompts")} className="text-muted-foreground">
-            <ArrowLeft className="h-4 w-4" />
-          </Button>
-          <div>
-            <div className="flex items-center gap-2">
-              <h1 className="text-xl font-heading font-bold text-foreground">
-                {agent?.avatar_emoji} {agent?.name || "Prompt Editor"}
-              </h1>
-              {activeVersion && (
-                <Badge variant="outline" className="text-[10px] font-mono">v{activeVersion.version}</Badge>
-              )}
-            </div>
-            <p className="text-xs text-muted-foreground mt-0.5">
-              {versions.length} versão(ões) • Editor com versionamento completo
-            </p>
-          </div>
-        </div>
-        <div className="flex items-center gap-2">
-          {activeVersion && dirty && (
-            <Button variant="outline" size="sm" className="gap-1.5 text-xs"
-              onClick={() => updateVersion.mutate(activeVersion.id)}
-              disabled={updateVersion.isPending}
+      <PageHeader
+        title={`${agent?.avatar_emoji || '📝'} ${agent?.name || "Prompt Editor"}`}
+        description={`${versions.length} versão(ões) • Editor com versionamento completo`}
+        backTo="/prompts"
+        actions={
+          <div className="flex items-center gap-2">
+            {activeVersion && dirty && (
+              <Button variant="outline" size="sm" className="gap-1.5 text-xs"
+                onClick={() => updateVersion.mutate(activeVersion.id)}
+                disabled={updateVersion.isPending}
+              >
+                {updateVersion.isPending ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Save className="h-3.5 w-3.5" />}
+                Atualizar v{activeVersion.version}
+              </Button>
+            )}
+            <Button size="sm" className="gap-1.5 text-xs nexus-gradient-bg text-primary-foreground hover:opacity-90"
+              onClick={() => createVersion.mutate()}
+              disabled={createVersion.isPending || !content.trim()}
             >
-              {updateVersion.isPending ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Save className="h-3.5 w-3.5" />}
-              Atualizar v{activeVersion.version}
+              {createVersion.isPending ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Save className="h-3.5 w-3.5" />}
+              Nova versão
             </Button>
-          )}
-          <Button size="sm" className="gap-1.5 text-xs nexus-gradient-bg text-primary-foreground hover:opacity-90"
-            onClick={() => createVersion.mutate()}
-            disabled={createVersion.isPending || !content.trim()}
-          >
-            {createVersion.isPending ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Save className="h-3.5 w-3.5" />}
-            Nova versão
-          </Button>
-        </div>
-      </div>
+          </div>
+        }
+      />
+
 
       <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
         <TabsList className="bg-secondary/50 border border-border/50">

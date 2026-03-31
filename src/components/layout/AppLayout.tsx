@@ -7,6 +7,8 @@ import { NotificationsDrawer } from "@/components/shared/NotificationsDrawer";
 import { ThemeToggle } from "@/components/shared/ThemeToggle";
 import { CommandPalette } from "@/components/shared/CommandPalette";
 import { DirectionalTransition } from "@/components/shared/DirectionalTransition";
+import { NavigationProgress } from "@/components/shared/NavigationProgress";
+import { ScrollRestoration } from "@/components/shared/ScrollRestoration";
 import { ErrorBoundary } from "@/components/shared/ErrorBoundary";
 import { UnsavedChangesProvider } from "@/hooks/use-unsaved-changes";
 import { useNetworkStatus } from "@/hooks/use-network-status";
@@ -94,6 +96,8 @@ export function AppLayout({ children }: AppLayoutProps) {
           Navegou para {pageTitle}
         </div>
 
+        <NavigationProgress />
+        <ScrollRestoration />
         <div className="min-h-screen flex w-full">
           <AppSidebar />
            <div className="flex-1 flex flex-col min-w-0">
