@@ -4,7 +4,7 @@ import { NavLink } from "@/components/NavLink";
 import {
   LayoutDashboard, Bot, BookOpen, Brain, Puzzle, FileText, GitBranch,
   FlaskConical, Rocket, Activity, Database, Shield, Users, CreditCard, Settings,
-  Sparkles, PanelLeftClose, PanelLeft, LogOut,
+  Sparkles, PanelLeftClose, PanelLeft, LogOut, ServerCog,
 } from "lucide-react";
 import {
   Sidebar, SidebarContent, SidebarGroup, SidebarGroupContent, SidebarGroupLabel,
@@ -53,6 +53,7 @@ const navSections = [
       { title: "Team & Roles", url: "/team", icon: Users },
       { title: "Billing / Usage", url: "/billing", icon: CreditCard },
       { title: "Settings", url: "/settings", icon: Settings },
+      { title: "Admin BD", url: "/admin", icon: ServerCog },
     ],
   },
 ];
