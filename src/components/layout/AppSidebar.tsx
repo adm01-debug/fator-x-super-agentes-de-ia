@@ -147,7 +147,7 @@ export function AppSidebar() {
                   <p className="text-[11px] font-medium text-foreground truncate">{wsInfo?.userName || 'Usuário'}</p>
                   <p className="text-[10px] text-muted-foreground truncate">{user.email}</p>
                 </div>
-                <Button variant="ghost" size="icon" className="h-6 w-6 shrink-0 text-muted-foreground hover:text-destructive" onClick={signOut} title="Sair">
+                <Button variant="ghost" size="icon" className="h-6 w-6 shrink-0 text-muted-foreground hover:text-destructive min-h-[44px] min-w-[44px] flex items-center justify-center" onClick={signOut} aria-label="Sair da conta">
                   <LogOut className="h-3.5 w-3.5" />
                 </Button>
               </div>

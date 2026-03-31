@@ -2,12 +2,52 @@ import { PageHeader } from "@/components/shared/PageHeader";
 import { StatusBadge } from "@/components/shared/StatusBadge";
 import { InfoHint } from "@/components/shared/InfoHint";
 import { Button } from "@/components/ui/button";
-import { Bot, Plus, ArrowRight, Loader2, TrendingUp, DollarSign, Clock, Zap } from "lucide-react";
+import { Bot, Plus, ArrowRight, TrendingUp, DollarSign, Clock, Zap } from "lucide-react";
 import { useNavigate } from "react-router-dom";
-import { motion } from "framer-motion";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { UsageCharts } from "@/components/dashboard/UsageCharts";
+import { Skeleton } from "@/components/ui/skeleton";
+
+// ═══ Dashboard Skeleton ═══
+function DashboardLoadingSkeleton() {
+  return (
+    <div className="p-4 sm:p-6 space-y-6 max-w-[1400px] mx-auto" aria-busy="true" aria-label="Carregando dashboard">
+      <div className="flex items-center justify-between">
+        <div className="space-y-2">
+          <Skeleton className="h-7 w-40 bg-muted/50" />
+          <Skeleton className="h-4 w-64 bg-muted/30" />
+        </div>
+        <Skeleton className="h-10 w-36 rounded-lg bg-muted/50" />
+      </div>
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-3 sm:gap-4">
+        {Array.from({ length: 4 }).map((_, i) => (
+          <div key={i} className="nexus-card text-center space-y-2">
+            <Skeleton className="h-4 w-4 mx-auto bg-muted/50 rounded" />
+            <Skeleton className="h-7 w-12 mx-auto bg-muted/50" />
+            <Skeleton className="h-3 w-20 mx-auto bg-muted/30" />
+          </div>
+        ))}
+      </div>
+      <div className="grid lg:grid-cols-2 gap-4">
+        {Array.from({ length: 2 }).map((_, i) => (
+          <div key={i} className="nexus-card space-y-3">
+            <Skeleton className="h-4 w-32 bg-muted/50" />
+            {Array.from({ length: 4 }).map((_, j) => (
+              <div key={j} className="flex items-center gap-3">
+                <Skeleton className="h-8 w-8 rounded-lg bg-muted/50 shrink-0" />
+                <div className="flex-1 space-y-1.5">
+                  <Skeleton className="h-3 w-3/4 bg-muted/50" />
+                  <Skeleton className="h-2.5 w-1/2 bg-muted/30" />
+                </div>
+              </div>
+            ))}
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
 
 export default function DashboardPage() {
   const navigate = useNavigate();
@@ -55,96 +95,101 @@ export default function DashboardPage() {
   const activeCount = agents.filter(a => a.status === 'production' || a.status === 'monitoring').length;
   const draftCount = agents.filter(a => a.status === 'draft').length;
 
+  if (isLoading) return <DashboardLoadingSkeleton />;
+
   return (
-    <div className="p-6 space-y-6 max-w-[1400px] mx-auto" role="main" aria-label="Dashboard principal">
+    <div className="p-4 sm:p-6 space-y-4 sm:space-y-6 max-w-[1400px] mx-auto" role="main" aria-label="Dashboard principal">
       <PageHeader
         title="Dashboard"
         description="Visão executiva da operação de agentes de IA"
         actions={
-          <Button onClick={() => navigate('/agents/new')} className="nexus-gradient-bg text-primary-foreground gap-2 hover:opacity-90">
-            <Plus className="h-4 w-4" /> Criar agente
+          <Button onClick={() => navigate('/agents/new')} className="nexus-gradient-bg text-primary-foreground gap-2 hover:opacity-90 min-h-[44px]">
+            <Plus className="h-4 w-4" aria-hidden="true" /> Criar agente
           </Button>
         }
       />
 
-      {isLoading ? (
-        <div className="flex items-center justify-center py-20"><Loader2 className="h-6 w-6 animate-spin text-muted-foreground" /></div>
-      ) : agents.length === 0 ? (
-        <div className="flex flex-col items-center justify-center py-20 text-center">
-          <div className="text-6xl mb-4">⚡</div>
-          <h2 className="text-xl font-heading font-bold text-foreground mb-2">Bem-vindo ao Fator X!</h2>
+      {agents.length === 0 ? (
+        <div className="flex flex-col items-center justify-center py-12 sm:py-20 text-center px-4">
+          <div className="text-5xl sm:text-6xl mb-4" aria-hidden="true">⚡</div>
+          <h2 className="text-lg sm:text-xl font-heading font-bold text-foreground mb-2">Bem-vindo ao Fator X!</h2>
           <p className="text-sm text-muted-foreground mb-6 max-w-md">
             Crie, configure, avalie e opere agentes de IA com governança completa. Comece criando seu primeiro agente.
           </p>
-          <Button onClick={() => navigate('/agents/new')} className="nexus-gradient-bg text-primary-foreground gap-2 hover:opacity-90">
-            <Plus className="h-4 w-4" /> Criar seu primeiro agente
+          <Button onClick={() => navigate('/agents/new')} className="nexus-gradient-bg text-primary-foreground gap-2 hover:opacity-90 min-h-[44px]">
+            <Plus className="h-4 w-4" aria-hidden="true" /> Criar seu primeiro agente
           </Button>
-          <div className="grid md:grid-cols-3 gap-4 mt-10 w-full max-w-2xl">
+          <div className="grid sm:grid-cols-3 gap-3 sm:gap-4 mt-8 sm:mt-10 w-full max-w-2xl">
             {[
               { emoji: '🧠', title: 'Super Cérebro', desc: 'Memória centralizada para toda a empresa', path: '/brain' },
               { emoji: '🔮', title: 'Oráculo', desc: 'Conselho de múltiplas IAs para melhores respostas', path: '/oracle' },
               { emoji: '🛡️', title: 'Guardrails', desc: 'Segurança e compliance em tempo real', path: '/security' },
             ].map(card => (
-              <div key={card.title} className="nexus-card text-center cursor-pointer hover:border-primary/30 transition-colors" onClick={() => navigate(card.path)}>
-                <div className="text-3xl mb-2">{card.emoji}</div>
+              <button
+                key={card.title}
+                className="nexus-card text-center cursor-pointer hover:border-primary/30 transition-colors min-h-[44px] w-full"
+                onClick={() => navigate(card.path)}
+                aria-label={`Navegar para ${card.title}: ${card.desc}`}
+              >
+                <div className="text-3xl mb-2" aria-hidden="true">{card.emoji}</div>
                 <h3 className="text-sm font-semibold text-foreground">{card.title}</h3>
                 <p className="text-[11px] text-muted-foreground mt-1">{card.desc}</p>
-              </div>
+              </button>
             ))}
           </div>
         </div>
       ) : (
         <>
           {/* Metrics */}
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-4" role="region" aria-label="Métricas principais">
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-3 sm:gap-4" role="region" aria-label="Métricas principais">
             <div className="nexus-card text-center">
               <div className="flex items-center justify-center gap-1.5 mb-1">
-                <Bot className="h-4 w-4 text-primary" />
+                <Bot className="h-4 w-4 text-primary" aria-hidden="true" />
               </div>
-              <p className="text-2xl font-heading font-bold text-foreground">{agents.length}</p>
-              <p className="text-[11px] text-muted-foreground">Total de agentes</p>
+              <p className="text-xl sm:text-2xl font-heading font-bold text-foreground">{agents.length}</p>
+              <p className="text-[10px] sm:text-[11px] text-muted-foreground">Total de agentes</p>
             </div>
             <div className="nexus-card text-center">
               <div className="flex items-center justify-center gap-1.5 mb-1">
-                <Zap className="h-4 w-4 text-nexus-emerald" />
+                <Zap className="h-4 w-4 text-nexus-emerald" aria-hidden="true" />
               </div>
-              <p className="text-2xl font-heading font-bold text-nexus-emerald">{activeCount}</p>
-              <p className="text-[11px] text-muted-foreground">Em produção</p>
+              <p className="text-xl sm:text-2xl font-heading font-bold text-nexus-emerald">{activeCount}</p>
+              <p className="text-[10px] sm:text-[11px] text-muted-foreground">Em produção</p>
             </div>
             <div className="nexus-card text-center">
               <div className="flex items-center justify-center gap-1.5 mb-1">
-                <DollarSign className="h-4 w-4 text-nexus-amber" />
+                <DollarSign className="h-4 w-4 text-nexus-amber" aria-hidden="true" />
               </div>
-              <p className="text-2xl font-heading font-bold text-foreground">
+              <p className="text-xl sm:text-2xl font-heading font-bold text-foreground">
                 {usageStats ? `$${usageStats.totalCost.toFixed(2)}` : '—'}
               </p>
-              <p className="text-[11px] text-muted-foreground">Custo (30d)</p>
+              <p className="text-[10px] sm:text-[11px] text-muted-foreground">Custo (30d)</p>
             </div>
             <div className="nexus-card text-center">
               <div className="flex items-center justify-center gap-1.5 mb-1">
-                <TrendingUp className="h-4 w-4 text-primary" />
+                <TrendingUp className="h-4 w-4 text-primary" aria-hidden="true" />
               </div>
-              <p className="text-2xl font-heading font-bold text-foreground">
+              <p className="text-xl sm:text-2xl font-heading font-bold text-foreground">
                 {usageStats ? usageStats.totalRequests.toLocaleString() : '—'}
               </p>
-              <p className="text-[11px] text-muted-foreground">Requests (30d)</p>
+              <p className="text-[10px] sm:text-[11px] text-muted-foreground">Requests (30d)</p>
             </div>
           </div>
 
           {/* Additional metrics row */}
           {usageStats && (
-            <div className="grid grid-cols-3 gap-3">
-              <div className="nexus-card py-3 text-center">
-                <p className="text-sm font-heading font-bold text-foreground">{usageStats.avgLatency}ms</p>
-                <p className="text-[10px] text-muted-foreground">Latência média</p>
+            <div className="grid grid-cols-3 gap-2 sm:gap-3">
+              <div className="nexus-card py-2.5 sm:py-3 text-center">
+                <p className="text-xs sm:text-sm font-heading font-bold text-foreground">{usageStats.avgLatency}ms</p>
+                <p className="text-[9px] sm:text-[10px] text-muted-foreground">Latência média</p>
               </div>
-              <div className="nexus-card py-3 text-center">
-                <p className="text-sm font-heading font-bold text-foreground">{(usageStats.totalTokens / 1000).toFixed(0)}k</p>
-                <p className="text-[10px] text-muted-foreground">Tokens totais</p>
+              <div className="nexus-card py-2.5 sm:py-3 text-center">
+                <p className="text-xs sm:text-sm font-heading font-bold text-foreground">{(usageStats.totalTokens / 1000).toFixed(0)}k</p>
+                <p className="text-[9px] sm:text-[10px] text-muted-foreground">Tokens totais</p>
               </div>
-              <div className="nexus-card py-3 text-center">
-                <p className="text-sm font-heading font-bold text-foreground">{draftCount}</p>
-                <p className="text-[10px] text-muted-foreground">Rascunhos</p>
+              <div className="nexus-card py-2.5 sm:py-3 text-center">
+                <p className="text-xs sm:text-sm font-heading font-bold text-foreground">{draftCount}</p>
+                <p className="text-[9px] sm:text-[10px] text-muted-foreground">Rascunhos</p>
               </div>
             </div>
           )}
@@ -152,14 +197,22 @@ export default function DashboardPage() {
           {/* Analytics Charts */}
           <UsageCharts data={usageData} />
 
-            <div className="grid lg:grid-cols-2 gap-4">
+          <div className="grid lg:grid-cols-2 gap-3 sm:gap-4">
             <div className="nexus-card">
               <h3 className="text-sm font-heading font-semibold text-foreground mb-3" id="recent-agents-heading">Agentes recentes</h3>
-              <div className="space-y-3" role="list" aria-labelledby="recent-agents-heading">
+              <div className="space-y-2 sm:space-y-3" role="list" aria-labelledby="recent-agents-heading">
                 {agents.slice(0, 5).map(agent => (
-                  <div key={agent.id} role="listitem" className="flex items-center justify-between cursor-pointer hover:bg-secondary/30 rounded-lg p-2 -mx-2 transition-colors" onClick={() => navigate(`/builder/${agent.id}`)} onKeyDown={(e) => e.key === 'Enter' && navigate(`/builder/${agent.id}`)} tabIndex={0} aria-label={`Agente ${agent.name}, status ${agent.status || 'draft'}`}>
+                  <div
+                    key={agent.id}
+                    role="listitem"
+                    className="flex items-center justify-between cursor-pointer hover:bg-secondary/30 rounded-lg p-2 -mx-2 transition-colors focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none min-h-[44px]"
+                    onClick={() => navigate(`/builder/${agent.id}`)}
+                    onKeyDown={(e) => e.key === 'Enter' && navigate(`/builder/${agent.id}`)}
+                    tabIndex={0}
+                    aria-label={`Agente ${agent.name}, status ${agent.status || 'draft'}`}
+                  >
                     <div className="flex items-center gap-2.5 min-w-0">
-                      <div className="h-8 w-8 rounded-lg bg-primary/10 flex items-center justify-center text-sm">{agent.avatar_emoji || '🤖'}</div>
+                      <div className="h-8 w-8 rounded-lg bg-primary/10 flex items-center justify-center text-sm shrink-0" aria-hidden="true">{agent.avatar_emoji || '🤖'}</div>
                       <div className="min-w-0">
                         <p className="text-sm font-medium text-foreground truncate">{agent.name}</p>
                         <p className="text-[11px] text-muted-foreground">{agent.model} • v{agent.version}</p>
@@ -167,7 +220,7 @@ export default function DashboardPage() {
                     </div>
                     <div className="flex items-center gap-2">
                       <StatusBadge status={agent.status || 'draft'} />
-                      <ArrowRight className="h-4 w-4 text-muted-foreground" />
+                      <ArrowRight className="h-4 w-4 text-muted-foreground" aria-hidden="true" />
                     </div>
                   </div>
                 ))}
@@ -176,21 +229,35 @@ export default function DashboardPage() {
 
             {/* Recent traces */}
             <div className="nexus-card">
-              <h3 className="text-sm font-heading font-semibold text-foreground mb-3">Atividade recente</h3>
+              <h3 className="text-sm font-heading font-semibold text-foreground mb-3" id="recent-traces-heading">Atividade recente</h3>
               {recentTraces.length === 0 ? (
                 <p className="text-xs text-muted-foreground text-center py-8">Nenhuma atividade registrada. Traces aparecerão quando agentes estiverem em uso.</p>
               ) : (
-                <div className="space-y-2">
+                <div className="space-y-2" role="list" aria-labelledby="recent-traces-heading">
                   {recentTraces.map(trace => (
-                    <div key={trace.id} className="flex items-center justify-between p-2 -mx-2 rounded-lg hover:bg-secondary/30 cursor-pointer" onClick={() => navigate('/monitoring')}>
+                    <div
+                      key={trace.id}
+                      role="listitem"
+                      className="flex items-center justify-between p-2 -mx-2 rounded-lg hover:bg-secondary/30 cursor-pointer focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none min-h-[44px]"
+                      onClick={() => navigate('/monitoring')}
+                      onKeyDown={(e) => e.key === 'Enter' && navigate('/monitoring')}
+                      tabIndex={0}
+                      aria-label={`Evento ${trace.event}, nível ${trace.level || 'info'}`}
+                    >
                       <div className="flex items-center gap-2.5">
                         <StatusBadge status={trace.level || 'info'} />
                         <div>
                           <p className="text-xs font-medium text-foreground">{trace.event}</p>
-                          <p className="text-[10px] text-muted-foreground">{new Date(trace.created_at).toLocaleString('pt-BR')}</p>
+                          <p className="text-[10px] text-muted-foreground">
+                            <time dateTime={trace.created_at}>{new Date(trace.created_at).toLocaleString('pt-BR')}</time>
+                          </p>
                         </div>
                       </div>
-                      {trace.latency_ms && <span className="text-[10px] text-muted-foreground flex items-center gap-1"><Clock className="h-3 w-3" />{(trace.latency_ms / 1000).toFixed(1)}s</span>}
+                      {trace.latency_ms && (
+                        <span className="text-[10px] text-muted-foreground flex items-center gap-1">
+                          <Clock className="h-3 w-3" aria-hidden="true" />{(trace.latency_ms / 1000).toFixed(1)}s
+                        </span>
+                      )}
                     </div>
                   ))}
                 </div>
