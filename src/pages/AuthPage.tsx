@@ -39,6 +39,9 @@ function PasswordStrength({ password }: { password: string }) {
   );
 }
 
+const MAX_ATTEMPTS = 5;
+const LOCKOUT_DURATION_MS = 60_000; // 1 minute
+
 export default function AuthPage() {
   const [isLogin, setIsLogin] = useState(true);
   const [email, setEmail] = useState("");
@@ -46,8 +49,27 @@ export default function AuthPage() {
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
   const [errors, setErrors] = useState<{ email?: string; password?: string }>({});
+  const [failedAttempts, setFailedAttempts] = useState(0);
+  const [lockoutUntil, setLockoutUntil] = useState<number | null>(null);
+  const [lockoutRemaining, setLockoutRemaining] = useState(0);
   const { signIn, signUp } = useAuth();
   const navigate = useNavigate();
+
+  // Countdown timer for lockout
+  useState(() => {
+    const interval = setInterval(() => {
+      if (lockoutUntil) {
+        const remaining = Math.max(0, lockoutUntil - Date.now());
+        setLockoutRemaining(remaining);
+        if (remaining === 0) {
+          setLockoutUntil(null);
+        }
+      }
+    }, 1000);
+    return () => clearInterval(interval);
+  });
+
+  const isLockedOut = lockoutUntil !== null && Date.now() < lockoutUntil;
 
   const validate = useCallback(() => {
     const errs: { email?: string; password?: string } = {};
