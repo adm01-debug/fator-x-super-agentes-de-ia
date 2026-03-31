@@ -56,18 +56,17 @@ export default function AuthPage() {
   const navigate = useNavigate();
 
   // Countdown timer for lockout
-  useState(() => {
+  useEffect(() => {
+    if (!lockoutUntil) return;
     const interval = setInterval(() => {
-      if (lockoutUntil) {
-        const remaining = Math.max(0, lockoutUntil - Date.now());
-        setLockoutRemaining(remaining);
-        if (remaining === 0) {
-          setLockoutUntil(null);
-        }
+      const remaining = Math.max(0, lockoutUntil - Date.now());
+      setLockoutRemaining(remaining);
+      if (remaining === 0) {
+        setLockoutUntil(null);
       }
     }, 1000);
     return () => clearInterval(interval);
-  });
+  }, [lockoutUntil]);
 
   const isLockedOut = lockoutUntil !== null && Date.now() < lockoutUntil;
 
