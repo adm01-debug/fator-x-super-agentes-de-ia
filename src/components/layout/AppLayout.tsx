@@ -10,9 +10,12 @@ import { DirectionalTransition } from "@/components/shared/DirectionalTransition
 import { NavigationProgress } from "@/components/shared/NavigationProgress";
 import { ScrollRestoration } from "@/components/shared/ScrollRestoration";
 import { ErrorBoundary } from "@/components/shared/ErrorBoundary";
+import { KeyboardShortcutsDialog } from "@/components/shared/KeyboardShortcutsDialog";
+import { SwipeNavigation } from "@/components/shared/SwipeNavigation";
 import { UnsavedChangesProvider } from "@/hooks/use-unsaved-changes";
 import { useNetworkStatus } from "@/hooks/use-network-status";
 import { useKeyboardShortcuts } from "@/hooks/use-keyboard-shortcuts";
+import { useIsMobile } from "@/hooks/use-mobile";
 
 interface AppLayoutProps {
   children: React.ReactNode;
@@ -34,6 +37,7 @@ export function AppLayout({ children }: AppLayoutProps) {
   const [defaultOpen] = useState(getDefaultOpen);
   const navigate = useNavigate();
   const location = useLocation();
+  const isMobile = useIsMobile();
 
   // Network status detection
   useNetworkStatus();
@@ -129,14 +133,23 @@ export function AppLayout({ children }: AppLayoutProps) {
             </header>
             <main id="main-content" className="flex-1 overflow-auto" tabIndex={-1} aria-label={pageTitle}>
               <ErrorBoundary>
-                <DirectionalTransition>
-                  {children}
-                </DirectionalTransition>
+                {isMobile ? (
+                  <SwipeNavigation>
+                    <DirectionalTransition>
+                      {children}
+                    </DirectionalTransition>
+                  </SwipeNavigation>
+                ) : (
+                  <DirectionalTransition>
+                    {children}
+                  </DirectionalTransition>
+                )}
               </ErrorBoundary>
             </main>
           </div>
         </div>
         <CommandPalette />
+        <KeyboardShortcutsDialog />
       </SidebarProvider>
     </UnsavedChangesProvider>
   );

@@ -248,6 +248,29 @@
     font-family: var(--font-heading);
     @apply text-sm font-medium uppercase tracking-wider text-muted-foreground;
   }
+  /* Micro-interactions */
+  .nexus-card-interactive {
+    @apply nexus-card cursor-pointer;
+    transition: transform 0.15s ease, box-shadow 0.2s ease, border-color 0.2s ease;
+  }
+  .nexus-card-interactive:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 4px 20px -6px hsl(var(--nexus-glow) / 0.15);
+  }
+  .nexus-card-interactive:active {
+    transform: translateY(0) scale(0.995);
+  }
+
+  .nexus-btn-press {
+    transition: transform 0.1s ease;
+  }
+  .nexus-btn-press:active {
+    transform: scale(0.97);
+  }
+
+  .nexus-focus-ring {
+    @apply focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2;
+  }
 }
 
 /* Custom scrollbar */
