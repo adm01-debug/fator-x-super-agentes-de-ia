@@ -38,6 +38,7 @@ const navSections = [
       { title: "Deployments", url: "/deployments", icon: Rocket },
       { title: "Monitoring", url: "/monitoring", icon: Activity },
       { title: "Data & Storage", url: "/data-storage", icon: Database },
+      { title: "DataHub", url: "/datahub", icon: Database },
     ],
   },
   {
