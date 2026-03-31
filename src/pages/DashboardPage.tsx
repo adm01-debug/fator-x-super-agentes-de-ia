@@ -56,7 +56,7 @@ export default function DashboardPage() {
   const draftCount = agents.filter(a => a.status === 'draft').length;
 
   return (
-    <div className="p-6 space-y-6 max-w-[1400px] mx-auto">
+    <div className="p-6 space-y-6 max-w-[1400px] mx-auto" role="main" aria-label="Dashboard principal">
       <PageHeader
         title="Dashboard"
         description="Visão executiva da operação de agentes de IA"
