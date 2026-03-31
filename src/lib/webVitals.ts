@@ -18,10 +18,8 @@ function reportMetric(metric: Metric) {
       navigationType: metric.navigationType,
     });
     
-    if (navigator.sendBeacon) {
-      // Could be configured to send to a real endpoint
-      // navigator.sendBeacon('/api/vitals', body);
-    }
+    // Could be configured to send to a real analytics endpoint
+    // navigator.sendBeacon?.('/api/vitals', body);
   }
 }
 
