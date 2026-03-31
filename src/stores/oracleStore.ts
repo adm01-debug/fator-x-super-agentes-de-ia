@@ -1,5 +1,6 @@
 import { create } from 'zustand';
 import { supabase } from '@/integrations/supabase/client';
+import { saveOracleHistory } from '@/lib/oracleHistory';
 
 // ═══ TYPES ═══
 
@@ -378,6 +379,9 @@ export const useOracleStore = create<OracleStore>((set, get) => ({
         isRunning: false,
         history: [...get().history, { query, results, timestamp: new Date().toISOString(), preset: preset.id, mode }],
       });
+
+      // Persist to database
+      saveOracleHistory(query, mode, preset.id, preset.name, chairmanModel, enableThinking, results).catch(() => {});
     } catch (e: any) {
       set({ error: e.message || 'Erro ao consultar o Oráculo', isRunning: false, currentStage: 0, stageLabel: '' });
     }

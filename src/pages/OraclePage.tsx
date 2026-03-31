@@ -7,12 +7,14 @@ import { Badge } from '@/components/ui/badge';
 import { Switch } from '@/components/ui/switch';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Sparkles, Loader2, Copy, RefreshCw, ChevronDown, ChevronUp, Settings2 } from 'lucide-react';
+import { Sparkles, Loader2, Copy, RefreshCw, ChevronDown, ChevronUp, Settings2, FileText, Download, History } from 'lucide-react';
 import { useOracleStore, ORACLE_MODES, ORACLE_PRESETS } from '@/stores/oracleStore';
 import { PresetSelector } from '@/components/oracle/PresetSelector';
 import { StageProgress } from '@/components/oracle/StageProgress';
 import { ConsensusMatrix } from '@/components/oracle/ConsensusMatrix';
 import { ModelCard } from '@/components/oracle/ModelCard';
+import { OracleHistory } from '@/components/oracle/OracleHistory';
+import { exportToMarkdown, downloadText } from '@/lib/oracleExport';
 import { motion, AnimatePresence } from 'framer-motion';
 import { toast } from 'sonner';
 
@@ -27,9 +29,17 @@ export default function OraclePage() {
   const store = useOracleStore();
   const [showPresets, setShowPresets] = useState(false);
   const [showAdvanced, setShowAdvanced] = useState(false);
+  const [showHistory, setShowHistory] = useState(false);
 
   const currentPreset = ORACLE_PRESETS.find(p => p.id === store.selectedPreset);
   const modeConfig = ORACLE_MODES[store.mode];
+
+  const handleExportMd = () => {
+    if (!store.results) return;
+    const md = exportToMarkdown(store.query, store.results, currentPreset?.name || store.selectedPreset, `${modeConfig.icon} ${modeConfig.label}`, store.chairmanModel);
+    downloadText(md, `oraculo_${Date.now()}.md`);
+    toast.success('Markdown exportado!');
+  };
 
   return (
     <div className="p-6 space-y-6 max-w-[1400px] mx-auto">
@@ -183,6 +193,9 @@ export default function OraclePage() {
                   <Button size="sm" variant="outline" onClick={() => { navigator.clipboard.writeText(store.results!.final_response); toast.success('Copiado!'); }}>
                     <Copy className="h-3.5 w-3.5 mr-1" /> Copiar
                   </Button>
+                  <Button size="sm" variant="outline" onClick={handleExportMd}>
+                    <FileText className="h-3.5 w-3.5 mr-1" /> Markdown
+                  </Button>
                   <Button size="sm" variant="outline" onClick={() => { store.clearResults(); store.submitQuery(); }}>
                     <RefreshCw className="h-3.5 w-3.5 mr-1" /> Refazer
                   </Button>
@@ -250,6 +263,25 @@ export default function OraclePage() {
           </Tabs>
         </motion.div>
       )}
+
+      {/* ═══ HISTORY ═══ */}
+      <div className="nexus-card">
+        <button
+          onClick={() => setShowHistory(!showHistory)}
+          className="flex items-center gap-2 w-full text-left"
+        >
+          <History className="h-4 w-4 text-muted-foreground" />
+          <span className="text-sm font-medium text-foreground">Histórico de Consultas</span>
+          {showHistory ? <ChevronUp className="h-3.5 w-3.5 text-muted-foreground ml-auto" /> : <ChevronDown className="h-3.5 w-3.5 text-muted-foreground ml-auto" />}
+        </button>
+        <AnimatePresence>
+          {showHistory && (
+            <motion.div initial={{ height: 0, opacity: 0 }} animate={{ height: 'auto', opacity: 1 }} exit={{ height: 0, opacity: 0 }} className="overflow-hidden mt-4">
+              <OracleHistory />
+            </motion.div>
+          )}
+        </AnimatePresence>
+      </div>
     </div>
   );
 }
