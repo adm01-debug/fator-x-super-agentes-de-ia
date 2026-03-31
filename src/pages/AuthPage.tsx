@@ -4,6 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useAuth } from "@/contexts/AuthContext";
+import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { Bot, Mail, Lock, ArrowRight, Eye, EyeOff, Check, X } from "lucide-react";
 
@@ -44,6 +45,7 @@ const LOCKOUT_DURATION_MS = 60_000; // 1 minute
 
 export default function AuthPage() {
   const [isLogin, setIsLogin] = useState(true);
+  const [isForgotPassword, setIsForgotPassword] = useState(false);
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
@@ -52,7 +54,7 @@ export default function AuthPage() {
   const [failedAttempts, setFailedAttempts] = useState(0);
   const [lockoutUntil, setLockoutUntil] = useState<number | null>(null);
   const [lockoutRemaining, setLockoutRemaining] = useState(0);
-  const { signIn, signUp } = useAuth();
+  const { signIn, signUp, resetPassword } = useAuth();
   const navigate = useNavigate();
 
   // Countdown timer for lockout
@@ -80,6 +82,28 @@ export default function AuthPage() {
     setErrors(errs);
     return Object.keys(errs).length === 0;
   }, [email, password, isLogin]);
+
+  const handleForgotPassword = async (e: React.FormEvent) => {
+    e.preventDefault();
+    const errs: { email?: string } = {};
+    if (!email) errs.email = 'E-mail é obrigatório';
+    else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) errs.email = 'E-mail inválido';
+    if (Object.keys(errs).length > 0) {
+      setErrors(errs);
+      return;
+    }
+    setLoading(true);
+    const { error } = await resetPassword(email);
+    if (error) {
+      toast.error("Erro ao enviar e-mail", { description: error.message });
+    } else {
+      toast.success("E-mail enviado!", {
+        description: "Verifique sua caixa de entrada para redefinir a senha.",
+      });
+      setIsForgotPassword(false);
+    }
+    setLoading(false);
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -142,11 +166,14 @@ export default function AuthPage() {
           </div>
           <h1 className="text-2xl font-heading font-bold text-foreground">Fator X</h1>
           <p className="text-sm text-muted-foreground">
-            {isLogin ? "Entre para gerenciar seus agentes" : "Crie sua conta para começar"}
+            {isForgotPassword
+              ? "Informe seu e-mail para recuperar a senha"
+              : isLogin ? "Entre para gerenciar seus agentes" : "Crie sua conta para começar"
+            }
           </p>
         </div>
 
-        <form onSubmit={handleSubmit} className="nexus-card space-y-5" noValidate>
+        <form onSubmit={isForgotPassword ? handleForgotPassword : handleSubmit} className="nexus-card space-y-5" noValidate>
           <div className="space-y-4">
             <div>
               <Label htmlFor="auth-email" className="text-sm">E-mail</Label>
@@ -167,53 +194,80 @@ export default function AuthPage() {
               </div>
               {errors.email && <p id="email-error" className="text-[11px] text-destructive mt-1" role="alert">{errors.email}</p>}
             </div>
-            <div>
-              <Label htmlFor="auth-password" className="text-sm">Senha</Label>
-              <div className="relative mt-1.5">
-                <Lock className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" aria-hidden="true" />
-                <Input
-                  id="auth-password"
-                  type={showPassword ? "text" : "password"}
-                  value={password}
-                  onChange={e => { setPassword(e.target.value); setErrors(prev => ({ ...prev, password: undefined })); }}
-                  placeholder="••••••••"
-                  className={`pl-10 pr-10 bg-secondary/50 border-border/50 ${errors.password ? 'border-destructive' : ''}`}
-                  required
-                  minLength={6}
-                  autoComplete={isLogin ? "current-password" : "new-password"}
-                  aria-invalid={!!errors.password}
-                  aria-describedby={errors.password ? 'password-error' : undefined}
-                />
-                <button
-                  type="button"
-                  onClick={() => setShowPassword(!showPassword)}
-                  className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
-                  aria-label={showPassword ? "Ocultar senha" : "Mostrar senha"}
-                >
-                  {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
-                </button>
+
+            {!isForgotPassword && (
+              <div>
+                <div className="flex items-center justify-between">
+                  <Label htmlFor="auth-password" className="text-sm">Senha</Label>
+                  {isLogin && (
+                    <button
+                      type="button"
+                      onClick={() => { setIsForgotPassword(true); setErrors({}); }}
+                      className="text-[11px] text-primary hover:underline font-medium"
+                    >
+                      Esqueceu a senha?
+                    </button>
+                  )}
+                </div>
+                <div className="relative mt-1.5">
+                  <Lock className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" aria-hidden="true" />
+                  <Input
+                    id="auth-password"
+                    type={showPassword ? "text" : "password"}
+                    value={password}
+                    onChange={e => { setPassword(e.target.value); setErrors(prev => ({ ...prev, password: undefined })); }}
+                    placeholder="••••••••"
+                    className={`pl-10 pr-10 bg-secondary/50 border-border/50 ${errors.password ? 'border-destructive' : ''}`}
+                    required
+                    minLength={6}
+                    autoComplete={isLogin ? "current-password" : "new-password"}
+                    aria-invalid={!!errors.password}
+                    aria-describedby={errors.password ? 'password-error' : undefined}
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowPassword(!showPassword)}
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
+                    aria-label={showPassword ? "Ocultar senha" : "Mostrar senha"}
+                  >
+                    {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                  </button>
+                </div>
+                {errors.password && <p id="password-error" className="text-[11px] text-destructive mt-1" role="alert">{errors.password}</p>}
+                {!isLogin && <PasswordStrength password={password} />}
               </div>
-              {errors.password && <p id="password-error" className="text-[11px] text-destructive mt-1" role="alert">{errors.password}</p>}
-              {!isLogin && <PasswordStrength password={password} />}
-            </div>
+            )}
           </div>
 
-          {isLockedOut && (
+          {isLockedOut && !isForgotPassword && (
             <p className="text-xs text-destructive text-center font-medium" role="alert">
               🔒 Bloqueado — aguarde {Math.ceil(lockoutRemaining / 1000)}s
             </p>
           )}
 
-          <Button type="submit" disabled={loading || isLockedOut} className="w-full gap-2 nexus-gradient-bg text-primary-foreground hover:opacity-90 min-h-[44px]">
-            {isLockedOut ? `Aguarde ${Math.ceil(lockoutRemaining / 1000)}s` : loading ? "Aguarde..." : isLogin ? "Entrar" : "Criar conta"}
+          <Button type="submit" disabled={loading || (isLockedOut && !isForgotPassword)} className="w-full gap-2 nexus-gradient-bg text-primary-foreground hover:opacity-90 min-h-[44px]">
+            {isForgotPassword
+              ? (loading ? "Enviando..." : "Enviar link de recuperação")
+              : isLockedOut
+              ? `Aguarde ${Math.ceil(lockoutRemaining / 1000)}s`
+              : loading ? "Aguarde..." : isLogin ? "Entrar" : "Criar conta"
+            }
             <ArrowRight className="h-4 w-4" aria-hidden="true" />
           </Button>
 
           <p className="text-center text-xs text-muted-foreground">
-            {isLogin ? "Não tem conta?" : "Já tem conta?"}{" "}
-            <button type="button" onClick={() => { setIsLogin(!isLogin); setErrors({}); }} className="text-primary hover:underline font-medium">
-              {isLogin ? "Criar conta" : "Entrar"}
-            </button>
+            {isForgotPassword ? (
+              <button type="button" onClick={() => { setIsForgotPassword(false); setErrors({}); }} className="text-primary hover:underline font-medium">
+                Voltar para o login
+              </button>
+            ) : (
+              <>
+                {isLogin ? "Não tem conta?" : "Já tem conta?"}{" "}
+                <button type="button" onClick={() => { setIsLogin(!isLogin); setErrors({}); }} className="text-primary hover:underline font-medium">
+                  {isLogin ? "Criar conta" : "Entrar"}
+                </button>
+              </>
+            )}
           </p>
         </form>
       </div>

@@ -17,6 +17,7 @@ const AgentDetailPage = lazy(() => import("./pages/AgentDetailPage"));
 const CreateAgentPage = lazy(() => import("./pages/CreateAgentPage"));
 const AgentBuilder = lazy(() => import("./pages/AgentBuilder"));
 const AuthPage = lazy(() => import("./pages/AuthPage"));
+const ResetPasswordPage = lazy(() => import("./pages/ResetPasswordPage"));
 const SuperCerebroPage = lazy(() => import("./pages/SuperCerebroPage"));
 const OraclePage = lazy(() => import("./pages/OraclePage"));
 const KnowledgePage = lazy(() => import("./pages/KnowledgePage"));
@@ -57,6 +58,9 @@ const App = () => (
             <Routes>
               <Route path="/auth" element={
                 <Suspense fallback={<PageLoading />}><AuthPage /></Suspense>
+              } />
+              <Route path="/reset-password" element={
+                <Suspense fallback={<PageLoading />}><ResetPasswordPage /></Suspense>
               } />
               <Route path="*" element={
                 <AuthGuard>
