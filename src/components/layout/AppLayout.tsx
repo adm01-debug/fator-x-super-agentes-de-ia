@@ -133,14 +133,23 @@ export function AppLayout({ children }: AppLayoutProps) {
             </header>
             <main id="main-content" className="flex-1 overflow-auto" tabIndex={-1} aria-label={pageTitle}>
               <ErrorBoundary>
-                <DirectionalTransition>
-                  {children}
-                </DirectionalTransition>
+                {isMobile ? (
+                  <SwipeNavigation>
+                    <DirectionalTransition>
+                      {children}
+                    </DirectionalTransition>
+                  </SwipeNavigation>
+                ) : (
+                  <DirectionalTransition>
+                    {children}
+                  </DirectionalTransition>
+                )}
               </ErrorBoundary>
             </main>
           </div>
         </div>
         <CommandPalette />
+        <KeyboardShortcutsDialog />
       </SidebarProvider>
     </UnsavedChangesProvider>
   );
