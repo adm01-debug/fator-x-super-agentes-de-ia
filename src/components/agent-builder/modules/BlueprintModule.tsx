@@ -4,7 +4,7 @@ import { useAgentBuilderStore } from '@/stores/agentBuilderStore';
 import { toast } from 'sonner';
 
 export function BlueprintModule() {
-  const { agent, exportJSON, exportMarkdown } = useAgentBuilderStore();
+  const { agent, exportJSON, exportMarkdown, getCompleteness } = useAgentBuilderStore();
   const [showFormat, setShowFormat] = useState<'json' | 'markdown'>('json');
 
   const summaryCards = [
@@ -38,21 +38,43 @@ export function BlueprintModule() {
     toast.success(`${filename} baixado!`);
   };
 
-  // Readiness checklist (simplified)
+  // Readiness checklist (9 items per spec)
   const checks = [
-    { label: 'Nome e missão definidos', ok: !!agent.name && !!agent.mission },
-    { label: 'System prompt configurado', ok: agent.system_prompt.length > 50 },
+    { label: 'Nome definido', ok: !!agent.name },
+    { label: 'Missão clara', ok: !!agent.mission },
     { label: 'Modelo selecionado', ok: !!agent.model },
-    { label: 'Ferramentas configuradas', ok: agent.tools.filter(t => t.enabled).length > 0 },
-    { label: 'Guardrails ativos', ok: agent.guardrails.filter(g => g.enabled).length > 0 },
-    { label: 'Cenários de teste criados', ok: agent.test_cases.length > 0 },
-    { label: 'Logging habilitado', ok: agent.logging_enabled },
-    { label: 'Canal de deploy configurado', ok: agent.deploy_channels.filter(c => c.enabled).length > 0 },
+    { label: 'Pelo menos 1 tipo de memória ativo', ok: agent.memory_short_term || agent.memory_episodic || agent.memory_semantic },
+    { label: 'RAG configurado', ok: !!agent.rag_architecture && !!agent.rag_vector_db },
+    { label: 'System prompt escrito (>50 chars)', ok: agent.system_prompt.length > 50 },
+    { label: 'Pelo menos 5 guardrails ativos', ok: agent.guardrails.filter(g => g.enabled).length >= 5 },
+    { label: 'Pelo menos 3 cenários de teste', ok: agent.test_cases.length >= 3 },
+    { label: 'Ambiente de deploy definido', ok: !!agent.deploy_environment },
   ];
+
+  const completeness = getCompleteness();
 
   return (
     <div className="space-y-8">
       <SectionTitle icon="📋" title="Blueprint & Export" subtitle="Resumo completo e exportação do agente" />
+
+      {/* Barra de Completude */}
+      <div className="rounded-xl border border-border bg-card p-5">
+        <div className="flex items-center justify-between mb-2">
+          <span className="text-sm font-semibold text-foreground">Completude do Agente</span>
+          <span className={`text-lg font-bold font-mono ${completeness >= 80 ? 'text-emerald-400' : completeness >= 50 ? 'text-amber-400' : 'text-rose-400'}`}>
+            {completeness}%
+          </span>
+        </div>
+        <div className="h-3 rounded-full bg-muted overflow-hidden" role="progressbar" aria-valuenow={completeness} aria-valuemin={0} aria-valuemax={100}>
+          <div
+            className="h-full rounded-full transition-all duration-700 ease-out"
+            style={{
+              width: `${completeness}%`,
+              background: completeness >= 80 ? '#6BCB77' : completeness >= 50 ? '#FFD93D' : '#FF6B6B',
+            }}
+          />
+        </div>
+      </div>
 
       {/* Summary Grid */}
       <div className="grid grid-cols-2 md:grid-cols-3 gap-4">

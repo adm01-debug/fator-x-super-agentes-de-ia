@@ -262,16 +262,40 @@ export function TestingModule() {
         </section>
       )}
 
-      {/* Ação: Executar Testes */}
+      {/* Ação: Executar Testes (Simulação) */}
       <section>
         <div className="rounded-xl border border-dashed border-primary/30 bg-primary/5 p-6 text-center">
           <Play className="h-8 w-8 text-primary mx-auto mb-3" />
-          <p className="text-sm font-semibold text-foreground mb-1">Executar Suite de Testes</p>
+          <p className="text-sm font-semibold text-foreground mb-1">Executar Bateria de Testes (Simulação)</p>
           <p className="text-xs text-muted-foreground mb-4">
-            Execute todos os casos de teste contra o agente configurado.
+            Simula a execução dos cenários e gera métricas de avaliação realistas.
           </p>
-          <Button variant="default" size="sm" disabled>
-            <Play className="h-4 w-4 mr-2" /> Executar Testes (em breve)
+          <Button
+            variant="default"
+            size="sm"
+            onClick={() => {
+              const rand = (min: number, max: number) => +(min + Math.random() * (max - min)).toFixed(2);
+              const simResults = {
+                accuracy: rand(78, 96),
+                latency_p95: rand(800, 3500),
+                safety_score: rand(88, 99),
+                relevance: rand(75, 95),
+                consistency: rand(70, 92),
+                hallucination_rate: rand(1, 9),
+                tool_success_rate: rand(85, 99),
+                groundedness: rand(80, 96),
+                policy_compliance: rand(90, 100),
+                citation_quality: rand(65, 95),
+                user_satisfaction: rand(3.8, 4.9),
+                cost_per_interaction: rand(0.01, 0.08),
+                timestamp: new Date().toISOString(),
+                prompt_version: agent.system_prompt_version,
+                model_used: agent.model,
+              };
+              updateAgent({ last_test_results: simResults });
+            }}
+          >
+            <Play className="h-4 w-4 mr-2" /> Executar Testes (Simulação)
           </Button>
         </div>
       </section>

@@ -1,27 +1,48 @@
 import { useAgentBuilderStore } from '@/stores/agentBuilderStore';
-import { SectionTitle, ConfigCard, NexusBadge, SliderField, ToggleField, SelectField } from '../ui';
-import { SelectionGrid } from '../ui/SelectionGrid';
+import { SectionTitle, NexusBadge, SliderField, ToggleField, SelectField } from '../ui';
+import { cn } from '@/lib/utils';
 import { PipelineFlow } from '../ui/PipelineFlow';
 import { CollapsibleCard } from '../ui/CollapsibleCard';
 import type { RAGArchitecture, VectorDB } from '@/types/agentTypes';
 import { Plus, Trash2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 
-const RAG_ARCHITECTURES: { id: RAGArchitecture; icon: string; title: string; description: string; badge?: string }[] = [
-  { id: 'naive', icon: '📄', title: 'Naive RAG', description: 'Embed → retrieve → generate. Simples e rápido.' },
-  { id: 'advanced', icon: '🔬', title: 'Advanced RAG', description: 'Com reranking, query expansion e feedback loop.' },
-  { id: 'modular', icon: '🧩', title: 'Modular RAG', description: 'Pipeline customizável com módulos intercambiáveis.' },
-  { id: 'agentic', icon: '🤖', title: 'Agentic RAG', description: 'O agente decide quando e como buscar contexto.', badge: 'Recomendado' },
-  { id: 'graph_rag', icon: '🕸️', title: 'Graph RAG', description: 'Combina grafos de conhecimento com recuperação vetorial.' },
+interface RAGArchInfo {
+  id: RAGArchitecture;
+  icon: string;
+  title: string;
+  description: string;
+  complexity: number;
+  best_for: string;
+  pros: string[];
+  cons: string[];
+}
+
+const RAG_ARCHITECTURES: RAGArchInfo[] = [
+  { id: 'naive', icon: '📄', title: 'RAG Básico', complexity: 1, description: 'Query → Retrieve → Generate. Simples e eficaz para perguntas diretas.', best_for: 'FAQ, documentação interna', pros: ['Implementação rápida', 'Baixo custo', 'Fácil debug'], cons: ['Sem re-ranking', 'Falha em queries complexas'] },
+  { id: 'advanced', icon: '🔬', title: 'RAG Avançado', complexity: 2, description: 'Hybrid Search + Reranking + Metadata Filtering. Precisão superior.', best_for: 'Knowledge bases corporativas', pros: ['Melhor precisão', 'Filtros por metadata', 'BM25 + Vector'], cons: ['Mais complexo', 'Re-ranker adiciona latência'] },
+  { id: 'modular', icon: '🧩', title: 'RAG Modular', complexity: 3, description: 'Pipeline plugável por etapa. Cada módulo é substituível e testável.', best_for: 'Times técnicos que otimizam cada etapa', pros: ['Flexibilidade total', 'Testável por etapa', 'Cada módulo substituível'], cons: ['Mais componentes', 'Requer mais expertise'] },
+  { id: 'agentic', icon: '🤖', title: 'Agentic RAG', complexity: 4, description: 'Agentes decidem QUANDO, ONDE e COMO buscar. Multi-step com auto-correção.', best_for: 'Agentes complexos multi-source', pros: ['Adaptativo', 'Multi-source', 'Self-correcting'], cons: ['Custo maior (mais chamadas LLM)', 'Latência variável'] },
+  { id: 'graph_rag', icon: '🕸️', title: 'GraphRAG', complexity: 5, description: 'Knowledge Graphs + Vector Search. Multi-hop reasoning com alta precisão.', best_for: 'Jurídico, saúde, supply chain', pros: ['Precisão extrema', 'Multi-hop reasoning', 'Relações complexas'], cons: ['Setup complexo', 'Requer knowledge graph'] },
 ];
 
-const VECTOR_DBS: { id: VectorDB; icon: string; title: string; description: string }[] = [
-  { id: 'qdrant', icon: '🔷', title: 'Qdrant', description: 'Alto desempenho, filtros avançados.' },
-  { id: 'pinecone', icon: '🌲', title: 'Pinecone', description: 'Serverless, escalável e gerenciado.' },
-  { id: 'chroma', icon: '🎨', title: 'Chroma', description: 'Open-source, simples de usar.' },
-  { id: 'pgvector', icon: '🐘', title: 'pgvector', description: 'Extensão PostgreSQL. Sem infra extra.' },
-  { id: 'weaviate', icon: '🔮', title: 'Weaviate', description: 'Busca híbrida nativa e GraphQL.' },
-  { id: 'lancedb', icon: '🗄️', title: 'LanceDB', description: 'Serverless e embarcado. Zero config.' },
+interface VectorDBInfo {
+  id: VectorDB;
+  icon: string;
+  title: string;
+  description: string;
+  cost: string;
+  best_for: string;
+  tierColor: 'red' | 'green' | 'blue' | 'yellow' | 'purple' | 'orange';
+}
+
+const VECTOR_DBS: VectorDBInfo[] = [
+  { id: 'chroma', icon: '🎨', title: 'ChromaDB', cost: '$0-30/mês', best_for: 'Simplicidade, prototipação rápida', description: 'Recomendação #1 para começar. Leva de zero a produção em minutos.', tierColor: 'red' },
+  { id: 'qdrant', icon: '🔷', title: 'Qdrant', cost: '$30-300/mês', best_for: 'Produção, performance Rust, compliance', description: 'Melhor custo-benefício para produção séria. Escrito em Rust.', tierColor: 'green' },
+  { id: 'pinecone', icon: '🌲', title: 'Pinecone', cost: '$70-1500/mês', best_for: 'Zero ops, escala automática', description: 'Pague mais, preocupe-se menos. Escala sem limite.', tierColor: 'blue' },
+  { id: 'pgvector', icon: '🐘', title: 'pgvector', cost: '$0 incremental', best_for: 'Stack PostgreSQL/Supabase existente', description: 'Se já tem Supabase, é a escolha mais natural.', tierColor: 'yellow' },
+  { id: 'weaviate', icon: '🔮', title: 'Weaviate', cost: '$50-400/mês', best_for: 'Hybrid search nativo, GraphQL API', description: 'Poderoso mas complexo. Só se precisar dos módulos de vectorização.', tierColor: 'purple' },
+  { id: 'lancedb', icon: '🗄️', title: 'LanceDB', cost: '<$30/mês', best_for: 'Edge, embedded, disco-eficiente', description: 'Mais eficiente em disco que ChromaDB para datasets maiores.', tierColor: 'orange' },
 ];
 
 const EMBEDDING_MODELS = [
@@ -90,30 +111,69 @@ export function RAGModule() {
           title="Arquitetura RAG"
           subtitle="Escolha a abordagem de Retrieval-Augmented Generation do agente."
         />
-        <SelectionGrid
-          items={RAG_ARCHITECTURES.map((a) => ({
-            ...a,
-            badge: a.badge ? <NexusBadge color="green">{a.badge}</NexusBadge> : undefined,
-          }))}
-          value={agent.rag_architecture}
-          onChange={(v) => updateAgent({ rag_architecture: v as RAGArchitecture })}
-          columns={3}
-        />
+        <div className="space-y-3">
+          {RAG_ARCHITECTURES.map((a) => {
+            const selected = agent.rag_architecture === a.id;
+            return (
+              <button
+                key={a.id}
+                onClick={() => updateAgent({ rag_architecture: a.id })}
+                className={cn(
+                  'w-full text-left rounded-xl border p-4 transition-all duration-200',
+                  selected ? 'border-primary bg-primary/5' : 'border-border bg-card hover:bg-muted/30'
+                )}
+              >
+                <div className="flex items-center gap-3 mb-2">
+                  <span className="text-xl" aria-hidden="true">{a.icon}</span>
+                  <h3 className="text-sm font-semibold text-foreground flex-1">{a.title}</h3>
+                  <div className="flex gap-0.5" aria-label={`Complexidade ${a.complexity} de 5`}>
+                    {[1, 2, 3, 4, 5].map((d) => (
+                      <div key={d} className={cn('h-2 w-2 rounded-full', d <= a.complexity ? 'bg-primary' : 'bg-muted')} />
+                    ))}
+                  </div>
+                  {a.complexity === 4 && <NexusBadge color="green">Recomendado</NexusBadge>}
+                </div>
+                <p className="text-xs text-muted-foreground mb-2">{a.description}</p>
+                <p className="text-[11px] text-muted-foreground/70 mb-2">Melhor para: {a.best_for}</p>
+                <div className="flex flex-wrap gap-1">
+                  {a.pros.map((p) => (
+                    <span key={p} className="text-[10px] px-1.5 py-0.5 rounded bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">{p}</span>
+                  ))}
+                  {a.cons.map((c) => (
+                    <span key={c} className="text-[10px] px-1.5 py-0.5 rounded bg-rose-500/10 text-rose-400 border border-rose-500/20">{c}</span>
+                  ))}
+                </div>
+              </button>
+            );
+          })}
+        </div>
       </section>
 
       {/* Seção B — Banco Vetorial */}
       <section>
-        <SectionTitle
-          icon="🗄️"
-          title="Banco Vetorial"
-          subtitle="Onde os embeddings serão armazenados e consultados."
-        />
-        <SelectionGrid
-          items={VECTOR_DBS}
-          value={agent.rag_vector_db}
-          onChange={(v) => updateAgent({ rag_vector_db: v as VectorDB })}
-          columns={3}
-        />
+        <SectionTitle icon="🗄️" title="Banco Vetorial" subtitle="Onde os embeddings serão armazenados e consultados." />
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+          {VECTOR_DBS.map((db) => {
+            const selected = agent.rag_vector_db === db.id;
+            return (
+              <button
+                key={db.id}
+                onClick={() => updateAgent({ rag_vector_db: db.id })}
+                className={cn(
+                  'text-left rounded-xl border p-4 transition-all duration-200',
+                  selected ? 'border-primary bg-primary/5' : 'border-border bg-card hover:bg-muted/30'
+                )}
+              >
+                <div className="flex items-center justify-between mb-1">
+                  <h3 className="text-sm font-semibold text-foreground">{db.icon} {db.title}</h3>
+                  <NexusBadge color={db.tierColor}>{db.cost}</NexusBadge>
+                </div>
+                <p className="text-[11px] text-muted-foreground mb-1">{db.best_for}</p>
+                <p className="text-[10px] text-muted-foreground/70">{db.description}</p>
+              </button>
+            );
+          })}
+        </div>
       </section>
 
       {/* Seção C — Pipeline de Ingestão */}

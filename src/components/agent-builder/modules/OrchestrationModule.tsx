@@ -1,16 +1,28 @@
 import { useAgentBuilderStore } from '@/stores/agentBuilderStore';
 import { SectionTitle, NexusBadge, ToggleField, SliderField, InputField, SelectField } from '../ui';
-import { SelectionGrid } from '../ui/SelectionGrid';
 import { CollapsibleCard } from '../ui/CollapsibleCard';
 import { Button } from '@/components/ui/button';
 import { Plus, Trash2 } from 'lucide-react';
+import { cn } from '@/lib/utils';
 import type { OrchestrationPattern, SubAgentRef } from '@/types/agentTypes';
 
-const ORCHESTRATION_PATTERNS: { id: OrchestrationPattern; icon: string; title: string; description: string; badge?: string }[] = [
-  { id: 'single', icon: '🎯', title: 'Single Agent', description: 'Um único agente executa tudo de forma autônoma.' },
-  { id: 'sequential', icon: '🔗', title: 'Sequential', description: 'Agentes executam em cadeia, passando contexto.' },
-  { id: 'hierarchical', icon: '🏛️', title: 'Hierarchical', description: 'Um supervisor delega tarefas a sub-agentes.', badge: 'Avançado' },
-  { id: 'swarm', icon: '🐝', title: 'Swarm', description: 'Agentes colaboram em paralelo sem hierarquia.' },
+interface OrchPatternInfo {
+  id: OrchestrationPattern;
+  icon: string;
+  title: string;
+  description: string;
+  diagram: string;
+  complexity: string;
+  cost: string;
+  recommended_for: string;
+  not_for: string;
+}
+
+const ORCHESTRATION_PATTERNS: OrchPatternInfo[] = [
+  { id: 'single', icon: '🎯', title: 'Single Agent', description: 'Um agente centralizado faz tudo. Simples, eficaz para escopo limitado.', diagram: 'User → 🤖 Agent → [Tools] → Response', complexity: 'Baixa', cost: 'Baixo', recommended_for: 'Escopo < 10 tools, domínio único', not_for: 'Múltiplos domínios, alta complexidade' },
+  { id: 'sequential', icon: '🔗', title: 'Pipeline Sequencial', description: 'Agentes em cadeia, cada um processa e passa adiante. Como linha de montagem.', diagram: 'User → 🤖A → 🤖B → 🤖C → Response', complexity: 'Média', cost: 'Médio (N chamadas LLM)', recommended_for: 'Workflows lineares: extração → análise → ação', not_for: 'Decisões dinâmicas, branching complexo' },
+  { id: 'hierarchical', icon: '🏛️', title: 'Hierárquico (Supervisor)', description: 'Um supervisor inteligente delega para agentes especialistas conforme a necessidade.', diagram: 'User → 🎯 Supervisor → [🤖A | 🤖B | 🤖C] → Response', complexity: 'Alta', cost: 'Alto (2+ chamadas por request)', recommended_for: 'Múltiplos domínios, routing inteligente', not_for: 'Latência ultra-baixa, budget limitado' },
+  { id: 'swarm', icon: '🐝', title: 'Swarm Colaborativo', description: 'Agentes se comunicam entre si, validam mutuamente, chegam a consenso.', diagram: 'User → [🤖A ↔ 🤖B ↔ 🤖C] → Consenso → Response', complexity: 'Muito Alta', cost: 'Muito Alto (N² chamadas possíveis)', recommended_for: 'Decisões críticas com cross-checking', not_for: 'Budget limitado, latência crítica' },
 ];
 
 export function OrchestrationModule() {
@@ -61,15 +73,35 @@ export function OrchestrationModule() {
           title="Padrão de Orquestração"
           subtitle="Como o agente se organiza para cumprir tarefas complexas."
         />
-        <SelectionGrid
-          items={ORCHESTRATION_PATTERNS.map((p) => ({
-            ...p,
-            badge: p.badge ? <NexusBadge color="purple">{p.badge}</NexusBadge> : undefined,
-          }))}
-          value={agent.orchestration_pattern}
-          onChange={(v) => updateAgent({ orchestration_pattern: v as OrchestrationPattern })}
-          columns={2}
-        />
+        <div className="space-y-3">
+          {ORCHESTRATION_PATTERNS.map((p) => {
+            const selected = agent.orchestration_pattern === p.id;
+            return (
+              <button
+                key={p.id}
+                onClick={() => updateAgent({ orchestration_pattern: p.id })}
+                className={cn(
+                  'w-full text-left rounded-xl border p-4 transition-all duration-200',
+                  selected ? 'border-primary bg-primary/5' : 'border-border bg-card hover:bg-muted/30'
+                )}
+              >
+                <div className="flex items-center gap-3 mb-2">
+                  <span className="text-xl" aria-hidden="true">{p.icon}</span>
+                  <h3 className="text-sm font-semibold text-foreground flex-1">{p.title}</h3>
+                  <NexusBadge color={p.complexity === 'Baixa' ? 'green' : p.complexity === 'Média' ? 'yellow' : p.complexity === 'Alta' ? 'orange' : 'red'}>
+                    {p.complexity}
+                  </NexusBadge>
+                </div>
+                <p className="text-xs text-muted-foreground mb-2">{p.description}</p>
+                <div className="font-mono text-[11px] text-primary/70 bg-primary/5 rounded-lg px-3 py-1.5 mb-2">{p.diagram}</div>
+                <div className="grid grid-cols-2 gap-2 text-[10px] text-muted-foreground">
+                  <span>💰 Custo: {p.cost}</span>
+                  <span>✅ Para: {p.recommended_for}</span>
+                </div>
+              </button>
+            );
+          })}
+        </div>
       </section>
 
       {/* Seção B — Sub-Agentes (visível apenas se multi-agent) */}

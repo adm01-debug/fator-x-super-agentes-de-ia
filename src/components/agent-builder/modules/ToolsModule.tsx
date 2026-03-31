@@ -5,11 +5,51 @@ import { Button } from '@/components/ui/button';
 import { Plus, Trash2 } from 'lucide-react';
 import type { AgentTool, MCPServer, CustomAPI } from '@/types/agentTypes';
 
-const TOOL_CATEGORIES = [
-  { id: 'data', label: '📊 Dados', description: 'Consultas, leitura de bancos e APIs de dados.' },
-  { id: 'action', label: '⚡ Ações', description: 'Enviar email, criar ticket, postar mensagem.' },
-  { id: 'compute', label: '🖥️ Compute', description: 'Executar código, cálculos, transformações.' },
-  { id: 'integration', label: '🔌 Integrações', description: 'Conectores com serviços externos.' },
+const TOOL_LIBRARY: { category: string; label: string; description: string; tools: { name: string; desc: string }[] }[] = [
+  {
+    category: 'data', label: '🔍 Dados & Busca', description: 'Ferramentas para acessar e buscar informações',
+    tools: [
+      { name: 'Web Search', desc: 'Busca na internet em tempo real' },
+      { name: 'Database Query', desc: 'Consulta SQL/NoSQL em bancos de dados' },
+      { name: 'API REST/GraphQL', desc: 'Chamadas a APIs externas' },
+      { name: 'File Reader', desc: 'Leitura de PDFs, DOCX, CSV, TXT' },
+      { name: 'Spreadsheet Parser', desc: 'Leitura e manipulação de planilhas' },
+      { name: 'Vector Search', desc: 'Busca semântica no vector store' },
+    ],
+  },
+  {
+    category: 'action', label: '⚡ Ações', description: 'Ferramentas para executar ações no mundo real',
+    tools: [
+      { name: 'Email Sender', desc: 'Envio de emails via SMTP/API' },
+      { name: 'CRM Update', desc: 'Criar/atualizar registros no CRM' },
+      { name: 'Task Creator', desc: 'Criar tarefas e checklists' },
+      { name: 'Webhook Trigger', desc: 'Disparar webhooks HTTP' },
+      { name: 'Message Sender', desc: 'Enviar mensagens (WhatsApp, Slack, Chat)' },
+      { name: 'Calendar Event', desc: 'Criar/modificar eventos de calendário' },
+    ],
+  },
+  {
+    category: 'compute', label: '🧮 Computação', description: 'Ferramentas de processamento e cálculo',
+    tools: [
+      { name: 'Code Executor', desc: 'Execução de código Python/JS em sandbox' },
+      { name: 'Math Engine', desc: 'Cálculos matemáticos e fórmulas' },
+      { name: 'Data Analyzer', desc: 'Análise estatística de dados' },
+      { name: 'Image Processor', desc: 'Processamento e análise de imagens' },
+      { name: 'PDF Generator', desc: 'Geração de documentos PDF' },
+      { name: 'Chart Generator', desc: 'Criação de gráficos e visualizações' },
+    ],
+  },
+  {
+    category: 'integration', label: '🔌 Integrações MCP', description: 'Conexões via Model Context Protocol',
+    tools: [
+      { name: 'Bitrix24', desc: 'CRM, tarefas, SPAs, deals, contatos' },
+      { name: 'Slack', desc: 'Mensagens, canais, busca' },
+      { name: 'Google Drive', desc: 'Documentos, planilhas, apresentações' },
+      { name: 'Gmail', desc: 'Emails, drafts, busca' },
+      { name: 'n8n Workflows', desc: 'Executar e monitorar automações' },
+      { name: 'Supabase', desc: 'Database, Auth, Storage, Edge Functions' },
+    ],
+  },
 ];
 
 const DEFAULT_TOOL: Omit<AgentTool, 'id'> = {
@@ -77,32 +117,87 @@ export function ToolsModule() {
 
   const enabledTools = agent.tools.filter((t) => t.enabled).length;
 
-  const toolsByCategory = TOOL_CATEGORIES.map((cat) => ({
+  const toggleLibraryTool = (name: string, desc: string, category: string) => {
+    const exists = agent.tools.find((t) => t.name === name);
+    if (exists) {
+      updateAgent({ tools: agent.tools.map((t) => t.name === name ? { ...t, enabled: !t.enabled } : t) });
+    } else {
+      updateAgent({
+        tools: [...agent.tools, {
+          ...DEFAULT_TOOL,
+          id: crypto.randomUUID(),
+          name,
+          description: desc,
+          category: category as AgentTool['category'],
+          enabled: true,
+        }],
+      });
+    }
+  };
+
+  const toolsByCategory = TOOL_LIBRARY.map((cat) => ({
     ...cat,
-    tools: agent.tools.filter((t) => t.category === cat.id),
+    agentTools: agent.tools.filter((t) => t.category === cat.category),
   }));
 
   return (
     <div className="space-y-10">
-      {/* Seção A — Ferramentas por Categoria */}
+      {/* Seção A — Biblioteca de Ferramentas */}
       <section>
         <SectionTitle
           icon="🔧"
-          title="Ferramentas"
-          subtitle="Capacidades que o agente pode usar durante a execução."
+          title="Biblioteca de Ferramentas"
+          subtitle="Selecione as ferramentas que o agente poderá utilizar."
           badge={<NexusBadge color="blue">{enabledTools} ativas</NexusBadge>}
         />
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          {TOOL_LIBRARY.map((cat) => (
+            <div key={cat.category} className="rounded-xl border border-border bg-card p-4">
+              <h3 className="text-sm font-semibold text-foreground mb-1">{cat.label}</h3>
+              <p className="text-[11px] text-muted-foreground mb-3">{cat.description}</p>
+              <div className="space-y-1.5">
+                {cat.tools.map((tool) => {
+                  const existing = agent.tools.find((t) => t.name === tool.name);
+                  const isEnabled = existing?.enabled ?? false;
+                  return (
+                    <label key={tool.name} className="flex items-center gap-2.5 cursor-pointer p-1.5 rounded-lg hover:bg-muted/30 transition-colors">
+                      <input
+                        type="checkbox"
+                        checked={isEnabled}
+                        onChange={() => toggleLibraryTool(tool.name, tool.desc, cat.category)}
+                        className="accent-primary h-3.5 w-3.5"
+                      />
+                      <div className="flex-1 min-w-0">
+                        <span className="text-xs font-medium text-foreground">{tool.name}</span>
+                        <span className="text-[10px] text-muted-foreground ml-1.5">{tool.desc}</span>
+                      </div>
+                    </label>
+                  );
+                })}
+              </div>
+            </div>
+          ))}
+        </div>
+      </section>
+
+      {/* Seção B — Ferramentas com Governança */}
+      <section>
+        <SectionTitle
+          icon="⚙️"
+          title="Governança de Ferramentas"
+          subtitle="Configure permissões e limites para cada ferramenta ativa."
+        />
         <div className="space-y-3">
-          {toolsByCategory.map((cat) => (
+          {toolsByCategory.filter(c => c.agentTools.length > 0).map((cat) => (
             <CollapsibleCard
-              key={cat.id}
+              key={cat.category}
               icon={cat.label.slice(0, 2)}
               title={cat.label.slice(2).trim()}
               subtitle={cat.description}
-              badge={<NexusBadge color="muted">{cat.tools.length}</NexusBadge>}
+              badge={<NexusBadge color="muted">{cat.agentTools.length}</NexusBadge>}
             >
               <div className="space-y-3">
-                {cat.tools.map((tool) => (
+                {cat.agentTools.map((tool) => (
                   <div key={tool.id} className="rounded-lg border border-border bg-muted/10 p-3 space-y-3">
                     <div className="flex items-center justify-between">
                       <div className="flex items-center gap-2 flex-1 min-w-0">
