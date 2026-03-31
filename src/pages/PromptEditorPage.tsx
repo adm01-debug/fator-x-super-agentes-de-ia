@@ -15,9 +15,6 @@ import { motion } from "framer-motion";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { PageHeader } from "@/components/shared/PageHeader";
-import { motion } from "framer-motion";
-import { toast } from "sonner";
-import { supabase } from "@/integrations/supabase/client";
 
 export default function PromptEditorPage() {
   const { id: agentId } = useParams();
