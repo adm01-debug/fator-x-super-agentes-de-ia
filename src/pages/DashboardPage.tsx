@@ -157,7 +157,7 @@ export default function DashboardPage() {
               <h3 className="text-sm font-heading font-semibold text-foreground mb-3" id="recent-agents-heading">Agentes recentes</h3>
               <div className="space-y-3" role="list" aria-labelledby="recent-agents-heading">
                 {agents.slice(0, 5).map(agent => (
-                  <div key={agent.id} className="flex items-center justify-between cursor-pointer hover:bg-secondary/30 rounded-lg p-2 -mx-2 transition-colors" onClick={() => navigate(`/builder/${agent.id}`)}>
+                  <div key={agent.id} role="listitem" className="flex items-center justify-between cursor-pointer hover:bg-secondary/30 rounded-lg p-2 -mx-2 transition-colors" onClick={() => navigate(`/builder/${agent.id}`)} onKeyDown={(e) => e.key === 'Enter' && navigate(`/builder/${agent.id}`)} tabIndex={0} aria-label={`Agente ${agent.name}, status ${agent.status || 'draft'}`}>
                     <div className="flex items-center gap-2.5 min-w-0">
                       <div className="h-8 w-8 rounded-lg bg-primary/10 flex items-center justify-center text-sm">{agent.avatar_emoji || '🤖'}</div>
                       <div className="min-w-0">
