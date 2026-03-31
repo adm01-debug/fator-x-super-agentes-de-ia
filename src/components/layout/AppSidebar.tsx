@@ -39,6 +39,8 @@ const navSections = [
       { title: "Monitoring", url: "/monitoring", icon: Activity },
       { title: "Data & Storage", url: "/data-storage", icon: Database },
       { title: "DataHub", url: "/datahub", icon: Database },
+      { title: "Super Cérebro", url: "/brain", icon: Brain },
+      { title: "Oráculo", url: "/oracle", icon: Sparkles },
     ],
   },
   {

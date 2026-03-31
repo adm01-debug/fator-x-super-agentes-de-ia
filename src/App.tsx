@@ -27,6 +27,8 @@ const DeploymentsPage = lazy(() => import("./pages/DeploymentsPage"));
 const MonitoringPage = lazy(() => import("./pages/MonitoringPage"));
 const DataStoragePage = lazy(() => import("./pages/DataStoragePage"));
 const DataHubPage = lazy(() => import("./pages/DataHubPage"));
+const SuperCerebroPage = lazy(() => import("./pages/SuperCerebroPage"));
+const OraculoPage = lazy(() => import("./pages/OraculoPage"));
 const SecurityPage = lazy(() => import("./pages/SecurityPage"));
 const TeamPage = lazy(() => import("./pages/TeamPage"));
 const BillingPage = lazy(() => import("./pages/BillingPage"));
@@ -68,6 +70,8 @@ const App = () => (
                       <Route path="/monitoring" element={<MonitoringPage />} />
                       <Route path="/data-storage" element={<DataStoragePage />} />
                       <Route path="/datahub" element={<DataHubPage />} />
+                      <Route path="/brain" element={<SuperCerebroPage />} />
+                      <Route path="/oracle" element={<OraculoPage />} />
                       <Route path="/security" element={<SecurityPage />} />
                       <Route path="/team" element={<TeamPage />} />
                       <Route path="/billing" element={<BillingPage />} />
