@@ -21,6 +21,7 @@ const CHANNEL_META: Record<DeployChannel, { icon: React.ReactNode; label: string
   bitrix24: { icon: <Radio className="h-4 w-4" />, label: 'Bitrix24' },
   telegram: { icon: <Send className="h-4 w-4" />, label: 'Telegram' },
   discord: { icon: <Hash className="h-4 w-4" />, label: 'Discord' },
+  openclaw: { icon: <Globe className="h-4 w-4" />, label: 'OpenClaw' },
 };
 
 const DEFAULT_CHANNELS: DeployChannelConfig[] = [
@@ -32,6 +33,7 @@ const DEFAULT_CHANNELS: DeployChannelConfig[] = [
   { id: 'ch-email', channel: 'email', enabled: false, config: { address: '' }, status: 'inactive' },
   { id: 'ch-discord', channel: 'discord', enabled: false, config: { server_id: '' }, status: 'inactive' },
   { id: 'ch-bitrix', channel: 'bitrix24', enabled: false, config: { webhook_url: '' }, status: 'inactive' },
+  { id: 'ch-openclaw', channel: 'openclaw', enabled: false, config: { skill_md: '' }, status: 'inactive' },
 ];
 
 const DEFAULT_KPIS: MonitoringKPI[] = [

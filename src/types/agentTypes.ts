@@ -228,7 +228,7 @@ export interface DeployChannelConfig {
   status: 'active' | 'inactive' | 'error';
 }
 
-export type DeployChannel = 'api' | 'whatsapp' | 'web_chat' | 'slack' | 'email' | 'bitrix24' | 'telegram' | 'discord';
+export type DeployChannel = 'api' | 'whatsapp' | 'web_chat' | 'slack' | 'email' | 'bitrix24' | 'telegram' | 'discord' | 'openclaw';
 
 export interface MonitoringKPI {
   id: string;
