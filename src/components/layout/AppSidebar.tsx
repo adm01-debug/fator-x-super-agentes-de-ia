@@ -78,12 +78,12 @@ export function AppSidebar() {
   return (
     <Sidebar collapsible="icon" className="border-r border-border/50">
       <SidebarHeader className="p-4">
-        <div className="flex items-center gap-2.5">
-          <img src={fatorxIcon} alt="Fator X" className="h-9 w-9 shrink-0 rounded-xl" />
+        <div className="flex items-center gap-1.5">
+          <img src={fatorxIcon} alt="Fator X" className="h-14 w-14 shrink-0 rounded-xl" />
           {!collapsed && (
-            <span className="font-heading text-base font-extrabold tracking-tight">
+            <span className="font-heading text-lg font-extrabold tracking-tight">
               <span className="text-muted-foreground">FATOR</span>
-              <span className="text-transparent bg-clip-text bg-gradient-to-r from-nexus-cyan to-nexus-teal ml-1">X</span>
+              <span className="text-transparent bg-clip-text bg-gradient-to-r from-nexus-cyan to-nexus-teal ml-0.5">X</span>
             </span>
           )}
         </div>
