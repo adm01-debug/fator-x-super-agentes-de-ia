@@ -7,12 +7,62 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version',
 };
 
+// ═══ Rate Limiting ═══
+const rateLimitMap = new Map<string, number[]>();
+const RATE_LIMIT_MAX = 30; // requests per window
+const RATE_LIMIT_WINDOW_MS = 60_000; // 1 minute
+
+function checkRateLimit(userId: string): boolean {
+  const now = Date.now();
+  const timestamps = (rateLimitMap.get(userId) || []).filter(t => now - t < RATE_LIMIT_WINDOW_MS);
+  if (timestamps.length >= RATE_LIMIT_MAX) return false;
+  timestamps.push(now);
+  rateLimitMap.set(userId, timestamps);
+  return true;
+}
+
+// ═══ Input Validation ═══
+function validateRequest(body: unknown): { valid: true; data: LLMRequest } | { valid: false; error: string } {
+  if (!body || typeof body !== 'object') return { valid: false, error: 'Request body must be a JSON object' };
+  const b = body as Record<string, unknown>;
+  
+  if (typeof b.model !== 'string' || b.model.length < 2 || b.model.length > 200) {
+    return { valid: false, error: 'model must be a string (2-200 chars)' };
+  }
+  if (!Array.isArray(b.messages) || b.messages.length === 0 || b.messages.length > 100) {
+    return { valid: false, error: 'messages must be a non-empty array (max 100)' };
+  }
+  for (const msg of b.messages) {
+    if (!msg || typeof msg !== 'object') return { valid: false, error: 'Each message must be an object' };
+    const m = msg as Record<string, unknown>;
+    if (typeof m.role !== 'string' || !['system', 'user', 'assistant'].includes(m.role)) {
+      return { valid: false, error: 'Each message.role must be "system", "user", or "assistant"' };
+    }
+    if (typeof m.content !== 'string' || m.content.length === 0) {
+      return { valid: false, error: 'Each message.content must be a non-empty string' };
+    }
+  }
+  
+  const temperature = typeof b.temperature === 'number' ? Math.max(0, Math.min(2, b.temperature)) : 0.7;
+  const max_tokens = typeof b.max_tokens === 'number' ? Math.max(1, Math.min(32000, Math.floor(b.max_tokens))) : 4000;
+  
+  return {
+    valid: true,
+    data: {
+      model: b.model as string,
+      messages: b.messages as Array<{ role: string; content: string }>,
+      temperature,
+      max_tokens,
+      workspace_id: typeof b.workspace_id === 'string' ? b.workspace_id : undefined,
+    },
+  };
+}
+
 interface LLMRequest {
   model: string;
   messages: Array<{ role: string; content: string }>;
-  temperature?: number;
-  max_tokens?: number;
-  stream?: boolean;
+  temperature: number;
+  max_tokens: number;
   workspace_id?: string;
 }
 
@@ -38,16 +88,27 @@ serve(async (req) => {
       return new Response(JSON.stringify({ error: 'Unauthorized' }), { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
     }
 
-    const body: LLMRequest = await req.json();
-    const { model, messages, temperature = 0.7, max_tokens = 4000 } = body;
-
-    if (!model || !messages?.length) {
-      return new Response(JSON.stringify({ error: 'model and messages required' }), { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
+    // Rate limit check
+    if (!checkRateLimit(user.id)) {
+      return new Response(JSON.stringify({ error: 'Rate limit exceeded. Max 30 requests per minute.' }), { status: 429, headers: { ...corsHeaders, 'Content-Type': 'application/json', 'Retry-After': '60' } });
     }
+
+    // Validate input
+    let rawBody: unknown;
+    try { rawBody = await req.json(); } catch { 
+      return new Response(JSON.stringify({ error: 'Invalid JSON body' }), { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
+    }
+    
+    const validation = validateRequest(rawBody);
+    if (!validation.valid) {
+      return new Response(JSON.stringify({ error: validation.error }), { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
+    }
+
+    const { model, messages, temperature, max_tokens } = validation.data;
 
     // Get workspace
     const { data: member } = await supabase.from('workspace_members').select('workspace_id').eq('user_id', user.id).limit(1).single();
-    const workspaceId = member?.workspace_id || body.workspace_id;
+    const workspaceId = member?.workspace_id || validation.data.workspace_id;
 
     // Try to get API key - first OpenRouter, then provider-specific
     let apiKey = '';
@@ -86,7 +147,6 @@ serve(async (req) => {
     let result: any;
 
     if (provider === 'lovable') {
-      // Use Lovable AI
       const lovableModel = mapToLovableModel(model);
       const response = await fetch('https://api.lovable.dev/v1/chat/completions', {
         method: 'POST',
@@ -101,7 +161,7 @@ serve(async (req) => {
           'Content-Type': 'application/json',
           'Authorization': `Bearer ${apiKey}`,
           'HTTP-Referer': supabaseUrl,
-          'X-Title': 'Fator X Studio',
+          'X-Title': 'Fator X',
         },
         body: JSON.stringify({ model, messages, temperature, max_tokens }),
       });
@@ -134,7 +194,6 @@ serve(async (req) => {
         },
       };
     } else {
-      // OpenAI / Google (OpenAI-compatible)
       const url = provider === 'google'
         ? 'https://generativelanguage.googleapis.com/v1beta/openai/chat/completions'
         : 'https://api.openai.com/v1/chat/completions';
@@ -152,9 +211,7 @@ serve(async (req) => {
     const promptTokens = usage.prompt_tokens || 0;
     const completionTokens = usage.completion_tokens || 0;
     const totalTokens = usage.total_tokens || promptTokens + completionTokens;
-
-    // Estimate cost (rough)
-    const costUsd = totalTokens * 0.000003; // ~$3/M tokens average
+    const costUsd = totalTokens * 0.000003;
 
     return new Response(JSON.stringify({
       content,

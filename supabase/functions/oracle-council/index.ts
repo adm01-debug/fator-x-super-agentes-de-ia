@@ -7,6 +7,58 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version',
 };
 
+// ═══ Rate Limiting ═══
+const rateLimitMap = new Map<string, number[]>();
+const RATE_LIMIT_MAX = 10; // Oracle is expensive — 10 req/min
+const RATE_LIMIT_WINDOW_MS = 60_000;
+
+function checkRateLimit(userId: string): boolean {
+  const now = Date.now();
+  const timestamps = (rateLimitMap.get(userId) || []).filter(t => now - t < RATE_LIMIT_WINDOW_MS);
+  if (timestamps.length >= RATE_LIMIT_MAX) return false;
+  timestamps.push(now);
+  rateLimitMap.set(userId, timestamps);
+  return true;
+}
+
+// ═══ Input Validation ═══
+const VALID_MODES = ['council', 'researcher', 'validator', 'executor', 'advisor'];
+
+function validateRequest(body: unknown): { valid: true; data: OracleRequest } | { valid: false; error: string } {
+  if (!body || typeof body !== 'object') return { valid: false, error: 'Request body must be a JSON object' };
+  const b = body as Record<string, unknown>;
+
+  if (typeof b.query !== 'string' || b.query.trim().length < 3 || b.query.length > 10000) {
+    return { valid: false, error: 'query must be a string (3-10000 chars)' };
+  }
+  
+  const mode = typeof b.mode === 'string' && VALID_MODES.includes(b.mode) ? b.mode : 'council';
+  
+  if (!Array.isArray(b.members) || b.members.length < 2 || b.members.length > 10) {
+    return { valid: false, error: 'members must be an array with 2-10 items' };
+  }
+  for (const m of b.members) {
+    if (!m || typeof m !== 'object') return { valid: false, error: 'Each member must be an object' };
+    const mem = m as Record<string, unknown>;
+    if (typeof mem.model !== 'string' || mem.model.length < 2) {
+      return { valid: false, error: 'Each member must have a valid model string' };
+    }
+  }
+
+  return {
+    valid: true,
+    data: {
+      query: b.query as string,
+      mode,
+      members: b.members as Array<{ model: string; persona?: string }>,
+      chairman_model: typeof b.chairman_model === 'string' ? b.chairman_model : undefined,
+      enable_peer_review: b.enable_peer_review !== false,
+      enable_thinking: b.enable_thinking === true,
+      preset_id: typeof b.preset_id === 'string' ? b.preset_id : undefined,
+    },
+  };
+}
+
 interface OracleRequest {
   query: string;
   mode: string;
@@ -39,12 +91,23 @@ serve(async (req) => {
       return new Response(JSON.stringify({ error: 'Unauthorized' }), { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
     }
 
-    const body: OracleRequest = await req.json();
-    const { query, mode = 'council', members, chairman_model, enable_peer_review = true, enable_thinking = false } = body;
-
-    if (!query || !members?.length || members.length < 2) {
-      return new Response(JSON.stringify({ error: 'query and at least 2 members required' }), { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
+    // Rate limit
+    if (!checkRateLimit(user.id)) {
+      return new Response(JSON.stringify({ error: 'Rate limit exceeded. Max 10 Oracle requests per minute.' }), { status: 429, headers: { ...corsHeaders, 'Content-Type': 'application/json', 'Retry-After': '60' } });
     }
+
+    // Validate input
+    let rawBody: unknown;
+    try { rawBody = await req.json(); } catch {
+      return new Response(JSON.stringify({ error: 'Invalid JSON body' }), { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
+    }
+
+    const validation = validateRequest(rawBody);
+    if (!validation.valid) {
+      return new Response(JSON.stringify({ error: validation.error }), { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
+    }
+
+    const { query, mode, members, chairman_model, enable_peer_review = true, enable_thinking = false } = validation.data;
 
     const gatewayUrl = `${supabaseUrl}/functions/v1/llm-gateway`;
     const totalStartTime = Date.now();
@@ -84,7 +147,6 @@ serve(async (req) => {
         });
         const result = await response.json();
         
-        // Separate thinking from content
         let content = result.content || result.error || 'No response';
         let thinking = '';
         if (enable_thinking && content.includes('💭')) {
