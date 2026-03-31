@@ -144,38 +144,34 @@ export default function DashboardPage() {
         <>
           {/* Metrics */}
           <div className="grid grid-cols-2 md:grid-cols-4 gap-3 sm:gap-4" role="region" aria-label="Métricas principais">
-            <div className="nexus-card text-center">
-              <div className="flex items-center justify-center gap-1.5 mb-1">
-                <Bot className="h-4 w-4 text-primary" aria-hidden="true" />
-              </div>
-              <p className="text-xl sm:text-2xl font-heading font-bold text-foreground">{agents.length}</p>
-              <p className="text-[10px] sm:text-[11px] text-muted-foreground">Total de agentes</p>
-            </div>
-            <div className="nexus-card text-center">
-              <div className="flex items-center justify-center gap-1.5 mb-1">
-                <Zap className="h-4 w-4 text-nexus-emerald" aria-hidden="true" />
-              </div>
-              <p className="text-xl sm:text-2xl font-heading font-bold text-nexus-emerald">{activeCount}</p>
-              <p className="text-[10px] sm:text-[11px] text-muted-foreground">Em produção</p>
-            </div>
-            <div className="nexus-card text-center">
-              <div className="flex items-center justify-center gap-1.5 mb-1">
-                <DollarSign className="h-4 w-4 text-nexus-amber" aria-hidden="true" />
-              </div>
-              <p className="text-xl sm:text-2xl font-heading font-bold text-foreground">
-                {usageStats ? `$${usageStats.totalCost.toFixed(2)}` : '—'}
-              </p>
-              <p className="text-[10px] sm:text-[11px] text-muted-foreground">Custo (30d)</p>
-            </div>
-            <div className="nexus-card text-center">
-              <div className="flex items-center justify-center gap-1.5 mb-1">
-                <TrendingUp className="h-4 w-4 text-primary" aria-hidden="true" />
-              </div>
-              <p className="text-xl sm:text-2xl font-heading font-bold text-foreground">
-                {usageStats ? usageStats.totalRequests.toLocaleString() : '—'}
-              </p>
-              <p className="text-[10px] sm:text-[11px] text-muted-foreground">Requests (30d)</p>
-            </div>
+            {[
+              { icon: Bot, color: "text-primary", value: agents.length, label: "Total de agentes" },
+              { icon: Zap, color: "text-nexus-emerald", value: activeCount, label: "Em produção" },
+              { icon: DollarSign, color: "text-nexus-amber", value: usageStats?.totalCost ?? 0, label: "Custo (30d)", prefix: "$", decimals: 2, noData: !usageStats },
+              { icon: TrendingUp, color: "text-primary", value: usageStats?.totalRequests ?? 0, label: "Requests (30d)", noData: !usageStats },
+            ].map((metric, i) => (
+              <motion.div
+                key={metric.label}
+                className="nexus-card text-center"
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.4, delay: i * 0.08 }}
+              >
+                <div className="flex items-center justify-center gap-1.5 mb-1">
+                  <metric.icon className={`h-4 w-4 ${metric.color}`} aria-hidden="true" />
+                </div>
+                <p className={`text-xl sm:text-2xl font-heading font-bold ${i === 1 ? "text-nexus-emerald" : "text-foreground"}`}>
+                  {metric.noData ? '—' : (
+                    <AnimatedCounter
+                      value={metric.value}
+                      prefix={metric.prefix}
+                      decimals={metric.decimals}
+                    />
+                  )}
+                </p>
+                <p className="text-[10px] sm:text-[11px] text-muted-foreground">{metric.label}</p>
+              </motion.div>
+            ))}
           </div>
 
           {/* Additional metrics row */}
