@@ -1,5 +1,6 @@
 import { create } from 'zustand';
 import { supabase } from '@/integrations/supabase/client';
+import { saveOracleHistory } from '@/lib/oracleHistory';
 
 // ═══ TYPES ═══
 
