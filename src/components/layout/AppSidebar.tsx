@@ -89,7 +89,7 @@ export function AppSidebar() {
         </div>
       </SidebarHeader>
 
-      <SidebarContent className="px-2">
+      <SidebarContent className="px-2" role="navigation" aria-label="Menu principal">
         {navSections.map((section, sectionIdx) => (
           <SidebarGroup key={section.label}>
             {!collapsed && (
