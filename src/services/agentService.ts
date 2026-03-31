@@ -112,7 +112,7 @@ export async function loadAgents(userId: string): Promise<AgentSummary[]> {
     .from('agents')
     .select('id, name, mission, model, persona, status, avatar_emoji, tags, version, created_at, updated_at')
     .eq('user_id', userId)
-    .eq('is_template', false)
+    .or('is_template.eq.false,is_template.is.null')
     .order('updated_at', { ascending: false });
 
   if (error) throw new Error(`Erro ao carregar agentes: ${error.message}`);
@@ -175,10 +175,12 @@ export async function savePromptVersion(
   changeSummary: string,
 ): Promise<void> {
   // Deactivate all previous versions
-  await supabase
+  const { error: deactivateError } = await supabase
     .from('prompt_versions')
     .update({ is_active: false })
     .eq('agent_id', agentId);
+
+  if (deactivateError) throw new Error(`Erro ao desativar versões anteriores: ${deactivateError.message}`);
 
   // Insert new active version
   const { error } = await supabase
@@ -207,11 +209,15 @@ export async function loadPromptVersions(agentId: string) {
 }
 
 export async function activatePromptVersion(agentId: string, versionId: string): Promise<void> {
-  await supabase
+  // Deactivate all versions first
+  const { error: deactivateError } = await supabase
     .from('prompt_versions')
     .update({ is_active: false })
     .eq('agent_id', agentId);
 
+  if (deactivateError) throw new Error(`Erro ao desativar versões: ${deactivateError.message}`);
+
+  // Activate the target version
   const { error } = await supabase
     .from('prompt_versions')
     .update({ is_active: true })

@@ -6,24 +6,30 @@ import { Plus, Trash2, Shield, ShieldAlert, ShieldCheck, Lock } from 'lucide-rea
 import type { GuardrailConfig } from '@/types/agentTypes';
 
 const DEFAULT_GUARDRAILS: GuardrailConfig[] = [
-  // Input Validation
-  { id: 'input_length', category: 'input_validation', name: 'Limite de Tamanho', description: 'Bloqueia inputs acima do limite configurado.', enabled: true, severity: 'block' },
-  { id: 'input_injection', category: 'input_validation', name: 'Detecção de Injection', description: 'Detecta tentativas de prompt injection.', enabled: true, severity: 'block' },
-  { id: 'input_language', category: 'input_validation', name: 'Filtro de Idioma', description: 'Restringe inputs a idiomas permitidos.', enabled: false, severity: 'warn' },
-  { id: 'input_pii', category: 'input_validation', name: 'Detecção de PII', description: 'Detecta dados pessoais sensíveis no input.', enabled: false, severity: 'warn' },
-  // Output Safety
-  { id: 'output_toxicity', category: 'output_safety', name: 'Filtro de Toxicidade', description: 'Bloqueia respostas com conteúdo tóxico ou ofensivo.', enabled: true, severity: 'block' },
-  { id: 'output_hallucination', category: 'output_safety', name: 'Detecção de Alucinação', description: 'Verifica se a resposta é fundamentada nas fontes.', enabled: true, severity: 'warn' },
-  { id: 'output_format', category: 'output_safety', name: 'Validação de Formato', description: 'Garante que a saída segue o schema definido.', enabled: false, severity: 'warn' },
-  { id: 'output_length', category: 'output_safety', name: 'Limite de Saída', description: 'Restringe o tamanho máximo da resposta.', enabled: true, severity: 'log' },
-  // Access Control
-  { id: 'access_auth', category: 'access_control', name: 'Autenticação Obrigatória', description: 'Exige token válido para interagir.', enabled: true, severity: 'block' },
-  { id: 'access_rate_limit', category: 'access_control', name: 'Rate Limiting', description: 'Limita requisições por usuário/minuto.', enabled: true, severity: 'block' },
-  { id: 'access_domain', category: 'access_control', name: 'Restrição de Domínio', description: 'Permite acesso apenas de domínios autorizados.', enabled: false, severity: 'block' },
-  // Operational
-  { id: 'op_budget', category: 'operational', name: 'Budget por Sessão', description: 'Limita tokens/custo por sessão.', enabled: true, severity: 'block' },
-  { id: 'op_loop_detect', category: 'operational', name: 'Detecção de Loop', description: 'Detecta e interrompe loops de raciocínio.', enabled: true, severity: 'block' },
-  { id: 'op_tool_approval', category: 'operational', name: 'Aprovação de Ferramentas', description: 'Exige aprovação para ferramentas críticas.', enabled: false, severity: 'warn' },
+  // Input Validation (5)
+  { id: 'input_injection', category: 'input_validation', name: 'Prompt Injection Detection', description: 'Detecta tentativas de prompt injection e jailbreak.', enabled: true, severity: 'block' },
+  { id: 'input_pii', category: 'input_validation', name: 'PII Redaction', description: 'Detecta e mascara dados pessoais sensíveis (CPF, email, telefone).', enabled: false, severity: 'block' },
+  { id: 'input_classification', category: 'input_validation', name: 'Content Classification', description: 'Classifica o conteúdo do input por categoria e nível de risco.', enabled: false, severity: 'warn' },
+  { id: 'input_rate_limit', category: 'input_validation', name: 'Rate Limiting', description: 'Limita requisições por usuário/minuto para prevenir abuso.', enabled: true, severity: 'block' },
+  { id: 'input_sanitization', category: 'input_validation', name: 'Input Sanitization', description: 'Sanitiza inputs removendo caracteres e padrões perigosos.', enabled: true, severity: 'block' },
+  // Output Safety (5)
+  { id: 'output_toxicity', category: 'output_safety', name: 'Toxicity Filter', description: 'Bloqueia respostas com conteúdo tóxico, ofensivo ou discriminatório.', enabled: true, severity: 'block' },
+  { id: 'output_hallucination', category: 'output_safety', name: 'Hallucination Detection', description: 'Verifica se a resposta é fundamentada nas fontes disponíveis.', enabled: true, severity: 'warn' },
+  { id: 'output_factcheck', category: 'output_safety', name: 'Fact-checking Pipeline', description: 'Valida fatos citados contra fontes confiáveis antes de entregar.', enabled: false, severity: 'warn' },
+  { id: 'output_bias', category: 'output_safety', name: 'Bias Detection', description: 'Detecta viés discriminatório ou tendencioso nas respostas.', enabled: false, severity: 'log' },
+  { id: 'output_copyright', category: 'output_safety', name: 'Copyright Check', description: 'Verifica se a resposta não reproduz conteúdo protegido por direitos autorais.', enabled: false, severity: 'warn' },
+  // Access Control (5)
+  { id: 'access_auth', category: 'access_control', name: 'Zero Trust OAuth', description: 'Exige autenticação OAuth válida para cada interação.', enabled: true, severity: 'block' },
+  { id: 'access_identity', category: 'access_control', name: 'Agent Identity Management', description: 'Gerencia identidade e credenciais do agente de forma segura.', enabled: true, severity: 'block' },
+  { id: 'access_jit', category: 'access_control', name: 'Just-in-Time Provisioning', description: 'Provisiona permissões temporárias sob demanda, revogando após uso.', enabled: false, severity: 'block' },
+  { id: 'access_audit', category: 'access_control', name: 'Action Audit Trail', description: 'Registra cada ação executada para auditoria completa.', enabled: true, severity: 'log' },
+  { id: 'access_scope', category: 'access_control', name: 'Scope Limitation', description: 'Limita ações estritamente ao escopo definido do agente.', enabled: true, severity: 'block' },
+  // Operational (5)
+  { id: 'op_budget', category: 'operational', name: 'Token Budget Limits', description: 'Limita consumo de tokens e custo por sessão.', enabled: true, severity: 'block' },
+  { id: 'op_timeout', category: 'operational', name: 'Timeout Controls', description: 'Controla timeouts de execução, resposta e ferramentas.', enabled: true, severity: 'block' },
+  { id: 'op_fallback', category: 'operational', name: 'Fallback Strategies', description: 'Define estratégias de fallback automáticas em caso de falha.', enabled: false, severity: 'warn' },
+  { id: 'op_human_gate', category: 'operational', name: 'Human-in-the-Loop Gates', description: 'Exige aprovação humana para ações sensíveis ou de alto risco.', enabled: false, severity: 'block' },
+  { id: 'op_kill_switch', category: 'operational', name: 'Emergency Kill Switch', description: 'Botão de emergência para parar o agente imediatamente.', enabled: true, severity: 'block' },
 ];
 
 const CATEGORY_META: Record<string, { icon: React.ReactNode; label: string; color: string }> = {

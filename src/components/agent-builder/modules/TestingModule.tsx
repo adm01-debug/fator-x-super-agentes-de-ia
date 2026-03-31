@@ -21,13 +21,18 @@ const STATUS_META: Record<string, { icon: React.ReactNode; label: string; color:
 };
 
 const DEFAULT_EVAL_METRICS: EvalMetric[] = [
-  { id: 'accuracy', name: 'Acurácia', target: 90, unit: '%', weight: 20, is_blocker: true },
-  { id: 'relevance', name: 'Relevância', target: 85, unit: '%', weight: 15, is_blocker: true },
-  { id: 'latency', name: 'Latência P95', target: 3000, unit: 'ms', weight: 10, is_blocker: false },
-  { id: 'safety', name: 'Safety Score', target: 95, unit: '%', weight: 20, is_blocker: true },
-  { id: 'hallucination', name: 'Taxa de Alucinação', target: 5, unit: '%', weight: 15, is_blocker: true },
-  { id: 'groundedness', name: 'Groundedness', target: 90, unit: '%', weight: 10, is_blocker: false },
-  { id: 'cost', name: 'Custo por Interação', target: 0.05, unit: 'USD', weight: 10, is_blocker: false },
+  { id: 'accuracy', name: 'Acurácia', target: 90, unit: '%', weight: 10, is_blocker: false },
+  { id: 'latency', name: 'Latência P95', target: 2000, unit: 'ms', weight: 5, is_blocker: false },
+  { id: 'safety', name: 'Safety Score', target: 95, unit: '%', weight: 12, is_blocker: true },
+  { id: 'relevance', name: 'Relevância', target: 85, unit: '%', weight: 8, is_blocker: false },
+  { id: 'consistency', name: 'Consistência', target: 80, unit: '%', weight: 6, is_blocker: false },
+  { id: 'hallucination', name: 'Taxa de Alucinação', target: 5, unit: '%', weight: 10, is_blocker: true },
+  { id: 'tool_success', name: 'Tool Success Rate', target: 95, unit: '%', weight: 7, is_blocker: false },
+  { id: 'groundedness', name: 'Groundedness', target: 90, unit: '%', weight: 8, is_blocker: false },
+  { id: 'policy_compliance', name: 'Conformidade', target: 100, unit: '%', weight: 12, is_blocker: true },
+  { id: 'citation_quality', name: 'Qualidade Citação', target: 80, unit: '%', weight: 5, is_blocker: false },
+  { id: 'cost_per_interaction', name: 'Custo/Interação', target: 0.05, unit: '$', weight: 4, is_blocker: false },
+  { id: 'user_satisfaction', name: 'Satisfação', target: 4.5, unit: '/5', weight: 8, is_blocker: false },
 ];
 
 export function TestingModule() {
