@@ -1,8 +1,29 @@
-import { describe, it, expect } from "vitest";
+import { describe, it, expect, vi, beforeEach } from "vitest";
 import { render, screen } from "@testing-library/react";
 import { MemoryRouter } from "react-router-dom";
 import { SidebarProvider } from "@/components/ui/sidebar";
 import { AppSidebar } from "@/components/layout/AppSidebar";
+
+// Mock auth context
+vi.mock("@/contexts/AuthContext", () => ({
+  useAuth: () => ({
+    user: { email: "test@test.com" },
+    signOut: vi.fn(),
+  }),
+}));
+
+// Mock agentService
+vi.mock("@/lib/agentService", () => ({
+  getWorkspaceInfo: () =>
+    Promise.resolve({
+      name: "Test WS",
+      plan: "free",
+      maxAgents: 5,
+      agentCount: 2,
+      userName: "Test User",
+      email: "test@test.com",
+    }),
+}));
 
 function renderSidebar(route = "/") {
   return render(
@@ -42,7 +63,7 @@ describe("AppSidebar", () => {
 
   it("renders workspace info", () => {
     renderSidebar();
-    expect(screen.getByText("Workspace Free")).toBeInTheDocument();
+    expect(screen.getByText(/Workspace Free/)).toBeInTheDocument();
     expect(screen.getByRole("progressbar")).toBeInTheDocument();
   });
 });
