@@ -96,7 +96,7 @@ export default function DashboardPage() {
       ) : (
         <>
           {/* Metrics */}
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-4" role="region" aria-label="Métricas principais">
             <div className="nexus-card text-center">
               <div className="flex items-center justify-center gap-1.5 mb-1">
                 <Bot className="h-4 w-4 text-primary" />
