@@ -1,17 +1,30 @@
+import { Breadcrumbs } from "./Breadcrumbs";
+import { BackButton } from "./BackButton";
+
 interface PageHeaderProps {
   title: string;
   description?: string;
   actions?: React.ReactNode;
+  /** Show back button — pass string for specific route, true for history back */
+  backTo?: string | boolean;
+  /** Hide breadcrumbs */
+  hideBreadcrumbs?: boolean;
 }
 
-export function PageHeader({ title, description, actions }: PageHeaderProps) {
+export function PageHeader({ title, description, actions, backTo, hideBreadcrumbs }: PageHeaderProps) {
   return (
-    <div className="flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between">
-      <div>
-        <h1 className="text-2xl font-heading font-bold text-foreground tracking-tight">{title}</h1>
-        {description && <p className="mt-1 text-sm text-muted-foreground">{description}</p>}
+    <div className="space-y-2">
+      {!hideBreadcrumbs && <Breadcrumbs />}
+      {backTo && (
+        <BackButton to={typeof backTo === "string" ? backTo : undefined} />
+      )}
+      <div className="flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between">
+        <div>
+          <h1 className="text-2xl font-heading font-bold text-foreground tracking-tight">{title}</h1>
+          {description && <p className="mt-1 text-sm text-muted-foreground">{description}</p>}
+        </div>
+        {actions && <div className="flex items-center gap-2 mt-3 sm:mt-0">{actions}</div>}
       </div>
-      {actions && <div className="flex items-center gap-2 mt-3 sm:mt-0">{actions}</div>}
     </div>
   );
 }

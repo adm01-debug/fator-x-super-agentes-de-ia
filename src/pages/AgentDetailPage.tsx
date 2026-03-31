@@ -2,7 +2,7 @@ import { useParams, useNavigate } from "react-router-dom";
 import { PageHeader } from "@/components/shared/PageHeader";
 import { StatusBadge } from "@/components/shared/StatusBadge";
 import { Button } from "@/components/ui/button";
-import { Bot, ArrowLeft, Loader2 } from "lucide-react";
+import { Bot, Loader2 } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 
@@ -35,36 +35,34 @@ export default function AgentDetailPage() {
     );
   }
 
-  const config = (agent.config as Record<string, any>) || {};
-
   return (
     <div className="p-6 space-y-6 max-w-[1400px] mx-auto">
-      <Button variant="ghost" size="sm" onClick={() => navigate('/agents')} className="gap-2 text-muted-foreground -ml-2 mb-2">
-        <ArrowLeft className="h-3.5 w-3.5" /> Voltar para agentes
-      </Button>
+      <PageHeader
+        title={agent.name}
+        description={agent.mission || 'Sem descrição'}
+        backTo="/agents"
+        actions={
+          <Button variant="outline" size="sm" onClick={() => navigate(`/builder/${agent.id}`)}>
+            Editar no Builder
+          </Button>
+        }
+      />
 
-      <div className="flex items-start justify-between">
-        <div className="flex items-center gap-4">
-          <div className="h-14 w-14 rounded-2xl bg-primary/10 flex items-center justify-center text-2xl">
-            {agent.avatar_emoji || '🤖'}
-          </div>
-          <div>
-            <div className="flex items-center gap-2.5">
-              <h1 className="text-2xl font-heading font-bold text-foreground">{agent.name}</h1>
-              <StatusBadge status={agent.status || 'draft'} />
-            </div>
-            <p className="text-sm text-muted-foreground mt-1">{agent.mission || 'Sem descrição'}</p>
-            <div className="flex items-center gap-3 mt-2 text-xs text-muted-foreground">
-              <span>{agent.model}</span>
-              <span>•</span>
-              <span>{agent.persona}</span>
-              <span>•</span>
-              <span>v{agent.version}</span>
-            </div>
-          </div>
+      <div className="flex items-center gap-4">
+        <div className="h-14 w-14 rounded-2xl bg-primary/10 flex items-center justify-center text-2xl">
+          {agent.avatar_emoji || '🤖'}
         </div>
-        <div className="flex items-center gap-2">
-          <Button variant="outline" size="sm" onClick={() => navigate(`/builder/${agent.id}`)}>Editar no Builder</Button>
+        <div>
+          <div className="flex items-center gap-2.5">
+            <StatusBadge status={agent.status || 'draft'} />
+          </div>
+          <div className="flex items-center gap-3 mt-2 text-xs text-muted-foreground">
+            <span>{agent.model}</span>
+            <span>•</span>
+            <span>{agent.persona}</span>
+            <span>•</span>
+            <span>v{agent.version}</span>
+          </div>
         </div>
       </div>
 
