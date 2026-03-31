@@ -1,3 +1,4 @@
+import { memo } from "react";
 import { LucideIcon } from "lucide-react";
 import { motion } from "framer-motion";
 
@@ -10,7 +11,7 @@ interface MetricCardProps {
   className?: string;
 }
 
-export function MetricCard({ title, value, subtitle, icon: Icon, trend, className = "" }: MetricCardProps) {
+export const MetricCard = memo(function MetricCard({ title, value, subtitle, icon: Icon, trend, className = "" }: MetricCardProps) {
   return (
     <motion.div
       initial={{ opacity: 0, y: 8 }}
@@ -28,10 +29,10 @@ export function MetricCard({ title, value, subtitle, icon: Icon, trend, classNam
             </p>
           )}
         </div>
-        <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-primary/10 text-primary transition-colors group-hover:bg-primary/15">
+        <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-primary/10 text-primary transition-colors group-hover:bg-primary/15" aria-hidden="true">
           <Icon className="h-4.5 w-4.5" />
         </div>
       </div>
     </motion.div>
   );
-}
+});
