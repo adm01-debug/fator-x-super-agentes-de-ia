@@ -1,70 +1,157 @@
+import { useState } from 'react';
 import { PageHeader } from '@/components/shared/PageHeader';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Badge } from '@/components/ui/badge';
+import { Switch } from '@/components/ui/switch';
+import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Sparkles, Loader2, Copy, RefreshCw } from 'lucide-react';
-import { useOracleStore } from '@/stores/oracleStore';
-import { motion } from 'framer-motion';
+import { Sparkles, Loader2, Copy, RefreshCw, ChevronDown, ChevronUp, Settings2 } from 'lucide-react';
+import { useOracleStore, ORACLE_MODES, ORACLE_PRESETS } from '@/stores/oracleStore';
+import { PresetSelector } from '@/components/oracle/PresetSelector';
+import { StageProgress } from '@/components/oracle/StageProgress';
+import { ConsensusMatrix } from '@/components/oracle/ConsensusMatrix';
+import { ModelCard } from '@/components/oracle/ModelCard';
+import { motion, AnimatePresence } from 'framer-motion';
 import { toast } from 'sonner';
 
-const MODES = [
-  { value: 'executive', label: '👔 Conselho Executivo' },
-  { value: 'quick', label: '⚡ Oráculo Rápido' },
-  { value: 'research', label: '🔬 Pesquisa Profunda' },
-  { value: 'technical', label: '💻 Conselho Técnico' },
-  { value: 'debate', label: '⚖️ Debate de Decisão' },
-  { value: 'factcheck', label: '🔍 Verificação de Fatos' },
+const CHAIRMAN_MODELS = [
+  { value: 'google/gemini-2.5-pro', label: 'Gemini 2.5 Pro' },
+  { value: 'openai/gpt-5', label: 'GPT-5' },
+  { value: 'google/gemini-2.5-flash', label: 'Gemini 2.5 Flash' },
+  { value: 'openai/gpt-5-mini', label: 'GPT-5 Mini' },
 ];
 
-const STAGES = ['Opiniões', 'Review', 'Síntese'];
-
 export default function OraclePage() {
-  const { query, mode, isRunning, currentStage, results, error, setQuery, setMode, submitQuery, clearResults } = useOracleStore();
+  const store = useOracleStore();
+  const [showPresets, setShowPresets] = useState(false);
+  const [showAdvanced, setShowAdvanced] = useState(false);
+
+  const currentPreset = ORACLE_PRESETS.find(p => p.id === store.selectedPreset);
+  const modeConfig = ORACLE_MODES[store.mode];
 
   return (
     <div className="p-6 space-y-6 max-w-[1400px] mx-auto">
-      <PageHeader title="🔮 Oráculo — Multi-LLM Council" description="Consulte múltiplas IAs e obtenha respostas sintetizadas com consenso" />
+      <PageHeader title="🔮 Oráculo v2 — Multi-LLM Council" description="5 modos de operação • Peer review • Consenso visual • Thinking expandível" />
 
+      {/* ═══ INPUT AREA ═══ */}
       <div className="nexus-card space-y-4">
-        <Textarea placeholder="Faça sua pergunta ao conselho de IAs..." value={query} onChange={(e) => setQuery(e.target.value)} className="min-h-[100px] bg-secondary/50 border-border/50 text-sm" />
-        <div className="flex items-center gap-3">
-          <Select value={mode} onValueChange={setMode}>
-            <SelectTrigger className="w-[240px]"><SelectValue /></SelectTrigger>
-            <SelectContent>{MODES.map(m => <SelectItem key={m.value} value={m.value}>{m.label}</SelectItem>)}</SelectContent>
-          </Select>
-          <Button onClick={submitQuery} disabled={isRunning || !query.trim()} className="nexus-gradient-bg text-primary-foreground gap-2">
-            {isRunning ? <Loader2 className="h-4 w-4 animate-spin" /> : <Sparkles className="h-4 w-4" />}
-            {isRunning ? 'Consultando...' : '🔮 Convocar Conselho'}
+        {/* Mode & Preset selector */}
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <button
+              onClick={() => setShowPresets(!showPresets)}
+              className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-secondary/50 border border-border/50 hover:bg-secondary transition-colors"
+            >
+              <span className="text-sm">{currentPreset?.icon || '🏛️'}</span>
+              <span className="text-xs font-medium text-foreground">{currentPreset?.name.replace(/^[^\s]+\s/, '') || 'Conselho Executivo'}</span>
+              {showPresets ? <ChevronUp className="h-3 w-3 text-muted-foreground" /> : <ChevronDown className="h-3 w-3 text-muted-foreground" />}
+            </button>
+            <Badge variant="outline" className="text-[10px]">
+              {modeConfig.icon} {modeConfig.label}
+            </Badge>
+            <Badge variant="outline" className="text-[10px] text-muted-foreground">
+              {currentPreset?.members.length || 3} modelos
+            </Badge>
+          </div>
+          <button
+            onClick={() => setShowAdvanced(!showAdvanced)}
+            className="flex items-center gap-1 text-[11px] text-muted-foreground hover:text-foreground transition-colors"
+          >
+            <Settings2 className="h-3.5 w-3.5" />
+            Avançado
+          </button>
+        </div>
+
+        {/* Preset selector (collapsible) */}
+        <AnimatePresence>
+          {showPresets && (
+            <motion.div initial={{ height: 0, opacity: 0 }} animate={{ height: 'auto', opacity: 1 }} exit={{ height: 0, opacity: 0 }} className="overflow-hidden">
+              <PresetSelector selectedPreset={store.selectedPreset} onSelect={(id) => { store.setSelectedPreset(id); setShowPresets(false); }} />
+            </motion.div>
+          )}
+        </AnimatePresence>
+
+        {/* Advanced settings (collapsible) */}
+        <AnimatePresence>
+          {showAdvanced && (
+            <motion.div initial={{ height: 0, opacity: 0 }} animate={{ height: 'auto', opacity: 1 }} exit={{ height: 0, opacity: 0 }} className="overflow-hidden">
+              <div className="p-3 rounded-lg bg-secondary/30 border border-border/30 space-y-3">
+                <div className="grid grid-cols-2 gap-4">
+                  {/* Chairman selector */}
+                  <div className="space-y-1.5">
+                    <Label className="text-[11px]">Chairman (Sintetizador)</Label>
+                    <Select value={store.chairmanModel} onValueChange={store.setChairmanModel}>
+                      <SelectTrigger className="h-8 text-xs"><SelectValue /></SelectTrigger>
+                      <SelectContent>
+                        {CHAIRMAN_MODELS.map(m => <SelectItem key={m.value} value={m.value} className="text-xs">{m.label}</SelectItem>)}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  {/* Chairman selection mode */}
+                  <div className="space-y-1.5">
+                    <Label className="text-[11px]">Seleção Chairman</Label>
+                    <Select value={store.chairmanSelection} onValueChange={(v) => store.setChairmanSelection(v as 'auto' | 'manual')}>
+                      <SelectTrigger className="h-8 text-xs"><SelectValue /></SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="auto" className="text-xs">🤖 Auto (por domínio)</SelectItem>
+                        <SelectItem value="manual" className="text-xs">✋ Manual</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                </div>
+                {/* Thinking toggle */}
+                <div className="flex items-center justify-between">
+                  <div>
+                    <Label className="text-[11px]">💭 Modo Thinking</Label>
+                    <p className="text-[10px] text-muted-foreground">Mostra raciocínio passo-a-passo de cada modelo</p>
+                  </div>
+                  <Switch checked={store.enableThinking} onCheckedChange={store.setEnableThinking} />
+                </div>
+              </div>
+            </motion.div>
+          )}
+        </AnimatePresence>
+
+        {/* Query input */}
+        <Textarea
+          placeholder="Faça sua pergunta ao conselho de IAs..."
+          value={store.query}
+          onChange={(e) => store.setQuery(e.target.value)}
+          className="min-h-[100px] bg-secondary/50 border-border/50 text-sm"
+        />
+
+        {/* Submit */}
+        <div className="flex items-center justify-between">
+          <p className="text-[10px] text-muted-foreground">{modeConfig.stages.join(' → ')}</p>
+          <Button onClick={store.submitQuery} disabled={store.isRunning || !store.query.trim()} className="nexus-gradient-bg text-primary-foreground gap-2">
+            {store.isRunning ? <Loader2 className="h-4 w-4 animate-spin" /> : <Sparkles className="h-4 w-4" />}
+            {store.isRunning ? 'Consultando...' : '🔮 Convocar Conselho'}
           </Button>
         </div>
       </div>
 
-      {isRunning && (
-        <div className="nexus-card">
-          <div className="flex items-center gap-4">
-            {STAGES.map((stage, i) => (
-              <div key={stage} className="flex items-center gap-2 flex-1">
-                <div className={`h-8 w-8 rounded-full flex items-center justify-center text-xs font-bold ${currentStage > i + 1 ? 'bg-primary text-primary-foreground' : currentStage === i + 1 ? 'nexus-gradient-bg text-primary-foreground animate-pulse' : 'bg-secondary text-muted-foreground'}`}>{i + 1}</div>
-                <span className={`text-xs ${currentStage >= i + 1 ? 'text-foreground font-medium' : 'text-muted-foreground'}`}>{stage}</span>
-                {i < STAGES.length - 1 && <div className={`flex-1 h-0.5 ${currentStage > i + 1 ? 'bg-primary' : 'bg-secondary'}`} />}
-              </div>
-            ))}
-          </div>
+      {/* ═══ STAGE PROGRESS ═══ */}
+      {store.isRunning && <StageProgress mode={store.mode} currentStage={store.currentStage} />}
+
+      {/* ═══ ERROR ═══ */}
+      {store.error && (
+        <div className="nexus-card border-destructive/30 bg-destructive/5">
+          <p className="text-sm text-destructive">{store.error}</p>
         </div>
       )}
 
-      {error && <div className="nexus-card border-destructive/30 bg-destructive/5"><p className="text-sm text-destructive">{error}</p></div>}
-
-      {results && (
-        <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }}>
-          <div className="grid grid-cols-4 gap-3 mb-4">
+      {/* ═══ RESULTS ═══ */}
+      {store.results && (
+        <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} className="space-y-4">
+          {/* Metrics cards */}
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
             {[
-              { v: `${results.confidence_score}%`, l: 'Confiança', c: 'text-primary' },
-              { v: `${results.consensus_degree}%`, l: 'Consenso', c: 'text-nexus-emerald' },
-              { v: `$${results.metrics.total_cost_usd.toFixed(4)}`, l: 'Custo', c: 'text-foreground' },
-              { v: `${(results.metrics.total_latency_ms / 1000).toFixed(1)}s`, l: 'Tempo', c: 'text-foreground' },
+              { v: `${store.results.confidence_score}%`, l: 'Confiança', c: store.results.confidence_score >= 80 ? 'text-emerald-400' : store.results.confidence_score >= 50 ? 'text-amber-400' : 'text-red-400' },
+              { v: `${store.results.consensus_degree}%`, l: 'Consenso', c: store.results.consensus_degree >= 80 ? 'text-emerald-400' : store.results.consensus_degree >= 50 ? 'text-amber-400' : 'text-red-400' },
+              { v: `$${store.results.metrics.total_cost_usd.toFixed(4)}`, l: 'Custo Total', c: 'text-foreground' },
+              { v: `${(store.results.metrics.total_latency_ms / 1000).toFixed(1)}s`, l: 'Tempo Total', c: 'text-foreground' },
             ].map(m => (
               <div key={m.l} className="nexus-card text-center py-3">
                 <p className={`text-xl font-heading font-bold ${m.c}`}>{m.v}</p>
@@ -73,70 +160,91 @@ export default function OraclePage() {
             ))}
           </div>
 
+          {/* Tabs */}
           <Tabs defaultValue="response">
             <TabsList className="bg-secondary/50 border border-border/50">
               <TabsTrigger value="response" className="text-xs">Resposta</TabsTrigger>
-              <TabsTrigger value="individual" className="text-xs">Individual</TabsTrigger>
+              <TabsTrigger value="individual" className="text-xs">Individual ({store.results.stage1_results.length})</TabsTrigger>
               <TabsTrigger value="consensus" className="text-xs">Consenso</TabsTrigger>
               <TabsTrigger value="metrics" className="text-xs">Métricas</TabsTrigger>
             </TabsList>
 
+            {/* Response tab */}
             <TabsContent value="response" className="mt-4">
               <div className="nexus-card">
-                <div className="text-foreground whitespace-pre-wrap text-sm leading-relaxed">{results.final_response}</div>
+                <div className="flex items-center gap-2 mb-3">
+                  <Badge variant="outline" className="text-[10px]">{modeConfig.icon} {modeConfig.label}</Badge>
+                  <Badge variant="outline" className="text-[10px] text-muted-foreground">Chairman: {store.chairmanModel.split('/').pop()}</Badge>
+                </div>
+                <div className="text-foreground whitespace-pre-wrap text-sm leading-relaxed prose prose-sm max-w-none dark:prose-invert">
+                  {store.results.final_response}
+                </div>
                 <div className="flex gap-2 mt-4 pt-4 border-t border-border/50">
-                  <Button size="sm" variant="outline" onClick={() => { navigator.clipboard.writeText(results.final_response); toast.success('Copiado!'); }}><Copy className="h-3.5 w-3.5 mr-1" /> Copiar</Button>
-                  <Button size="sm" variant="outline" onClick={() => { clearResults(); submitQuery(); }}><RefreshCw className="h-3.5 w-3.5 mr-1" /> Refazer</Button>
+                  <Button size="sm" variant="outline" onClick={() => { navigator.clipboard.writeText(store.results!.final_response); toast.success('Copiado!'); }}>
+                    <Copy className="h-3.5 w-3.5 mr-1" /> Copiar
+                  </Button>
+                  <Button size="sm" variant="outline" onClick={() => { store.clearResults(); store.submitQuery(); }}>
+                    <RefreshCw className="h-3.5 w-3.5 mr-1" /> Refazer
+                  </Button>
                 </div>
               </div>
             </TabsContent>
 
+            {/* Individual responses tab */}
             <TabsContent value="individual" className="mt-4">
               <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-4">
-                {results.stage1_results.map((r, i) => (
-                  <div key={i} className="nexus-card">
-                    <div className="flex items-center justify-between mb-2">
-                      <Badge variant="outline" className="text-[10px]">{r.model.split('/').pop()}</Badge>
-                      <Badge variant={r.success ? 'default' : 'destructive'} className="text-[10px]">{r.success ? '✓' : '✗'}</Badge>
-                    </div>
-                    <p className="text-[10px] text-muted-foreground mb-2">{r.persona}</p>
-                    <div className="text-xs text-foreground whitespace-pre-wrap max-h-[300px] overflow-y-auto">{r.content}</div>
-                    <div className="flex gap-2 mt-3 text-[10px] text-muted-foreground">
-                      <span>{r.tokens?.total || 0} tok</span>
-                      <span>{(r.latency_ms / 1000).toFixed(1)}s</span>
-                      <span>${(r.cost_usd || 0).toFixed(4)}</span>
-                    </div>
-                  </div>
+                {store.results.stage1_results.map((r, i) => (
+                  <ModelCard key={i} response={r} rank={i + 1} showThinking={store.enableThinking} />
                 ))}
               </div>
             </TabsContent>
 
+            {/* Consensus tab */}
             <TabsContent value="consensus" className="mt-4">
-              <div className="nexus-card grid md:grid-cols-2 gap-4">
-                <div>
-                  <p className="text-xs font-semibold text-nexus-emerald mb-2">🟢 Consenso</p>
-                  <div className="text-xs text-foreground whitespace-pre-wrap bg-secondary/30 p-3 rounded-lg">{results.final_response.match(/## Pontos de Consenso[\s\S]*?(?=##|$)/)?.[0] || 'Veja resposta sintetizada.'}</div>
+              {store.results.consensus_points && store.results.consensus_points.length > 0 ? (
+                <ConsensusMatrix points={store.results.consensus_points} overallConsensus={store.results.consensus_degree} />
+              ) : (
+                <div className="nexus-card grid md:grid-cols-2 gap-4">
+                  <div>
+                    <p className="text-xs font-semibold text-emerald-400 mb-2">🟢 Consenso</p>
+                    <div className="text-xs text-foreground whitespace-pre-wrap bg-secondary/30 p-3 rounded-lg">
+                      {store.results.final_response.match(/## Pontos de Consenso[\s\S]*?(?=##|$)/)?.[0] || 'Veja resposta sintetizada.'}
+                    </div>
+                  </div>
+                  <div>
+                    <p className="text-xs font-semibold text-amber-400 mb-2">🔴 Divergências</p>
+                    <div className="text-xs text-foreground whitespace-pre-wrap bg-secondary/30 p-3 rounded-lg">
+                      {store.results.final_response.match(/## Divergências[\s\S]*?(?=##|$)/)?.[0] || 'Veja resposta sintetizada.'}
+                    </div>
+                  </div>
                 </div>
-                <div>
-                  <p className="text-xs font-semibold text-nexus-amber mb-2">🔴 Divergências</p>
-                  <div className="text-xs text-foreground whitespace-pre-wrap bg-secondary/30 p-3 rounded-lg">{results.final_response.match(/## Divergências[\s\S]*?(?=##|$)/)?.[0] || 'Veja resposta sintetizada.'}</div>
-                </div>
-              </div>
+              )}
             </TabsContent>
 
+            {/* Metrics tab */}
             <TabsContent value="metrics" className="mt-4">
               <div className="nexus-card space-y-2 text-xs">
                 {[
-                  ['Modelos utilizados', results.metrics.models_used],
-                  ['Tokens totais', results.metrics.total_tokens.toLocaleString()],
-                  ['Custo total', `$${results.metrics.total_cost_usd.toFixed(4)}`],
-                  ['Estágio 1', `${(results.metrics.stage1_latency_ms / 1000).toFixed(1)}s`],
-                  ['Estágio 2', `${(results.metrics.stage2_latency_ms / 1000).toFixed(1)}s`],
-                  ['Estágio 3', `${(results.metrics.stage3_latency_ms / 1000).toFixed(1)}s`],
+                  ['Modo', `${modeConfig.icon} ${modeConfig.label}`],
+                  ['Preset', currentPreset?.name || store.selectedPreset],
+                  ['Chairman', store.chairmanModel.split('/').pop()],
+                  ['Modelos utilizados', store.results.metrics.models_used],
+                  ['Tokens totais', store.results.metrics.total_tokens.toLocaleString()],
+                  ['Custo total', `$${store.results.metrics.total_cost_usd.toFixed(4)}`],
+                  ...ORACLE_MODES[store.mode].stages.map((s, i) => {
+                    const latencies = [store.results!.metrics.stage1_latency_ms, store.results!.metrics.stage2_latency_ms, store.results!.metrics.stage3_latency_ms];
+                    return [`${s}`, `${((latencies[i] || 0) / 1000).toFixed(1)}s`];
+                  }),
                 ].map(([k, v]) => (
-                  <div key={k as string} className="flex justify-between"><span className="text-muted-foreground">{k}</span><span className="text-foreground">{v}</span></div>
+                  <div key={k as string} className="flex justify-between">
+                    <span className="text-muted-foreground">{k}</span>
+                    <span className="text-foreground">{v}</span>
+                  </div>
                 ))}
-                <div className="flex justify-between font-semibold border-t border-border/50 pt-2"><span className="text-foreground">Tempo total</span><span className="text-primary">{(results.metrics.total_latency_ms / 1000).toFixed(1)}s</span></div>
+                <div className="flex justify-between font-semibold border-t border-border/50 pt-2">
+                  <span className="text-foreground">Tempo total</span>
+                  <span className="text-primary">{(store.results.metrics.total_latency_ms / 1000).toFixed(1)}s</span>
+                </div>
               </div>
             </TabsContent>
           </Tabs>
