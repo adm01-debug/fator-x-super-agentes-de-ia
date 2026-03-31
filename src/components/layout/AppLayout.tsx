@@ -30,6 +30,18 @@ function getDefaultOpen() {
 export function AppLayout({ children }: AppLayoutProps) {
   const [cmdOpen, setCmdOpen] = useState(false);
   const [defaultOpen] = useState(getDefaultOpen);
+  const navigate = useNavigate();
+
+  // Network status detection
+  useNetworkStatus();
+
+  // Global keyboard shortcuts
+  const shortcuts = useMemo(() => [
+    { key: 'g', description: 'Go to Dashboard', handler: () => navigate('/') },
+    { key: 'a', description: 'Go to Agents', handler: () => navigate('/agents') },
+    { key: 'n', shift: true, description: 'New Agent', handler: () => navigate('/agents/new') },
+  ], [navigate]);
+  useKeyboardShortcuts(shortcuts);
 
   return (
     <UnsavedChangesProvider>
