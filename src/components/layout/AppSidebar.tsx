@@ -1,4 +1,5 @@
 import { useLocation } from "react-router-dom";
+import fatorxIcon from "@/assets/fatorx-icon.png";
 import { NavLink } from "@/components/NavLink";
 import {
   LayoutDashboard, Bot, BookOpen, Brain, Puzzle, FileText, GitBranch,
