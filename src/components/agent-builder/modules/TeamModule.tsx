@@ -187,6 +187,54 @@ export function TeamModule() {
           Quando um agente é promovido para produção, o sistema exigirá {approvalCount === '0' ? 'nenhuma' : approvalCount} aprovação(ões) de membros com permissão de deploy.
         </p>
       </div>
+
+      {/* D) Visibilidade por Role — Canvas Colaborativo */}
+      <SectionTitle icon="👁️" title="Visibilidade de Módulos por Papel" subtitle="Cada papel vê apenas os módulos relevantes para sua função" />
+      <div className="rounded-xl border border-border bg-card p-6">
+        <div className="overflow-x-auto">
+          <table className="w-full text-xs" aria-label="Visibilidade de módulos por papel">
+            <thead>
+              <tr className="border-b border-border text-muted-foreground">
+                <th className="text-left py-2 pr-4 font-medium">Módulo</th>
+                <th className="text-center py-2 px-2 font-medium">Admin</th>
+                <th className="text-center py-2 px-2 font-medium">Developer</th>
+                <th className="text-center py-2 px-2 font-medium">PM/Ops</th>
+                <th className="text-center py-2 px-2 font-medium">Compliance</th>
+                <th className="text-center py-2 px-2 font-medium">Viewer</th>
+              </tr>
+            </thead>
+            <tbody>
+              {[
+                { module: '🧬 Identidade', admin: true, dev: true, pm: true, compliance: false, viewer: true },
+                { module: '🧠 Cérebro', admin: true, dev: true, pm: false, compliance: false, viewer: true },
+                { module: '💾 Memória', admin: true, dev: true, pm: false, compliance: true, viewer: false },
+                { module: '📚 RAG', admin: true, dev: true, pm: false, compliance: false, viewer: false },
+                { module: '🔧 Ferramentas', admin: true, dev: true, pm: false, compliance: false, viewer: false },
+                { module: '✍️ Prompts', admin: true, dev: true, pm: true, compliance: false, viewer: true },
+                { module: '🎼 Orquestração', admin: true, dev: true, pm: false, compliance: false, viewer: false },
+                { module: '🛡️ Guardrails', admin: true, dev: true, pm: false, compliance: true, viewer: false },
+                { module: '🧪 Testes', admin: true, dev: true, pm: true, compliance: false, viewer: true },
+                { module: '🔭 Observabilidade', admin: true, dev: true, pm: false, compliance: true, viewer: false },
+                { module: '🚀 Deploy', admin: true, dev: true, pm: false, compliance: false, viewer: false },
+                { module: '💰 Billing', admin: true, dev: false, pm: false, compliance: true, viewer: false },
+                { module: '🎮 Playground', admin: true, dev: true, pm: true, compliance: false, viewer: true },
+              ].map(({ module, admin, dev, pm, compliance, viewer }) => (
+                <tr key={module} className="border-b border-border/30">
+                  <td className="py-1.5 pr-4 text-foreground">{module}</td>
+                  {[admin, dev, pm, compliance, viewer].map((v, i) => (
+                    <td key={i} className="text-center py-1.5 px-2">
+                      <span className={v ? 'text-emerald-400' : 'text-muted-foreground/30'}>{v ? '✓' : '—'}</span>
+                    </td>
+                  ))}
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+        <p className="text-[11px] text-muted-foreground mt-3">
+          PMs e Operadores focam em Identidade, Prompts, Testes e Playground. Compliance foca em Guardrails, Observabilidade, Memória e Billing.
+        </p>
+      </div>
     </div>
   );
 }

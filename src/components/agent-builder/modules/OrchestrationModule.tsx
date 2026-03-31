@@ -268,6 +268,60 @@ export function OrchestrationModule() {
           </div>
         </div>
       </section>
+
+      {/* Seção F — Interoperabilidade A2A */}
+      <section>
+        <SectionTitle icon="🌐" title="Protocolo A2A (Agent-to-Agent)" subtitle="Interoperabilidade com agentes externos via protocolo Google A2A" badge={<NexusBadge color="purple">Novo</NexusBadge>} />
+        <div className="space-y-4">
+          {/* Agent Discovery */}
+          <div className="rounded-xl border border-border bg-card p-5 space-y-3">
+            <h4 className="text-sm font-semibold text-foreground">Descoberta de Agentes Externos</h4>
+            <p className="text-xs text-muted-foreground">Conecte agentes A2A externos para delegação de tarefas entre sistemas diferentes.</p>
+            <div className="flex gap-2">
+              <input
+                type="text"
+                placeholder="URL do Agent Card (ex: https://agents.empresa.com/.well-known/agent.json)"
+                className="flex-1 bg-muted/30 border border-border rounded-lg px-3 py-2 text-sm text-foreground placeholder:text-muted-foreground"
+              />
+              <Button variant="outline" size="sm">Descobrir</Button>
+            </div>
+          </div>
+
+          {/* Delegation Rules */}
+          <div className="rounded-xl border border-border bg-card p-5 space-y-3">
+            <h4 className="text-sm font-semibold text-foreground">Regras de Delegação</h4>
+            <p className="text-xs text-muted-foreground">Defina quando este agente deve delegar tarefas para agentes A2A externos.</p>
+            <div className="space-y-2">
+              {[
+                { condition: 'Assunto jurídico', target: 'agente-juridico.example.com', timeout: '30s' },
+                { condition: 'Análise financeira', target: 'agente-financeiro.example.com', timeout: '45s' },
+              ].map((rule, i) => (
+                <div key={i} className="flex items-center gap-2 text-xs p-2 rounded-lg bg-muted/20">
+                  <span className="text-muted-foreground">Se:</span>
+                  <span className="text-foreground font-medium">{rule.condition}</span>
+                  <span className="text-muted-foreground">→</span>
+                  <span className="text-primary font-mono">{rule.target}</span>
+                  <span className="text-muted-foreground ml-auto">⏱️ {rule.timeout}</span>
+                </div>
+              ))}
+              <Button variant="outline" size="sm" className="w-full border-dashed">
+                <Plus className="h-4 w-4 mr-2" /> Adicionar Regra
+              </Button>
+            </div>
+          </div>
+
+          {/* Protocol Info */}
+          <div className="rounded-lg bg-primary/5 border border-primary/20 p-4">
+            <div className="flex gap-3 text-xs text-muted-foreground">
+              <div className="space-y-1">
+                <p><strong className="text-foreground">MCP</strong> = Agente ↔ Ferramenta (Anthropic)</p>
+                <p><strong className="text-foreground">A2A</strong> = Agente ↔ Agente (Google, 50+ parceiros)</p>
+                <p className="text-[10px] mt-2">Suportamos ambos os protocolos para máxima interoperabilidade.</p>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
     </div>
   );
 }

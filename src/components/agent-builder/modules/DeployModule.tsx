@@ -265,6 +265,71 @@ export function DeployModule() {
           </div>
         </div>
       </section>
+
+      {/* Seção F — Agent-as-API */}
+      <section>
+        <SectionTitle icon="🔗" title="Publicar como API" subtitle="Gere automaticamente um endpoint REST para integração programática" badge={<NexusBadge color="blue">Auto-gerado</NexusBadge>} />
+        <div className="space-y-4">
+          {/* Endpoint */}
+          <div className="rounded-xl border border-border bg-card p-5 space-y-3">
+            <h4 className="text-sm font-semibold text-foreground">Endpoint REST</h4>
+            <div className="font-mono text-xs bg-muted/30 border border-border rounded-lg p-3 text-primary">
+              POST /api/agents/{agent.id || '{agent_id}'}/chat
+            </div>
+            <div className="grid grid-cols-2 gap-3 text-xs text-muted-foreground">
+              <div>
+                <p className="font-medium text-foreground mb-1">Request Body</p>
+                <pre className="bg-muted/20 rounded p-2 font-mono text-[10px] text-emerald-400 overflow-x-auto">{`{
+  "message": "string",
+  "session_id": "uuid",
+  "user_id": "string"
+}`}</pre>
+              </div>
+              <div>
+                <p className="font-medium text-foreground mb-1">Response</p>
+                <pre className="bg-muted/20 rounded p-2 font-mono text-[10px] text-emerald-400 overflow-x-auto">{`{
+  "response": "string",
+  "metadata": {
+    "tokens": 142,
+    "cost": 0.003,
+    "latency_ms": 1200
+  }
+}`}</pre>
+              </div>
+            </div>
+          </div>
+
+          {/* SDK Snippets */}
+          <div className="rounded-xl border border-border bg-card p-5 space-y-3">
+            <h4 className="text-sm font-semibold text-foreground">SDK Snippets</h4>
+            <div className="space-y-2">
+              {[
+                { lang: 'cURL', code: `curl -X POST https://api.nexus.ai/agents/${agent.id || 'AGENT_ID'}/chat \\\n  -H "Authorization: Bearer YOUR_API_KEY" \\\n  -H "Content-Type: application/json" \\\n  -d '{"message": "Olá"}'` },
+                { lang: 'Python', code: `import requests\n\nres = requests.post(\n  f"https://api.nexus.ai/agents/${agent.id || 'AGENT_ID'}/chat",\n  headers={"Authorization": "Bearer YOUR_API_KEY"},\n  json={"message": "Olá"}\n)\nprint(res.json()["response"])` },
+                { lang: 'JavaScript', code: `const res = await fetch(\n  \`https://api.nexus.ai/agents/${agent.id || 'AGENT_ID'}/chat\`,\n  {\n    method: 'POST',\n    headers: { 'Authorization': 'Bearer YOUR_API_KEY', 'Content-Type': 'application/json' },\n    body: JSON.stringify({ message: 'Olá' })\n  }\n);\nconst data = await res.json();` },
+              ].map(({ lang, code }) => (
+                <details key={lang} className="group">
+                  <summary className="text-xs font-medium text-foreground cursor-pointer hover:text-primary transition-colors py-1">
+                    {lang}
+                  </summary>
+                  <pre className="mt-1 bg-muted/20 rounded-lg p-3 font-mono text-[10px] text-emerald-400 overflow-x-auto whitespace-pre-wrap">{code}</pre>
+                </details>
+              ))}
+            </div>
+          </div>
+
+          {/* API Key Management */}
+          <div className="rounded-xl border border-border bg-card p-5 space-y-3">
+            <h4 className="text-sm font-semibold text-foreground">API Keys</h4>
+            <div className="flex items-center gap-2 text-xs">
+              <span className="font-mono bg-muted/30 border border-border rounded px-3 py-1.5 text-muted-foreground flex-1">nxs_sk_••••••••••••••••••••••••</span>
+              <Button variant="outline" size="sm">Gerar Nova</Button>
+              <Button variant="outline" size="sm" className="text-destructive">Revogar</Button>
+            </div>
+            <p className="text-[11px] text-muted-foreground">Rate limit: 100 req/min · Usage tracking por chave</p>
+          </div>
+        </div>
+      </section>
     </div>
   );
 }
