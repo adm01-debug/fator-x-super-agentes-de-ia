@@ -143,6 +143,7 @@ export function AgentBuilderLayout({ children }: AgentBuilderLayoutProps) {
           <ChevronRight className="h-4 w-4" />
         </Button>
       </footer>
+      <AgentPlayground />
     </div>
   );
 }
