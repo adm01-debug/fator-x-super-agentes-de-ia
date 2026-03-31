@@ -18,9 +18,9 @@ export async function getWorkspaceId(): Promise<string> {
     .limit(1)
     .single();
 
-  if (!data) throw new Error('Workspace não encontrado');
+  if (!data?.workspace_id) throw new Error('Workspace não encontrado');
   cachedWorkspaceId = data.workspace_id;
-  return data.workspace_id;
+  return cachedWorkspaceId!
 }
 
 export function clearWorkspaceCache() {
