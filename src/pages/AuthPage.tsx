@@ -198,8 +198,14 @@ export default function AuthPage() {
             </div>
           </div>
 
-          <Button type="submit" disabled={loading} className="w-full gap-2 nexus-gradient-bg text-primary-foreground hover:opacity-90 min-h-[44px]">
-            {loading ? "Aguarde..." : isLogin ? "Entrar" : "Criar conta"}
+          {isLockedOut && (
+            <p className="text-xs text-destructive text-center font-medium" role="alert">
+              🔒 Bloqueado — aguarde {Math.ceil(lockoutRemaining / 1000)}s
+            </p>
+          )}
+
+          <Button type="submit" disabled={loading || isLockedOut} className="w-full gap-2 nexus-gradient-bg text-primary-foreground hover:opacity-90 min-h-[44px]">
+            {isLockedOut ? `Aguarde ${Math.ceil(lockoutRemaining / 1000)}s` : loading ? "Aguarde..." : isLogin ? "Entrar" : "Criar conta"}
             <ArrowRight className="h-4 w-4" aria-hidden="true" />
           </Button>
 
