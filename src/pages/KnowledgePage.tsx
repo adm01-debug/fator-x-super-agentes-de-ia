@@ -2,17 +2,23 @@ import { PageHeader } from "@/components/shared/PageHeader";
 import { StatusBadge } from "@/components/shared/StatusBadge";
 import { InfoHint } from "@/components/shared/InfoHint";
 import { Input } from "@/components/ui/input";
-import { Search, BookOpen, ArrowRight, Loader2, Database } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
+import { Search, BookOpen, ArrowRight, Loader2, Database, Pencil, Trash2 } from "lucide-react";
 import { motion } from "framer-motion";
 import { useState } from "react";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { CreateKnowledgeBaseDialog } from "@/components/dialogs/CreateKnowledgeBaseDialog";
+import { EditKnowledgeBaseDialog } from "@/components/dialogs/EditKnowledgeBaseDialog";
+import { toast } from "sonner";
 
 const pipeline = ['Parsing', 'Chunking', 'Metadata', 'Embeddings', 'Indexing'];
 
 export default function KnowledgePage() {
   const [search, setSearch] = useState("");
+  const [editKb, setEditKb] = useState<any>(null);
+  const queryClient = useQueryClient();
 
   const { data: knowledgeBases = [], isLoading, refetch } = useQuery({
     queryKey: ['knowledge_bases'],
@@ -26,6 +32,17 @@ export default function KnowledgePage() {
   const filtered = knowledgeBases.filter(kb =>
     kb.name.toLowerCase().includes(search.toLowerCase())
   );
+
+  const handleDelete = async (id: string) => {
+    const { error } = await supabase.from('knowledge_bases').delete().eq('id', id);
+    if (error) {
+      toast.error(`Erro ao deletar: ${error.message}`);
+    } else {
+      toast.success("Base removida com sucesso");
+      refetch();
+      queryClient.invalidateQueries({ queryKey: ['admin', 'knowledge_bases'] });
+    }
+  };
 
   return (
     <div className="p-6 space-y-6 max-w-[1400px] mx-auto">
@@ -72,7 +89,7 @@ export default function KnowledgePage() {
       ) : (
         <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
           {filtered.map((kb, i) => (
-            <motion.div key={kb.id} initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.05 }} className="nexus-card cursor-pointer group">
+            <motion.div key={kb.id} initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.05 }} className="nexus-card group">
               <div className="flex items-start justify-between mb-3">
                 <div className="flex items-center gap-2.5">
                   <div className="h-10 w-10 rounded-xl bg-primary/10 flex items-center justify-center">
@@ -83,7 +100,9 @@ export default function KnowledgePage() {
                     <p className="text-[11px] text-muted-foreground">{kb.vector_db} • {kb.embedding_model?.split('-').slice(-1)}</p>
                   </div>
                 </div>
-                <StatusBadge status={kb.status || 'active'} />
+                <div className="flex items-center gap-1">
+                  <StatusBadge status={kb.status || 'active'} />
+                </div>
               </div>
               <p className="text-xs text-muted-foreground mb-4">{kb.description || 'Sem descrição'}</p>
               <div className="grid grid-cols-2 gap-2 text-center border-t border-border/50 pt-3">
@@ -96,10 +115,51 @@ export default function KnowledgePage() {
                   <p className="text-[10px] text-muted-foreground">Chunks</p>
                 </div>
               </div>
+              <div className="flex items-center gap-2 mt-3 pt-3 border-t border-border/50">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="flex-1 gap-1.5 text-xs"
+                  onClick={() => setEditKb(kb)}
+                >
+                  <Pencil className="h-3 w-3" /> Editar
+                </Button>
+                <AlertDialog>
+                  <AlertDialogTrigger asChild>
+                    <Button variant="outline" size="sm" className="gap-1.5 text-xs text-destructive hover:text-destructive">
+                      <Trash2 className="h-3 w-3" /> Excluir
+                    </Button>
+                  </AlertDialogTrigger>
+                  <AlertDialogContent>
+                    <AlertDialogHeader>
+                      <AlertDialogTitle>Excluir "{kb.name}"?</AlertDialogTitle>
+                      <AlertDialogDescription>
+                        Todos os documentos e chunks desta base serão removidos permanentemente.
+                      </AlertDialogDescription>
+                    </AlertDialogHeader>
+                    <AlertDialogFooter>
+                      <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                      <AlertDialogAction
+                        onClick={() => handleDelete(kb.id)}
+                        className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                      >
+                        Excluir
+                      </AlertDialogAction>
+                    </AlertDialogFooter>
+                  </AlertDialogContent>
+                </AlertDialog>
+              </div>
             </motion.div>
           ))}
         </div>
       )}
+
+      <EditKnowledgeBaseDialog
+        kb={editKb}
+        open={!!editKb}
+        onOpenChange={(open) => { if (!open) setEditKb(null); }}
+        onUpdated={() => refetch()}
+      />
     </div>
   );
 }

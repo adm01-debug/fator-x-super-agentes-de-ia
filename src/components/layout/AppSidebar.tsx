@@ -53,6 +53,7 @@ const navSections = [
       { title: "Team & Roles", url: "/team", icon: Users },
       { title: "Billing / Usage", url: "/billing", icon: CreditCard },
       { title: "Settings", url: "/settings", icon: Settings },
+      { title: "Admin BD", url: "/admin", icon: ServerCog },
     ],
   },
 ];
