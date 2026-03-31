@@ -166,7 +166,10 @@ export default function AuthPage() {
           </div>
           <h1 className="text-2xl font-heading font-bold text-foreground">Fator X</h1>
           <p className="text-sm text-muted-foreground">
-            {isLogin ? "Entre para gerenciar seus agentes" : "Crie sua conta para começar"}
+            {isForgotPassword
+              ? "Informe seu e-mail para recuperar a senha"
+              : isLogin ? "Entre para gerenciar seus agentes" : "Crie sua conta para começar"
+            }
           </p>
         </div>
 
