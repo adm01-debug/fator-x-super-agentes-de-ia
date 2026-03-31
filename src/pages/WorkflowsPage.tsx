@@ -1,30 +1,95 @@
+import { useState } from "react";
 import { PageHeader } from "@/components/shared/PageHeader";
 import { InfoHint } from "@/components/shared/InfoHint";
 import { Button } from "@/components/ui/button";
-import { Plus, GitBranch, ArrowRight, User, Search, Brain, Shield, CheckCircle, Wrench, FileText } from "lucide-react";
-import { motion } from "framer-motion";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Badge } from "@/components/ui/badge";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { Plus, GitBranch, ArrowRight, Brain, Search, Shield, CheckCircle, Wrench, FileText, Play, Trash2, Loader2 } from "lucide-react";
+import { motion, AnimatePresence } from "framer-motion";
+import { toast } from "sonner";
 
-const templates = [
-  { name: 'Atendimento ao Cliente', steps: ['Classificar', 'Buscar KB', 'Responder', 'Escalar se necessário', 'Registrar'] },
-  { name: 'Prospecção Outbound', steps: ['Novo lead', 'Enriquecer perfil', 'Pesquisar empresa', 'Gerar email', 'Enviar', 'CRM update'] },
-  { name: 'Due Diligence', steps: ['Receber caso', 'Buscar regulamentação', 'Analisar documentos', 'Gerar parecer', 'Aprovação humana'] },
-  { name: 'Suporte Técnico L2', steps: ['Triagem', 'Diagnóstico', 'Code analysis', 'Solução', 'Validar', 'Documentar'] },
-];
+interface Workflow {
+  id: string;
+  name: string;
+  steps: string[];
+  status: 'draft' | 'active';
+  createdAt: string;
+}
 
 const stepIcons: Record<string, React.ElementType> = {
-  Classificar: Brain, 'Buscar KB': Search, Responder: FileText, 'Escalar se necessário': User, Registrar: CheckCircle,
-  'Novo lead': User, 'Enriquecer perfil': Search, 'Pesquisar empresa': Search, 'Gerar email': FileText, Enviar: ArrowRight, 'CRM update': CheckCircle,
+  Classificar: Brain, 'Buscar KB': Search, Responder: FileText, 'Escalar se necessário': Shield, Registrar: CheckCircle,
+  'Novo lead': FileText, 'Enriquecer perfil': Search, 'Pesquisar empresa': Search, 'Gerar email': FileText, Enviar: ArrowRight, 'CRM update': CheckCircle,
   'Receber caso': FileText, 'Buscar regulamentação': Search, 'Analisar documentos': Brain, 'Gerar parecer': FileText, 'Aprovação humana': Shield,
   Triagem: Brain, Diagnóstico: Search, 'Code analysis': Wrench, Solução: FileText, Validar: CheckCircle, Documentar: FileText,
 };
 
+const defaultTemplates: Workflow[] = [
+  { id: 't1', name: 'Atendimento ao Cliente', steps: ['Classificar', 'Buscar KB', 'Responder', 'Escalar se necessário', 'Registrar'], status: 'active', createdAt: '2026-03-28' },
+  { id: 't2', name: 'Prospecção Outbound', steps: ['Novo lead', 'Enriquecer perfil', 'Pesquisar empresa', 'Gerar email', 'Enviar', 'CRM update'], status: 'active', createdAt: '2026-03-27' },
+  { id: 't3', name: 'Due Diligence', steps: ['Receber caso', 'Buscar regulamentação', 'Analisar documentos', 'Gerar parecer', 'Aprovação humana'], status: 'draft', createdAt: '2026-03-26' },
+  { id: 't4', name: 'Suporte Técnico L2', steps: ['Triagem', 'Diagnóstico', 'Code analysis', 'Solução', 'Validar', 'Documentar'], status: 'draft', createdAt: '2026-03-25' },
+];
+
 export default function WorkflowsPage() {
+  const [workflows, setWorkflows] = useState<Workflow[]>(defaultTemplates);
+  const [dialogOpen, setDialogOpen] = useState(false);
+  const [newName, setNewName] = useState('');
+  const [newSteps, setNewSteps] = useState('');
+
+  const handleCreate = () => {
+    if (!newName.trim()) { toast.error('Nome é obrigatório'); return; }
+    const steps = newSteps.split(',').map(s => s.trim()).filter(Boolean);
+    if (steps.length < 2) { toast.error('Adicione pelo menos 2 etapas separadas por vírgula'); return; }
+    setWorkflows(prev => [{
+      id: Date.now().toString(),
+      name: newName.trim(),
+      steps,
+      status: 'draft',
+      createdAt: new Date().toISOString().split('T')[0],
+    }, ...prev]);
+    toast.success('Workflow criado!');
+    setDialogOpen(false);
+    setNewName(''); setNewSteps('');
+  };
+
+  const handleDelete = (id: string) => {
+    setWorkflows(prev => prev.filter(w => w.id !== id));
+    toast.success('Workflow removido');
+  };
+
+  const handleToggleStatus = (id: string) => {
+    setWorkflows(prev => prev.map(w => w.id === id ? { ...w, status: w.status === 'active' ? 'draft' : 'active' } : w));
+  };
+
   return (
     <div className="p-6 space-y-6 max-w-[1400px] mx-auto">
       <PageHeader
         title="Workflow Studio"
         description="Crie fluxos de orquestração multi-agente e automações complexas"
-        actions={<Button className="nexus-gradient-bg text-primary-foreground gap-2 hover:opacity-90"><Plus className="h-4 w-4" /> Novo workflow</Button>}
+        actions={
+          <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
+            <DialogTrigger asChild>
+              <Button className="nexus-gradient-bg text-primary-foreground gap-2 hover:opacity-90"><Plus className="h-4 w-4" /> Novo workflow</Button>
+            </DialogTrigger>
+            <DialogContent className="sm:max-w-[480px]">
+              <DialogHeader><DialogTitle>Novo Workflow</DialogTitle></DialogHeader>
+              <div className="space-y-4 mt-2">
+                <div className="space-y-1.5">
+                  <Label className="text-xs">Nome *</Label>
+                  <Input value={newName} onChange={e => setNewName(e.target.value)} placeholder="Ex: Pipeline de Onboarding" className="bg-secondary/50" />
+                </div>
+                <div className="space-y-1.5">
+                  <Label className="text-xs">Etapas (separadas por vírgula) *</Label>
+                  <Input value={newSteps} onChange={e => setNewSteps(e.target.value)} placeholder="Classificar, Processar, Validar, Notificar" className="bg-secondary/50" />
+                  <p className="text-[10px] text-muted-foreground">Mínimo 2 etapas. Ex: Triagem, Diagnóstico, Solução</p>
+                </div>
+                <Button onClick={handleCreate} className="w-full nexus-gradient-bg text-primary-foreground">Criar Workflow</Button>
+              </div>
+            </DialogContent>
+          </Dialog>
+        }
       />
 
       <InfoHint title="Workflows multiagente">
@@ -32,36 +97,51 @@ export default function WorkflowsPage() {
       </InfoHint>
 
       <div className="grid gap-4 md:grid-cols-2">
-        {templates.map((wf, i) => (
-          <motion.div key={wf.name} initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.08 }} className="nexus-card cursor-pointer">
-            <div className="flex items-center gap-2.5 mb-4">
-              <div className="h-10 w-10 rounded-xl bg-primary/10 flex items-center justify-center">
-                <GitBranch className="h-5 w-5 text-primary" />
-              </div>
-              <div>
-                <h3 className="text-sm font-semibold text-foreground">{wf.name}</h3>
-                <p className="text-[11px] text-muted-foreground">{wf.steps.length} etapas</p>
-              </div>
-            </div>
-
-            <div className="flex items-center gap-1.5 overflow-x-auto pb-2">
-              {wf.steps.map((step, j) => {
-                const Icon = stepIcons[step] || Brain;
-                return (
-                  <div key={j} className="flex items-center gap-1.5 shrink-0">
-                    <div className="flex flex-col items-center">
-                      <div className="h-9 w-9 rounded-lg bg-secondary flex items-center justify-center">
-                        <Icon className="h-4 w-4 text-foreground" />
-                      </div>
-                      <p className="text-[9px] text-muted-foreground mt-1 text-center max-w-[60px] truncate">{step}</p>
-                    </div>
-                    {j < wf.steps.length - 1 && <ArrowRight className="h-3 w-3 text-muted-foreground shrink-0 mt-[-12px]" />}
+        <AnimatePresence>
+          {workflows.map((wf, i) => (
+            <motion.div key={wf.id} initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -8 }} transition={{ delay: i * 0.06 }} className="nexus-card group">
+              <div className="flex items-center justify-between mb-4">
+                <div className="flex items-center gap-2.5">
+                  <div className="h-10 w-10 rounded-xl bg-primary/10 flex items-center justify-center">
+                    <GitBranch className="h-5 w-5 text-primary" />
                   </div>
-                );
-              })}
-            </div>
-          </motion.div>
-        ))}
+                  <div>
+                    <h3 className="text-sm font-semibold text-foreground">{wf.name}</h3>
+                    <p className="text-[11px] text-muted-foreground">{wf.steps.length} etapas • {wf.createdAt}</p>
+                  </div>
+                </div>
+                <div className="flex items-center gap-1">
+                  <Badge variant="outline" className={`text-[9px] ${wf.status === 'active' ? 'border-emerald-500/30 text-emerald-400' : 'border-muted-foreground/30'}`}>
+                    {wf.status === 'active' ? 'Ativo' : 'Rascunho'}
+                  </Badge>
+                  <Button size="icon" variant="ghost" className="h-7 w-7 opacity-0 group-hover:opacity-100" onClick={() => handleToggleStatus(wf.id)}>
+                    <Play className="h-3 w-3" />
+                  </Button>
+                  <Button size="icon" variant="ghost" className="h-7 w-7 opacity-0 group-hover:opacity-100 text-destructive" onClick={() => handleDelete(wf.id)}>
+                    <Trash2 className="h-3 w-3" />
+                  </Button>
+                </div>
+              </div>
+
+              <div className="flex items-center gap-1.5 overflow-x-auto pb-2">
+                {wf.steps.map((step, j) => {
+                  const Icon = stepIcons[step] || Brain;
+                  return (
+                    <div key={j} className="flex items-center gap-1.5 shrink-0">
+                      <div className="flex flex-col items-center">
+                        <div className="h-9 w-9 rounded-lg bg-secondary flex items-center justify-center">
+                          <Icon className="h-4 w-4 text-foreground" />
+                        </div>
+                        <p className="text-[9px] text-muted-foreground mt-1 text-center max-w-[60px] truncate">{step}</p>
+                      </div>
+                      {j < wf.steps.length - 1 && <ArrowRight className="h-3 w-3 text-muted-foreground shrink-0 mt-[-12px]" />}
+                    </div>
+                  );
+                })}
+              </div>
+            </motion.div>
+          ))}
+        </AnimatePresence>
       </div>
     </div>
   );
