@@ -154,8 +154,8 @@ export default function DashboardPage() {
 
             <div className="grid lg:grid-cols-2 gap-4">
             <div className="nexus-card">
-              <h3 className="text-sm font-heading font-semibold text-foreground mb-3">Agentes recentes</h3>
-              <div className="space-y-3">
+              <h3 className="text-sm font-heading font-semibold text-foreground mb-3" id="recent-agents-heading">Agentes recentes</h3>
+              <div className="space-y-3" role="list" aria-labelledby="recent-agents-heading">
                 {agents.slice(0, 5).map(agent => (
                   <div key={agent.id} className="flex items-center justify-between cursor-pointer hover:bg-secondary/30 rounded-lg p-2 -mx-2 transition-colors" onClick={() => navigate(`/builder/${agent.id}`)}>
                     <div className="flex items-center gap-2.5 min-w-0">
