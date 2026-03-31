@@ -123,6 +123,36 @@ export function IdentityModule() {
           maxLength={2000}
         />
       </section>
+
+      {/* Seção E — Modalidades Suportadas */}
+      <section>
+        <SectionTitle icon="📡" title="Modalidades Suportadas" subtitle="Tipos de input e output que o agente pode processar" />
+        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3">
+          {[
+            { id: 'text', icon: '📝', label: 'Texto', desc: 'Mensagens de texto', always: true },
+            { id: 'image', icon: '🖼️', label: 'Imagem', desc: 'Análise e geração de imagens', always: false },
+            { id: 'audio', icon: '🎙️', label: 'Áudio', desc: 'Speech-to-Text / TTS', always: false },
+            { id: 'file', icon: '📎', label: 'Arquivo', desc: 'PDF, DOCX, CSV', always: false },
+            { id: 'data', icon: '📊', label: 'Dados', desc: 'JSON, formulários', always: false },
+          ].map((mod) => (
+            <label
+              key={mod.id}
+              className={cn(
+                'rounded-xl border p-3 text-center cursor-pointer transition-all',
+                mod.always
+                  ? 'border-primary/50 bg-primary/5'
+                  : 'border-border bg-card hover:bg-muted/30'
+              )}
+            >
+              <input type="checkbox" checked={mod.always} disabled={mod.always} onChange={() => {}} className="sr-only" />
+              <span className="text-2xl block mb-1" aria-hidden="true">{mod.icon}</span>
+              <p className="text-xs font-semibold text-foreground">{mod.label}</p>
+              <p className="text-[10px] text-muted-foreground">{mod.desc}</p>
+              {mod.always && <span className="text-[9px] text-primary mt-1 block">Sempre ativo</span>}
+            </label>
+          ))}
+        </div>
+      </section>
     </div>
   );
 }

@@ -1,5 +1,5 @@
 import { useAgentBuilderStore } from '@/stores/agentBuilderStore';
-import { SectionTitle, NexusBadge, ToggleField, SelectField } from '../ui';
+import { SectionTitle, NexusBadge, ToggleField, SelectField, SliderField } from '../ui';
 import { CollapsibleCard } from '../ui/CollapsibleCard';
 import { Button } from '@/components/ui/button';
 import { Plus, Trash2, Globe, MessageSquare, Mail, Hash, Send, Radio } from 'lucide-react';
@@ -216,6 +216,52 @@ export function DeployModule() {
               checked={agent.budget_kill_switch}
               onCheckedChange={(v) => updateAgent({ budget_kill_switch: v })}
             />
+          </div>
+        </div>
+      </section>
+
+      {/* Seção E — Estratégia de Deploy */}
+      <section>
+        <SectionTitle icon="🚦" title="Estratégia de Deploy" subtitle="Como a nova versão será publicada em produção." />
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+          {[
+            { id: 'big_bang', icon: '🚀', title: 'Big Bang', desc: '100% imediato — para agentes de baixo risco', risk: 'Alto' },
+            { id: 'canary', icon: '🐤', title: 'Canary', desc: '5% → 25% → 50% → 100% — progressivo com validação', risk: 'Baixo' },
+            { id: 'blue_green', icon: '🔵', title: 'Blue/Green', desc: 'Swap instantâneo com rollback — zero downtime', risk: 'Médio' },
+          ].map((strategy) => (
+            <button
+              key={strategy.id}
+              className="text-left rounded-xl border border-border bg-card p-4 hover:bg-muted/30 transition-all"
+            >
+              <div className="flex items-center gap-2 mb-2">
+                <span className="text-xl" aria-hidden="true">{strategy.icon}</span>
+                <span className="text-sm font-semibold text-foreground">{strategy.title}</span>
+              </div>
+              <p className="text-xs text-muted-foreground mb-2">{strategy.desc}</p>
+              <span className={`text-[10px] px-2 py-0.5 rounded ${strategy.risk === 'Baixo' ? 'bg-emerald-500/10 text-emerald-400' : strategy.risk === 'Alto' ? 'bg-rose-500/10 text-rose-400' : 'bg-amber-500/10 text-amber-400'}`}>
+                Risco: {strategy.risk}
+              </span>
+            </button>
+          ))}
+        </div>
+
+        {/* Canary Config */}
+        <div className="mt-4 rounded-xl border border-border bg-card p-4 space-y-3">
+          <h4 className="text-sm font-semibold text-foreground">Configuração Canary</h4>
+          <SliderField label="Tráfego para nova versão" value={5} onChange={() => {}} min={1} max={100} unit="%" description="% do tráfego direcionado para a versão candidata" />
+          <div className="grid grid-cols-2 gap-3 text-xs">
+            <div className="rounded-lg bg-muted/30 p-3">
+              <p className="text-muted-foreground mb-1">Gate de aprovação automática</p>
+              <p className="text-foreground">Accuracy &gt; 80% e Latência &lt; 3s</p>
+            </div>
+            <div className="rounded-lg bg-muted/30 p-3">
+              <p className="text-muted-foreground mb-1">Rollback automático se</p>
+              <p className="text-foreground">Error rate &gt; 5% ou Custo &gt; 2x baseline</p>
+            </div>
+          </div>
+          <div className="flex gap-2">
+            <Button variant="outline" size="sm" className="gap-1.5 text-amber-400 border-amber-500/30">🔄 Rollback</Button>
+            <Button variant="outline" size="sm" className="gap-1.5 text-emerald-400 border-emerald-500/30">✅ Promover 100%</Button>
           </div>
         </div>
       </section>

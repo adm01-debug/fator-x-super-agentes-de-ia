@@ -300,7 +300,49 @@ export function ToolsModule() {
         </div>
       </section>
 
-      {/* Seção B — MCP Servers */}
+      {/* Seção — Code Sandbox Configuration */}
+      {agent.tools.some(t => t.name === 'Code Executor' && t.enabled) && (
+        <section>
+          <SectionTitle icon="🔒" title="Code Sandbox" subtitle="Configuração do ambiente de execução de código isolado" />
+          <div className="rounded-xl border border-border bg-card p-5 space-y-4">
+            <SelectField
+              label="Provider"
+              value="e2b"
+              onChange={() => {}}
+              options={[
+                { value: 'e2b', label: 'E2B (Firecracker microVMs)' },
+                { value: 'cloudflare', label: 'Cloudflare Workers' },
+                { value: 'docker', label: 'Docker Sandboxes' },
+                { value: 'local', label: 'Local (desenvolvimento)' },
+              ]}
+              hint="Ambiente isolado onde o agente executará código"
+            />
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+              {[
+                { id: 'python', label: 'Python', icon: '🐍' },
+                { id: 'javascript', label: 'JavaScript', icon: '📜' },
+                { id: 'bash', label: 'Bash', icon: '💻' },
+                { id: 'sql', label: 'SQL', icon: '🗃️' },
+              ].map(lang => (
+                <label key={lang.id} className="flex items-center gap-2 rounded-lg border border-border bg-muted/20 p-2.5 cursor-pointer hover:bg-muted/40 transition-colors">
+                  <input type="checkbox" defaultChecked={lang.id === 'python' || lang.id === 'javascript'} className="accent-primary" />
+                  <span className="text-sm" aria-hidden="true">{lang.icon}</span>
+                  <span className="text-xs text-foreground">{lang.label}</span>
+                </label>
+              ))}
+            </div>
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+              <SliderField label="Timeout" value={30} onChange={() => {}} min={5} max={300} unit="s" description="Tempo máximo de execução" />
+              <SliderField label="Memória" value={512} onChange={() => {}} min={128} max={4096} unit="MB" description="Limite de RAM" />
+              <div>
+                <ToggleField label="Acesso à rede" description="Permitir requests HTTP (OFF = mais seguro)" checked={false} onCheckedChange={() => {}} />
+              </div>
+            </div>
+          </div>
+        </section>
+      )}
+
+      {/* Seção C — MCP Servers */}
       <section>
         <SectionTitle
           icon="🔌"

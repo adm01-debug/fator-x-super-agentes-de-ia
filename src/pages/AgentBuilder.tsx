@@ -19,6 +19,7 @@ import { ReadinessModule } from '@/components/agent-builder/modules/ReadinessMod
 import { BlueprintModule } from '@/components/agent-builder/modules/BlueprintModule';
 import { SettingsModule } from '@/components/agent-builder/modules/SettingsModule';
 import { TeamModule } from '@/components/agent-builder/modules/TeamModule';
+import { PlaygroundModule } from '@/components/agent-builder/modules/PlaygroundModule';
 import { motion, AnimatePresence } from 'framer-motion';
 
 function ActiveModule({ tabId }: { tabId: string }) {
@@ -39,6 +40,7 @@ function ActiveModule({ tabId }: { tabId: string }) {
     case 'blueprint': return <BlueprintModule />;
     case 'settings': return <SettingsModule />;
     case 'team': return <TeamModule />;
+    case 'playground': return <PlaygroundModule />;
     default: return (
       <div className="flex flex-col items-center justify-center py-20 text-center">
         <div className="text-5xl mb-4">🚧</div>

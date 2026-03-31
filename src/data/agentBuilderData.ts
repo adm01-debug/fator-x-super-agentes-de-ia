@@ -16,6 +16,7 @@ export const TABS = [
   { id: 'readiness',      label: 'Score de Prontidão', icon: '🏆', order: 13 },
   { id: 'blueprint',      label: 'Blueprint & Export', icon: '📋', order: 14 },
   { id: 'settings',       label: 'Configurações',      icon: '⚙️', order: 15 },
+  { id: 'playground',     label: 'Playground',           icon: '🎮', order: 16 },
 ] as const;
 
 export const DEFAULT_AGENT: AgentConfig = {
