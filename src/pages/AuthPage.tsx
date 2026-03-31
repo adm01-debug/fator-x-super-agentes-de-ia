@@ -95,13 +95,25 @@ export default function AuthPage() {
     if (isLogin) {
       const { error } = await signIn(email, password);
       if (error) {
-        const msg = error.message.includes('Invalid login')
-          ? 'E-mail ou senha incorretos'
-          : error.message.includes('Email not confirmed')
-          ? 'Confirme seu e-mail antes de entrar'
-          : error.message;
-        toast.error("Erro ao entrar", { description: msg });
+        const newAttempts = failedAttempts + 1;
+        setFailedAttempts(newAttempts);
+        if (newAttempts >= MAX_ATTEMPTS) {
+          setLockoutUntil(Date.now() + LOCKOUT_DURATION_MS);
+          setLockoutRemaining(LOCKOUT_DURATION_MS);
+          setFailedAttempts(0);
+          toast.error("Conta bloqueada temporariamente", {
+            description: "Muitas tentativas falhas. Aguarde 1 minuto.",
+          });
+        } else {
+          const msg = error.message.includes('Invalid login')
+            ? `E-mail ou senha incorretos (${MAX_ATTEMPTS - newAttempts} tentativas restantes)`
+            : error.message.includes('Email not confirmed')
+            ? 'Confirme seu e-mail antes de entrar'
+            : error.message;
+          toast.error("Erro ao entrar", { description: msg });
+        }
       } else {
+        setFailedAttempts(0);
         toast.success("Login realizado!");
         navigate("/");
       }
