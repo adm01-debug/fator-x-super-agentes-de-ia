@@ -12,10 +12,18 @@ import { ScrollRestoration } from "@/components/shared/ScrollRestoration";
 import { ErrorBoundary } from "@/components/shared/ErrorBoundary";
 import { KeyboardShortcutsDialog } from "@/components/shared/KeyboardShortcutsDialog";
 import { SwipeNavigation } from "@/components/shared/SwipeNavigation";
+import { OnboardingTour } from "@/components/shared/OnboardingTour";
 import { UnsavedChangesProvider } from "@/hooks/use-unsaved-changes";
 import { useNetworkStatus } from "@/hooks/use-network-status";
 import { useKeyboardShortcuts } from "@/hooks/use-keyboard-shortcuts";
 import { useIsMobile } from "@/hooks/use-mobile";
+import { useDocumentTitle } from "@/hooks/use-document-title";
+import { useAuth } from "@/contexts/AuthContext";
+import {
+  DropdownMenu, DropdownMenuContent, DropdownMenuItem,
+  DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import { User, Settings, Keyboard, LogOut } from "lucide-react";
 
 interface AppLayoutProps {
   children: React.ReactNode;
