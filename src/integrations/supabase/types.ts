@@ -331,6 +331,63 @@ export type Database = {
           },
         ]
       }
+      oracle_history: {
+        Row: {
+          chairman_model: string | null
+          confidence_score: number | null
+          consensus_degree: number | null
+          created_at: string
+          enable_thinking: boolean | null
+          id: string
+          mode: string
+          models_used: number | null
+          preset_id: string
+          preset_name: string | null
+          query: string
+          results: Json
+          total_cost_usd: number | null
+          total_latency_ms: number | null
+          total_tokens: number | null
+          user_id: string
+        }
+        Insert: {
+          chairman_model?: string | null
+          confidence_score?: number | null
+          consensus_degree?: number | null
+          created_at?: string
+          enable_thinking?: boolean | null
+          id?: string
+          mode: string
+          models_used?: number | null
+          preset_id: string
+          preset_name?: string | null
+          query: string
+          results?: Json
+          total_cost_usd?: number | null
+          total_latency_ms?: number | null
+          total_tokens?: number | null
+          user_id: string
+        }
+        Update: {
+          chairman_model?: string | null
+          confidence_score?: number | null
+          consensus_degree?: number | null
+          created_at?: string
+          enable_thinking?: boolean | null
+          id?: string
+          mode?: string
+          models_used?: number | null
+          preset_id?: string
+          preset_name?: string | null
+          query?: string
+          results?: Json
+          total_cost_usd?: number | null
+          total_latency_ms?: number | null
+          total_tokens?: number | null
+          user_id?: string
+        }
+        Relationships: []
+      }
       prompt_versions: {
         Row: {
           agent_id: string
