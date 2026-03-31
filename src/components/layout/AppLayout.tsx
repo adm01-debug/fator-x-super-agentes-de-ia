@@ -1,5 +1,5 @@
 import { useState, useMemo } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useLocation } from "react-router-dom";
 import { SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
 import { AppSidebar } from "./AppSidebar";
 import { Search, Command } from "lucide-react";
@@ -31,6 +31,7 @@ export function AppLayout({ children }: AppLayoutProps) {
   const [cmdOpen, setCmdOpen] = useState(false);
   const [defaultOpen] = useState(getDefaultOpen);
   const navigate = useNavigate();
+  const location = useLocation();
 
   // Network status detection
   useNetworkStatus();
@@ -40,8 +41,37 @@ export function AppLayout({ children }: AppLayoutProps) {
     { key: 'g', description: 'Go to Dashboard', handler: () => navigate('/') },
     { key: 'a', description: 'Go to Agents', handler: () => navigate('/agents') },
     { key: 'n', shift: true, description: 'New Agent', handler: () => navigate('/agents/new') },
+    { key: 'Backspace', alt: true, description: 'Go Back', handler: () => {
+      if (window.history.length > 2) navigate(-1);
+      else navigate('/');
+    }},
   ], [navigate]);
   useKeyboardShortcuts(shortcuts);
+
+  // Announce route changes for screen readers
+  const pageTitle = useMemo(() => {
+    const path = location.pathname;
+    const titles: Record<string, string> = {
+      '/': 'Dashboard',
+      '/agents': 'Agentes',
+      '/brain': 'Super Cérebro',
+      '/oracle': 'Oráculo',
+      '/knowledge': 'Knowledge',
+      '/memory': 'Memory',
+      '/tools': 'Tools',
+      '/prompts': 'Prompts',
+      '/workflows': 'Workflows',
+      '/evaluations': 'Evaluations',
+      '/deployments': 'Deployments',
+      '/monitoring': 'Monitoring',
+      '/data-storage': 'Data & Storage',
+      '/security': 'Security',
+      '/team': 'Team',
+      '/billing': 'Billing',
+      '/settings': 'Settings',
+    };
+    return titles[path] || 'Página';
+  }, [location.pathname]);
 
   return (
     <UnsavedChangesProvider>
@@ -58,6 +88,11 @@ export function AppLayout({ children }: AppLayoutProps) {
         >
           Pular para o conteúdo
         </a>
+
+        {/* Screen reader route announcer */}
+        <div className="sr-only" role="status" aria-live="polite" aria-atomic="true">
+          Navegou para {pageTitle}
+        </div>
 
         <div className="min-h-screen flex w-full">
           <AppSidebar />
@@ -88,7 +123,7 @@ export function AppLayout({ children }: AppLayoutProps) {
                 </button>
               </div>
             </header>
-            <main id="main-content" className="flex-1 overflow-auto" tabIndex={-1}>
+            <main id="main-content" className="flex-1 overflow-auto" tabIndex={-1} aria-label={pageTitle}>
               <ErrorBoundary>
                 <DirectionalTransition>
                   {children}
