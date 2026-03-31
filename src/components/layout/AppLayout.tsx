@@ -12,10 +12,18 @@ import { ScrollRestoration } from "@/components/shared/ScrollRestoration";
 import { ErrorBoundary } from "@/components/shared/ErrorBoundary";
 import { KeyboardShortcutsDialog } from "@/components/shared/KeyboardShortcutsDialog";
 import { SwipeNavigation } from "@/components/shared/SwipeNavigation";
+import { OnboardingTour } from "@/components/shared/OnboardingTour";
 import { UnsavedChangesProvider } from "@/hooks/use-unsaved-changes";
 import { useNetworkStatus } from "@/hooks/use-network-status";
 import { useKeyboardShortcuts } from "@/hooks/use-keyboard-shortcuts";
 import { useIsMobile } from "@/hooks/use-mobile";
+import { useDocumentTitle } from "@/hooks/use-document-title";
+import { useAuth } from "@/contexts/AuthContext";
+import {
+  DropdownMenu, DropdownMenuContent, DropdownMenuItem,
+  DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import { User, Settings, Keyboard, LogOut } from "lucide-react";
 
 interface AppLayoutProps {
   children: React.ReactNode;
@@ -38,6 +46,11 @@ export function AppLayout({ children }: AppLayoutProps) {
   const navigate = useNavigate();
   const location = useLocation();
   const isMobile = useIsMobile();
+  const { user, signOut } = useAuth();
+  const [shortcutsOpen, setShortcutsOpen] = useState(false);
+
+  // Dynamic document title
+  useDocumentTitle();
 
   // Network status detection
   useNetworkStatus();
@@ -123,12 +136,39 @@ export function AppLayout({ children }: AppLayoutProps) {
               <div className="flex items-center gap-1.5 sm:gap-2">
                 <ThemeToggle />
                 <NotificationsDrawer />
-                <button
-                  className="h-8 w-8 rounded-full nexus-gradient-bg flex items-center justify-center text-xs font-semibold text-primary-foreground focus:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
-                  aria-label="Menu do usuário"
-                >
-                  MC
-                </button>
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <button
+                      className="h-8 w-8 rounded-full nexus-gradient-bg flex items-center justify-center text-xs font-semibold text-primary-foreground focus:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+                      aria-label="Menu do usuário"
+                    >
+                      {(user?.email?.[0] || 'U').toUpperCase()}
+                    </button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent align="end" className="w-56">
+                    <DropdownMenuLabel className="font-normal">
+                      <div className="flex flex-col space-y-1">
+                        <p className="text-sm font-medium text-foreground">Minha conta</p>
+                        <p className="text-xs text-muted-foreground truncate">{user?.email}</p>
+                      </div>
+                    </DropdownMenuLabel>
+                    <DropdownMenuSeparator />
+                    <DropdownMenuItem onClick={() => navigate('/settings')} className="gap-2 cursor-pointer">
+                      <Settings className="h-3.5 w-3.5" /> Configurações
+                    </DropdownMenuItem>
+                    <DropdownMenuItem onClick={() => {
+                      const event = new KeyboardEvent('keydown', { key: '?' });
+                      window.dispatchEvent(event);
+                    }} className="gap-2 cursor-pointer">
+                      <Keyboard className="h-3.5 w-3.5" /> Atalhos de teclado
+                      <kbd className="ml-auto text-[10px] font-mono text-muted-foreground">?</kbd>
+                    </DropdownMenuItem>
+                    <DropdownMenuSeparator />
+                    <DropdownMenuItem onClick={signOut} className="gap-2 cursor-pointer text-destructive focus:text-destructive">
+                      <LogOut className="h-3.5 w-3.5" /> Sair
+                    </DropdownMenuItem>
+                  </DropdownMenuContent>
+                </DropdownMenu>
               </div>
             </header>
             <main id="main-content" className="flex-1 overflow-auto" tabIndex={-1} aria-label={pageTitle}>
@@ -150,6 +190,7 @@ export function AppLayout({ children }: AppLayoutProps) {
         </div>
         <CommandPalette />
         <KeyboardShortcutsDialog />
+        <OnboardingTour />
       </SidebarProvider>
     </UnsavedChangesProvider>
   );
