@@ -293,6 +293,46 @@ export function PromptModule() {
           ))}
         </div>
       </section>
+
+      {/* Seção F — ACE Playbooks (Stanford ICLR 2026) */}
+      <section>
+        <SectionTitle icon="🧬" title="ACE Playbooks" subtitle="Auto-evolução de prompt via ciclo Generator → Reflector → Curator (Stanford ICLR 2026)" badge={<NexusBadge color="purple">Experimental</NexusBadge>} />
+        <div className="rounded-xl border border-border bg-card p-5 space-y-4">
+          <ToggleField
+            label="Habilitar ACE (Agentic Context Engineering)"
+            description="O prompt é tratado como um playbook vivo que evolui automaticamente com base nos resultados reais do agente."
+            checked={false}
+            onCheckedChange={() => {}}
+          />
+
+          <div className="grid grid-cols-3 gap-3">
+            <div className="rounded-xl border border-border bg-muted/10 p-4 text-center">
+              <span className="text-2xl" aria-hidden="true">🏭</span>
+              <h4 className="text-xs font-semibold text-foreground mt-2">Generator</h4>
+              <p className="text-[10px] text-muted-foreground mt-1">Agente executa tarefas e produz reasoning traces</p>
+            </div>
+            <div className="rounded-xl border border-border bg-muted/10 p-4 text-center">
+              <span className="text-2xl" aria-hidden="true">🔍</span>
+              <h4 className="text-xs font-semibold text-foreground mt-2">Reflector</h4>
+              <p className="text-[10px] text-muted-foreground mt-1">Analisa resultados (sucesso/falha) e extrai lições como delta items</p>
+            </div>
+            <div className="rounded-xl border border-border bg-muted/10 p-4 text-center">
+              <span className="text-2xl" aria-hidden="true">✨</span>
+              <h4 className="text-xs font-semibold text-foreground mt-2">Curator</h4>
+              <p className="text-[10px] text-muted-foreground mt-1">Merge delta items no playbook, deduplica e poda redundâncias</p>
+            </div>
+          </div>
+
+          <div className="rounded-lg bg-primary/5 border border-primary/20 p-3 text-xs text-muted-foreground space-y-1">
+            <p><strong className="text-foreground">Como funciona:</strong></p>
+            <p>1. O agente executa tarefas normalmente (Generator)</p>
+            <p>2. Após cada execução, o Reflector analisa o que funcionou e o que falhou</p>
+            <p>3. Periodicamente, o Curator reorganiza as heurísticas aprendidas no prompt</p>
+            <p>4. O prompt evolui incrementalmente (grow-and-refine, nunca rewrite monolítico)</p>
+            <p className="mt-2 text-[10px]">Fonte: Stanford/SambaNova/UC Berkeley — ICLR 2026 · +10.6% em benchmarks</p>
+          </div>
+        </div>
+      </section>
     </div>
   );
 }

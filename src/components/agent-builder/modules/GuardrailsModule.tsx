@@ -249,6 +249,34 @@ export function GuardrailsModule() {
           </Button>
         </div>
       </section>
+
+      {/* Seção E — Governança Forense (Gap Gemini #5) */}
+      <section>
+        <SectionTitle icon="🔬" title="Governança Forense" subtitle="Auditoria avançada para compliance enterprise" badge={<NexusBadge color="purple">Avançado</NexusBadge>} />
+        <div className="rounded-xl border border-border bg-card p-5 space-y-4">
+          <ToggleField
+            label="Forensic Snapshots"
+            description="Grava estado completo (contexto, memória, dados, decisão) em cada ação autônoma com hash SHA-256 imutável. Essencial para auditoria legal."
+            checked={agent.logging_enabled}
+            onCheckedChange={(v) => updateAgent({ logging_enabled: v })}
+          />
+          <ToggleField
+            label="Pre-execution Plan Validation"
+            description="Antes de executar qualquer ação sensível, valida o plano completo contra regras de compliance. Bloqueia se violar políticas."
+            checked={agent.guardrails.some(g => g.id === 'access_scope' && g.enabled)}
+            onCheckedChange={() => {}}
+          />
+          <ToggleField
+            label="Audit Trail Completo"
+            description="Registra TODA ação do agente (leitura, escrita, tool call) com timestamp, contexto e resultado."
+            checked={agent.guardrails.some(g => g.id === 'access_audit' && g.enabled)}
+            onCheckedChange={() => {}}
+          />
+          <div className="rounded-lg bg-primary/5 border border-primary/20 p-3 text-xs text-muted-foreground">
+            <strong className="text-foreground">Forensic Snapshot</strong> grava: input do usuário, memórias consultadas, chunks RAG recuperados, prompt montado, resposta do LLM, tools chamadas, guardrails acionados, hash SHA-256 do estado completo. Imutável para auditoria.
+          </div>
+        </div>
+      </section>
     </div>
   );
 }
