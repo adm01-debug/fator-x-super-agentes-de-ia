@@ -2,6 +2,7 @@ import { useAgentBuilderStore } from '@/stores/agentBuilderStore';
 import { SectionTitle, NexusBadge, ToggleField, SelectField, SliderField } from '../ui';
 import { CollapsibleCard } from '../ui/CollapsibleCard';
 import { Button } from '@/components/ui/button';
+import { toast } from 'sonner';
 import { Plus, Trash2, Globe, MessageSquare, Mail, Hash, Send, Radio } from 'lucide-react';
 import type { DeployChannelConfig, MonitoringKPI, DeployChannel } from '@/types/agentTypes';
 
@@ -248,7 +249,7 @@ export function DeployModule() {
         {/* Canary Config */}
         <div className="mt-4 rounded-xl border border-border bg-card p-4 space-y-3">
           <h4 className="text-sm font-semibold text-foreground">Configuração Canary</h4>
-          <SliderField label="Tráfego para nova versão" value={5} onChange={() => {}} min={1} max={100} unit="%" description="% do tráfego direcionado para a versão candidata" />
+          <SliderField label="Tráfego para nova versão" value={agent.ab_testing_enabled ? 50 : 5} onChange={(v) => updateAgent({ ab_testing_enabled: v > 10 })} min={1} max={100} unit="%" description="% do tráfego direcionado para a versão candidata" />
           <div className="grid grid-cols-2 gap-3 text-xs">
             <div className="rounded-lg bg-muted/30 p-3">
               <p className="text-muted-foreground mb-1">Gate de aprovação automática</p>
@@ -260,8 +261,8 @@ export function DeployModule() {
             </div>
           </div>
           <div className="flex gap-2">
-            <Button variant="outline" size="sm" className="gap-1.5 text-amber-400 border-amber-500/30">🔄 Rollback</Button>
-            <Button variant="outline" size="sm" className="gap-1.5 text-emerald-400 border-emerald-500/30">✅ Promover 100%</Button>
+            <Button variant="outline" size="sm" className="gap-1.5 text-amber-400 border-amber-500/30" onClick={() => { updateAgent({ status: 'staging' }); toast.success('Rollback executado — agente voltou para staging'); }}>🔄 Rollback</Button>
+            <Button variant="outline" size="sm" className="gap-1.5 text-emerald-400 border-emerald-500/30" onClick={() => { updateAgent({ status: 'production' }); toast.success('Agente promovido para 100% do tráfego em produção'); }}>✅ Promover 100%</Button>
           </div>
         </div>
       </section>

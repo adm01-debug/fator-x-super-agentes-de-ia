@@ -167,14 +167,28 @@ export default function AgentDetailPage() {
               </div>
             </TabsContent>
 
-            {['tools', 'memory', 'knowledge', 'evaluations', 'logs', 'versions'].map(tab => (
+            <TabsContent value="tools" className="mt-4">
+              <div className="nexus-card space-y-3">
+                <h3 className="text-sm font-semibold text-foreground">Ferramentas Ativas</h3>
+                <div className="grid grid-cols-2 gap-2">
+                  {['Web Search', 'Database Query', 'CRM Update', 'Email Sender'].map(t => (
+                    <div key={t} className="flex items-center gap-2 p-2 rounded-lg bg-secondary/30 text-xs text-foreground"><span className="h-2 w-2 rounded-full bg-emerald-400" />{t}</div>
+                  ))}
+                </div>
+              </div>
+            </TabsContent>
+            <TabsContent value="memory" className="mt-4">
+              <div className="nexus-card space-y-2">
+                <h3 className="text-sm font-semibold text-foreground">Camadas de Memória</h3>
+                {['Curto Prazo (ativa)', 'Episódica (ativa)', 'Semântica (inativa)', 'Perfil (ativa)'].map(m => (
+                  <div key={m} className="flex items-center gap-2 text-xs text-muted-foreground"><span className={`h-2 w-2 rounded-full ${m.includes('ativa)') && !m.includes('inativa') ? 'bg-emerald-400' : 'bg-muted'}`} />{m}</div>
+                ))}
+              </div>
+            </TabsContent>
+            {['knowledge', 'evaluations', 'logs', 'versions'].map(tab => (
               <TabsContent key={tab} value={tab} className="mt-4">
-                <div className="nexus-card flex flex-col items-center justify-center py-12 text-center">
-                  <div className="h-12 w-12 rounded-xl bg-primary/10 flex items-center justify-center mb-3">
-                    <Hash className="h-6 w-6 text-primary" />
-                  </div>
-                  <p className="text-sm font-medium text-foreground">Módulo {tab.charAt(0).toUpperCase() + tab.slice(1)}</p>
-                  <p className="text-xs text-muted-foreground mt-1">Acesse a seção dedicada no menu lateral para configuração completa.</p>
+                <div className="nexus-card text-center py-8">
+                  <p className="text-sm text-muted-foreground">Configure no <button onClick={() => navigate('/builder')} className="text-primary hover:underline">Agent Builder</button></p>
                 </div>
               </TabsContent>
             ))}
@@ -209,7 +223,19 @@ export default function AgentDetailPage() {
               onChange={(e) => setChatInput(e.target.value)}
               className="text-xs bg-secondary/50 border-border/50"
             />
-            <Button size="icon" className="shrink-0 nexus-gradient-bg text-primary-foreground hover:opacity-90 h-9 w-9">
+            <Button
+              size="icon"
+              className="shrink-0 nexus-gradient-bg text-primary-foreground hover:opacity-90 h-9 w-9"
+              onClick={() => {
+                if (!chatInput.trim()) return;
+                setChatHistory(prev => [
+                  ...prev,
+                  { role: 'user' as const, content: chatInput },
+                  { role: 'assistant' as const, content: `Entendido! Como ${agent.name.split('—')[0].trim()}, vou analisar sua solicitação. Baseado no meu conhecimento e ferramentas disponíveis, posso ajudar com isso.` },
+                ]);
+                setChatInput('');
+              }}
+            >
               <Send className="h-3.5 w-3.5" />
             </Button>
           </div>

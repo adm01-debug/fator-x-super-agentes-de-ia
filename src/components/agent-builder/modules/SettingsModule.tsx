@@ -9,6 +9,9 @@ export function SettingsModule() {
   const [timezone, setTimezone] = useState('America/Sao_Paulo');
   const [language, setLanguage] = useState('pt-BR');
   const [defaultModel, setDefaultModel] = useState('claude-sonnet-4.6');
+  const [apiKeys, setApiKeys] = useState<Record<string, string>>({ anthropic: '', openai: '', embedding: '' });
+  const [defaultGuardrails, setDefaultGuardrails] = useState(true);
+  const [defaultLogging, setDefaultLogging] = useState(true);
 
   return (
     <div className="space-y-8">
@@ -45,15 +48,15 @@ export function SettingsModule() {
       <SectionTitle icon="🔑" title="API Keys" subtitle="Chaves de API para integrações (armazenadas de forma segura)" />
       <div className="rounded-xl border border-border bg-card p-6 space-y-4">
         {[
-          { label: 'Anthropic API Key', placeholder: 'sk-ant-...' },
-          { label: 'OpenAI API Key', placeholder: 'sk-...' },
-          { label: 'Embedding API Key', placeholder: 'Chave do provedor de embeddings' },
+          { id: 'anthropic', label: 'Anthropic API Key', placeholder: 'sk-ant-...' },
+          { id: 'openai', label: 'OpenAI API Key', placeholder: 'sk-...' },
+          { id: 'embedding', label: 'Embedding API Key', placeholder: 'Chave do provedor de embeddings' },
         ].map((key) => (
           <InputField
-            key={key.label}
+            key={key.id}
             label={key.label}
-            value=""
-            onChange={() => {}}
+            value={apiKeys[key.id]}
+            onChange={(v) => setApiKeys(prev => ({ ...prev, [key.id]: v }))}
             placeholder={key.placeholder}
             type="password"
           />
@@ -81,14 +84,14 @@ export function SettingsModule() {
         <ToggleField
           label="Guardrails padrão ativos"
           description="Novos agentes iniciam com guardrails essenciais pré-ativados"
-          checked={true}
-          onCheckedChange={() => {}}
+          checked={defaultGuardrails}
+          onCheckedChange={setDefaultGuardrails}
         />
         <ToggleField
           label="Logging habilitado por padrão"
           description="Ativar logging automaticamente em novos agentes"
-          checked={true}
-          onCheckedChange={() => {}}
+          checked={defaultLogging}
+          onCheckedChange={setDefaultLogging}
         />
       </div>
 

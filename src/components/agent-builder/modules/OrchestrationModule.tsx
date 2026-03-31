@@ -1,9 +1,11 @@
+import { useState } from 'react';
 import { useAgentBuilderStore } from '@/stores/agentBuilderStore';
 import { SectionTitle, NexusBadge, ToggleField, SliderField, InputField, SelectField } from '../ui';
 import { CollapsibleCard } from '../ui/CollapsibleCard';
 import { Button } from '@/components/ui/button';
 import { Plus, Trash2 } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { toast } from 'sonner';
 import type { OrchestrationPattern, SubAgentRef } from '@/types/agentTypes';
 
 interface OrchPatternInfo {
@@ -277,37 +279,14 @@ export function OrchestrationModule() {
           <div className="rounded-xl border border-border bg-card p-5 space-y-3">
             <h4 className="text-sm font-semibold text-foreground">Descoberta de Agentes Externos</h4>
             <p className="text-xs text-muted-foreground">Conecte agentes A2A externos para delegação de tarefas entre sistemas diferentes.</p>
-            <div className="flex gap-2">
-              <input
-                type="text"
-                placeholder="URL do Agent Card (ex: https://agents.empresa.com/.well-known/agent.json)"
-                className="flex-1 bg-muted/30 border border-border rounded-lg px-3 py-2 text-sm text-foreground placeholder:text-muted-foreground"
-              />
-              <Button variant="outline" size="sm">Descobrir</Button>
-            </div>
+            <A2ADiscovery />
           </div>
 
           {/* Delegation Rules */}
           <div className="rounded-xl border border-border bg-card p-5 space-y-3">
             <h4 className="text-sm font-semibold text-foreground">Regras de Delegação</h4>
             <p className="text-xs text-muted-foreground">Defina quando este agente deve delegar tarefas para agentes A2A externos.</p>
-            <div className="space-y-2">
-              {[
-                { condition: 'Assunto jurídico', target: 'agente-juridico.example.com', timeout: '30s' },
-                { condition: 'Análise financeira', target: 'agente-financeiro.example.com', timeout: '45s' },
-              ].map((rule, i) => (
-                <div key={i} className="flex items-center gap-2 text-xs p-2 rounded-lg bg-muted/20">
-                  <span className="text-muted-foreground">Se:</span>
-                  <span className="text-foreground font-medium">{rule.condition}</span>
-                  <span className="text-muted-foreground">→</span>
-                  <span className="text-primary font-mono">{rule.target}</span>
-                  <span className="text-muted-foreground ml-auto">⏱️ {rule.timeout}</span>
-                </div>
-              ))}
-              <Button variant="outline" size="sm" className="w-full border-dashed">
-                <Plus className="h-4 w-4 mr-2" /> Adicionar Regra
-              </Button>
-            </div>
+            <A2ADelegationRules />
           </div>
 
           {/* Protocol Info */}
@@ -322,6 +301,112 @@ export function OrchestrationModule() {
           </div>
         </div>
       </section>
+    </div>
+  );
+}
+
+// ═══ A2A Sub-components ═══
+
+function A2ADiscovery() {
+  const [url, setUrl] = useState('');
+  const [discovered, setDiscovered] = useState<{ name: string; capabilities: string[] } | null>(null);
+  const [loading, setLoading] = useState(false);
+
+  const discover = () => {
+    if (!url.trim()) return;
+    setLoading(true);
+    // Simulate discovery
+    setTimeout(() => {
+      setDiscovered({
+        name: url.includes('juridico') ? 'Agente Jurídico Pro' : url.includes('financeiro') ? 'Agente Financeiro Corp' : 'Agente Externo',
+        capabilities: ['Análise de documentos', 'Consulta de base de dados', 'Geração de relatórios'],
+      });
+      setLoading(false);
+    }, 1200);
+  };
+
+  return (
+    <div className="space-y-3">
+      <div className="flex gap-2">
+        <input
+          type="text"
+          value={url}
+          onChange={(e) => setUrl(e.target.value)}
+          placeholder="URL do Agent Card (ex: https://agents.empresa.com/.well-known/agent.json)"
+          className="flex-1 bg-muted/30 border border-border rounded-lg px-3 py-2 text-sm text-foreground placeholder:text-muted-foreground"
+          onKeyDown={(e) => e.key === 'Enter' && discover()}
+        />
+        <Button variant="outline" size="sm" onClick={discover} disabled={loading || !url.trim()}>
+          {loading ? '...' : 'Descobrir'}
+        </Button>
+      </div>
+      {discovered && (
+        <div className="rounded-lg bg-emerald-500/5 border border-emerald-500/20 p-3 space-y-2">
+          <p className="text-sm font-semibold text-foreground">✅ {discovered.name}</p>
+          <div className="flex flex-wrap gap-1">
+            {discovered.capabilities.map(c => (
+              <span key={c} className="text-[10px] px-1.5 py-0.5 rounded bg-primary/10 text-primary border border-primary/20">{c}</span>
+            ))}
+          </div>
+          <Button variant="outline" size="sm" className="w-full" onClick={() => toast.success(`${discovered.name} adicionado como recurso A2A`)}>
+            Adicionar como recurso
+          </Button>
+        </div>
+      )}
+    </div>
+  );
+}
+
+function A2ADelegationRules() {
+  const [rules, setRules] = useState([
+    { condition: 'Assunto jurídico', target: 'agente-juridico.example.com', timeout: '30s' },
+    { condition: 'Análise financeira', target: 'agente-financeiro.example.com', timeout: '45s' },
+  ]);
+
+  const addRule = () => {
+    setRules([...rules, { condition: '', target: '', timeout: '30s' }]);
+  };
+
+  const removeRule = (idx: number) => {
+    setRules(rules.filter((_, i) => i !== idx));
+  };
+
+  const updateRule = (idx: number, field: string, value: string) => {
+    setRules(rules.map((r, i) => i === idx ? { ...r, [field]: value } : r));
+  };
+
+  return (
+    <div className="space-y-2">
+      {rules.map((rule, i) => (
+        <div key={i} className="flex items-center gap-2 text-xs p-2 rounded-lg bg-muted/20">
+          <span className="text-muted-foreground shrink-0">Se:</span>
+          <input
+            className="flex-1 bg-transparent border-b border-border/50 text-foreground outline-none px-1"
+            value={rule.condition}
+            onChange={(e) => updateRule(i, 'condition', e.target.value)}
+            placeholder="Condição"
+          />
+          <span className="text-muted-foreground shrink-0">→</span>
+          <input
+            className="flex-1 bg-transparent border-b border-border/50 text-primary font-mono outline-none px-1"
+            value={rule.target}
+            onChange={(e) => updateRule(i, 'target', e.target.value)}
+            placeholder="URL do agente"
+          />
+          <span className="text-muted-foreground shrink-0">⏱️</span>
+          <input
+            className="w-12 bg-transparent border-b border-border/50 text-muted-foreground outline-none px-1 text-center"
+            value={rule.timeout}
+            onChange={(e) => updateRule(i, 'timeout', e.target.value)}
+          />
+          <button onClick={() => removeRule(i)} className="text-destructive hover:text-destructive/80 shrink-0">
+            <Trash2 className="h-3 w-3" />
+          </button>
+        </div>
+      ))}
+      <Button variant="outline" size="sm" className="w-full border-dashed" onClick={addRule}>
+        <Plus className="h-4 w-4 mr-2" /> Adicionar Regra
+      </Button>
     </div>
   );
 }

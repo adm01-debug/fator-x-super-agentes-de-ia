@@ -301,14 +301,22 @@ export function ToolsModule() {
       </section>
 
       {/* Seção — Code Sandbox Configuration */}
-      {agent.tools.some(t => t.name === 'Code Executor' && t.enabled) && (
+      {agent.tools.some(t => t.name === 'Code Executor' && t.enabled) && (() => {
+        const codeExec = agent.tools.find(t => t.name === 'Code Executor')!;
+        let sandboxCfg: { provider: string; timeout: number; memory: number; network: boolean } = { provider: 'e2b', timeout: 30, memory: 512, network: false };
+        try { sandboxCfg = { ...sandboxCfg, ...JSON.parse(codeExec.allowed_conditions || '{}') }; } catch { /* use defaults */ }
+        const saveSandbox = (partial: Partial<typeof sandboxCfg>) => {
+          const updated = { ...sandboxCfg, ...partial };
+          updateTool(codeExec.id, { allowed_conditions: JSON.stringify(updated) });
+        };
+        return (
         <section>
           <SectionTitle icon="🔒" title="Code Sandbox" subtitle="Configuração do ambiente de execução de código isolado" />
           <div className="rounded-xl border border-border bg-card p-5 space-y-4">
             <SelectField
               label="Provider"
-              value="e2b"
-              onChange={() => {}}
+              value={sandboxCfg.provider}
+              onChange={(v) => saveSandbox({ provider: v })}
               options={[
                 { value: 'e2b', label: 'E2B (Firecracker microVMs)' },
                 { value: 'cloudflare', label: 'Cloudflare Workers' },
@@ -332,15 +340,16 @@ export function ToolsModule() {
               ))}
             </div>
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-              <SliderField label="Timeout" value={30} onChange={() => {}} min={5} max={300} unit="s" description="Tempo máximo de execução" />
-              <SliderField label="Memória" value={512} onChange={() => {}} min={128} max={4096} unit="MB" description="Limite de RAM" />
+              <SliderField label="Timeout" value={sandboxCfg.timeout} onChange={(v) => saveSandbox({ timeout: v })} min={5} max={300} unit="s" description="Tempo máximo de execução" />
+              <SliderField label="Memória" value={sandboxCfg.memory} onChange={(v) => saveSandbox({ memory: v })} min={128} max={4096} unit="MB" description="Limite de RAM" />
               <div>
-                <ToggleField label="Acesso à rede" description="Permitir requests HTTP (OFF = mais seguro)" checked={false} onCheckedChange={() => {}} />
+                <ToggleField label="Acesso à rede" description="Permitir requests HTTP (OFF = mais seguro)" checked={sandboxCfg.network} onCheckedChange={(v) => saveSandbox({ network: v })} />
               </div>
             </div>
           </div>
         </section>
-      )}
+        );
+      })()}
 
       {/* Seção C — MCP Servers */}
       <section>

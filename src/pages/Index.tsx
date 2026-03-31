@@ -1,7 +1,7 @@
-import { useLocation } from "react-router-dom";
+import { Navigate } from "react-router-dom";
 
 const Index = () => {
-  return null;
+  return <Navigate to="/" replace />;
 };
 
 export default Index;
