@@ -48,7 +48,7 @@ export function AgentBuilderLayout({ children }: AgentBuilderLayoutProps) {
               backgroundImage: 'linear-gradient(135deg, hsl(var(--primary)), hsl(var(--accent)), hsl(var(--nexus-amber)))',
             }}
           >
-            ⚡ Nexus Agents Studio
+            ⚡ Fator X Studio
           </h1>
           <span className="text-[11px] text-muted-foreground hidden lg:block">
             Plataforma operacional para agentes de IA

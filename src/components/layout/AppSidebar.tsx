@@ -1,4 +1,5 @@
 import { useLocation } from "react-router-dom";
+import fatorxIcon from "@/assets/fatorx-icon.png";
 import { NavLink } from "@/components/NavLink";
 import {
   LayoutDashboard, Bot, BookOpen, Brain, Puzzle, FileText, GitBranch,
@@ -78,12 +79,10 @@ export function AppSidebar() {
     <Sidebar collapsible="icon" className="border-r border-border/50">
       <SidebarHeader className="p-4">
         <div className="flex items-center gap-2.5">
-          <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg nexus-gradient-bg" aria-hidden="true">
-            <Sparkles className="h-4 w-4 text-primary-foreground" />
-          </div>
+          <img src={fatorxIcon} alt="Fator X" className="h-8 w-8 shrink-0 rounded-lg" />
           {!collapsed && (
             <div className="flex flex-col">
-              <span className="font-heading text-sm font-bold text-foreground tracking-tight">Nexus Agents</span>
+              <span className="font-heading text-sm font-bold text-foreground tracking-tight">Fator X</span>
               <span className="text-[10px] text-muted-foreground">Studio</span>
             </div>
           )}

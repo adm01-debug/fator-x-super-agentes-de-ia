@@ -101,7 +101,7 @@ serve(async (req) => {
           'Content-Type': 'application/json',
           'Authorization': `Bearer ${apiKey}`,
           'HTTP-Referer': supabaseUrl,
-          'X-Title': 'Nexus Agents Studio',
+          'X-Title': 'Fator X Studio',
         },
         body: JSON.stringify({ model, messages, temperature, max_tokens }),
       });
