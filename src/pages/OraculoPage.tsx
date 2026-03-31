@@ -6,12 +6,20 @@ import { Sparkles, Settings, BookOpen, BarChart3, Zap, Plus, Send, Clock, Dollar
 import { toast } from 'sonner';
 
 const PRESETS = [
-  { id: 'executive', name: 'Executivo', icon: '👔', models: 4, desc: '4 frontier models + peer review. Para decisões estratégicas.', cost: '$$$$', latency: '15-30s' },
-  { id: 'fast', name: 'Rápido', icon: '⚡', models: 3, desc: '3 modelos leves em paralelo. Resposta em <5s.', cost: '$', latency: '2-5s' },
-  { id: 'research', name: 'Pesquisa Profunda', icon: '🔬', models: 5, desc: '5 modelos × 3 camadas (Mixture of Agents). Máxima profundidade.', cost: '$$$$$', latency: '30-60s' },
-  { id: 'debate', name: 'Debate', icon: '⚔️', models: 2, desc: '2 modelos debatem 3 rounds + juiz. Para decisões controversas.', cost: '$$$', latency: '20-40s' },
-  { id: 'technical', name: 'Técnico', icon: '🔧', models: 4, desc: '4 modelos especializados em código/dados. Para implementação.', cost: '$$$', latency: '10-20s' },
-  { id: 'validator', name: 'Verificação', icon: '✅', models: 3, desc: '3 modelos com web search. Fact-checking rigoroso.', cost: '$$', latency: '10-15s' },
+  // Originais
+  { id: 'executive', name: 'Executivo', icon: '👔', models: 4, desc: '4 frontier models + peer review. Para decisões estratégicas.', cost: '$$$$', latency: '15-30s', mode: 'council' },
+  { id: 'fast', name: 'Rápido', icon: '⚡', models: 3, desc: '3 modelos leves em paralelo. Resposta em <5s.', cost: '$', latency: '2-5s', mode: 'council' },
+  { id: 'research', name: 'Pesquisa Profunda', icon: '🔬', models: 5, desc: '5 modelos × 3 camadas. Deep Research iterativo com fontes.', cost: '$$$$$', latency: '30-60s', mode: 'researcher' },
+  { id: 'debate', name: 'Debate', icon: '⚔️', models: 2, desc: '2 modelos debatem 3 rounds + juiz. Decisões controversas.', cost: '$$$', latency: '20-40s', mode: 'advisor' },
+  { id: 'technical', name: 'Técnico', icon: '🔧', models: 4, desc: '4 modelos especializados em código/dados.', cost: '$$$', latency: '10-20s', mode: 'council' },
+  { id: 'validator', name: 'Verificação', icon: '✅', models: 3, desc: '3 modelos com web search. Fact-checking rigoroso.', cost: '$$', latency: '10-15s', mode: 'validator' },
+  // v2: Presets por vertical
+  { id: 'financial', name: 'Análise Financeira', icon: '💰', models: 3, desc: 'Projeções, ROI, custo-benefício com dados reais.', cost: '$$$', latency: '15-25s', mode: 'advisor' },
+  { id: 'supplier_eval', name: 'Avaliação Fornecedor', icon: '🏭', models: 3, desc: 'Comparação com dados do CRM + Super Cérebro.', cost: '$$', latency: '10-20s', mode: 'advisor' },
+  { id: 'legal', name: 'Jurídico & Compliance', icon: '⚖️', models: 3, desc: 'Verificação jurídica multi-perspectiva.', cost: '$$', latency: '10-15s', mode: 'validator' },
+  { id: 'crisis', name: 'Resposta a Crise', icon: '🚨', models: 3, desc: 'Decisão rápida com ações imediatas + plano de comunicação.', cost: '$$', latency: '8-15s', mode: 'executor' },
+  { id: 'content', name: 'Estratégia de Conteúdo', icon: '✍️', models: 3, desc: 'Brainstorming criativo com tendências e SEO.', cost: '$$', latency: '10-20s', mode: 'council' },
+  { id: 'hr', name: 'RH & Pessoas', icon: '👥', models: 3, desc: 'Decisões sobre equipe com sensibilidade.', cost: '$$', latency: '10-15s', mode: 'advisor' },
 ];
 
 const COUNCIL_STAGES = [
@@ -106,6 +114,26 @@ export default function OraculoPage() {
             </div>
           </div>
 
+          {/* 5 Modos de Operação (v2) */}
+          <div className="nexus-card">
+            <h3 className="text-sm font-semibold text-foreground mb-3">5 Modos de Operação</h3>
+            <div className="grid grid-cols-2 md:grid-cols-5 gap-2">
+              {[
+                { id: 'council', icon: '🏛️', name: 'Conselho', desc: 'N modelos + peer review + síntese' },
+                { id: 'researcher', icon: '🔬', name: 'Pesquisador', desc: 'Deep Research iterativo com fontes' },
+                { id: 'validator', icon: '✅', name: 'Validador', desc: 'Verifica claims contra múltiplos modelos' },
+                { id: 'executor', icon: '⚡', name: 'Executor', desc: 'Decompõe + orquestra sub-agentes' },
+                { id: 'advisor', icon: '🎯', name: 'Conselheiro', desc: 'Debate prós/contras para decisão' },
+              ].map(mode => (
+                <div key={mode.id} className="p-3 rounded-xl border border-border bg-card text-center hover:bg-muted/30 transition-all cursor-pointer">
+                  <span className="text-xl block">{mode.icon}</span>
+                  <p className="text-xs font-semibold text-foreground mt-1">{mode.name}</p>
+                  <p className="text-[9px] text-muted-foreground mt-0.5">{mode.desc}</p>
+                </div>
+              ))}
+            </div>
+          </div>
+
           <div className="nexus-card">
             <h3 className="text-sm font-semibold text-foreground mb-3">4 Estágios do Council Mode</h3>
             <div className="flex items-center gap-2 overflow-x-auto pb-2">
@@ -168,6 +196,7 @@ export default function OraculoPage() {
                 <div className="flex gap-3 text-[10px] text-muted-foreground">
                   <span>💰 {preset.cost}</span>
                   <span>⏱️ {preset.latency}</span>
+                  <span className="px-1 py-0.5 rounded bg-primary/10 text-primary">{preset.mode}</span>
                 </div>
               </button>
             ))}
