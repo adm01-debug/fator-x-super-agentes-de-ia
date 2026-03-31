@@ -17,7 +17,9 @@ import {
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
-import { AGENT_TEMPLATES, type AgentTemplate } from "@/data/agentTemplates";
+import { AGENT_TEMPLATES, templateToConfig, type AgentTemplate } from "@/data/agentTemplates";
+import { DEFAULT_AGENT } from "@/data/agentBuilderData";
+import * as agentService from "@/services/agentService";
 
 const STEPS = [
   { key: "identity", label: "Identidade", icon: User, description: "Nome, descrição e objetivo" },
@@ -141,33 +143,42 @@ export function CreateAgentWizard() {
       return;
     }
     setSaving(true);
-    const { error } = await supabase.from("agents").insert({
-      user_id: user.id,
-      name: form.name,
-      mission: form.objective || form.description,
-      persona: "assistant",
-      model: form.model,
-      avatar_emoji: selectedTemplate?.emoji || "🤖",
-      status: "draft" as const,
-      config: {
-        type: form.type,
-        prompt: form.prompt,
-        tools: form.tools,
-        memory: form.memory,
-        knowledgeBases: form.knowledgeBases,
-        environment: form.environment,
-        description: form.description,
-      },
-    });
-    setSaving(false);
 
-    if (error) {
-      toast.error("Erro ao salvar agente", { description: error.message });
-    } else {
+    try {
+      // Build full AgentConfig from template or scratch
+      let agentConfig;
+      if (selectedTemplate) {
+        agentConfig = templateToConfig(selectedTemplate);
+        agentConfig.name = form.name;
+        agentConfig.mission = form.description || selectedTemplate.description;
+        agentConfig.system_prompt = form.prompt;
+      } else {
+        agentConfig = {
+          ...DEFAULT_AGENT,
+          name: form.name,
+          mission: form.objective || form.description,
+          system_prompt: form.prompt,
+          avatar_emoji: '🤖',
+          model: (form.model === 'gpt-4o' ? 'gpt-4o' : form.model === 'claude-3.5-sonnet' ? 'claude-sonnet-4.6' : form.model === 'gemini-1.5-pro' ? 'gemini-2.5-pro' : 'claude-sonnet-4.6') as typeof DEFAULT_AGENT.model,
+          memory_short_term: form.memory.includes('short_term'),
+          memory_episodic: form.memory.includes('episodic'),
+          memory_semantic: form.memory.includes('semantic'),
+          memory_profile: form.memory.includes('user_profile'),
+          memory_shared: form.memory.includes('team_shared'),
+        };
+      }
+
+      await agentService.saveAgent(agentConfig, user.id);
       toast.success("Agente criado com sucesso!", {
         description: `${form.name} foi salvo no banco de dados.`,
       });
       navigate("/agents");
+    } catch (err) {
+      toast.error("Erro ao salvar agente", {
+        description: err instanceof Error ? err.message : "Erro desconhecido",
+      });
+    } finally {
+      setSaving(false);
     }
   };
 

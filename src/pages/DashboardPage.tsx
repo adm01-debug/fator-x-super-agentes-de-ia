@@ -7,37 +7,69 @@ import { DashboardSkeleton } from "@/components/shared/DashboardSkeleton";
 import { Button } from "@/components/ui/button";
 import {
   Bot, Zap, Clock, DollarSign, CheckCircle, Target, FileText, Database,
-  Plus, ArrowRight, AlertTriangle, XCircle, Info,
+  Plus, AlertTriangle, XCircle, Info,
 } from "lucide-react";
-import { agents, alerts, activities, costByModelData, sessionsPerDayData, latencyByAgentData, errorRateData } from "@/lib/mock-data";
+import { agents as mockAgents, alerts, activities, costByModelData, sessionsPerDayData, latencyByAgentData, errorRateData } from "@/lib/mock-data";
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, LineChart, Line, CartesianGrid, Cell } from "recharts";
 import { useNavigate } from "react-router-dom";
+import { useAuth } from "@/contexts/AuthContext";
+import { useAgentBuilderStore } from "@/stores/agentBuilderStore";
 import { motion } from "framer-motion";
-
-const kpis = [
-  { title: "Agentes ativos", value: "4", icon: Bot, trend: { value: "+1 esta semana", positive: true } },
-  { title: "Sessões hoje", value: "2.216", icon: Zap, trend: { value: "+12% vs ontem", positive: true } },
-  { title: "Latência média", value: "2.3s", icon: Clock, trend: { value: "-0.4s vs semana", positive: true } },
-  { title: "Custo total hoje", value: "R$ 133,70", icon: DollarSign, trend: { value: "+8% vs média", positive: false } },
-  { title: "Taxa de sucesso", value: "91.2%", icon: CheckCircle, trend: { value: "+1.5pp", positive: true } },
-  { title: "Precisão (eval)", value: "94.2%", icon: Target, subtitle: "Atlas v2.4 — última avaliação" },
-  { title: "Documentos indexados", value: "1.869", icon: FileText, trend: { value: "+142 hoje", positive: true } },
-  { title: "Vetores armazenados", value: "32.150", icon: Database, subtitle: "12.4 GB utilizados" },
-];
 
 export default function DashboardPage() {
   const navigate = useNavigate();
+  const { user } = useAuth();
+  const { savedAgents, loadSavedAgents, setCurrentUserId } = useAgentBuilderStore();
   const [isLoading, setIsLoading] = useState(true);
 
-  // Simulate data loading
   useEffect(() => {
-    const timer = setTimeout(() => setIsLoading(false), 800);
-    return () => clearTimeout(timer);
-  }, []);
+    if (user?.id) {
+      setCurrentUserId(user.id);
+      loadSavedAgents().finally(() => setIsLoading(false));
+    } else {
+      const timer = setTimeout(() => setIsLoading(false), 600);
+      return () => clearTimeout(timer);
+    }
+  }, [user?.id, setCurrentUserId, loadSavedAgents]);
 
   if (isLoading) return <DashboardSkeleton />;
 
-  const topAgents = agents.filter(a => a.status === 'active').sort((a, b) => b.sessions24h - a.sessions24h);
+  // Use real agents if available, fallback to mock
+  const hasRealAgents = savedAgents.length > 0;
+  const agentCount = hasRealAgents ? savedAgents.length : mockAgents.filter(a => a.status === 'active').length;
+  const productionCount = hasRealAgents
+    ? savedAgents.filter(a => a.status === 'production').length
+    : mockAgents.filter(a => a.status === 'active').length;
+  const draftCount = hasRealAgents
+    ? savedAgents.filter(a => a.status === 'draft').length
+    : mockAgents.filter(a => a.status === 'draft').length;
+
+  const kpis = [
+    { title: "Agentes totais", value: String(agentCount), icon: Bot, trend: { value: `${productionCount} em produção`, positive: true } },
+    { title: "Sessões hoje", value: "2.216", icon: Zap, trend: { value: "+12% vs ontem", positive: true } },
+    { title: "Latência média", value: "2.3s", icon: Clock, trend: { value: "-0.4s vs semana", positive: true } },
+    { title: "Custo total hoje", value: "R$ 133,70", icon: DollarSign, trend: { value: "+8% vs média", positive: false } },
+    { title: "Taxa de sucesso", value: "91.2%", icon: CheckCircle, trend: { value: "+1.5pp", positive: true } },
+    { title: "Precisão (eval)", value: "94.2%", icon: Target, subtitle: "Atlas v2.4 — última avaliação" },
+    { title: "Documentos indexados", value: "1.869", icon: FileText, trend: { value: "+142 hoje", positive: true } },
+    { title: "Rascunhos", value: String(draftCount), icon: Database, subtitle: "agentes em desenvolvimento" },
+  ];
+
+  const topAgents = hasRealAgents
+    ? savedAgents.slice(0, 4).map(a => ({
+        id: a.id,
+        name: a.name,
+        emoji: a.avatar_emoji,
+        status: a.status,
+        subtitle: `${a.model} • ${a.persona}`,
+      }))
+    : mockAgents.filter(a => a.status === 'active').sort((a, b) => b.sessions24h - a.sessions24h).slice(0, 4).map(a => ({
+        id: a.id,
+        name: a.name.split('—')[0].trim(),
+        emoji: '🤖',
+        status: a.maturity,
+        subtitle: `${a.sessions24h.toLocaleString()} sessões`,
+      }));
 
   return (
     <div className="p-6 space-y-6 max-w-[1400px] mx-auto">
@@ -123,18 +155,18 @@ export default function DashboardPage() {
         <div className="nexus-card md:col-span-1">
           <h3 className="text-sm font-heading font-semibold text-foreground mb-3">Agentes mais ativos</h3>
           <div className="space-y-3">
-            {topAgents.slice(0, 4).map((agent) => (
+            {topAgents.map((agent) => (
               <div key={agent.id} className="flex items-center justify-between cursor-pointer hover:bg-secondary/30 rounded-lg p-2 -mx-2 transition-colors" onClick={() => navigate(`/agents/${agent.id}`)}>
                 <div className="flex items-center gap-2.5 min-w-0">
-                  <div className="h-8 w-8 rounded-lg bg-primary/10 flex items-center justify-center shrink-0">
-                    <Bot className="h-4 w-4 text-primary" />
+                  <div className="h-8 w-8 rounded-lg bg-primary/10 flex items-center justify-center shrink-0 text-base">
+                    {agent.emoji || '🤖'}
                   </div>
                   <div className="min-w-0">
-                    <p className="text-sm font-medium text-foreground truncate">{agent.name.split('—')[0].trim()}</p>
-                    <p className="text-[11px] text-muted-foreground">{agent.sessions24h.toLocaleString()} sessões</p>
+                    <p className="text-sm font-medium text-foreground truncate">{agent.name}</p>
+                    <p className="text-[11px] text-muted-foreground">{agent.subtitle}</p>
                   </div>
                 </div>
-                <StatusBadge status={agent.maturity} />
+                <StatusBadge status={agent.status} />
               </div>
             ))}
           </div>

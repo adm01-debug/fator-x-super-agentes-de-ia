@@ -1,5 +1,8 @@
+import { useEffect, useCallback } from 'react';
 import { AgentBuilderLayout } from '@/components/agent-builder/AgentBuilderLayout';
 import { useAgentBuilderStore } from '@/stores/agentBuilderStore';
+import { useAuth } from '@/contexts/AuthContext';
+import { useAutoSave } from '@/hooks/useAutoSave';
 import { IdentityModule } from '@/components/agent-builder/modules/IdentityModule';
 import { BrainModule } from '@/components/agent-builder/modules/BrainModule';
 import { MemoryModule } from '@/components/agent-builder/modules/MemoryModule';
@@ -15,6 +18,7 @@ import { BillingModule } from '@/components/agent-builder/modules/BillingModule'
 import { ReadinessModule } from '@/components/agent-builder/modules/ReadinessModule';
 import { BlueprintModule } from '@/components/agent-builder/modules/BlueprintModule';
 import { SettingsModule } from '@/components/agent-builder/modules/SettingsModule';
+import { TeamModule } from '@/components/agent-builder/modules/TeamModule';
 import { motion, AnimatePresence } from 'framer-motion';
 
 function ActiveModule({ tabId }: { tabId: string }) {
@@ -34,6 +38,7 @@ function ActiveModule({ tabId }: { tabId: string }) {
     case 'readiness': return <ReadinessModule />;
     case 'blueprint': return <BlueprintModule />;
     case 'settings': return <SettingsModule />;
+    case 'team': return <TeamModule />;
     default: return (
       <div className="flex flex-col items-center justify-center py-20 text-center">
         <div className="text-5xl mb-4">🚧</div>
@@ -46,6 +51,21 @@ function ActiveModule({ tabId }: { tabId: string }) {
 
 export default function AgentBuilder() {
   const activeTab = useAgentBuilderStore((s) => s.activeTab);
+  const isDirty = useAgentBuilderStore((s) => s.isDirty);
+  const saveAgent = useAgentBuilderStore((s) => s.saveAgent);
+  const setCurrentUserId = useAgentBuilderStore((s) => s.setCurrentUserId);
+  const { user } = useAuth();
+
+  // Sync auth user to store
+  useEffect(() => {
+    if (user?.id) {
+      setCurrentUserId(user.id);
+    }
+  }, [user?.id, setCurrentUserId]);
+
+  // Auto-save with 5s debounce
+  const stableSave = useCallback(() => saveAgent(), [saveAgent]);
+  useAutoSave(isDirty, stableSave, 5000);
 
   return (
     <AgentBuilderLayout>
