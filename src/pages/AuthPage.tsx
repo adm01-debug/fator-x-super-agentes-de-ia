@@ -83,6 +83,12 @@ export default function AuthPage() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (isLockedOut) {
+      toast.error("Muitas tentativas", {
+        description: `Aguarde ${Math.ceil(lockoutRemaining / 1000)}s antes de tentar novamente.`,
+      });
+      return;
+    }
     if (!validate()) return;
     setLoading(true);
 
