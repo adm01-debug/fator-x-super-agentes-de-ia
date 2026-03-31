@@ -12,8 +12,12 @@ import {
   ArrowLeft, ArrowRight, User, MessageSquare, Search as SearchIcon,
   BarChart3, Headphones, Users, Layers, ChevronRight,
   Globe, Code, Mail, Calendar, Hash, Webhook, Shield, Zap,
+  LayoutTemplate, PenTool,
 } from "lucide-react";
 import { toast } from "sonner";
+import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/contexts/AuthContext";
+import { AGENT_TEMPLATES, type AgentTemplate } from "@/data/agentTemplates";
 
 const STEPS = [
   { key: "identity", label: "Identidade", icon: User, description: "Nome, descrição e objetivo" },
@@ -24,6 +28,12 @@ const STEPS = [
   { key: "memory", label: "Memória", icon: Brain, description: "Configuração de memória" },
   { key: "knowledge", label: "Knowledge", icon: Database, description: "Base de conhecimento" },
   { key: "deploy", label: "Deploy", icon: Rocket, description: "Revisão e publicação" },
+] as const;
+
+const TEMPLATE_STEPS = [
+  { key: "select", label: "Escolher Template", icon: LayoutTemplate, description: "Selecione um modelo" },
+  { key: "customize", label: "Personalizar", icon: PenTool, description: "Ajuste nome e prompt" },
+  { key: "review", label: "Revisar & Criar", icon: Rocket, description: "Confirme e crie" },
 ] as const;
 
 const AGENT_TYPES = [
@@ -64,9 +74,16 @@ const MEMORY_OPTIONS = [
   { id: "team_shared", label: "Memória compartilhada", desc: "Contexto do time/workspace", default: false },
 ];
 
+type WizardMode = "choose" | "template" | "scratch";
+
 export function CreateAgentWizard() {
   const navigate = useNavigate();
+  const { user } = useAuth();
+  const [mode, setMode] = useState<WizardMode>("choose");
   const [step, setStep] = useState(0);
+  const [saving, setSaving] = useState(false);
+  const [selectedTemplate, setSelectedTemplate] = useState<AgentTemplate | null>(null);
+
   const [form, setForm] = useState({
     name: "",
     description: "",
@@ -94,29 +111,202 @@ export function CreateAgentWizard() {
   });
 
   const update = (key: string, value: unknown) => setForm(prev => ({ ...prev, [key]: value }));
-
   const toggleArrayItem = (key: string, item: string) => {
     const arr = form[key as keyof typeof form] as string[];
     update(key, arr.includes(item) ? arr.filter(i => i !== item) : [...arr, item]);
   };
 
-  const next = () => step < STEPS.length - 1 && setStep(step + 1);
+  const currentSteps = mode === "template" ? TEMPLATE_STEPS : STEPS;
+  const next = () => step < currentSteps.length - 1 && setStep(step + 1);
   const prev = () => step > 0 && setStep(step - 1);
 
-  const handleDeploy = () => {
-    toast.success("Agente criado com sucesso!", {
-      description: `${form.name} está pronto para configuração.`,
+  const applyTemplate = (t: AgentTemplate) => {
+    setSelectedTemplate(t);
+    setForm(prev => ({
+      ...prev,
+      name: t.name,
+      description: t.description,
+      type: t.type,
+      model: t.model,
+      prompt: t.prompt,
+      tools: t.tools,
+      memory: t.memory,
+    }));
+  };
+
+  const saveAgent = async () => {
+    if (!user) {
+      toast.error("Faça login para criar agentes");
+      navigate("/auth");
+      return;
+    }
+    setSaving(true);
+    const { error } = await supabase.from("agents").insert({
+      user_id: user.id,
+      name: form.name,
+      mission: form.objective || form.description,
+      persona: "assistant",
+      model: form.model,
+      avatar_emoji: selectedTemplate?.emoji || "🤖",
+      status: "draft" as const,
+      config: {
+        type: form.type,
+        prompt: form.prompt,
+        tools: form.tools,
+        memory: form.memory,
+        knowledgeBases: form.knowledgeBases,
+        environment: form.environment,
+        description: form.description,
+      },
     });
-    navigate("/agents");
+    setSaving(false);
+
+    if (error) {
+      toast.error("Erro ao salvar agente", { description: error.message });
+    } else {
+      toast.success("Agente criado com sucesso!", {
+        description: `${form.name} foi salvo no banco de dados.`,
+      });
+      navigate("/agents");
+    }
   };
 
   const canProceed = () => {
+    if (mode === "template") {
+      if (step === 0) return selectedTemplate !== null;
+      if (step === 1) return form.name.trim().length > 0;
+      return true;
+    }
     if (step === 0) return form.name.trim().length > 0;
     if (step === 1) return form.type.length > 0;
     return true;
   };
 
-  const renderStep = () => {
+  // Choose mode screen
+  if (mode === "choose") {
+    return (
+      <div className="p-6 max-w-[900px] mx-auto space-y-8">
+        <div className="flex items-center gap-3">
+          <Button variant="ghost" size="icon" onClick={() => navigate("/agents")} className="text-muted-foreground">
+            <ArrowLeft className="h-4 w-4" />
+          </Button>
+          <div>
+            <h1 className="text-xl font-heading font-bold text-foreground">Criar novo agente</h1>
+            <p className="text-sm text-muted-foreground">Escolha como deseja começar</p>
+          </div>
+        </div>
+
+        <div className="grid gap-4 sm:grid-cols-2">
+          <button onClick={() => { setMode("template"); setStep(0); }}
+            className="nexus-card text-left transition-all hover:ring-2 hover:ring-primary/50 space-y-3 p-6"
+          >
+            <div className="h-12 w-12 rounded-xl bg-primary/15 flex items-center justify-center">
+              <LayoutTemplate className="h-6 w-6 text-primary" />
+            </div>
+            <h2 className="text-lg font-heading font-semibold text-foreground">Usar template</h2>
+            <p className="text-sm text-muted-foreground">
+              Comece com um dos 6 templates pré-configurados e personalize em 3 passos rápidos.
+            </p>
+            <div className="flex flex-wrap gap-1.5">
+              {AGENT_TEMPLATES.slice(0, 3).map(t => (
+                <span key={t.id} className="text-xs bg-secondary px-2 py-0.5 rounded-full text-muted-foreground">
+                  {t.emoji} {t.name}
+                </span>
+              ))}
+              <span className="text-xs bg-secondary px-2 py-0.5 rounded-full text-muted-foreground">+3</span>
+            </div>
+          </button>
+
+          <button onClick={() => { setMode("scratch"); setStep(0); }}
+            className="nexus-card text-left transition-all hover:ring-2 hover:ring-primary/50 space-y-3 p-6"
+          >
+            <div className="h-12 w-12 rounded-xl bg-secondary flex items-center justify-center">
+              <PenTool className="h-6 w-6 text-muted-foreground" />
+            </div>
+            <h2 className="text-lg font-heading font-semibold text-foreground">Criar do zero</h2>
+            <p className="text-sm text-muted-foreground">
+              Configure cada detalhe manualmente em 8 etapas com controle total.
+            </p>
+          </button>
+        </div>
+      </div>
+    );
+  }
+
+  const renderTemplateStep = () => {
+    switch (step) {
+      case 0:
+        return (
+          <div className="space-y-4">
+            <h2 className="text-lg font-heading font-semibold text-foreground">Escolha um template</h2>
+            <p className="text-sm text-muted-foreground">Selecione o template que mais se aproxima do seu caso de uso.</p>
+            <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+              {AGENT_TEMPLATES.map(t => {
+                const selected = selectedTemplate?.id === t.id;
+                return (
+                  <button key={t.id} onClick={() => applyTemplate(t)}
+                    className={`nexus-card text-left transition-all ${selected ? "ring-2 ring-primary bg-primary/5" : "hover:bg-secondary/60"}`}
+                  >
+                    <div className="flex items-center gap-3 mb-2">
+                      <span className="text-2xl">{t.emoji}</span>
+                      <div>
+                        <p className="font-medium text-sm text-foreground">{t.name}</p>
+                        <Badge variant="outline" className="text-[10px]">{t.category}</Badge>
+                      </div>
+                    </div>
+                    <p className="text-xs text-muted-foreground line-clamp-2">{t.description}</p>
+                    {selected && <Check className="h-4 w-4 text-primary absolute top-3 right-3" />}
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+        );
+      case 1:
+        return (
+          <div className="nexus-card space-y-5">
+            <h2 className="text-lg font-heading font-semibold text-foreground">Personalizar</h2>
+            <div className="grid gap-4">
+              <div>
+                <Label className="text-sm">Nome do agente *</Label>
+                <Input value={form.name} onChange={e => update("name", e.target.value)}
+                  placeholder="Ex: Atlas, Scout..." className="mt-1.5 bg-secondary/50 border-border/50" />
+              </div>
+              <div>
+                <Label className="text-sm">Descrição</Label>
+                <Input value={form.description} onChange={e => update("description", e.target.value)}
+                  placeholder="Descreva o propósito..." className="mt-1.5 bg-secondary/50 border-border/50" />
+              </div>
+              <div>
+                <Label className="text-sm">System Prompt</Label>
+                <Textarea value={form.prompt} onChange={e => update("prompt", e.target.value)}
+                  rows={10} className="mt-1.5 bg-secondary/50 border-border/50 font-mono text-xs resize-none" />
+              </div>
+            </div>
+          </div>
+        );
+      case 2:
+        return (
+          <div className="space-y-4">
+            <h2 className="text-lg font-heading font-semibold text-foreground">Revisar & Criar</h2>
+            <div className="nexus-card space-y-3">
+              <h3 className="text-sm font-semibold text-foreground">Resumo</h3>
+              <div className="grid grid-cols-2 gap-3 text-xs">
+                <div><span className="text-muted-foreground">Nome:</span> <strong className="text-foreground ml-1">{form.name}</strong></div>
+                <div><span className="text-muted-foreground">Template:</span> <strong className="text-foreground ml-1">{selectedTemplate?.name}</strong></div>
+                <div><span className="text-muted-foreground">Modelo:</span> <strong className="text-foreground ml-1">{MODELS.find(m => m.id === form.model)?.name}</strong></div>
+                <div><span className="text-muted-foreground">Ferramentas:</span> <strong className="text-foreground ml-1">{form.tools.length} selecionadas</strong></div>
+                <div><span className="text-muted-foreground">Memória:</span> <strong className="text-foreground ml-1">{form.memory.length} camadas</strong></div>
+                <div><span className="text-muted-foreground">Tipo:</span> <strong className="text-foreground ml-1">{AGENT_TYPES.find(t => t.id === form.type)?.label}</strong></div>
+              </div>
+            </div>
+          </div>
+        );
+      default: return null;
+    }
+  };
+
+  const renderScratchStep = () => {
     switch (step) {
       case 0: return <StepIdentity form={form} update={update} />;
       case 1: return <StepType form={form} update={update} />;
@@ -130,22 +320,27 @@ export function CreateAgentWizard() {
     }
   };
 
+  const isLastStep = step === currentSteps.length - 1;
+
   return (
     <div className="p-6 max-w-[1100px] mx-auto space-y-6">
-      {/* Header */}
       <div className="flex items-center gap-3">
-        <Button variant="ghost" size="icon" onClick={() => navigate("/agents")} className="text-muted-foreground">
+        <Button variant="ghost" size="icon" onClick={() => step === 0 ? setMode("choose") : prev()} className="text-muted-foreground">
           <ArrowLeft className="h-4 w-4" />
         </Button>
         <div>
-          <h1 className="text-xl font-heading font-bold text-foreground">Criar novo agente</h1>
-          <p className="text-sm text-muted-foreground">Configure seu agente em {STEPS.length} etapas</p>
+          <h1 className="text-xl font-heading font-bold text-foreground">
+            {mode === "template" ? "Criar via template" : "Criar do zero"}
+          </h1>
+          <p className="text-sm text-muted-foreground">
+            Passo {step + 1} de {currentSteps.length}
+          </p>
         </div>
       </div>
 
       {/* Stepper */}
       <div className="flex items-center gap-1 overflow-x-auto pb-2">
-        {STEPS.map((s, i) => {
+        {currentSteps.map((s, i) => {
           const Icon = s.icon;
           const isActive = i === step;
           const isDone = i < step;
@@ -165,7 +360,7 @@ export function CreateAgentWizard() {
                 {isDone ? <Check className="h-3 w-3" /> : i + 1}
               </div>
               <span className="hidden sm:inline">{s.label}</span>
-              {i < STEPS.length - 1 && <ChevronRight className="h-3 w-3 text-muted-foreground/40 ml-1" />}
+              {i < currentSteps.length - 1 && <ChevronRight className="h-3 w-3 text-muted-foreground/40 ml-1" />}
             </button>
           );
         })}
@@ -173,30 +368,27 @@ export function CreateAgentWizard() {
 
       {/* Content */}
       <AnimatePresence mode="wait">
-        <motion.div
-          key={step}
-          initial={{ opacity: 0, x: 20 }}
-          animate={{ opacity: 1, x: 0 }}
-          exit={{ opacity: 0, x: -20 }}
-          transition={{ duration: 0.2 }}
+        <motion.div key={`${mode}-${step}`}
+          initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }}
+          exit={{ opacity: 0, x: -20 }} transition={{ duration: 0.2 }}
         >
-          {renderStep()}
+          {mode === "template" ? renderTemplateStep() : renderScratchStep()}
         </motion.div>
       </AnimatePresence>
 
       {/* Navigation */}
       <div className="flex items-center justify-between pt-4 border-t border-border/50">
-        <Button variant="ghost" onClick={prev} disabled={step === 0} className="gap-2">
+        <Button variant="ghost" onClick={() => step === 0 ? setMode("choose") : prev()} className="gap-2">
           <ArrowLeft className="h-4 w-4" /> Voltar
         </Button>
-        <div className="text-xs text-muted-foreground">{step + 1} de {STEPS.length}</div>
-        {step < STEPS.length - 1 ? (
+        <div className="text-xs text-muted-foreground">{step + 1} de {currentSteps.length}</div>
+        {!isLastStep ? (
           <Button onClick={next} disabled={!canProceed()} className="gap-2 nexus-gradient-bg text-primary-foreground hover:opacity-90">
             Próximo <ArrowRight className="h-4 w-4" />
           </Button>
         ) : (
-          <Button onClick={handleDeploy} className="gap-2 nexus-gradient-bg text-primary-foreground hover:opacity-90">
-            <Rocket className="h-4 w-4" /> Criar agente
+          <Button onClick={saveAgent} disabled={saving} className="gap-2 nexus-gradient-bg text-primary-foreground hover:opacity-90">
+            {saving ? "Salvando..." : <><Rocket className="h-4 w-4" /> Criar agente</>}
           </Button>
         )}
       </div>
@@ -204,7 +396,7 @@ export function CreateAgentWizard() {
   );
 }
 
-/* ─── Step Components ─── */
+/* ─── Step Components (scratch mode) ─── */
 
 function StepIdentity({ form, update }: { form: any; update: (k: string, v: unknown) => void }) {
   return (
@@ -292,20 +484,10 @@ function StepPrompt({ form, update }: { form: any; update: (k: string, v: unknow
   return (
     <div className="space-y-4">
       <h2 className="text-lg font-heading font-semibold text-foreground">System Prompt</h2>
-      <p className="text-sm text-muted-foreground">Defina as instruções de comportamento do agente. Use variáveis como {"{{customer_name}}"} para personalização.</p>
+      <p className="text-sm text-muted-foreground">Defina as instruções de comportamento do agente.</p>
       <div className="nexus-card">
-        <Textarea
-          value={form.prompt}
-          onChange={e => update("prompt", e.target.value)}
-          rows={14}
-          className="bg-nexus-surface-1 border-border/50 font-mono text-xs leading-relaxed resize-none"
-        />
-        <div className="flex gap-2 mt-3 flex-wrap">
-          {["Persona ✓", "Escopo ✓", "Formato ✓"].map(tag => (
-            <span key={tag} className="nexus-badge-success text-[10px]">{tag}</span>
-          ))}
-          <span className="nexus-badge-primary text-[10px]">+ Ferramentas (auto)</span>
-        </div>
+        <Textarea value={form.prompt} onChange={e => update("prompt", e.target.value)}
+          rows={14} className="bg-secondary/50 border-border/50 font-mono text-xs leading-relaxed resize-none" />
       </div>
     </div>
   );
@@ -315,14 +497,14 @@ function StepTools({ form, toggle }: { form: any; toggle: (id: string) => void }
   return (
     <div className="space-y-4">
       <h2 className="text-lg font-heading font-semibold text-foreground">Ferramentas</h2>
-      <p className="text-sm text-muted-foreground">Habilite as ferramentas que o agente poderá utilizar durante execuções.</p>
+      <p className="text-sm text-muted-foreground">Habilite as ferramentas que o agente poderá utilizar.</p>
       <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
         {TOOLS.map(t => {
           const Icon = t.icon;
           const selected = form.tools.includes(t.id);
           return (
             <button key={t.id} onClick={() => toggle(t.id)}
-              className={`nexus-card text-left transition-all ${selected ? "ring-2 ring-primary bg-primary/5" : "hover:bg-secondary/60"}`}
+              className={`nexus-card text-left transition-all relative ${selected ? "ring-2 ring-primary bg-primary/5" : "hover:bg-secondary/60"}`}
             >
               <div className="flex items-center gap-2.5">
                 <div className={`h-9 w-9 rounded-lg flex items-center justify-center ${selected ? "bg-primary/20" : "bg-secondary"}`}>
@@ -374,7 +556,7 @@ function StepKnowledge({ form, toggle }: { form: any; toggle: (id: string) => vo
   return (
     <div className="space-y-4">
       <h2 className="text-lg font-heading font-semibold text-foreground">Knowledge Base</h2>
-      <p className="text-sm text-muted-foreground">Vincule bases de conhecimento para RAG (Retrieval-Augmented Generation).</p>
+      <p className="text-sm text-muted-foreground">Vincule bases de conhecimento para RAG.</p>
       <div className="space-y-3">
         {kbs.map(kb => {
           const selected = form.knowledgeBases.includes(kb.id);
@@ -396,9 +578,6 @@ function StepKnowledge({ form, toggle }: { form: any; toggle: (id: string) => vo
           );
         })}
       </div>
-      <div className="nexus-card border-dashed border-2 border-border/50 flex items-center justify-center py-6 cursor-pointer hover:bg-secondary/30 transition-colors">
-        <p className="text-xs text-muted-foreground">+ Criar nova Knowledge Base</p>
-      </div>
     </div>
   );
 }
@@ -415,8 +594,6 @@ function StepDeploy({ form, update }: { form: any; update: (k: string, v: unknow
   return (
     <div className="space-y-4">
       <h2 className="text-lg font-heading font-semibold text-foreground">Revisão & Deploy</h2>
-      <p className="text-sm text-muted-foreground">Revise a configuração e escolha o ambiente de publicação.</p>
-
       <div className="nexus-card space-y-3">
         <h3 className="text-sm font-semibold text-foreground">Resumo</h3>
         <div className="grid grid-cols-2 gap-3 text-xs">
@@ -428,7 +605,6 @@ function StepDeploy({ form, update }: { form: any; update: (k: string, v: unknow
           <div><span className="text-muted-foreground">Knowledge:</span> <strong className="text-foreground ml-1">{form.knowledgeBases.length} bases</strong></div>
         </div>
       </div>
-
       <div className="grid gap-3 sm:grid-cols-3">
         {envs.map(e => {
           const selected = form.environment === e.id;
@@ -437,7 +613,7 @@ function StepDeploy({ form, update }: { form: any; update: (k: string, v: unknow
               className={`nexus-card text-left transition-all ${selected ? "ring-2 ring-primary bg-primary/5" : "hover:bg-secondary/60"}`}
             >
               <div className="flex items-center gap-2 mb-1">
-                <div className={`h-2 w-2 rounded-full ${e.id === "production" ? "bg-nexus-emerald" : e.id === "staging" ? "bg-nexus-amber" : "bg-muted-foreground"}`} />
+                <div className={`h-2 w-2 rounded-full ${e.id === "production" ? "bg-emerald-500" : e.id === "staging" ? "bg-amber-500" : "bg-muted-foreground"}`} />
                 <span className="text-sm font-medium text-foreground">{e.label}</span>
               </div>
               <p className="text-xs text-muted-foreground">{e.desc}</p>
@@ -445,12 +621,11 @@ function StepDeploy({ form, update }: { form: any; update: (k: string, v: unknow
           );
         })}
       </div>
-
       <div className="rounded-lg bg-primary/5 border border-primary/20 p-4 flex items-start gap-3">
         <Shield className="h-5 w-5 text-primary shrink-0 mt-0.5" />
         <div>
           <p className="text-sm font-medium text-foreground">Guardrails recomendados</p>
-          <p className="text-xs text-muted-foreground mt-1">Após a criação, configure PII masking, limites de custo e moderação de conteúdo na aba Security do agente.</p>
+          <p className="text-xs text-muted-foreground mt-1">Após a criação, configure PII masking, limites de custo e moderação na aba Security.</p>
         </div>
       </div>
     </div>
