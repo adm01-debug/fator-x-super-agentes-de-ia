@@ -134,6 +134,76 @@ export function BlueprintModule() {
         </div>
       </div>
 
+      {/* Agent Card (A2A Format) */}
+      <SectionTitle icon="🪪" title="Agent Card (A2A)" subtitle="Cartão padronizado para descoberta e interoperabilidade entre agentes" />
+      <div className="rounded-xl border border-border bg-card p-4 space-y-3">
+        <div className="max-h-64 overflow-auto">
+          <CodeBlock
+            code={JSON.stringify({
+              name: agent.name || 'Agente sem nome',
+              description: agent.mission || 'Sem missão definida',
+              version: `${agent.version}.0.0`,
+              provider: { organization: 'Promo Brindes' },
+              url: `https://agents.promobrindes.com/${(agent.name || 'agent').toLowerCase().replace(/\s+/g, '-')}`,
+              capabilities: [
+                ...(agent.tools.filter(t => t.enabled).slice(0, 5).map(t => ({
+                  id: t.id,
+                  name: t.name,
+                  description: t.description || `Ferramenta ${t.name}`,
+                }))),
+              ],
+              supported_input_modes: ['text'],
+              supported_output_modes: [agent.output_format === 'json' ? 'data' : 'text'],
+              authentication: { schemes: ['bearer'] },
+              default_input_modes: ['text'],
+              default_output_modes: ['text'],
+            }, null, 2)}
+            language="json"
+          />
+        </div>
+        <button
+          onClick={() => {
+            const card = JSON.stringify({ name: agent.name, version: `${agent.version}.0.0`, capabilities: agent.tools.filter(t => t.enabled).map(t => t.name) });
+            navigator.clipboard.writeText(card);
+            toast.success('Agent Card copiado!');
+          }}
+          className="px-4 py-2 rounded-lg bg-muted text-foreground text-sm hover:bg-muted/80 transition-all"
+        >
+          📋 Copiar Agent Card
+        </button>
+      </div>
+
+      {/* Health Map — Arquitetura Visual */}
+      <SectionTitle icon="🗺️" title="Arquitetura Visual" subtitle="Mapa de saúde dos componentes do agente" />
+      <div className="rounded-xl border border-border bg-card p-6">
+        <div className="grid grid-cols-3 sm:grid-cols-5 gap-3 text-center">
+          {[
+            { icon: '📝', label: 'Input', ok: true },
+            { icon: '🛡️', label: 'Guardrails In', ok: agent.guardrails.filter(g => g.enabled && g.category === 'input_validation').length > 0 },
+            { icon: '💾', label: 'Memória', ok: agent.memory_short_term || agent.memory_episodic || agent.memory_semantic },
+            { icon: '📚', label: 'RAG', ok: agent.rag_sources.length > 0 },
+            { icon: '🧠', label: 'LLM', ok: !!agent.model },
+            { icon: '🔧', label: 'Tools', ok: agent.tools.filter(t => t.enabled).length > 0 },
+            { icon: '⚙️', label: 'Raciocínio', ok: !!agent.reasoning },
+            { icon: '🛡️', label: 'Guardrails Out', ok: agent.guardrails.filter(g => g.enabled && g.category === 'output_safety').length > 0 },
+            { icon: '📤', label: 'Output', ok: true },
+            { icon: '📊', label: 'Logging', ok: agent.logging_enabled },
+          ].map(({ icon, label, ok }) => (
+            <div key={label} className={`rounded-xl border p-3 transition-all ${ok ? 'border-emerald-500/30 bg-emerald-500/5' : 'border-rose-500/30 bg-rose-500/5'}`}>
+              <span className="text-xl" aria-hidden="true">{icon}</span>
+              <p className="text-[11px] font-medium text-foreground mt-1">{label}</p>
+              <span className={`text-[10px] ${ok ? 'text-emerald-400' : 'text-rose-400'}`}>
+                {ok ? '🟢 OK' : '🔴 Falta'}
+              </span>
+            </div>
+          ))}
+        </div>
+        <div className="mt-4 flex items-center justify-center gap-4 text-[11px] text-muted-foreground">
+          <span>🟢 Configurado</span>
+          <span>🔴 Não configurado</span>
+        </div>
+      </div>
+
       {/* Readiness Checklist */}
       <SectionTitle icon="✅" title="Checklist de Prontidão" subtitle="Resumo rápido dos itens essenciais" />
       <div className="rounded-xl border border-border bg-card p-4 space-y-2">
