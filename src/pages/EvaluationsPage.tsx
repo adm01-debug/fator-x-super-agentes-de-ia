@@ -1,14 +1,14 @@
 import { PageHeader } from "@/components/shared/PageHeader";
 import { StatusBadge } from "@/components/shared/StatusBadge";
 import { InfoHint } from "@/components/shared/InfoHint";
-import { Button } from "@/components/ui/button";
 import { Plus, FlaskConical, Loader2 } from "lucide-react";
 import { motion } from "framer-motion";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
+import { CreateEvaluationDialog } from "@/components/dialogs/CreateEvaluationDialog";
 
 export default function EvaluationsPage() {
-  const { data: evaluations = [], isLoading } = useQuery({
+  const { data: evaluations = [], isLoading, refetch } = useQuery({
     queryKey: ['evaluation_runs'],
     queryFn: async () => {
       const { data, error } = await supabase.from('evaluation_runs').select('*').order('created_at', { ascending: false });
@@ -22,7 +22,7 @@ export default function EvaluationsPage() {
       <PageHeader
         title="Evaluations Lab"
         description="Avalie agentes com métricas de factualidade, groundedness, sucesso e segurança"
-        actions={<Button className="nexus-gradient-bg text-primary-foreground gap-2 hover:opacity-90"><Plus className="h-4 w-4" /> Nova avaliação</Button>}
+        actions={<CreateEvaluationDialog onCreated={() => refetch()} />}
       />
 
       <InfoHint title="Por que avaliar agentes?">

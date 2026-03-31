@@ -1,20 +1,20 @@
 import { PageHeader } from "@/components/shared/PageHeader";
 import { StatusBadge } from "@/components/shared/StatusBadge";
 import { InfoHint } from "@/components/shared/InfoHint";
-import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Plus, Search, BookOpen, ArrowRight, Loader2, Database } from "lucide-react";
+import { Search, BookOpen, ArrowRight, Loader2, Database } from "lucide-react";
 import { motion } from "framer-motion";
 import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
+import { CreateKnowledgeBaseDialog } from "@/components/dialogs/CreateKnowledgeBaseDialog";
 
 const pipeline = ['Parsing', 'Chunking', 'Metadata', 'Embeddings', 'Indexing'];
 
 export default function KnowledgePage() {
   const [search, setSearch] = useState("");
 
-  const { data: knowledgeBases = [], isLoading } = useQuery({
+  const { data: knowledgeBases = [], isLoading, refetch } = useQuery({
     queryKey: ['knowledge_bases'],
     queryFn: async () => {
       const { data, error } = await supabase.from('knowledge_bases').select('*').order('created_at', { ascending: false });
@@ -32,7 +32,7 @@ export default function KnowledgePage() {
       <PageHeader
         title="Knowledge / RAG"
         description="Gerencie bases de conhecimento, documentos e pipelines de ingestão"
-        actions={<Button className="nexus-gradient-bg text-primary-foreground gap-2 hover:opacity-90"><Plus className="h-4 w-4" /> Nova base</Button>}
+        actions={<CreateKnowledgeBaseDialog onCreated={() => refetch()} />}
       />
 
       <InfoHint title="O que é RAG?">

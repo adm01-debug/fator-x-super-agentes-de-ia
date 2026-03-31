@@ -1,16 +1,16 @@
 import { PageHeader } from "@/components/shared/PageHeader";
 import { StatusBadge } from "@/components/shared/StatusBadge";
-import { Button } from "@/components/ui/button";
-import { UserPlus, Users, Loader2 } from "lucide-react";
+import { Loader2, Users } from "lucide-react";
 import { motion } from "framer-motion";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { getWorkspaceId } from "@/lib/agentService";
+import { InviteMemberDialog } from "@/components/dialogs/InviteMemberDialog";
 
 const roleLabels: Record<string, string> = { admin: 'Admin', editor: 'Editor', viewer: 'Viewer', operator: 'Operator', owner: 'Owner' };
 
 export default function TeamPage() {
-  const { data: members = [], isLoading } = useQuery({
+  const { data: members = [], isLoading, refetch } = useQuery({
     queryKey: ['workspace_members'],
     queryFn: async () => {
       const wsId = await getWorkspaceId();
@@ -25,7 +25,7 @@ export default function TeamPage() {
       <PageHeader
         title="Team & Roles"
         description="Gerencie membros, papéis e permissões do workspace"
-        actions={<Button className="nexus-gradient-bg text-primary-foreground gap-2 hover:opacity-90"><UserPlus className="h-4 w-4" /> Convidar</Button>}
+        actions={<InviteMemberDialog onInvited={() => refetch()} />}
       />
 
       {isLoading ? (
