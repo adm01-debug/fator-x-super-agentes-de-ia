@@ -1,6 +1,7 @@
 import { PageHeader } from "@/components/shared/PageHeader";
 import { StatusBadge } from "@/components/shared/StatusBadge";
 import { InfoHint } from "@/components/shared/InfoHint";
+import { AnimatedCounter } from "@/components/shared/AnimatedCounter";
 import { Button } from "@/components/ui/button";
 import { Bot, Plus, ArrowRight, TrendingUp, DollarSign, Clock, Zap } from "lucide-react";
 import { useNavigate } from "react-router-dom";
@@ -8,6 +9,7 @@ import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { UsageCharts } from "@/components/dashboard/UsageCharts";
 import { Skeleton } from "@/components/ui/skeleton";
+import { motion } from "framer-motion";
 
 // ═══ Dashboard Skeleton ═══
 function DashboardLoadingSkeleton() {
