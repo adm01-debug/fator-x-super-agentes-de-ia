@@ -122,7 +122,10 @@ export function AppLayout({ children }: AppLayoutProps) {
               <div className="flex items-center gap-2 sm:gap-3">
                 <SidebarTrigger className="text-muted-foreground hover:text-foreground" aria-label="Alternar sidebar" />
                 <button
-                  onClick={() => setCmdOpen(true)}
+                  onClick={() => {
+                    // Dispatch Ctrl+K to open CommandPalette
+                    document.dispatchEvent(new KeyboardEvent('keydown', { key: 'k', metaKey: true, bubbles: true }));
+                  }}
                   className="hidden md:flex items-center gap-2 rounded-lg bg-secondary/50 px-3 py-1.5 text-sm text-muted-foreground cursor-pointer hover:bg-secondary transition-colors focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:outline-none"
                   aria-label="Abrir busca rápida (⌘K)"
                 >
