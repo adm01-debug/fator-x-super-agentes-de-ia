@@ -123,7 +123,7 @@ export async function getWorkspaceInfo() {
     .limit(1)
     .single();
 
-  if (!member) return null;
+  if (!member?.workspace_id) return null;
 
   const { data: workspace } = await supabase
     .from('workspaces')
