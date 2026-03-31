@@ -1,4 +1,4 @@
-import { useState, useMemo, useCallback } from "react";
+import { useState, useMemo, useCallback, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -39,6 +39,9 @@ function PasswordStrength({ password }: { password: string }) {
   );
 }
 
+const MAX_ATTEMPTS = 5;
+const LOCKOUT_DURATION_MS = 60_000; // 1 minute
+
 export default function AuthPage() {
   const [isLogin, setIsLogin] = useState(true);
   const [email, setEmail] = useState("");
@@ -46,8 +49,26 @@ export default function AuthPage() {
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
   const [errors, setErrors] = useState<{ email?: string; password?: string }>({});
+  const [failedAttempts, setFailedAttempts] = useState(0);
+  const [lockoutUntil, setLockoutUntil] = useState<number | null>(null);
+  const [lockoutRemaining, setLockoutRemaining] = useState(0);
   const { signIn, signUp } = useAuth();
   const navigate = useNavigate();
+
+  // Countdown timer for lockout
+  useEffect(() => {
+    if (!lockoutUntil) return;
+    const interval = setInterval(() => {
+      const remaining = Math.max(0, lockoutUntil - Date.now());
+      setLockoutRemaining(remaining);
+      if (remaining === 0) {
+        setLockoutUntil(null);
+      }
+    }, 1000);
+    return () => clearInterval(interval);
+  }, [lockoutUntil]);
+
+  const isLockedOut = lockoutUntil !== null && Date.now() < lockoutUntil;
 
   const validate = useCallback(() => {
     const errs: { email?: string; password?: string } = {};
@@ -62,19 +83,37 @@ export default function AuthPage() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (isLockedOut) {
+      toast.error("Muitas tentativas", {
+        description: `Aguarde ${Math.ceil(lockoutRemaining / 1000)}s antes de tentar novamente.`,
+      });
+      return;
+    }
     if (!validate()) return;
     setLoading(true);
 
     if (isLogin) {
       const { error } = await signIn(email, password);
       if (error) {
-        const msg = error.message.includes('Invalid login')
-          ? 'E-mail ou senha incorretos'
-          : error.message.includes('Email not confirmed')
-          ? 'Confirme seu e-mail antes de entrar'
-          : error.message;
-        toast.error("Erro ao entrar", { description: msg });
+        const newAttempts = failedAttempts + 1;
+        setFailedAttempts(newAttempts);
+        if (newAttempts >= MAX_ATTEMPTS) {
+          setLockoutUntil(Date.now() + LOCKOUT_DURATION_MS);
+          setLockoutRemaining(LOCKOUT_DURATION_MS);
+          setFailedAttempts(0);
+          toast.error("Conta bloqueada temporariamente", {
+            description: "Muitas tentativas falhas. Aguarde 1 minuto.",
+          });
+        } else {
+          const msg = error.message.includes('Invalid login')
+            ? `E-mail ou senha incorretos (${MAX_ATTEMPTS - newAttempts} tentativas restantes)`
+            : error.message.includes('Email not confirmed')
+            ? 'Confirme seu e-mail antes de entrar'
+            : error.message;
+          toast.error("Erro ao entrar", { description: msg });
+        }
       } else {
+        setFailedAttempts(0);
         toast.success("Login realizado!");
         navigate("/");
       }
@@ -159,8 +198,14 @@ export default function AuthPage() {
             </div>
           </div>
 
-          <Button type="submit" disabled={loading} className="w-full gap-2 nexus-gradient-bg text-primary-foreground hover:opacity-90 min-h-[44px]">
-            {loading ? "Aguarde..." : isLogin ? "Entrar" : "Criar conta"}
+          {isLockedOut && (
+            <p className="text-xs text-destructive text-center font-medium" role="alert">
+              🔒 Bloqueado — aguarde {Math.ceil(lockoutRemaining / 1000)}s
+            </p>
+          )}
+
+          <Button type="submit" disabled={loading || isLockedOut} className="w-full gap-2 nexus-gradient-bg text-primary-foreground hover:opacity-90 min-h-[44px]">
+            {isLockedOut ? `Aguarde ${Math.ceil(lockoutRemaining / 1000)}s` : loading ? "Aguarde..." : isLogin ? "Entrar" : "Criar conta"}
             <ArrowRight className="h-4 w-4" aria-hidden="true" />
           </Button>
 
