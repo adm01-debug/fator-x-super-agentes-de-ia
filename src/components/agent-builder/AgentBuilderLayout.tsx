@@ -1,5 +1,6 @@
 import { useAgentBuilderStore } from '@/stores/agentBuilderStore';
 import { TABS } from '@/data/agentBuilderData';
+import { AgentPlayground } from './AgentPlayground';
 import { TabNavigation } from './TabNavigation';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -142,6 +143,7 @@ export function AgentBuilderLayout({ children }: AgentBuilderLayoutProps) {
           <ChevronRight className="h-4 w-4" />
         </Button>
       </footer>
+      <AgentPlayground />
     </div>
   );
 }

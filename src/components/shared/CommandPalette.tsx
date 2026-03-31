@@ -5,13 +5,16 @@ import {
 } from "@/components/ui/command";
 import {
   Bot, BookOpen, FileText, Settings, Database, Shield, Users, Activity, Rocket,
-  Brain, Puzzle, CreditCard, GitBranch, FlaskConical, LayoutDashboard, Plus,
+  Brain, Puzzle, CreditCard, GitBranch, FlaskConical, LayoutDashboard, Plus, Sparkles,
 } from "lucide-react";
-import { agents } from "@/lib/mock-data";
+import { useQuery } from "@tanstack/react-query";
+import { supabase } from "@/integrations/supabase/client";
 
 const pages = [
   { name: "Dashboard", href: "/", icon: LayoutDashboard, group: "Navegação" },
   { name: "Agents", href: "/agents", icon: Bot, group: "Navegação" },
+  { name: "Super Cérebro", href: "/brain", icon: Brain, group: "Navegação" },
+  { name: "Oráculo", href: "/oracle", icon: Sparkles, group: "Navegação" },
   { name: "Knowledge / RAG", href: "/knowledge", icon: BookOpen, group: "Navegação" },
   { name: "Memory", href: "/memory", icon: Brain, group: "Navegação" },
   { name: "Tools & Integrations", href: "/tools", icon: Puzzle, group: "Navegação" },
@@ -34,6 +37,15 @@ const quickActions = [
 export function CommandPalette() {
   const [open, setOpen] = useState(false);
   const navigate = useNavigate();
+
+  const { data: agents = [] } = useQuery({
+    queryKey: ['agents_palette'],
+    queryFn: async () => {
+      const { data } = await supabase.from('agents').select('id, name, model, persona').order('updated_at', { ascending: false }).limit(20);
+      return data ?? [];
+    },
+    enabled: open,
+  });
 
   useEffect(() => {
     const down = (e: KeyboardEvent) => {
@@ -70,10 +82,10 @@ export function CommandPalette() {
 
         <CommandGroup heading="Agentes">
           {agents.map(agent => (
-            <CommandItem key={agent.id} onSelect={() => go(`/agents/${agent.id}`)} className="gap-2">
+            <CommandItem key={agent.id} onSelect={() => go(`/builder/${agent.id}`)} className="gap-2">
               <Bot className="h-4 w-4 text-muted-foreground" />
-              <span>{agent.name.split("—")[0].trim()}</span>
-              <span className="ml-auto text-[10px] text-muted-foreground">{agent.type} • {agent.model}</span>
+              <span>{agent.name}</span>
+              <span className="ml-auto text-[10px] text-muted-foreground">{agent.persona} • {agent.model}</span>
             </CommandItem>
           ))}
         </CommandGroup>
