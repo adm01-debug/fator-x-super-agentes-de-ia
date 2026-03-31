@@ -8,9 +8,13 @@ import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
-  ArrowLeft, Save, GitBranch, CheckCircle, AlertTriangle,
+  Save, GitBranch, CheckCircle, AlertTriangle,
   RotateCcw, Trash2, Loader2, FileText,
 } from "lucide-react";
+import { motion } from "framer-motion";
+import { toast } from "sonner";
+import { supabase } from "@/integrations/supabase/client";
+import { PageHeader } from "@/components/shared/PageHeader";
 import { motion } from "framer-motion";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
