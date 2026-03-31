@@ -95,17 +95,51 @@ export function NotificationsDrawer() {
     return () => { supabase.removeChannel(channel); };
   }, [queryClient]);
 
+  // Subscribe to agent status changes
+  useEffect(() => {
+    const channel = supabase
+      .channel('notifications-agents')
+      .on(
+        'postgres_changes',
+        { event: 'UPDATE', schema: 'public', table: 'agents' },
+        (payload) => {
+          const row = payload.new as any;
+          const old = payload.old as any;
+          if (old.status && row.status && old.status !== row.status) {
+            const isFailure = row.status === 'deprecated' || row.status === 'archived';
+            const isPromotion = row.status === 'production' || row.status === 'monitoring';
+            const notif: Notification = {
+              id: `agent-status-${row.id}-${Date.now()}`,
+              type: 'trace',
+              title: `"${row.name}" → ${row.status}`,
+              description: `Status alterado de ${old.status} para ${row.status}`,
+              level: isFailure ? 'warning' : isPromotion ? 'success' : 'info',
+              created_at: new Date().toISOString(),
+              read: false,
+            };
+            setRealtimeNotifs(prev => [notif, ...prev.slice(0, 49)]);
+            if (isPromotion) {
+              toast.success(`🚀 "${row.name}" está em ${row.status}!`, { duration: 5000 });
+            } else if (isFailure) {
+              toast.warning(`⚠️ "${row.name}" foi ${row.status}`, { duration: 5000 });
+            } else {
+              toast.info(`🔄 "${row.name}" → ${row.status}`, { duration: 4000 });
+            }
+          }
+        }
+      )
+      .subscribe();
+
+    return () => { supabase.removeChannel(channel); };
+  }, []);
+
   // Subscribe to evaluation completions
   useEffect(() => {
     const channel = supabase
       .channel('notifications-evals')
       .on(
         'postgres_changes',
-        {
-          event: 'UPDATE',
-          schema: 'public',
-          table: 'evaluation_runs',
-        },
+        { event: 'UPDATE', schema: 'public', table: 'evaluation_runs' },
         (payload) => {
           const row = payload.new as any;
           const old = payload.old as any;
@@ -126,11 +160,7 @@ export function NotificationsDrawer() {
       )
       .on(
         'postgres_changes',
-        {
-          event: 'INSERT',
-          schema: 'public',
-          table: 'evaluation_runs',
-        },
+        { event: 'INSERT', schema: 'public', table: 'evaluation_runs' },
         (payload) => {
           const row = payload.new as any;
           if (row.status === 'completed') {
