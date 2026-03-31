@@ -76,12 +76,12 @@ export function AppSidebar() {
   const usage = maxAgents > 0 ? Math.min((agentCount / maxAgents) * 100, 100) : 0;
 
   return (
-    <Sidebar collapsible="icon" className="border-r border-border/50">
+    <Sidebar collapsible="icon" className="border-r border-border/50" aria-label="Navegação principal">
       <SidebarHeader className="p-4">
         <div className="flex items-center gap-1.5">
-          <img src={fatorxIcon} alt="Fator X" className="h-14 w-14 shrink-0 rounded-xl" />
+          <img src={fatorxIcon} alt="" className="h-14 w-14 shrink-0 rounded-xl" fetchPriority="high" />
           {!collapsed && (
-            <span className="font-heading text-lg font-extrabold tracking-tight">
+            <span className="font-heading text-lg font-extrabold tracking-tight" aria-label="Fator X">
               <span className="text-muted-foreground">FATOR</span>
               <span className="text-transparent bg-clip-text bg-gradient-to-r from-nexus-cyan to-nexus-teal ml-0.5">X</span>
             </span>
@@ -89,7 +89,7 @@ export function AppSidebar() {
         </div>
       </SidebarHeader>
 
-      <SidebarContent className="px-2">
+      <SidebarContent className="px-2" role="navigation" aria-label="Menu principal">
         {navSections.map((section, sectionIdx) => (
           <SidebarGroup key={section.label}>
             {!collapsed && (
@@ -147,7 +147,7 @@ export function AppSidebar() {
                   <p className="text-[11px] font-medium text-foreground truncate">{wsInfo?.userName || 'Usuário'}</p>
                   <p className="text-[10px] text-muted-foreground truncate">{user.email}</p>
                 </div>
-                <Button variant="ghost" size="icon" className="h-6 w-6 shrink-0 text-muted-foreground hover:text-destructive" onClick={signOut} title="Sair">
+                <Button variant="ghost" size="icon" className="h-6 w-6 shrink-0 text-muted-foreground hover:text-destructive min-h-[44px] min-w-[44px] flex items-center justify-center" onClick={signOut} aria-label="Sair da conta">
                   <LogOut className="h-3.5 w-3.5" />
                 </Button>
               </div>
