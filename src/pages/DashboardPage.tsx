@@ -72,7 +72,7 @@ export default function DashboardPage() {
       ) : agents.length === 0 ? (
         <div className="flex flex-col items-center justify-center py-20 text-center">
           <div className="text-6xl mb-4">⚡</div>
-          <h2 className="text-xl font-heading font-bold text-foreground mb-2">Bem-vindo ao Fator X Studio!</h2>
+          <h2 className="text-xl font-heading font-bold text-foreground mb-2">Bem-vindo ao Fator X!</h2>
           <p className="text-sm text-muted-foreground mb-6 max-w-md">
             Crie, configure, avalie e opere agentes de IA com governança completa. Comece criando seu primeiro agente.
           </p>
