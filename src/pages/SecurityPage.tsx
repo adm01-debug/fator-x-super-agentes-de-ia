@@ -4,7 +4,6 @@ import { guardrails } from "@/lib/mock-data";
 import { InfoHint } from "@/components/shared/InfoHint";
 import { Shield, Plus } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { motion } from "framer-motion";
 
 export default function SecurityPage() {
   return (
@@ -21,7 +20,7 @@ export default function SecurityPage() {
 
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
         {guardrails.map((g, i) => (
-          <motion.div key={g.id} initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.05 }} className="nexus-card">
+          <div key={g.id} className="nexus-card">
             <div className="flex items-start justify-between mb-3">
               <div className="flex items-center gap-2.5">
                 <div className="h-10 w-10 rounded-xl bg-primary/10 flex items-center justify-center">
@@ -39,7 +38,7 @@ export default function SecurityPage() {
               <div className="flex justify-between"><span className="text-muted-foreground">Triggers hoje</span><span className="text-foreground font-medium">{g.triggersToday}</span></div>
               <div className="flex justify-between"><span className="text-muted-foreground">Taxa de bloqueio</span><span className="text-nexus-emerald font-medium">{g.blockRate}%</span></div>
             </div>
-          </motion.div>
+          </div>
         ))}
       </div>
     </div>

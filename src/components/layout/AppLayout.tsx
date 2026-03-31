@@ -1,15 +1,17 @@
-import { useState } from "react";
+import { lazy, Suspense, useState } from "react";
 import { useLocation } from "react-router-dom";
 import { SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
 import { AppSidebar } from "./AppSidebar";
 import { Search, Command } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { NotificationsDrawer } from "@/components/shared/NotificationsDrawer";
 import { ThemeToggle } from "@/components/shared/ThemeToggle";
-import { CommandPalette } from "@/components/shared/CommandPalette";
 import { DirectionalTransition } from "@/components/shared/DirectionalTransition";
 import { ErrorBoundary } from "@/components/shared/ErrorBoundary";
 import { UnsavedChangesProvider } from "@/hooks/use-unsaved-changes";
+
+// Lazy load — só carregam quando o usuário abre
+const NotificationsDrawer = lazy(() => import("@/components/shared/NotificationsDrawer").then(m => ({ default: m.NotificationsDrawer })));
+const CommandPalette = lazy(() => import("@/components/shared/CommandPalette").then(m => ({ default: m.CommandPalette })));
 
 interface AppLayoutProps {
   children: React.ReactNode;
@@ -58,7 +60,7 @@ export function AppLayout({ children }: AppLayoutProps) {
               </div>
               <div className="flex items-center gap-2">
                 <ThemeToggle />
-                <NotificationsDrawer />
+                <Suspense fallback={null}><NotificationsDrawer /></Suspense>
                 <button
                   className="h-8 w-8 rounded-full nexus-gradient-bg flex items-center justify-center text-xs font-semibold text-primary-foreground focus:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
                   aria-label="Menu do usuário MC"
@@ -76,7 +78,7 @@ export function AppLayout({ children }: AppLayoutProps) {
             </main>
           </div>
         </div>
-        <CommandPalette />
+        <Suspense fallback={null}><CommandPalette /></Suspense>
       </SidebarProvider>
     </UnsavedChangesProvider>
   );

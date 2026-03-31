@@ -1,5 +1,4 @@
 import { LucideIcon } from "lucide-react";
-import { motion } from "framer-motion";
 
 interface MetricCardProps {
   title: string;
@@ -12,9 +11,7 @@ interface MetricCardProps {
 
 export function MetricCard({ title, value, subtitle, icon: Icon, trend, className = "" }: MetricCardProps) {
   return (
-    <motion.div
-      initial={{ opacity: 0, y: 8 }}
-      animate={{ opacity: 1, y: 0 }}
+    <div
       className={`nexus-card group ${className}`}
     >
       <div className="flex items-start justify-between">
@@ -32,6 +29,6 @@ export function MetricCard({ title, value, subtitle, icon: Icon, trend, classNam
           <Icon className="h-4.5 w-4.5" />
         </div>
       </div>
-    </motion.div>
+    </div>
   );
 }

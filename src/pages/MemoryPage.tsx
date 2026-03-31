@@ -1,7 +1,6 @@
 import { PageHeader } from "@/components/shared/PageHeader";
 import { InfoHint } from "@/components/shared/InfoHint";
 import { Brain, Clock, Globe, User, Users, Database, Settings } from "lucide-react";
-import { motion } from "framer-motion";
 
 const memoryTypes = [
   { icon: Clock, title: 'Short-term / Conversational', desc: 'Memória da conversa atual. Mantém contexto dentro de uma sessão.', retention: 'Duração da sessão', strategy: 'Sliding window', privacy: 'Isolada por sessão', items: ['Última pergunta do usuário', 'Contexto recuperado', 'Resposta anterior'] },
@@ -23,7 +22,7 @@ export default function MemoryPage() {
 
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
         {memoryTypes.map((mem, i) => (
-          <motion.div key={mem.title} initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.06 }} className="nexus-card">
+          <div key={mem.title} className="nexus-card">
             <div className="flex items-center gap-2.5 mb-3">
               <div className="h-10 w-10 rounded-xl bg-primary/10 flex items-center justify-center">
                 <mem.icon className="h-5 w-5 text-primary" />
@@ -56,7 +55,7 @@ export default function MemoryPage() {
                 ))}
               </div>
             </div>
-          </motion.div>
+          </div>
         ))}
       </div>
     </div>

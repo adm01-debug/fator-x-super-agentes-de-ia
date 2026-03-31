@@ -6,7 +6,6 @@ import {
   Settings as SettingsIcon, Palette, Globe, Bell, Key, Code,
   Eye, EyeOff, Copy, Trash2, Plus, Check, AlertTriangle,
 } from "lucide-react";
-import { motion } from "framer-motion";
 import { toast } from "sonner";
 
 type Section = 'appearance' | 'general' | 'notifications' | 'api_keys' | 'webhooks' | 'advanced';
@@ -30,11 +29,8 @@ export default function SettingsPage() {
       {/* Section selector */}
       <div className="grid gap-3 md:grid-cols-2 lg:grid-cols-3">
         {SECTIONS.map((s, i) => (
-          <motion.button
+          <button
             key={s.id}
-            initial={{ opacity: 0, y: 8 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: i * 0.04 }}
             onClick={() => setActiveSection(activeSection === s.id ? null : s.id)}
             className={`nexus-card text-left transition-all ${activeSection === s.id ? 'ring-2 ring-primary bg-primary/5' : 'hover:ring-1 hover:ring-primary/30'}`}
           >
@@ -47,17 +43,14 @@ export default function SettingsPage() {
                 <p className="text-xs text-muted-foreground">{s.desc}</p>
               </div>
             </div>
-          </motion.button>
+          </button>
         ))}
       </div>
 
       {/* Section content */}
       {activeSection && (
-        <motion.div
+        <div
           key={activeSection}
-          initial={{ opacity: 0, y: 12 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.2 }}
         >
           {activeSection === 'appearance' && <AppearanceSection />}
           {activeSection === 'general' && <GeneralSection />}
@@ -65,7 +58,7 @@ export default function SettingsPage() {
           {activeSection === 'api_keys' && <ApiKeysSection />}
           {activeSection === 'webhooks' && <WebhooksSection />}
           {activeSection === 'advanced' && <AdvancedSection />}
-        </motion.div>
+        </div>
       )}
     </div>
   );

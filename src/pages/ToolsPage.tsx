@@ -3,7 +3,6 @@ import { StatusBadge } from "@/components/shared/StatusBadge";
 import { tools } from "@/lib/mock-data";
 import { Search, Globe, Code, Database, Users, Mail, Calendar, MessageSquare, FileText, Webhook, Plug, UserCheck } from "lucide-react";
 import { Input } from "@/components/ui/input";
-import { motion } from "framer-motion";
 import { useState } from "react";
 
 const iconMap: Record<string, React.ElementType> = {
@@ -27,7 +26,7 @@ export default function ToolsPage() {
         {filtered.map((tool, i) => {
           const Icon = iconMap[tool.icon] || Plug;
           return (
-            <motion.div key={tool.id} initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.04 }} className="nexus-card cursor-pointer">
+            <div key={tool.id} className="nexus-card cursor-pointer">
               <div className="flex items-start justify-between mb-3">
                 <div className="flex items-center gap-2.5">
                   <div className="h-10 w-10 rounded-xl bg-primary/10 flex items-center justify-center">
@@ -45,7 +44,7 @@ export default function ToolsPage() {
                 <div className="flex justify-between"><span className="text-muted-foreground">Chamadas hoje</span><span className="text-foreground font-medium">{tool.callsToday.toLocaleString()}</span></div>
                 <div className="flex justify-between"><span className="text-muted-foreground">Último uso</span><span className="text-foreground">{tool.lastUsed}</span></div>
               </div>
-            </motion.div>
+            </div>
           );
         })}
       </div>

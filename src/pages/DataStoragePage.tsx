@@ -2,7 +2,6 @@ import { PageHeader } from "@/components/shared/PageHeader";
 import { InfoHint } from "@/components/shared/InfoHint";
 import { Database, Server, HardDrive, Cpu, Radio, FileText } from "lucide-react";
 import { StatusBadge } from "@/components/shared/StatusBadge";
-import { motion } from "framer-motion";
 
 const stores = [
   { icon: Database, name: 'pgvector', type: 'Vector DB', status: 'active' as const, usage: '8.2 GB', capacity: '20 GB', latency: '12ms', cost: 'R$ 0,00', health: 'Saudável', desc: 'Banco vetorial integrado via extensão PostgreSQL' },
@@ -25,7 +24,7 @@ export default function DataStoragePage() {
 
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
         {stores.map((s, i) => (
-          <motion.div key={s.name} initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.05 }} className="nexus-card">
+          <div key={s.name} className="nexus-card">
             <div className="flex items-start justify-between mb-3">
               <div className="flex items-center gap-2.5">
                 <div className="h-10 w-10 rounded-xl bg-primary/10 flex items-center justify-center">
@@ -46,7 +45,7 @@ export default function DataStoragePage() {
               <div className="flex justify-between"><span className="text-muted-foreground">Custo</span><span className="text-foreground">{s.cost}</span></div>
               <div className="flex justify-between"><span className="text-muted-foreground">Health</span><span className="text-nexus-emerald font-medium">{s.health}</span></div>
             </div>
-          </motion.div>
+          </div>
         ))}
       </div>
     </div>

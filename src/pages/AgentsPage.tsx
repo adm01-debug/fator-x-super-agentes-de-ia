@@ -8,7 +8,6 @@ import { Bot, Plus, Search, Filter, ArrowRight, Trash2, Copy } from "lucide-reac
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 import { useAgentBuilderStore } from "@/stores/agentBuilderStore";
-import { motion } from "framer-motion";
 import { toast } from "sonner";
 
 export default function AgentsPage() {
@@ -127,11 +126,8 @@ export default function AgentsPage() {
       {/* Agent Grid */}
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
         {filtered.map((agent, i) => (
-          <motion.div
+          <div
             key={agent.id}
-            initial={{ opacity: 0, y: 8 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: i * 0.05 }}
             className="nexus-card cursor-pointer group"
             onClick={() => navigate(`/agents/${agent.id}`)}
           >
@@ -171,7 +167,7 @@ export default function AgentsPage() {
                 <ArrowRight className="h-4 w-4 text-muted-foreground group-hover:text-primary transition-colors" />
               </div>
             </div>
-          </motion.div>
+          </div>
         ))}
       </div>
 

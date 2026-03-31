@@ -8,7 +8,6 @@ import { InfoHint } from "@/components/shared/InfoHint";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Bot, Zap, Clock, DollarSign, CheckCircle, Star, ArrowLeft, Hash, Wrench, Send, MessageSquare } from "lucide-react";
-import { motion } from "framer-motion";
 import { useState } from "react";
 
 const chatHistory = [
@@ -206,14 +205,14 @@ export default function AgentDetailPage() {
           </div>
           <div className="flex-1 overflow-y-auto space-y-3 mb-3">
             {chatHistory.map((msg, i) => (
-              <motion.div key={i} initial={{ opacity: 0, y: 4 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.1 }}
+              <div key={i}
                 className={`rounded-xl p-3 text-xs leading-relaxed ${
                   msg.role === 'user' ? 'bg-primary/10 text-foreground ml-6' : 'bg-secondary/50 text-foreground mr-4'
                 }`}
               >
                 <p className="text-[10px] font-medium text-muted-foreground mb-1">{msg.role === 'user' ? 'Você' : agent.name.split('—')[0].trim()}</p>
                 <div className="whitespace-pre-wrap">{msg.content}</div>
-              </motion.div>
+              </div>
             ))}
           </div>
           <div className="flex items-center gap-2 pt-2 border-t border-border/50">

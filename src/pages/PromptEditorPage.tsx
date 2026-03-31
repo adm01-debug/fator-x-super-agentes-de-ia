@@ -10,7 +10,6 @@ import {
   ArrowLeft, Save, GitBranch, Play, CheckCircle, AlertTriangle,
   Variable, RotateCcw, Plus, Trash2,
 } from "lucide-react";
-import { motion } from "framer-motion";
 import { toast } from "sonner";
 import { useUnsavedChanges } from "@/hooks/use-unsaved-changes";
 
@@ -149,7 +148,7 @@ export default function PromptEditorPage() {
         {/* ─── Sections Editor ─── */}
         <TabsContent value="editor" className="mt-4 space-y-4">
           {SECTION_META.map((s, i) => (
-            <motion.div key={s.key} initial={{ opacity: 0, y: 6 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.04 }}
+            <div key={s.key}
               className="nexus-card"
             >
               <div className="flex items-center justify-between mb-2">
@@ -163,7 +162,7 @@ export default function PromptEditorPage() {
                 rows={Math.max(3, (sections[s.key] || "").split("\n").length + 1)}
                 className="bg-nexus-surface-1 border-border/50 font-mono text-xs leading-relaxed resize-none"
               />
-            </motion.div>
+            </div>
           ))}
         </TabsContent>
 
@@ -181,7 +180,7 @@ export default function PromptEditorPage() {
             </Button>
           </div>
           {variables.map((v, i) => (
-            <motion.div key={i} initial={{ opacity: 0 }} animate={{ opacity: 1 }}
+            <div key={i}
               className="nexus-card grid grid-cols-[1fr_1.5fr_1fr_auto] gap-3 items-end"
             >
               <div>
@@ -202,7 +201,7 @@ export default function PromptEditorPage() {
               <Button variant="ghost" size="icon" onClick={() => removeVariable(i)} className="text-muted-foreground hover:text-destructive h-9 w-9">
                 <Trash2 className="h-3.5 w-3.5" />
               </Button>
-            </motion.div>
+            </div>
           ))}
           {variables.length > 0 && (
             <div className="nexus-card bg-nexus-surface-1">
@@ -210,7 +209,7 @@ export default function PromptEditorPage() {
               <div className="flex flex-wrap gap-1.5">
                 {variables.filter(v => v.key).map(v => (
                   <code key={v.key} className="bg-primary/10 text-primary px-2 py-0.5 rounded text-[10px] font-mono">
-                    {`{{${v.key}}}`}
+                    {`{{${v.key}`}
                   </code>
                 ))}
               </div>
@@ -238,7 +237,7 @@ export default function PromptEditorPage() {
             <div className="space-y-2">
               <h3 className="text-sm font-semibold text-foreground mb-2">Histórico de versões</h3>
               {prompt.versions.map((v, i) => (
-                <motion.div key={v.id} initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: i * 0.04 }}
+                <div key={v.id}
                   className={`nexus-card flex items-center justify-between cursor-pointer transition-all ${
                     diffVersion === v.id ? "ring-2 ring-primary bg-primary/5" : ""
                   } ${i === 0 ? "border-primary/30" : ""}`}
@@ -260,7 +259,7 @@ export default function PromptEditorPage() {
                     <p className="text-[10px] text-muted-foreground">{v.date}</p>
                     <p className="text-[10px] text-muted-foreground">{v.author}</p>
                   </div>
-                </motion.div>
+                </div>
               ))}
             </div>
 

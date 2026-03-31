@@ -3,7 +3,6 @@ import { StatusBadge } from "@/components/shared/StatusBadge";
 import { teamMembers } from "@/lib/mock-data";
 import { Button } from "@/components/ui/button";
 import { Plus, UserPlus } from "lucide-react";
-import { motion } from "framer-motion";
 
 const roleLabels: Record<string, string> = { owner: 'Owner', admin: 'Admin', engineer: 'Engineer', analyst: 'Analyst', viewer: 'Viewer' };
 
@@ -28,7 +27,7 @@ export default function TeamPage() {
           </thead>
           <tbody>
             {teamMembers.map((m, i) => (
-              <motion.tr key={m.id} initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: i * 0.05 }} className="border-b border-border/30 hover:bg-secondary/30 transition-colors">
+              <tr key={m.id} className="border-b border-border/30 hover:bg-secondary/30 transition-colors">
                 <td className="px-5 py-3">
                   <div className="flex items-center gap-3">
                     <div className="h-8 w-8 rounded-full nexus-gradient-bg flex items-center justify-center text-xs font-semibold text-primary-foreground">{m.avatar}</div>
@@ -41,7 +40,7 @@ export default function TeamPage() {
                 <td className="px-5 py-3"><span className="nexus-badge-primary">{roleLabels[m.role]}</span></td>
                 <td className="px-5 py-3"><StatusBadge status={m.status} /></td>
                 <td className="px-5 py-3 text-xs text-muted-foreground">{m.lastActive}</td>
-              </motion.tr>
+              </tr>
             ))}
           </tbody>
         </table>

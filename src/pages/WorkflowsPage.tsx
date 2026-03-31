@@ -2,7 +2,6 @@ import { PageHeader } from "@/components/shared/PageHeader";
 import { InfoHint } from "@/components/shared/InfoHint";
 import { Button } from "@/components/ui/button";
 import { Plus, GitBranch, ArrowRight, User, Search, Brain, Shield, CheckCircle, Wrench, FileText } from "lucide-react";
-import { motion } from "framer-motion";
 
 const templates = [
   { name: 'Atendimento ao Cliente', steps: ['Classificar', 'Buscar KB', 'Responder', 'Escalar se necessário', 'Registrar'] },
@@ -33,7 +32,7 @@ export default function WorkflowsPage() {
 
       <div className="grid gap-4 md:grid-cols-2">
         {templates.map((wf, i) => (
-          <motion.div key={wf.name} initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.08 }} className="nexus-card cursor-pointer">
+          <div key={wf.name} className="nexus-card cursor-pointer">
             <div className="flex items-center gap-2.5 mb-4">
               <div className="h-10 w-10 rounded-xl bg-primary/10 flex items-center justify-center">
                 <GitBranch className="h-5 w-5 text-primary" />
@@ -60,7 +59,7 @@ export default function WorkflowsPage() {
                 );
               })}
             </div>
-          </motion.div>
+          </div>
         ))}
       </div>
     </div>

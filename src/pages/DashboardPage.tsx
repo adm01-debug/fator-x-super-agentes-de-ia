@@ -14,7 +14,6 @@ import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, LineChart, L
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 import { useAgentBuilderStore } from "@/stores/agentBuilderStore";
-import { motion } from "framer-motion";
 
 export default function DashboardPage() {
   const navigate = useNavigate();
@@ -92,7 +91,7 @@ export default function DashboardPage() {
 
       {/* Charts row */}
       <div className="grid md:grid-cols-2 gap-4">
-        <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="nexus-card">
+        <div className="nexus-card">
           <h3 className="text-sm font-heading font-semibold text-foreground mb-4">Sessões por dia</h3>
           <ResponsiveContainer width="100%" height={200}>
             <BarChart data={sessionsPerDayData}>
@@ -103,9 +102,9 @@ export default function DashboardPage() {
               <Bar dataKey="sessions" radius={[4, 4, 0, 0]} fill="hsl(var(--primary))" />
             </BarChart>
           </ResponsiveContainer>
-        </motion.div>
+        </div>
 
-        <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="nexus-card">
+        <div className="nexus-card">
           <h3 className="text-sm font-heading font-semibold text-foreground mb-4">Custo por modelo</h3>
           <ResponsiveContainer width="100%" height={200}>
             <BarChart data={costByModelData} layout="vertical">
@@ -118,9 +117,9 @@ export default function DashboardPage() {
               </Bar>
             </BarChart>
           </ResponsiveContainer>
-        </motion.div>
+        </div>
 
-        <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="nexus-card">
+        <div className="nexus-card">
           <h3 className="text-sm font-heading font-semibold text-foreground mb-4">Latência por agente (segundos)</h3>
           <ResponsiveContainer width="100%" height={200}>
             <BarChart data={latencyByAgentData}>
@@ -133,9 +132,9 @@ export default function DashboardPage() {
               <Bar dataKey="p99" fill="hsl(var(--nexus-rose))" radius={[2, 2, 0, 0]} name="P99" />
             </BarChart>
           </ResponsiveContainer>
-        </motion.div>
+        </div>
 
-        <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="nexus-card">
+        <div className="nexus-card">
           <h3 className="text-sm font-heading font-semibold text-foreground mb-4">Taxa de erro (%)</h3>
           <ResponsiveContainer width="100%" height={200}>
             <LineChart data={errorRateData}>
@@ -146,7 +145,7 @@ export default function DashboardPage() {
               <Line type="monotone" dataKey="rate" stroke="hsl(var(--nexus-rose))" strokeWidth={2} dot={false} />
             </LineChart>
           </ResponsiveContainer>
-        </motion.div>
+        </div>
       </div>
 
       {/* Bottom section */}

@@ -5,7 +5,6 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { knowledgeBases } from "@/lib/mock-data";
 import { Plus, Search, BookOpen, FileText, Database, RefreshCw, ArrowRight } from "lucide-react";
-import { motion } from "framer-motion";
 
 const pipeline = ['Parsing', 'Chunking', 'Metadata', 'Embeddings', 'Indexing'];
 
@@ -47,7 +46,7 @@ export default function KnowledgePage() {
 
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
         {knowledgeBases.map((kb, i) => (
-          <motion.div key={kb.id} initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.05 }} className="nexus-card cursor-pointer group">
+          <div key={kb.id} className="nexus-card cursor-pointer group">
             <div className="flex items-start justify-between mb-3">
               <div className="flex items-center gap-2.5">
                 <div className="h-10 w-10 rounded-xl bg-primary/10 flex items-center justify-center">
@@ -81,7 +80,7 @@ export default function KnowledgePage() {
                 <RefreshCw className="h-3 w-3" /> Sync
               </Button>
             </div>
-          </motion.div>
+          </div>
         ))}
       </div>
 

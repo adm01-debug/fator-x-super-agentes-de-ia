@@ -6,7 +6,6 @@ import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Bell, AlertTriangle, XCircle, Info, User } from "lucide-react";
 import { alerts, activities } from "@/lib/mock-data";
-import { motion } from "framer-motion";
 
 const alertIcons = {
   error: XCircle,
@@ -56,7 +55,7 @@ export function NotificationsDrawer() {
               const Icon = alertIcons[alert.type];
               const color = alertColors[alert.type];
               return (
-                <motion.div key={alert.id} initial={{ opacity: 0, y: 4 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.05 }}
+                <div key={alert.id}
                   className="rounded-lg border border-border/50 p-3 hover:bg-secondary/30 transition-colors cursor-pointer"
                 >
                   <div className="flex items-start gap-3">
@@ -76,14 +75,14 @@ export function NotificationsDrawer() {
                       )}
                     </div>
                   </div>
-                </motion.div>
+                </div>
               );
             })}
           </TabsContent>
 
           <TabsContent value="activity" className="flex-1 overflow-y-auto px-5 mt-3 space-y-2" aria-live="polite" aria-label="Lista de atividades">
             {activities.map((act, i) => (
-              <motion.div key={act.id} initial={{ opacity: 0, y: 4 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.05 }}
+              <div key={act.id}
                 className="rounded-lg border border-border/50 p-3 hover:bg-secondary/30 transition-colors cursor-pointer"
               >
                 <div className="flex items-start gap-3">
@@ -99,7 +98,7 @@ export function NotificationsDrawer() {
                     <span className="text-[10px] text-muted-foreground mt-1 block">{act.timestamp}</span>
                   </div>
                 </div>
-              </motion.div>
+              </div>
             ))}
           </TabsContent>
         </Tabs>

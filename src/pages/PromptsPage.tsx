@@ -4,7 +4,6 @@ import { InfoHint } from "@/components/shared/InfoHint";
 import { Button } from "@/components/ui/button";
 import { Plus, FileText, GitBranch, Copy } from "lucide-react";
 import { StatusBadge } from "@/components/shared/StatusBadge";
-import { motion } from "framer-motion";
 
 const prompts = [
   { id: '1', name: 'Suporte Premium L1', agent: 'Atlas', version: 'v2.4', status: 'active', score: 95, updated: '2026-03-28' },
@@ -43,7 +42,7 @@ export default function PromptsPage() {
           </thead>
           <tbody>
             {prompts.map((p, i) => (
-              <motion.tr key={p.id} initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: i * 0.05 }} className="border-b border-border/30 hover:bg-secondary/30 transition-colors cursor-pointer" onClick={() => navigate(`/prompts/${p.id}`)}>
+              <tr key={p.id} className="border-b border-border/30 hover:bg-secondary/30 transition-colors cursor-pointer" onClick={() => navigate(`/prompts/${p.id}`)}>
                 <td className="px-5 py-3">
                   <div className="flex items-center gap-2.5">
                     <FileText className="h-4 w-4 text-primary" />
@@ -57,7 +56,7 @@ export default function PromptsPage() {
                 </td>
                 <td className="px-5 py-3"><StatusBadge status={p.status} /></td>
                 <td className="px-5 py-3 text-xs text-muted-foreground">{p.updated}</td>
-              </motion.tr>
+              </tr>
             ))}
           </tbody>
         </table>

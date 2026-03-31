@@ -2,7 +2,6 @@ import { PageHeader } from "@/components/shared/PageHeader";
 import { StatusBadge } from "@/components/shared/StatusBadge";
 import { traces } from "@/lib/mock-data";
 import { Activity, Clock, DollarSign, Wrench, ChevronRight } from "lucide-react";
-import { motion } from "framer-motion";
 import { useState } from "react";
 
 const stepColors: Record<string, string> = {
@@ -26,10 +25,8 @@ export default function MonitoringPage() {
         <div className="space-y-2">
           <h3 className="text-xs font-heading font-semibold text-muted-foreground uppercase tracking-wider mb-2">Sessões recentes</h3>
           {traces.map(trace => (
-            <motion.div
+            <div
               key={trace.id}
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
               className={`nexus-card cursor-pointer p-3 ${selectedTrace.id === trace.id ? 'border-primary/40 nexus-glow-sm' : ''}`}
               onClick={() => setSelectedTrace(trace)}
             >
@@ -43,7 +40,7 @@ export default function MonitoringPage() {
                 <span className="flex items-center gap-1"><DollarSign className="h-3 w-3" /> ${trace.cost.toFixed(3)}</span>
                 <span className="flex items-center gap-1"><Wrench className="h-3 w-3" /> {trace.toolCalls}</span>
               </div>
-            </motion.div>
+            </div>
           ))}
         </div>
 
@@ -59,7 +56,7 @@ export default function MonitoringPage() {
 
           <div className="space-y-0">
             {selectedTrace.steps.map((step, i) => (
-              <motion.div key={step.id} initial={{ opacity: 0, x: -8 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: i * 0.08 }}>
+              <div key={step.id}>
                 <div className="flex items-start gap-3 relative">
                   {/* Timeline line */}
                   {i < selectedTrace.steps.length - 1 && (
@@ -82,7 +79,7 @@ export default function MonitoringPage() {
                     {step.detail && <p className="text-[11px] text-muted-foreground mt-1">{step.detail}</p>}
                   </div>
                 </div>
-              </motion.div>
+              </div>
             ))}
           </div>
 

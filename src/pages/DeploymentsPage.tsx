@@ -2,7 +2,6 @@ import { PageHeader } from "@/components/shared/PageHeader";
 import { StatusBadge } from "@/components/shared/StatusBadge";
 import { deployments } from "@/lib/mock-data";
 import { Rocket, MessageSquare, Globe, Code, Hash, Smartphone } from "lucide-react";
-import { motion } from "framer-motion";
 
 const channelIcons: Record<string, React.ElementType> = {
   'Widget de Chat': MessageSquare,
@@ -21,7 +20,7 @@ export default function DeploymentsPage() {
         {deployments.map((dep, i) => {
           const Icon = channelIcons[dep.channel] || Rocket;
           return (
-            <motion.div key={dep.id} initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.05 }} className="nexus-card">
+            <div key={dep.id} className="nexus-card">
               <div className="flex items-start justify-between mb-3">
                 <div className="flex items-center gap-2.5">
                   <div className="h-10 w-10 rounded-xl bg-primary/10 flex items-center justify-center">
@@ -40,7 +39,7 @@ export default function DeploymentsPage() {
                 <div className="flex justify-between"><span className="text-muted-foreground">Tráfego</span><span className="text-foreground">{dep.traffic}%</span></div>
                 <div className="flex justify-between"><span className="text-muted-foreground">Deploy</span><span className="text-foreground">{dep.lastDeployed.split(' ')[0]}</span></div>
               </div>
-            </motion.div>
+            </div>
           );
         })}
       </div>
