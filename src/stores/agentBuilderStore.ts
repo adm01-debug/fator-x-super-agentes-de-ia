@@ -1,12 +1,15 @@
 import { create } from 'zustand';
-import type { AgentConfig, PromptVersion, ReadinessScore } from '@/types/agentTypes';
+import type { AgentConfig, PromptVersion } from '@/types/agentTypes';
 import { DEFAULT_AGENT, TABS } from '@/data/agentBuilderData';
+import { supabase } from '@/integrations/supabase/client';
+import type { Json } from '@/integrations/supabase/types';
 
 interface AgentBuilderStore {
   agent: AgentConfig;
   activeTab: string;
   isDirty: boolean;
   isSaving: boolean;
+  isLoading: boolean;
   lastSaved?: string;
   savedAgents: AgentConfig[];
   promptVersions: PromptVersion[];
@@ -20,6 +23,7 @@ interface AgentBuilderStore {
   loadAgent: (agent: AgentConfig) => void;
 
   saveAgent: () => Promise<void>;
+  loadAgentFromDB: (id: string) => Promise<void>;
   loadSavedAgents: () => Promise<void>;
   deleteAgent: (id: string) => Promise<void>;
   duplicateAgent: (id: string) => void;
@@ -38,11 +42,50 @@ interface AgentBuilderStore {
   getEstimatedMonthlyCost: () => number;
 }
 
+function agentToDbRow(agent: AgentConfig, userId: string) {
+  const { id, created_at, updated_at, ...rest } = agent as any;
+  return {
+    ...(id ? { id } : {}),
+    user_id: userId,
+    name: agent.name,
+    mission: agent.mission,
+    persona: agent.persona,
+    model: agent.model,
+    avatar_emoji: agent.avatar_emoji,
+    reasoning: agent.reasoning,
+    status: agent.status as any,
+    version: agent.version,
+    tags: agent.tags,
+    config: rest as unknown as Json,
+  };
+}
+
+function dbRowToAgent(row: any): AgentConfig {
+  const config = (row.config || {}) as Record<string, any>;
+  return {
+    ...DEFAULT_AGENT,
+    ...config,
+    id: row.id,
+    name: row.name,
+    mission: row.mission || '',
+    persona: row.persona || 'assistant',
+    model: row.model || 'claude-sonnet-4.6',
+    avatar_emoji: row.avatar_emoji || '🤖',
+    reasoning: row.reasoning || 'react',
+    status: row.status || 'draft',
+    version: row.version || 1,
+    tags: row.tags || [],
+    created_at: row.created_at,
+    updated_at: row.updated_at,
+  };
+}
+
 export const useAgentBuilderStore = create<AgentBuilderStore>((set, get) => ({
   agent: { ...DEFAULT_AGENT },
   activeTab: TABS[0].id,
   isDirty: false,
   isSaving: false,
+  isLoading: false,
   lastSaved: undefined,
   savedAgents: [],
   promptVersions: [],
@@ -68,20 +111,69 @@ export const useAgentBuilderStore = create<AgentBuilderStore>((set, get) => ({
 
   loadAgent: (agent) => set({ agent, isDirty: false, activeTab: TABS[0].id }),
 
+  loadAgentFromDB: async (id: string) => {
+    set({ isLoading: true });
+    const { data, error } = await supabase
+      .from('agents')
+      .select('*')
+      .eq('id', id)
+      .single();
+
+    if (!error && data) {
+      const agent = dbRowToAgent(data);
+      set({ agent, isDirty: false, isLoading: false });
+    } else {
+      set({ isLoading: false });
+    }
+  },
+
   saveAgent: async () => {
     set({ isSaving: true });
-    // Simulated save — will be replaced with Supabase in Etapa 20
-    await new Promise((r) => setTimeout(r, 800));
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) {
+      set({ isSaving: false });
+      return;
+    }
+
+    const agent = get().agent;
+    const row = agentToDbRow(agent, user.id);
+
+    let error;
+    if (agent.id) {
+      const { error: e } = await supabase
+        .from('agents')
+        .update(row)
+        .eq('id', agent.id);
+      error = e;
+    } else {
+      const { data, error: e } = await supabase
+        .from('agents')
+        .insert(row)
+        .select('id')
+        .single();
+      error = e;
+      if (!e && data) {
+        set((s) => ({ agent: { ...s.agent, id: data.id } }));
+      }
+    }
+
     const now = new Date().toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
-    set({ isSaving: false, isDirty: false, lastSaved: now });
+    set({ isSaving: false, isDirty: !error, lastSaved: error ? undefined : now });
   },
 
   loadSavedAgents: async () => {
-    // Will be replaced with Supabase
+    const { data } = await supabase
+      .from('agents')
+      .select('*')
+      .order('updated_at', { ascending: false });
+    if (data) {
+      set({ savedAgents: data.map(dbRowToAgent) });
+    }
   },
 
-  deleteAgent: async () => {
-    // Will be replaced with Supabase
+  deleteAgent: async (id: string) => {
+    await supabase.from('agents').delete().eq('id', id);
+    set((s) => ({ savedAgents: s.savedAgents.filter(a => a.id !== id) }));
   },
 
   duplicateAgent: () => {
@@ -94,29 +186,86 @@ export const useAgentBuilderStore = create<AgentBuilderStore>((set, get) => ({
 
   savePromptVersion: async (summary: string) => {
     const { agent, promptVersions } = get();
-    const newVersion: PromptVersion = {
-      id: crypto.randomUUID(),
-      version: (promptVersions.length > 0 ? Math.max(...promptVersions.map(v => v.version)) : 0) + 1,
-      content: agent.system_prompt,
-      change_summary: summary,
-      author: 'user',
-      is_active: true,
-      created_at: new Date().toISOString(),
-    };
-    set({
-      promptVersions: [...promptVersions.map(v => ({ ...v, is_active: false })), newVersion],
-      agent: { ...agent, system_prompt_version: newVersion.version },
-    });
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user || !agent.id) return;
+
+    const newVersion = (promptVersions.length > 0 ? Math.max(...promptVersions.map(v => v.version)) : 0) + 1;
+
+    // Deactivate old versions
+    if (promptVersions.length > 0) {
+      await supabase
+        .from('prompt_versions')
+        .update({ is_active: false })
+        .eq('agent_id', agent.id);
+    }
+
+    const { data, error } = await supabase
+      .from('prompt_versions')
+      .insert({
+        agent_id: agent.id,
+        user_id: user.id,
+        version: newVersion,
+        content: agent.system_prompt,
+        change_summary: summary,
+        is_active: true,
+      })
+      .select()
+      .single();
+
+    if (!error && data) {
+      const pv: PromptVersion = {
+        id: data.id,
+        version: data.version,
+        content: data.content,
+        change_summary: data.change_summary || '',
+        author: 'user',
+        is_active: true,
+        created_at: data.created_at,
+      };
+      set({
+        promptVersions: [...promptVersions.map(v => ({ ...v, is_active: false })), pv],
+        agent: { ...agent, system_prompt_version: newVersion },
+      });
+    }
   },
 
   loadPromptVersions: async () => {
-    // Will be replaced with Supabase
+    const agent = get().agent;
+    if (!agent.id) return;
+    const { data } = await supabase
+      .from('prompt_versions')
+      .select('*')
+      .eq('agent_id', agent.id)
+      .order('version', { ascending: false });
+    if (data) {
+      set({
+        promptVersions: data.map(d => ({
+          id: d.id,
+          version: d.version,
+          content: d.content,
+          change_summary: d.change_summary || '',
+          author: 'user',
+          is_active: d.is_active ?? false,
+          created_at: d.created_at,
+        })),
+      });
+    }
   },
 
   activatePromptVersion: async (versionId: string) => {
     const { promptVersions, agent } = get();
     const target = promptVersions.find(v => v.id === versionId);
-    if (!target) return;
+    if (!target || !agent.id) return;
+
+    await supabase
+      .from('prompt_versions')
+      .update({ is_active: false })
+      .eq('agent_id', agent.id);
+    await supabase
+      .from('prompt_versions')
+      .update({ is_active: true })
+      .eq('id', versionId);
+
     set({
       promptVersions: promptVersions.map(v => ({ ...v, is_active: v.id === versionId })),
       agent: { ...agent, system_prompt: target.content, system_prompt_version: target.version },
@@ -177,7 +326,6 @@ export const useAgentBuilderStore = create<AgentBuilderStore>((set, get) => ({
 
   getEstimatedMonthlyCost: () => {
     const a = get().agent;
-    // Rough estimation based on model and config
     const modelCosts: Record<string, number> = {
       'claude-opus-4.6': 150,
       'claude-sonnet-4.6': 50,

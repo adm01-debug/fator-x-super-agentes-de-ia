@@ -1,3 +1,5 @@
+import { useEffect } from 'react';
+import { useParams } from 'react-router-dom';
 import { AgentBuilderLayout } from '@/components/agent-builder/AgentBuilderLayout';
 import { useAgentBuilderStore } from '@/stores/agentBuilderStore';
 import { IdentityModule } from '@/components/agent-builder/modules/IdentityModule';
@@ -16,6 +18,7 @@ import { ReadinessModule } from '@/components/agent-builder/modules/ReadinessMod
 import { BlueprintModule } from '@/components/agent-builder/modules/BlueprintModule';
 import { SettingsModule } from '@/components/agent-builder/modules/SettingsModule';
 import { motion, AnimatePresence } from 'framer-motion';
+import { Loader2 } from 'lucide-react';
 
 function ActiveModule({ tabId }: { tabId: string }) {
   switch (tabId) {
@@ -45,7 +48,27 @@ function ActiveModule({ tabId }: { tabId: string }) {
 }
 
 export default function AgentBuilder() {
+  const { id } = useParams();
   const activeTab = useAgentBuilderStore((s) => s.activeTab);
+  const isLoading = useAgentBuilderStore((s) => s.isLoading);
+  const loadAgentFromDB = useAgentBuilderStore((s) => s.loadAgentFromDB);
+  const resetAgent = useAgentBuilderStore((s) => s.resetAgent);
+
+  useEffect(() => {
+    if (id) {
+      loadAgentFromDB(id);
+    } else {
+      resetAgent();
+    }
+  }, [id]);
+
+  if (isLoading) {
+    return (
+      <div className="flex items-center justify-center h-[60vh]">
+        <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+      </div>
+    );
+  }
 
   return (
     <AgentBuilderLayout>
