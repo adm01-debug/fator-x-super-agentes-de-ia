@@ -76,12 +76,12 @@ export function AppSidebar() {
   const usage = maxAgents > 0 ? Math.min((agentCount / maxAgents) * 100, 100) : 0;
 
   return (
-    <Sidebar collapsible="icon" className="border-r border-border/50">
+    <Sidebar collapsible="icon" className="border-r border-border/50" aria-label="Navegação principal">
       <SidebarHeader className="p-4">
         <div className="flex items-center gap-1.5">
-          <img src={fatorxIcon} alt="Fator X" className="h-14 w-14 shrink-0 rounded-xl" />
+          <img src={fatorxIcon} alt="" className="h-14 w-14 shrink-0 rounded-xl" fetchPriority="high" />
           {!collapsed && (
-            <span className="font-heading text-lg font-extrabold tracking-tight">
+            <span className="font-heading text-lg font-extrabold tracking-tight" aria-label="Fator X">
               <span className="text-muted-foreground">FATOR</span>
               <span className="text-transparent bg-clip-text bg-gradient-to-r from-nexus-cyan to-nexus-teal ml-0.5">X</span>
             </span>
