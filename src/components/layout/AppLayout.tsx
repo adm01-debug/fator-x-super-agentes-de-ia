@@ -1,4 +1,5 @@
-import { useState } from "react";
+import { useState, useMemo } from "react";
+import { useNavigate } from "react-router-dom";
 import { SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
 import { AppSidebar } from "./AppSidebar";
 import { Search, Command } from "lucide-react";
@@ -8,6 +9,8 @@ import { CommandPalette } from "@/components/shared/CommandPalette";
 import { DirectionalTransition } from "@/components/shared/DirectionalTransition";
 import { ErrorBoundary } from "@/components/shared/ErrorBoundary";
 import { UnsavedChangesProvider } from "@/hooks/use-unsaved-changes";
+import { useNetworkStatus } from "@/hooks/use-network-status";
+import { useKeyboardShortcuts } from "@/hooks/use-keyboard-shortcuts";
 
 interface AppLayoutProps {
   children: React.ReactNode;
