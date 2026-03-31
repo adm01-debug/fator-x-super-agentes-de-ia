@@ -299,6 +299,98 @@ export function TestingModule() {
           </Button>
         </div>
       </section>
+      {/* Seção D — Comparação por Versão */}
+      {agent.last_test_results && (
+        <section>
+          <SectionTitle icon="🔀" title="Comparação por Versão" subtitle="Compare resultados entre execuções de diferentes versões ou modelos." />
+          <div className="rounded-xl border border-border bg-card p-4">
+            <div className="grid grid-cols-2 gap-4 mb-4">
+              <div>
+                <label className="text-[11px] text-muted-foreground">Versão A (Atual)</label>
+                <div className="mt-1 bg-muted/30 border border-border rounded-lg px-3 py-2 text-sm text-foreground">
+                  v{agent.system_prompt_version} · {agent.model}
+                </div>
+              </div>
+              <div>
+                <label className="text-[11px] text-muted-foreground">Versão B (Anterior)</label>
+                <div className="mt-1 bg-muted/30 border border-border rounded-lg px-3 py-2 text-sm text-muted-foreground">
+                  v{Math.max(1, agent.system_prompt_version - 1)} · {agent.model}
+                </div>
+              </div>
+            </div>
+            <div className="overflow-x-auto">
+              <table className="w-full text-xs">
+                <thead>
+                  <tr className="border-b border-border text-muted-foreground">
+                    <th className="text-left py-2 font-medium">Métrica</th>
+                    <th className="text-center py-2 font-medium">Versão A</th>
+                    <th className="text-center py-2 font-medium">Versão B (sim.)</th>
+                    <th className="text-center py-2 font-medium">Delta</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {[
+                    { name: 'Acurácia', a: agent.last_test_results.accuracy, unit: '%' },
+                    { name: 'Safety', a: agent.last_test_results.safety_score, unit: '%' },
+                    { name: 'Latência p95', a: agent.last_test_results.latency_p95, unit: 'ms' },
+                    { name: 'Alucinação', a: agent.last_test_results.hallucination_rate, unit: '%' },
+                    { name: 'Custo', a: agent.last_test_results.cost_per_interaction, unit: '$' },
+                  ].map(({ name, a, unit }) => {
+                    const b = +(a * (0.9 + Math.random() * 0.2)).toFixed(2);
+                    const delta = +(a - b).toFixed(2);
+                    const isPositive = name === 'Alucinação' || name === 'Latência p95' || name === 'Custo' ? delta < 0 : delta > 0;
+                    return (
+                      <tr key={name} className="border-b border-border/50">
+                        <td className="py-2 text-foreground">{name}</td>
+                        <td className="py-2 text-center font-mono text-foreground">{a}{unit}</td>
+                        <td className="py-2 text-center font-mono text-muted-foreground">{b}{unit}</td>
+                        <td className={`py-2 text-center font-mono ${isPositive ? 'text-emerald-400' : 'text-rose-400'}`}>
+                          {delta > 0 ? '+' : ''}{delta}{unit}
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </section>
+      )}
+
+      {/* Seção E — Histórico de Avaliações */}
+      {agent.last_test_results && (
+        <section>
+          <SectionTitle icon="📜" title="Histórico de Avaliações" subtitle="Últimas execuções de testes com resultados." />
+          <div className="rounded-xl border border-border bg-card overflow-hidden">
+            <table className="w-full text-xs" aria-label="Histórico de avaliações">
+              <thead>
+                <tr className="border-b border-border text-muted-foreground bg-muted/20">
+                  <th className="text-left px-4 py-2 font-medium">Timestamp</th>
+                  <th className="text-center px-3 py-2 font-medium">Prompt</th>
+                  <th className="text-center px-3 py-2 font-medium">Modelo</th>
+                  <th className="text-center px-3 py-2 font-medium">Acurácia</th>
+                  <th className="text-center px-3 py-2 font-medium">Safety</th>
+                  <th className="text-center px-3 py-2 font-medium">Custo</th>
+                </tr>
+              </thead>
+              <tbody>
+                {/* Current result */}
+                <tr className="border-b border-border/50 hover:bg-muted/10">
+                  <td className="px-4 py-2 text-foreground">{new Date(agent.last_test_results.timestamp).toLocaleString('pt-BR')}</td>
+                  <td className="px-3 py-2 text-center">v{agent.last_test_results.prompt_version}</td>
+                  <td className="px-3 py-2 text-center text-muted-foreground">{agent.last_test_results.model_used}</td>
+                  <td className="px-3 py-2 text-center font-mono">{agent.last_test_results.accuracy}%</td>
+                  <td className="px-3 py-2 text-center font-mono">{agent.last_test_results.safety_score}%</td>
+                  <td className="px-3 py-2 text-center font-mono">${agent.last_test_results.cost_per_interaction}</td>
+                </tr>
+              </tbody>
+            </table>
+            <p className="text-[11px] text-muted-foreground px-4 py-2">
+              Execute mais testes para construir um histórico comparativo.
+            </p>
+          </div>
+        </section>
+      )}
     </div>
   );
 }

@@ -279,6 +279,77 @@ export function MemoryModule() {
         </div>
       </section>
 
+      {/* Seção B — Fontes de Memória Externa */}
+      <section>
+        <SectionTitle icon="🔌" title="Fontes de Memória Externa" subtitle="Integrações que alimentam o contexto do agente PROATIVAMENTE antes de cada resposta." />
+        <div className="space-y-3">
+          {agent.memory_external_sources.map((src, idx) => (
+            <div key={src.id} className="rounded-xl border border-border bg-card p-4 space-y-3">
+              <div className="flex items-center justify-between">
+                <ToggleField label={src.name || `Fonte ${idx + 1}`} checked={src.enabled} onCheckedChange={(v) => {
+                  const updated = [...agent.memory_external_sources];
+                  updated[idx] = { ...src, enabled: v };
+                  updateAgent({ memory_external_sources: updated });
+                }} />
+                <button onClick={() => updateAgent({ memory_external_sources: agent.memory_external_sources.filter((_, i) => i !== idx) })} className="text-xs text-destructive hover:text-destructive/80">Remover</button>
+              </div>
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                <div>
+                  <label className="text-[11px] text-muted-foreground">Nome</label>
+                  <input className="w-full mt-1 bg-muted/30 border border-border rounded-lg px-3 py-1.5 text-sm text-foreground" value={src.name} onChange={(e) => {
+                    const updated = [...agent.memory_external_sources];
+                    updated[idx] = { ...src, name: e.target.value };
+                    updateAgent({ memory_external_sources: updated });
+                  }} placeholder="Ex: CRM Bitrix24" />
+                </div>
+                <div>
+                  <label className="text-[11px] text-muted-foreground">Tipo</label>
+                  <select className="w-full mt-1 bg-muted/30 border border-border rounded-lg px-3 py-1.5 text-sm text-foreground" value={src.type} onChange={(e) => {
+                    const updated = [...agent.memory_external_sources];
+                    updated[idx] = { ...src, type: e.target.value as typeof src.type };
+                    updateAgent({ memory_external_sources: updated });
+                  }}>
+                    <option value="crm">CRM</option>
+                    <option value="erp">ERP</option>
+                    <option value="email">Email</option>
+                    <option value="calendar">Calendário</option>
+                    <option value="tickets">Tickets</option>
+                    <option value="database">Database</option>
+                    <option value="api">API</option>
+                  </select>
+                </div>
+                <div>
+                  <label className="text-[11px] text-muted-foreground">Sync</label>
+                  <select className="w-full mt-1 bg-muted/30 border border-border rounded-lg px-3 py-1.5 text-sm text-foreground" value={src.sync_mode} onChange={(e) => {
+                    const updated = [...agent.memory_external_sources];
+                    updated[idx] = { ...src, sync_mode: e.target.value as typeof src.sync_mode };
+                    updateAgent({ memory_external_sources: updated });
+                  }}>
+                    <option value="realtime">Tempo real</option>
+                    <option value="on_demand">Sob demanda</option>
+                    <option value="scheduled">Agendado</option>
+                  </select>
+                </div>
+              </div>
+              <ToggleField label="Auto-inject no contexto" description="Carrega dados desta fonte automaticamente antes de cada resposta" checked={src.auto_inject} onCheckedChange={(v) => {
+                const updated = [...agent.memory_external_sources];
+                updated[idx] = { ...src, auto_inject: v };
+                updateAgent({ memory_external_sources: updated });
+              }} />
+            </div>
+          ))}
+          <button
+            onClick={() => updateAgent({ memory_external_sources: [...agent.memory_external_sources, { id: crypto.randomUUID(), name: '', type: 'crm' as const, connection_string: '', sync_mode: 'on_demand' as const, auto_inject: false, fields_to_extract: [], enabled: true }] })}
+            className="w-full py-2 rounded-xl border border-dashed border-border text-sm text-muted-foreground hover:bg-muted/20 transition-colors"
+          >
+            + Adicionar Fonte Externa
+          </button>
+          <p className="text-[11px] text-muted-foreground">
+            <span aria-hidden="true">💡</span> Diferente de ferramentas: memória externa é carregada PROATIVAMENTE no contexto antes de cada resposta, não sob demanda.
+          </p>
+        </div>
+      </section>
+
       {/* Seção D — Diagrama de Fluxo */}
       <section>
         <SectionTitle icon="📊" title="Fluxo de Memória" subtitle="Visualização do pipeline de memória durante uma interação." />

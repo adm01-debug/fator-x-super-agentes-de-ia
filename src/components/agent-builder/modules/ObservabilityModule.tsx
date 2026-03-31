@@ -253,6 +253,34 @@ export function ObservabilityModule() {
           </div>
         </section>
       )}
+      {/* Seção E — Por que o agente respondeu isso? */}
+      <section>
+        <SectionTitle icon="🔍" title="Por que o agente respondeu isso?" subtitle="Cole uma resposta do agente para rastrear toda a cadeia de decisão." />
+        <div className="rounded-xl border border-border bg-card p-4 space-y-3">
+          <textarea
+            className="w-full bg-muted/30 border border-border rounded-lg px-4 py-3 text-sm text-foreground font-mono resize-none placeholder:text-muted-foreground"
+            rows={4}
+            placeholder="Cole aqui uma resposta do agente para investigar o trace correspondente..."
+            onChange={(e) => {
+              const query = e.target.value.toLowerCase().trim();
+              if (query.length > 10) {
+                const match = MOCK_TRACES.find(t =>
+                  t.final_output.toLowerCase().includes(query.slice(0, 30))
+                );
+                if (match) setSelectedTrace(match.id);
+              }
+            }}
+          />
+          <p className="text-[11px] text-muted-foreground">
+            <span aria-hidden="true">💡</span> O sistema buscará o trace correspondente e mostrará a cadeia completa: input → memória → RAG → LLM → tools → guardrails → output.
+          </p>
+          {selectedTrace && (
+            <div className="rounded-lg bg-primary/5 border border-primary/20 px-4 py-2 text-xs text-primary">
+              Trace encontrado! Veja os detalhes no Debug Inspector acima.
+            </div>
+          )}
+        </div>
+      </section>
     </div>
   );
 }
