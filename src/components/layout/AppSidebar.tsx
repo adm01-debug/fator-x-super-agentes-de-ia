@@ -4,7 +4,7 @@ import { NavLink } from "@/components/NavLink";
 import {
   LayoutDashboard, Bot, BookOpen, Brain, Puzzle, FileText, GitBranch,
   FlaskConical, Rocket, Activity, Database, Shield, Users, CreditCard, Settings,
-  Sparkles, PanelLeftClose, PanelLeft, LogOut,
+  Sparkles, PanelLeftClose, PanelLeft, LogOut, ServerCog,
 } from "lucide-react";
 import {
   Sidebar, SidebarContent, SidebarGroup, SidebarGroupContent, SidebarGroupLabel,
