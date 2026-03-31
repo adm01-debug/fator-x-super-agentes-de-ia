@@ -25,7 +25,7 @@ export default function PromptEditorPage() {
     queryKey: ["agent", agentId],
     queryFn: async () => {
       if (!agentId) return null;
-      const { data, error } = await supabase.from("agents").select("id, name, avatar_emoji").eq("id", agentId).single();
+      const { data, error } = await supabase.from("agents").select("id, name, avatar_emoji").eq("id", agentId).maybeSingle();
       if (error) throw error;
       return data;
     },
