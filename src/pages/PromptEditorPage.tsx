@@ -178,13 +178,35 @@ export default function PromptEditorPage() {
   return (
     <div className="p-6 max-w-[1400px] mx-auto space-y-5">
       {/* Header */}
-      <div className="flex items-center justify-between">
-        <div className="flex items-center gap-3">
-          <Button variant="ghost" size="icon" onClick={() => navigate("/prompts")} className="text-muted-foreground">
-            <ArrowLeft className="h-4 w-4" />
-          </Button>
-          <div>
-            <div className="flex items-center gap-2">
+      <PageHeader
+        title={`${agent?.avatar_emoji || '📝'} ${agent?.name || "Prompt Editor"}`}
+        description={`${versions.length} versão(ões) • Editor com versionamento completo`}
+        backTo="/prompts"
+        actions={
+          <div className="flex items-center gap-2">
+            {activeVersion && dirty && (
+              <Button variant="outline" size="sm" className="gap-1.5 text-xs"
+                onClick={() => updateVersion.mutate(activeVersion.id)}
+                disabled={updateVersion.isPending}
+              >
+                {updateVersion.isPending ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Save className="h-3.5 w-3.5" />}
+                Atualizar v{activeVersion.version}
+              </Button>
+            )}
+            <Button size="sm" className="gap-1.5 text-xs nexus-gradient-bg text-primary-foreground hover:opacity-90"
+              onClick={() => createVersion.mutate()}
+              disabled={createVersion.isPending || !content.trim()}
+            >
+              {createVersion.isPending ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Save className="h-3.5 w-3.5" />}
+              Nova versão
+            </Button>
+          </div>
+        }
+      />
+
+      <div className="hidden">
+        {/* kept for reference: old header was here */}
+        <div className="flex items-center gap-2">
               <h1 className="text-xl font-heading font-bold text-foreground">
                 {agent?.avatar_emoji} {agent?.name || "Prompt Editor"}
               </h1>
