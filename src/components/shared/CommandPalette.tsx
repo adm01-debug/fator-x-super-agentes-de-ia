@@ -7,11 +7,13 @@ import {
   Bot, BookOpen, FileText, Settings, Database, Shield, Users, Activity, Rocket,
   Brain, Puzzle, CreditCard, GitBranch, FlaskConical, LayoutDashboard, Plus,
 } from "lucide-react";
-import { agents } from "@/lib/mock-data";
+import { agents as mockAgents } from "@/lib/mock-data";
+import { useAgentBuilderStore } from "@/stores/agentBuilderStore";
 
 const pages = [
   { name: "Dashboard", href: "/", icon: LayoutDashboard, group: "Navegação" },
   { name: "Agents", href: "/agents", icon: Bot, group: "Navegação" },
+  { name: "Agent Builder", href: "/builder", icon: Rocket, group: "Navegação" },
   { name: "Knowledge / RAG", href: "/knowledge", icon: BookOpen, group: "Navegação" },
   { name: "Memory", href: "/memory", icon: Brain, group: "Navegação" },
   { name: "Tools & Integrations", href: "/tools", icon: Puzzle, group: "Navegação" },
@@ -34,6 +36,7 @@ const quickActions = [
 export function CommandPalette() {
   const [open, setOpen] = useState(false);
   const navigate = useNavigate();
+  const savedAgents = useAgentBuilderStore((s) => s.savedAgents);
 
   useEffect(() => {
     const down = (e: KeyboardEvent) => {
@@ -50,6 +53,21 @@ export function CommandPalette() {
     navigate(href);
     setOpen(false);
   }, [navigate]);
+
+  // Use real agents if available, fallback to mock
+  const agentItems = savedAgents.length > 0
+    ? savedAgents.map(a => ({
+        id: a.id,
+        name: a.name,
+        emoji: a.avatar_emoji || '🤖',
+        subtitle: `${a.persona} • ${a.model}`,
+      }))
+    : mockAgents.map(a => ({
+        id: a.id,
+        name: a.name.split("—")[0].trim(),
+        emoji: '🤖',
+        subtitle: `${a.type} • ${a.model}`,
+      }));
 
   return (
     <CommandDialog open={open} onOpenChange={setOpen}>
@@ -69,11 +87,11 @@ export function CommandPalette() {
         <CommandSeparator />
 
         <CommandGroup heading="Agentes">
-          {agents.map(agent => (
+          {agentItems.map(agent => (
             <CommandItem key={agent.id} onSelect={() => go(`/agents/${agent.id}`)} className="gap-2">
-              <Bot className="h-4 w-4 text-muted-foreground" />
-              <span>{agent.name.split("—")[0].trim()}</span>
-              <span className="ml-auto text-[10px] text-muted-foreground">{agent.type} • {agent.model}</span>
+              <span className="text-sm" aria-hidden="true">{agent.emoji}</span>
+              <span>{agent.name}</span>
+              <span className="ml-auto text-[10px] text-muted-foreground">{agent.subtitle}</span>
             </CommandItem>
           ))}
         </CommandGroup>
