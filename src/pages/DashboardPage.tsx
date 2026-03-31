@@ -7,6 +7,7 @@ import { useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
+import { UsageCharts } from "@/components/dashboard/UsageCharts";
 
 export default function DashboardPage() {
   const navigate = useNavigate();
@@ -23,7 +24,7 @@ export default function DashboardPage() {
     },
   });
 
-  const { data: usageStats } = useQuery({
+  const { data: usageData = [] } = useQuery({
     queryKey: ['dashboard_usage'],
     queryFn: async () => {
       const thirtyDaysAgo = new Date();
@@ -32,15 +33,16 @@ export default function DashboardPage() {
         .from('agent_usage')
         .select('*')
         .gte('date', thirtyDaysAgo.toISOString().split('T')[0]);
-      if (!data?.length) return null;
-      return {
-        totalCost: data.reduce((s, u) => s + Number(u.total_cost_usd || 0), 0),
-        totalRequests: data.reduce((s, u) => s + (u.requests || 0), 0),
-        avgLatency: Math.round(data.reduce((s, u) => s + (u.avg_latency_ms || 0), 0) / data.length),
-        totalTokens: data.reduce((s, u) => s + (u.tokens_input || 0) + (u.tokens_output || 0), 0),
-      };
+      return data ?? [];
     },
   });
+
+  const usageStats = usageData.length ? {
+    totalCost: usageData.reduce((s, u) => s + Number(u.total_cost_usd || 0), 0),
+    totalRequests: usageData.reduce((s, u) => s + (u.requests || 0), 0),
+    avgLatency: Math.round(usageData.reduce((s, u) => s + (u.avg_latency_ms || 0), 0) / usageData.length),
+    totalTokens: usageData.reduce((s, u) => s + (u.tokens_input || 0) + (u.tokens_output || 0), 0),
+  } : null;
 
   const { data: recentTraces = [] } = useQuery({
     queryKey: ['dashboard_traces'],
@@ -147,8 +149,10 @@ export default function DashboardPage() {
             </div>
           )}
 
-          <div className="grid lg:grid-cols-2 gap-4">
-            {/* Recent agents */}
+          {/* Analytics Charts */}
+          <UsageCharts data={usageData} />
+
+            <div className="grid lg:grid-cols-2 gap-4">
             <div className="nexus-card">
               <h3 className="text-sm font-heading font-semibold text-foreground mb-3">Agentes recentes</h3>
               <div className="space-y-3">
