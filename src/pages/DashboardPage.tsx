@@ -24,7 +24,7 @@ export default function DashboardPage() {
     },
   });
 
-  const { data: usageStats } = useQuery({
+  const { data: usageData = [] } = useQuery({
     queryKey: ['dashboard_usage'],
     queryFn: async () => {
       const thirtyDaysAgo = new Date();
@@ -33,14 +33,16 @@ export default function DashboardPage() {
         .from('agent_usage')
         .select('*')
         .gte('date', thirtyDaysAgo.toISOString().split('T')[0]);
-      if (!data?.length) return null;
-      return {
-        totalCost: data.reduce((s, u) => s + Number(u.total_cost_usd || 0), 0),
-        totalRequests: data.reduce((s, u) => s + (u.requests || 0), 0),
-        avgLatency: Math.round(data.reduce((s, u) => s + (u.avg_latency_ms || 0), 0) / data.length),
-        totalTokens: data.reduce((s, u) => s + (u.tokens_input || 0) + (u.tokens_output || 0), 0),
-      };
+      return data ?? [];
     },
+  });
+
+  const usageStats = usageData.length ? {
+    totalCost: usageData.reduce((s, u) => s + Number(u.total_cost_usd || 0), 0),
+    totalRequests: usageData.reduce((s, u) => s + (u.requests || 0), 0),
+    avgLatency: Math.round(usageData.reduce((s, u) => s + (u.avg_latency_ms || 0), 0) / usageData.length),
+    totalTokens: usageData.reduce((s, u) => s + (u.tokens_input || 0) + (u.tokens_output || 0), 0),
+  } : null;
   });
 
   const { data: recentTraces = [] } = useQuery({
