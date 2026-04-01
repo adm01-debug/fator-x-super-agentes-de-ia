@@ -2,6 +2,7 @@ import { create } from 'zustand';
 import type { AgentConfig, PromptVersion, ReadinessScore, ReadinessItem } from '@/types/agentTypes';
 import { DEFAULT_AGENT, TABS } from '@/data/agentBuilderData';
 import * as agentService from '@/services/agentService';
+import { AgentConfigSchema } from '@/lib/validation';
 
 interface AgentBuilderStore {
   agent: AgentConfig;
@@ -198,6 +199,21 @@ export const useAgentBuilderStore = create<AgentBuilderStore>((set, get) => ({
       const now = new Date().toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
       set({ isSaving: false, isDirty: false, lastSaved: now });
       return;
+    }
+
+    // Validate with Zod before saving
+    const validation = AgentConfigSchema.safeParse({
+      name: agent.name, mission: agent.mission, persona: agent.persona, model: agent.model,
+      reasoning: agent.reasoning, temperature: agent.temperature, top_p: agent.top_p,
+      max_tokens: agent.max_tokens, system_prompt: agent.system_prompt, status: agent.status,
+      version: agent.version, avatar_emoji: agent.avatar_emoji, scope: agent.scope,
+      formality: agent.formality, proactivity: agent.proactivity, creativity: agent.creativity,
+      verbosity: agent.verbosity,
+    });
+    if (!validation.success) {
+      const firstError = validation.error.errors[0];
+      set({ isSaving: false });
+      throw new Error(`Validação: ${firstError?.path.join('.')} — ${firstError?.message}`);
     }
 
     set({ isSaving: true });

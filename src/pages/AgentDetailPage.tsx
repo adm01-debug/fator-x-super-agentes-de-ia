@@ -1,6 +1,7 @@
 import { useParams, useNavigate } from "react-router-dom";
-import { agents } from "@/lib/mock-data";
+import { agents as mockAgents } from "@/lib/mock-data";
 import { PageHeader } from "@/components/shared/PageHeader";
+import { useAgentBuilderStore } from "@/stores/agentBuilderStore";
 import { StatusBadge } from "@/components/shared/StatusBadge";
 import { MetricCard } from "@/components/shared/MetricCard";
 import { Input } from "@/components/ui/input";
@@ -20,7 +21,20 @@ const chatHistory = [
 export default function AgentDetailPage() {
   const { id } = useParams();
   const navigate = useNavigate();
-  const agent = agents.find(a => a.id === id) || agents[0];
+  const { savedAgents } = useAgentBuilderStore();
+
+  // Try real agent first, fallback to mock
+  const realAgent = savedAgents.find(a => a.id === id);
+  const mockAgent = mockAgents.find(a => a.id === id) || mockAgents[0];
+  const agent = realAgent ? {
+    ...mockAgent,
+    name: realAgent.name,
+    status: realAgent.status || 'draft',
+    maturity: realAgent.status === 'production' ? 'production' : realAgent.status === 'testing' ? 'tested' : 'prototype',
+    tags: realAgent.tags || [],
+    sessions24h: 0, avgLatency: 0, costToday: 0, successRate: 0, satisfaction: 0, toolCalls: 0, tokensIn: 0, tokensOut: 0,
+  } : mockAgent;
+
   const [chatInput, setChatInput] = useState('');
 
   const metrics = [

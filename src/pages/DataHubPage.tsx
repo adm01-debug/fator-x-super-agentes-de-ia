@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { PageHeader } from '@/components/shared/PageHeader';
 import { StatusBadge } from '@/components/shared/StatusBadge';
-import { BANK_HEALTH_SCORES } from '@/config/datahub-blacklist';
+import { BANK_HEALTH_SCORES, DATAHUB_TABLE_BLACKLIST, AUTO_BUSINESS_FACTS, CORRECTED_ENTITY_MAPPINGS, COLUMN_NAME_CORRECTIONS } from '@/config/datahub-blacklist';
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Database, Server, Search, Map, RefreshCw, Code, Activity, Shield, Plus, ExternalLink, Zap, Play } from 'lucide-react';
@@ -46,8 +46,10 @@ export default function DataHubPage() {
   // Explorer state
   const [explorerDb, setExplorerDb] = useState(CONNECTIONS[0]?.name ?? '');
   const [explorerSearch, setExplorerSearch] = useState('');
-  const explorerTables = ['companies', 'customers', 'contacts', 'suppliers', 'carriers', 'interactions', 'sales', 'products', 'categories', 'product_tags', 'messages', 'colaboradores'];
-  const filteredTables = explorerTables.filter(t => !explorerSearch || t.includes(explorerSearch.toLowerCase()));
+  const explorerTables = ['companies', 'customers', 'contacts', 'suppliers', 'carriers', 'interactions', 'sales', 'products', 'categories', 'product_tags', 'messages', 'colaboradores', 'company_rfm_scores', 'product_images', 'controle_ponto'];
+  const filteredTables = explorerTables
+    .filter(t => !DATAHUB_TABLE_BLACKLIST.has(t))
+    .filter(t => !explorerSearch || t.includes(explorerSearch.toLowerCase()));
 
   // Query builder state
   const [queryText, setQueryText] = useState("SELECT * FROM companies WHERE status = 'ativo' LIMIT 10;");
@@ -369,6 +371,33 @@ export default function DataHubPage() {
                 </div>
               </div>
             ))}
+          </div>
+
+          {/* Business Facts */}
+          <div className="nexus-card">
+            <h3 className="text-sm font-semibold text-foreground mb-3">Fatos de Negócio (Auto-extraídos)</h3>
+            <div className="space-y-1.5">
+              {AUTO_BUSINESS_FACTS.map((fact, i) => (
+                <div key={i} className="flex items-center gap-2 p-2 rounded-lg bg-muted/10 text-[10px]">
+                  <span className="text-emerald-400">✓</span>
+                  <span className="text-foreground flex-1">{typeof fact === 'string' ? fact : JSON.stringify(fact)}</span>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          {/* Column corrections */}
+          <div className="nexus-card">
+            <h3 className="text-sm font-semibold text-foreground mb-3">Correções de Colunas Aplicadas</h3>
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
+              {Object.entries(COLUMN_NAME_CORRECTIONS).map(([wrong, right]) => (
+                <div key={wrong} className="flex items-center gap-1 text-[10px] p-1.5 rounded bg-muted/10">
+                  <span className="text-rose-400 line-through">{wrong}</span>
+                  <span className="text-muted-foreground">→</span>
+                  <span className="text-emerald-400">{right}</span>
+                </div>
+              ))}
+            </div>
           </div>
         </TabsContent>
 

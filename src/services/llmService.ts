@@ -52,11 +52,26 @@ export const AVAILABLE_MODELS = [
 
 let storedConfig: LLMConfig | null = null;
 
-// Auto-configure from environment variable if available
+// Auto-configure: localStorage (BYOK) → env var → null
 let envChecked = false;
 function autoConfigureFromEnv(): void {
   if (storedConfig || envChecked) return;
   envChecked = true;
+
+  // Priority 1: BYOK keys from localStorage (set via Settings page)
+  try {
+    const stored = localStorage.getItem('nexus_llm_config');
+    if (stored) {
+      const parsed = JSON.parse(stored);
+      if (parsed.apiKey && parsed.apiKey.length > 10) {
+        storedConfig = parsed;
+        logger.info(`LLM auto-configured from localStorage (BYOK): provider=${parsed.provider}`, 'llmService');
+        return;
+      }
+    }
+  } catch { /* ignore parse errors */ }
+
+  // Priority 2: Environment variable
   const envKey = import.meta.env.VITE_OPENROUTER_API_KEY;
   if (envKey && typeof envKey === 'string' && envKey.length > 10) {
     storedConfig = { provider: 'openrouter', apiKey: envKey };
@@ -64,9 +79,10 @@ function autoConfigureFromEnv(): void {
   }
 }
 
-/** Store API key for LLM calls. Call this once when user configures the system. */
+/** Store API key for LLM calls. Persists to localStorage for BYOK across sessions. */
 export function configureLLM(config: LLMConfig): void {
   storedConfig = config;
+  try { localStorage.setItem('nexus_llm_config', JSON.stringify(config)); } catch { /* quota */ }
   logger.info(`LLM configured: provider=${config.provider}`, 'llmService');
 }
 

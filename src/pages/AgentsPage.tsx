@@ -4,7 +4,8 @@ import { StatusBadge } from "@/components/shared/StatusBadge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { agents as mockAgents } from "@/lib/mock-data";
-import { Plus, Search, ArrowRight, Trash2 } from "lucide-react";
+import { Plus, Search, ArrowRight, Trash2, CheckSquare, Square } from "lucide-react";
+import { toast } from "sonner";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 import { useAgentBuilderStore } from "@/stores/agentBuilderStore";
@@ -16,6 +17,22 @@ export default function AgentsPage() {
   const { savedAgents, loadSavedAgents, deleteAgent, setCurrentUserId } = useAgentBuilderStore();
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState<string>("all");
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+
+  const toggleSelect = (id: string) => {
+    setSelectedIds(prev => { const next = new Set(prev); if (next.has(id)) next.delete(id); else next.add(id); return next; });
+  };
+  const selectAll = () => {
+    if (selectedIds.size === filtered.length) setSelectedIds(new Set());
+    else setSelectedIds(new Set(filtered.map(a => a.id)));
+  };
+  const bulkDelete = async () => {
+    if (selectedIds.size === 0) return;
+    if (!confirm(`Excluir ${selectedIds.size} agente(s)?`)) return;
+    for (const id of selectedIds) { try { await deleteAgent(id); } catch {} }
+    setSelectedIds(new Set());
+    toast.success(`${selectedIds.size} agente(s) excluído(s)`);
+  };
 
   useEffect(() => {
     if (user?.id) {
@@ -123,6 +140,16 @@ export default function AgentsPage() {
         </select>
       </div>
 
+      {/* Bulk Actions */}
+      {selectedIds.size > 0 && (
+        <div className="flex items-center gap-3 rounded-xl border border-primary/30 bg-primary/5 px-4 py-2">
+          <button onClick={selectAll} className="text-xs text-primary hover:underline">{selectedIds.size === filtered.length ? 'Desselecionar todos' : 'Selecionar todos'}</button>
+          <span className="text-xs text-foreground font-medium">{selectedIds.size} selecionado(s)</span>
+          <div className="flex-1" />
+          <Button variant="outline" size="sm" className="text-[10px] h-7 text-destructive border-destructive/30" onClick={bulkDelete}><Trash2 className="h-3 w-3 mr-1" /> Excluir selecionados</Button>
+        </div>
+      )}
+
       {/* Agent Grid */}
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
         {filtered.map((agent, i) => (
@@ -133,6 +160,9 @@ export default function AgentsPage() {
           >
             <div className="flex items-start justify-between mb-3">
               <div className="flex items-center gap-2.5">
+                <button onClick={e => { e.stopPropagation(); toggleSelect(agent.id); }} className="shrink-0">
+                  {selectedIds.has(agent.id) ? <CheckSquare className="h-4 w-4 text-primary" /> : <Square className="h-4 w-4 text-muted-foreground/30 group-hover:text-muted-foreground" />}
+                </button>
                 <div className="h-10 w-10 rounded-xl bg-primary/10 flex items-center justify-center text-xl">
                   {agent.emoji}
                 </div>
