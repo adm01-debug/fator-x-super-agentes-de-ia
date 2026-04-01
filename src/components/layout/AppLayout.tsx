@@ -41,7 +41,7 @@ function getDefaultOpen() {
 }
 
 export function AppLayout({ children }: AppLayoutProps) {
-  const [cmdOpen, setCmdOpen] = useState(false);
+  
   const [defaultOpen] = useState(getDefaultOpen);
   const navigate = useNavigate();
   const location = useLocation();
