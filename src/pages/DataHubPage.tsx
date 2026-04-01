@@ -4,8 +4,9 @@ import { StatusBadge } from '@/components/shared/StatusBadge';
 import { BANK_HEALTH_SCORES } from '@/config/datahub-blacklist';
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Database, Server, Search, Map, RefreshCw, Code, Activity, Shield, Plus, ExternalLink, Zap } from 'lucide-react';
+import { Database, Server, Search, Map, RefreshCw, Code, Activity, Shield, Plus, ExternalLink, Zap, Play } from 'lucide-react';
 import { toast } from 'sonner';
+import * as idResolver from '@/services/identityResolution';
 
 // Dados reais das conexões (seed)
 const CONNECTIONS = [
@@ -58,6 +59,48 @@ export default function DataHubPage() {
 
   // Sync state
   const [syncing, setSyncing] = useState<Set<string>>(new Set());
+
+  // Identity resolution state
+  const [irRunning, setIrRunning] = useState(false);
+  const [irProgress, setIrProgress] = useState('');
+  const [irStats, setIrStats] = useState({ resolved: 487, pending: 23, irreconcilable: 8 });
+  const [irResults, setIrResults] = useState<idResolver.IdentityMatch[]>([]);
+
+  // Run identity resolution between two connected databases
+  const runIdentityResolution = async (srcDbName: string, tgtDbName: string, srcTable: string, tgtTable: string) => {
+    const srcConn = CONNECTIONS.find(c => c.name === srcDbName);
+    const tgtConn = CONNECTIONS.find(c => c.name === tgtDbName);
+    if (!srcConn || !tgtConn) { toast.error('Banco não encontrado'); return; }
+
+    setIrRunning(true);
+    setIrProgress('Iniciando resolução de identidade...');
+
+    const result = await idResolver.resolveIdentities(
+      { name: srcConn.display, url: `https://${srcConn.name}.supabase.co`, key: '' },
+      { name: tgtConn.display, url: `https://${tgtConn.name}.supabase.co`, key: '' },
+      {
+        sourceTable: srcTable,
+        targetTable: tgtTable,
+        matchColumns: {
+          email: { source: 'email', target: 'email' },
+          cnpj: { source: 'cnpj', target: 'cnpj' },
+          phone: { source: 'phone', target: 'phone' },
+        },
+        limit: 200,
+        onProgress: setIrProgress,
+      }
+    );
+
+    setIrStats({
+      resolved: irStats.resolved + result.resolved.length,
+      pending: irStats.pending + result.pending.length,
+      irreconcilable: irStats.irreconcilable + result.irreconcilable,
+    });
+    setIrResults(prev => [...result.resolved, ...result.pending, ...prev].slice(0, 100));
+    setIrRunning(false);
+    setIrProgress('');
+    toast.success(`Resolução concluída: ${result.resolved.length} resolvidos, ${result.pending.length} pendentes, ${result.irreconcilable} irreconciliáveis (${result.executionTimeMs}ms)`);
+  };
 
   return (
     <div className="p-6 space-y-6 max-w-[1400px] mx-auto">
@@ -204,13 +247,21 @@ export default function DataHubPage() {
         {/* Tab 5: Identity Resolution */}
         <TabsContent value="identity" className="mt-4 space-y-4">
           <div className="nexus-card">
-            <h3 className="text-sm font-semibold text-foreground mb-3">Identity Resolution — Cross-Database Matching</h3>
-            <p className="text-xs text-muted-foreground mb-4">Resolve "quem é quem" entre os 5 bancos usando email, CNPJ (raiz 8 dígitos) e telefone normalizado.</p>
+            <div className="flex items-center justify-between mb-3">
+              <h3 className="text-sm font-semibold text-foreground">Identity Resolution — Cross-Database Matching</h3>
+              <Button size="sm" className="gap-1.5" disabled={irRunning} onClick={() => runIdentityResolution('bancodadosclientes', 'gestao_time_promo', 'companies', 'colaboradores')}>
+                {irRunning ? <><RefreshCw className="h-3.5 w-3.5 animate-spin" /> Executando...</> : <><Play className="h-3.5 w-3.5" /> Executar Resolução</>}
+              </Button>
+            </div>
+            <p className="text-xs text-muted-foreground mb-4">
+              Resolve "quem é quem" entre os 5 bancos usando email, CNPJ (raiz 8 dígitos) e telefone normalizado.
+              {irProgress && <span className="block text-primary animate-pulse mt-1">{irProgress}</span>}
+            </p>
             <div className="grid grid-cols-3 gap-3 mb-4">
               {[
-                { label: 'Resolvidas', value: 487, color: 'text-emerald-400' },
-                { label: 'Pendentes (review)', value: 23, color: 'text-amber-400' },
-                { label: 'Irreconciliáveis', value: 8, color: 'text-rose-400' },
+                { label: 'Resolvidas', value: irStats.resolved, color: 'text-emerald-400' },
+                { label: 'Pendentes (review)', value: irStats.pending, color: 'text-amber-400' },
+                { label: 'Irreconciliáveis', value: irStats.irreconcilable, color: 'text-rose-400' },
               ].map(s => (
                 <div key={s.label} className="text-center p-3 rounded-lg bg-muted/20">
                   <p className={`text-xl font-bold font-mono ${s.color}`}>{s.value}</p>

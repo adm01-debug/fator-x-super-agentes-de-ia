@@ -5,6 +5,8 @@ import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Brain, Database, Search, Shield, Activity, FlaskConical, Plus, RefreshCw, AlertTriangle, CheckCircle, Clock, Zap, BookOpen, Network, Eye, Lightbulb } from 'lucide-react';
 import { toast } from 'sonner';
+import * as vectorSearch from '@/services/vectorSearch';
+import * as llm from '@/services/llmService';
 
 // Mock data
 const MOCK_FACTS = [
@@ -231,19 +233,40 @@ export default function SuperCerebroPage() {
             <h3 className="text-sm font-semibold text-foreground mb-3">Busca Unificada (Vector + BM25 + Graph + Temporal)</h3>
             <div className="flex gap-2">
               <input value={searchQuery} onChange={e => setSearchQuery(e.target.value)} placeholder="Buscar no Super Cérebro..." className="flex-1 bg-muted/30 border border-border rounded-lg px-4 py-2 text-sm text-foreground" />
-              <Button onClick={() => {
+              <Button onClick={async () => {
                 if (!searchQuery.trim()) { toast.error('Digite algo para buscar'); return; }
-                const results = MOCK_FACTS.filter(f =>
-                  f.content.toLowerCase().includes(searchQuery.toLowerCase()) ||
-                  f.domain.toLowerCase().includes(searchQuery.toLowerCase())
-                );
-                // Also include entity matches
-                const entityMatches = MOCK_ENTITIES.filter(e =>
-                  e.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-                  e.domain.toLowerCase().includes(searchQuery.toLowerCase())
-                );
-                setSearchResults(results);
-                toast.success(`Busca: "${searchQuery}" — ${results.length} fatos + ${entityMatches.length} entidades encontradas`);
+                toast.info('Buscando...');
+
+                // Strategy 1: Try real vector/text search via Supabase
+                const dbResults = await vectorSearch.searchFacts(searchQuery, { limit: 10 });
+
+                if (dbResults.length > 0) {
+                  // Map to component format
+                  const mapped = dbResults.map(r => ({
+                    id: r.id,
+                    content: r.content,
+                    domain: r.domain,
+                    confidence: r.confidence,
+                    source: r.source,
+                    validated: r.confidence >= 90,
+                    validatedBy: r.method === 'vector' ? 'pgvector' : r.method === 'bm25' ? 'text-search' : r.method,
+                    createdAt: new Date().toISOString().slice(0, 10),
+                  }));
+                  setSearchResults(mapped);
+                  toast.success(`Busca real: ${mapped.length} resultado(s) via ${dbResults[0].method}`);
+                } else {
+                  // Strategy 2: Fallback to local mock data
+                  const localResults = MOCK_FACTS.filter(f =>
+                    f.content.toLowerCase().includes(searchQuery.toLowerCase()) ||
+                    f.domain.toLowerCase().includes(searchQuery.toLowerCase())
+                  );
+                  const entityMatches = MOCK_ENTITIES.filter(e =>
+                    e.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+                    e.domain.toLowerCase().includes(searchQuery.toLowerCase())
+                  );
+                  setSearchResults(localResults);
+                  toast.success(`Busca local: ${localResults.length} fatos + ${entityMatches.length} entidades`);
+                }
               }}>
                 <Search className="h-4 w-4 mr-1" /> Buscar
               </Button>
@@ -335,23 +358,46 @@ export default function SuperCerebroPage() {
             <h3 className="text-sm font-semibold text-foreground mb-3">Brain Sandbox — Testar antes de deploy</h3>
             <p className="text-xs text-muted-foreground mb-3">Cole perguntas (1 por linha) para testar a qualidade das respostas do Super Cérebro.</p>
             <textarea value={sandboxQueries} onChange={e => setSandboxQueries(e.target.value)} className="w-full h-32 bg-muted/30 border border-border rounded-lg p-3 font-mono text-xs text-foreground resize-none" placeholder={"Qual o prazo de entrega padrão?\nQuem é o melhor fornecedor de canetas?\nQuantos clientes ativos temos em SP?\nQual a regra de inativação de clientes?"} />
-            <Button className="mt-2" onClick={() => {
+            <Button className="mt-2" onClick={async () => {
               const queries = sandboxQueries.split('\n').filter(Boolean).slice(0, 10);
               if (queries.length === 0) { toast.error('Digite pelo menos 1 pergunta'); return; }
-              const sources = ['fato', 'grafo', 'vector', 'BM25'];
-              const results: SandboxResult[] = queries.map(q => {
-                const matchedFact = MOCK_FACTS.find(f => f.content.toLowerCase().includes(q.toLowerCase().split(' ').slice(0, 3).join(' ')));
-                return {
-                  query: q,
-                  score: matchedFact ? 85 + Math.floor(Math.random() * 10) : 40 + Math.floor(Math.random() * 30),
-                  source: matchedFact ? 'fato' : sources[Math.floor(Math.random() * sources.length)],
-                  latency: 50 + Math.floor(Math.random() * 200),
-                  answer: matchedFact ? matchedFact.content : `Nenhum fato direto encontrado. Resposta inferida via ${sources[Math.floor(Math.random() * sources.length)]}.`,
-                };
-              });
+              toast.info(`Executando ${queries.length} perguntas...`);
+
+              const results: SandboxResult[] = [];
+              for (const q of queries) {
+                const start = Date.now();
+
+                // Try real search first
+                const dbResults = await vectorSearch.searchFacts(q, { limit: 1 });
+
+                if (dbResults.length > 0) {
+                  results.push({
+                    query: q,
+                    score: Math.round(dbResults[0].similarity * 100),
+                    source: dbResults[0].method,
+                    latency: Date.now() - start,
+                    answer: dbResults[0].content,
+                  });
+                } else {
+                  // Fallback: local fact matching
+                  const matchedFact = MOCK_FACTS.find(f => f.content.toLowerCase().includes(q.toLowerCase().split(' ').slice(0, 3).join(' ')));
+                  if (matchedFact) {
+                    results.push({ query: q, score: matchedFact.confidence, source: 'fato-local', latency: Date.now() - start, answer: matchedFact.content });
+                  } else if (llm.isLLMConfigured()) {
+                    // Try LLM answer
+                    const resp = await llm.callModel('anthropic/claude-sonnet-4', [
+                      { role: 'system', content: 'Responda de forma concisa (1-2 frases). Se não souber, diga "Sem informação no Super Cérebro".' },
+                      { role: 'user', content: q },
+                    ], { maxTokens: 200 });
+                    results.push({ query: q, score: resp.error ? 20 : 70, source: resp.error ? 'fallback' : 'llm', latency: Date.now() - start, answer: resp.content.slice(0, 300) });
+                  } else {
+                    results.push({ query: q, score: 30, source: 'nenhum', latency: Date.now() - start, answer: 'Sem dados no Super Cérebro. Configure API key para respostas via LLM.' });
+                  }
+                }
+              }
               setSandboxResults(results);
               const avgScore = Math.round(results.reduce((s, r) => s + r.score, 0) / results.length);
-              toast.success(`${results.length} perguntas executadas — score médio: ${avgScore}%`);
+              toast.success(`${results.length} perguntas — score médio: ${avgScore}%`);
             }}>
               <FlaskConical className="h-4 w-4 mr-1" /> Executar Sandbox
             </Button>

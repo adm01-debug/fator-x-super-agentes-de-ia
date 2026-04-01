@@ -1,7 +1,7 @@
 import { useState, useRef, useCallback } from "react";
 import { PageHeader } from "@/components/shared/PageHeader";
 import { Button } from "@/components/ui/button";
-import { Plus, GitBranch, ArrowRight, Save, Trash2, GripVertical, List, LayoutDashboard, Info, X } from "lucide-react";
+import { Plus, GitBranch, ArrowRight, Save, Trash2, GripVertical, List, LayoutDashboard, Info, X, Undo2, Redo2, ZoomIn, ZoomOut, Maximize } from "lucide-react";
 import { toast } from "sonner";
 
 // ═══ TYPES ═══
@@ -326,6 +326,45 @@ export default function WorkflowsPage() {
     });
   }, []);
 
+  // Undo/Redo history
+  interface HistoryEntry { nodes: CanvasNode[]; connections: CanvasConnection[] }
+  const [history, setHistory] = useState<HistoryEntry[]>([{ nodes: [...nodes], connections: [...connections] }]);
+  const [historyIndex, setHistoryIndex] = useState(0);
+
+  const pushHistory = useCallback((newNodes: CanvasNode[], newConns: CanvasConnection[]) => {
+    setHistory(prev => {
+      const trimmed = prev.slice(0, historyIndex + 1);
+      const next = [...trimmed, { nodes: newNodes.map(n => ({ ...n })), connections: newConns.map(c => ({ ...c })) }];
+      if (next.length > 50) next.shift(); // Limit to 50 entries
+      return next;
+    });
+    setHistoryIndex(prev => Math.min(prev + 1, 49));
+  }, [historyIndex]);
+
+  const undo = useCallback(() => {
+    if (historyIndex <= 0) return;
+    const prev = history[historyIndex - 1];
+    setNodes(prev.nodes.map(n => ({ ...n })));
+    setConnections(prev.connections.map(c => ({ ...c })));
+    setHistoryIndex(i => i - 1);
+    toast.info('Undo');
+  }, [historyIndex, history]);
+
+  const redo = useCallback(() => {
+    if (historyIndex >= history.length - 1) return;
+    const next = history[historyIndex + 1];
+    setNodes(next.nodes.map(n => ({ ...n })));
+    setConnections(next.connections.map(c => ({ ...c })));
+    setHistoryIndex(i => i + 1);
+    toast.info('Redo');
+  }, [historyIndex, history]);
+
+  // Zoom state
+  const [zoom, setZoom] = useState(1);
+  const zoomIn = useCallback(() => setZoom(z => Math.min(z + 0.15, 2)), []);
+  const zoomOut = useCallback(() => setZoom(z => Math.max(z - 0.15, 0.4)), []);
+  const zoomReset = useCallback(() => setZoom(1), []);
+
   // Add node to canvas
   const addNode = useCallback((type: string) => {
     const typeDef = NODE_TYPES.find(t => t.type === type);
@@ -337,9 +376,13 @@ export default function WorkflowsPage() {
       x: 100 + Math.random() * 400,
       y: 80 + Math.random() * 300,
     };
-    setNodes(prev => [...prev, newNode]);
+    setNodes(prev => {
+      const next = [...prev, newNode];
+      pushHistory(next, connections);
+      return next;
+    });
     toast.success(`${typeDef.label} adicionado ao canvas`);
-  }, []);
+  }, [connections, pushHistory]);
 
   // Save pipeline
   const savePipeline = useCallback(() => {
@@ -422,7 +465,17 @@ export default function WorkflowsPage() {
             />
             <Button onClick={savePipeline} className="gap-1.5"><Save className="h-4 w-4" /> Salvar</Button>
             <Button variant="outline" onClick={clearCanvas} className="gap-1.5"><Trash2 className="h-4 w-4" /> Limpar</Button>
-            <span className="text-[10px] text-muted-foreground ml-auto">{nodes.length} nodes · {connections.length} conexões</span>
+            <div className="flex items-center gap-1 ml-auto">
+              <Button variant="outline" size="sm" onClick={undo} disabled={historyIndex <= 0} title="Undo (Ctrl+Z)"><Undo2 className="h-3.5 w-3.5" /></Button>
+              <Button variant="outline" size="sm" onClick={redo} disabled={historyIndex >= history.length - 1} title="Redo (Ctrl+Y)"><Redo2 className="h-3.5 w-3.5" /></Button>
+              <span className="mx-2 text-border">|</span>
+              <Button variant="outline" size="sm" onClick={zoomOut} title="Zoom out"><ZoomOut className="h-3.5 w-3.5" /></Button>
+              <span className="text-[10px] text-muted-foreground w-10 text-center">{Math.round(zoom * 100)}%</span>
+              <Button variant="outline" size="sm" onClick={zoomIn} title="Zoom in"><ZoomIn className="h-3.5 w-3.5" /></Button>
+              <Button variant="outline" size="sm" onClick={zoomReset} title="Reset zoom"><Maximize className="h-3.5 w-3.5" /></Button>
+              <span className="mx-2 text-border">|</span>
+              <span className="text-[10px] text-muted-foreground">{nodes.length} nodes · {connections.length} conexões</span>
+            </div>
           </div>
 
           {/* Node palette */}
@@ -440,12 +493,20 @@ export default function WorkflowsPage() {
           </div>
 
           {/* Canvas */}
-          <WorkflowCanvas
-            nodes={nodes}
-            connections={connections}
-            onNodesChange={setNodes}
-            onConnectionsChange={setConnections}
-          />
+          {/* Zoom wrapper */}
+          <div className="overflow-auto rounded-2xl border border-border/30" style={{ maxHeight: 560 }}>
+            <div style={{ transform: `scale(${zoom})`, transformOrigin: 'top left', width: `${100 / zoom}%` }}>
+              <WorkflowCanvas
+                nodes={nodes}
+                connections={connections}
+                onNodesChange={(newNodes) => { setNodes(newNodes); }}
+                onConnectionsChange={(newConns) => {
+                  setConnections(newConns);
+                  pushHistory(nodes, newConns);
+                }}
+              />
+            </div>
+          </div>
 
           {/* Instructions */}
           <p className="text-[10px] text-muted-foreground text-center">
