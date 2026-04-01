@@ -114,5 +114,18 @@ export function useWorkflowPersistence() {
     return { nodes: cfg.nodes ?? [], edges: cfg.edges ?? [] };
   }, [workflows]);
 
-  return { workflows, selectedId, setSelectedId, loading, saving, saveCanvas, loadCanvas, fetchWorkflows };
+  const deleteCanvas = useCallback(async (workflowId: string) => {
+    const { error } = await supabase.from('workflows').delete().eq('id', workflowId);
+    if (error) {
+      toast.error('Erro ao deletar workflow');
+      console.error(error);
+      return false;
+    }
+    if (selectedId === workflowId) setSelectedId(null);
+    toast.success('Workflow removido!');
+    await fetchWorkflows();
+    return true;
+  }, [selectedId, fetchWorkflows]);
+
+  return { workflows, selectedId, setSelectedId, loading, saving, saveCanvas, loadCanvas, deleteCanvas, fetchWorkflows };
 }
