@@ -301,9 +301,11 @@ export function WorkflowCanvas({ nodes, edges, onNodesChange, onEdgesChange }: P
             Clique nos botões acima para adicionar nodes ao canvas
           </div>
         )}
+
+        <CanvasMinimap nodes={nodes} edges={edges} zoom={zoom} pan={pan} containerWidth={containerRef.current?.clientWidth ?? 800} containerHeight={480} />
       </div>
       <p className="text-[10px] text-muted-foreground">
-        Arraste nodes para posicionar • Ponto azul para conectar • Clique na linha para remover • Scroll para zoom • Alt+arraste para pan
+        Arraste nodes para posicionar • Ponto azul para conectar • Clique na linha para remover • Scroll para zoom • Alt+arraste para pan • Duplo-clique para renomear
       </p>
     </div>
   );
