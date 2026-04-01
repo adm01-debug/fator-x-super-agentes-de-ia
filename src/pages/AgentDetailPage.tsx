@@ -184,13 +184,90 @@ export default function AgentDetailPage() {
                 ))}
               </div>
             </TabsContent>
-            {['knowledge', 'evaluations', 'logs', 'versions'].map(tab => (
-              <TabsContent key={tab} value={tab} className="mt-4">
-                <div className="nexus-card text-center py-8">
-                  <p className="text-sm text-muted-foreground">Configure no <button onClick={() => navigate('/builder')} className="text-primary hover:underline">Agent Builder</button></p>
+            {/* Knowledge tab */}
+            <TabsContent value="knowledge" className="mt-4">
+              <div className="nexus-card space-y-3">
+                <h3 className="text-sm font-semibold text-foreground">Knowledge Bases Vinculadas</h3>
+                {['Políticas Comerciais (1.240 chunks)', 'FAQ & Suporte (2.100 chunks)', 'Catálogo de Produtos (8.920 chunks)'].map(kb => (
+                  <div key={kb} className="flex items-center justify-between p-2 rounded-lg bg-secondary/30 text-xs">
+                    <div className="flex items-center gap-2"><span className="h-2 w-2 rounded-full bg-emerald-400" /><span className="text-foreground">{kb}</span></div>
+                    <span className="text-muted-foreground">Sync: 2h atrás</span>
+                  </div>
+                ))}
+                <p className="text-[10px] text-muted-foreground">RAG: pgvector • text-embedding-3-small • Chunk size: 512 • Recall: 87%</p>
+              </div>
+            </TabsContent>
+
+            {/* Evaluations tab */}
+            <TabsContent value="evaluations" className="mt-4">
+              <div className="nexus-card space-y-3">
+                <h3 className="text-sm font-semibold text-foreground">Últimas Avaliações</h3>
+                {[
+                  { name: 'Regressão v2.4', date: '2026-03-31', pass: 80, total: 5, score: 94 },
+                  { name: 'Safety check', date: '2026-03-30', pass: 100, total: 3, score: 99 },
+                  { name: 'Baseline v2.3', date: '2026-03-28', pass: 75, total: 8, score: 88 },
+                ].map(ev => (
+                  <div key={ev.name} className="flex items-center justify-between p-3 rounded-lg bg-secondary/30 text-xs">
+                    <div><p className="font-medium text-foreground">{ev.name}</p><p className="text-[10px] text-muted-foreground">{ev.date} • {ev.total} test cases</p></div>
+                    <div className="flex items-center gap-3">
+                      <span className={`font-mono font-bold ${ev.pass >= 80 ? 'text-emerald-400' : 'text-amber-400'}`}>{ev.pass}% pass</span>
+                      <span className="font-mono text-foreground">{ev.score}%</span>
+                    </div>
+                  </div>
+                ))}
+                <Button variant="outline" size="sm" className="w-full text-xs" onClick={() => navigate('/evaluations')}>Ver todas as avaliações</Button>
+              </div>
+            </TabsContent>
+
+            {/* Logs tab */}
+            <TabsContent value="logs" className="mt-4">
+              <div className="nexus-card space-y-3">
+                <h3 className="text-sm font-semibold text-foreground">Logs Recentes</h3>
+                <div className="space-y-1 max-h-[400px] overflow-y-auto">
+                  {[
+                    { time: '16:30:12', level: 'info', msg: 'Sessão iniciada — user: joaquim@promobrindes.com.br' },
+                    { time: '16:30:14', level: 'info', msg: 'RAG retrieval: 5 chunks (12ms, relevance: 0.89)' },
+                    { time: '16:30:15', level: 'info', msg: 'LLM call: claude-sonnet-4 — 342 tokens (1.2s)' },
+                    { time: '16:30:15', level: 'info', msg: 'Guardrail check: PII redaction — PASS' },
+                    { time: '16:30:16', level: 'info', msg: 'Response sent — 156 tokens output' },
+                    { time: '16:28:45', level: 'warn', msg: 'Rate limit approaching: 85/100 requests/min' },
+                    { time: '16:25:03', level: 'error', msg: 'Tool call failed: crm_lookup — timeout after 5000ms' },
+                    { time: '16:24:01', level: 'info', msg: 'Sessão encerrada — duration: 3.2s, cost: $0.012' },
+                    { time: '16:20:15', level: 'info', msg: 'Guardrail: Hallucination check — confidence: 92%' },
+                    { time: '16:18:30', level: 'info', msg: 'Knowledge base sync completed: +12 chunks' },
+                  ].map((log, i) => (
+                    <div key={i} className="flex items-start gap-2 p-1.5 rounded text-[10px] font-mono">
+                      <span className="text-muted-foreground shrink-0">{log.time}</span>
+                      <span className={`shrink-0 px-1 py-0.5 rounded ${log.level === 'error' ? 'bg-rose-500/20 text-rose-400' : log.level === 'warn' ? 'bg-amber-500/20 text-amber-400' : 'bg-muted/30 text-muted-foreground'}`}>{log.level}</span>
+                      <span className="text-foreground">{log.msg}</span>
+                    </div>
+                  ))}
                 </div>
-              </TabsContent>
-            ))}
+                <Button variant="outline" size="sm" className="w-full text-xs" onClick={() => navigate('/monitoring')}>Ver traces completos</Button>
+              </div>
+            </TabsContent>
+
+            {/* Versions tab */}
+            <TabsContent value="versions" className="mt-4">
+              <div className="nexus-card space-y-3">
+                <h3 className="text-sm font-semibold text-foreground">Histórico de Versões</h3>
+                {[
+                  { version: 'v2.4.1', date: '2026-03-31', author: 'Cérebro', changes: 'Ajuste de temperatura (0.7→0.65), novo guardrail de hallucination', status: 'active' },
+                  { version: 'v2.4.0', date: '2026-03-29', author: 'Pink', changes: 'Novo prompt system com few-shot examples', status: 'archived' },
+                  { version: 'v2.3.0', date: '2026-03-25', author: 'Cérebro', changes: 'Adição de tool CRM Update, Knowledge Base Catálogo', status: 'archived' },
+                  { version: 'v2.2.0', date: '2026-03-20', author: 'Pink', changes: 'Primeira versão com RAG e guardrails', status: 'archived' },
+                  { version: 'v1.0.0', date: '2026-03-10', author: 'Cérebro', changes: 'Versão inicial — prompt básico sem tools', status: 'archived' },
+                ].map(v => (
+                  <div key={v.version} className="flex items-center justify-between p-3 rounded-lg bg-secondary/30 text-xs">
+                    <div className="flex items-center gap-3">
+                      <span className={`font-mono font-bold ${v.status === 'active' ? 'text-emerald-400' : 'text-muted-foreground'}`}>{v.version}</span>
+                      <div><p className="text-foreground">{v.changes}</p><p className="text-[10px] text-muted-foreground">{v.date} por {v.author}</p></div>
+                    </div>
+                    {v.status === 'active' && <span className="px-2 py-0.5 rounded bg-emerald-500/20 text-emerald-400 text-[10px]">Ativa</span>}
+                  </div>
+                ))}
+              </div>
+            </TabsContent>
           </Tabs>
         </div>
 
