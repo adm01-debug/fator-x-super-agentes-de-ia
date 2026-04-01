@@ -63,6 +63,17 @@ export default function DatabaseManagerPage() {
   const [filterColumn, setFilterColumn] = useState('');
   const [filterValue, setFilterValue] = useState('');
 
+  // Find & Replace state
+  const [showFindReplace, setShowFindReplace] = useState(false);
+  const [frColumn, setFrColumn] = useState('');
+  const [frSearch, setFrSearch] = useState('');
+  const [frReplace, setFrReplace] = useState('');
+  const [frExact, setFrExact] = useState(false);
+  const [frCaseSensitive, setFrCaseSensitive] = useState(false);
+  const [frPreview, setFrPreview] = useState<dbManager.TableRow[]>([]);
+  const [frMatchCount, setFrMatchCount] = useState(0);
+  const [frRunning, setFrRunning] = useState(false);
+
   // Get active remote client
   const getClient = useCallback(() => {
     const db = databases.find(d => d.id === selectedDb);
@@ -223,6 +234,42 @@ export default function DatabaseManagerPage() {
     setEditingRowData({});
     loadTableData(viewingTable);
   }, [viewingTable, editingRowData, selectedDb, databases, loadTableData]);
+
+  // Find & Replace: Preview
+  const handleFrPreview = useCallback(async () => {
+    if (!viewingTable || !frColumn || !frSearch) { toast.error('Preencha coluna e valor de busca'); return; }
+    const db = databases.find(d => d.id === selectedDb);
+    if (!db) return;
+    setFrRunning(true);
+    const client = dbManager.connectToRemoteDB(db.url, db.url);
+    const result = await dbManager.findAndReplace(client, viewingTable, frColumn, frSearch, frReplace, {
+      caseSensitive: frCaseSensitive, exactMatch: frExact, dryRun: true,
+    });
+    setFrRunning(false);
+    if (result.error) { toast.error(result.error); return; }
+    setFrMatchCount(result.matched);
+    setFrPreview(result.preview ?? []);
+    toast.info(`${result.matched} registro(s) encontrado(s) com "${frSearch}" na coluna "${frColumn}"`);
+  }, [viewingTable, frColumn, frSearch, frReplace, frCaseSensitive, frExact, selectedDb, databases]);
+
+  // Find & Replace: Execute
+  const handleFrExecute = useCallback(async () => {
+    if (!viewingTable || !frColumn || !frSearch) return;
+    if (!confirm(`Substituir "${frSearch}" por "${frReplace}" em ${frMatchCount} registro(s) da coluna "${frColumn}"?\n\nEssa ação NÃO pode ser desfeita.`)) return;
+    const db = databases.find(d => d.id === selectedDb);
+    if (!db) return;
+    setFrRunning(true);
+    const client = dbManager.connectToRemoteDB(db.url, db.url);
+    const result = await dbManager.findAndReplace(client, viewingTable, frColumn, frSearch, frReplace, {
+      caseSensitive: frCaseSensitive, exactMatch: frExact, dryRun: false,
+    });
+    setFrRunning(false);
+    if (result.error) { toast.error(result.error); return; }
+    toast.success(`${result.replaced} de ${result.matched} registro(s) substituído(s)`);
+    setFrPreview([]);
+    setFrMatchCount(0);
+    loadTableData(viewingTable);
+  }, [viewingTable, frColumn, frSearch, frReplace, frCaseSensitive, frExact, frMatchCount, selectedDb, databases, loadTableData]);
 
   const selectedDatabase = databases.find(db => db.id === selectedDb);
 
@@ -525,8 +572,52 @@ export default function DatabaseManagerPage() {
                   <Search className="h-3.5 w-3.5" /> Filtrar
                 </Button>
                 <Button variant="outline" size="sm" className="gap-1.5" onClick={() => { setFilterValue(''); setFilterColumn(''); viewingTable && loadTableData(viewingTable); }}><RefreshCw className="h-3.5 w-3.5" /> Limpar</Button>
+                <Button variant="outline" size="sm" className="gap-1.5" onClick={() => setShowFindReplace(!showFindReplace)} disabled={!viewingTable}><Edit className="h-3.5 w-3.5" /> Substituir</Button>
                 <Button size="sm" className="gap-1.5" disabled={!viewingTable} onClick={() => { setInsertData({}); setShowInsertRow(true); }}><Plus className="h-3.5 w-3.5" /> Inserir</Button>
               </div>
+
+              {/* Find & Replace Panel */}
+              {showFindReplace && viewingTable && tableData.length > 0 && (
+                <div className="rounded-xl border border-primary/30 bg-primary/5 p-4 space-y-3">
+                  <div className="flex items-center justify-between">
+                    <h4 className="text-xs font-semibold text-foreground">Buscar e Substituir (como Excel)</h4>
+                    <button onClick={() => { setShowFindReplace(false); setFrPreview([]); }}><X className="h-3.5 w-3.5 text-muted-foreground" /></button>
+                  </div>
+                  <div className="grid grid-cols-1 md:grid-cols-4 gap-2">
+                    <select value={frColumn} onChange={e => setFrColumn(e.target.value)} className="bg-muted/30 border border-border rounded-lg px-2 py-1.5 text-xs text-foreground">
+                      <option value="">Coluna...</option>
+                      {Object.keys(tableData[0]).map(col => <option key={col} value={col}>{col}</option>)}
+                    </select>
+                    <input value={frSearch} onChange={e => setFrSearch(e.target.value)} placeholder="Buscar: ex. RV" className="bg-muted/30 border border-border rounded-lg px-3 py-1.5 text-xs text-foreground" />
+                    <input value={frReplace} onChange={e => setFrReplace(e.target.value)} placeholder="Substituir por: ex. Rio Verde" className="bg-muted/30 border border-border rounded-lg px-3 py-1.5 text-xs text-foreground" />
+                    <div className="flex gap-1">
+                      <Button variant="outline" size="sm" onClick={handleFrPreview} disabled={frRunning} className="flex-1 text-[10px]">
+                        {frRunning ? '...' : `Buscar`}
+                      </Button>
+                      <Button size="sm" onClick={handleFrExecute} disabled={frRunning || frMatchCount === 0} className="flex-1 text-[10px] gap-1">
+                        Substituir {frMatchCount > 0 && `(${frMatchCount})`}
+                      </Button>
+                    </div>
+                  </div>
+                  <div className="flex gap-3 text-[10px] text-muted-foreground">
+                    <label className="flex items-center gap-1"><input type="checkbox" checked={frCaseSensitive} onChange={e => setFrCaseSensitive(e.target.checked)} className="accent-primary" /> Case sensitive</label>
+                    <label className="flex items-center gap-1"><input type="checkbox" checked={frExact} onChange={e => setFrExact(e.target.checked)} className="accent-primary" /> Match exato</label>
+                  </div>
+                  {frMatchCount > 0 && frPreview.length > 0 && (
+                    <div className="text-[10px] text-muted-foreground">
+                      <p className="font-medium text-foreground mb-1">{frMatchCount} registro(s) encontrado(s). Preview:</p>
+                      <div className="max-h-24 overflow-y-auto space-y-0.5">
+                        {frPreview.slice(0, 5).map((row, i) => (
+                          <div key={i} className="font-mono bg-muted/20 px-2 py-0.5 rounded">
+                            {String(row[frColumn])} → <span className="text-emerald-400">{String(row[frColumn]).replace(new RegExp(frSearch, 'gi'), frReplace)}</span>
+                          </div>
+                        ))}
+                        {frMatchCount > 5 && <p>...e mais {frMatchCount - 5} registro(s)</p>}
+                      </div>
+                    </div>
+                  )}
+                </div>
+              )}
 
               {dataLoading && <p className="text-xs text-muted-foreground text-center py-4 animate-pulse">Carregando dados...</p>}
 

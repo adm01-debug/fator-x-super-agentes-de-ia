@@ -211,6 +211,185 @@ export function generateAlterTableSQL(
   }
 }
 
+// ═══ FIND & REPLACE (Substituição em massa) ═══
+
+/**
+ * Busca e substitui valores em uma coluna — como Find & Replace do Excel.
+ * Usa Supabase client para fazer SELECT + UPDATE em batch.
+ * Retorna quantos registros foram alterados.
+ */
+export async function findAndReplace(
+  client: SupabaseClient,
+  tableName: string,
+  column: string,
+  searchValue: string,
+  replaceValue: string,
+  options?: { caseSensitive?: boolean; exactMatch?: boolean; dryRun?: boolean }
+): Promise<{ matched: number; replaced: number; error?: string; preview?: TableRow[] }> {
+  try {
+    // 1. Encontrar registros que contêm o valor
+    let query = client.from(tableName).select('*', { count: 'exact' });
+
+    if (options?.exactMatch) {
+      if (options?.caseSensitive) {
+        query = query.eq(column, searchValue);
+      } else {
+        query = query.ilike(column, searchValue);
+      }
+    } else {
+      if (options?.caseSensitive) {
+        query = query.like(column, `%${searchValue}%`);
+      } else {
+        query = query.ilike(column, `%${searchValue}%`);
+      }
+    }
+
+    const { data: matchedRows, count, error: findError } = await query;
+    if (findError) return { matched: 0, replaced: 0, error: findError.message };
+
+    const matched = count ?? matchedRows?.length ?? 0;
+
+    // 2. Se dry run, retornar preview sem alterar
+    if (options?.dryRun) {
+      return { matched, replaced: 0, preview: (matchedRows ?? []).slice(0, 20) };
+    }
+
+    // 3. Substituir em cada registro encontrado
+    if (!matchedRows || matchedRows.length === 0) {
+      return { matched: 0, replaced: 0 };
+    }
+
+    let replaced = 0;
+    for (const row of matchedRows) {
+      const currentValue = String(row[column] ?? '');
+      let newValue: string;
+
+      if (options?.exactMatch) {
+        newValue = replaceValue;
+      } else if (options?.caseSensitive) {
+        newValue = currentValue.split(searchValue).join(replaceValue);
+      } else {
+        // Case-insensitive replace
+        const regex = new RegExp(searchValue.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'gi');
+        newValue = currentValue.replace(regex, replaceValue);
+      }
+
+      if (newValue !== currentValue) {
+        const idCol = Object.keys(row)[0]; // Use first column as ID (usually 'id')
+        const { error: updateError } = await client
+          .from(tableName)
+          .update({ [column]: newValue })
+          .eq(idCol, row[idCol]);
+
+        if (!updateError) replaced++;
+      }
+    }
+
+    return { matched, replaced };
+  } catch (err) {
+    return { matched: 0, replaced: 0, error: err instanceof Error ? err.message : 'Erro na substituição' };
+  }
+}
+
+/**
+ * Copia dados de uma coluna para outra (como recortar/colar entre colunas no Excel).
+ * Opcionalmente limpa a coluna de origem (recortar) ou mantém (copiar).
+ */
+export async function copyColumnData(
+  client: SupabaseClient,
+  tableName: string,
+  sourceColumn: string,
+  targetColumn: string,
+  options?: { cut?: boolean; filter?: Record<string, string>; overwriteExisting?: boolean }
+): Promise<{ copied: number; error?: string }> {
+  try {
+    // 1. Buscar registros
+    let query = client.from(tableName).select('*');
+    if (options?.filter) {
+      Object.entries(options.filter).forEach(([col, val]) => {
+        if (val) query = query.ilike(col, `%${val}%`);
+      });
+    }
+
+    const { data: rows, error: findError } = await query;
+    if (findError) return { copied: 0, error: findError.message };
+    if (!rows || rows.length === 0) return { copied: 0 };
+
+    // 2. Copiar valor da coluna fonte para a coluna destino
+    let copied = 0;
+    for (const row of rows) {
+      const sourceValue = row[sourceColumn];
+      const targetValue = row[targetColumn];
+
+      // Se não quer sobrescrever existentes e o destino já tem valor, pular
+      if (!options?.overwriteExisting && targetValue !== null && targetValue !== '') continue;
+
+      const idCol = Object.keys(row)[0];
+      const updates: Record<string, unknown> = { [targetColumn]: sourceValue };
+
+      // Se é recortar (cut), limpar a coluna fonte
+      if (options?.cut) updates[sourceColumn] = null;
+
+      const { error: updateError } = await client.from(tableName).update(updates).eq(idCol, row[idCol]);
+      if (!updateError) copied++;
+    }
+
+    return { copied };
+  } catch (err) {
+    return { copied: 0, error: err instanceof Error ? err.message : 'Erro ao copiar dados' };
+  }
+}
+
+/**
+ * Transfere dados de uma tabela para outra (com mapeamento de colunas).
+ * Suporta copiar ou mover (mover = copiar + deletar origem).
+ */
+export async function transferData(
+  client: SupabaseClient,
+  sourceTable: string,
+  targetTable: string,
+  columnMapping: Record<string, string>, // { source_col: target_col }
+  options?: { filter?: Record<string, string>; deleteAfterTransfer?: boolean; limit?: number }
+): Promise<{ transferred: number; error?: string }> {
+  try {
+    // 1. Buscar registros da tabela fonte
+    let query = client.from(sourceTable).select('*');
+    if (options?.filter) {
+      Object.entries(options.filter).forEach(([col, val]) => {
+        if (val) query = query.ilike(col, `%${val}%`);
+      });
+    }
+    if (options?.limit) query = query.limit(options.limit);
+
+    const { data: sourceRows, error: readError } = await query;
+    if (readError) return { transferred: 0, error: readError.message };
+    if (!sourceRows || sourceRows.length === 0) return { transferred: 0 };
+
+    // 2. Mapear e inserir na tabela destino
+    let transferred = 0;
+    for (const row of sourceRows) {
+      const newRow: Record<string, unknown> = {};
+      Object.entries(columnMapping).forEach(([srcCol, tgtCol]) => {
+        if (row[srcCol] !== undefined) newRow[tgtCol] = row[srcCol];
+      });
+
+      const { error: insertError } = await client.from(targetTable).insert(newRow);
+      if (!insertError) {
+        transferred++;
+        // 3. Se é mover, deletar da origem
+        if (options?.deleteAfterTransfer) {
+          const idCol = Object.keys(row)[0];
+          await client.from(sourceTable).delete().eq(idCol, row[idCol]);
+        }
+      }
+    }
+
+    return { transferred };
+  } catch (err) {
+    return { transferred: 0, error: err instanceof Error ? err.message : 'Erro na transferência' };
+  }
+}
+
 export function generateDropTableSQL(tableName: string): string {
   return `DROP TABLE IF EXISTS public.${tableName} CASCADE;`;
 }
