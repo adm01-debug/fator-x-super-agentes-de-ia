@@ -56,7 +56,7 @@ export function useWorkflowPersistence() {
     if (workflowId) {
       const { error } = await supabase
         .from('workflows')
-        .update({ config: config as unknown as Record<string, unknown>, name })
+        .update({ config: JSON.parse(JSON.stringify(config)), name })
         .eq('id', workflowId);
 
       if (error) {
