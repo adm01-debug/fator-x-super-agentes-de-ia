@@ -74,11 +74,11 @@ export function NotificationsDrawer() {
         (payload) => {
           const row = payload.new as Record<string, unknown>;
           const notif: Notification = {
-            id: row.id,
+            id: String(row.id ?? ''),
             type: 'trace',
-            title: row.event,
-            level: row.level || 'error',
-            created_at: row.created_at,
+            title: String(row.event ?? ''),
+            level: String(row.level || 'error'),
+            created_at: String(row.created_at ?? ''),
             read: false,
           };
           setRealtimeNotifs(prev => [notif, ...prev.slice(0, 49)]);
