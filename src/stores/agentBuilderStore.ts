@@ -81,6 +81,8 @@ function dbRowToAgent(row: any): AgentConfig {
   };
 }
 
+let autoSaveTimer: number | undefined;
+
 export const useAgentBuilderStore = create<AgentBuilderStore>((set, get) => ({
   agent: { ...DEFAULT_AGENT },
   activeTab: TABS[0].id,
