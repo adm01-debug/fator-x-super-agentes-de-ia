@@ -54,11 +54,11 @@ export async function getAgent(id: string): Promise<AgentConfig> {
     id: data.id,
     name: data.name,
     mission: data.mission || '',
-    persona: (data.persona || 'assistant') as any,
-    model: (data.model || 'claude-sonnet-4.6') as any,
+    persona: (data.persona || 'assistant') as AgentConfig['persona'],
+    model: (data.model || 'claude-sonnet-4.6') as AgentConfig['model'],
     avatar_emoji: data.avatar_emoji || '🤖',
-    reasoning: (data.reasoning || 'react') as any,
-    status: (data.status || 'draft') as any,
+    reasoning: (data.reasoning || 'react') as AgentConfig['reasoning'],
+    status: (data.status || 'draft') as AgentConfig['status'],
     version: data.version || 1,
     tags: data.tags || [],
     created_at: data.created_at,
@@ -73,7 +73,7 @@ export async function saveAgent(agent: AgentConfig): Promise<AgentConfig> {
   let workspaceId: string | null = null;
   try { workspaceId = await getWorkspaceId(); } catch {}
 
-  const { id, created_at, updated_at, ...configData } = agent as any;
+  const { id, created_at, updated_at, ...configData } = agent as Record<string, unknown>;
   const row = {
     ...(id ? { id } : {}),
     user_id: user.id,
@@ -84,7 +84,7 @@ export async function saveAgent(agent: AgentConfig): Promise<AgentConfig> {
     model: agent.model,
     avatar_emoji: agent.avatar_emoji,
     reasoning: agent.reasoning,
-    status: agent.status as any,
+    status: agent.status,
     version: agent.version,
     tags: agent.tags,
     config: configData as unknown as Json,

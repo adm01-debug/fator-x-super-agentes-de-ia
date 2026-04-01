@@ -1,7 +1,7 @@
 import { PageHeader } from "@/components/shared/PageHeader";
 import { StatusBadge } from "@/components/shared/StatusBadge";
 import { InfoHint } from "@/components/shared/InfoHint";
-import { Plus, FlaskConical, Loader2 } from "lucide-react";
+import { FlaskConical, Loader2 } from "lucide-react";
 import { motion } from "framer-motion";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";

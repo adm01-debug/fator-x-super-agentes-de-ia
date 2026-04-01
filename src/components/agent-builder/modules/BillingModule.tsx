@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { SectionTitle, ConfigCard, SliderField, InputField, ToggleField, ProgressBar } from '../ui';
+import { SectionTitle, SliderField, InputField, ToggleField, ProgressBar } from '../ui';
 import { useAgentBuilderStore } from '@/stores/agentBuilderStore';
 import { BarChart, Bar, LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend } from 'recharts';
 
@@ -96,7 +96,7 @@ export function BillingModule() {
       {/* Category Breakdown */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
         {COST_CATEGORIES.map((cat) => {
-          const total = MOCK_USAGE.reduce((s, d) => s + (d as any)[cat.key], 0);
+          const total = MOCK_USAGE.reduce((s, d) => s + (d as Record<string, number>)[cat.key], 0);
           const pct = (total / totalWeek) * 100;
           return (
             <div key={cat.key} className="rounded-xl border border-border bg-card p-4 space-y-2">

@@ -23,7 +23,7 @@ import {
   DropdownMenu, DropdownMenuContent, DropdownMenuItem,
   DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { User, Settings, Keyboard, LogOut } from "lucide-react";
+import { Settings, Keyboard, LogOut } from "lucide-react";
 
 interface AppLayoutProps {
   children: React.ReactNode;
@@ -41,13 +41,13 @@ function getDefaultOpen() {
 }
 
 export function AppLayout({ children }: AppLayoutProps) {
-  const [cmdOpen, setCmdOpen] = useState(false);
+  
   const [defaultOpen] = useState(getDefaultOpen);
   const navigate = useNavigate();
   const location = useLocation();
   const isMobile = useIsMobile();
   const { user, signOut } = useAuth();
-  const [shortcutsOpen, setShortcutsOpen] = useState(false);
+  
 
   // Dynamic document title
   useDocumentTitle();

@@ -1,6 +1,5 @@
 import { useAgentBuilderStore } from '@/stores/agentBuilderStore';
-import { SectionTitle, NexusBadge, ToggleField, SliderField, InputField } from '../ui';
-import { CollapsibleCard } from '../ui/CollapsibleCard';
+import { SectionTitle, NexusBadge, ToggleField, SliderField } from '../ui';
 import { Button } from '@/components/ui/button';
 import { Plus, Trash2, Shield, ShieldAlert, ShieldCheck, Lock } from 'lucide-react';
 import type { GuardrailConfig } from '@/types/agentTypes';

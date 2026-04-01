@@ -11,7 +11,7 @@ import {
   ResponsiveContainer,
   Legend,
 } from "recharts";
-import { format, subDays, eachDayOfInterval, parseISO } from "date-fns";
+import { format, subDays, eachDayOfInterval } from "date-fns";
 import { ptBR } from "date-fns/locale";
 
 interface UsageRow {

@@ -72,7 +72,7 @@ export function NotificationsDrawer() {
           filter: 'level=in.(error,critical,warning)',
         },
         (payload) => {
-          const row = payload.new as any;
+          const row = payload.new as Record<string, unknown>;
           const notif: Notification = {
             id: row.id,
             type: 'trace',
@@ -103,8 +103,8 @@ export function NotificationsDrawer() {
         'postgres_changes',
         { event: 'UPDATE', schema: 'public', table: 'agents' },
         (payload) => {
-          const row = payload.new as any;
-          const old = payload.old as any;
+          const row = payload.new as Record<string, unknown>;
+          const old = payload.old as Record<string, unknown>;
           if (old.status && row.status && old.status !== row.status) {
             const isFailure = row.status === 'deprecated' || row.status === 'archived';
             const isPromotion = row.status === 'production' || row.status === 'monitoring';
@@ -141,8 +141,8 @@ export function NotificationsDrawer() {
         'postgres_changes',
         { event: 'UPDATE', schema: 'public', table: 'evaluation_runs' },
         (payload) => {
-          const row = payload.new as any;
-          const old = payload.old as any;
+          const row = payload.new as Record<string, unknown>;
+          const old = payload.old as Record<string, unknown>;
           if (old.status !== 'completed' && row.status === 'completed') {
             const notif: Notification = {
               id: `eval-${row.id}`,
@@ -162,7 +162,7 @@ export function NotificationsDrawer() {
         'postgres_changes',
         { event: 'INSERT', schema: 'public', table: 'evaluation_runs' },
         (payload) => {
-          const row = payload.new as any;
+          const row = payload.new as Record<string, unknown>;
           if (row.status === 'completed') {
             const notif: Notification = {
               id: `eval-${row.id}`,
@@ -193,8 +193,6 @@ export function NotificationsDrawer() {
   }, [realtimeNotifs, dbAlerts]);
 
   const notifications = allNotifs();
-  const unread = notifications.filter(n => !n.read && (n.level === 'error' || n.level === 'critical' || n.type === 'evaluation')).length
-    + realtimeNotifs.filter(n => !n.read).length;
   const uniqueUnread = new Set([
     ...notifications.filter(n => !n.read && (n.level === 'error' || n.level === 'critical' || n.type === 'evaluation')).map(n => n.id),
     ...realtimeNotifs.filter(n => !n.read).map(n => n.id),

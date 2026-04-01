@@ -1,11 +1,11 @@
 import { useState, useRef, useEffect } from 'react';
-import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from '@/components/ui/sheet';
+import { Sheet, SheetContent, SheetHeader, SheetTitle } from '@/components/ui/sheet';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { Badge } from '@/components/ui/badge';
 import { useAgentBuilderStore } from '@/stores/agentBuilderStore';
 import { supabase } from '@/integrations/supabase/client';
-import { Send, MessageSquare, X, Trash2, Bug, Loader2 } from 'lucide-react';
+import { Send, MessageSquare, Trash2, Bug, Loader2 } from 'lucide-react';
 import { motion } from 'framer-motion';
 
 interface ChatMessage {

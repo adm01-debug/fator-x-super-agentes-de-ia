@@ -12,7 +12,7 @@ import {
   Bot, Sparkles, Brain, Puzzle, FileText, Database, Rocket, Check,
   ArrowLeft, ArrowRight, User, MessageSquare, Search as SearchIcon,
   BarChart3, Headphones, Users, Layers, ChevronRight,
-  Globe, Code, Mail, Calendar, Hash, Webhook, Shield, Zap,
+  Globe, Code, Mail, Calendar, Hash, Webhook, Shield,
   LayoutTemplate, PenTool,
 } from "lucide-react";
 import { toast } from "sonner";
@@ -338,7 +338,6 @@ export function CreateAgentWizard() {
       {/* Stepper */}
       <div className="flex items-center gap-1 overflow-x-auto pb-2">
         {currentSteps.map((s, i) => {
-          const Icon = s.icon;
           const isActive = i === step;
           const isDone = i < step;
           return (
