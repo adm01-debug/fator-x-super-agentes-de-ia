@@ -188,16 +188,12 @@ export function PromptModule() {
                     </select>
                   </div>
                   {versionA && versionB && (
-                    <div className="grid grid-cols-2 gap-3">
-                      <div className="rounded-lg border border-border p-3 bg-muted/10">
-                        <p className="text-xs font-semibold text-muted-foreground mb-2">v{versionA.version}</p>
-                        <pre className="text-xs font-mono whitespace-pre-wrap text-foreground/80 max-h-48 overflow-y-auto">{versionA.content}</pre>
-                      </div>
-                      <div className="rounded-lg border border-border p-3 bg-muted/10">
-                        <p className="text-xs font-semibold text-muted-foreground mb-2">v{versionB.version}</p>
-                        <pre className="text-xs font-mono whitespace-pre-wrap text-foreground/80 max-h-48 overflow-y-auto">{versionB.content}</pre>
-                      </div>
-                    </div>
+                    <PromptDiff
+                      textA={versionA.content}
+                      textB={versionB.content}
+                      labelA={`v${versionA.version} — ${versionA.change_summary}`}
+                      labelB={`v${versionB.version} — ${versionB.change_summary}`}
+                    />
                   )}
                 </div>
               )}
