@@ -142,8 +142,43 @@ export default function WorkflowsPage() {
 
         <TabsContent value="canvas" className="space-y-4">
           <InfoHint title="Canvas de Orquestração">
-            Arraste nodes para posicionar, conecte-os pelo ponto azul à direita. Clique numa linha para removê-la. Monte pipelines de Planner → Researcher → Retriever → Critic → Executor.
+            Arraste nodes para posicionar, conecte-os pelo ponto azul à direita. Clique numa linha para removê-la. Salve seu pipeline no banco de dados para reutilizá-lo.
           </InfoHint>
+
+          {/* Save / Load bar */}
+          <div className="flex items-center gap-3 flex-wrap">
+            <Input
+              value={canvasName}
+              onChange={e => setCanvasName(e.target.value)}
+              placeholder="Nome do pipeline"
+              className="max-w-[220px] bg-secondary/50 text-sm"
+            />
+            <Button size="sm" className="gap-1.5" onClick={handleSave} disabled={persistence.saving}>
+              {persistence.saving ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Save className="h-3.5 w-3.5" />}
+              {persistence.selectedId ? 'Atualizar' : 'Salvar'}
+            </Button>
+
+            {persistence.workflows.length > 0 && (
+              <Select onValueChange={handleLoad} value={persistence.selectedId ?? undefined}>
+                <SelectTrigger className="max-w-[220px] text-sm">
+                  <FolderOpen className="h-3.5 w-3.5 mr-1.5 shrink-0" />
+                  <SelectValue placeholder="Carregar workflow..." />
+                </SelectTrigger>
+                <SelectContent>
+                  {persistence.workflows.map(wf => (
+                    <SelectItem key={wf.id} value={wf.id}>{wf.name}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            )}
+
+            {persistence.selectedId && (
+              <Badge variant="outline" className="text-[10px] border-primary/30 text-primary">
+                Salvo no banco
+              </Badge>
+            )}
+          </div>
+
           <WorkflowCanvas nodes={canvasNodes} edges={canvasEdges} onNodesChange={setCanvasNodes} onEdgesChange={setCanvasEdges} />
         </TabsContent>
 
