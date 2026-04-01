@@ -234,9 +234,15 @@ export function WorkflowCanvas({ nodes, edges, onNodesChange, onEdgesChange }: P
                 className="absolute rounded-xl border border-border bg-card shadow-lg cursor-grab active:cursor-grabbing transition-shadow hover:shadow-xl hover:border-primary/40 group"
                 style={{ left: node.x, top: node.y, width: NODE_W, height: NODE_H }}
                 onMouseDown={(e) => {
+                  if (editingId === node.id) return;
                   e.stopPropagation();
                   const local = toCanvasCoords(e.clientX, e.clientY);
                   setDragging({ id: node.id, offsetX: local.x - node.x, offsetY: local.y - node.y });
+                }}
+                onDoubleClick={(e) => {
+                  e.stopPropagation();
+                  setEditingId(node.id);
+                  setEditLabel(node.label);
                 }}
               >
                 <div className="flex items-center gap-2 px-3 py-2 h-full">
@@ -245,7 +251,27 @@ export function WorkflowCanvas({ nodes, edges, onNodesChange, onEdgesChange }: P
                     <Icon className="h-4 w-4" style={{ color }} />
                   </div>
                   <div className="min-w-0 flex-1">
-                    <p className="text-xs font-semibold text-foreground truncate">{node.label}</p>
+                    {editingId === node.id ? (
+                      <Input
+                        autoFocus
+                        value={editLabel}
+                        onChange={e => setEditLabel(e.target.value)}
+                        onBlur={() => {
+                          if (editLabel.trim()) {
+                            onNodesChange(nodes.map(n => n.id === node.id ? { ...n, label: editLabel.trim() } : n));
+                          }
+                          setEditingId(null);
+                        }}
+                        onKeyDown={e => {
+                          if (e.key === 'Enter') (e.target as HTMLInputElement).blur();
+                          if (e.key === 'Escape') setEditingId(null);
+                        }}
+                        onMouseDown={e => e.stopPropagation()}
+                        className="h-5 text-xs px-1 py-0 bg-secondary/50"
+                      />
+                    ) : (
+                      <p className="text-xs font-semibold text-foreground truncate">{node.label}</p>
+                    )}
                     <p className="text-[9px] text-muted-foreground">{node.type}</p>
                   </div>
                   {/* Connect handle */}
