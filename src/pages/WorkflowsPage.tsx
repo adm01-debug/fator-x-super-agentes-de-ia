@@ -81,6 +81,16 @@ export default function WorkflowsPage() {
     }
   };
 
+  const handleDeleteWorkflow = async () => {
+    if (!persistence.selectedId) return;
+    const ok = await persistence.deleteCanvas(persistence.selectedId);
+    if (ok) {
+      setCanvasNodes(defaultCanvasNodes);
+      setCanvasEdges(defaultCanvasEdges);
+      setCanvasName('Meu Pipeline');
+    }
+  };
+
   const handleCreate = () => {
     if (!newName.trim()) { toast.error('Nome é obrigatório'); return; }
     const steps = newSteps.split(',').map(s => s.trim()).filter(Boolean);
