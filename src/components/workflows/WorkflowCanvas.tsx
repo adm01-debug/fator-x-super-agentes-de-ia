@@ -193,6 +193,8 @@ export function WorkflowCanvas({ nodes, edges, onNodesChange, onEdgesChange }: P
         onMouseDown={handleCanvasMouseDown}
         onMouseLeave={() => { setDragging(null); setConnecting(null); setPanning(null); }}
         onWheel={handleWheel}
+        onDrop={handleDrop}
+        onDragOver={(e) => { e.preventDefault(); e.dataTransfer.dropEffect = 'copy'; }}
       >
         {/* Grid pattern */}
         <svg className="absolute inset-0 w-full h-full pointer-events-none" xmlns="http://www.w3.org/2000/svg">
