@@ -3,7 +3,7 @@ import { PageHeader } from '@/components/shared/PageHeader';
 import { StatusBadge } from '@/components/shared/StatusBadge';
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Database, Table2, Code, Rows3, Settings, Plug, Plus, Trash2, RefreshCw, Play, Eye, Edit, Search, AlertTriangle, CheckCircle, X, Save, Upload, Download, ChevronLeft, ChevronRight, ShieldCheck, BarChart3 } from 'lucide-react';
+import { Database, Table2, Code, Rows3, Settings, Plug, Plus, Trash2, RefreshCw, Play, Eye, Edit, Search, AlertTriangle, CheckCircle, X, Save, Upload, Download, ChevronLeft, ChevronRight, ShieldCheck, BarChart3, Copy, GitMerge, Columns3, ArrowRightLeft } from 'lucide-react';
 import { toast } from 'sonner';
 import * as dbManager from '@/services/dbManager';
 import { PG_FUNCTIONS_CATALOG, PG_FUNCTION_CATEGORIES } from '@/config/supabase-functions-catalog';
@@ -102,6 +102,32 @@ export default function DatabaseManagerPage() {
   // Import CSV state
   const [importing, setImporting] = useState(false);
 
+  // Copy column data state
+  const [showCopyColumn, setShowCopyColumn] = useState(false);
+  const [copySourceCol, setCopySourceCol] = useState('');
+  const [copyTargetCol, setCopyTargetCol] = useState('');
+  const [copyIsCut, setCopyIsCut] = useState(false);
+
+  // Bulk update state
+  const [showBulkUpdate, setShowBulkUpdate] = useState(false);
+  const [selectedRowIds, setSelectedRowIds] = useState<Set<string>>(new Set());
+  const [bulkColumn, setBulkColumn] = useState('');
+  const [bulkValue, setBulkValue] = useState('');
+
+  // Compare tables state
+  const [showCompare, setShowCompare] = useState(false);
+  const [compareTable1, setCompareTable1] = useState('');
+  const [compareTable2, setCompareTable2] = useState('');
+  const [compareResult, setCompareResult] = useState<{ onlyInTable1: number; onlyInTable2: number; inBoth: number; columnDiff: string[] } | null>(null);
+
+  // Merge records state
+  const [showMerge, setShowMerge] = useState(false);
+  const [mergeKeepId, setMergeKeepId] = useState('');
+  const [mergeDeleteId, setMergeDeleteId] = useState('');
+
+  // Connection testing state
+  const [testingConnection, setTestingConnection] = useState(false);
+
   // Get Supabase client for a specific connected DB
   const getClientForDb = useCallback((db: ConnectedDB) => {
     const key = db.serviceKey || db.anonKey;
@@ -184,6 +210,20 @@ export default function DatabaseManagerPage() {
       return;
     }
 
+    // 1. Test connection first
+    setTestingConnection(true);
+    toast.info(`Testando conexão com ${connectForm.name}...`);
+    const key = connectForm.serviceKey || connectForm.anonKey;
+    const testResult = await dbManager.testConnection(connectForm.url, key);
+    setTestingConnection(false);
+
+    if (!testResult.ok) {
+      toast.error(`Falha na conexão: ${testResult.error}`);
+      return;
+    }
+    toast.success('Conexão verificada!');
+
+    // 2. Add DB and analyze
     const newDb: ConnectedDB = {
       id: crypto.randomUUID(),
       name: connectForm.name,
@@ -197,9 +237,9 @@ export default function DatabaseManagerPage() {
 
     setDatabases([...databases, newDb]);
     setIsAnalyzing(true);
-    toast.info(`Conectando a ${connectForm.name}...`);
+    toast.info(`Analisando ${connectForm.name}...`);
 
-    // Simulate analysis
+    // Simulate analysis (in production, would use discoverTables + getTableRowCount)
     setTimeout(() => {
       setDatabases(prev => prev.map(db =>
         db.id === newDb.id ? {
@@ -363,6 +403,67 @@ export default function DatabaseManagerPage() {
     toast.success(`Backup de ${backup.count} registros baixado`);
   }, [viewingTable, selectedDb, databases]);
 
+  // Copy column data handler
+  const handleCopyColumn = useCallback(async () => {
+    if (!viewingTable || !copySourceCol || !copyTargetCol) { toast.error('Selecione coluna de origem e destino'); return; }
+    if (copySourceCol === copyTargetCol) { toast.error('Origem e destino não podem ser iguais'); return; }
+    const db = databases.find(d => d.id === selectedDb);
+    if (!db) return;
+    if (!confirm(`${copyIsCut ? 'RECORTAR' : 'COPIAR'} dados de "${copySourceCol}" para "${copyTargetCol}"?\n${copyIsCut ? '⚠️ A coluna de origem será LIMPA após a cópia.' : 'Os dados da coluna de origem serão preservados.'}`)) return;
+    const client = getClientForDb(db);
+    const result = await dbManager.copyColumnData(client, viewingTable, copySourceCol, copyTargetCol, { cut: copyIsCut, overwriteExisting: true });
+    if (result.error) { toast.error(result.error); return; }
+    toast.success(`${result.copied} registros ${copyIsCut ? 'recortados' : 'copiados'} de "${copySourceCol}" para "${copyTargetCol}"`);
+    setShowCopyColumn(false);
+    loadTableData(viewingTable);
+  }, [viewingTable, copySourceCol, copyTargetCol, copyIsCut, selectedDb, databases, getClientForDb, loadTableData]);
+
+  // Bulk update handler
+  const handleBulkUpdate = useCallback(async () => {
+    if (!viewingTable || selectedRowIds.size === 0 || !bulkColumn || !bulkValue) { toast.error('Selecione registros, coluna e valor'); return; }
+    const db = databases.find(d => d.id === selectedDb);
+    if (!db) return;
+    if (!confirm(`Atualizar "${bulkColumn}" para "${bulkValue}" em ${selectedRowIds.size} registros?\n\nEssa ação NÃO pode ser desfeita.`)) return;
+    const client = getClientForDb(db);
+    const ids = Array.from(selectedRowIds);
+    const result = await dbManager.bulkUpdate(client, viewingTable, ids, { [bulkColumn]: bulkValue });
+    if (result.error) { toast.error(result.error); return; }
+    toast.success(`${result.updated} de ${ids.length} registros atualizados`);
+    setShowBulkUpdate(false);
+    setSelectedRowIds(new Set());
+    setBulkColumn('');
+    setBulkValue('');
+    loadTableData(viewingTable);
+  }, [viewingTable, selectedRowIds, bulkColumn, bulkValue, selectedDb, databases, getClientForDb, loadTableData]);
+
+  // Compare tables handler
+  const handleCompareTables = useCallback(async () => {
+    if (!compareTable1 || !compareTable2) { toast.error('Selecione duas tabelas para comparar'); return; }
+    const db = databases.find(d => d.id === selectedDb);
+    if (!db) return;
+    const client = getClientForDb(db);
+    const result = await dbManager.compareTables(client, compareTable1, compareTable2);
+    setCompareResult(result);
+    toast.success('Comparação concluída');
+  }, [compareTable1, compareTable2, selectedDb, databases, getClientForDb]);
+
+  // Merge records handler
+  const handleMergeRecords = useCallback(async () => {
+    if (!viewingTable || !mergeKeepId || !mergeDeleteId) { toast.error('Informe os IDs dos registros'); return; }
+    if (mergeKeepId === mergeDeleteId) { toast.error('IDs não podem ser iguais'); return; }
+    const db = databases.find(d => d.id === selectedDb);
+    if (!db) return;
+    if (!confirm(`MERGE: Manter registro "${mergeKeepId}" e EXCLUIR "${mergeDeleteId}".\nCampos vazios do mantido serão preenchidos com valores do excluído.\n\n⚠️ Essa ação NÃO pode ser desfeita.`)) return;
+    const client = getClientForDb(db);
+    const result = await dbManager.mergeRecords(client, viewingTable, mergeKeepId, mergeDeleteId);
+    if (result.error) { toast.error(result.error); return; }
+    toast.success('Registros mesclados com sucesso');
+    setShowMerge(false);
+    setMergeKeepId('');
+    setMergeDeleteId('');
+    loadTableData(viewingTable);
+  }, [viewingTable, mergeKeepId, mergeDeleteId, selectedDb, databases, getClientForDb, loadTableData]);
+
   const selectedDatabase = databases.find(db => db.id === selectedDb);
 
   return (
@@ -434,8 +535,8 @@ export default function DatabaseManagerPage() {
               </div>
             </div>
             <div className="flex gap-2">
-              <Button onClick={handleConnect} disabled={isAnalyzing} className="gap-2">
-                {isAnalyzing ? <><RefreshCw className="h-4 w-4 animate-spin" /> Analisando...</> : <><Database className="h-4 w-4" /> Conectar e Analisar</>}
+              <Button onClick={handleConnect} disabled={isAnalyzing || testingConnection} className="gap-2">
+                {testingConnection ? <><RefreshCw className="h-4 w-4 animate-spin" /> Testando conexão...</> : isAnalyzing ? <><RefreshCw className="h-4 w-4 animate-spin" /> Analisando...</> : <><Database className="h-4 w-4" /> Conectar e Analisar</>}
               </Button>
             </div>
             <p className="text-[11px] text-muted-foreground">
@@ -519,8 +620,61 @@ export default function DatabaseManagerPage() {
             <>
               <div className="flex items-center justify-between">
                 <h3 className="text-sm font-semibold text-foreground">Tabelas — {selectedDatabase.name}</h3>
-                <Button size="sm" className="gap-1.5" onClick={() => setShowCreateTable(true)}><Plus className="h-3.5 w-3.5" /> Criar Tabela</Button>
+                <div className="flex gap-2">
+                  <Button variant="outline" size="sm" className="gap-1.5" onClick={() => setShowCompare(!showCompare)}><ArrowRightLeft className="h-3.5 w-3.5" /> Comparar Tabelas</Button>
+                  <Button size="sm" className="gap-1.5" onClick={() => setShowCreateTable(true)}><Plus className="h-3.5 w-3.5" /> Criar Tabela</Button>
+                </div>
               </div>
+
+              {/* Compare Tables Panel */}
+              {showCompare && (
+                <div className="rounded-xl border border-cyan-500/30 bg-cyan-500/5 p-4 space-y-3">
+                  <div className="flex items-center justify-between">
+                    <h4 className="text-xs font-semibold text-foreground">Comparar Estrutura de Tabelas</h4>
+                    <button onClick={() => { setShowCompare(false); setCompareResult(null); }}><X className="h-3.5 w-3.5 text-muted-foreground" /></button>
+                  </div>
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-2">
+                    <select value={compareTable1} onChange={e => setCompareTable1(e.target.value)} className="bg-muted/30 border border-border rounded-lg px-2 py-1.5 text-xs text-foreground">
+                      <option value="">Tabela 1...</option>
+                      {tables.map(t => <option key={t.name} value={t.name}>{t.name}</option>)}
+                    </select>
+                    <select value={compareTable2} onChange={e => setCompareTable2(e.target.value)} className="bg-muted/30 border border-border rounded-lg px-2 py-1.5 text-xs text-foreground">
+                      <option value="">Tabela 2...</option>
+                      {tables.map(t => <option key={t.name} value={t.name}>{t.name}</option>)}
+                    </select>
+                    <Button size="sm" onClick={handleCompareTables} disabled={!compareTable1 || !compareTable2} className="text-[10px] gap-1"><ArrowRightLeft className="h-3 w-3" /> Comparar</Button>
+                  </div>
+                  {compareResult && (
+                    <div className="space-y-2">
+                      <div className="grid grid-cols-3 gap-2 text-center">
+                        <div className="p-2 rounded-lg bg-muted/10">
+                          <p className="text-lg font-bold text-foreground">{compareResult.onlyInTable1}</p>
+                          <p className="text-[10px] text-muted-foreground">Registros em {compareTable1}</p>
+                        </div>
+                        <div className="p-2 rounded-lg bg-muted/10">
+                          <p className="text-lg font-bold text-foreground">{compareResult.inBoth}</p>
+                          <p className="text-[10px] text-muted-foreground">Em comum</p>
+                        </div>
+                        <div className="p-2 rounded-lg bg-muted/10">
+                          <p className="text-lg font-bold text-foreground">{compareResult.onlyInTable2}</p>
+                          <p className="text-[10px] text-muted-foreground">Registros em {compareTable2}</p>
+                        </div>
+                      </div>
+                      {compareResult.columnDiff.length > 0 && (
+                        <div>
+                          <p className="text-[10px] font-semibold text-foreground mb-1">Diferenças de colunas:</p>
+                          <div className="flex flex-wrap gap-1">
+                            {compareResult.columnDiff.map((d, i) => (
+                              <span key={i} className={`px-2 py-0.5 rounded text-[10px] font-mono ${d.startsWith('+') ? 'bg-emerald-500/20 text-emerald-400' : 'bg-red-500/20 text-red-400'}`}>{d}</span>
+                            ))}
+                          </div>
+                        </div>
+                      )}
+                      {compareResult.columnDiff.length === 0 && <p className="text-[10px] text-emerald-400">Estruturas idênticas!</p>}
+                    </div>
+                  )}
+                </div>
+              )}
               <div className="nexus-card overflow-hidden p-0">
                 <table className="w-full text-xs" aria-label="Lista de tabelas">
                   <thead>
@@ -720,6 +874,9 @@ export default function DatabaseManagerPage() {
                 <Button variant="outline" size="sm" className="gap-1.5" disabled={!viewingTable || validating} onClick={handleValidate}><ShieldCheck className="h-3.5 w-3.5" /> {validating ? '...' : 'Qualidade'}</Button>
                 {/* Group By */}
                 <Button variant="outline" size="sm" className="gap-1.5" disabled={!viewingTable} onClick={() => setShowGroupBy(!showGroupBy)}><BarChart3 className="h-3.5 w-3.5" /> Agrupar</Button>
+                <Button variant="outline" size="sm" className="gap-1.5" disabled={!viewingTable || tableData.length === 0} onClick={() => setShowCopyColumn(!showCopyColumn)}><Copy className="h-3.5 w-3.5" /> Copiar Col</Button>
+                <Button variant="outline" size="sm" className="gap-1.5" disabled={!viewingTable || selectedRowIds.size === 0} onClick={() => setShowBulkUpdate(!showBulkUpdate)}><Columns3 className="h-3.5 w-3.5" /> Lote ({selectedRowIds.size})</Button>
+                <Button variant="outline" size="sm" className="gap-1.5" disabled={!viewingTable} onClick={() => setShowMerge(!showMerge)}><GitMerge className="h-3.5 w-3.5" /> Merge</Button>
                 <Button size="sm" className="gap-1.5" disabled={!viewingTable} onClick={() => { setInsertData({}); setShowInsertRow(true); }}><Plus className="h-3.5 w-3.5" /> Inserir</Button>
               </div>
 
@@ -815,6 +972,64 @@ export default function DatabaseManagerPage() {
                 </div>
               )}
 
+              {/* Copy Column Panel */}
+              {showCopyColumn && viewingTable && tableData.length > 0 && (
+                <div className="rounded-xl border border-purple-500/30 bg-purple-500/5 p-4 space-y-3">
+                  <div className="flex items-center justify-between">
+                    <h4 className="text-xs font-semibold text-foreground">Copiar / Recortar Dados Entre Colunas</h4>
+                    <button onClick={() => setShowCopyColumn(false)}><X className="h-3.5 w-3.5 text-muted-foreground" /></button>
+                  </div>
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-2">
+                    <select value={copySourceCol} onChange={e => setCopySourceCol(e.target.value)} className="bg-muted/30 border border-border rounded-lg px-2 py-1.5 text-xs text-foreground">
+                      <option value="">Coluna origem...</option>
+                      {Object.keys(tableData[0]).map(col => <option key={col} value={col}>{col}</option>)}
+                    </select>
+                    <select value={copyTargetCol} onChange={e => setCopyTargetCol(e.target.value)} className="bg-muted/30 border border-border rounded-lg px-2 py-1.5 text-xs text-foreground">
+                      <option value="">Coluna destino...</option>
+                      {Object.keys(tableData[0]).map(col => <option key={col} value={col}>{col}</option>)}
+                    </select>
+                    <div className="flex gap-2">
+                      <label className="flex items-center gap-1 text-[10px] text-muted-foreground"><input type="checkbox" checked={copyIsCut} onChange={e => setCopyIsCut(e.target.checked)} className="accent-primary" /> Recortar (limpar origem)</label>
+                      <Button size="sm" onClick={handleCopyColumn} disabled={!copySourceCol || !copyTargetCol} className="text-[10px]"><Copy className="h-3 w-3 mr-1" /> {copyIsCut ? 'Recortar' : 'Copiar'}</Button>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {/* Bulk Update Panel */}
+              {showBulkUpdate && viewingTable && selectedRowIds.size > 0 && tableData.length > 0 && (
+                <div className="rounded-xl border border-orange-500/30 bg-orange-500/5 p-4 space-y-3">
+                  <div className="flex items-center justify-between">
+                    <h4 className="text-xs font-semibold text-foreground">Edição em Lote — {selectedRowIds.size} registros selecionados</h4>
+                    <button onClick={() => setShowBulkUpdate(false)}><X className="h-3.5 w-3.5 text-muted-foreground" /></button>
+                  </div>
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-2">
+                    <select value={bulkColumn} onChange={e => setBulkColumn(e.target.value)} className="bg-muted/30 border border-border rounded-lg px-2 py-1.5 text-xs text-foreground">
+                      <option value="">Coluna para alterar...</option>
+                      {Object.keys(tableData[0]).filter(c => c !== 'id' && c !== 'created_at').map(col => <option key={col} value={col}>{col}</option>)}
+                    </select>
+                    <input value={bulkValue} onChange={e => setBulkValue(e.target.value)} placeholder="Novo valor para todos" className="bg-muted/30 border border-border rounded-lg px-3 py-1.5 text-xs text-foreground" />
+                    <Button size="sm" onClick={handleBulkUpdate} disabled={!bulkColumn || !bulkValue} className="text-[10px] gap-1"><Columns3 className="h-3 w-3" /> Aplicar em {selectedRowIds.size}</Button>
+                  </div>
+                </div>
+              )}
+
+              {/* Merge Records Panel */}
+              {showMerge && viewingTable && (
+                <div className="rounded-xl border border-emerald-500/30 bg-emerald-500/5 p-4 space-y-3">
+                  <div className="flex items-center justify-between">
+                    <h4 className="text-xs font-semibold text-foreground">Merge de Registros Duplicados</h4>
+                    <button onClick={() => setShowMerge(false)}><X className="h-3.5 w-3.5 text-muted-foreground" /></button>
+                  </div>
+                  <p className="text-[10px] text-muted-foreground">Mescla dois registros: mantém o primeiro e preenche campos vazios com valores do segundo. O segundo é excluído.</p>
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-2">
+                    <input value={mergeKeepId} onChange={e => setMergeKeepId(e.target.value)} placeholder="ID do registro a MANTER" className="bg-muted/30 border border-border rounded-lg px-3 py-1.5 text-xs text-foreground font-mono" />
+                    <input value={mergeDeleteId} onChange={e => setMergeDeleteId(e.target.value)} placeholder="ID do registro a EXCLUIR" className="bg-muted/30 border border-border rounded-lg px-3 py-1.5 text-xs text-foreground font-mono" />
+                    <Button size="sm" onClick={handleMergeRecords} disabled={!mergeKeepId || !mergeDeleteId} className="text-[10px] gap-1"><GitMerge className="h-3 w-3" /> Mesclar</Button>
+                  </div>
+                </div>
+              )}
+
               {dataLoading && <p className="text-xs text-muted-foreground text-center py-4 animate-pulse">Carregando dados...</p>}
 
               {!dataLoading && viewingTable && tableData.length > 0 && (
@@ -822,6 +1037,15 @@ export default function DatabaseManagerPage() {
                   <table className="w-full text-xs">
                     <thead>
                       <tr className="border-b border-border bg-muted/20">
+                        <th className="px-2 py-2 w-8">
+                          <input type="checkbox" className="accent-primary" checked={selectedRowIds.size === tableData.length && tableData.length > 0} onChange={e => {
+                            if (e.target.checked) {
+                              setSelectedRowIds(new Set(tableData.map(r => String(r.id ?? r[Object.keys(r)[0]]))));
+                            } else {
+                              setSelectedRowIds(new Set());
+                            }
+                          }} title="Selecionar todos" />
+                        </th>
                         {Object.keys(tableData[0]).map(col => (
                           <th key={col} className="text-left px-3 py-2 font-medium text-muted-foreground whitespace-nowrap cursor-pointer hover:text-foreground transition-colors" onClick={async () => {
                             const newAsc = sortColumn === col ? !sortAsc : true;
@@ -844,7 +1068,16 @@ export default function DatabaseManagerPage() {
                         const rowId = String(row.id ?? row[Object.keys(row)[0]]);
                         const isEditing = editingRowIndex === i;
                         return (
-                        <tr key={i} className="border-b border-border/30 hover:bg-muted/10">
+                        <tr key={i} className={`border-b border-border/30 hover:bg-muted/10 ${selectedRowIds.has(rowId) ? 'bg-primary/5' : ''}`}>
+                          <td className="px-2 py-1.5 w-8">
+                            <input type="checkbox" className="accent-primary" checked={selectedRowIds.has(rowId)} onChange={e => {
+                              setSelectedRowIds(prev => {
+                                const next = new Set(prev);
+                                if (e.target.checked) next.add(rowId); else next.delete(rowId);
+                                return next;
+                              });
+                            }} />
+                          </td>
                           {Object.entries(row).map(([col, val], j) => (
                             <td key={j} className="px-3 py-1.5 font-mono max-w-[200px]">
                               {isEditing ? (
