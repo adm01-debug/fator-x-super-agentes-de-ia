@@ -1,7 +1,9 @@
 import { useState, useRef, useCallback } from 'react';
 import { Brain, Search, FileText, Shield, Wrench, GripVertical, X, ZoomIn, ZoomOut, Maximize } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
 import { toast } from 'sonner';
+import { CanvasMinimap } from './CanvasMinimap';
 
 export interface CanvasNode {
   id: string;
