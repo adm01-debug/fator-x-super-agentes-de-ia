@@ -338,7 +338,6 @@ export function CreateAgentWizard() {
       {/* Stepper */}
       <div className="flex items-center gap-1 overflow-x-auto pb-2">
         {currentSteps.map((s, i) => {
-          const Icon = s.icon;
           const isActive = i === step;
           const isDone = i < step;
           return (

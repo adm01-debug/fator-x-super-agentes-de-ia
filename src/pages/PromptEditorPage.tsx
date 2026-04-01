@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from "react";
-import { useParams, useNavigate } from "react-router-dom";
+import { useParams } from "react-router-dom";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
@@ -18,7 +18,6 @@ import { PageHeader } from "@/components/shared/PageHeader";
 
 export default function PromptEditorPage() {
   const { id: agentId } = useParams();
-  const navigate = useNavigate();
   const queryClient = useQueryClient();
 
   // Fetch agent info

@@ -193,8 +193,6 @@ export function NotificationsDrawer() {
   }, [realtimeNotifs, dbAlerts]);
 
   const notifications = allNotifs();
-  const unread = notifications.filter(n => !n.read && (n.level === 'error' || n.level === 'critical' || n.type === 'evaluation')).length
-    + realtimeNotifs.filter(n => !n.read).length;
   const uniqueUnread = new Set([
     ...notifications.filter(n => !n.read && (n.level === 'error' || n.level === 'critical' || n.type === 'evaluation')).map(n => n.id),
     ...realtimeNotifs.filter(n => !n.read).map(n => n.id),
