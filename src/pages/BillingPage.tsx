@@ -1,11 +1,28 @@
 import { PageHeader } from "@/components/shared/PageHeader";
 import { MetricCard } from "@/components/shared/MetricCard";
-import { DollarSign, Hash, Loader2, BarChart3 } from "lucide-react";
-import { useQuery } from "@tanstack/react-query";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
+import { DollarSign, Hash, Loader2, BarChart3, Plus, Trash2, Wallet, AlertTriangle } from "lucide-react";
+import { useState } from "react";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
+import { getWorkspaceId } from "@/lib/agentService";
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid } from "recharts";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { motion } from "framer-motion";
+import { toast } from "sonner";
 
 export default function BillingPage() {
+  const queryClient = useQueryClient();
+  const [newBudgetOpen, setNewBudgetOpen] = useState(false);
+  const [budgetName, setBudgetName] = useState('');
+  const [budgetLimit, setBudgetLimit] = useState('100');
+  const [saving, setSaving] = useState(false);
+
   const { data: usage = [], isLoading } = useQuery({
     queryKey: ['agent_usage'],
     queryFn: async () => {
@@ -16,6 +33,30 @@ export default function BillingPage() {
         .select('*')
         .gte('date', thirtyDaysAgo.toISOString().split('T')[0])
         .order('date', { ascending: true });
+      if (error) throw error;
+      return data ?? [];
+    },
+  });
+
+  // Budgets
+  const { data: budgets = [], isLoading: loadingBudgets } = useQuery({
+    queryKey: ['budgets'],
+    queryFn: async () => {
+      const { data, error } = await supabase.from('budgets').select('*').order('created_at', { ascending: false });
+      if (error) throw error;
+      return data ?? [];
+    },
+  });
+
+  // Usage records
+  const { data: usageRecords = [] } = useQuery({
+    queryKey: ['usage_records'],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('usage_records')
+        .select('*')
+        .order('created_at', { ascending: false })
+        .limit(50);
       if (error) throw error;
       return data ?? [];
     },
@@ -34,41 +75,180 @@ export default function BillingPage() {
     cost: Number(u.total_cost_usd || 0),
   }));
 
+  const handleCreateBudget = async () => {
+    if (!budgetName.trim()) { toast.error('Nome é obrigatório'); return; }
+    setSaving(true);
+    try {
+      const wsId = await getWorkspaceId();
+      const { error } = await supabase.from('budgets').insert({
+        name: budgetName.trim(),
+        limit_usd: parseFloat(budgetLimit) || 100,
+        workspace_id: wsId,
+      });
+      if (error) throw error;
+      toast.success('Orçamento criado!');
+      setNewBudgetOpen(false);
+      setBudgetName('');
+      queryClient.invalidateQueries({ queryKey: ['budgets'] });
+    } catch (e: any) {
+      toast.error(e.message);
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const handleDeleteBudget = async (id: string) => {
+    const { error } = await supabase.from('budgets').delete().eq('id', id);
+    if (error) { toast.error(error.message); return; }
+    toast.success('Orçamento removido');
+    queryClient.invalidateQueries({ queryKey: ['budgets'] });
+  };
+
   return (
     <div className="p-6 space-y-6 max-w-[1400px] mx-auto">
-      <PageHeader title="Billing & Usage" description="Acompanhe custos e consumo por recurso" />
+      <PageHeader title="Billing & Usage" description="Acompanhe custos, orçamentos e consumo por recurso" />
 
-      {isLoading ? (
-        <div className="flex items-center justify-center py-20"><Loader2 className="h-6 w-6 animate-spin text-muted-foreground" /></div>
-      ) : usage.length === 0 ? (
-        <div className="flex flex-col items-center justify-center py-20 text-center">
-          <BarChart3 className="h-12 w-12 text-muted-foreground mb-4" />
-          <h2 className="text-lg font-semibold text-foreground mb-1">Sem dados de uso</h2>
-          <p className="text-sm text-muted-foreground">Dados de uso aparecerão após o primeiro agente ativo.</p>
-        </div>
-      ) : (
-        <>
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-            <MetricCard title="Custo total (30d)" value={`$${totals.cost.toFixed(2)}`} icon={DollarSign} />
-            <MetricCard title="Requests" value={totals.requests.toLocaleString()} icon={Hash} />
-            <MetricCard title="Tokens entrada" value={`${(totals.tokensIn / 1000).toFixed(0)}k`} icon={Hash} />
-            <MetricCard title="Tokens saída" value={`${(totals.tokensOut / 1000).toFixed(0)}k`} icon={Hash} />
+      <Tabs defaultValue="overview" className="space-y-4">
+        <TabsList>
+          <TabsTrigger value="overview">Visão geral</TabsTrigger>
+          <TabsTrigger value="budgets">Orçamentos</TabsTrigger>
+          <TabsTrigger value="records">Registros de uso</TabsTrigger>
+        </TabsList>
+
+        <TabsContent value="overview">
+          {isLoading ? (
+            <div className="flex items-center justify-center py-20"><Loader2 className="h-6 w-6 animate-spin text-muted-foreground" /></div>
+          ) : usage.length === 0 ? (
+            <div className="flex flex-col items-center justify-center py-20 text-center">
+              <BarChart3 className="h-12 w-12 text-muted-foreground mb-4" />
+              <h2 className="text-lg font-semibold text-foreground mb-1">Sem dados de uso</h2>
+              <p className="text-sm text-muted-foreground">Dados de uso aparecerão após o primeiro agente ativo.</p>
+            </div>
+          ) : (
+            <>
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+                <MetricCard title="Custo total (30d)" value={`$${totals.cost.toFixed(2)}`} icon={DollarSign} />
+                <MetricCard title="Requests" value={totals.requests.toLocaleString()} icon={Hash} />
+                <MetricCard title="Tokens entrada" value={`${(totals.tokensIn / 1000).toFixed(0)}k`} icon={Hash} />
+                <MetricCard title="Tokens saída" value={`${(totals.tokensOut / 1000).toFixed(0)}k`} icon={Hash} />
+              </div>
+              <div className="nexus-card">
+                <h3 className="text-sm font-heading font-semibold text-foreground mb-4">Custo diário (últimos 30 dias)</h3>
+                <ResponsiveContainer width="100%" height={250}>
+                  <BarChart data={chartData}>
+                    <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
+                    <XAxis dataKey="date" tick={{ fill: 'hsl(var(--muted-foreground))', fontSize: 11 }} axisLine={false} tickLine={false} />
+                    <YAxis tick={{ fill: 'hsl(var(--muted-foreground))', fontSize: 11 }} axisLine={false} tickLine={false} tickFormatter={(v) => `$${v}`} />
+                    <Tooltip contentStyle={{ background: 'hsl(var(--card))', border: '1px solid hsl(var(--border))', borderRadius: 8, fontSize: 12 }} formatter={(v: number) => `$${v.toFixed(2)}`} />
+                    <Bar dataKey="cost" radius={[4, 4, 0, 0]} fill="hsl(var(--primary))" />
+                  </BarChart>
+                </ResponsiveContainer>
+              </div>
+            </>
+          )}
+        </TabsContent>
+
+        <TabsContent value="budgets">
+          <div className="flex items-center justify-between mb-4">
+            <h3 className="text-sm font-heading font-semibold text-foreground">Orçamentos</h3>
+            <Dialog open={newBudgetOpen} onOpenChange={setNewBudgetOpen}>
+              <DialogTrigger asChild>
+                <Button variant="outline" size="sm" className="gap-1.5 text-xs"><Plus className="h-3 w-3" /> Novo orçamento</Button>
+              </DialogTrigger>
+              <DialogContent className="sm:max-w-[400px]">
+                <DialogHeader><DialogTitle>Novo Orçamento</DialogTitle></DialogHeader>
+                <div className="space-y-3 mt-2">
+                  <div className="space-y-1"><Label className="text-xs">Nome *</Label><Input value={budgetName} onChange={e => setBudgetName(e.target.value)} className="bg-secondary/50" placeholder="Ex: Mensal Produção" /></div>
+                  <div className="space-y-1"><Label className="text-xs">Limite (USD)</Label><Input type="number" value={budgetLimit} onChange={e => setBudgetLimit(e.target.value)} className="bg-secondary/50" /></div>
+                  <Button onClick={handleCreateBudget} disabled={saving} className="w-full nexus-gradient-bg text-primary-foreground">
+                    {saving && <Loader2 className="h-4 w-4 animate-spin mr-2" />} Criar
+                  </Button>
+                </div>
+              </DialogContent>
+            </Dialog>
           </div>
 
-          <div className="nexus-card">
-            <h3 className="text-sm font-heading font-semibold text-foreground mb-4">Custo diário (últimos 30 dias)</h3>
-            <ResponsiveContainer width="100%" height={250}>
-              <BarChart data={chartData}>
-                <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
-                <XAxis dataKey="date" tick={{ fill: 'hsl(var(--muted-foreground))', fontSize: 11 }} axisLine={false} tickLine={false} />
-                <YAxis tick={{ fill: 'hsl(var(--muted-foreground))', fontSize: 11 }} axisLine={false} tickLine={false} tickFormatter={(v) => `$${v}`} />
-                <Tooltip contentStyle={{ background: 'hsl(var(--card))', border: '1px solid hsl(var(--border))', borderRadius: 8, fontSize: 12 }} formatter={(v: number) => `$${v.toFixed(2)}`} />
-                <Bar dataKey="cost" radius={[4, 4, 0, 0]} fill="hsl(var(--primary))" />
-              </BarChart>
-            </ResponsiveContainer>
-          </div>
-        </>
-      )}
+          {loadingBudgets ? (
+            <div className="flex justify-center py-8"><Loader2 className="h-5 w-5 animate-spin text-muted-foreground" /></div>
+          ) : budgets.length === 0 ? (
+            <div className="text-center py-12">
+              <Wallet className="h-10 w-10 text-muted-foreground mx-auto mb-3" />
+              <p className="text-xs text-muted-foreground">Nenhum orçamento configurado</p>
+            </div>
+          ) : (
+            <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+              {budgets.map((b, i) => {
+                const pct = b.limit_usd > 0 ? ((b.current_usd ?? 0) / b.limit_usd) * 100 : 0;
+                const overThreshold = pct >= (b.alert_threshold ?? 80) * 100;
+                return (
+                  <motion.div key={b.id} initial={{ opacity: 0, y: 6 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.04 }} className="nexus-card group">
+                    <div className="flex items-center justify-between mb-3">
+                      <div>
+                        <h4 className="text-sm font-semibold text-foreground">{b.name}</h4>
+                        <p className="text-[10px] text-muted-foreground">{b.period} • {b.is_active ? 'Ativo' : 'Inativo'}</p>
+                      </div>
+                      <AlertDialog>
+                        <AlertDialogTrigger asChild>
+                          <Button variant="ghost" size="sm" className="h-6 w-6 p-0 opacity-0 group-hover:opacity-100">
+                            <Trash2 className="h-3 w-3 text-destructive" />
+                          </Button>
+                        </AlertDialogTrigger>
+                        <AlertDialogContent>
+                          <AlertDialogHeader><AlertDialogTitle>Remover orçamento?</AlertDialogTitle></AlertDialogHeader>
+                          <AlertDialogFooter><AlertDialogCancel>Cancelar</AlertDialogCancel><AlertDialogAction onClick={() => handleDeleteBudget(b.id)} className="bg-destructive text-destructive-foreground">Remover</AlertDialogAction></AlertDialogFooter>
+                        </AlertDialogContent>
+                      </AlertDialog>
+                    </div>
+                    <div className="flex items-baseline gap-1 mb-2">
+                      <span className="text-xl font-heading font-bold text-foreground">${(b.current_usd ?? 0).toFixed(2)}</span>
+                      <span className="text-xs text-muted-foreground">/ ${b.limit_usd.toFixed(2)}</span>
+                    </div>
+                    <div className="h-2 rounded-full bg-secondary overflow-hidden">
+                      <div className={`h-full rounded-full transition-all ${pct > 90 ? 'bg-destructive' : pct > 70 ? 'bg-amber-500' : 'bg-primary'}`} style={{ width: `${Math.min(pct, 100)}%` }} />
+                    </div>
+                    {overThreshold && (
+                      <div className="flex items-center gap-1 mt-2 text-amber-400">
+                        <AlertTriangle className="h-3 w-3" />
+                        <span className="text-[10px]">Alerta: {pct.toFixed(0)}% do limite</span>
+                      </div>
+                    )}
+                  </motion.div>
+                );
+              })}
+            </div>
+          )}
+        </TabsContent>
+
+        <TabsContent value="records">
+          <h3 className="text-sm font-heading font-semibold text-foreground mb-4">Registros de uso recentes</h3>
+          {usageRecords.length === 0 ? (
+            <div className="text-center py-12"><p className="text-xs text-muted-foreground">Nenhum registro encontrado</p></div>
+          ) : (
+            <div className="nexus-card overflow-hidden p-0">
+              <table className="w-full">
+                <thead>
+                  <tr className="border-b border-border/50 text-[11px] text-muted-foreground uppercase tracking-wider">
+                    <th className="text-left px-4 py-2 font-medium">Tipo</th>
+                    <th className="text-left px-4 py-2 font-medium">Tokens</th>
+                    <th className="text-left px-4 py-2 font-medium">Custo</th>
+                    <th className="text-left px-4 py-2 font-medium">Data</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {usageRecords.map(r => (
+                    <tr key={r.id} className="border-b border-border/30 hover:bg-secondary/30 transition-colors">
+                      <td className="px-4 py-2"><Badge variant="outline" className="text-[9px]">{r.record_type}</Badge></td>
+                      <td className="px-4 py-2 text-xs text-foreground">{(r.tokens ?? 0).toLocaleString()}</td>
+                      <td className="px-4 py-2 text-xs text-foreground">${Number(r.cost_usd ?? 0).toFixed(4)}</td>
+                      <td className="px-4 py-2 text-xs text-muted-foreground">{r.created_at ? new Date(r.created_at).toLocaleString('pt-BR') : '—'}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
+        </TabsContent>
+      </Tabs>
     </div>
   );
 }

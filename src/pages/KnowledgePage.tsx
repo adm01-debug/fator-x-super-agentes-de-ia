@@ -11,6 +11,7 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { CreateKnowledgeBaseDialog } from "@/components/dialogs/CreateKnowledgeBaseDialog";
 import { EditKnowledgeBaseDialog } from "@/components/dialogs/EditKnowledgeBaseDialog";
+import { KnowledgeBaseDetail } from "@/components/knowledge/KnowledgeBaseDetail";
 import { toast } from "sonner";
 
 const pipeline = ['Parsing', 'Chunking', 'Metadata', 'Embeddings', 'Indexing'];
@@ -18,6 +19,7 @@ const pipeline = ['Parsing', 'Chunking', 'Metadata', 'Embeddings', 'Indexing'];
 export default function KnowledgePage() {
   const [search, setSearch] = useState("");
   const [editKb, setEditKb] = useState<any>(null);
+  const [selectedKb, setSelectedKb] = useState<{ id: string; name: string } | null>(null);
   const queryClient = useQueryClient();
 
   const { data: knowledgeBases = [], isLoading, refetch } = useQuery({
@@ -43,6 +45,15 @@ export default function KnowledgePage() {
       queryClient.invalidateQueries({ queryKey: ['admin', 'knowledge_bases'] });
     }
   };
+
+  // Detail view
+  if (selectedKb) {
+    return (
+      <div className="p-6 space-y-6 max-w-[1400px] mx-auto">
+        <KnowledgeBaseDetail kbId={selectedKb.id} kbName={selectedKb.name} onBack={() => setSelectedKb(null)} />
+      </div>
+    );
+  }
 
   return (
     <div className="p-6 space-y-6 max-w-[1400px] mx-auto">
@@ -89,7 +100,10 @@ export default function KnowledgePage() {
       ) : (
         <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
           {filtered.map((kb, i) => (
-            <motion.div key={kb.id} initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.05 }} className="nexus-card group">
+            <motion.div key={kb.id} initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.05 }}
+              className="nexus-card group cursor-pointer"
+              onClick={() => setSelectedKb({ id: kb.id, name: kb.name })}
+            >
               <div className="flex items-start justify-between mb-3">
                 <div className="flex items-center gap-2.5">
                   <div className="h-10 w-10 rounded-xl bg-primary/10 flex items-center justify-center">
@@ -115,7 +129,7 @@ export default function KnowledgePage() {
                   <p className="text-[10px] text-muted-foreground">Chunks</p>
                 </div>
               </div>
-              <div className="flex items-center gap-2 mt-3 pt-3 border-t border-border/50">
+              <div className="flex items-center gap-2 mt-3 pt-3 border-t border-border/50" onClick={e => e.stopPropagation()}>
                 <Button
                   variant="outline"
                   size="sm"
