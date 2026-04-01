@@ -1,22 +1,14 @@
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
+import type { Database } from '@/integrations/supabase/types';
+
+type TableName = keyof Database['public']['Tables'];
 
 export interface PaginationState {
   page: number;
   pageSize: number;
   total: number;
   totalPages: number;
-}
-
-export interface UsePaginatedQueryOptions<T> {
-  table: string;
-  pageSize?: number;
-  orderBy?: string;
-  ascending?: boolean;
-  filters?: Array<{ column: string; operator: 'eq' | 'neq' | 'gt' | 'lt' | 'gte' | 'lte' | 'like' | 'ilike' | 'in'; value: unknown }>;
-  select?: string;
-  enabled?: boolean;
-  transform?: (row: Record<string, unknown>) => T;
 }
 
 export interface UsePaginatedQueryResult<T> {
@@ -30,19 +22,28 @@ export interface UsePaginatedQueryResult<T> {
   refresh: () => void;
 }
 
+interface QueryConfig {
+  table: TableName;
+  pageSize?: number;
+  orderBy?: string;
+  ascending?: boolean;
+  select?: string;
+  enabled?: boolean;
+  eqFilters?: Record<string, string>;
+}
+
 export function usePaginatedQuery<T = Record<string, unknown>>(
-  options: UsePaginatedQueryOptions<T>,
+  config: QueryConfig,
 ): UsePaginatedQueryResult<T> {
   const {
     table,
     pageSize = 20,
     orderBy = 'created_at',
     ascending = false,
-    filters = [],
     select = '*',
     enabled = true,
-    transform,
-  } = options;
+    eqFilters = {},
+  } = config;
 
   const [data, setData] = useState<T[]>([]);
   const [loading, setLoading] = useState(false);
@@ -64,65 +65,45 @@ export function usePaginatedQuery<T = Record<string, unknown>>(
         const from = (page - 1) * pageSize;
         const to = from + pageSize - 1;
 
-        // Build count query
-        let countQuery = supabase.from(table).select('*', { count: 'exact', head: true });
-        for (const f of filters) {
-          countQuery = (countQuery as ReturnType<typeof countQuery>).filter(f.column, f.operator, f.value);
+        // Count
+        let countBuilder = supabase.from(table).select('*', { count: 'exact', head: true });
+        for (const [col, val] of Object.entries(eqFilters)) {
+          countBuilder = countBuilder.eq(col, val);
         }
-        const { count } = await countQuery;
+        const { count } = await countBuilder;
         const total = count ?? 0;
 
-        // Build data query
-        let dataQuery = supabase
-          .from(table)
-          .select(select)
-          .order(orderBy, { ascending })
-          .range(from, to);
-
-        for (const f of filters) {
-          dataQuery = (dataQuery as ReturnType<typeof dataQuery>).filter(f.column, f.operator, f.value);
+        // Data
+        let dataBuilder = supabase.from(table).select(select).order(orderBy, { ascending }).range(from, to);
+        for (const [col, val] of Object.entries(eqFilters)) {
+          dataBuilder = dataBuilder.eq(col, val);
         }
+        const { data: rows, error: qErr } = await dataBuilder;
+        if (qErr) throw qErr;
 
-        const { data: rows, error: queryError } = await dataQuery;
-        if (queryError) throw queryError;
-
-        const transformed = transform
-          ? (rows || []).map((r) => transform(r as Record<string, unknown>))
-          : ((rows || []) as T[]);
-
-        setData(transformed);
-        setPagination({
-          page,
-          pageSize,
-          total,
-          totalPages: Math.ceil(total / pageSize),
-        });
+        setData((rows ?? []) as T[]);
+        setPagination({ page, pageSize, total, totalPages: Math.ceil(total / pageSize) });
       } catch (err: unknown) {
         setError(err instanceof Error ? err.message : 'Query failed');
       } finally {
         setLoading(false);
       }
     },
-    [table, pageSize, orderBy, ascending, JSON.stringify(filters), select, enabled, transform],
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [table, pageSize, orderBy, ascending, select, enabled, JSON.stringify(eqFilters)],
   );
+
+  useEffect(() => {
+    if (enabled) fetchPage(1);
+  }, [fetchPage, enabled]);
 
   const goToPage = useCallback(
-    (page: number) => {
-      if (page >= 1 && page <= Math.max(pagination.totalPages, 1)) {
-        fetchPage(page);
-      }
-    },
+    (p: number) => { if (p >= 1 && p <= Math.max(pagination.totalPages, 1)) fetchPage(p); },
     [fetchPage, pagination.totalPages],
   );
-
   const nextPage = useCallback(() => goToPage(pagination.page + 1), [goToPage, pagination.page]);
   const prevPage = useCallback(() => goToPage(pagination.page - 1), [goToPage, pagination.page]);
   const refresh = useCallback(() => fetchPage(pagination.page), [fetchPage, pagination.page]);
-
-  // Initial fetch
-  useState(() => {
-    if (enabled) fetchPage(1);
-  });
 
   return { data, loading, error, pagination, goToPage, nextPage, prevPage, refresh };
 }
