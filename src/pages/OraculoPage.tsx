@@ -2,8 +2,9 @@ import { useState } from 'react';
 import { PageHeader } from '@/components/shared/PageHeader';
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Sparkles, Settings, BookOpen, BarChart3, Zap, Plus, Send, Clock, DollarSign, CheckCircle } from 'lucide-react';
+import { Sparkles, Settings, BookOpen, BarChart3, Zap, Plus, Send, Clock, DollarSign, CheckCircle, Key } from 'lucide-react';
 import { toast } from 'sonner';
+import * as llm from '@/services/llmService';
 
 const PRESETS = [
   // Originais
@@ -68,48 +69,93 @@ export default function OraculoPage() {
   const [isConsulting, setIsConsulting] = useState(false);
   const [consultResult, setConsultResult] = useState<ConsultResult | null>(null);
   const [consultStage, setConsultStage] = useState('');
+  const [apiKeyInput, setApiKeyInput] = useState('');
 
-  const runConsult = () => {
+  // Model IDs for presets
+  const PRESET_MODELS: Record<string, string[]> = {
+    executive: ['anthropic/claude-opus-4', 'openai/gpt-4o', 'google/gemini-2.5-pro-preview', 'anthropic/claude-sonnet-4'],
+    fast: ['openai/gpt-4o-mini', 'google/gemini-2.0-flash-001', 'deepseek/deepseek-chat-v3-0324'],
+    research: ['anthropic/claude-opus-4', 'openai/gpt-4o', 'google/gemini-2.5-pro-preview', 'deepseek/deepseek-chat-v3-0324', 'anthropic/claude-sonnet-4'],
+    debate: ['anthropic/claude-opus-4', 'openai/gpt-4o'],
+    technical: ['anthropic/claude-sonnet-4', 'openai/gpt-4o', 'deepseek/deepseek-chat-v3-0324', 'google/gemini-2.0-flash-001'],
+    validator: ['anthropic/claude-sonnet-4', 'openai/gpt-4o', 'google/gemini-2.0-flash-001'],
+    financial: ['anthropic/claude-opus-4', 'openai/gpt-4o', 'anthropic/claude-sonnet-4'],
+    supplier_eval: ['anthropic/claude-sonnet-4', 'openai/gpt-4o', 'google/gemini-2.0-flash-001'],
+    legal: ['anthropic/claude-opus-4', 'openai/gpt-4o', 'anthropic/claude-sonnet-4'],
+    crisis: ['openai/gpt-4o', 'anthropic/claude-sonnet-4', 'google/gemini-2.0-flash-001'],
+    content: ['anthropic/claude-sonnet-4', 'openai/gpt-4o', 'google/gemini-2.0-flash-001'],
+    hr: ['anthropic/claude-sonnet-4', 'openai/gpt-4o', 'google/gemini-2.0-flash-001'],
+  };
+
+  const runConsult = async () => {
     if (!consultQuery.trim()) return;
     const preset = PRESETS.find(p => p.id === selectedPreset);
     if (!preset) return;
     setIsConsulting(true);
     setConsultResult(null);
 
-    // Simulate 4-stage council deliberation
-    const models = ['Claude Opus 4', 'GPT-4o', 'Gemini 2.0 Flash', 'Claude Sonnet 4'].slice(0, preset.models);
-    const totalLatency = 3000 + Math.random() * 5000;
-    const stageDelay = totalLatency / 4;
+    const modelIds = PRESET_MODELS[selectedPreset] ?? PRESET_MODELS.fast;
 
-    setConsultStage('📡 Stage 1/4: Polling — enviando para ' + models.length + ' modelos...');
-    setTimeout(() => setConsultStage('🔍 Stage 2/4: Peer Review — modelos avaliando respostas...'), stageDelay);
-    setTimeout(() => setConsultStage('✨ Stage 3/4: Síntese — Chairman consolidando...'), stageDelay * 2);
-    setTimeout(() => setConsultStage('📊 Stage 4/4: Meta-análise — gerando Consensus Matrix...'), stageDelay * 3);
+    if (llm.isLLMConfigured()) {
+      // ═══ REAL LLM COUNCIL CALL ═══
+      try {
+        const result = await llm.runCouncil(consultQuery, modelIds, {
+          temperature: 0.7,
+          maxTokens: 2048,
+          onStageChange: setConsultStage,
+        });
 
-    setTimeout(() => {
-      const consensus = 65 + Math.floor(Math.random() * 30);
-      const responses = models.map(model => ({
-        model,
-        summary: `Análise de "${consultQuery.slice(0, 50)}..." — recomendação baseada em ${preset.mode === 'council' ? 'deliberação coletiva' : preset.mode === 'researcher' ? 'pesquisa profunda' : 'validação cruzada'}.`,
-        score: 70 + Math.floor(Math.random() * 25),
-      }));
-      const cost = (0.05 + Math.random() * 0.8) * preset.models;
+        setConsultResult({
+          query: consultQuery,
+          preset: preset.name,
+          mode: preset.mode,
+          consensus: result.consensus,
+          responses: result.responses.map(r => ({
+            model: r.model,
+            summary: r.content.slice(0, 300) + (r.content.length > 300 ? '...' : ''),
+            score: r.error ? 0 : Math.min(95, 70 + Math.floor(r.content.length / 50)),
+          })),
+          synthesis: result.synthesis,
+          cost: result.totalCost,
+          latency: result.totalLatencyMs,
+          timestamp: new Date().toLocaleString('pt-BR'),
+        });
+        setConsultStage('');
+        toast.success(`Consulta REAL concluída — consenso ${result.consensus}% entre ${modelIds.length} modelos ($${result.totalCost.toFixed(4)})`);
+      } catch (err) {
+        toast.error(`Erro: ${err instanceof Error ? err.message : 'Falha na consulta'}`);
+        setConsultStage('');
+      }
+    } else {
+      // ═══ FALLBACK SIMULATION ═══
+      const modelNames = modelIds.map(id => llm.AVAILABLE_MODELS.find(m => m.id === id)?.name ?? id);
+      setConsultStage('📡 Stage 1/4: Polling — enviando para ' + modelNames.length + ' modelos...');
+      setTimeout(() => setConsultStage('🔍 Stage 2/4: Peer Review — avaliando respostas...'), 800);
+      setTimeout(() => setConsultStage('✨ Stage 3/4: Síntese — consolidando...'), 1600);
+      setTimeout(() => setConsultStage('📊 Stage 4/4: Meta-análise — consensus matrix...'), 2400);
 
-      setConsultResult({
-        query: consultQuery,
-        preset: preset.name,
-        mode: preset.mode,
-        consensus,
-        responses,
-        synthesis: `Síntese do conselho (${models.length} modelos, modo ${preset.mode}): Com ${consensus}% de consenso, os modelos concordam que a abordagem recomendada para "${consultQuery.slice(0, 80)}" envolve análise multi-dimensional considerando custo, impacto e viabilidade. ${consensus >= 80 ? 'Alta confiança na recomendação.' : 'Recomenda-se análise adicional — divergências significativas entre modelos.'}`,
-        cost: parseFloat(cost.toFixed(2)),
-        latency: Math.round(totalLatency),
-        timestamp: new Date().toLocaleString('pt-BR'),
-      });
-      setIsConsulting(false);
-      setConsultStage('');
-      toast.success(`Consulta concluída — consenso de ${consensus}% entre ${models.length} modelos (${preset.name})`);
-    }, totalLatency);
+      setTimeout(() => {
+        const consensus = 65 + Math.floor(Math.random() * 30);
+        setConsultResult({
+          query: consultQuery,
+          preset: preset.name,
+          mode: preset.mode,
+          consensus,
+          responses: modelNames.map(model => ({
+            model,
+            summary: `[Simulação] Análise de "${consultQuery.slice(0, 50)}..." — Configure API key para respostas reais.`,
+            score: 70 + Math.floor(Math.random() * 25),
+          })),
+          synthesis: `[SIMULAÇÃO — configure API key para respostas reais]\n\nSíntese simulada (${modelNames.length} modelos, modo ${preset.mode}): Consenso de ${consensus}%. Para deliberação real com LLMs, configure a API key do OpenRouter na aba Configuração.`,
+          cost: 0,
+          latency: 3200,
+          timestamp: new Date().toLocaleString('pt-BR'),
+        });
+        setConsultStage('');
+        toast.info(`Consulta SIMULADA — configure API key do OpenRouter para respostas reais`);
+      }, 3200);
+    }
+    setIsConsulting(false);
   };
 
   return (
@@ -153,6 +199,34 @@ export default function OraculoPage() {
 
         {/* Tab 1: Configuração */}
         <TabsContent value="config" className="mt-4 space-y-4">
+          {/* API Key Configuration */}
+          <div className={`nexus-card border ${llm.isLLMConfigured() ? 'border-emerald-500/30' : 'border-amber-500/30'}`}>
+            <div className="flex items-center justify-between mb-3">
+              <h3 className="text-sm font-semibold text-foreground"><Key className="h-3.5 w-3.5 inline mr-1" /> API Key — {llm.isLLMConfigured() ? '✅ Configurada' : '⚠️ Não configurada'}</h3>
+              {llm.isLLMConfigured() && <span className="text-[10px] text-emerald-400">Provider: {llm.getLLMConfig().provider}</span>}
+            </div>
+            {!llm.isLLMConfigured() && (
+              <p className="text-xs text-amber-400 mb-3">Configure uma API key para consultas reais. Sem key, o sistema usa simulação.</p>
+            )}
+            <div className="flex gap-2">
+              <input
+                value={apiKeyInput}
+                onChange={e => setApiKeyInput(e.target.value)}
+                type="password"
+                placeholder="sk-or-... (OpenRouter) ou sk-ant-... (Anthropic)"
+                className="flex-1 bg-muted/30 border border-border rounded-lg px-3 py-2 text-sm text-foreground font-mono"
+              />
+              <Button size="sm" onClick={() => {
+                if (!apiKeyInput || apiKeyInput.length < 10) { toast.error('API key inválida'); return; }
+                const provider = apiKeyInput.startsWith('sk-ant-') ? 'anthropic' : apiKeyInput.startsWith('sk-') ? 'openai' : 'openrouter';
+                llm.configureLLM({ provider: provider as 'openrouter' | 'anthropic' | 'openai', apiKey: apiKeyInput });
+                toast.success(`API key configurada (${provider}). Consultas reais habilitadas!`);
+                setApiKeyInput('');
+              }}>Salvar</Button>
+            </div>
+            <p className="text-[10px] text-muted-foreground mt-2">Recomendamos OpenRouter (openrouter.ai) — acesso a 200+ modelos com uma única key.</p>
+          </div>
+
           <div className="nexus-card">
             <h3 className="text-sm font-semibold text-foreground mb-3">Gateway LLM</h3>
             <div className="grid grid-cols-3 gap-3">
