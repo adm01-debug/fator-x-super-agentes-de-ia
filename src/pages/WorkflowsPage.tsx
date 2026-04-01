@@ -7,10 +7,12 @@ import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
-import { Plus, GitBranch, ArrowRight, Brain, Search, Shield, CheckCircle, Wrench, FileText, Play, Trash2, LayoutGrid, Network } from "lucide-react";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Plus, GitBranch, ArrowRight, Brain, Search, Shield, CheckCircle, Wrench, FileText, Play, Trash2, LayoutGrid, Network, Save, FolderOpen, Loader2 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { toast } from "sonner";
 import { WorkflowCanvas, type CanvasNode, type CanvasEdge } from "@/components/workflows/WorkflowCanvas";
+import { useWorkflowPersistence } from "@/hooks/use-workflow-persistence";
 
 interface Workflow {
   id: string;
@@ -57,6 +59,26 @@ export default function WorkflowsPage() {
   const [newSteps, setNewSteps] = useState('');
   const [canvasNodes, setCanvasNodes] = useState<CanvasNode[]>(defaultCanvasNodes);
   const [canvasEdges, setCanvasEdges] = useState<CanvasEdge[]>(defaultCanvasEdges);
+  const [canvasName, setCanvasName] = useState('Meu Pipeline');
+  const persistence = useWorkflowPersistence();
+
+  const handleSave = async () => {
+    if (!canvasName.trim()) { toast.error('Nome é obrigatório'); return; }
+    const id = await persistence.saveCanvas(canvasName, canvasNodes, canvasEdges, persistence.selectedId);
+    if (id) persistence.setSelectedId(id);
+  };
+
+  const handleLoad = (workflowId: string) => {
+    const data = persistence.loadCanvas(workflowId);
+    if (data) {
+      setCanvasNodes(data.nodes);
+      setCanvasEdges(data.edges);
+      const wf = persistence.workflows.find(w => w.id === workflowId);
+      if (wf) setCanvasName(wf.name);
+      persistence.setSelectedId(workflowId);
+      toast.success('Canvas carregado!');
+    }
+  };
 
   const handleCreate = () => {
     if (!newName.trim()) { toast.error('Nome é obrigatório'); return; }
@@ -120,8 +142,43 @@ export default function WorkflowsPage() {
 
         <TabsContent value="canvas" className="space-y-4">
           <InfoHint title="Canvas de Orquestração">
-            Arraste nodes para posicionar, conecte-os pelo ponto azul à direita. Clique numa linha para removê-la. Monte pipelines de Planner → Researcher → Retriever → Critic → Executor.
+            Arraste nodes para posicionar, conecte-os pelo ponto azul à direita. Clique numa linha para removê-la. Salve seu pipeline no banco de dados para reutilizá-lo.
           </InfoHint>
+
+          {/* Save / Load bar */}
+          <div className="flex items-center gap-3 flex-wrap">
+            <Input
+              value={canvasName}
+              onChange={e => setCanvasName(e.target.value)}
+              placeholder="Nome do pipeline"
+              className="max-w-[220px] bg-secondary/50 text-sm"
+            />
+            <Button size="sm" className="gap-1.5" onClick={handleSave} disabled={persistence.saving}>
+              {persistence.saving ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Save className="h-3.5 w-3.5" />}
+              {persistence.selectedId ? 'Atualizar' : 'Salvar'}
+            </Button>
+
+            {persistence.workflows.length > 0 && (
+              <Select onValueChange={handleLoad} value={persistence.selectedId ?? undefined}>
+                <SelectTrigger className="max-w-[220px] text-sm">
+                  <FolderOpen className="h-3.5 w-3.5 mr-1.5 shrink-0" />
+                  <SelectValue placeholder="Carregar workflow..." />
+                </SelectTrigger>
+                <SelectContent>
+                  {persistence.workflows.map(wf => (
+                    <SelectItem key={wf.id} value={wf.id}>{wf.name}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            )}
+
+            {persistence.selectedId && (
+              <Badge variant="outline" className="text-[10px] border-primary/30 text-primary">
+                Salvo no banco
+              </Badge>
+            )}
+          </div>
+
           <WorkflowCanvas nodes={canvasNodes} edges={canvasEdges} onNodesChange={setCanvasNodes} onEdgesChange={setCanvasEdges} />
         </TabsContent>
 
