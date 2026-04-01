@@ -29,7 +29,7 @@ export async function logAudit(entry: AuditEntry): Promise<void> {
       action: entry.action,
       entity_type: entry.entity_type,
       entity_id: entry.entity_id ?? null,
-      metadata: entry.metadata ?? {},
+      metadata: (entry.metadata ?? {}) as Json,
     }]);
 
     if (error) {
