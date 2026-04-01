@@ -59,6 +59,10 @@ export default function DatabaseManagerPage() {
   const [editingRowIndex, setEditingRowIndex] = useState<number | null>(null);
   const [editingRowData, setEditingRowData] = useState<Record<string, string>>({});
 
+  // Filter state
+  const [filterColumn, setFilterColumn] = useState('');
+  const [filterValue, setFilterValue] = useState('');
+
   // Get active remote client
   const getClient = useCallback(() => {
     const db = databases.find(d => d.id === selectedDb);
@@ -66,18 +70,21 @@ export default function DatabaseManagerPage() {
     return dbManager.connectToRemoteDB(db.url, connectForm.serviceKey || connectForm.anonKey || db.url.split('//')[1]?.split('.')[0] || '');
   }, [selectedDb, databases, connectForm]);
 
-  // Load table data
-  const loadTableData = useCallback(async (tableName: string) => {
+  // Load table data (with optional filter)
+  const loadTableData = useCallback(async (tableName: string, filters?: Record<string, string>) => {
     const db = databases.find(d => d.id === selectedDb);
     if (!db) return;
     setDataLoading(true);
     setViewingTable(tableName);
-    const client = dbManager.connectToRemoteDB(db.url, db.url); // Would use stored key
-    const result = await dbManager.selectRows(client, tableName, { limit: 50 });
+    const client = dbManager.connectToRemoteDB(db.url, db.url);
+    const result = await dbManager.selectRows(client, tableName, { limit: 100, filters });
     setTableData(result.data);
     setDataCount(result.count);
     setDataLoading(false);
     if (result.error) toast.error(result.error);
+    else if (filters && Object.values(filters).some(v => v)) {
+      toast.success(`${result.count} registros encontrados com filtro`);
+    }
   }, [selectedDb, databases]);
 
   // Execute SQL
@@ -475,11 +482,49 @@ export default function DatabaseManagerPage() {
                   <option value="">Selecione uma tabela</option>
                   {tables.map(t => <option key={t.name} value={t.name}>{t.name} ({t.rows} rows)</option>)}
                 </select>
+                {/* Filtro por coluna */}
+                {viewingTable && tableData.length > 0 && (
+                  <select
+                    value={filterColumn}
+                    onChange={e => setFilterColumn(e.target.value)}
+                    className="text-xs bg-muted/30 border border-border rounded-lg px-2 py-2 text-foreground"
+                  >
+                    <option value="">Coluna...</option>
+                    {Object.keys(tableData[0]).map(col => (
+                      <option key={col} value={col}>{col}</option>
+                    ))}
+                  </select>
+                )}
                 <div className="relative flex-1">
                   <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                  <input placeholder="Filtrar registros..." className="w-full pl-9 bg-muted/30 border border-border rounded-lg px-3 py-2 text-sm text-foreground" />
+                  <input
+                    value={filterValue}
+                    onChange={e => setFilterValue(e.target.value)}
+                    onKeyDown={e => {
+                      if (e.key === 'Enter' && viewingTable && filterColumn && filterValue) {
+                        loadTableData(viewingTable, { [filterColumn]: filterValue });
+                      }
+                    }}
+                    placeholder={filterColumn ? `Filtrar por ${filterColumn}... (Enter para buscar)` : 'Selecione uma coluna e digite o filtro'}
+                    className="w-full pl-9 bg-muted/30 border border-border rounded-lg px-3 py-2 text-sm text-foreground"
+                  />
                 </div>
-                <Button variant="outline" size="sm" className="gap-1.5" onClick={() => viewingTable && loadTableData(viewingTable)}><RefreshCw className="h-3.5 w-3.5" /> Recarregar</Button>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="gap-1.5"
+                  onClick={() => {
+                    if (viewingTable && filterColumn && filterValue) {
+                      loadTableData(viewingTable, { [filterColumn]: filterValue });
+                    } else if (viewingTable) {
+                      setFilterValue('');
+                      loadTableData(viewingTable);
+                    }
+                  }}
+                >
+                  <Search className="h-3.5 w-3.5" /> Filtrar
+                </Button>
+                <Button variant="outline" size="sm" className="gap-1.5" onClick={() => { setFilterValue(''); setFilterColumn(''); viewingTable && loadTableData(viewingTable); }}><RefreshCw className="h-3.5 w-3.5" /> Limpar</Button>
                 <Button size="sm" className="gap-1.5" disabled={!viewingTable} onClick={() => { setInsertData({}); setShowInsertRow(true); }}><Plus className="h-3.5 w-3.5" /> Inserir</Button>
               </div>
 
