@@ -19,6 +19,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { AGENT_TEMPLATES, templateToConfig, type AgentTemplate } from "@/data/agentTemplates";
 import { DEFAULT_AGENT } from "@/data/agentBuilderData";
 import * as agentService from "@/services/agentService";
+import * as llm from "@/services/llmService";
 
 const STEPS = [
   { key: "identity", label: "Identidade", icon: User, description: "Nome, descrição e objetivo" },
@@ -75,7 +76,7 @@ const MEMORY_OPTIONS = [
   { id: "team_shared", label: "Memória compartilhada", desc: "Contexto do time/workspace", default: false },
 ];
 
-type WizardMode = "choose" | "template" | "scratch";
+type WizardMode = "choose" | "template" | "scratch" | "nl";
 
 export function CreateAgentWizard() {
   const navigate = useNavigate();
@@ -84,6 +85,65 @@ export function CreateAgentWizard() {
   const [step, setStep] = useState(0);
   const [saving, setSaving] = useState(false);
   const [selectedTemplate, setSelectedTemplate] = useState<AgentTemplate | null>(null);
+
+  // NL creation state
+  const [nlDescription, setNlDescription] = useState('');
+  const [nlGenerating, setNlGenerating] = useState(false);
+  const [nlGenerated, setNlGenerated] = useState(false);
+
+  const generateFromNL = async () => {
+    if (!nlDescription.trim()) { toast.error('Descreva o agente que deseja criar'); return; }
+    setNlGenerating(true);
+    toast.info('Gerando configuração do agente via IA...');
+
+    const messages: llm.LLMMessage[] = [
+      { role: 'system', content: `Você é um gerador de configuração de agentes de IA. O usuário vai descrever o agente que quer e você deve retornar um JSON com: {"name": "...", "description": "...", "type": "chatbot|copilot|analyst|sdr|support|researcher|orchestrator", "model": "gpt-4o|claude-3.5-sonnet|gemini-1.5-pro", "prompt": "... system prompt completo ...", "tools": ["web_search","database_query","email","calendar","code_executor","crm"], "memory": ["short_term","episodic","semantic","user_profile"]}. Retorne APENAS o JSON, sem markdown.` },
+      { role: 'user', content: nlDescription },
+    ];
+
+    const response = await llm.callModel('anthropic/claude-sonnet-4', messages, { temperature: 0.5, maxTokens: 2000 });
+
+    if (response.error) {
+      // Fallback: generate locally based on keywords
+      const desc = nlDescription.toLowerCase();
+      const isSupport = desc.includes('suporte') || desc.includes('atendimento') || desc.includes('cliente');
+      const isSales = desc.includes('venda') || desc.includes('comercial') || desc.includes('lead');
+      const isData = desc.includes('dado') || desc.includes('anali') || desc.includes('relatório');
+      setForm(prev => ({
+        ...prev,
+        name: nlDescription.split(' ').slice(0, 3).map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(' '),
+        description: nlDescription,
+        objective: nlDescription,
+        type: isSupport ? 'support' : isSales ? 'sdr' : isData ? 'analyst' : 'chatbot',
+        model: 'claude-3.5-sonnet',
+        prompt: `Você é um assistente especializado. ${nlDescription}\n\n## Persona\n- Profissional e prestativo\n- Respostas claras e objetivas\n\n## Escopo\n- ${nlDescription}\n- Escalar para humano quando necessário\n\n## Formato\n- Use markdown\n- Máximo 300 palavras`,
+        tools: isData ? ['database_query', 'code_executor'] : isSales ? ['web_search', 'email', 'crm'] : ['web_search', 'database_query'],
+        memory: ['short_term', 'semantic'],
+      }));
+      setNlGenerated(true);
+      toast.info('Agente gerado localmente (configure API key para geração via IA)');
+    } else {
+      try {
+        const config = JSON.parse(response.content.replace(/```json?\n?/g, '').replace(/```/g, '').trim());
+        setForm(prev => ({
+          ...prev,
+          name: config.name || prev.name,
+          description: config.description || nlDescription,
+          objective: config.description || nlDescription,
+          type: config.type || prev.type,
+          model: config.model || prev.model,
+          prompt: config.prompt || prev.prompt,
+          tools: Array.isArray(config.tools) ? config.tools : prev.tools,
+          memory: Array.isArray(config.memory) ? config.memory : prev.memory,
+        }));
+        setNlGenerated(true);
+        toast.success(`Agente "${config.name}" gerado com sucesso! Revise e ajuste.`);
+      } catch {
+        toast.error('Erro ao processar resposta da IA. Tente novamente.');
+      }
+    }
+    setNlGenerating(false);
+  };
 
   const [form, setForm] = useState({
     name: "",
@@ -206,7 +266,21 @@ export function CreateAgentWizard() {
           </div>
         </div>
 
-        <div className="grid gap-4 sm:grid-cols-2">
+        <div className="grid gap-4 sm:grid-cols-3">
+          {/* NL Creation - NEW */}
+          <button onClick={() => { setMode("nl"); }}
+            className="nexus-card text-left transition-all hover:ring-2 hover:ring-primary/50 space-y-3 p-6 border-primary/20 bg-primary/5"
+          >
+            <div className="h-12 w-12 rounded-xl bg-primary/20 flex items-center justify-center">
+              <Sparkles className="h-6 w-6 text-primary" />
+            </div>
+            <h2 className="text-lg font-heading font-semibold text-foreground">Descrever com IA</h2>
+            <p className="text-sm text-muted-foreground">
+              Descreva o agente que precisa em português e a IA gera toda a configuração automaticamente.
+            </p>
+            <span className="text-[10px] px-2 py-0.5 rounded-full bg-primary/20 text-primary font-medium">Recomendado</span>
+          </button>
+
           <button onClick={() => { setMode("template"); setStep(0); }}
             className="nexus-card text-left transition-all hover:ring-2 hover:ring-primary/50 space-y-3 p-6"
           >
@@ -239,6 +313,80 @@ export function CreateAgentWizard() {
             </p>
           </button>
         </div>
+      </div>
+    );
+  }
+
+  // ═══ NL MODE ═══
+  if (mode === "nl") {
+    return (
+      <div className="p-6 max-w-[900px] mx-auto space-y-6">
+        <div className="flex items-center gap-3">
+          <Button variant="ghost" size="icon" onClick={() => { setMode("choose"); setNlGenerated(false); }}><ArrowLeft className="h-4 w-4" /></Button>
+          <div>
+            <h1 className="text-xl font-heading font-bold text-foreground">Criar agente com IA</h1>
+            <p className="text-sm text-muted-foreground">Descreva o que precisa e a IA configura tudo</p>
+          </div>
+        </div>
+
+        <div className="nexus-card space-y-4">
+          <div className="flex items-center gap-2 text-xs text-muted-foreground">
+            <Sparkles className="h-4 w-4 text-primary" />
+            <span>Exemplos: "Assistente comercial para qualificar leads via WhatsApp" • "Analista de dados que consulta nosso CRM" • "Suporte L1 com escalonamento automático"</span>
+          </div>
+          <textarea
+            value={nlDescription}
+            onChange={e => setNlDescription(e.target.value)}
+            placeholder="Descreva o agente que você precisa em português...&#10;&#10;Ex: Preciso de um assistente comercial que atende clientes pelo WhatsApp, consulta nosso catálogo de 6.000 produtos, faz cotações automáticas e escala para um vendedor humano quando o pedido é acima de R$ 5.000."
+            className="w-full h-40 bg-muted/30 border border-border rounded-xl p-4 text-sm text-foreground resize-none"
+          />
+          <div className="flex gap-2">
+            <Button onClick={generateFromNL} disabled={nlGenerating || !nlDescription.trim()} className="gap-2 flex-1">
+              {nlGenerating ? <><Sparkles className="h-4 w-4 animate-spin" /> Gerando configuração...</> : <><Sparkles className="h-4 w-4" /> Gerar Agente com IA</>}
+            </Button>
+          </div>
+        </div>
+
+        {nlGenerated && (
+          <div className="space-y-4">
+            <div className="rounded-xl border border-emerald-500/30 bg-emerald-500/5 p-4">
+              <h3 className="text-sm font-semibold text-foreground mb-3">Agente gerado — revise e ajuste:</h3>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div><label className="text-[10px] text-muted-foreground">Nome</label><input value={form.name} onChange={e => setForm(prev => ({ ...prev, name: e.target.value }))} className="w-full bg-muted/30 border border-border rounded-lg px-3 py-2 text-sm text-foreground mt-1" /></div>
+                <div><label className="text-[10px] text-muted-foreground">Tipo</label>
+                  <select value={form.type} onChange={e => setForm(prev => ({ ...prev, type: e.target.value }))} className="w-full bg-muted/30 border border-border rounded-lg px-3 py-2 text-sm text-foreground mt-1">
+                    {AGENT_TYPES.map(t => <option key={t.id} value={t.id}>{t.label} — {t.desc}</option>)}
+                  </select>
+                </div>
+                <div><label className="text-[10px] text-muted-foreground">Modelo</label>
+                  <select value={form.model} onChange={e => setForm(prev => ({ ...prev, model: e.target.value }))} className="w-full bg-muted/30 border border-border rounded-lg px-3 py-2 text-sm text-foreground mt-1">
+                    {MODELS.map(m => <option key={m.id} value={m.id}>{m.name} ({m.provider})</option>)}
+                  </select>
+                </div>
+                <div><label className="text-[10px] text-muted-foreground">Descrição</label><input value={form.description} onChange={e => setForm(prev => ({ ...prev, description: e.target.value }))} className="w-full bg-muted/30 border border-border rounded-lg px-3 py-2 text-sm text-foreground mt-1" /></div>
+              </div>
+              <div className="mt-3">
+                <label className="text-[10px] text-muted-foreground">System Prompt (gerado pela IA)</label>
+                <textarea value={form.prompt} onChange={e => setForm(prev => ({ ...prev, prompt: e.target.value }))} className="w-full bg-muted/30 border border-border rounded-lg px-3 py-2 text-xs text-foreground mt-1 h-32 font-mono resize-none" />
+              </div>
+              <div className="mt-3 flex flex-wrap gap-1">
+                <span className="text-[10px] text-muted-foreground mr-1">Tools:</span>
+                {form.tools.map(t => <span key={t} className="text-[10px] px-2 py-0.5 rounded bg-primary/10 text-primary">{t}</span>)}
+              </div>
+              <div className="mt-2 flex flex-wrap gap-1">
+                <span className="text-[10px] text-muted-foreground mr-1">Memória:</span>
+                {form.memory.map(m => <span key={m} className="text-[10px] px-2 py-0.5 rounded bg-muted/30 text-muted-foreground">{m}</span>)}
+              </div>
+            </div>
+
+            <div className="flex gap-2">
+              <Button variant="outline" onClick={() => { setNlGenerated(false); setNlDescription(''); }} className="gap-1"><ArrowLeft className="h-3.5 w-3.5" /> Refazer</Button>
+              <Button onClick={saveAgent} disabled={saving} className="flex-1 gap-2">
+                {saving ? 'Criando...' : <><Rocket className="h-4 w-4" /> Criar Agente</>}
+              </Button>
+            </div>
+          </div>
+        )}
       </div>
     );
   }

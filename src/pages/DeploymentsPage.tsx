@@ -183,6 +183,61 @@ export default function DeploymentsPage() {
         })}
       </div>
 
+      {/* Agent Scheduling */}
+      <div className="nexus-card space-y-4">
+        <h3 className="text-sm font-heading font-semibold text-foreground">Agendamento de Agentes</h3>
+        <p className="text-xs text-muted-foreground">Agende execuções automáticas — agentes proativos que executam sem interação do usuário.</p>
+        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3">
+          {[
+            { label: 'Relatório diário às 9h', cron: '0 9 * * *', agent: 'Analista de Dados', active: true },
+            { label: 'Sync CRM a cada 6h', cron: '0 */6 * * *', agent: 'Agente BPM', active: true },
+            { label: 'Prospecção semanal (segunda)', cron: '0 8 * * 1', agent: 'SDR Outbound', active: false },
+          ].map(sched => (
+            <div key={sched.label} className="rounded-xl border border-border bg-card p-3 space-y-2">
+              <div className="flex items-center justify-between">
+                <p className="text-xs font-semibold text-foreground">{sched.label}</p>
+                <Switch defaultChecked={sched.active} onCheckedChange={() => toast.success(`Schedule ${sched.active ? 'desativado' : 'ativado'}`)} />
+              </div>
+              <p className="text-[10px] font-mono text-muted-foreground">{sched.cron}</p>
+              <p className="text-[10px] text-muted-foreground">Agente: {sched.agent}</p>
+            </div>
+          ))}
+        </div>
+        <Button variant="outline" size="sm" className="w-full border-dashed gap-1" onClick={() => toast.info('Configure schedules no Agent Builder > Deploy Module')}>
+          <Plus className="h-3.5 w-3.5" /> Novo Agendamento
+        </Button>
+      </div>
+
+      {/* Webhook Triggers */}
+      <div className="nexus-card space-y-4">
+        <h3 className="text-sm font-heading font-semibold text-foreground">Webhook Triggers</h3>
+        <p className="text-xs text-muted-foreground">Ative agentes automaticamente quando eventos externos acontecem.</p>
+        <div className="space-y-2">
+          {[
+            { event: 'Novo lead no CRM', url: '/api/triggers/new-lead', agent: 'Assistente Comercial', calls: 45, status: 'active' },
+            { event: 'Ticket de suporte aberto', url: '/api/triggers/support-ticket', agent: 'Suporte L1', calls: 128, status: 'active' },
+            { event: 'Pagamento confirmado', url: '/api/triggers/payment', agent: 'Agente BPM', calls: 23, status: 'active' },
+            { event: 'Menção no WhatsApp', url: '/api/triggers/whatsapp', agent: 'Atendimento WhatsApp', calls: 312, status: 'active' },
+          ].map(trigger => (
+            <div key={trigger.event} className="flex items-center justify-between p-3 rounded-xl border border-border bg-card text-xs">
+              <div className="flex-1">
+                <p className="font-semibold text-foreground">{trigger.event}</p>
+                <p className="text-[10px] font-mono text-muted-foreground mt-0.5">{trigger.url}</p>
+              </div>
+              <div className="flex items-center gap-4 shrink-0">
+                <span className="text-muted-foreground">{trigger.agent}</span>
+                <span className="font-mono text-foreground">{trigger.calls} calls</span>
+                <span className="h-2 w-2 rounded-full bg-emerald-400" />
+              </div>
+            </div>
+          ))}
+        </div>
+        <div className="flex gap-2">
+          <input placeholder="URL do webhook externo..." className="flex-1 bg-muted/30 border border-border rounded-lg px-3 py-1.5 text-xs text-foreground font-mono" />
+          <Button variant="outline" size="sm" onClick={() => toast.success('Webhook trigger adicionado')}><Plus className="h-3.5 w-3.5" /></Button>
+        </div>
+      </div>
+
       {/* Widget Embed Generator */}
       <div className="nexus-card space-y-4">
         <h3 className="text-sm font-heading font-semibold text-foreground">Widget de Chat Embeddable</h3>

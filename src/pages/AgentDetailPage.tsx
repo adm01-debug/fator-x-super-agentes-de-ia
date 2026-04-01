@@ -75,7 +75,7 @@ export default function AgentDetailPage() {
         <div className="lg:col-span-2">
           <Tabs defaultValue="overview" className="w-full">
             <TabsList className="bg-secondary/50 border border-border/50 overflow-x-auto">
-              {['Overview', 'Prompt', 'Tools', 'Memory', 'Knowledge', 'Evaluations', 'Logs', 'Versions'].map(tab => (
+              {['Overview', 'Analytics', 'Prompt', 'Tools', 'Memory', 'Knowledge', 'Evaluations', 'Logs', 'Versions'].map(tab => (
                 <TabsTrigger key={tab} value={tab.toLowerCase()} className="text-xs data-[state=active]:bg-background">{tab}</TabsTrigger>
               ))}
             </TabsList>
@@ -128,6 +128,67 @@ export default function AgentDetailPage() {
               <InfoHint title="Maturidade do agente">
                 Um agente passa por três estágios: Protótipo (configuração inicial), Testado (avaliações aprovadas) e Produção (deploy com guardrails ativos). O readiness score indica o progresso.
               </InfoHint>
+            </TabsContent>
+
+            {/* Analytics tab */}
+            <TabsContent value="analytics" className="mt-4 space-y-4">
+              <div className="nexus-card">
+                <h3 className="text-sm font-semibold text-foreground mb-3">Analytics do Agente — Últimos 7 dias</h3>
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+                  {[
+                    { label: 'Sessões', value: agent.sessions24h * 7, trend: '+12%', good: true },
+                    { label: 'Custo total', value: `R$ ${(agent.costToday * 7).toFixed(2)}`, trend: '+8%', good: false },
+                    { label: 'Custo/sessão', value: `R$ ${(agent.costToday / Math.max(agent.sessions24h, 1)).toFixed(3)}`, trend: '-3%', good: true },
+                    { label: 'Satisfação', value: agent.satisfaction > 0 ? `${agent.satisfaction}/5` : '—', trend: '+0.2', good: true },
+                  ].map(k => (
+                    <div key={k.label} className="rounded-xl bg-secondary/30 p-3 text-center">
+                      <p className="text-lg font-heading font-bold text-foreground">{k.value}</p>
+                      <p className="text-[10px] text-muted-foreground">{k.label}</p>
+                      <span className={`text-[10px] font-mono ${k.good ? 'text-emerald-400' : 'text-rose-400'}`}>{k.trend}</span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="nexus-card">
+                  <h4 className="text-xs font-semibold text-foreground mb-3">Top 5 Perguntas</h4>
+                  {['Qual o prazo de entrega?', 'Como rastrear meu pedido?', 'Quero fazer uma cotação', 'Qual o desconto para volume?', 'Produto X está disponível?'].map((q, i) => (
+                    <div key={q} className="flex items-center gap-2 p-1.5 text-[10px]">
+                      <span className="font-mono text-muted-foreground w-4">#{i + 1}</span>
+                      <span className="text-foreground flex-1">{q}</span>
+                      <span className="text-muted-foreground">{Math.floor(50 - i * 8)} calls</span>
+                    </div>
+                  ))}
+                </div>
+
+                <div className="nexus-card">
+                  <h4 className="text-xs font-semibold text-foreground mb-3">Breakdown de Custo</h4>
+                  {[
+                    { label: 'LLM (tokens)', pct: 68, color: 'bg-primary' },
+                    { label: 'Embeddings', pct: 15, color: 'bg-emerald-500' },
+                    { label: 'Tool calls', pct: 12, color: 'bg-amber-500' },
+                    { label: 'Storage', pct: 5, color: 'bg-muted-foreground' },
+                  ].map(c => (
+                    <div key={c.label} className="flex items-center gap-2 mb-2">
+                      <span className="text-[10px] text-muted-foreground w-20">{c.label}</span>
+                      <div className="flex-1 h-2 rounded-full bg-secondary overflow-hidden"><div className={`h-full rounded-full ${c.color}`} style={{ width: `${c.pct}%` }} /></div>
+                      <span className="text-[10px] font-mono text-foreground w-8 text-right">{c.pct}%</span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              <div className="nexus-card">
+                <h4 className="text-xs font-semibold text-foreground mb-3">Performance por Hora (hoje)</h4>
+                <div className="flex items-end gap-1 h-24">
+                  {Array.from({ length: 24 }, (_, i) => {
+                    const h = i < new Date().getHours() ? 10 + Math.floor(Math.random() * 80) : 0;
+                    return <div key={i} className="flex-1 rounded-t bg-primary/60 hover:bg-primary transition-colors" style={{ height: `${h}%` }} title={`${i}h: ${h}% utilização`} />;
+                  })}
+                </div>
+                <div className="flex justify-between text-[8px] text-muted-foreground mt-1"><span>0h</span><span>6h</span><span>12h</span><span>18h</span><span>23h</span></div>
+              </div>
             </TabsContent>
 
             <TabsContent value="prompt" className="mt-4">

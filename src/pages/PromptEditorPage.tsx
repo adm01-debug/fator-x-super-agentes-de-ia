@@ -8,7 +8,7 @@ import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
   ArrowLeft, Save, GitBranch, Play, CheckCircle, AlertTriangle,
-  Variable, RotateCcw, Plus, Trash2,
+  Variable, RotateCcw, Plus, Trash2, FlaskConical,
 } from "lucide-react";
 import { toast } from "sonner";
 import { useUnsavedChanges } from "@/hooks/use-unsaved-changes";
@@ -143,6 +143,7 @@ export default function PromptEditorPage() {
           <TabsTrigger value="preview" className="text-xs data-[state=active]:bg-background">Preview</TabsTrigger>
           <TabsTrigger value="versions" className="text-xs data-[state=active]:bg-background">Versões & Diff</TabsTrigger>
           <TabsTrigger value="score" className="text-xs data-[state=active]:bg-background">Score</TabsTrigger>
+          <TabsTrigger value="abtest" className="text-xs data-[state=active]:bg-background">A/B Test</TabsTrigger>
         </TabsList>
 
         {/* ─── Sections Editor ─── */}
@@ -344,6 +345,75 @@ export default function PromptEditorPage() {
                 </div>
               ))}
             </div>
+          </div>
+        </TabsContent>
+
+        {/* A/B Testing Tab */}
+        <TabsContent value="abtest" className="mt-4 space-y-4">
+          <div className="nexus-card">
+            <h3 className="text-sm font-semibold text-foreground mb-3">Prompt A/B Testing</h3>
+            <p className="text-xs text-muted-foreground mb-4">Compare duas versões do prompt lado a lado com métricas reais.</p>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              {/* Version A */}
+              <div className="rounded-xl border border-blue-500/30 bg-blue-500/5 p-4 space-y-2">
+                <div className="flex items-center justify-between"><span className="text-xs font-bold text-blue-400">Versão A (atual)</span><span className="text-[10px] text-muted-foreground">v2.4</span></div>
+                <div className="rounded-lg bg-muted/20 p-3 text-[10px] font-mono text-muted-foreground h-32 overflow-y-auto">{prompt.sections.map(s => `## ${s.title}\n${s.content}`).join('\n\n').slice(0, 500)}</div>
+                <div className="grid grid-cols-3 gap-2 text-center">
+                  <div className="rounded bg-muted/20 p-1"><p className="text-xs font-bold text-emerald-400">94%</p><p className="text-[8px] text-muted-foreground">Factualidade</p></div>
+                  <div className="rounded bg-muted/20 p-1"><p className="text-xs font-bold text-emerald-400">91%</p><p className="text-[8px] text-muted-foreground">Groundedness</p></div>
+                  <div className="rounded bg-muted/20 p-1"><p className="text-xs font-bold text-foreground">2.1s</p><p className="text-[8px] text-muted-foreground">Latência</p></div>
+                </div>
+              </div>
+
+              {/* Version B */}
+              <div className="rounded-xl border border-amber-500/30 bg-amber-500/5 p-4 space-y-2">
+                <div className="flex items-center justify-between"><span className="text-xs font-bold text-amber-400">Versão B (candidata)</span><span className="text-[10px] text-muted-foreground">v2.5-beta</span></div>
+                <textarea placeholder="Cole a versão B do prompt aqui para comparar..." className="w-full rounded-lg bg-muted/20 p-3 text-[10px] font-mono text-foreground h-32 border border-border resize-none" />
+                <div className="grid grid-cols-3 gap-2 text-center">
+                  <div className="rounded bg-muted/20 p-1"><p className="text-xs font-bold text-muted-foreground">—</p><p className="text-[8px] text-muted-foreground">Factualidade</p></div>
+                  <div className="rounded bg-muted/20 p-1"><p className="text-xs font-bold text-muted-foreground">—</p><p className="text-[8px] text-muted-foreground">Groundedness</p></div>
+                  <div className="rounded bg-muted/20 p-1"><p className="text-xs font-bold text-muted-foreground">—</p><p className="text-[8px] text-muted-foreground">Latência</p></div>
+                </div>
+              </div>
+            </div>
+
+            <div className="flex gap-2 mt-4">
+              <Button size="sm" className="gap-1 flex-1" onClick={() => toast.info('Executando A/B test com 10 queries de teste...')}><FlaskConical className="h-3.5 w-3.5" /> Executar A/B Test</Button>
+              <Button variant="outline" size="sm" className="gap-1" onClick={() => toast.success('Versão B promovida para produção')}>Promover B</Button>
+            </div>
+          </div>
+
+          {/* Test results */}
+          <div className="nexus-card">
+            <h4 className="text-xs font-semibold text-foreground mb-2">Resultados do último A/B Test</h4>
+            <div className="overflow-x-auto">
+              <table className="w-full text-[10px]">
+                <thead><tr className="border-b border-border text-muted-foreground">
+                  <th className="text-left py-1.5">Métrica</th><th className="text-center py-1.5 text-blue-400">Versão A</th><th className="text-center py-1.5 text-amber-400">Versão B</th><th className="text-center py-1.5">Delta</th><th className="text-center py-1.5">Vencedor</th>
+                </tr></thead>
+                <tbody>
+                  {[
+                    { metric: 'Factualidade', a: 94, b: 96, winner: 'B' },
+                    { metric: 'Groundedness', a: 91, b: 89, winner: 'A' },
+                    { metric: 'Task Success', a: 85, b: 88, winner: 'B' },
+                    { metric: 'Latência', a: 2.1, b: 1.8, winner: 'B' },
+                    { metric: 'Custo/query', a: 0.012, b: 0.009, winner: 'B' },
+                    { metric: 'Safety Score', a: 99, b: 99, winner: '=' },
+                  ].map(r => (
+                    <tr key={r.metric} className="border-b border-border/30">
+                      <td className="py-1.5 text-foreground">{r.metric}</td>
+                      <td className="py-1.5 text-center font-mono text-blue-400">{r.a}{typeof r.a === 'number' && r.a > 10 ? '%' : 's'}</td>
+                      <td className="py-1.5 text-center font-mono text-amber-400">{r.b}{typeof r.b === 'number' && r.b > 10 ? '%' : 's'}</td>
+                      <td className={`py-1.5 text-center font-mono ${r.winner === 'B' ? 'text-emerald-400' : r.winner === 'A' ? 'text-rose-400' : 'text-muted-foreground'}`}>
+                        {r.winner === 'B' ? `+${Math.abs(r.b - r.a).toFixed(1)}` : r.winner === 'A' ? `-${Math.abs(r.b - r.a).toFixed(1)}` : '='}
+                      </td>
+                      <td className="py-1.5 text-center">{r.winner === 'B' ? '🏆 B' : r.winner === 'A' ? '🏆 A' : '🤝'}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+            <p className="text-[10px] text-emerald-400 mt-2 font-semibold">Resultado: Versão B vence em 4/6 métricas. Recomendado promover.</p>
           </div>
         </TabsContent>
       </Tabs>
