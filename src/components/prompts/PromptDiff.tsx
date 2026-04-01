@@ -51,7 +51,7 @@ function diffLines(a: string, b: string): { linesA: { text: string; type: 'same'
 export function PromptDiff({ textA, textB, labelA, labelB }: Props) {
   const { linesA, linesB } = useMemo(() => diffLines(textA, textB), [textA, textB]);
 
-  const renderLine = (line: { text: string; type: string }, idx: number, side: 'a' | 'b') => {
+  const renderLine = (line: { text: string; type: string }, idx: number) => {
     const isRemoved = line.type === 'removed';
     const isAdded = line.type === 'added';
     const isEmpty = line.text === '' && line.type === 'same';

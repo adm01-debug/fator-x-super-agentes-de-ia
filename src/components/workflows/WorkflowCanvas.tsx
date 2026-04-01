@@ -138,7 +138,6 @@ export function WorkflowCanvas({ nodes, edges, onNodesChange, onEdgesChange }: P
             const from = getNodeCenter(fromNode);
             const to = getNodeCenter(toNode);
             const dx = to.x - from.x;
-            const dy = to.y - from.y;
             const cx1 = from.x + dx * 0.4;
             const cy1 = from.y;
             const cx2 = to.x - dx * 0.4;
