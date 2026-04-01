@@ -30,6 +30,7 @@ const DataHubPage = lazy(() => import("./pages/DataHubPage"));
 const SuperCerebroPage = lazy(() => import("./pages/SuperCerebroPage"));
 const OraculoPage = lazy(() => import("./pages/OraculoPage"));
 const DatabaseManagerPage = lazy(() => import("./pages/DatabaseManagerPage"));
+const MarketplacePage = lazy(() => import("./pages/MarketplacePage"));
 const SecurityPage = lazy(() => import("./pages/SecurityPage"));
 const TeamPage = lazy(() => import("./pages/TeamPage"));
 const BillingPage = lazy(() => import("./pages/BillingPage"));
@@ -74,6 +75,7 @@ const App = () => (
                       <Route path="/brain" element={<SuperCerebroPage />} />
                       <Route path="/oracle" element={<OraculoPage />} />
                       <Route path="/db-manager" element={<DatabaseManagerPage />} />
+                      <Route path="/marketplace" element={<MarketplacePage />} />
                       <Route path="/security" element={<SecurityPage />} />
                       <Route path="/team" element={<TeamPage />} />
                       <Route path="/billing" element={<BillingPage />} />

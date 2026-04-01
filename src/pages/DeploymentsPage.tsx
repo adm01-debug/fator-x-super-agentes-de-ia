@@ -3,8 +3,10 @@ import { PageHeader } from "@/components/shared/PageHeader";
 import { StatusBadge } from "@/components/shared/StatusBadge";
 import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
-import { Rocket, MessageSquare, Globe, Code, Hash, Smartphone, Plus, Trash2, X, Save, Play, RotateCcw, RefreshCw } from "lucide-react";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Rocket, MessageSquare, Globe, Code, Hash, Smartphone, Plus, Trash2, X, Save, Play, RotateCcw, RefreshCw, Copy, Eye } from "lucide-react";
 import { toast } from "sonner";
+import * as widgetService from "@/services/widgetService";
 
 // ═══ TYPES ═══
 
@@ -47,6 +49,13 @@ export default function DeploymentsPage() {
   const [newEnv, setNewEnv] = useState<Deployment['environment']>('staging');
   const [newStrategy, setNewStrategy] = useState<Deployment['strategy']>('big_bang');
   const [newCanary, setNewCanary] = useState(10);
+
+  // Widget embed state
+  const [widgetAgent, setWidgetAgent] = useState(AGENTS[0]);
+  const [widgetPosition, setWidgetPosition] = useState<'bottom-right' | 'bottom-left'>('bottom-right');
+  const [widgetColor, setWidgetColor] = useState('#4D96FF');
+  const [widgetWelcome, setWidgetWelcome] = useState('Olá! Como posso ajudar?');
+  const [widgetCode, setWidgetCode] = useState('');
 
   const createDeploy = useCallback(() => {
     const dep: Deployment = {
@@ -172,6 +181,53 @@ export default function DeploymentsPage() {
             </div>
           );
         })}
+      </div>
+
+      {/* Widget Embed Generator */}
+      <div className="nexus-card space-y-4">
+        <h3 className="text-sm font-heading font-semibold text-foreground">Widget de Chat Embeddable</h3>
+        <p className="text-xs text-muted-foreground">Gere um script para embeddar seu agente em qualquer site com uma linha de código.</p>
+        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-3">
+          <div><label className="text-[10px] text-muted-foreground">Agente</label>
+            <select value={widgetAgent} onChange={e => setWidgetAgent(e.target.value)} className="w-full bg-muted/30 border border-border rounded-lg px-3 py-1.5 text-xs text-foreground mt-1">
+              {AGENTS.map(a => <option key={a} value={a}>{a}</option>)}
+            </select>
+          </div>
+          <div><label className="text-[10px] text-muted-foreground">Posição</label>
+            <select value={widgetPosition} onChange={e => setWidgetPosition(e.target.value as 'bottom-right' | 'bottom-left')} className="w-full bg-muted/30 border border-border rounded-lg px-3 py-1.5 text-xs text-foreground mt-1">
+              <option value="bottom-right">Inferior direito</option>
+              <option value="bottom-left">Inferior esquerdo</option>
+            </select>
+          </div>
+          <div><label className="text-[10px] text-muted-foreground">Cor primária</label>
+            <input type="color" value={widgetColor} onChange={e => setWidgetColor(e.target.value)} className="w-full h-8 bg-muted/30 border border-border rounded-lg mt-1 cursor-pointer" />
+          </div>
+          <div><label className="text-[10px] text-muted-foreground">Mensagem de boas-vindas</label>
+            <input value={widgetWelcome} onChange={e => setWidgetWelcome(e.target.value)} className="w-full bg-muted/30 border border-border rounded-lg px-3 py-1.5 text-xs text-foreground mt-1" />
+          </div>
+        </div>
+        <div className="flex gap-2">
+          <Button size="sm" className="gap-1" onClick={() => {
+            const code = widgetService.generateEmbedCode({ agentId: `agent-${widgetAgent.toLowerCase().replace(/\s/g, '-')}`, agentName: widgetAgent, position: widgetPosition, primaryColor: widgetColor, welcomeMessage: widgetWelcome });
+            setWidgetCode(code);
+            toast.success('Código de embed gerado!');
+          }}><Code className="h-3.5 w-3.5" /> Gerar Código</Button>
+          {widgetCode && (
+            <>
+              <Button variant="outline" size="sm" className="gap-1" onClick={() => { navigator.clipboard.writeText(widgetCode); toast.success('Código copiado!'); }}><Copy className="h-3.5 w-3.5" /> Copiar</Button>
+              <Button variant="outline" size="sm" className="gap-1" onClick={() => {
+                const html = widgetService.generatePreviewHTML({ agentId: `agent-${widgetAgent.toLowerCase().replace(/\s/g, '-')}`, agentName: widgetAgent, position: widgetPosition, primaryColor: widgetColor, welcomeMessage: widgetWelcome });
+                const blob = new Blob([html], { type: 'text/html' });
+                const url = URL.createObjectURL(blob);
+                window.open(url, '_blank');
+                toast.success('Preview aberto em nova aba');
+              }}><Eye className="h-3.5 w-3.5" /> Preview</Button>
+            </>
+          )}
+        </div>
+        {widgetCode && (
+          <pre className="rounded-xl bg-muted/10 border border-border p-4 text-[10px] font-mono text-muted-foreground overflow-x-auto max-h-48">{widgetCode}</pre>
+        )}
       </div>
 
       {/* Create Modal */}

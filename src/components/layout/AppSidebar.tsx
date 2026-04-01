@@ -2,7 +2,7 @@ import { useLocation } from "react-router-dom";
 import { NavLink } from "@/components/NavLink";
 import {
   LayoutDashboard, Bot, BookOpen, Brain, Puzzle, FileText, GitBranch,
-  FlaskConical, Rocket, Activity, Database, Shield, Users, CreditCard, Settings,
+  FlaskConical, Rocket, Activity, Database, Shield, Users, CreditCard, Settings, Package,
   Sparkles, PanelLeftClose, PanelLeft,
 } from "lucide-react";
 import {
@@ -42,6 +42,7 @@ const navSections = [
       { title: "Super Cérebro", url: "/brain", icon: Brain },
       { title: "Oráculo", url: "/oracle", icon: Sparkles },
       { title: "DB Manager", url: "/db-manager", icon: Database },
+      { title: "Marketplace", url: "/marketplace", icon: Package },
     ],
   },
   {
