@@ -88,7 +88,7 @@ export function useWorkflowPersistence() {
 
     const { data, error } = await supabase
       .from('workflows')
-      .insert({ name, config: config as unknown as Record<string, unknown>, workspace_id: workspaceId })
+      .insert([{ name, config: JSON.parse(JSON.stringify(config)), workspace_id: workspaceId }])
       .select('id')
       .single();
 
