@@ -182,8 +182,10 @@ export const useAgentBuilderStore = create<AgentBuilderStore>((set, get) => ({
   },
 
   deleteAgent: async (id: string) => {
+    const agent = get().savedAgents.find(a => a.id === id);
     await supabase.from('agents').delete().eq('id', id);
     set((s) => ({ savedAgents: s.savedAgents.filter(a => a.id !== id) }));
+    audit.agentDeleted(id, agent?.name ?? 'unknown');
   },
 
   duplicateAgent: () => {
