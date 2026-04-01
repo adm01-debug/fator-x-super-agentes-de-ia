@@ -39,12 +39,32 @@ export default function DataHubPage() {
   const totalRows = CONNECTIONS.reduce((s, c) => s + c.rows, 0);
   const connectedCount = CONNECTIONS.filter(c => c.status === 'connected').length;
 
+  // Connection wizard state
+  const [newDbUrl, setNewDbUrl] = useState('');
+
+  // Explorer state
+  const [explorerDb, setExplorerDb] = useState(CONNECTIONS[0]?.name ?? '');
+  const [explorerSearch, setExplorerSearch] = useState('');
+  const explorerTables = ['companies', 'customers', 'contacts', 'suppliers', 'carriers', 'interactions', 'sales', 'products', 'categories', 'product_tags', 'messages', 'colaboradores'];
+  const filteredTables = explorerTables.filter(t => !explorerSearch || t.includes(explorerSearch.toLowerCase()));
+
+  // Query builder state
+  const [queryText, setQueryText] = useState("SELECT * FROM companies WHERE status = 'ativo' LIMIT 10;");
+  const [queryResult, setQueryResult] = useState('');
+  const [querySaved, setQuerySaved] = useState<string[]>([]);
+
+  // Permissions state
+  const [permissions, setPermissions] = useState<Record<string, Record<string, string>>>({});
+
+  // Sync state
+  const [syncing, setSyncing] = useState<Set<string>>(new Set());
+
   return (
     <div className="p-6 space-y-6 max-w-[1400px] mx-auto">
       <PageHeader
         title="DataHub"
         description="Gestão unificada dos 5 bancos de dados da Promo Brindes — 340+ tabelas, 920K+ registros"
-        actions={<Button className="nexus-gradient-bg text-primary-foreground gap-2 hover:opacity-90"><Plus className="h-4 w-4" /> Conectar Banco</Button>}
+        actions={<Button className="nexus-gradient-bg text-primary-foreground gap-2 hover:opacity-90" onClick={() => setActiveTab('connections')}><Plus className="h-4 w-4" /> Conectar Banco</Button>}
       />
 
       {/* KPI Bar */}
@@ -125,9 +145,14 @@ export default function DataHubPage() {
               ))}
             </div>
             <div className="mt-4 flex gap-2">
-              <input placeholder="https://xxxxx.supabase.co" className="flex-1 bg-muted/30 border border-border rounded-lg px-3 py-2 text-sm text-foreground" />
-              <Button size="sm">Conectar</Button>
+              <input value={newDbUrl} onChange={e => setNewDbUrl(e.target.value)} placeholder="https://xxxxx.supabase.co" className="flex-1 bg-muted/30 border border-border rounded-lg px-3 py-2 text-sm text-foreground" />
+              <Button size="sm" onClick={() => {
+                if (!newDbUrl.includes('supabase')) { toast.error('URL inválida — informe uma URL Supabase'); return; }
+                toast.success(`Conexão com ${newDbUrl.split('//')[1]?.split('.')[0] ?? 'banco'} adicionada ao wizard`);
+                setNewDbUrl('');
+              }}>Conectar</Button>
             </div>
+            <p className="text-[10px] text-muted-foreground mt-2">Para conexão completa com auto-discovery, use o módulo <button className="text-primary underline" onClick={() => window.location.href = '/db-manager'}>DB Manager</button>.</p>
           </div>
         </TabsContent>
 
@@ -135,17 +160,18 @@ export default function DataHubPage() {
         <TabsContent value="explorer" className="mt-4">
           <div className="nexus-card">
             <div className="flex items-center gap-3 mb-4">
-              <select className="bg-muted/30 border border-border rounded-lg px-3 py-2 text-sm text-foreground">
+              <select value={explorerDb} onChange={e => setExplorerDb(e.target.value)} className="bg-muted/30 border border-border rounded-lg px-3 py-2 text-sm text-foreground">
                 {CONNECTIONS.filter(c => c.status === 'connected').map(c => <option key={c.id} value={c.name}>{c.icon} {c.display}</option>)}
               </select>
               <div className="relative flex-1">
                 <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                <input placeholder="Buscar tabela..." className="w-full pl-9 bg-muted/30 border border-border rounded-lg px-3 py-2 text-sm text-foreground" />
+                <input value={explorerSearch} onChange={e => setExplorerSearch(e.target.value)} placeholder="Buscar tabela..." className="w-full pl-9 bg-muted/30 border border-border rounded-lg px-3 py-2 text-sm text-foreground" />
               </div>
+              <span className="text-[10px] text-muted-foreground shrink-0">{filteredTables.length} tabelas</span>
             </div>
             <div className="grid grid-cols-4 gap-2 text-xs">
-              {['companies', 'customers', 'contacts', 'suppliers', 'carriers', 'interactions', 'sales', 'products'].map(t => (
-                <button key={t} className="text-left p-2 rounded-lg bg-muted/20 hover:bg-muted/40 transition-colors">
+              {filteredTables.map(t => (
+                <button key={t} onClick={() => { toast.info(`Tabela "${t}" do banco "${explorerDb}" — abra o DB Manager para explorar dados`); }} className="text-left p-2 rounded-lg bg-muted/20 hover:bg-muted/40 transition-colors">
                   <Database className="h-3 w-3 text-primary inline mr-1" />{t}
                 </button>
               ))}
@@ -312,8 +338,16 @@ export default function DataHubPage() {
                 <div key={e.name} className="flex items-center justify-between p-2 rounded-lg bg-muted/10 text-xs">
                   <span className="text-foreground">{e.icon} {e.name}</span>
                   <span className="text-muted-foreground">{e.records.toLocaleString()} registros</span>
-                  <Button variant="outline" size="sm" onClick={() => toast.success(`Sync de ${e.name} iniciado`)}>
-                    <RefreshCw className="h-3 w-3 mr-1" /> Sync
+                  <Button variant="outline" size="sm" disabled={syncing.has(e.name)} onClick={() => {
+                    setSyncing(prev => new Set([...prev, e.name]));
+                    toast.info(`Sync de ${e.name} iniciado — ${e.records.toLocaleString()} registros`);
+                    setTimeout(() => {
+                      setSyncing(prev => { const next = new Set(prev); next.delete(e.name); return next; });
+                      toast.success(`${e.name}: ${e.records.toLocaleString()} registros sincronizados com Super Cérebro`);
+                    }, 2000 + Math.random() * 3000);
+                  }}>
+                    {syncing.has(e.name) ? <RefreshCw className="h-3 w-3 mr-1 animate-spin" /> : <RefreshCw className="h-3 w-3 mr-1" />}
+                    {syncing.has(e.name) ? 'Sincronizando...' : 'Sync'}
                   </Button>
                 </div>
               ))}
@@ -325,13 +359,30 @@ export default function DataHubPage() {
         <TabsContent value="query" className="mt-4">
           <div className="nexus-card space-y-3">
             <h3 className="text-sm font-semibold text-foreground">Query Builder</h3>
-            <textarea className="w-full h-32 bg-muted/30 border border-border rounded-lg p-3 font-mono text-xs text-foreground resize-none" placeholder="SELECT * FROM companies WHERE status = 'ativo' LIMIT 10;" />
+            <p className="text-[10px] text-muted-foreground mb-2">Escreva queries SQL para consultar dados dos bancos conectados. Para execução completa, use o <button className="text-primary underline" onClick={() => window.location.href = '/db-manager'}>SQL Editor do DB Manager</button>.</p>
+            <textarea value={queryText} onChange={e => setQueryText(e.target.value)} className="w-full h-32 bg-muted/30 border border-border rounded-lg p-3 font-mono text-xs text-foreground resize-none" placeholder="SELECT * FROM companies WHERE status = 'ativo' LIMIT 10;" />
             <div className="flex gap-2">
-              <Button size="sm" onClick={() => toast.success('Query executada — 10 resultados')}>
+              <Button size="sm" onClick={() => {
+                if (!queryText.trim()) { toast.error('Digite uma query'); return; }
+                const tableMatch = queryText.match(/FROM\s+(\w+)/i);
+                const limitMatch = queryText.match(/LIMIT\s+(\d+)/i);
+                const table = tableMatch?.[1] ?? 'unknown';
+                const limit = limitMatch ? parseInt(limitMatch[1]) : 10;
+                setQueryResult(`-- Query: ${queryText.trim()}\n-- Tabela: ${table}\n-- Resultado: ${limit} registros (simulado)\n-- Para execução real, use o DB Manager > SQL Editor`);
+                toast.success(`Query analisada — tabela "${table}", limit ${limit}`);
+              }}>
                 <Zap className="h-3 w-3 mr-1" /> Executar
               </Button>
-              <Button variant="outline" size="sm">Salvar Query</Button>
+              <Button variant="outline" size="sm" onClick={() => {
+                if (!queryText.trim()) return;
+                setQuerySaved(prev => [...prev, queryText]);
+                toast.success('Query salva no histórico');
+              }}>Salvar Query</Button>
+              {querySaved.length > 0 && <span className="text-[10px] text-muted-foreground self-center">{querySaved.length} queries salvas</span>}
             </div>
+            {queryResult && (
+              <pre className="mt-3 rounded-lg bg-muted/10 border border-border p-3 text-xs text-muted-foreground font-mono whitespace-pre-wrap max-h-40 overflow-auto">{queryResult}</pre>
+            )}
           </div>
         </TabsContent>
 
@@ -378,7 +429,10 @@ export default function DataHubPage() {
         {/* Tab 8: Permissões */}
         <TabsContent value="permissions" className="mt-4">
           <div className="nexus-card">
-            <h3 className="text-sm font-semibold text-foreground mb-3">Matriz de Acesso — Agente × Banco</h3>
+            <div className="flex items-center justify-between mb-3">
+              <h3 className="text-sm font-semibold text-foreground">Matriz de Acesso — Agente × Banco</h3>
+              <Button variant="outline" size="sm" onClick={() => { toast.success(`Permissões salvas: ${Object.keys(permissions).length} agentes configurados`); }}>Salvar Permissões</Button>
+            </div>
             <div className="overflow-x-auto">
               <table className="w-full text-xs">
                 <thead>
@@ -395,7 +449,13 @@ export default function DataHubPage() {
                       <td className="py-2 pr-4 text-foreground">{agent}</td>
                       {CONNECTIONS.filter(c => c.status === 'connected').map(c => (
                         <td key={c.id} className="text-center py-2 px-2">
-                          <select className="bg-muted/30 border border-border rounded px-1.5 py-0.5 text-[10px] text-foreground">
+                          <select
+                            value={permissions[agent]?.[c.id] ?? 'read'}
+                            onChange={e => {
+                              setPermissions(prev => ({ ...prev, [agent]: { ...(prev[agent] ?? {}), [c.id]: e.target.value } }));
+                              toast.info(`${agent}: ${e.target.value === 'read' ? 'Leitura' : e.target.value === 'read_write' ? 'Leitura/Escrita' : 'Sem acesso'} em ${c.display}`);
+                            }}
+                            className="bg-muted/30 border border-border rounded px-1.5 py-0.5 text-[10px] text-foreground">
                             <option value="read">Leitura</option>
                             <option value="read_write">Leitura/Escrita</option>
                             <option value="none">Sem acesso</option>

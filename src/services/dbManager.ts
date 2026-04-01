@@ -3,6 +3,7 @@
  * Executa operações DDL/DML via supabase.rpc() ou REST API
  */
 import { createClient, type SupabaseClient } from '@supabase/supabase-js';
+import { logger } from '@/lib/logger';
 
 // ═══ TYPES ═══
 
@@ -35,6 +36,7 @@ export function connectToRemoteDB(url: string, key: string): SupabaseClient {
   const cacheKey = `${url}:${key.slice(-8)}`;
   if (activeClients.has(cacheKey)) return activeClients.get(cacheKey)!;
 
+  logger.info(`Connecting to remote DB: ${url.split('//')[1]?.split('.')[0] ?? url}`, 'dbManager');
   const client = createClient(url, key, {
     auth: { persistSession: false, autoRefreshToken: false },
   });

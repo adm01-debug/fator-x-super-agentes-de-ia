@@ -4,6 +4,7 @@
  */
 import { supabase } from '@/integrations/supabase/client';
 import type { AgentConfig } from '@/types/agentTypes';
+import { logger } from '@/lib/logger';
 
 // ═══ TYPES ═══
 export interface AgentRow {
@@ -86,23 +87,25 @@ export async function saveAgent(agent: AgentConfig, userId: string): Promise<Age
   const row = configToRow(agent, userId);
 
   if (agent.id) {
-    // Update existing
+    logger.info(`Updating agent: ${agent.name} (${agent.id})`, 'agentService');
     const { data, error } = await supabase
       .from('agents')
       .update(row)
       .eq('id', agent.id)
       .select()
       .single();
-    if (error) throw new Error(`Erro ao salvar agente: ${error.message}`);
+    if (error) { logger.error(`Failed to save agent: ${error.message}`, error, 'agentService'); throw new Error(`Erro ao salvar agente: ${error.message}`); }
+    logger.info(`Agent updated: ${agent.name}`, 'agentService');
     return rowToConfig(data as unknown as AgentRow);
   } else {
-    // Insert new
+    logger.info(`Creating new agent: ${agent.name}`, 'agentService');
     const { data, error } = await supabase
       .from('agents')
       .insert(row)
       .select()
       .single();
-    if (error) throw new Error(`Erro ao criar agente: ${error.message}`);
+    if (error) { logger.error(`Failed to create agent: ${error.message}`, error, 'agentService'); throw new Error(`Erro ao criar agente: ${error.message}`); }
+    logger.info(`Agent created: ${agent.name} (${(data as { id: string }).id})`, 'agentService');
     return rowToConfig(data as unknown as AgentRow);
   }
 }
@@ -115,7 +118,8 @@ export async function loadAgents(userId: string): Promise<AgentSummary[]> {
     .or('is_template.eq.false,is_template.is.null')
     .order('updated_at', { ascending: false });
 
-  if (error) throw new Error(`Erro ao carregar agentes: ${error.message}`);
+  if (error) { logger.error(`Failed to load agents: ${error.message}`, error, 'agentService'); throw new Error(`Erro ao carregar agentes: ${error.message}`); }
+  logger.debug(`Loaded ${data?.length ?? 0} agents`, 'agentService');
 
   return (data ?? []).map((row) => ({
     id: row.id,
@@ -144,11 +148,13 @@ export async function loadAgent(agentId: string): Promise<AgentConfig> {
 }
 
 export async function deleteAgent(agentId: string): Promise<void> {
+  logger.warn(`Deleting agent: ${agentId}`, 'agentService');
   const { error } = await supabase
     .from('agents')
     .delete()
     .eq('id', agentId);
-  if (error) throw new Error(`Erro ao deletar agente: ${error.message}`);
+  if (error) { logger.error(`Failed to delete agent: ${error.message}`, error, 'agentService'); throw new Error(`Erro ao deletar agente: ${error.message}`); }
+  logger.info(`Agent deleted: ${agentId}`, 'agentService');
 }
 
 export async function duplicateAgent(agentId: string, userId: string): Promise<AgentConfig> {

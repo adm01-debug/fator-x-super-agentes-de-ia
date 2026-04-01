@@ -47,19 +47,69 @@ const CONSENSUS_EXAMPLE = {
   ],
 };
 
+interface ConsultResult {
+  query: string;
+  preset: string;
+  mode: string;
+  consensus: number;
+  responses: { model: string; summary: string; score: number }[];
+  synthesis: string;
+  cost: number;
+  latency: number;
+  timestamp: string;
+}
+
 export default function OraculoPage() {
   const [activeTab, setActiveTab] = useState('config');
   const [consultQuery, setConsultQuery] = useState('');
   const [selectedPreset, setSelectedPreset] = useState('executive');
+  const [selectedGateway, setSelectedGateway] = useState('openrouter');
+  const [selectedMode, setSelectedMode] = useState('council');
   const [isConsulting, setIsConsulting] = useState(false);
+  const [consultResult, setConsultResult] = useState<ConsultResult | null>(null);
+  const [consultStage, setConsultStage] = useState('');
 
   const runConsult = () => {
     if (!consultQuery.trim()) return;
+    const preset = PRESETS.find(p => p.id === selectedPreset);
+    if (!preset) return;
     setIsConsulting(true);
+    setConsultResult(null);
+
+    // Simulate 4-stage council deliberation
+    const models = ['Claude Opus 4', 'GPT-4o', 'Gemini 2.0 Flash', 'Claude Sonnet 4'].slice(0, preset.models);
+    const totalLatency = 3000 + Math.random() * 5000;
+    const stageDelay = totalLatency / 4;
+
+    setConsultStage('📡 Stage 1/4: Polling — enviando para ' + models.length + ' modelos...');
+    setTimeout(() => setConsultStage('🔍 Stage 2/4: Peer Review — modelos avaliando respostas...'), stageDelay);
+    setTimeout(() => setConsultStage('✨ Stage 3/4: Síntese — Chairman consolidando...'), stageDelay * 2);
+    setTimeout(() => setConsultStage('📊 Stage 4/4: Meta-análise — gerando Consensus Matrix...'), stageDelay * 3);
+
     setTimeout(() => {
+      const consensus = 65 + Math.floor(Math.random() * 30);
+      const responses = models.map(model => ({
+        model,
+        summary: `Análise de "${consultQuery.slice(0, 50)}..." — recomendação baseada em ${preset.mode === 'council' ? 'deliberação coletiva' : preset.mode === 'researcher' ? 'pesquisa profunda' : 'validação cruzada'}.`,
+        score: 70 + Math.floor(Math.random() * 25),
+      }));
+      const cost = (0.05 + Math.random() * 0.8) * preset.models;
+
+      setConsultResult({
+        query: consultQuery,
+        preset: preset.name,
+        mode: preset.mode,
+        consensus,
+        responses,
+        synthesis: `Síntese do conselho (${models.length} modelos, modo ${preset.mode}): Com ${consensus}% de consenso, os modelos concordam que a abordagem recomendada para "${consultQuery.slice(0, 80)}" envolve análise multi-dimensional considerando custo, impacto e viabilidade. ${consensus >= 80 ? 'Alta confiança na recomendação.' : 'Recomenda-se análise adicional — divergências significativas entre modelos.'}`,
+        cost: parseFloat(cost.toFixed(2)),
+        latency: Math.round(totalLatency),
+        timestamp: new Date().toLocaleString('pt-BR'),
+      });
       setIsConsulting(false);
-      toast.success('Consulta concluída — consenso de 88% entre 4 modelos');
-    }, 3000);
+      setConsultStage('');
+      toast.success(`Consulta concluída — consenso de ${consensus}% entre ${models.length} modelos (${preset.name})`);
+    }, totalLatency);
   };
 
   return (
@@ -106,9 +156,14 @@ export default function OraculoPage() {
           <div className="nexus-card">
             <h3 className="text-sm font-semibold text-foreground mb-3">Gateway LLM</h3>
             <div className="grid grid-cols-3 gap-3">
-              {['OpenRouter (recomendado)', 'APIs Diretas', 'Híbrido'].map((gw, i) => (
-                <button key={gw} className={`p-3 rounded-xl border text-xs text-center transition-all ${i === 0 ? 'border-primary bg-primary/5 text-foreground' : 'border-border bg-card text-muted-foreground hover:bg-muted/30'}`}>
-                  {gw}
+              {[
+                { id: 'openrouter', label: 'OpenRouter (recomendado)' },
+                { id: 'direct', label: 'APIs Diretas' },
+                { id: 'hybrid', label: 'Híbrido' },
+              ].map(gw => (
+                <button key={gw.id} onClick={() => { setSelectedGateway(gw.id); toast.success(`Gateway: ${gw.label}`); }}
+                  className={`p-3 rounded-xl border text-xs text-center transition-all ${selectedGateway === gw.id ? 'border-primary bg-primary/5 text-foreground' : 'border-border bg-card text-muted-foreground hover:bg-muted/30'}`}>
+                  {gw.label}
                 </button>
               ))}
             </div>
@@ -125,7 +180,8 @@ export default function OraculoPage() {
                 { id: 'executor', icon: '⚡', name: 'Executor', desc: 'Decompõe + orquestra sub-agentes' },
                 { id: 'advisor', icon: '🎯', name: 'Conselheiro', desc: 'Debate prós/contras para decisão' },
               ].map(mode => (
-                <div key={mode.id} className="p-3 rounded-xl border border-border bg-card text-center hover:bg-muted/30 transition-all cursor-pointer">
+                <div key={mode.id} onClick={() => { setSelectedMode(mode.id); toast.info(`Modo: ${mode.name}`); }}
+                  className={`p-3 rounded-xl border text-center transition-all cursor-pointer ${selectedMode === mode.id ? 'border-primary bg-primary/5' : 'border-border bg-card hover:bg-muted/30'}`}>
                   <span className="text-xl block">{mode.icon}</span>
                   <p className="text-xs font-semibold text-foreground mt-1">{mode.name}</p>
                   <p className="text-[9px] text-muted-foreground mt-0.5">{mode.desc}</p>
@@ -278,7 +334,53 @@ export default function OraculoPage() {
             <Button onClick={runConsult} disabled={isConsulting || !consultQuery.trim()} className="w-full gap-2">
               {isConsulting ? <><RefreshCw className="h-4 w-4 animate-spin" /> Consultando {PRESETS.find(p => p.id === selectedPreset)?.models} modelos...</> : <><Send className="h-4 w-4" /> Consultar Oráculo</>}
             </Button>
+            {isConsulting && consultStage && (
+              <p className="text-xs text-primary animate-pulse text-center">{consultStage}</p>
+            )}
           </div>
+
+          {/* Result display */}
+          {consultResult && (
+            <div className="nexus-card space-y-4">
+              <div className="flex items-center justify-between">
+                <h3 className="text-sm font-semibold text-foreground">Resultado do Conselho</h3>
+                <div className="flex items-center gap-3 text-xs text-muted-foreground">
+                  <span>Preset: {consultResult.preset}</span>
+                  <span>Modo: {consultResult.mode}</span>
+                  <span>${consultResult.cost}</span>
+                  <span>{(consultResult.latency / 1000).toFixed(1)}s</span>
+                </div>
+              </div>
+
+              {/* Consensus score */}
+              <div className="text-center py-3 rounded-xl bg-muted/20">
+                <p className={`text-4xl font-bold font-mono ${consultResult.consensus >= 80 ? 'text-emerald-400' : consultResult.consensus >= 60 ? 'text-amber-400' : 'text-rose-400'}`}>
+                  {consultResult.consensus}%
+                </p>
+                <p className="text-xs text-muted-foreground">Consenso entre {consultResult.responses.length} modelos</p>
+              </div>
+
+              {/* Synthesis */}
+              <div className="rounded-xl bg-primary/5 border border-primary/20 p-4">
+                <p className="text-xs font-semibold text-foreground mb-1">Síntese Final:</p>
+                <p className="text-xs text-muted-foreground leading-relaxed">{consultResult.synthesis}</p>
+              </div>
+
+              {/* Per-model responses */}
+              <div className="space-y-2">
+                <p className="text-xs font-semibold text-foreground">Respostas por Modelo:</p>
+                {consultResult.responses.map((r, i) => (
+                  <div key={i} className="flex items-center gap-3 p-2 rounded-lg bg-muted/10 text-xs">
+                    <span className="font-mono font-semibold text-foreground shrink-0 w-32">{r.model}</span>
+                    <span className="text-muted-foreground flex-1 truncate">{r.summary}</span>
+                    <span className={`font-mono font-bold shrink-0 ${r.score >= 85 ? 'text-emerald-400' : r.score >= 70 ? 'text-amber-400' : 'text-rose-400'}`}>{r.score}%</span>
+                  </div>
+                ))}
+              </div>
+
+              <p className="text-[10px] text-muted-foreground text-right">{consultResult.timestamp}</p>
+            </div>
+          )}
         </TabsContent>
       </Tabs>
     </div>

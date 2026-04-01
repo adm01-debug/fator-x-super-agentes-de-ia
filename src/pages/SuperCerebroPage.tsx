@@ -44,10 +44,22 @@ const ENGINES = [
   { name: 'Brain Sandbox', icon: '🧪', status: 'active', desc: 'Testar queries antes de deploy' },
 ];
 
+interface SandboxResult {
+  query: string;
+  score: number;
+  source: string;
+  latency: number;
+  answer: string;
+}
+
 export default function SuperCerebroPage() {
   const [activeTab, setActiveTab] = useState('overview');
   const [searchQuery, setSearchQuery] = useState('');
+  const [searchResults, setSearchResults] = useState<typeof MOCK_FACTS>([]);
   const [sandboxQueries, setSandboxQueries] = useState('');
+  const [sandboxResults, setSandboxResults] = useState<SandboxResult[]>([]);
+  const [reviewedFacts, setReviewedFacts] = useState<Set<string>>(new Set());
+  const [brainPermissions, setBrainPermissions] = useState<Record<string, string>>({});
 
   return (
     <div className="p-6 space-y-6 max-w-[1400px] mx-auto">
@@ -219,14 +231,28 @@ export default function SuperCerebroPage() {
             <h3 className="text-sm font-semibold text-foreground mb-3">Busca Unificada (Vector + BM25 + Graph + Temporal)</h3>
             <div className="flex gap-2">
               <input value={searchQuery} onChange={e => setSearchQuery(e.target.value)} placeholder="Buscar no Super Cérebro..." className="flex-1 bg-muted/30 border border-border rounded-lg px-4 py-2 text-sm text-foreground" />
-              <Button onClick={() => { if (searchQuery) toast.success(`Busca: "${searchQuery}" — 12 resultados encontrados`); }}>
+              <Button onClick={() => {
+                if (!searchQuery.trim()) { toast.error('Digite algo para buscar'); return; }
+                const results = MOCK_FACTS.filter(f =>
+                  f.content.toLowerCase().includes(searchQuery.toLowerCase()) ||
+                  f.domain.toLowerCase().includes(searchQuery.toLowerCase())
+                );
+                // Also include entity matches
+                const entityMatches = MOCK_ENTITIES.filter(e =>
+                  e.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+                  e.domain.toLowerCase().includes(searchQuery.toLowerCase())
+                );
+                setSearchResults(results);
+                toast.success(`Busca: "${searchQuery}" — ${results.length} fatos + ${entityMatches.length} entidades encontradas`);
+              }}>
                 <Search className="h-4 w-4 mr-1" /> Buscar
               </Button>
             </div>
           </div>
-          {searchQuery && (
+          {searchResults.length > 0 && (
             <div className="space-y-2">
-              {MOCK_FACTS.filter(f => f.content.toLowerCase().includes(searchQuery.toLowerCase())).map(f => (
+              <p className="text-xs text-muted-foreground">{searchResults.length} resultado(s) para "{searchQuery}":</p>
+              {searchResults.map(f => (
                 <div key={f.id} className="nexus-card">
                   <p className="text-sm text-foreground">{f.content}</p>
                   <div className="flex gap-2 mt-1 text-[10px] text-muted-foreground">
@@ -293,7 +319,10 @@ export default function SuperCerebroPage() {
               {['Processo de homologação leva 15 dias úteis', 'Taxa de frete para SP é 3.5%', 'Prazo de entrega padrão é 21 dias'].map(f => (
                 <div key={f} className="flex items-center justify-between p-2 rounded-lg bg-muted/10">
                   <span className="text-muted-foreground">{f}</span>
-                  <Button variant="outline" size="sm" className="h-6 text-[10px]" onClick={() => toast.success('Fato marcado para revisão')}>Revisar</Button>
+                  <Button variant="outline" size="sm" className="h-6 text-[10px]" disabled={reviewedFacts.has(f)} onClick={() => {
+                    setReviewedFacts(prev => new Set([...prev, f]));
+                    toast.success(`"${f.slice(0, 40)}..." marcado para revisão`);
+                  }}>{reviewedFacts.has(f) ? '✓ Revisado' : 'Revisar'}</Button>
                 </div>
               ))}
             </div>
@@ -306,28 +335,47 @@ export default function SuperCerebroPage() {
             <h3 className="text-sm font-semibold text-foreground mb-3">Brain Sandbox — Testar antes de deploy</h3>
             <p className="text-xs text-muted-foreground mb-3">Cole perguntas (1 por linha) para testar a qualidade das respostas do Super Cérebro.</p>
             <textarea value={sandboxQueries} onChange={e => setSandboxQueries(e.target.value)} className="w-full h-32 bg-muted/30 border border-border rounded-lg p-3 font-mono text-xs text-foreground resize-none" placeholder={"Qual o prazo de entrega padrão?\nQuem é o melhor fornecedor de canetas?\nQuantos clientes ativos temos em SP?\nQual a regra de inativação de clientes?"} />
-            <Button className="mt-2" onClick={() => toast.success(`${sandboxQueries.split('\n').filter(Boolean).length} perguntas executadas — resultados abaixo`)}>
+            <Button className="mt-2" onClick={() => {
+              const queries = sandboxQueries.split('\n').filter(Boolean).slice(0, 10);
+              if (queries.length === 0) { toast.error('Digite pelo menos 1 pergunta'); return; }
+              const sources = ['fato', 'grafo', 'vector', 'BM25'];
+              const results: SandboxResult[] = queries.map(q => {
+                const matchedFact = MOCK_FACTS.find(f => f.content.toLowerCase().includes(q.toLowerCase().split(' ').slice(0, 3).join(' ')));
+                return {
+                  query: q,
+                  score: matchedFact ? 85 + Math.floor(Math.random() * 10) : 40 + Math.floor(Math.random() * 30),
+                  source: matchedFact ? 'fato' : sources[Math.floor(Math.random() * sources.length)],
+                  latency: 50 + Math.floor(Math.random() * 200),
+                  answer: matchedFact ? matchedFact.content : `Nenhum fato direto encontrado. Resposta inferida via ${sources[Math.floor(Math.random() * sources.length)]}.`,
+                };
+              });
+              setSandboxResults(results);
+              const avgScore = Math.round(results.reduce((s, r) => s + r.score, 0) / results.length);
+              toast.success(`${results.length} perguntas executadas — score médio: ${avgScore}%`);
+            }}>
               <FlaskConical className="h-4 w-4 mr-1" /> Executar Sandbox
             </Button>
           </div>
-          {sandboxQueries && (
+          {sandboxResults.length > 0 && (
             <div className="nexus-card">
-              <h4 className="text-sm font-semibold text-foreground mb-2">Resultados</h4>
+              <h4 className="text-sm font-semibold text-foreground mb-2">Resultados ({sandboxResults.length} perguntas)</h4>
               <div className="overflow-x-auto">
                 <table className="w-full text-xs">
                   <thead><tr className="border-b border-border text-muted-foreground">
                     <th className="text-left py-2 font-medium">Pergunta</th>
+                    <th className="text-left py-2 font-medium">Resposta</th>
                     <th className="text-center py-2 font-medium">Score</th>
                     <th className="text-center py-2 font-medium">Fonte</th>
                     <th className="text-center py-2 font-medium">Latência</th>
                   </tr></thead>
                   <tbody>
-                    {sandboxQueries.split('\n').filter(Boolean).slice(0, 10).map((q, i) => (
+                    {sandboxResults.map((r, i) => (
                       <tr key={i} className="border-b border-border/30">
-                        <td className="py-2 text-foreground">{q}</td>
-                        <td className="py-2 text-center font-mono text-emerald-400">{(85 + Math.random() * 15).toFixed(0)}%</td>
-                        <td className="py-2 text-center text-muted-foreground">{['fato', 'grafo', 'vector', 'BM25'][Math.floor(Math.random() * 4)]}</td>
-                        <td className="py-2 text-center text-muted-foreground">{(50 + Math.random() * 200).toFixed(0)}ms</td>
+                        <td className="py-2 text-foreground max-w-[200px] truncate">{r.query}</td>
+                        <td className="py-2 text-muted-foreground max-w-[300px] truncate">{r.answer}</td>
+                        <td className={`py-2 text-center font-mono ${r.score >= 80 ? 'text-emerald-400' : r.score >= 60 ? 'text-amber-400' : 'text-rose-400'}`}>{r.score}%</td>
+                        <td className="py-2 text-center text-muted-foreground">{r.source}</td>
+                        <td className="py-2 text-center text-muted-foreground">{r.latency}ms</td>
                       </tr>
                     ))}
                   </tbody>
