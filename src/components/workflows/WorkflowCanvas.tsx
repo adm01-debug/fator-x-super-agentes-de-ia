@@ -44,6 +44,8 @@ export function WorkflowCanvas({ nodes, edges, onNodesChange, onEdgesChange }: P
   const [connecting, setConnecting] = useState<{ fromId: string; mx: number; my: number } | null>(null);
   const [zoom, setZoom] = useState(1);
   const [pan, setPan] = useState({ x: 0, y: 0 });
+  const [editingId, setEditingId] = useState<string | null>(null);
+  const [editLabel, setEditLabel] = useState('');
   const [panning, setPanning] = useState<{ startX: number; startY: number; panX: number; panY: number } | null>(null);
 
   const getNodeCenter = (node: CanvasNode) => ({ x: node.x + NODE_W / 2, y: node.y + NODE_H / 2 });
