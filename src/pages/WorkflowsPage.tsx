@@ -184,9 +184,28 @@ export default function WorkflowsPage() {
             )}
 
             {persistence.selectedId && (
-              <Badge variant="outline" className="text-[10px] border-primary/30 text-primary">
-                Salvo no banco
-              </Badge>
+              <>
+                <Badge variant="outline" className="text-[10px] border-primary/30 text-primary">
+                  Salvo no banco
+                </Badge>
+                <AlertDialog>
+                  <AlertDialogTrigger asChild>
+                    <Button size="sm" variant="ghost" className="gap-1.5 text-destructive hover:text-destructive">
+                      <Trash2 className="h-3.5 w-3.5" /> Deletar
+                    </Button>
+                  </AlertDialogTrigger>
+                  <AlertDialogContent>
+                    <AlertDialogHeader>
+                      <AlertDialogTitle>Deletar workflow?</AlertDialogTitle>
+                      <AlertDialogDescription>Esta ação é irreversível. O workflow será removido permanentemente do banco de dados.</AlertDialogDescription>
+                    </AlertDialogHeader>
+                    <AlertDialogFooter>
+                      <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                      <AlertDialogAction onClick={handleDeleteWorkflow} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">Deletar</AlertDialogAction>
+                    </AlertDialogFooter>
+                  </AlertDialogContent>
+                </AlertDialog>
+              </>
             )}
           </div>
 
