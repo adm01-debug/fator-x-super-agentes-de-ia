@@ -43,9 +43,9 @@ interface AgentBuilderStore {
 }
 
 function agentToDbRow(agent: AgentConfig, userId: string) {
-  const { id, created_at, updated_at, ...rest } = agent as Record<string, unknown>;
+  const { id, created_at: _ca, updated_at: _ua, ...rest } = agent;
   return {
-    ...(id ? { id } : {}),
+    ...(id ? { id: id as string } : {}),
     user_id: userId,
     name: agent.name,
     mission: agent.mission,

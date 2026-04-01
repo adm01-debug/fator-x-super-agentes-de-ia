@@ -73,9 +73,9 @@ export async function saveAgent(agent: AgentConfig): Promise<AgentConfig> {
   let workspaceId: string | null = null;
   try { workspaceId = await getWorkspaceId(); } catch {}
 
-  const { id, created_at, updated_at, ...configData } = agent as Record<string, unknown>;
+  const { id, created_at: _ca, updated_at: _ua, ...configData } = agent;
   const row = {
-    ...(id ? { id } : {}),
+    ...(id ? { id: id as string } : {}),
     user_id: user.id,
     workspace_id: workspaceId,
     name: agent.name,
@@ -91,7 +91,7 @@ export async function saveAgent(agent: AgentConfig): Promise<AgentConfig> {
   };
 
   if (id) {
-    const { error } = await supabase.from('agents').update(row).eq('id', id);
+    const { error } = await supabase.from('agents').update(row).eq('id', id as string);
     if (error) throw error;
     return { ...agent, id };
   } else {

@@ -166,11 +166,11 @@ export function NotificationsDrawer() {
           const row = payload.new as Record<string, unknown>;
           if (row.status === 'completed') {
             const notif: Notification = {
-              id: `eval-${row.id}`,
+              id: `eval-${String(row.id ?? '')}`,
               type: 'evaluation',
-              title: `Avaliação "${row.name}" concluída`,
+              title: `Avaliação "${String(row.name ?? '')}" concluída`,
               level: 'evaluation',
-              created_at: row.created_at,
+              created_at: String(row.created_at ?? ''),
               read: false,
             };
             setRealtimeNotifs(prev => [notif, ...prev.slice(0, 49)]);
