@@ -3,6 +3,7 @@ import type { AgentConfig, PromptVersion } from '@/types/agentTypes';
 import { DEFAULT_AGENT, TABS } from '@/data/agentBuilderData';
 import { supabase } from '@/integrations/supabase/client';
 import type { Json } from '@/integrations/supabase/types';
+import { audit } from '@/lib/auditService';
 
 interface AgentBuilderStore {
   agent: AgentConfig;
@@ -159,6 +160,15 @@ export const useAgentBuilderStore = create<AgentBuilderStore>((set, get) => ({
 
     const now = new Date().toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
     set({ isSaving: false, isDirty: !error, lastSaved: error ? undefined : now });
+
+    if (!error) {
+      const savedAgent = get().agent;
+      if (agent.id) {
+        audit.agentUpdated(agent.id as string, ['config']);
+      } else if (savedAgent.id) {
+        audit.agentCreated(savedAgent.id as string, savedAgent.name);
+      }
+    }
   },
 
   loadSavedAgents: async () => {
@@ -172,8 +182,10 @@ export const useAgentBuilderStore = create<AgentBuilderStore>((set, get) => ({
   },
 
   deleteAgent: async (id: string) => {
+    const agent = get().savedAgents.find(a => a.id === id);
     await supabase.from('agents').delete().eq('id', id);
     set((s) => ({ savedAgents: s.savedAgents.filter(a => a.id !== id) }));
+    audit.agentDeleted(id, agent?.name ?? 'unknown');
   },
 
   duplicateAgent: () => {
