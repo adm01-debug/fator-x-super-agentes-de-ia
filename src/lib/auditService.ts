@@ -21,19 +21,15 @@ interface AuditEntry {
 
 export async function logAudit(entry: AuditEntry): Promise<void> {
   try {
-    const { data: { user } } = await supabase.auth.getUser();
-    if (!user) return;
-
-    const { error } = await supabase.from('audit_log').insert([{
-      user_id: user.id,
-      action: entry.action,
-      entity_type: entry.entity_type,
-      entity_id: entry.entity_id ?? null,
-      metadata: (entry.metadata ?? {}) as Json,
-    }]);
+    const { error } = await supabase.rpc('log_audit_entry' as never, {
+      p_action: entry.action,
+      p_entity_type: entry.entity_type,
+      p_entity_id: entry.entity_id ?? null,
+      p_metadata: (entry.metadata ?? {}) as Json,
+    } as never);
 
     if (error) {
-      logger.warn('Failed to write audit log', { error: error.message, action: entry.action });
+      logger.warn('Failed to write audit log', { error: (error as { message: string }).message, action: entry.action });
     }
   } catch (err) {
     logger.warn('Audit logging failed silently', { error: String(err) });
