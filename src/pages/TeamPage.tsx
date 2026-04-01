@@ -1,15 +1,22 @@
 import { PageHeader } from "@/components/shared/PageHeader";
 import { StatusBadge } from "@/components/shared/StatusBadge";
-import { Loader2, Users } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
+import { Loader2, Users, Trash2, CheckCircle } from "lucide-react";
 import { motion } from "framer-motion";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { getWorkspaceId } from "@/lib/agentService";
+import { useAuth } from "@/contexts/AuthContext";
 import { InviteMemberDialog } from "@/components/dialogs/InviteMemberDialog";
+import { toast } from "sonner";
 
 const roleLabels: Record<string, string> = { admin: 'Admin', editor: 'Editor', viewer: 'Viewer', operator: 'Operator', owner: 'Owner' };
 
 export default function TeamPage() {
+  const { user } = useAuth();
+  const queryClient = useQueryClient();
+
   const { data: members = [], isLoading, refetch } = useQuery({
     queryKey: ['workspace_members'],
     queryFn: async () => {
@@ -20,6 +27,44 @@ export default function TeamPage() {
     },
   });
 
+  // Pending invitations for the current user
+  const { data: pendingInvites = [] } = useQuery({
+    queryKey: ['pending_invites', user?.email],
+    queryFn: async () => {
+      if (!user?.email) return [];
+      const { data, error } = await supabase
+        .from('workspace_members')
+        .select('*')
+        .eq('email', user.email)
+        .is('accepted_at', null)
+        .is('user_id', null);
+      if (error) throw error;
+      return data ?? [];
+    },
+    enabled: !!user?.email,
+  });
+
+  const handleAcceptInvite = async (memberId: string) => {
+    const { error } = await supabase.rpc('accept_workspace_invitation', { p_member_id: memberId });
+    if (error) {
+      toast.error(`Erro ao aceitar convite: ${error.message}`);
+      return;
+    }
+    toast.success('Convite aceito!');
+    queryClient.invalidateQueries({ queryKey: ['workspace_members'] });
+    queryClient.invalidateQueries({ queryKey: ['pending_invites'] });
+  };
+
+  const handleRemoveMember = async (memberId: string) => {
+    const { error } = await supabase.from('workspace_members').delete().eq('id', memberId);
+    if (error) {
+      toast.error(error.message);
+      return;
+    }
+    toast.success('Membro removido');
+    refetch();
+  };
+
   return (
     <div className="p-6 space-y-6 max-w-[1400px] mx-auto">
       <PageHeader
@@ -27,6 +72,25 @@ export default function TeamPage() {
         description="Gerencie membros, papéis e permissões do workspace"
         actions={<InviteMemberDialog onInvited={() => refetch()} />}
       />
+
+      {/* Pending invitations banner */}
+      {pendingInvites.length > 0 && (
+        <div className="space-y-2">
+          {pendingInvites.map(invite => (
+            <motion.div key={invite.id} initial={{ opacity: 0, y: -8 }} animate={{ opacity: 1, y: 0 }}
+              className="nexus-card border-primary/30 flex items-center justify-between"
+            >
+              <div>
+                <p className="text-sm font-medium text-foreground">Convite pendente para um workspace</p>
+                <p className="text-xs text-muted-foreground">Papel: {roleLabels[invite.role || 'editor'] || invite.role}</p>
+              </div>
+              <Button onClick={() => handleAcceptInvite(invite.id)} className="nexus-gradient-bg text-primary-foreground gap-1.5">
+                <CheckCircle className="h-4 w-4" /> Aceitar
+              </Button>
+            </motion.div>
+          ))}
+        </div>
+      )}
 
       {isLoading ? (
         <div className="flex items-center justify-center py-20"><Loader2 className="h-6 w-6 animate-spin text-muted-foreground" /></div>
@@ -44,6 +108,7 @@ export default function TeamPage() {
                 <th className="text-left px-5 py-3 font-medium">Membro</th>
                 <th className="text-left px-5 py-3 font-medium">Papel</th>
                 <th className="text-left px-5 py-3 font-medium">Status</th>
+                <th className="text-right px-5 py-3 font-medium">Ações</th>
               </tr>
             </thead>
             <tbody>
@@ -62,6 +127,27 @@ export default function TeamPage() {
                   </td>
                   <td className="px-5 py-3"><span className="nexus-badge-primary">{roleLabels[m.role || 'editor'] || m.role}</span></td>
                   <td className="px-5 py-3"><StatusBadge status={m.accepted_at ? 'active' : 'invited'} /></td>
+                  <td className="px-5 py-3 text-right">
+                    {m.user_id !== user?.id && (
+                      <AlertDialog>
+                        <AlertDialogTrigger asChild>
+                          <Button variant="ghost" size="sm" className="h-7 text-xs text-destructive gap-1">
+                            <Trash2 className="h-3 w-3" /> Remover
+                          </Button>
+                        </AlertDialogTrigger>
+                        <AlertDialogContent>
+                          <AlertDialogHeader>
+                            <AlertDialogTitle>Remover membro?</AlertDialogTitle>
+                            <AlertDialogDescription>O membro perderá acesso ao workspace.</AlertDialogDescription>
+                          </AlertDialogHeader>
+                          <AlertDialogFooter>
+                            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                            <AlertDialogAction onClick={() => handleRemoveMember(m.id)} className="bg-destructive text-destructive-foreground">Remover</AlertDialogAction>
+                          </AlertDialogFooter>
+                        </AlertDialogContent>
+                      </AlertDialog>
+                    )}
+                  </td>
                 </motion.tr>
               ))}
             </tbody>
