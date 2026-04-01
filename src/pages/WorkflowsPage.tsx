@@ -1,8 +1,7 @@
-import { useState, useRef, useCallback, useEffect } from "react";
+import { useState, useRef, useCallback } from "react";
 import { PageHeader } from "@/components/shared/PageHeader";
-import { InfoHint } from "@/components/shared/InfoHint";
 import { Button } from "@/components/ui/button";
-import { Plus, GitBranch, ArrowRight, Save, Trash2, GripVertical, Search, Brain, Shield, Wrench, FileText, List, LayoutDashboard, Info, X } from "lucide-react";
+import { Plus, GitBranch, ArrowRight, Save, Trash2, GripVertical, List, LayoutDashboard, Info, X } from "lucide-react";
 import { toast } from "sonner";
 
 // ═══ TYPES ═══
@@ -21,7 +20,7 @@ interface CanvasConnection {
   toNodeId: string;
 }
 
-interface Pipeline {
+export interface Pipeline {
   id: string;
   name: string;
   nodes: CanvasNode[];
@@ -31,7 +30,7 @@ interface Pipeline {
 
 // ═══ NODE DEFINITIONS ═══
 
-const NODE_TYPES = [
+export const NODE_TYPES = [
   { type: 'planner', label: 'Planner', icon: '🧭', color: 'from-indigo-500/20 to-indigo-500/5 border-indigo-500/30', desc: 'Planeja a estratégia e decompõe tarefas' },
   { type: 'researcher', label: 'Researcher', icon: '🔍', color: 'from-purple-500/20 to-purple-500/5 border-purple-500/30', desc: 'Busca informações e dados relevantes' },
   { type: 'retriever', label: 'Retriever', icon: '📄', color: 'from-emerald-500/20 to-emerald-500/5 border-emerald-500/30', desc: 'Recupera documentos e conhecimento do RAG' },
@@ -44,7 +43,7 @@ const NODE_TYPES = [
 
 // ═══ TEMPLATES ═══
 
-const TEMPLATES: Pipeline[] = [
+export const TEMPLATES: Pipeline[] = [
   {
     id: 'tpl-1', name: 'Atendimento ao Cliente', createdAt: '',
     nodes: [
@@ -94,12 +93,14 @@ function WorkflowCanvas({
   const canvasRef = useRef<HTMLDivElement>(null);
   const [draggingNode, setDraggingNode] = useState<string | null>(null);
   const [dragOffset, setDragOffset] = useState({ x: 0, y: 0 });
-  const [connecting, setConnecting] = useState<{ fromNodeId: string; fromX: number; fromY: number } | null>(null);
+  const [hasDragged, setHasDragged] = useState(false);
+  const [connecting, setConnecting] = useState<{ fromNodeId: string } | null>(null);
   const [mousePos, setMousePos] = useState({ x: 0, y: 0 });
 
   const NODE_W = 160;
   const NODE_H = 70;
-  const CONNECTOR_R = 7;
+  const CANVAS_MAX_W = 1400;
+  const CANVAS_H = 520;
 
   // Drag node
   const handleNodeMouseDown = useCallback((e: React.MouseEvent, nodeId: string) => {
@@ -110,6 +111,7 @@ function WorkflowCanvas({
     const rect = canvasRef.current.getBoundingClientRect();
     setDragOffset({ x: e.clientX - rect.left - node.x, y: e.clientY - rect.top - node.y });
     setDraggingNode(nodeId);
+    setHasDragged(false);
   }, [nodes]);
 
   const handleMouseMove = useCallback((e: React.MouseEvent) => {
@@ -117,41 +119,46 @@ function WorkflowCanvas({
     const rect = canvasRef.current.getBoundingClientRect();
     const mx = e.clientX - rect.left;
     const my = e.clientY - rect.top;
-    setMousePos({ x: mx, y: my });
 
     if (draggingNode) {
+      setHasDragged(true);
+      const clampedX = Math.max(0, Math.min(mx - dragOffset.x, rect.width - NODE_W));
+      const clampedY = Math.max(0, Math.min(my - dragOffset.y, CANVAS_H - NODE_H));
       const updated = nodes.map(n =>
-        n.id === draggingNode ? { ...n, x: Math.max(0, mx - dragOffset.x), y: Math.max(0, my - dragOffset.y) } : n
+        n.id === draggingNode ? { ...n, x: clampedX, y: clampedY } : n
       );
       onNodesChange(updated);
+    } else if (connecting) {
+      setMousePos({ x: mx, y: my });
     }
-  }, [draggingNode, dragOffset, nodes, onNodesChange]);
+  }, [draggingNode, connecting, dragOffset, nodes, onNodesChange]);
 
   const handleMouseUp = useCallback(() => {
     setDraggingNode(null);
-    setConnecting(null);
+    // Don't clear connecting on mouseUp — user needs to click target node
   }, []);
 
-  // Start connection from connector point
-  const handleConnectorMouseDown = useCallback((e: React.MouseEvent, nodeId: string) => {
+  // Start connection from connector point (click, not drag)
+  const handleConnectorClick = useCallback((e: React.MouseEvent, nodeId: string) => {
     e.stopPropagation();
     e.preventDefault();
-    const node = nodes.find(n => n.id === nodeId);
-    if (!node) return;
-    setConnecting({
-      fromNodeId: nodeId,
-      fromX: node.x + NODE_W,
-      fromY: node.y + NODE_H / 2,
-    });
-  }, [nodes]);
+    if (connecting) {
+      // Cancel current connecting
+      setConnecting(null);
+      return;
+    }
+    setConnecting({ fromNodeId: nodeId });
+    toast.info('Clique em outro node para conectar (ou clique no canvas para cancelar)');
+  }, [connecting]);
 
   // Complete connection on node click while connecting
   const handleNodeClick = useCallback((nodeId: string) => {
+    // Ignore click after drag
+    if (hasDragged) return;
+
     if (connecting && connecting.fromNodeId !== nodeId) {
-      // Check if connection already exists
       const exists = connections.some(
-        c => (c.fromNodeId === connecting.fromNodeId && c.toNodeId === nodeId) ||
-             (c.fromNodeId === nodeId && c.toNodeId === connecting.fromNodeId)
+        c => c.fromNodeId === connecting.fromNodeId && c.toNodeId === nodeId
       );
       if (!exists) {
         onConnectionsChange([...connections, {
@@ -163,7 +170,12 @@ function WorkflowCanvas({
       }
       setConnecting(null);
     }
-  }, [connecting, connections, onConnectionsChange]);
+  }, [connecting, connections, onConnectionsChange, hasDragged]);
+
+  // Cancel connecting on canvas click
+  const handleCanvasClick = useCallback(() => {
+    if (connecting) { setConnecting(null); toast.info('Conexão cancelada'); }
+  }, [connecting]);
 
   // Remove connection on click
   const handleConnectionClick = useCallback((connId: string) => {
@@ -193,10 +205,11 @@ function WorkflowCanvas({
   return (
     <div
       ref={canvasRef}
-      className="relative w-full h-[520px] rounded-2xl border border-border/50 bg-card/30 overflow-hidden select-none"
+      className={`relative w-full h-[520px] rounded-2xl border bg-card/30 overflow-hidden select-none ${connecting ? 'border-primary/40 cursor-crosshair' : 'border-border/50'}`}
       onMouseMove={handleMouseMove}
       onMouseUp={handleMouseUp}
       onMouseLeave={handleMouseUp}
+      onClick={handleCanvasClick}
     >
       {/* SVG layer for connections */}
       <svg className="absolute inset-0 w-full h-full pointer-events-none" style={{ zIndex: 1 }}>
@@ -225,15 +238,19 @@ function WorkflowCanvas({
           );
         })}
         {/* Active connecting line */}
-        {connecting && (
-          <path
-            d={`M ${connecting.fromX} ${connecting.fromY} C ${(connecting.fromX + mousePos.x) / 2} ${connecting.fromY}, ${(connecting.fromX + mousePos.x) / 2} ${mousePos.y}, ${mousePos.x} ${mousePos.y}`}
-            fill="none"
-            stroke="hsl(var(--primary) / 0.6)"
-            strokeWidth="2"
-            strokeDasharray="4 4"
-          />
-        )}
+        {connecting && (() => {
+          const fromPos = getNodeConnectorOut(connecting.fromNodeId);
+          return (
+            <path
+              d={`M ${fromPos.x} ${fromPos.y} C ${(fromPos.x + mousePos.x) / 2} ${fromPos.y}, ${(fromPos.x + mousePos.x) / 2} ${mousePos.y}, ${mousePos.x} ${mousePos.y}`}
+              fill="none"
+              stroke="hsl(var(--primary) / 0.6)"
+              strokeWidth="2"
+              strokeDasharray="4 4"
+              className="animate-pulse"
+            />
+          );
+        })()}
       </svg>
 
       {/* Node layer */}
@@ -242,7 +259,7 @@ function WorkflowCanvas({
         return (
           <div
             key={node.id}
-            className={`absolute flex items-center gap-2.5 px-3 py-2.5 rounded-xl border bg-gradient-to-br backdrop-blur-sm cursor-grab active:cursor-grabbing transition-shadow hover:shadow-lg hover:shadow-primary/5 ${typeDef?.color ?? 'border-border'} ${draggingNode === node.id ? 'ring-2 ring-primary shadow-xl z-20' : 'z-10'}`}
+            className={`group absolute flex items-center gap-2.5 px-3 py-2.5 rounded-xl border bg-gradient-to-br backdrop-blur-sm cursor-grab active:cursor-grabbing transition-shadow hover:shadow-lg hover:shadow-primary/5 ${typeDef?.color ?? 'border-border'} ${draggingNode === node.id ? 'ring-2 ring-primary shadow-xl z-20' : 'z-10'} ${connecting ? 'cursor-crosshair' : ''}`}
             style={{ left: node.x, top: node.y, width: NODE_W, height: NODE_H }}
             onMouseDown={e => handleNodeMouseDown(e, node.id)}
             onClick={() => handleNodeClick(node.id)}
@@ -258,15 +275,15 @@ function WorkflowCanvas({
             </div>
             {/* Delete button */}
             <button
-              className="absolute -top-2 -right-2 h-5 w-5 rounded-full bg-destructive/80 text-white flex items-center justify-center opacity-0 hover:opacity-100 transition-opacity z-30"
+              className="absolute -top-2 -right-2 h-5 w-5 rounded-full bg-destructive/80 text-white flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity z-30"
               onClick={e => { e.stopPropagation(); handleDeleteNode(node.id); }}
             >
               <X className="h-3 w-3" />
             </button>
             {/* Output connector (right side) */}
             <div
-              className="connector-point absolute -right-[7px] top-1/2 -translate-y-1/2 h-3.5 w-3.5 rounded-full bg-primary border-2 border-background cursor-crosshair z-30 hover:scale-125 transition-transform"
-              onMouseDown={e => handleConnectorMouseDown(e, node.id)}
+              className={`connector-point absolute -right-[7px] top-1/2 -translate-y-1/2 h-3.5 w-3.5 rounded-full border-2 border-background cursor-crosshair z-30 hover:scale-150 transition-transform ${connecting?.fromNodeId === node.id ? 'bg-emerald-400 scale-150' : 'bg-primary'}`}
+              onClick={e => handleConnectorClick(e, node.id)}
             />
             {/* Input connector (left side) */}
             <div className="absolute -left-[7px] top-1/2 -translate-y-1/2 h-3.5 w-3.5 rounded-full bg-primary/50 border-2 border-background z-30" />
@@ -293,7 +310,21 @@ export default function WorkflowsPage() {
   const [pipelineName, setPipelineName] = useState('Meu Pipeline');
   const [nodes, setNodes] = useState<CanvasNode[]>(TEMPLATES[1].nodes);
   const [connections, setConnections] = useState<CanvasConnection[]>(TEMPLATES[1].connections);
-  const [savedPipelines, setSavedPipelines] = useState<Pipeline[]>([]);
+  const [savedPipelines, setSavedPipelines] = useState<Pipeline[]>(() => {
+    try {
+      const stored = localStorage.getItem('nexus_pipelines');
+      return stored ? JSON.parse(stored) : [];
+    } catch { return []; }
+  });
+
+  // Persist saved pipelines to localStorage
+  const updateSavedPipelines = useCallback((updater: (prev: Pipeline[]) => Pipeline[]) => {
+    setSavedPipelines(prev => {
+      const next = updater(prev);
+      try { localStorage.setItem('nexus_pipelines', JSON.stringify(next)); } catch { /* quota exceeded */ }
+      return next;
+    });
+  }, []);
 
   // Add node to canvas
   const addNode = useCallback((type: string) => {
@@ -313,6 +344,7 @@ export default function WorkflowsPage() {
   // Save pipeline
   const savePipeline = useCallback(() => {
     if (nodes.length === 0) { toast.error('Canvas vazio — adicione nodes antes de salvar'); return; }
+    if (!pipelineName.trim()) { toast.error('Informe um nome para o pipeline'); return; }
     const pipeline: Pipeline = {
       id: `pipe-${Date.now()}`,
       name: pipelineName,
@@ -320,7 +352,7 @@ export default function WorkflowsPage() {
       connections: [...connections],
       createdAt: new Date().toLocaleString('pt-BR'),
     };
-    setSavedPipelines(prev => [...prev, pipeline]);
+    updateSavedPipelines(prev => [...prev, pipeline]);
     toast.success(`Pipeline "${pipelineName}" salvo com ${nodes.length} nodes e ${connections.length} conexões`);
   }, [pipelineName, nodes, connections]);
 
@@ -347,7 +379,10 @@ export default function WorkflowsPage() {
       <PageHeader
         title="Workflow Studio"
         description="Crie fluxos de orquestração multi-agente com canvas visual drag-and-drop"
-        actions={<Button className="nexus-gradient-bg text-primary-foreground gap-2 hover:opacity-90" onClick={() => { setActiveView('canvas'); setNodes([]); setConnections([]); setPipelineName('Novo Pipeline'); }}><Plus className="h-4 w-4" /> Novo workflow</Button>}
+        actions={<Button className="nexus-gradient-bg text-primary-foreground gap-2 hover:opacity-90" onClick={() => {
+          if (nodes.length > 0 && !confirm('Descartar canvas atual e criar novo pipeline?')) return;
+          setActiveView('canvas'); setNodes([]); setConnections([]); setPipelineName('Novo Pipeline');
+        }}><Plus className="h-4 w-4" /> Novo workflow</Button>}
       />
 
       {/* View toggle */}
@@ -448,10 +483,16 @@ export default function WorkflowsPage() {
                       <div className="h-10 w-10 rounded-xl bg-primary/10 flex items-center justify-center">
                         <GitBranch className="h-5 w-5 text-primary" />
                       </div>
-                      <div>
+                      <div className="flex-1">
                         <h3 className="text-sm font-semibold text-foreground">{pipe.name}</h3>
                         <p className="text-[11px] text-muted-foreground">{pipe.nodes.length} nodes · {pipe.connections.length} conexões · {pipe.createdAt}</p>
                       </div>
+                      <button className="p-1 rounded hover:bg-destructive/20 shrink-0" title="Excluir pipeline" onClick={e => {
+                        e.stopPropagation();
+                        if (!confirm(`Excluir pipeline "${pipe.name}"?`)) return;
+                        updateSavedPipelines(prev => prev.filter(p => p.id !== pipe.id));
+                        toast.info('Pipeline excluído');
+                      }}><Trash2 className="h-3.5 w-3.5 text-destructive" /></button>
                     </div>
                     <div className="flex flex-wrap gap-1">
                       {pipe.nodes.map(n => {
