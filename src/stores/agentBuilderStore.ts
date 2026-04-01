@@ -160,6 +160,15 @@ export const useAgentBuilderStore = create<AgentBuilderStore>((set, get) => ({
 
     const now = new Date().toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
     set({ isSaving: false, isDirty: !error, lastSaved: error ? undefined : now });
+
+    if (!error) {
+      const savedAgent = get().agent;
+      if (agent.id) {
+        audit.agentUpdated(agent.id as string, ['config']);
+      } else if (savedAgent.id) {
+        audit.agentCreated(savedAgent.id as string, savedAgent.name);
+      }
+    }
   },
 
   loadSavedAgents: async () => {
