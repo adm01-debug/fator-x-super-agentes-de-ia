@@ -1,67 +1,516 @@
+import { useState, useRef, useCallback, useEffect } from "react";
 import { PageHeader } from "@/components/shared/PageHeader";
 import { InfoHint } from "@/components/shared/InfoHint";
 import { Button } from "@/components/ui/button";
-import { Plus, GitBranch, ArrowRight, User, Search, Brain, Shield, CheckCircle, Wrench, FileText } from "lucide-react";
+import { Plus, GitBranch, ArrowRight, Save, Trash2, GripVertical, Search, Brain, Shield, Wrench, FileText, List, LayoutDashboard, Info, X } from "lucide-react";
+import { toast } from "sonner";
 
-const templates = [
-  { name: 'Atendimento ao Cliente', steps: ['Classificar', 'Buscar KB', 'Responder', 'Escalar se necessário', 'Registrar'] },
-  { name: 'Prospecção Outbound', steps: ['Novo lead', 'Enriquecer perfil', 'Pesquisar empresa', 'Gerar email', 'Enviar', 'CRM update'] },
-  { name: 'Due Diligence', steps: ['Receber caso', 'Buscar regulamentação', 'Analisar documentos', 'Gerar parecer', 'Aprovação humana'] },
-  { name: 'Suporte Técnico L2', steps: ['Triagem', 'Diagnóstico', 'Code analysis', 'Solução', 'Validar', 'Documentar'] },
+// ═══ TYPES ═══
+
+interface CanvasNode {
+  id: string;
+  type: string;
+  label: string;
+  x: number;
+  y: number;
+}
+
+interface CanvasConnection {
+  id: string;
+  fromNodeId: string;
+  toNodeId: string;
+}
+
+interface Pipeline {
+  id: string;
+  name: string;
+  nodes: CanvasNode[];
+  connections: CanvasConnection[];
+  createdAt: string;
+}
+
+// ═══ NODE DEFINITIONS ═══
+
+const NODE_TYPES = [
+  { type: 'planner', label: 'Planner', icon: '🧭', color: 'from-indigo-500/20 to-indigo-500/5 border-indigo-500/30', desc: 'Planeja a estratégia e decompõe tarefas' },
+  { type: 'researcher', label: 'Researcher', icon: '🔍', color: 'from-purple-500/20 to-purple-500/5 border-purple-500/30', desc: 'Busca informações e dados relevantes' },
+  { type: 'retriever', label: 'Retriever', icon: '📄', color: 'from-emerald-500/20 to-emerald-500/5 border-emerald-500/30', desc: 'Recupera documentos e conhecimento do RAG' },
+  { type: 'critic', label: 'Critic', icon: '🟠', color: 'from-amber-500/20 to-amber-500/5 border-amber-500/30', desc: 'Avalia qualidade e identifica problemas' },
+  { type: 'executor', label: 'Executor', icon: '🔧', color: 'from-rose-500/20 to-rose-500/5 border-rose-500/30', desc: 'Executa ações e gera output final' },
+  { type: 'validator', label: 'Validator', icon: '✅', color: 'from-teal-500/20 to-teal-500/5 border-teal-500/30', desc: 'Valida resultados contra regras de negócio' },
+  { type: 'human', label: 'Human Gate', icon: '👤', color: 'from-sky-500/20 to-sky-500/5 border-sky-500/30', desc: 'Checkpoint para aprovação humana' },
+  { type: 'router', label: 'Router', icon: '🔀', color: 'from-orange-500/20 to-orange-500/5 border-orange-500/30', desc: 'Roteamento condicional entre caminhos' },
 ];
 
-const stepIcons: Record<string, React.ElementType> = {
-  Classificar: Brain, 'Buscar KB': Search, Responder: FileText, 'Escalar se necessário': User, Registrar: CheckCircle,
-  'Novo lead': User, 'Enriquecer perfil': Search, 'Pesquisar empresa': Search, 'Gerar email': FileText, Enviar: ArrowRight, 'CRM update': CheckCircle,
-  'Receber caso': FileText, 'Buscar regulamentação': Search, 'Analisar documentos': Brain, 'Gerar parecer': FileText, 'Aprovação humana': Shield,
-  Triagem: Brain, Diagnóstico: Search, 'Code analysis': Wrench, Solução: FileText, Validar: CheckCircle, Documentar: FileText,
-};
+// ═══ TEMPLATES ═══
+
+const TEMPLATES: Pipeline[] = [
+  {
+    id: 'tpl-1', name: 'Atendimento ao Cliente', createdAt: '',
+    nodes: [
+      { id: 'n1', type: 'planner', label: 'Classificar', x: 80, y: 200 },
+      { id: 'n2', type: 'retriever', label: 'Buscar KB', x: 300, y: 120 },
+      { id: 'n3', type: 'researcher', label: 'Pesquisar', x: 300, y: 300 },
+      { id: 'n4', type: 'executor', label: 'Responder', x: 540, y: 200 },
+      { id: 'n5', type: 'critic', label: 'Revisar', x: 760, y: 200 },
+    ],
+    connections: [
+      { id: 'c1', fromNodeId: 'n1', toNodeId: 'n2' },
+      { id: 'c2', fromNodeId: 'n1', toNodeId: 'n3' },
+      { id: 'c3', fromNodeId: 'n2', toNodeId: 'n4' },
+      { id: 'c4', fromNodeId: 'n3', toNodeId: 'n4' },
+      { id: 'c5', fromNodeId: 'n4', toNodeId: 'n5' },
+    ],
+  },
+  {
+    id: 'tpl-2', name: 'Research Pipeline', createdAt: '',
+    nodes: [
+      { id: 'n1', type: 'planner', label: 'Planner', x: 80, y: 220 },
+      { id: 'n2', type: 'researcher', label: 'Researcher', x: 300, y: 120 },
+      { id: 'n3', type: 'retriever', label: 'Retriever', x: 300, y: 320 },
+      { id: 'n4', type: 'critic', label: 'Critic', x: 540, y: 220 },
+      { id: 'n5', type: 'executor', label: 'Executor', x: 760, y: 220 },
+    ],
+    connections: [
+      { id: 'c1', fromNodeId: 'n1', toNodeId: 'n2' },
+      { id: 'c2', fromNodeId: 'n1', toNodeId: 'n3' },
+      { id: 'c3', fromNodeId: 'n2', toNodeId: 'n4' },
+      { id: 'c4', fromNodeId: 'n3', toNodeId: 'n4' },
+      { id: 'c5', fromNodeId: 'n4', toNodeId: 'n5' },
+    ],
+  },
+];
+
+// ═══ CANVAS COMPONENT ═══
+
+function WorkflowCanvas({
+  nodes, connections, onNodesChange, onConnectionsChange,
+}: {
+  nodes: CanvasNode[];
+  connections: CanvasConnection[];
+  onNodesChange: (nodes: CanvasNode[]) => void;
+  onConnectionsChange: (connections: CanvasConnection[]) => void;
+}) {
+  const canvasRef = useRef<HTMLDivElement>(null);
+  const [draggingNode, setDraggingNode] = useState<string | null>(null);
+  const [dragOffset, setDragOffset] = useState({ x: 0, y: 0 });
+  const [connecting, setConnecting] = useState<{ fromNodeId: string; fromX: number; fromY: number } | null>(null);
+  const [mousePos, setMousePos] = useState({ x: 0, y: 0 });
+
+  const NODE_W = 160;
+  const NODE_H = 70;
+  const CONNECTOR_R = 7;
+
+  // Drag node
+  const handleNodeMouseDown = useCallback((e: React.MouseEvent, nodeId: string) => {
+    if ((e.target as HTMLElement).closest('.connector-point')) return;
+    e.preventDefault();
+    const node = nodes.find(n => n.id === nodeId);
+    if (!node || !canvasRef.current) return;
+    const rect = canvasRef.current.getBoundingClientRect();
+    setDragOffset({ x: e.clientX - rect.left - node.x, y: e.clientY - rect.top - node.y });
+    setDraggingNode(nodeId);
+  }, [nodes]);
+
+  const handleMouseMove = useCallback((e: React.MouseEvent) => {
+    if (!canvasRef.current) return;
+    const rect = canvasRef.current.getBoundingClientRect();
+    const mx = e.clientX - rect.left;
+    const my = e.clientY - rect.top;
+    setMousePos({ x: mx, y: my });
+
+    if (draggingNode) {
+      const updated = nodes.map(n =>
+        n.id === draggingNode ? { ...n, x: Math.max(0, mx - dragOffset.x), y: Math.max(0, my - dragOffset.y) } : n
+      );
+      onNodesChange(updated);
+    }
+  }, [draggingNode, dragOffset, nodes, onNodesChange]);
+
+  const handleMouseUp = useCallback(() => {
+    setDraggingNode(null);
+    setConnecting(null);
+  }, []);
+
+  // Start connection from connector point
+  const handleConnectorMouseDown = useCallback((e: React.MouseEvent, nodeId: string) => {
+    e.stopPropagation();
+    e.preventDefault();
+    const node = nodes.find(n => n.id === nodeId);
+    if (!node) return;
+    setConnecting({
+      fromNodeId: nodeId,
+      fromX: node.x + NODE_W,
+      fromY: node.y + NODE_H / 2,
+    });
+  }, [nodes]);
+
+  // Complete connection on node click while connecting
+  const handleNodeClick = useCallback((nodeId: string) => {
+    if (connecting && connecting.fromNodeId !== nodeId) {
+      // Check if connection already exists
+      const exists = connections.some(
+        c => (c.fromNodeId === connecting.fromNodeId && c.toNodeId === nodeId) ||
+             (c.fromNodeId === nodeId && c.toNodeId === connecting.fromNodeId)
+      );
+      if (!exists) {
+        onConnectionsChange([...connections, {
+          id: `conn-${Date.now()}`,
+          fromNodeId: connecting.fromNodeId,
+          toNodeId: nodeId,
+        }]);
+        toast.success('Conexão criada');
+      }
+      setConnecting(null);
+    }
+  }, [connecting, connections, onConnectionsChange]);
+
+  // Remove connection on click
+  const handleConnectionClick = useCallback((connId: string) => {
+    onConnectionsChange(connections.filter(c => c.id !== connId));
+    toast.info('Conexão removida');
+  }, [connections, onConnectionsChange]);
+
+  // Remove node
+  const handleDeleteNode = useCallback((nodeId: string) => {
+    onNodesChange(nodes.filter(n => n.id !== nodeId));
+    onConnectionsChange(connections.filter(c => c.fromNodeId !== nodeId && c.toNodeId !== nodeId));
+    toast.info('Node removido');
+  }, [nodes, connections, onNodesChange, onConnectionsChange]);
+
+  // Get node center for connection lines
+  const getNodeConnectorOut = (nodeId: string) => {
+    const n = nodes.find(nd => nd.id === nodeId);
+    if (!n) return { x: 0, y: 0 };
+    return { x: n.x + NODE_W, y: n.y + NODE_H / 2 };
+  };
+  const getNodeConnectorIn = (nodeId: string) => {
+    const n = nodes.find(nd => nd.id === nodeId);
+    if (!n) return { x: 0, y: 0 };
+    return { x: n.x, y: n.y + NODE_H / 2 };
+  };
+
+  return (
+    <div
+      ref={canvasRef}
+      className="relative w-full h-[520px] rounded-2xl border border-border/50 bg-card/30 overflow-hidden select-none"
+      onMouseMove={handleMouseMove}
+      onMouseUp={handleMouseUp}
+      onMouseLeave={handleMouseUp}
+    >
+      {/* SVG layer for connections */}
+      <svg className="absolute inset-0 w-full h-full pointer-events-none" style={{ zIndex: 1 }}>
+        {connections.map(conn => {
+          const from = getNodeConnectorOut(conn.fromNodeId);
+          const to = getNodeConnectorIn(conn.toNodeId);
+          const midX = (from.x + to.x) / 2;
+          return (
+            <g key={conn.id} className="pointer-events-auto cursor-pointer" onClick={() => handleConnectionClick(conn.id)}>
+              <path
+                d={`M ${from.x} ${from.y} C ${midX} ${from.y}, ${midX} ${to.y}, ${to.x} ${to.y}`}
+                fill="none"
+                stroke="hsl(var(--primary) / 0.4)"
+                strokeWidth="2"
+                strokeDasharray="8 4"
+                className="transition-colors hover:stroke-primary"
+              />
+              {/* Invisible wider hit area */}
+              <path
+                d={`M ${from.x} ${from.y} C ${midX} ${from.y}, ${midX} ${to.y}, ${to.x} ${to.y}`}
+                fill="none"
+                stroke="transparent"
+                strokeWidth="14"
+              />
+            </g>
+          );
+        })}
+        {/* Active connecting line */}
+        {connecting && (
+          <path
+            d={`M ${connecting.fromX} ${connecting.fromY} C ${(connecting.fromX + mousePos.x) / 2} ${connecting.fromY}, ${(connecting.fromX + mousePos.x) / 2} ${mousePos.y}, ${mousePos.x} ${mousePos.y}`}
+            fill="none"
+            stroke="hsl(var(--primary) / 0.6)"
+            strokeWidth="2"
+            strokeDasharray="4 4"
+          />
+        )}
+      </svg>
+
+      {/* Node layer */}
+      {nodes.map(node => {
+        const typeDef = NODE_TYPES.find(t => t.type === node.type);
+        return (
+          <div
+            key={node.id}
+            className={`absolute flex items-center gap-2.5 px-3 py-2.5 rounded-xl border bg-gradient-to-br backdrop-blur-sm cursor-grab active:cursor-grabbing transition-shadow hover:shadow-lg hover:shadow-primary/5 ${typeDef?.color ?? 'border-border'} ${draggingNode === node.id ? 'ring-2 ring-primary shadow-xl z-20' : 'z-10'}`}
+            style={{ left: node.x, top: node.y, width: NODE_W, height: NODE_H }}
+            onMouseDown={e => handleNodeMouseDown(e, node.id)}
+            onClick={() => handleNodeClick(node.id)}
+          >
+            {/* Grip handle */}
+            <GripVertical className="h-4 w-4 text-muted-foreground/50 shrink-0" />
+            {/* Icon */}
+            <span className="text-lg shrink-0">{typeDef?.icon ?? '🔹'}</span>
+            {/* Label */}
+            <div className="flex-1 min-w-0">
+              <p className="text-xs font-semibold text-foreground truncate">{node.label}</p>
+              <p className="text-[9px] text-muted-foreground truncate">{node.type}</p>
+            </div>
+            {/* Delete button */}
+            <button
+              className="absolute -top-2 -right-2 h-5 w-5 rounded-full bg-destructive/80 text-white flex items-center justify-center opacity-0 hover:opacity-100 transition-opacity z-30"
+              onClick={e => { e.stopPropagation(); handleDeleteNode(node.id); }}
+            >
+              <X className="h-3 w-3" />
+            </button>
+            {/* Output connector (right side) */}
+            <div
+              className="connector-point absolute -right-[7px] top-1/2 -translate-y-1/2 h-3.5 w-3.5 rounded-full bg-primary border-2 border-background cursor-crosshair z-30 hover:scale-125 transition-transform"
+              onMouseDown={e => handleConnectorMouseDown(e, node.id)}
+            />
+            {/* Input connector (left side) */}
+            <div className="absolute -left-[7px] top-1/2 -translate-y-1/2 h-3.5 w-3.5 rounded-full bg-primary/50 border-2 border-background z-30" />
+          </div>
+        );
+      })}
+
+      {nodes.length === 0 && (
+        <div className="absolute inset-0 flex items-center justify-center text-muted-foreground/40">
+          <div className="text-center">
+            <LayoutDashboard className="h-12 w-12 mx-auto mb-2" />
+            <p className="text-sm">Arraste nodes do painel acima para começar</p>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ═══ MAIN PAGE ═══
 
 export default function WorkflowsPage() {
+  const [activeView, setActiveView] = useState<'canvas' | 'list'>('canvas');
+  const [pipelineName, setPipelineName] = useState('Meu Pipeline');
+  const [nodes, setNodes] = useState<CanvasNode[]>(TEMPLATES[1].nodes);
+  const [connections, setConnections] = useState<CanvasConnection[]>(TEMPLATES[1].connections);
+  const [savedPipelines, setSavedPipelines] = useState<Pipeline[]>([]);
+
+  // Add node to canvas
+  const addNode = useCallback((type: string) => {
+    const typeDef = NODE_TYPES.find(t => t.type === type);
+    if (!typeDef) return;
+    const newNode: CanvasNode = {
+      id: `node-${Date.now()}`,
+      type,
+      label: typeDef.label,
+      x: 100 + Math.random() * 400,
+      y: 80 + Math.random() * 300,
+    };
+    setNodes(prev => [...prev, newNode]);
+    toast.success(`${typeDef.label} adicionado ao canvas`);
+  }, []);
+
+  // Save pipeline
+  const savePipeline = useCallback(() => {
+    if (nodes.length === 0) { toast.error('Canvas vazio — adicione nodes antes de salvar'); return; }
+    const pipeline: Pipeline = {
+      id: `pipe-${Date.now()}`,
+      name: pipelineName,
+      nodes: [...nodes],
+      connections: [...connections],
+      createdAt: new Date().toLocaleString('pt-BR'),
+    };
+    setSavedPipelines(prev => [...prev, pipeline]);
+    toast.success(`Pipeline "${pipelineName}" salvo com ${nodes.length} nodes e ${connections.length} conexões`);
+  }, [pipelineName, nodes, connections]);
+
+  // Load pipeline
+  const loadPipeline = useCallback((pipeline: Pipeline) => {
+    setNodes([...pipeline.nodes]);
+    setConnections([...pipeline.connections]);
+    setPipelineName(pipeline.name);
+    toast.success(`Pipeline "${pipeline.name}" carregado`);
+    setActiveView('canvas');
+  }, []);
+
+  // Clear canvas
+  const clearCanvas = useCallback(() => {
+    if (nodes.length === 0) return;
+    if (!confirm('Limpar o canvas? Nodes e conexões não salvos serão perdidos.')) return;
+    setNodes([]);
+    setConnections([]);
+    toast.info('Canvas limpo');
+  }, [nodes]);
+
   return (
     <div className="p-6 space-y-6 max-w-[1400px] mx-auto">
       <PageHeader
         title="Workflow Studio"
-        description="Crie fluxos de orquestração multi-agente e automações complexas"
-        actions={<Button className="nexus-gradient-bg text-primary-foreground gap-2 hover:opacity-90"><Plus className="h-4 w-4" /> Novo workflow</Button>}
+        description="Crie fluxos de orquestração multi-agente com canvas visual drag-and-drop"
+        actions={<Button className="nexus-gradient-bg text-primary-foreground gap-2 hover:opacity-90" onClick={() => { setActiveView('canvas'); setNodes([]); setConnections([]); setPipelineName('Novo Pipeline'); }}><Plus className="h-4 w-4" /> Novo workflow</Button>}
       />
 
-      <InfoHint title="Workflows multiagente">
-        Workflows permitem orquestrar múltiplos agentes especializados em sequência ou paralelo. Defina handoffs, checkpoints humanos e guardrails entre etapas para tarefas complexas.
-      </InfoHint>
+      {/* View toggle */}
+      <div className="flex items-center gap-1 bg-secondary/50 border border-border/50 rounded-xl p-1 w-fit">
+        <button
+          onClick={() => setActiveView('canvas')}
+          className={`flex items-center gap-1.5 px-4 py-2 rounded-lg text-xs font-medium transition-all ${activeView === 'canvas' ? 'bg-card text-foreground shadow-sm' : 'text-muted-foreground hover:text-foreground'}`}
+        >
+          <LayoutDashboard className="h-3.5 w-3.5" /> Canvas Visual
+        </button>
+        <button
+          onClick={() => setActiveView('list')}
+          className={`flex items-center gap-1.5 px-4 py-2 rounded-lg text-xs font-medium transition-all ${activeView === 'list' ? 'bg-card text-foreground shadow-sm' : 'text-muted-foreground hover:text-foreground'}`}
+        >
+          <List className="h-3.5 w-3.5" /> Lista
+        </button>
+      </div>
 
-      <div className="grid gap-4 md:grid-cols-2">
-        {templates.map((wf, i) => (
-          <div key={wf.name} className="nexus-card cursor-pointer">
-            <div className="flex items-center gap-2.5 mb-4">
-              <div className="h-10 w-10 rounded-xl bg-primary/10 flex items-center justify-center">
-                <GitBranch className="h-5 w-5 text-primary" />
-              </div>
-              <div>
-                <h3 className="text-sm font-semibold text-foreground">{wf.name}</h3>
-                <p className="text-[11px] text-muted-foreground">{wf.steps.length} etapas</p>
-              </div>
-            </div>
-
-            <div className="flex items-center gap-1.5 overflow-x-auto pb-2">
-              {wf.steps.map((step, j) => {
-                const Icon = stepIcons[step] || Brain;
-                return (
-                  <div key={j} className="flex items-center gap-1.5 shrink-0">
-                    <div className="flex flex-col items-center">
-                      <div className="h-9 w-9 rounded-lg bg-secondary flex items-center justify-center">
-                        <Icon className="h-4 w-4 text-foreground" />
-                      </div>
-                      <p className="text-[9px] text-muted-foreground mt-1 text-center max-w-[60px] truncate">{step}</p>
-                    </div>
-                    {j < wf.steps.length - 1 && <ArrowRight className="h-3 w-3 text-muted-foreground shrink-0 mt-[-12px]" />}
-                  </div>
-                );
-              })}
+      {activeView === 'canvas' && (
+        <>
+          {/* Info banner */}
+          <div className="rounded-xl border border-primary/20 bg-primary/5 p-3 flex items-start gap-2">
+            <Info className="h-4 w-4 text-primary shrink-0 mt-0.5" />
+            <div>
+              <p className="text-xs font-semibold text-foreground">Canvas de Orquestração</p>
+              <p className="text-[11px] text-muted-foreground">Arraste nodes para posicionar, conecte-os pelo ponto azul à direita. Clique numa linha para removê-la. Salve seu pipeline no banco de dados para reutilizá-lo.</p>
             </div>
           </div>
-        ))}
-      </div>
+
+          {/* Pipeline name + save */}
+          <div className="flex items-center gap-3">
+            <input
+              value={pipelineName}
+              onChange={e => setPipelineName(e.target.value)}
+              className="bg-muted/30 border border-border rounded-xl px-4 py-2.5 text-sm text-foreground w-56"
+              placeholder="Nome do pipeline"
+            />
+            <Button onClick={savePipeline} className="gap-1.5"><Save className="h-4 w-4" /> Salvar</Button>
+            <Button variant="outline" onClick={clearCanvas} className="gap-1.5"><Trash2 className="h-4 w-4" /> Limpar</Button>
+            <span className="text-[10px] text-muted-foreground ml-auto">{nodes.length} nodes · {connections.length} conexões</span>
+          </div>
+
+          {/* Node palette */}
+          <div className="flex items-center gap-2 flex-wrap">
+            {NODE_TYPES.map(nt => (
+              <button
+                key={nt.type}
+                onClick={() => addNode(nt.type)}
+                className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-border bg-card text-xs text-foreground hover:bg-muted/30 transition-colors"
+                title={nt.desc}
+              >
+                <span>{nt.icon}</span> {nt.label}
+              </button>
+            ))}
+          </div>
+
+          {/* Canvas */}
+          <WorkflowCanvas
+            nodes={nodes}
+            connections={connections}
+            onNodesChange={setNodes}
+            onConnectionsChange={setConnections}
+          />
+
+          {/* Instructions */}
+          <p className="text-[10px] text-muted-foreground text-center">
+            Arraste nodes para posicionar &bull; Clique no ponto azul e arraste até outro node para conectar &bull; Clique em uma linha para remover conexão
+          </p>
+
+          {/* Templates */}
+          <div>
+            <h3 className="text-xs font-semibold text-muted-foreground mb-2">Templates prontos:</h3>
+            <div className="flex gap-2">
+              {TEMPLATES.map(tpl => (
+                <button
+                  key={tpl.id}
+                  onClick={() => loadPipeline(tpl)}
+                  className="px-3 py-2 rounded-lg border border-border bg-card text-xs text-foreground hover:bg-muted/30 transition-colors"
+                >
+                  <GitBranch className="h-3 w-3 inline mr-1" /> {tpl.name} ({tpl.nodes.length} nodes)
+                </button>
+              ))}
+            </div>
+          </div>
+        </>
+      )}
+
+      {activeView === 'list' && (
+        <div className="space-y-4">
+          {/* Saved pipelines */}
+          {savedPipelines.length > 0 && (
+            <div>
+              <h3 className="text-sm font-semibold text-foreground mb-3">Pipelines Salvos</h3>
+              <div className="grid gap-3 md:grid-cols-2">
+                {savedPipelines.map(pipe => (
+                  <div key={pipe.id} className="nexus-card cursor-pointer hover:ring-1 hover:ring-primary/30 transition-all" onClick={() => loadPipeline(pipe)}>
+                    <div className="flex items-center gap-2.5 mb-2">
+                      <div className="h-10 w-10 rounded-xl bg-primary/10 flex items-center justify-center">
+                        <GitBranch className="h-5 w-5 text-primary" />
+                      </div>
+                      <div>
+                        <h3 className="text-sm font-semibold text-foreground">{pipe.name}</h3>
+                        <p className="text-[11px] text-muted-foreground">{pipe.nodes.length} nodes · {pipe.connections.length} conexões · {pipe.createdAt}</p>
+                      </div>
+                    </div>
+                    <div className="flex flex-wrap gap-1">
+                      {pipe.nodes.map(n => {
+                        const typeDef = NODE_TYPES.find(t => t.type === n.type);
+                        return <span key={n.id} className="text-[10px] px-1.5 py-0.5 rounded bg-muted/30 text-muted-foreground">{typeDef?.icon} {n.label}</span>;
+                      })}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* Templates */}
+          <div>
+            <h3 className="text-sm font-semibold text-foreground mb-3">Templates</h3>
+            <div className="grid gap-4 md:grid-cols-2">
+              {TEMPLATES.map(tpl => (
+                <div key={tpl.id} className="nexus-card cursor-pointer hover:ring-1 hover:ring-primary/30 transition-all" onClick={() => loadPipeline(tpl)}>
+                  <div className="flex items-center gap-2.5 mb-3">
+                    <div className="h-10 w-10 rounded-xl bg-primary/10 flex items-center justify-center">
+                      <GitBranch className="h-5 w-5 text-primary" />
+                    </div>
+                    <div>
+                      <h3 className="text-sm font-semibold text-foreground">{tpl.name}</h3>
+                      <p className="text-[11px] text-muted-foreground">{tpl.nodes.length} nodes · {tpl.connections.length} conexões</p>
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-1.5 overflow-x-auto pb-1">
+                    {tpl.nodes.map((n, j) => {
+                      const typeDef = NODE_TYPES.find(t => t.type === n.type);
+                      return (
+                        <div key={n.id} className="flex items-center gap-1.5 shrink-0">
+                          <div className="flex flex-col items-center">
+                            <div className="h-9 w-9 rounded-lg bg-secondary flex items-center justify-center text-sm">
+                              {typeDef?.icon}
+                            </div>
+                            <p className="text-[9px] text-muted-foreground mt-0.5">{n.label}</p>
+                          </div>
+                          {j < tpl.nodes.length - 1 && <ArrowRight className="h-3 w-3 text-muted-foreground shrink-0 mt-[-10px]" />}
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          {savedPipelines.length === 0 && (
+            <div className="nexus-card text-center py-12">
+              <LayoutDashboard className="h-12 w-12 mx-auto mb-3 text-muted-foreground/30" />
+              <p className="text-sm text-muted-foreground">Nenhum pipeline salvo</p>
+              <p className="text-xs text-muted-foreground mt-1">Crie e salve pipelines no Canvas Visual</p>
+              <Button variant="outline" className="mt-4" onClick={() => setActiveView('canvas')}>Ir para Canvas</Button>
+            </div>
+          )}
+        </div>
+      )}
     </div>
   );
 }
