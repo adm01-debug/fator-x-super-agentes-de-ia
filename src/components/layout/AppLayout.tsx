@@ -47,7 +47,7 @@ export function AppLayout({ children }: AppLayoutProps) {
   const location = useLocation();
   const isMobile = useIsMobile();
   const { user, signOut } = useAuth();
-  const [shortcutsOpen, setShortcutsOpen] = useState(false);
+  
 
   // Dynamic document title
   useDocumentTitle();
