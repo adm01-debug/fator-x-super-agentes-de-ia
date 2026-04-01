@@ -4,6 +4,7 @@ import { SectionTitle } from '../ui';
 import { NexusBadge } from '../ui/NexusBadge';
 import { Button } from '@/components/ui/button';
 import { Send, ThumbsUp, ThumbsDown, Bug, RotateCcw, Sparkles } from 'lucide-react';
+import * as llm from '@/services/llmService';
 
 interface PlaygroundMessage {
   id: string;
@@ -49,29 +50,50 @@ export function PlaygroundModule() {
     setInput('');
     setIsLoading(true);
 
-    // Simulate LLM response with realistic delay
-    const sim = SIMULATED_RESPONSES[Math.floor(Math.random() * SIMULATED_RESPONSES.length)];
-    const delay = sim.latency + Math.random() * 500;
+    // Build system prompt from agent config
+    const systemPrompt = agent.system_prompt || `Você é ${agent.name || 'um assistente'}, um ${agent.persona || 'assistente'} especializado. ${agent.scope ? `Escopo: ${agent.scope}.` : ''} Responda de forma ${agent.formality > 70 ? 'formal' : 'casual'} e ${agent.verbosity > 70 ? 'detalhada' : 'concisa'}.`;
 
-    await new Promise(r => setTimeout(r, delay));
+    // Build conversation history
+    const history: llm.LLMMessage[] = [
+      { role: 'system', content: systemPrompt },
+      ...messages.map(m => ({ role: m.role as 'user' | 'assistant', content: m.content })),
+      { role: 'user' as const, content: input.trim() },
+    ];
 
-    const assistantMsg: PlaygroundMessage = {
-      id: crypto.randomUUID(),
-      role: 'assistant',
-      content: sim.content
-        .replace('{name}', agent.name || 'Agente')
-        .replace('{persona}', agent.persona || 'assistente'),
-      timestamp: new Date().toISOString(),
-      metadata: {
-        model: agent.model,
-        tokens: Math.floor(50 + Math.random() * 200),
-        latency_ms: Math.round(delay),
-        tools_used: sim.tools,
-        guardrails_passed: true,
-      },
-    };
+    if (llm.isLLMConfigured()) {
+      // ═══ REAL LLM CALL ═══
+      const modelId = agent.model?.includes('/') ? agent.model : `anthropic/${agent.model || 'claude-sonnet-4'}`;
+      const response = await llm.callModel(modelId, history, {
+        temperature: (agent.temperature ?? 70) / 100,
+        maxTokens: agent.max_tokens ?? 2048,
+      });
 
-    setMessages(prev => [...prev, assistantMsg]);
+      const assistantMsg: PlaygroundMessage = {
+        id: crypto.randomUUID(), role: 'assistant',
+        content: response.content,
+        timestamp: new Date().toISOString(),
+        metadata: {
+          model: response.model,
+          tokens: response.tokens.input + response.tokens.output,
+          latency_ms: response.latencyMs,
+          tools_used: response.error ? ['error'] : [],
+          guardrails_passed: !response.error,
+        },
+      };
+      setMessages(prev => [...prev, assistantMsg]);
+    } else {
+      // ═══ FALLBACK SIMULATION ═══
+      const sim = SIMULATED_RESPONSES[Math.floor(Math.random() * SIMULATED_RESPONSES.length)];
+      await new Promise(r => setTimeout(r, sim.latency + Math.random() * 500));
+
+      const assistantMsg: PlaygroundMessage = {
+        id: crypto.randomUUID(), role: 'assistant',
+        content: sim.content.replace('{name}', agent.name || 'Agente').replace('{persona}', agent.persona || 'assistente'),
+        timestamp: new Date().toISOString(),
+        metadata: { model: agent.model + ' (simulado)', tokens: Math.floor(50 + Math.random() * 200), latency_ms: Math.round(sim.latency), tools_used: sim.tools, guardrails_passed: true },
+      };
+      setMessages(prev => [...prev, assistantMsg]);
+    }
     setIsLoading(false);
   }, [input, isLoading, agent.name, agent.persona, agent.model]);
 
