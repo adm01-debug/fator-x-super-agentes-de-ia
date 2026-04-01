@@ -5,10 +5,12 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
-import { Plus, GitBranch, ArrowRight, Brain, Search, Shield, CheckCircle, Wrench, FileText, Play, Trash2 } from "lucide-react";
+import { Plus, GitBranch, ArrowRight, Brain, Search, Shield, CheckCircle, Wrench, FileText, Play, Trash2, LayoutGrid, Network } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { toast } from "sonner";
+import { WorkflowCanvas, type CanvasNode, type CanvasEdge } from "@/components/workflows/WorkflowCanvas";
 
 interface Workflow {
   id: string;
@@ -32,11 +34,29 @@ const defaultTemplates: Workflow[] = [
   { id: 't4', name: 'Suporte Técnico L2', steps: ['Triagem', 'Diagnóstico', 'Code analysis', 'Solução', 'Validar', 'Documentar'], status: 'draft', createdAt: '2026-03-25' },
 ];
 
+const defaultCanvasNodes: CanvasNode[] = [
+  { id: 'n1', type: 'planner', label: 'Planner', x: 60, y: 80 },
+  { id: 'n2', type: 'researcher', label: 'Researcher', x: 300, y: 40 },
+  { id: 'n3', type: 'retriever', label: 'Retriever', x: 300, y: 180 },
+  { id: 'n4', type: 'critic', label: 'Critic', x: 540, y: 110 },
+  { id: 'n5', type: 'executor', label: 'Executor', x: 760, y: 110 },
+];
+
+const defaultCanvasEdges: CanvasEdge[] = [
+  { from: 'n1', to: 'n2' },
+  { from: 'n1', to: 'n3' },
+  { from: 'n2', to: 'n4' },
+  { from: 'n3', to: 'n4' },
+  { from: 'n4', to: 'n5' },
+];
+
 export default function WorkflowsPage() {
   const [workflows, setWorkflows] = useState<Workflow[]>(defaultTemplates);
   const [dialogOpen, setDialogOpen] = useState(false);
   const [newName, setNewName] = useState('');
   const [newSteps, setNewSteps] = useState('');
+  const [canvasNodes, setCanvasNodes] = useState<CanvasNode[]>(defaultCanvasNodes);
+  const [canvasEdges, setCanvasEdges] = useState<CanvasEdge[]>(defaultCanvasEdges);
 
   const handleCreate = () => {
     if (!newName.trim()) { toast.error('Nome é obrigatório'); return; }
@@ -92,57 +112,73 @@ export default function WorkflowsPage() {
         }
       />
 
-      <InfoHint title="Workflows multiagente">
-        Workflows permitem orquestrar múltiplos agentes especializados em sequência ou paralelo. Defina handoffs, checkpoints humanos e guardrails entre etapas para tarefas complexas.
-      </InfoHint>
+      <Tabs defaultValue="canvas" className="space-y-4">
+        <TabsList>
+          <TabsTrigger value="canvas" className="gap-1.5"><Network className="h-3.5 w-3.5" /> Canvas Visual</TabsTrigger>
+          <TabsTrigger value="list" className="gap-1.5"><LayoutGrid className="h-3.5 w-3.5" /> Lista</TabsTrigger>
+        </TabsList>
 
-      <div className="grid gap-4 md:grid-cols-2">
-        <AnimatePresence>
-          {workflows.map((wf, i) => (
-            <motion.div key={wf.id} initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -8 }} transition={{ delay: i * 0.06 }} className="nexus-card group">
-              <div className="flex items-center justify-between mb-4">
-                <div className="flex items-center gap-2.5">
-                  <div className="h-10 w-10 rounded-xl bg-primary/10 flex items-center justify-center">
-                    <GitBranch className="h-5 w-5 text-primary" />
-                  </div>
-                  <div>
-                    <h3 className="text-sm font-semibold text-foreground">{wf.name}</h3>
-                    <p className="text-[11px] text-muted-foreground">{wf.steps.length} etapas • {wf.createdAt}</p>
-                  </div>
-                </div>
-                <div className="flex items-center gap-1">
-                  <Badge variant="outline" className={`text-[9px] ${wf.status === 'active' ? 'border-emerald-500/30 text-emerald-400' : 'border-muted-foreground/30'}`}>
-                    {wf.status === 'active' ? 'Ativo' : 'Rascunho'}
-                  </Badge>
-                  <Button size="icon" variant="ghost" className="h-7 w-7 opacity-0 group-hover:opacity-100" onClick={() => handleToggleStatus(wf.id)}>
-                    <Play className="h-3 w-3" />
-                  </Button>
-                  <Button size="icon" variant="ghost" className="h-7 w-7 opacity-0 group-hover:opacity-100 text-destructive" onClick={() => handleDelete(wf.id)}>
-                    <Trash2 className="h-3 w-3" />
-                  </Button>
-                </div>
-              </div>
+        <TabsContent value="canvas" className="space-y-4">
+          <InfoHint title="Canvas de Orquestração">
+            Arraste nodes para posicionar, conecte-os pelo ponto azul à direita. Clique numa linha para removê-la. Monte pipelines de Planner → Researcher → Retriever → Critic → Executor.
+          </InfoHint>
+          <WorkflowCanvas nodes={canvasNodes} edges={canvasEdges} onNodesChange={setCanvasNodes} onEdgesChange={setCanvasEdges} />
+        </TabsContent>
 
-              <div className="flex items-center gap-1.5 overflow-x-auto pb-2">
-                {wf.steps.map((step, j) => {
-                  const Icon = stepIcons[step] || Brain;
-                  return (
-                    <div key={j} className="flex items-center gap-1.5 shrink-0">
-                      <div className="flex flex-col items-center">
-                        <div className="h-9 w-9 rounded-lg bg-secondary flex items-center justify-center">
-                          <Icon className="h-4 w-4 text-foreground" />
-                        </div>
-                        <p className="text-[9px] text-muted-foreground mt-1 text-center max-w-[60px] truncate">{step}</p>
+        <TabsContent value="list" className="space-y-4">
+          <InfoHint title="Workflows multiagente">
+            Workflows permitem orquestrar múltiplos agentes especializados em sequência ou paralelo. Defina handoffs, checkpoints humanos e guardrails entre etapas para tarefas complexas.
+          </InfoHint>
+
+          <div className="grid gap-4 md:grid-cols-2">
+            <AnimatePresence>
+              {workflows.map((wf, i) => (
+                <motion.div key={wf.id} initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -8 }} transition={{ delay: i * 0.06 }} className="nexus-card group">
+                  <div className="flex items-center justify-between mb-4">
+                    <div className="flex items-center gap-2.5">
+                      <div className="h-10 w-10 rounded-xl bg-primary/10 flex items-center justify-center">
+                        <GitBranch className="h-5 w-5 text-primary" />
                       </div>
-                      {j < wf.steps.length - 1 && <ArrowRight className="h-3 w-3 text-muted-foreground shrink-0 mt-[-12px]" />}
+                      <div>
+                        <h3 className="text-sm font-semibold text-foreground">{wf.name}</h3>
+                        <p className="text-[11px] text-muted-foreground">{wf.steps.length} etapas • {wf.createdAt}</p>
+                      </div>
                     </div>
-                  );
-                })}
-              </div>
-            </motion.div>
-          ))}
-        </AnimatePresence>
-      </div>
+                    <div className="flex items-center gap-1">
+                      <Badge variant="outline" className={`text-[9px] ${wf.status === 'active' ? 'border-emerald-500/30 text-emerald-400' : 'border-muted-foreground/30'}`}>
+                        {wf.status === 'active' ? 'Ativo' : 'Rascunho'}
+                      </Badge>
+                      <Button size="icon" variant="ghost" className="h-7 w-7 opacity-0 group-hover:opacity-100" onClick={() => handleToggleStatus(wf.id)}>
+                        <Play className="h-3 w-3" />
+                      </Button>
+                      <Button size="icon" variant="ghost" className="h-7 w-7 opacity-0 group-hover:opacity-100 text-destructive" onClick={() => handleDelete(wf.id)}>
+                        <Trash2 className="h-3 w-3" />
+                      </Button>
+                    </div>
+                  </div>
+
+                  <div className="flex items-center gap-1.5 overflow-x-auto pb-2">
+                    {wf.steps.map((step, j) => {
+                      const Icon = stepIcons[step] || Brain;
+                      return (
+                        <div key={j} className="flex items-center gap-1.5 shrink-0">
+                          <div className="flex flex-col items-center">
+                            <div className="h-9 w-9 rounded-lg bg-secondary flex items-center justify-center">
+                              <Icon className="h-4 w-4 text-foreground" />
+                            </div>
+                            <p className="text-[9px] text-muted-foreground mt-1 text-center max-w-[60px] truncate">{step}</p>
+                          </div>
+                          {j < wf.steps.length - 1 && <ArrowRight className="h-3 w-3 text-muted-foreground shrink-0 mt-[-12px]" />}
+                        </div>
+                      );
+                    })}
+                  </div>
+                </motion.div>
+              ))}
+            </AnimatePresence>
+          </div>
+        </TabsContent>
+      </Tabs>
     </div>
   );
 }

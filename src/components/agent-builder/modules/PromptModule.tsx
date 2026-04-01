@@ -7,6 +7,7 @@ import { Button } from '@/components/ui/button';
 import { Plus, Trash2, Copy, GitBranch, Check, ArrowLeftRight } from 'lucide-react';
 import { toast } from 'sonner';
 import type { PromptTechnique, FewShotExample, OutputFormat } from '@/types/agentTypes';
+import { PromptDiff } from '@/components/prompts/PromptDiff';
 
 const PROMPT_TECHNIQUES: { id: string; name: string; impact: string; description: string; example: string }[] = [
   { id: 'role', name: 'Role Prompting', impact: 'Alto', description: 'Define quem o agente É', example: 'Você é um especialista em...' },
@@ -187,16 +188,12 @@ export function PromptModule() {
                     </select>
                   </div>
                   {versionA && versionB && (
-                    <div className="grid grid-cols-2 gap-3">
-                      <div className="rounded-lg border border-border p-3 bg-muted/10">
-                        <p className="text-xs font-semibold text-muted-foreground mb-2">v{versionA.version}</p>
-                        <pre className="text-xs font-mono whitespace-pre-wrap text-foreground/80 max-h-48 overflow-y-auto">{versionA.content}</pre>
-                      </div>
-                      <div className="rounded-lg border border-border p-3 bg-muted/10">
-                        <p className="text-xs font-semibold text-muted-foreground mb-2">v{versionB.version}</p>
-                        <pre className="text-xs font-mono whitespace-pre-wrap text-foreground/80 max-h-48 overflow-y-auto">{versionB.content}</pre>
-                      </div>
-                    </div>
+                    <PromptDiff
+                      textA={versionA.content}
+                      textB={versionB.content}
+                      labelA={`v${versionA.version} — ${versionA.change_summary}`}
+                      labelB={`v${versionB.version} — ${versionB.change_summary}`}
+                    />
                   )}
                 </div>
               )}
