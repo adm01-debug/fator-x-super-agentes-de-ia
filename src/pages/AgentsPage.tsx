@@ -40,7 +40,7 @@ export default function AgentsPage() {
         .order("updated_at", { ascending: false });
 
       if (statusFilter !== "all") {
-        query = query.eq("status", statusFilter as any);
+        query = query.eq("status", statusFilter);
       }
 
       const { data, error } = await query;

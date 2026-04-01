@@ -43,7 +43,7 @@ interface AgentBuilderStore {
 }
 
 function agentToDbRow(agent: AgentConfig, userId: string) {
-  const { id, created_at, updated_at, ...rest } = agent as any;
+  const { id, created_at, updated_at, ...rest } = agent as Record<string, unknown>;
   return {
     ...(id ? { id } : {}),
     user_id: userId,
@@ -53,7 +53,7 @@ function agentToDbRow(agent: AgentConfig, userId: string) {
     model: agent.model,
     avatar_emoji: agent.avatar_emoji,
     reasoning: agent.reasoning,
-    status: agent.status as any,
+    status: agent.status,
     version: agent.version,
     tags: agent.tags,
     config: rest as unknown as Json,

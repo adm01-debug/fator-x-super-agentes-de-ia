@@ -39,7 +39,7 @@ export async function saveOracleHistory(
   if (!user) return null;
 
   const { data, error } = await supabase
-    .from('oracle_history' as any)
+    .from('oracle_history')
     .insert({
       user_id: user.id,
       query,
@@ -48,14 +48,14 @@ export async function saveOracleHistory(
       preset_name: presetName,
       chairman_model: chairmanModel,
       enable_thinking: enableThinking,
-      results: results as any,
+      results: results as unknown as import("@/integrations/supabase/types").Json,
       confidence_score: results.confidence_score,
       consensus_degree: results.consensus_degree,
       total_cost_usd: results.metrics.total_cost_usd,
       total_latency_ms: results.metrics.total_latency_ms,
       total_tokens: results.metrics.total_tokens,
       models_used: results.metrics.models_used,
-    } as any)
+    })
     .select()
     .single();
 
@@ -65,7 +65,7 @@ export async function saveOracleHistory(
 
 export async function fetchOracleHistory(filters: HistoryFilters = {}): Promise<OracleHistoryEntry[]> {
   let query = supabase
-    .from('oracle_history' as any)
+    .from('oracle_history')
     .select('*')
     .order('created_at', { ascending: false })
     .limit(50);
@@ -82,7 +82,7 @@ export async function fetchOracleHistory(filters: HistoryFilters = {}): Promise<
 
 export async function deleteOracleHistory(id: string) {
   const { error } = await supabase
-    .from('oracle_history' as any)
+    .from('oracle_history')
     .delete()
     .eq('id', id);
   if (error) console.error('Failed to delete oracle history:', error);
