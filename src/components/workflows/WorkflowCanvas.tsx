@@ -143,12 +143,34 @@ export function WorkflowCanvas({ nodes, edges, onNodesChange, onEdgesChange }: P
 
   const resetView = () => { setZoom(1); setPan({ x: 0, y: 0 }); };
 
+  const handleDrop = useCallback((e: React.DragEvent) => {
+    e.preventDefault();
+    const type = e.dataTransfer.getData('node-type');
+    const role = NODE_ROLES.find(r => r.type === type);
+    if (!role) return;
+    const local = toCanvasCoords(e.clientX, e.clientY);
+    const id = `node-${Date.now()}`;
+    onNodesChange([...nodes, { id, type, label: role.label, x: local.x - NODE_W / 2, y: local.y - NODE_H / 2 }]);
+    toast.success(`Node ${role.label} adicionado`);
+  }, [nodes, onNodesChange, toCanvasCoords]);
+
   return (
     <div className="space-y-3">
       {/* Toolbar */}
       <div className="flex items-center gap-2 flex-wrap">
         {NODE_ROLES.map(role => (
-          <Button key={role.type} variant="outline" size="sm" className="gap-1.5 text-xs" onClick={() => addNode(role.type)}>
+          <Button
+            key={role.type}
+            variant="outline"
+            size="sm"
+            className="gap-1.5 text-xs cursor-grab active:cursor-grabbing"
+            onClick={() => addNode(role.type)}
+            draggable
+            onDragStart={(e) => {
+              e.dataTransfer.setData('node-type', role.type);
+              e.dataTransfer.effectAllowed = 'copy';
+            }}
+          >
             <role.icon className="h-3.5 w-3.5" style={{ color: role.color }} />
             {role.label}
           </Button>
@@ -171,6 +193,8 @@ export function WorkflowCanvas({ nodes, edges, onNodesChange, onEdgesChange }: P
         onMouseDown={handleCanvasMouseDown}
         onMouseLeave={() => { setDragging(null); setConnecting(null); setPanning(null); }}
         onWheel={handleWheel}
+        onDrop={handleDrop}
+        onDragOver={(e) => { e.preventDefault(); e.dataTransfer.dropEffect = 'copy'; }}
       >
         {/* Grid pattern */}
         <svg className="absolute inset-0 w-full h-full pointer-events-none" xmlns="http://www.w3.org/2000/svg">
@@ -305,7 +329,7 @@ export function WorkflowCanvas({ nodes, edges, onNodesChange, onEdgesChange }: P
         <CanvasMinimap nodes={nodes} edges={edges} zoom={zoom} pan={pan} containerWidth={containerRef.current?.clientWidth ?? 800} containerHeight={480} />
       </div>
       <p className="text-[10px] text-muted-foreground">
-        Arraste nodes para posicionar • Ponto azul para conectar • Clique na linha para remover • Scroll para zoom • Alt+arraste para pan • Duplo-clique para renomear
+        Arraste nodes para posicionar • Ponto azul para conectar • Clique na linha para remover • Scroll para zoom • Alt+arraste para pan • Duplo-clique para renomear • Arraste da toolbar para o canvas
       </p>
     </div>
   );
