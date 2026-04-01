@@ -23,13 +23,13 @@ export async function logAudit(entry: AuditEntry): Promise<void> {
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) return;
 
-    const { error } = await supabase.from('audit_log').insert({
+    const { error } = await supabase.from('audit_log').insert([{
       user_id: user.id,
       action: entry.action,
       entity_type: entry.entity_type,
       entity_id: entry.entity_id ?? null,
       metadata: entry.metadata ?? {},
-    });
+    }]);
 
     if (error) {
       logger.warn('Failed to write audit log', { error: error.message, action: entry.action });
