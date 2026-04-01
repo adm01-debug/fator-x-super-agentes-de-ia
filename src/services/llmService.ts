@@ -53,8 +53,10 @@ export const AVAILABLE_MODELS = [
 let storedConfig: LLMConfig | null = null;
 
 // Auto-configure from environment variable if available
+let envChecked = false;
 function autoConfigureFromEnv(): void {
-  if (storedConfig) return; // Already configured manually
+  if (storedConfig || envChecked) return;
+  envChecked = true;
   const envKey = import.meta.env.VITE_OPENROUTER_API_KEY;
   if (envKey && typeof envKey === 'string' && envKey.length > 10) {
     storedConfig = { provider: 'openrouter', apiKey: envKey };
@@ -248,6 +250,7 @@ export async function runCouncil(
 
   const validResponses = responses.filter(r => !r.error && r.content.length > 0);
   let synthesis: string;
+  let synthesisCost = 0;
 
   if (validResponses.length > 0) {
     const synthesisModelId = options?.synthesisModel ?? modelIds[0];
@@ -269,8 +272,8 @@ export async function runCouncil(
       ? `Síntese automática indisponível. ${validResponses.length} respostas recebidas de ${modelIds.length} modelos.`
       : synthesisResponse.content;
 
-    // Add synthesis cost to total
-    responses.push(synthesisResponse);
+    // Track synthesis cost separately (don't add to responses array)
+    synthesisCost = synthesisResponse.cost;
   } else {
     synthesis = 'Nenhum modelo retornou resposta válida. Verifique as API keys e tente novamente.';
   }
@@ -282,15 +285,15 @@ export async function runCouncil(
   const consensus = validResponses.length === 0 ? 0
     : Math.round((validResponses.length / modelIds.length) * 70 + 30 * Math.min(1, validResponses.reduce((s, r) => s + r.content.length, 0) / (1000 * validResponses.length)));
 
-  const totalCost = responses.reduce((s, r) => s + r.cost, 0);
-  const totalLatencyMs = Math.max(...responses.map(r => r.latencyMs)); // parallel = max latency
+  const totalCost = responses.reduce((s, r) => s + r.cost, 0) + synthesisCost;
+  const totalLatencyMs = Math.max(...responses.map(r => r.latencyMs), 0);
 
   logger.info(`Council complete: ${validResponses.length}/${modelIds.length} valid, consensus=${consensus}%, cost=$${totalCost.toFixed(4)}`, 'llmService');
 
   return {
-    responses: responses.filter(r => r.model !== responses[responses.length - 1]?.model || responses.length === 1), // Exclude synthesis from responses list
+    responses, // Only contains model polling responses (synthesis is separate)
     synthesis,
-    consensus: Math.min(consensus, 98), // Cap at 98% for realism
+    consensus: Math.min(consensus, 98),
     totalCost: parseFloat(totalCost.toFixed(4)),
     totalLatencyMs,
   };
