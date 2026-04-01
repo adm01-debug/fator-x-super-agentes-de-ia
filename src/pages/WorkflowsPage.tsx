@@ -7,10 +7,12 @@ import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
-import { Plus, GitBranch, ArrowRight, Brain, Search, Shield, CheckCircle, Wrench, FileText, Play, Trash2, LayoutGrid, Network } from "lucide-react";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Plus, GitBranch, ArrowRight, Brain, Search, Shield, CheckCircle, Wrench, FileText, Play, Trash2, LayoutGrid, Network, Save, FolderOpen, Loader2 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { toast } from "sonner";
 import { WorkflowCanvas, type CanvasNode, type CanvasEdge } from "@/components/workflows/WorkflowCanvas";
+import { useWorkflowPersistence } from "@/hooks/use-workflow-persistence";
 
 interface Workflow {
   id: string;
