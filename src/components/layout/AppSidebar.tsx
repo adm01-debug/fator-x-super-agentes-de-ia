@@ -41,6 +41,7 @@ const navSections = [
       { title: "DataHub", url: "/datahub", icon: Database },
       { title: "Super Cérebro", url: "/brain", icon: Brain },
       { title: "Oráculo", url: "/oracle", icon: Sparkles },
+      { title: "DB Manager", url: "/db-manager", icon: Database },
     ],
   },
   {
