@@ -1,7 +1,6 @@
-import { useState, useRef, useCallback, useEffect } from 'react';
-import { Brain, Search, FileText, Shield, Wrench, GripVertical, X, Plus } from 'lucide-react';
+import { useState, useRef, useCallback } from 'react';
+import { Brain, Search, FileText, Shield, Wrench, GripVertical, X } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
 import { toast } from 'sonner';
 
 export interface CanvasNode {
