@@ -12,7 +12,7 @@ import {
   Bot, Sparkles, Brain, Puzzle, FileText, Database, Rocket, Check,
   ArrowLeft, ArrowRight, User, MessageSquare, Search as SearchIcon,
   BarChart3, Headphones, Users, Layers, ChevronRight,
-  Globe, Code, Mail, Calendar, Hash, Webhook, Shield, Zap,
+  Globe, Code, Mail, Calendar, Hash, Webhook, Shield,
   LayoutTemplate, PenTool,
 } from "lucide-react";
 import { toast } from "sonner";

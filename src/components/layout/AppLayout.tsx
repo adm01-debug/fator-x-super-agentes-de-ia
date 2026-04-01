@@ -23,7 +23,7 @@ import {
   DropdownMenu, DropdownMenuContent, DropdownMenuItem,
   DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { User, Settings, Keyboard, LogOut } from "lucide-react";
+import { Settings, Keyboard, LogOut } from "lucide-react";
 
 interface AppLayoutProps {
   children: React.ReactNode;

@@ -1,7 +1,7 @@
 import { PageHeader } from "@/components/shared/PageHeader";
 import { InfoHint } from "@/components/shared/InfoHint";
 import { StatusBadge } from "@/components/shared/StatusBadge";
-import { Database, Server, HardDrive, Cpu, Radio, FileText, Loader2 } from "lucide-react";
+import { Database, Server, HardDrive, Cpu, Radio, FileText } from "lucide-react";
 import { motion } from "framer-motion";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";

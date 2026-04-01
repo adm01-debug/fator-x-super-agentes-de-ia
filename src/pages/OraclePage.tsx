@@ -7,7 +7,7 @@ import { Badge } from '@/components/ui/badge';
 import { Switch } from '@/components/ui/switch';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Sparkles, Loader2, Copy, RefreshCw, ChevronDown, ChevronUp, Settings2, FileText, Download, History } from 'lucide-react';
+import { Sparkles, Loader2, Copy, RefreshCw, ChevronDown, ChevronUp, Settings2, FileText, History } from 'lucide-react';
 import { useOracleStore, ORACLE_MODES, ORACLE_PRESETS } from '@/stores/oracleStore';
 import { PresetSelector } from '@/components/oracle/PresetSelector';
 import { StageProgress } from '@/components/oracle/StageProgress';

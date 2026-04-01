@@ -1,6 +1,6 @@
 import { PageHeader } from "@/components/shared/PageHeader";
 import { StatusBadge } from "@/components/shared/StatusBadge";
-import { Clock, DollarSign, Wrench, Activity, Loader2, BarChart3, AlertTriangle } from "lucide-react";
+import { Clock, DollarSign, Wrench, Activity, Loader2 } from "lucide-react";
 import { motion } from "framer-motion";
 import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";

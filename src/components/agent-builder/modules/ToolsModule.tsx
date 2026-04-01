@@ -1,5 +1,5 @@
 import { useAgentBuilderStore } from '@/stores/agentBuilderStore';
-import { SectionTitle, NexusBadge, ToggleField, SliderField, SelectField, InputField } from '../ui';
+import { SectionTitle, NexusBadge, ToggleField, SliderField, SelectField } from '../ui';
 import { CollapsibleCard } from '../ui/CollapsibleCard';
 import { Button } from '@/components/ui/button';
 import { Plus, Trash2 } from 'lucide-react';

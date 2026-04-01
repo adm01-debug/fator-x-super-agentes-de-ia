@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useAgentBuilderStore } from '@/stores/agentBuilderStore';
-import { SectionTitle, NexusBadge, ToggleField, InputField, TextAreaField } from '../ui';
+import { SectionTitle, NexusBadge, InputField, TextAreaField } from '../ui';
 import { CollapsibleCard } from '../ui/CollapsibleCard';
 import { CodeBlock } from '../ui/CodeBlock';
 import { Button } from '@/components/ui/button';

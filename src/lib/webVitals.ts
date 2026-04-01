@@ -9,7 +9,7 @@ function reportMetric(metric: Metric) {
   // Production: send to analytics endpoint
   if (import.meta.env.PROD) {
     // Beacon API for reliable delivery
-    const body = JSON.stringify({
+    const _body = JSON.stringify({
       name: metric.name,
       value: metric.value,
       rating: metric.rating,
