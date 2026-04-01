@@ -55,6 +55,10 @@ export default function DatabaseManagerPage() {
   const [showInsertRow, setShowInsertRow] = useState(false);
   const [insertData, setInsertData] = useState<Record<string, string>>({});
 
+  // Edit row state
+  const [editingRowIndex, setEditingRowIndex] = useState<number | null>(null);
+  const [editingRowData, setEditingRowData] = useState<Record<string, string>>({});
+
   // Get active remote client
   const getClient = useCallback(() => {
     const db = databases.find(d => d.id === selectedDb);
@@ -180,6 +184,38 @@ export default function DatabaseManagerPage() {
       toast.success('Reanálise concluída');
     }, 2000);
   };
+
+  // Insert row handler
+  const handleInsertRow = useCallback(async () => {
+    if (!viewingTable) return;
+    const db = databases.find(d => d.id === selectedDb);
+    if (!db) return;
+    // Filter out empty values
+    const cleanData: Record<string, string> = {};
+    Object.entries(insertData).forEach(([k, v]) => { if (v.trim()) cleanData[k] = v; });
+    if (Object.keys(cleanData).length === 0) { toast.error('Preencha pelo menos um campo'); return; }
+    const client = dbManager.connectToRemoteDB(db.url, db.url);
+    const result = await dbManager.insertRow(client, viewingTable, cleanData);
+    if (result.error) { toast.error(`Erro: ${result.error}`); return; }
+    toast.success('Registro inserido com sucesso');
+    setShowInsertRow(false);
+    setInsertData({});
+    loadTableData(viewingTable);
+  }, [viewingTable, insertData, selectedDb, databases, loadTableData]);
+
+  // Update row handler
+  const handleUpdateRow = useCallback(async (rowId: string) => {
+    if (!viewingTable) return;
+    const db = databases.find(d => d.id === selectedDb);
+    if (!db) return;
+    const client = dbManager.connectToRemoteDB(db.url, db.url);
+    const result = await dbManager.updateRow(client, viewingTable, rowId, editingRowData);
+    if (result.error) { toast.error(`Erro: ${result.error}`); return; }
+    toast.success('Registro atualizado');
+    setEditingRowIndex(null);
+    setEditingRowData({});
+    loadTableData(viewingTable);
+  }, [viewingTable, editingRowData, selectedDb, databases, loadTableData]);
 
   const selectedDatabase = databases.find(db => db.id === selectedDb);
 
@@ -443,7 +479,8 @@ export default function DatabaseManagerPage() {
                   <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                   <input placeholder="Filtrar registros..." className="w-full pl-9 bg-muted/30 border border-border rounded-lg px-3 py-2 text-sm text-foreground" />
                 </div>
-                <Button size="sm" className="gap-1.5" onClick={() => viewingTable && loadTableData(viewingTable)}><RefreshCw className="h-3.5 w-3.5" /> Recarregar</Button>
+                <Button variant="outline" size="sm" className="gap-1.5" onClick={() => viewingTable && loadTableData(viewingTable)}><RefreshCw className="h-3.5 w-3.5" /> Recarregar</Button>
+                <Button size="sm" className="gap-1.5" disabled={!viewingTable} onClick={() => { setInsertData({}); setShowInsertRow(true); }}><Plus className="h-3.5 w-3.5" /> Inserir</Button>
               </div>
 
               {dataLoading && <p className="text-xs text-muted-foreground text-center py-4 animate-pulse">Carregando dados...</p>}
@@ -460,20 +497,42 @@ export default function DatabaseManagerPage() {
                       </tr>
                     </thead>
                     <tbody>
-                      {tableData.map((row, i) => (
+                      {tableData.map((row, i) => {
+                        const rowId = String(row.id ?? row[Object.keys(row)[0]]);
+                        const isEditing = editingRowIndex === i;
+                        return (
                         <tr key={i} className="border-b border-border/30 hover:bg-muted/10">
-                          {Object.values(row).map((val, j) => (
-                            <td key={j} className="px-3 py-1.5 text-foreground whitespace-nowrap max-w-[200px] truncate font-mono">
-                              {val === null ? <span className="text-muted-foreground italic">NULL</span> : String(val)}
+                          {Object.entries(row).map(([col, val], j) => (
+                            <td key={j} className="px-3 py-1.5 font-mono max-w-[200px]">
+                              {isEditing ? (
+                                <input
+                                  className="w-full bg-muted/30 border border-primary/50 rounded px-1.5 py-0.5 text-xs text-foreground"
+                                  defaultValue={val === null ? '' : String(val)}
+                                  onChange={e => setEditingRowData(prev => ({ ...prev, [col]: e.target.value }))}
+                                />
+                              ) : (
+                                <span className="whitespace-nowrap truncate block text-foreground">
+                                  {val === null ? <span className="text-muted-foreground italic">NULL</span> : String(val)}
+                                </span>
+                              )}
                             </td>
                           ))}
-                          <td className="px-3 py-1.5 text-center">
-                            <button className="p-1 rounded hover:bg-destructive/20" onClick={() => handleDeleteRow(viewingTable!, String(row.id ?? row[Object.keys(row)[0]]))} title="Excluir registro">
-                              <Trash2 className="h-3 w-3 text-destructive" />
-                            </button>
+                          <td className="px-3 py-1.5 text-center whitespace-nowrap">
+                            {isEditing ? (
+                              <div className="flex items-center gap-1 justify-center">
+                                <button className="p-1 rounded hover:bg-emerald-500/20" onClick={() => handleUpdateRow(rowId)} title="Salvar"><Save className="h-3 w-3 text-emerald-400" /></button>
+                                <button className="p-1 rounded hover:bg-muted/30" onClick={() => { setEditingRowIndex(null); setEditingRowData({}); }} title="Cancelar"><X className="h-3 w-3 text-muted-foreground" /></button>
+                              </div>
+                            ) : (
+                              <div className="flex items-center gap-1 justify-center">
+                                <button className="p-1 rounded hover:bg-muted/30" onClick={() => { setEditingRowIndex(i); setEditingRowData({}); }} title="Editar"><Edit className="h-3 w-3 text-muted-foreground" /></button>
+                                <button className="p-1 rounded hover:bg-destructive/20" onClick={() => handleDeleteRow(viewingTable!, rowId)} title="Excluir"><Trash2 className="h-3 w-3 text-destructive" /></button>
+                              </div>
+                            )}
                           </td>
                         </tr>
-                      ))}
+                        );
+                      })}
                     </tbody>
                   </table>
                   <p className="text-[10px] text-muted-foreground mt-2">{dataCount} registros total (mostrando {tableData.length})</p>
@@ -496,6 +555,35 @@ export default function DatabaseManagerPage() {
           )}
         </TabsContent>
       </Tabs>
+
+      {/* Modal: Inserir Registro */}
+      {showInsertRow && viewingTable && tableData.length > 0 && (
+        <div className="fixed inset-0 z-50 bg-black/50 flex items-center justify-center p-4" onClick={() => setShowInsertRow(false)}>
+          <div className="bg-card border border-border rounded-xl p-6 max-w-lg w-full space-y-4 max-h-[80vh] overflow-y-auto" onClick={e => e.stopPropagation()}>
+            <div className="flex items-center justify-between">
+              <h3 className="text-sm font-semibold text-foreground">Inserir em: {viewingTable}</h3>
+              <button onClick={() => setShowInsertRow(false)}><X className="h-4 w-4 text-muted-foreground" /></button>
+            </div>
+            <div className="space-y-2">
+              {Object.keys(tableData[0]).filter(col => col !== 'id' && col !== 'created_at' && col !== 'updated_at').map(col => (
+                <div key={col}>
+                  <label className="text-[10px] text-muted-foreground">{col}</label>
+                  <input
+                    value={insertData[col] ?? ''}
+                    onChange={e => setInsertData(prev => ({ ...prev, [col]: e.target.value }))}
+                    className="w-full bg-muted/30 border border-border rounded px-3 py-1.5 text-xs text-foreground font-mono"
+                    placeholder={`Valor para ${col}`}
+                  />
+                </div>
+              ))}
+            </div>
+            <div className="flex gap-2 justify-end">
+              <Button variant="outline" size="sm" onClick={() => setShowInsertRow(false)}>Cancelar</Button>
+              <Button size="sm" onClick={handleInsertRow} className="gap-1.5"><Save className="h-3.5 w-3.5" /> Inserir Registro</Button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Modal: Criar Tabela */}
       {showCreateTable && (
