@@ -315,6 +315,7 @@ export default function DatabaseManagerPage() {
             { id: 'sql', icon: Code, label: 'SQL Editor' },
             { id: 'functions', icon: Settings, label: 'Funções' },
             { id: 'data', icon: Rows3, label: 'Dados' },
+            { id: 'transfer', icon: RefreshCw, label: 'Transferir' },
           ].map(tab => (
             <TabsTrigger key={tab.id} value={tab.id} className="gap-1.5 text-xs whitespace-nowrap">
               <tab.icon className="h-3.5 w-3.5" /> {tab.label}
@@ -752,6 +753,111 @@ export default function DatabaseManagerPage() {
           ) : (
             <div className="nexus-card text-center py-8"><p className="text-sm text-muted-foreground">Conecte um banco e selecione-o para ver os dados</p></div>
           )}
+        </TabsContent>
+
+        {/* Tab 7: Transferir entre BDs */}
+        <TabsContent value="transfer" className="mt-4 space-y-4">
+          <div className="nexus-card space-y-4">
+            <h3 className="text-sm font-semibold text-foreground">Transferir Dados Entre Bancos</h3>
+            <p className="text-xs text-muted-foreground">Copie ou mova dados de um banco para outro. Ambos precisam estar conectados.</p>
+
+            {databases.filter(d => d.status === 'connected').length < 2 ? (
+              <div className="rounded-lg bg-amber-500/10 border border-amber-500/20 p-4 text-center">
+                <AlertTriangle className="h-6 w-6 text-amber-400 mx-auto mb-2" />
+                <p className="text-xs text-foreground">Conecte pelo menos 2 bancos para transferir dados entre eles.</p>
+                <Button variant="outline" size="sm" className="mt-2" onClick={() => setActiveTab('connections')}>Ir para Conexões</Button>
+              </div>
+            ) : (
+              <>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  {/* Banco Origem */}
+                  <div className="rounded-xl border border-border bg-muted/10 p-4 space-y-2">
+                    <h4 className="text-xs font-semibold text-foreground">📤 Banco Origem</h4>
+                    <select id="xfer-source-db" className="w-full bg-muted/30 border border-border rounded-lg px-3 py-2 text-xs text-foreground">
+                      {databases.filter(d => d.status === 'connected').map(db => <option key={db.id} value={db.id}>{db.name}</option>)}
+                    </select>
+                    <input id="xfer-source-table" placeholder="Tabela origem (ex: companies)" className="w-full bg-muted/30 border border-border rounded-lg px-3 py-2 text-xs text-foreground font-mono" />
+                    <input id="xfer-filter" placeholder="Filtro opcional (ex: status=ativo)" className="w-full bg-muted/30 border border-border rounded-lg px-3 py-2 text-xs text-foreground" />
+                  </div>
+
+                  {/* Banco Destino */}
+                  <div className="rounded-xl border border-border bg-muted/10 p-4 space-y-2">
+                    <h4 className="text-xs font-semibold text-foreground">📥 Banco Destino</h4>
+                    <select id="xfer-target-db" className="w-full bg-muted/30 border border-border rounded-lg px-3 py-2 text-xs text-foreground">
+                      {databases.filter(d => d.status === 'connected').map(db => <option key={db.id} value={db.id}>{db.name}</option>)}
+                    </select>
+                    <input id="xfer-target-table" placeholder="Tabela destino (ex: customers)" className="w-full bg-muted/30 border border-border rounded-lg px-3 py-2 text-xs text-foreground font-mono" />
+                  </div>
+                </div>
+
+                {/* Mapeamento de colunas */}
+                <div className="rounded-xl border border-border bg-muted/10 p-4 space-y-2">
+                  <h4 className="text-xs font-semibold text-foreground">🔗 Mapeamento de Colunas</h4>
+                  <p className="text-[10px] text-muted-foreground">Formato: coluna_origem=coluna_destino (uma por linha)</p>
+                  <textarea id="xfer-mapping" placeholder={"name=nome\nemail=email\nphone=telefone\ncity=cidade"} className="w-full h-24 bg-muted/30 border border-border rounded-lg p-3 text-xs text-foreground font-mono resize-none" />
+                </div>
+
+                {/* Opções */}
+                <div className="flex items-center gap-4 text-xs text-muted-foreground">
+                  <label className="flex items-center gap-1.5"><input type="checkbox" id="xfer-delete" className="accent-primary" /> Mover (deletar da origem após copiar)</label>
+                  <label className="flex items-center gap-1.5"><input type="checkbox" id="xfer-sync" className="accent-primary" /> Modo Sync (atualizar existentes por coluna-chave)</label>
+                </div>
+
+                {/* Ações */}
+                <div className="flex gap-2">
+                  <Button size="sm" className="gap-1.5" onClick={async () => {
+                    const srcDbId = (document.getElementById('xfer-source-db') as HTMLSelectElement)?.value;
+                    const tgtDbId = (document.getElementById('xfer-target-db') as HTMLSelectElement)?.value;
+                    const srcTable = (document.getElementById('xfer-source-table') as HTMLInputElement)?.value;
+                    const tgtTable = (document.getElementById('xfer-target-table') as HTMLInputElement)?.value;
+                    const mappingText = (document.getElementById('xfer-mapping') as HTMLTextAreaElement)?.value;
+                    const deleteFromSource = (document.getElementById('xfer-delete') as HTMLInputElement)?.checked;
+
+                    if (!srcDbId || !tgtDbId || !srcTable || !tgtTable || !mappingText) {
+                      toast.error('Preencha todos os campos'); return;
+                    }
+                    if (srcDbId === tgtDbId && srcTable === tgtTable) {
+                      toast.error('Origem e destino não podem ser iguais'); return;
+                    }
+
+                    // Parse mapping
+                    const mapping: Record<string, string> = {};
+                    mappingText.split('\n').forEach(line => {
+                      const [src, tgt] = line.split('=').map(s => s.trim());
+                      if (src && tgt) mapping[src] = tgt;
+                    });
+
+                    if (Object.keys(mapping).length === 0) {
+                      toast.error('Defina pelo menos 1 mapeamento de coluna'); return;
+                    }
+
+                    const srcDb = databases.find(d => d.id === srcDbId);
+                    const tgtDb = databases.find(d => d.id === tgtDbId);
+                    if (!srcDb || !tgtDb) return;
+
+                    if (!confirm(`Transferir dados de ${srcDb.name}.${srcTable} para ${tgtDb.name}.${tgtTable}?\n${Object.keys(mapping).length} colunas mapeadas.${deleteFromSource ? '\n⚠️ Dados serão REMOVIDOS da origem!' : ''}`)) return;
+
+                    toast.info('Transferência iniciada...');
+
+                    const srcClient = dbManager.connectToRemoteDB(srcDb.url, srcDb.url);
+                    const tgtClient = dbManager.connectToRemoteDB(tgtDb.url, tgtDb.url);
+
+                    const result = await dbManager.crossDatabaseTransfer(srcClient, tgtClient, srcTable, tgtTable, mapping, { deleteFromSource });
+
+                    if (result.errors.length > 0) {
+                      toast.error(`${result.failed} erros: ${result.errors[0]}`);
+                    }
+                    toast.success(`${result.transferred} de ${result.total} registros transferidos de ${srcDb.name} para ${tgtDb.name}`);
+                  }}>
+                    <Database className="h-3.5 w-3.5" /> Transferir
+                  </Button>
+                  <Button variant="outline" size="sm" onClick={() => toast.info('Dica: Use o modo Sync para atualizar registros existentes e inserir novos sem duplicar')}>
+                    Como funciona?
+                  </Button>
+                </div>
+              </>
+            )}
+          </div>
         </TabsContent>
       </Tabs>
 

@@ -398,6 +398,140 @@ export function generateEnableRLSSQL(tableName: string): string {
   return `ALTER TABLE public.${tableName} ENABLE ROW LEVEL SECURITY;`;
 }
 
+// ═══ CROSS-DATABASE TRANSFER (entre 2 bancos diferentes) ═══
+
+/**
+ * Transfere dados entre dois bancos Supabase diferentes que estão plugados no sistema.
+ * Lê do banco A, escreve no banco B, com mapeamento de colunas.
+ */
+export async function crossDatabaseTransfer(
+  sourceClient: SupabaseClient,
+  targetClient: SupabaseClient,
+  sourceTable: string,
+  targetTable: string,
+  columnMapping: Record<string, string>,
+  options?: {
+    filter?: Record<string, string>;
+    limit?: number;
+    deleteFromSource?: boolean;
+    onProgress?: (transferred: number, total: number) => void;
+  }
+): Promise<{ transferred: number; failed: number; total: number; errors: string[] }> {
+  const errors: string[] = [];
+
+  // 1. Ler dados do banco fonte
+  let query = sourceClient.from(sourceTable).select('*', { count: 'exact' });
+  if (options?.filter) {
+    Object.entries(options.filter).forEach(([col, val]) => {
+      if (val) query = query.ilike(col, `%${val}%`);
+    });
+  }
+  if (options?.limit) query = query.limit(options.limit);
+
+  const { data: sourceRows, count, error: readError } = await query;
+  if (readError) return { transferred: 0, failed: 0, total: 0, errors: [readError.message] };
+  if (!sourceRows || sourceRows.length === 0) return { transferred: 0, failed: 0, total: 0, errors: [] };
+
+  const total = sourceRows.length;
+  let transferred = 0;
+  let failed = 0;
+
+  // 2. Para cada registro, mapear colunas e inserir no banco destino
+  for (let i = 0; i < sourceRows.length; i++) {
+    const sourceRow = sourceRows[i];
+    const targetRow: Record<string, unknown> = {};
+
+    Object.entries(columnMapping).forEach(([srcCol, tgtCol]) => {
+      if (sourceRow[srcCol] !== undefined) {
+        targetRow[tgtCol] = sourceRow[srcCol];
+      }
+    });
+
+    // Remover campos auto-gerados do destino
+    delete targetRow.id;
+    delete targetRow.created_at;
+    delete targetRow.updated_at;
+
+    const { error: insertError } = await targetClient.from(targetTable).insert(targetRow);
+
+    if (insertError) {
+      failed++;
+      if (errors.length < 5) errors.push(`Row ${i + 1}: ${insertError.message}`);
+    } else {
+      transferred++;
+      // 3. Se pediu para mover (não copiar), deletar da origem
+      if (options?.deleteFromSource) {
+        const idCol = Object.keys(sourceRow)[0];
+        await sourceClient.from(sourceTable).delete().eq(idCol, sourceRow[idCol]);
+      }
+    }
+
+    options?.onProgress?.(transferred + failed, total);
+  }
+
+  return { transferred, failed, total, errors };
+}
+
+/**
+ * Sincroniza dados entre dois bancos — atualiza existentes, insere novos.
+ * Usa uma coluna de match (ex: email, cnpj) para identificar registros.
+ */
+export async function crossDatabaseSync(
+  sourceClient: SupabaseClient,
+  targetClient: SupabaseClient,
+  sourceTable: string,
+  targetTable: string,
+  matchColumn: string,
+  columnMapping: Record<string, string>,
+  options?: { limit?: number }
+): Promise<{ inserted: number; updated: number; skipped: number; errors: string[] }> {
+  const errors: string[] = [];
+  let inserted = 0, updated = 0, skipped = 0;
+
+  // 1. Ler dados do banco fonte
+  let query = sourceClient.from(sourceTable).select('*');
+  if (options?.limit) query = query.limit(options.limit);
+  const { data: sourceRows, error: readError } = await query;
+  if (readError) return { inserted: 0, updated: 0, skipped: 0, errors: [readError.message] };
+  if (!sourceRows) return { inserted: 0, updated: 0, skipped: 0, errors: [] };
+
+  // 2. Para cada registro, verificar se já existe no destino
+  for (const sourceRow of sourceRows) {
+    const matchValue = sourceRow[matchColumn];
+    if (!matchValue) { skipped++; continue; }
+
+    const targetMatchCol = columnMapping[matchColumn] ?? matchColumn;
+
+    // Verificar se existe no destino
+    const { data: existing } = await targetClient
+      .from(targetTable)
+      .select('*')
+      .eq(targetMatchCol, matchValue)
+      .limit(1);
+
+    // Mapear colunas
+    const mappedRow: Record<string, unknown> = {};
+    Object.entries(columnMapping).forEach(([srcCol, tgtCol]) => {
+      if (sourceRow[srcCol] !== undefined) mappedRow[tgtCol] = sourceRow[srcCol];
+    });
+    delete mappedRow.id;
+    delete mappedRow.created_at;
+
+    if (existing && existing.length > 0) {
+      // UPDATE existente
+      const idCol = Object.keys(existing[0])[0];
+      const { error } = await targetClient.from(targetTable).update(mappedRow).eq(idCol, existing[0][idCol]);
+      if (error) { if (errors.length < 5) errors.push(error.message); } else updated++;
+    } else {
+      // INSERT novo
+      const { error } = await targetClient.from(targetTable).insert(mappedRow);
+      if (error) { if (errors.length < 5) errors.push(error.message); } else inserted++;
+    }
+  }
+
+  return { inserted, updated, skipped, errors };
+}
+
 // ═══ 1. EXPORTAR DADOS (CSV / JSON) ═══
 
 export function exportToCSV(data: TableRow[], tableName: string): string {
