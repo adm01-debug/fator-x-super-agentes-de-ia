@@ -6,6 +6,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Database, Table2, Code, Rows3, Settings, Plug, Plus, Trash2, RefreshCw, Play, Eye, Edit, Search, AlertTriangle, CheckCircle, X, Save } from 'lucide-react';
 import { toast } from 'sonner';
 import * as dbManager from '@/services/dbManager';
+import { PG_FUNCTIONS_CATALOG, PG_FUNCTION_CATEGORIES } from '@/config/supabase-functions-catalog';
 
 interface ConnectedDB {
   id: string;
@@ -495,16 +496,47 @@ export default function DatabaseManagerPage() {
           </div>
         </TabsContent>
 
-        {/* Tab 5: Funções */}
+        {/* Tab 5: Funções — Catálogo Completo */}
         <TabsContent value="functions" className="mt-4 space-y-4">
+          {/* Catálogo de funções PostgreSQL/Supabase */}
+          <div className="nexus-card">
+            <h3 className="text-sm font-semibold text-foreground mb-3">📚 Catálogo de Funções PostgreSQL / Supabase</h3>
+            <p className="text-xs text-muted-foreground mb-4">{PG_FUNCTIONS_CATALOG.length} funções disponíveis em {PG_FUNCTION_CATEGORIES.length} categorias. Clique para copiar a sintaxe.</p>
+            <div className="space-y-4">
+              {PG_FUNCTION_CATEGORIES.map(cat => (
+                <details key={cat.id} className="group">
+                  <summary className="cursor-pointer text-sm font-semibold text-foreground hover:text-primary transition-colors py-1 flex items-center gap-2">
+                    <span>{cat.label}</span>
+                    <span className="text-[10px] text-muted-foreground font-normal">({PG_FUNCTIONS_CATALOG.filter(f => f.category === cat.id).length})</span>
+                  </summary>
+                  <div className="mt-2 space-y-1 pl-2">
+                    {PG_FUNCTIONS_CATALOG.filter(f => f.category === cat.id).map(fn => (
+                      <div key={fn.name + fn.syntax} className="flex items-start gap-3 p-2 rounded-lg bg-muted/10 hover:bg-muted/20 transition-colors cursor-pointer" onClick={() => { navigator.clipboard.writeText(fn.syntax); toast.success(`Copiado: ${fn.syntax}`); }}>
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-center gap-2">
+                            <span className="font-mono text-xs font-semibold text-foreground">{fn.name}</span>
+                          </div>
+                          <p className="text-[10px] text-muted-foreground mt-0.5">{fn.description}</p>
+                          <code className="text-[9px] font-mono text-emerald-400 block mt-0.5">{fn.example}</code>
+                        </div>
+                        <button className="shrink-0 p-1 rounded hover:bg-muted/30" title="Copiar sintaxe"><Code className="h-3 w-3 text-muted-foreground" /></button>
+                      </div>
+                    ))}
+                  </div>
+                </details>
+              ))}
+            </div>
+          </div>
+
+          {/* Funções do banco conectado */}
           {selectedDatabase ? (
             <div className="nexus-card">
               <div className="flex items-center justify-between mb-3">
-                <h3 className="text-sm font-semibold text-foreground">Funções PostgreSQL — {selectedDatabase.name}</h3>
+                <h3 className="text-sm font-semibold text-foreground">Funções Customizadas — {selectedDatabase.name}</h3>
                 <Button size="sm" className="gap-1.5"><Plus className="h-3.5 w-3.5" /> Criar Função</Button>
               </div>
               <div className="space-y-2">
-                {['update_updated_at()', 'handle_new_user()', 'get_user_workspace_id()', 'normalize_cnpj(text)', 'cnpj_raiz(text)'].map(fn => (
+                {['update_updated_at()', 'handle_new_user()', 'get_user_workspace_id()', 'normalize_cnpj(text)', 'cnpj_raiz(text)', 'normalize_phone(text)'].map(fn => (
                   <div key={fn} className="flex items-center justify-between p-2 rounded-lg bg-muted/10 text-xs">
                     <div className="flex items-center gap-2">
                       <Code className="h-3.5 w-3.5 text-primary" />
@@ -512,8 +544,7 @@ export default function DatabaseManagerPage() {
                     </div>
                     <div className="flex items-center gap-1">
                       <span className="text-muted-foreground">plpgsql</span>
-                      <button className="p-1 rounded hover:bg-muted/30"><Eye className="h-3 w-3 text-muted-foreground" /></button>
-                      <button className="p-1 rounded hover:bg-muted/30"><Edit className="h-3 w-3 text-muted-foreground" /></button>
+                      <button className="p-1 rounded hover:bg-muted/30" onClick={() => { navigator.clipboard.writeText(fn); toast.success(`Copiado: ${fn}`); }}><Code className="h-3 w-3 text-muted-foreground" /></button>
                     </div>
                   </div>
                 ))}
