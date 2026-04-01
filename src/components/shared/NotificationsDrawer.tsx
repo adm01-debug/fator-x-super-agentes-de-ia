@@ -144,13 +144,14 @@ export function NotificationsDrawer() {
           const row = payload.new as Record<string, unknown>;
           const old = payload.old as Record<string, unknown>;
           if (old.status !== 'completed' && row.status === 'completed') {
+            const passRate = typeof row.pass_rate === 'number' ? row.pass_rate : null;
             const notif: Notification = {
-              id: `eval-${row.id}`,
+              id: `eval-${String(row.id ?? '')}`,
               type: 'evaluation',
-              title: `Avaliação "${row.name}" concluída`,
-              description: row.pass_rate != null ? `Taxa de aprovação: ${(row.pass_rate * 100).toFixed(0)}%` : undefined,
+              title: `Avaliação "${String(row.name ?? '')}" concluída`,
+              description: passRate != null ? `Taxa de aprovação: ${(passRate * 100).toFixed(0)}%` : undefined,
               level: 'evaluation',
-              created_at: row.completed_at || new Date().toISOString(),
+              created_at: String(row.completed_at || new Date().toISOString()),
               read: false,
             };
             setRealtimeNotifs(prev => [notif, ...prev.slice(0, 49)]);
