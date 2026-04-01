@@ -563,14 +563,36 @@ export function downloadFile(content: string, filename: string, mimeType: string
 
 // ═══ 2. IMPORTAR DADOS (CSV parse + insert) ═══
 
+/** Parse CSV respecting quoted fields (handles commas inside quotes) */
 export function parseCSV(csv: string): TableRow[] {
   const lines = csv.trim().split('\n');
   if (lines.length < 2) return [];
-  const headers = lines[0].split(',').map(h => h.trim().replace(/^"|"$/g, ''));
-  return lines.slice(1).map(line => {
-    const values = line.split(',').map(v => v.trim().replace(/^"|"$/g, ''));
+
+  function splitCSVLine(line: string): string[] {
+    const fields: string[] = [];
+    let current = '';
+    let inQuotes = false;
+    for (let i = 0; i < line.length; i++) {
+      const ch = line[i];
+      if (ch === '"') {
+        if (inQuotes && line[i + 1] === '"') { current += '"'; i++; }
+        else inQuotes = !inQuotes;
+      } else if (ch === ',' && !inQuotes) {
+        fields.push(current.trim());
+        current = '';
+      } else {
+        current += ch;
+      }
+    }
+    fields.push(current.trim());
+    return fields;
+  }
+
+  const headers = splitCSVLine(lines[0]);
+  return lines.slice(1).filter(l => l.trim()).map(line => {
+    const values = splitCSVLine(line);
     const row: TableRow = {};
-    headers.forEach((h, i) => { row[h] = values[i] === '' ? null : values[i]; });
+    headers.forEach((h, i) => { row[h] = values[i] === '' || values[i] === undefined ? null : values[i]; });
     return row;
   });
 }
@@ -586,9 +608,14 @@ export async function importRows(client: SupabaseClient, tableName: string, rows
 
 // ═══ 3. BACKUP DE TABELA ═══
 
-export async function backupTable(client: SupabaseClient, tableName: string): Promise<{ data: TableRow[]; count: number; timestamp: string }> {
-  const { data, count } = await client.from(tableName).select('*', { count: 'exact' });
-  return { data: data ?? [], count: count ?? 0, timestamp: new Date().toISOString() };
+export async function backupTable(client: SupabaseClient, tableName: string): Promise<{ data: TableRow[]; count: number; timestamp: string; error?: string }> {
+  try {
+    const { data, count, error } = await client.from(tableName).select('*', { count: 'exact' });
+    if (error) return { data: [], count: 0, timestamp: new Date().toISOString(), error: error.message };
+    return { data: data ?? [], count: count ?? 0, timestamp: new Date().toISOString() };
+  } catch (err) {
+    return { data: [], count: 0, timestamp: new Date().toISOString(), error: err instanceof Error ? err.message : 'Erro no backup' };
+  }
 }
 
 // ═══ 4. ORDENAÇÃO ═══

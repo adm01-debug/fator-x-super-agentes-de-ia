@@ -708,11 +708,11 @@ export default function DatabaseManagerPage() {
                   toast.success(`${tableData.length} registros exportados para JSON`);
                 }}>JSON</Button>
                 {/* Import CSV */}
-                <label className="inline-flex">
+                <label className={`inline-flex ${!viewingTable || importing ? 'opacity-50 pointer-events-none' : 'cursor-pointer'}`}>
                   <input type="file" accept=".csv" className="hidden" onChange={e => { const f = e.target.files?.[0]; if (f) handleImportCSV(f); e.target.value = ''; }} disabled={!viewingTable || importing} />
-                  <Button variant="outline" size="sm" className="gap-1.5 pointer-events-none" disabled={!viewingTable || importing} asChild>
-                    <span><Upload className="h-3.5 w-3.5" /> {importing ? 'Importando...' : 'Importar CSV'}</span>
-                  </Button>
+                  <span className="inline-flex items-center gap-1.5 rounded-md border border-input bg-background px-3 py-1.5 text-xs font-medium hover:bg-accent hover:text-accent-foreground">
+                    <Upload className="h-3.5 w-3.5" /> {importing ? 'Importando...' : 'Importar CSV'}
+                  </span>
                 </label>
                 {/* Backup */}
                 <Button variant="outline" size="sm" className="gap-1.5" disabled={!viewingTable} onClick={handleBackup}><Download className="h-3.5 w-3.5" /> Backup</Button>

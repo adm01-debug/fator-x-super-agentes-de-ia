@@ -134,6 +134,27 @@ describe('parseCSV', () => {
     const rows = parseCSV(csv);
     expect(rows[0]).toEqual({ name: 'Alice', age: '30' });
   });
+
+  it('handles commas inside quoted fields', () => {
+    const csv = 'city,state\n"New York, NY",US\n"São Paulo, SP",BR';
+    const rows = parseCSV(csv);
+    expect(rows).toHaveLength(2);
+    expect(rows[0]).toEqual({ city: 'New York, NY', state: 'US' });
+    expect(rows[1]).toEqual({ city: 'São Paulo, SP', state: 'BR' });
+  });
+
+  it('handles escaped double quotes inside fields', () => {
+    const csv = 'name,note\nAlice,"She said ""hello"""\nBob,normal';
+    const rows = parseCSV(csv);
+    expect(rows[0]).toEqual({ name: 'Alice', note: 'She said "hello"' });
+    expect(rows[1]).toEqual({ name: 'Bob', note: 'normal' });
+  });
+
+  it('skips empty lines', () => {
+    const csv = 'a,b\n1,2\n\n3,4\n';
+    const rows = parseCSV(csv);
+    expect(rows).toHaveLength(2);
+  });
 });
 
 // ═══ downloadFile ═══
