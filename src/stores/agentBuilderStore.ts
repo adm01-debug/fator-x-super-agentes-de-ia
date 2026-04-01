@@ -81,6 +81,8 @@ function dbRowToAgent(row: any): AgentConfig {
   };
 }
 
+let autoSaveTimer: number | undefined;
+
 export const useAgentBuilderStore = create<AgentBuilderStore>((set, get) => ({
   agent: { ...DEFAULT_AGENT },
   activeTab: TABS[0].id,
@@ -105,8 +107,17 @@ export const useAgentBuilderStore = create<AgentBuilderStore>((set, get) => ({
     if (idx > 0) set({ activeTab: TABS[idx - 1].id });
   },
 
-  updateAgent: (partial) =>
-    set((s) => ({ agent: { ...s.agent, ...partial }, isDirty: true })),
+  updateAgent: (partial) => {
+    set((s) => ({ agent: { ...s.agent, ...partial }, isDirty: true }));
+    // Auto-save debounced (5s)
+    if (autoSaveTimer) clearTimeout(autoSaveTimer);
+    autoSaveTimer = window.setTimeout(() => {
+      const state = get();
+      if (state.isDirty && state.agent.id) {
+        state.saveAgent();
+      }
+    }, 5000);
+  },
 
   resetAgent: () => set({ agent: { ...DEFAULT_AGENT }, isDirty: false, activeTab: TABS[0].id }),
 
@@ -183,7 +194,8 @@ export const useAgentBuilderStore = create<AgentBuilderStore>((set, get) => ({
 
   deleteAgent: async (id: string) => {
     const agent = get().savedAgents.find(a => a.id === id);
-    await supabase.from('agents').delete().eq('id', id);
+    // Soft delete — preserva dados para auditoria
+    await supabase.from('agents').update({ status: 'archived' as const }).eq('id', id);
     set((s) => ({ savedAgents: s.savedAgents.filter(a => a.id !== id) }));
     audit.agentDeleted(id, agent?.name ?? 'unknown');
   },
