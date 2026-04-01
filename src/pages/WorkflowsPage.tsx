@@ -9,6 +9,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Plus, GitBranch, ArrowRight, Brain, Search, Shield, CheckCircle, Wrench, FileText, Play, Trash2, LayoutGrid, Network, Save, FolderOpen, Loader2 } from "lucide-react";
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
 import { motion, AnimatePresence } from "framer-motion";
 import { toast } from "sonner";
 import { WorkflowCanvas, type CanvasNode, type CanvasEdge } from "@/components/workflows/WorkflowCanvas";
@@ -77,6 +78,16 @@ export default function WorkflowsPage() {
       if (wf) setCanvasName(wf.name);
       persistence.setSelectedId(workflowId);
       toast.success('Canvas carregado!');
+    }
+  };
+
+  const handleDeleteWorkflow = async () => {
+    if (!persistence.selectedId) return;
+    const ok = await persistence.deleteCanvas(persistence.selectedId);
+    if (ok) {
+      setCanvasNodes(defaultCanvasNodes);
+      setCanvasEdges(defaultCanvasEdges);
+      setCanvasName('Meu Pipeline');
     }
   };
 
@@ -173,9 +184,28 @@ export default function WorkflowsPage() {
             )}
 
             {persistence.selectedId && (
-              <Badge variant="outline" className="text-[10px] border-primary/30 text-primary">
-                Salvo no banco
-              </Badge>
+              <>
+                <Badge variant="outline" className="text-[10px] border-primary/30 text-primary">
+                  Salvo no banco
+                </Badge>
+                <AlertDialog>
+                  <AlertDialogTrigger asChild>
+                    <Button size="sm" variant="ghost" className="gap-1.5 text-destructive hover:text-destructive">
+                      <Trash2 className="h-3.5 w-3.5" /> Deletar
+                    </Button>
+                  </AlertDialogTrigger>
+                  <AlertDialogContent>
+                    <AlertDialogHeader>
+                      <AlertDialogTitle>Deletar workflow?</AlertDialogTitle>
+                      <AlertDialogDescription>Esta ação é irreversível. O workflow será removido permanentemente do banco de dados.</AlertDialogDescription>
+                    </AlertDialogHeader>
+                    <AlertDialogFooter>
+                      <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                      <AlertDialogAction onClick={handleDeleteWorkflow} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">Deletar</AlertDialogAction>
+                    </AlertDialogFooter>
+                  </AlertDialogContent>
+                </AlertDialog>
+              </>
             )}
           </div>
 
