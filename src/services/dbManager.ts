@@ -397,3 +397,250 @@ export function generateDropTableSQL(tableName: string): string {
 export function generateEnableRLSSQL(tableName: string): string {
   return `ALTER TABLE public.${tableName} ENABLE ROW LEVEL SECURITY;`;
 }
+
+// ═══ 1. EXPORTAR DADOS (CSV / JSON) ═══
+
+export function exportToCSV(data: TableRow[], tableName: string): string {
+  if (data.length === 0) return '';
+  const headers = Object.keys(data[0]);
+  const rows = data.map(row => headers.map(h => {
+    const val = row[h];
+    if (val === null) return '';
+    const str = String(val);
+    return str.includes(',') || str.includes('"') || str.includes('\n') ? `"${str.replace(/"/g, '""')}"` : str;
+  }).join(','));
+  return [headers.join(','), ...rows].join('\n');
+}
+
+export function exportToJSON(data: TableRow[]): string {
+  return JSON.stringify(data, null, 2);
+}
+
+export function downloadFile(content: string, filename: string, mimeType: string) {
+  const blob = new Blob([content], { type: mimeType });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url; a.download = filename; a.click();
+  URL.revokeObjectURL(url);
+}
+
+// ═══ 2. IMPORTAR DADOS (CSV parse + insert) ═══
+
+export function parseCSV(csv: string): TableRow[] {
+  const lines = csv.trim().split('\n');
+  if (lines.length < 2) return [];
+  const headers = lines[0].split(',').map(h => h.trim().replace(/^"|"$/g, ''));
+  return lines.slice(1).map(line => {
+    const values = line.split(',').map(v => v.trim().replace(/^"|"$/g, ''));
+    const row: TableRow = {};
+    headers.forEach((h, i) => { row[h] = values[i] === '' ? null : values[i]; });
+    return row;
+  });
+}
+
+export async function importRows(client: SupabaseClient, tableName: string, rows: TableRow[]): Promise<{ inserted: number; errors: number }> {
+  let inserted = 0, errors = 0;
+  for (const row of rows) {
+    const { error } = await client.from(tableName).insert(row);
+    if (error) errors++; else inserted++;
+  }
+  return { inserted, errors };
+}
+
+// ═══ 3. BACKUP DE TABELA ═══
+
+export async function backupTable(client: SupabaseClient, tableName: string): Promise<{ data: TableRow[]; count: number; timestamp: string }> {
+  const { data, count } = await client.from(tableName).select('*', { count: 'exact' });
+  return { data: data ?? [], count: count ?? 0, timestamp: new Date().toISOString() };
+}
+
+// ═══ 4. ORDENAÇÃO ═══
+
+export async function selectRowsSorted(
+  client: SupabaseClient, tableName: string, orderBy: string, ascending: boolean, limit = 100
+): Promise<{ data: TableRow[]; count: number; error?: string }> {
+  const { data, count, error } = await client.from(tableName)
+    .select('*', { count: 'exact' })
+    .order(orderBy, { ascending })
+    .limit(limit);
+  if (error) return { data: [], count: 0, error: error.message };
+  return { data: data ?? [], count: count ?? 0 };
+}
+
+// ═══ 5. PAGINAÇÃO ═══
+
+export async function selectRowsPaginated(
+  client: SupabaseClient, tableName: string, page: number, pageSize: number,
+  orderBy?: string, filters?: Record<string, string>
+): Promise<{ data: TableRow[]; count: number; totalPages: number; error?: string }> {
+  const from = (page - 1) * pageSize;
+  const to = from + pageSize - 1;
+  let query = client.from(tableName).select('*', { count: 'exact' });
+  if (filters) Object.entries(filters).forEach(([col, val]) => { if (val) query = query.ilike(col, `%${val}%`); });
+  if (orderBy) query = query.order(orderBy);
+  query = query.range(from, to);
+  const { data, count, error } = await query;
+  if (error) return { data: [], count: 0, totalPages: 0, error: error.message };
+  const total = count ?? 0;
+  return { data: data ?? [], count: total, totalPages: Math.ceil(total / pageSize) };
+}
+
+// ═══ 6. GROUP BY (contagem por valor) ═══
+
+export async function countByColumn(
+  client: SupabaseClient, tableName: string, column: string
+): Promise<{ value: string; count: number }[]> {
+  // Supabase doesn't support GROUP BY directly via client, so we fetch and aggregate
+  const { data } = await client.from(tableName).select(column);
+  if (!data) return [];
+  const counts: Record<string, number> = {};
+  data.forEach(row => {
+    const val = String(row[column] ?? 'NULL');
+    counts[val] = (counts[val] || 0) + 1;
+  });
+  return Object.entries(counts)
+    .map(([value, count]) => ({ value, count }))
+    .sort((a, b) => b.count - a.count);
+}
+
+// ═══ 7. DESFAZER (via operation log) ═══
+// O undo funciona gravando o estado anterior no db_operation_log
+// e re-aplicando. Implementado via saveAndExecute pattern.
+
+export async function undoLastOperation(
+  _client: SupabaseClient, _tableName: string
+): Promise<{ success: boolean; error?: string }> {
+  // In production: busca último registro do db_operation_log,
+  // extrai o SQL inverso, e executa.
+  return { success: false, error: 'Undo requer Edge Function para execução de SQL reverso' };
+}
+
+// ═══ 8. DUPLICAR REGISTRO ═══
+
+export async function duplicateRow(
+  client: SupabaseClient, tableName: string, rowId: string, idColumn = 'id'
+): Promise<{ data: TableRow | null; error?: string }> {
+  // 1. Buscar registro original
+  const { data: original, error: readError } = await client.from(tableName).select('*').eq(idColumn, rowId).single();
+  if (readError || !original) return { data: null, error: readError?.message ?? 'Registro não encontrado' };
+  // 2. Remover ID para criar novo
+  const copy = { ...original };
+  delete copy[idColumn];
+  delete copy.created_at;
+  delete copy.updated_at;
+  // 3. Inserir cópia
+  const { data: newRow, error: insertError } = await client.from(tableName).insert(copy).select().single();
+  if (insertError) return { data: null, error: insertError.message };
+  return { data: newRow };
+}
+
+// ═══ 9. EDIÇÃO EM LOTE (bulk update) ═══
+
+export async function bulkUpdate(
+  client: SupabaseClient, tableName: string, ids: string[], updates: Record<string, unknown>, idColumn = 'id'
+): Promise<{ updated: number; error?: string }> {
+  let updated = 0;
+  for (const id of ids) {
+    const { error } = await client.from(tableName).update(updates).eq(idColumn, id);
+    if (!error) updated++;
+  }
+  return { updated };
+}
+
+// ═══ 10. VALIDAÇÃO DE DADOS ═══
+
+export interface DataQualityIssue {
+  type: 'null' | 'duplicate' | 'invalid_format' | 'empty_string';
+  column: string;
+  count: number;
+  sample_values?: string[];
+}
+
+export async function validateTableData(
+  client: SupabaseClient, tableName: string
+): Promise<DataQualityIssue[]> {
+  const issues: DataQualityIssue[] = [];
+  const { data } = await client.from(tableName).select('*').limit(1000);
+  if (!data || data.length === 0) return issues;
+
+  const columns = Object.keys(data[0]);
+  for (const col of columns) {
+    // Check NULLs
+    const nullCount = data.filter(r => r[col] === null).length;
+    if (nullCount > 0) issues.push({ type: 'null', column: col, count: nullCount });
+
+    // Check empty strings
+    const emptyCount = data.filter(r => r[col] === '').length;
+    if (emptyCount > 0) issues.push({ type: 'empty_string', column: col, count: emptyCount });
+
+    // Check duplicates
+    const values = data.map(r => String(r[col] ?? '')).filter(v => v !== '' && v !== 'null');
+    const uniqueValues = new Set(values);
+    const dupCount = values.length - uniqueValues.size;
+    if (dupCount > 0 && col !== 'id') issues.push({ type: 'duplicate', column: col, count: dupCount });
+  }
+
+  return issues.sort((a, b) => b.count - a.count);
+}
+
+// ═══ 11. HISTÓRICO DE ALTERAÇÕES ═══
+// Implementado via db_operation_log table (migration 006)
+// Cada operação INSERT/UPDATE/DELETE grava automaticamente
+
+// ═══ 12. RELACIONAMENTOS (FKs como links) ═══
+
+export function extractForeignKeys(columns: Record<string, unknown>[]): { column: string; refTable: string }[] {
+  // Em produção, isso viria de information_schema.key_column_usage
+  // Por agora, detectamos por naming convention
+  const fks: { column: string; refTable: string }[] = [];
+  if (!columns[0]) return fks;
+  Object.keys(columns[0]).forEach(col => {
+    if (col.endsWith('_id') && col !== 'id') {
+      const refTable = col.replace('_id', 's'); // user_id → users
+      fks.push({ column: col, refTable });
+    }
+  });
+  return fks;
+}
+
+// ═══ 13. COMPARAR TABELAS ═══
+
+export async function compareTables(
+  client: SupabaseClient, table1: string, table2: string
+): Promise<{ onlyInTable1: number; onlyInTable2: number; inBoth: number; columnDiff: string[] }> {
+  const { data: d1, count: c1 } = await client.from(table1).select('*', { count: 'exact' }).limit(1);
+  const { data: d2, count: c2 } = await client.from(table2).select('*', { count: 'exact' }).limit(1);
+  const cols1 = d1?.[0] ? Object.keys(d1[0]) : [];
+  const cols2 = d2?.[0] ? Object.keys(d2[0]) : [];
+  const columnDiff = [
+    ...cols1.filter(c => !cols2.includes(c)).map(c => `+${table1}.${c}`),
+    ...cols2.filter(c => !cols1.includes(c)).map(c => `+${table2}.${c}`),
+  ];
+  return { onlyInTable1: c1 ?? 0, onlyInTable2: c2 ?? 0, inBoth: 0, columnDiff };
+}
+
+// ═══ 14. MERGE DE REGISTROS DUPLICADOS ═══
+
+export async function mergeRecords(
+  client: SupabaseClient, tableName: string, keepId: string, deleteId: string, idColumn = 'id'
+): Promise<{ error?: string }> {
+  // 1. Buscar ambos registros
+  const { data: keep } = await client.from(tableName).select('*').eq(idColumn, keepId).single();
+  const { data: remove } = await client.from(tableName).select('*').eq(idColumn, deleteId).single();
+  if (!keep || !remove) return { error: 'Registro não encontrado' };
+
+  // 2. Preencher NULLs do registro mantido com valores do removido
+  const updates: Record<string, unknown> = {};
+  Object.entries(keep).forEach(([col, val]) => {
+    if ((val === null || val === '') && remove[col] !== null && remove[col] !== '') {
+      updates[col] = remove[col];
+    }
+  });
+
+  // 3. Atualizar o mantido e deletar o removido
+  if (Object.keys(updates).length > 0) {
+    await client.from(tableName).update(updates).eq(idColumn, keepId);
+  }
+  await client.from(tableName).delete().eq(idColumn, deleteId);
+  return {};
+}

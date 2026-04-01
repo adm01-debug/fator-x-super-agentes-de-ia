@@ -63,6 +63,10 @@ export default function DatabaseManagerPage() {
   const [filterColumn, setFilterColumn] = useState('');
   const [filterValue, setFilterValue] = useState('');
 
+  // Sort state
+  const [sortColumn, setSortColumn] = useState('');
+  const [sortAsc, setSortAsc] = useState(true);
+
   // Find & Replace state
   const [showFindReplace, setShowFindReplace] = useState(false);
   const [frColumn, setFrColumn] = useState('');
@@ -573,6 +577,17 @@ export default function DatabaseManagerPage() {
                 </Button>
                 <Button variant="outline" size="sm" className="gap-1.5" onClick={() => { setFilterValue(''); setFilterColumn(''); viewingTable && loadTableData(viewingTable); }}><RefreshCw className="h-3.5 w-3.5" /> Limpar</Button>
                 <Button variant="outline" size="sm" className="gap-1.5" onClick={() => setShowFindReplace(!showFindReplace)} disabled={!viewingTable}><Edit className="h-3.5 w-3.5" /> Substituir</Button>
+                {/* Export */}
+                <Button variant="outline" size="sm" className="gap-1.5" disabled={!viewingTable || tableData.length === 0} onClick={() => {
+                  const csv = dbManager.exportToCSV(tableData, viewingTable!);
+                  dbManager.downloadFile(csv, `${viewingTable}.csv`, 'text/csv');
+                  toast.success(`${tableData.length} registros exportados para CSV`);
+                }}>Exportar CSV</Button>
+                <Button variant="outline" size="sm" className="gap-1.5" disabled={!viewingTable || tableData.length === 0} onClick={() => {
+                  const json = dbManager.exportToJSON(tableData);
+                  dbManager.downloadFile(json, `${viewingTable}.json`, 'application/json');
+                  toast.success(`${tableData.length} registros exportados para JSON`);
+                }}>JSON</Button>
                 <Button size="sm" className="gap-1.5" disabled={!viewingTable} onClick={() => { setInsertData({}); setShowInsertRow(true); }}><Plus className="h-3.5 w-3.5" /> Inserir</Button>
               </div>
 
@@ -627,7 +642,17 @@ export default function DatabaseManagerPage() {
                     <thead>
                       <tr className="border-b border-border bg-muted/20">
                         {Object.keys(tableData[0]).map(col => (
-                          <th key={col} className="text-left px-3 py-2 font-medium text-muted-foreground whitespace-nowrap">{col}</th>
+                          <th key={col} className="text-left px-3 py-2 font-medium text-muted-foreground whitespace-nowrap cursor-pointer hover:text-foreground transition-colors" onClick={async () => {
+                            const newAsc = sortColumn === col ? !sortAsc : true;
+                            setSortColumn(col); setSortAsc(newAsc);
+                            const db = databases.find(d => d.id === selectedDb);
+                            if (!db || !viewingTable) return;
+                            const client = dbManager.connectToRemoteDB(db.url, db.url);
+                            const result = await dbManager.selectRowsSorted(client, viewingTable, col, newAsc);
+                            if (!result.error) { setTableData(result.data); setDataCount(result.count); }
+                          }}>
+                            {col} {sortColumn === col ? (sortAsc ? '↑' : '↓') : ''}
+                          </th>
                         ))}
                         <th className="text-center px-3 py-2 font-medium text-muted-foreground">Ações</th>
                       </tr>
@@ -662,6 +687,13 @@ export default function DatabaseManagerPage() {
                             ) : (
                               <div className="flex items-center gap-1 justify-center">
                                 <button className="p-1 rounded hover:bg-muted/30" onClick={() => { setEditingRowIndex(i); setEditingRowData({}); }} title="Editar"><Edit className="h-3 w-3 text-muted-foreground" /></button>
+                                <button className="p-1 rounded hover:bg-muted/30" onClick={async () => {
+                                  const db = databases.find(d => d.id === selectedDb);
+                                  if (!db || !viewingTable) return;
+                                  const client = dbManager.connectToRemoteDB(db.url, db.url);
+                                  const result = await dbManager.duplicateRow(client, viewingTable, rowId);
+                                  if (result.error) toast.error(result.error); else { toast.success('Registro duplicado'); loadTableData(viewingTable); }
+                                }} title="Duplicar"><Plus className="h-3 w-3 text-primary" /></button>
                                 <button className="p-1 rounded hover:bg-destructive/20" onClick={() => handleDeleteRow(viewingTable!, rowId)} title="Excluir"><Trash2 className="h-3 w-3 text-destructive" /></button>
                               </div>
                             )}
