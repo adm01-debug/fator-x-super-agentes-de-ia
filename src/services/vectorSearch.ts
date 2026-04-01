@@ -66,18 +66,26 @@ export async function generateEmbedding(
   }
 
   // Fallback: Simple hash-based pseudo-embedding (for development)
-  const words = text.toLowerCase().split(/\s+/);
-  const dim = 384; // Typical embedding dimension
+  const cleanText = text.trim();
+  if (!cleanText) {
+    // Empty text: return small random vector instead of zero vector (zero vectors break cosine similarity)
+    const dim = 384;
+    const rng = Array.from({ length: dim }, (_, i) => Math.sin(i * 0.1) * 0.01);
+    return { embedding: rng, model: 'fallback-empty', tokens: 0 };
+  }
+  const words = cleanText.toLowerCase().split(/\s+/).filter(Boolean);
+  const dim = 384;
   const embedding = new Array(dim).fill(0);
   words.forEach((word, i) => {
     for (let j = 0; j < word.length; j++) {
       embedding[(word.charCodeAt(j) * (i + 1) + j * 31) % dim] += 1.0 / words.length;
     }
   });
-  // Normalize
+  // Normalize (never returns zero vector due to guard above)
   const norm = Math.sqrt(embedding.reduce((s: number, v: number) => s + v * v, 0));
   if (norm > 0) embedding.forEach((_: number, i: number) => { embedding[i] /= norm; });
 
+  logger.debug(`Fallback embedding: ${words.length} words, dim=${dim}`, 'vectorSearch');
   return { embedding, model: 'fallback-hash', tokens: words.length };
 }
 
@@ -115,8 +123,8 @@ export async function searchFacts(
         method: 'vector' as const,
       }));
     }
-  } catch {
-    // RPC not available, try text search
+  } catch (err) {
+    logger.debug(`Vector search RPC not available, falling back to text search: ${err instanceof Error ? err.message : ''}`, 'vectorSearch');
   }
 
   // Strategy 2: Text search (ILIKE) — always works
@@ -146,8 +154,8 @@ export async function searchFacts(
         });
       });
     }
-  } catch {
-    // Table might not exist
+  } catch (err) {
+    logger.warn(`Text search failed (table may not exist): ${err instanceof Error ? err.message : ''}`, 'vectorSearch');
   }
 
   // Strategy 3: LLM-based semantic search (if configured and no results yet)
@@ -169,8 +177,8 @@ export async function searchFacts(
           method: 'hybrid',
         });
       }
-    } catch {
-      // LLM fallback failed
+    } catch (err) {
+      logger.warn(`LLM search fallback failed: ${err instanceof Error ? err.message : ''}`, 'vectorSearch');
     }
   }
 

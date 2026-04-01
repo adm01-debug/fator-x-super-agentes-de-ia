@@ -226,6 +226,10 @@ export async function runCouncil(
   const systemPrompt = options?.systemPrompt ??
     'Você é um consultor especialista. Analise a questão com rigor, apresentando evidências, prós/contras, e uma recomendação clara. Seja conciso mas completo.';
 
+  if (!modelIds || modelIds.length === 0) {
+    return { responses: [], synthesis: 'Nenhum modelo selecionado.', consensus: 0, totalCost: 0, totalLatencyMs: 0 };
+  }
+
   const messages: LLMMessage[] = [
     { role: 'system', content: systemPrompt },
     { role: 'user', content: query },

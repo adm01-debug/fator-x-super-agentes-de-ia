@@ -68,20 +68,30 @@ export async function resolveIdentities(
   let irreconcilable = 0;
   const limit = options.limit ?? 500;
 
-  const srcClient = connectToRemoteDB(sourceDb.url, sourceDb.key);
-  const tgtClient = connectToRemoteDB(targetDb.url, targetDb.key);
+  let srcClient: ReturnType<typeof connectToRemoteDB>;
+  let tgtClient: ReturnType<typeof connectToRemoteDB>;
+  try {
+    srcClient = connectToRemoteDB(sourceDb.url, sourceDb.key);
+    tgtClient = connectToRemoteDB(targetDb.url, targetDb.key);
+  } catch (err) {
+    logger.error(`Failed to connect: ${err instanceof Error ? err.message : 'Unknown'}`, err, 'identityResolution');
+    return { resolved: [], pending: [], irreconcilable: 0, totalCompared: 0, executionTimeMs: Date.now() - startTime };
+  }
 
   options.onProgress?.(`Carregando ${limit} registros de ${sourceDb.name}.${options.sourceTable}...`);
 
-  // Fetch source records
-  const srcColumns = Object.values(options.matchColumns)
-    .filter(Boolean)
-    .map(c => c!.source)
-    .join(', ') + ', id';
+  // Build column list for selective fetch (avoid fetching sensitive columns)
+  const neededSrcCols = new Set(['id']);
+  const neededTgtCols = new Set(['id']);
+  Object.values(options.matchColumns).forEach(mc => {
+    if (mc) { neededSrcCols.add(mc.source); neededTgtCols.add(mc.target); }
+  });
+  const srcSelect = Array.from(neededSrcCols).join(', ');
+  const tgtSelect = Array.from(neededTgtCols).join(', ');
 
   const { data: sourceRows, error: srcError } = await srcClient
     .from(options.sourceTable)
-    .select('*')
+    .select(srcSelect)
     .limit(limit);
 
   if (srcError || !sourceRows) {
@@ -93,8 +103,8 @@ export async function resolveIdentities(
 
   const { data: targetRows, error: tgtError } = await tgtClient
     .from(options.targetTable)
-    .select('*')
-    .limit(limit * 2); // Fetch more targets for better matching
+    .select(tgtSelect)
+    .limit(limit * 2);
 
   if (tgtError || !targetRows) {
     logger.error(`Failed to fetch target: ${tgtError?.message}`, tgtError, 'identityResolution');
@@ -132,9 +142,16 @@ export async function resolveIdentities(
     }
   }
 
+  // Helper to get a stable ID from a row
+  const getRowId = (row: Record<string, unknown>): string => {
+    if (row.id !== undefined && row.id !== null) return String(row.id);
+    const firstKey = Object.keys(row)[0];
+    return firstKey ? String(row[firstKey]) : crypto.randomUUID();
+  };
+
   // Match each source record
   for (const srcRow of sourceRows) {
-    const srcId = String(srcRow.id ?? srcRow[Object.keys(srcRow)[0]]);
+    const srcId = getRowId(srcRow);
     let matched = false;
 
     // 1. Email match (highest confidence)
@@ -150,7 +167,7 @@ export async function resolveIdentities(
             sourceId: srcId,
             targetDb: targetDb.name,
             targetTable: options.targetTable,
-            targetId: String(tgt.id ?? tgt[Object.keys(tgt)[0]]),
+            targetId: getRowId(tgt),
             matchMethod: 'email',
             matchValue: email,
             confidence: 98,
@@ -173,7 +190,7 @@ export async function resolveIdentities(
             sourceId: srcId,
             targetDb: targetDb.name,
             targetTable: options.targetTable,
-            targetId: String(tgt.id ?? tgt[Object.keys(tgt)[0]]),
+            targetId: getRowId(tgt),
             matchMethod: 'cnpj_raiz',
             matchValue: cnpj,
             confidence: 95,
@@ -196,7 +213,7 @@ export async function resolveIdentities(
             sourceId: srcId,
             targetDb: targetDb.name,
             targetTable: options.targetTable,
-            targetId: String(tgt.id ?? tgt[Object.keys(tgt)[0]]),
+            targetId: getRowId(tgt),
             matchMethod: 'phone',
             matchValue: phone,
             confidence: 75,
