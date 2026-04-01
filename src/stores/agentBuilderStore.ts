@@ -143,7 +143,7 @@ export const useAgentBuilderStore = create<AgentBuilderStore>((set, get) => ({
       const { error: e } = await supabase
         .from('agents')
         .update(row)
-        .eq('id', agent.id);
+        .eq('id', agent.id as string);
       error = e;
     } else {
       const { data, error: e } = await supabase
