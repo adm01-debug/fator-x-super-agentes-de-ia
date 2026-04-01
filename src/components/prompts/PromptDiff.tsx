@@ -91,7 +91,7 @@ export function PromptDiff({ textA, textB, labelA, labelB }: Props) {
           <p className="text-xs font-semibold text-muted-foreground">{labelB}</p>
         </div>
         <div className="max-h-64 overflow-y-auto">
-          {linesB.map((line, idx) => renderLine(line, idx, 'b'))}
+          {linesB.map((line, idx) => renderLine(line, idx))}
         </div>
       </div>
     </div>
