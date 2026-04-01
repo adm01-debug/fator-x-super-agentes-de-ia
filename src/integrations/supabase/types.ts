@@ -570,6 +570,10 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      accept_workspace_invitation: {
+        Args: { p_member_id: string }
+        Returns: undefined
+      }
       log_audit_entry: {
         Args: {
           p_action: string
