@@ -1,5 +1,6 @@
 import { supabase } from '@/integrations/supabase/client';
 import { logger } from '@/lib/logger';
+import type { Json } from '@/integrations/supabase/types';
 
 type AuditAction =
   | 'agent.create' | 'agent.update' | 'agent.delete' | 'agent.deploy' | 'agent.duplicate'
