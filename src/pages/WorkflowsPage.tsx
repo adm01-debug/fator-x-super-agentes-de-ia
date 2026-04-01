@@ -59,6 +59,26 @@ export default function WorkflowsPage() {
   const [newSteps, setNewSteps] = useState('');
   const [canvasNodes, setCanvasNodes] = useState<CanvasNode[]>(defaultCanvasNodes);
   const [canvasEdges, setCanvasEdges] = useState<CanvasEdge[]>(defaultCanvasEdges);
+  const [canvasName, setCanvasName] = useState('Meu Pipeline');
+  const persistence = useWorkflowPersistence();
+
+  const handleSave = async () => {
+    if (!canvasName.trim()) { toast.error('Nome é obrigatório'); return; }
+    const id = await persistence.saveCanvas(canvasName, canvasNodes, canvasEdges, persistence.selectedId);
+    if (id) persistence.setSelectedId(id);
+  };
+
+  const handleLoad = (workflowId: string) => {
+    const data = persistence.loadCanvas(workflowId);
+    if (data) {
+      setCanvasNodes(data.nodes);
+      setCanvasEdges(data.edges);
+      const wf = persistence.workflows.find(w => w.id === workflowId);
+      if (wf) setCanvasName(wf.name);
+      persistence.setSelectedId(workflowId);
+      toast.success('Canvas carregado!');
+    }
+  };
 
   const handleCreate = () => {
     if (!newName.trim()) { toast.error('Nome é obrigatório'); return; }
