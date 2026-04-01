@@ -2,7 +2,7 @@ import { PageHeader } from "@/components/shared/PageHeader";
 import { InfoHint } from "@/components/shared/InfoHint";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
-import { Search, Plug, Loader2, Wrench, Globe, Database, Mail, FileSearch, Code, Webhook } from "lucide-react";
+import { Search, Loader2, Wrench, Globe, Database, Mail, FileSearch, Code, Webhook } from "lucide-react";
 import { motion } from "framer-motion";
 import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";

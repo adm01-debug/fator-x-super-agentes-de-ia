@@ -7,15 +7,6 @@ import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid, PieChart, Pie, Cell } from "recharts";
 
-const stepColors: Record<string, string> = {
-  input: 'bg-nexus-cyan',
-  retrieval: 'bg-nexus-amber',
-  tool_call: 'bg-primary',
-  model: 'bg-nexus-glow',
-  guardrail: 'bg-nexus-emerald',
-  output: 'bg-nexus-emerald',
-};
-
 const PIE_COLORS = ['hsl(var(--primary))', 'hsl(var(--nexus-emerald, 142 71% 45%))', 'hsl(var(--nexus-amber, 38 92% 50%))', 'hsl(var(--nexus-cyan, 190 90% 50%))', 'hsl(var(--destructive))'];
 
 export default function MonitoringPage() {
