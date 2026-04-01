@@ -624,7 +624,7 @@ export default function DatabaseManagerPage() {
         <TabsContent value="explorer" className="mt-4">
           {selectedDatabase ? (
             <div className="nexus-card">
-              <div className="flex items-center justify-between mb-4">
+              <div className="flex items-center justify-between mb-4 flex-wrap gap-y-2">
                 <h3 className="text-sm font-semibold text-foreground">Explorer — {selectedDatabase.name}</h3>
                 <div className="relative">
                   <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
@@ -658,7 +658,7 @@ export default function DatabaseManagerPage() {
         <TabsContent value="tables" className="mt-4 space-y-4">
           {selectedDatabase ? (
             <>
-              <div className="flex items-center justify-between">
+              <div className="flex items-center justify-between flex-wrap gap-y-2">
                 <h3 className="text-sm font-semibold text-foreground">Tabelas — {selectedDatabase.name}</h3>
                 <div className="flex gap-2">
                   <Button variant="outline" size="sm" className="gap-1.5" onClick={() => setShowCompare(!showCompare)}><ArrowRightLeft className="h-3.5 w-3.5" /> Comparar Tabelas</Button>
@@ -856,7 +856,7 @@ export default function DatabaseManagerPage() {
         <TabsContent value="data" className="mt-4 space-y-4">
           {selectedDatabase && tables.length > 0 ? (
             <div className="nexus-card">
-              <div className="flex items-center gap-3 mb-4">
+              <div className="flex items-center gap-3 mb-4 flex-wrap gap-y-2">
                 <select className="text-xs bg-muted/30 border border-border rounded-lg px-3 py-2 text-foreground" value={viewingTable ?? ''} onChange={e => loadTableData(e.target.value)}>
                   <option value="">Selecione uma tabela</option>
                   {tables.map(t => <option key={t.name} value={t.name}>{t.name} ({t.rows} rows)</option>)}

@@ -146,7 +146,7 @@ export default function KnowledgePage() {
             </div>
             <p className="text-xs text-muted-foreground mb-3">{kb.description}</p>
 
-            <div className="grid grid-cols-3 gap-2 text-center border-t border-border/50 pt-3">
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 text-center border-t border-border/50 pt-3">
               <div><p className="text-lg font-heading font-bold text-foreground">{kb.documents}</p><p className="text-[10px] text-muted-foreground">Docs</p></div>
               <div><p className="text-lg font-heading font-bold text-foreground">{kb.chunks.toLocaleString()}</p><p className="text-[10px] text-muted-foreground">Chunks</p></div>
               <div><p className="text-[10px] text-muted-foreground">Chunk Size</p><p className="text-xs font-mono text-foreground">{kb.chunkSize}</p></div>

@@ -38,7 +38,7 @@ export default function AgentDetailPage() {
         <ArrowLeft className="h-3.5 w-3.5" /> Voltar para agentes
       </Button>
 
-      <div className="flex items-start justify-between">
+      <div className="flex items-start justify-between flex-col sm:flex-row gap-4">
         <div className="flex items-center gap-4">
           <div className="h-14 w-14 rounded-2xl bg-primary/10 flex items-center justify-center">
             <Bot className="h-7 w-7 text-primary" />
@@ -74,7 +74,7 @@ export default function AgentDetailPage() {
       <div className="grid lg:grid-cols-3 gap-4">
         <div className="lg:col-span-2">
           <Tabs defaultValue="overview" className="w-full">
-            <TabsList className="bg-secondary/50 border border-border/50">
+            <TabsList className="bg-secondary/50 border border-border/50 overflow-x-auto">
               {['Overview', 'Prompt', 'Tools', 'Memory', 'Knowledge', 'Evaluations', 'Logs', 'Versions'].map(tab => (
                 <TabsTrigger key={tab} value={tab.toLowerCase()} className="text-xs data-[state=active]:bg-background">{tab}</TabsTrigger>
               ))}

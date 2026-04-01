@@ -113,7 +113,7 @@ export default function BillingPage() {
         <p className="text-xs text-muted-foreground mt-2">{pct}% utilizado • Projeção: R$ {projection.toLocaleString()} até fim do mês</p>
 
         {editingBudget && (
-          <div className="mt-4 pt-4 border-t border-border grid grid-cols-3 gap-3">
+          <div className="mt-4 pt-4 border-t border-border grid grid-cols-1 sm:grid-cols-3 gap-3">
             <div><label className="text-xs text-muted-foreground">Budget mensal (R$)</label>
               <input type="number" value={tempBudget} onChange={e => setTempBudget(Number(e.target.value))} className="w-full bg-muted/30 border border-border rounded-lg px-3 py-2 text-sm text-foreground font-mono mt-1" />
             </div>

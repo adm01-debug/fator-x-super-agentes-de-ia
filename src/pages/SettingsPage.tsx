@@ -294,7 +294,7 @@ function ApiKeysSection({ settings, update }: SectionProps) {
 
       <div className="border-t border-border pt-3 space-y-2">
         <p className="text-xs font-semibold text-foreground">Adicionar API Key</p>
-        <div className="grid grid-cols-4 gap-2">
+        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-2">
           <input value={newKeyName} onChange={e => setNewKeyName(e.target.value)} placeholder="Nome (ex: OpenRouter)" className="bg-secondary border border-border rounded-lg px-3 py-1.5 text-xs text-foreground" />
           <input value={newKeyValue} onChange={e => setNewKeyValue(e.target.value)} type="password" placeholder="sk-or-v1-..." className="bg-secondary border border-border rounded-lg px-3 py-1.5 text-xs text-foreground font-mono" />
           <select value={newKeyProvider} onChange={e => setNewKeyProvider(e.target.value)} className="bg-secondary border border-border rounded-lg px-3 py-1.5 text-xs text-foreground">

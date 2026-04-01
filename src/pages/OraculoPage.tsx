@@ -229,7 +229,7 @@ export default function OraculoPage() {
 
           <div className="nexus-card">
             <h3 className="text-sm font-semibold text-foreground mb-3">Gateway LLM</h3>
-            <div className="grid grid-cols-3 gap-3">
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
               {[
                 { id: 'openrouter', label: 'OpenRouter (recomendado)' },
                 { id: 'direct', label: 'APIs Diretas' },

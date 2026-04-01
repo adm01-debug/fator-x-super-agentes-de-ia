@@ -182,7 +182,7 @@ export default function DataHubPage() {
         <TabsContent value="connections" className="mt-4 space-y-4">
           <div className="nexus-card">
             <h3 className="text-sm font-semibold text-foreground mb-3">Wizard de Nova Conexão</h3>
-            <div className="grid grid-cols-5 gap-2 text-center text-xs text-muted-foreground">
+            <div className="grid grid-cols-2 md:grid-cols-5 gap-2 text-center text-xs text-muted-foreground">
               {['1. URL + Keys', '2. Auto-discovery', '3. Categorização', '4. Config Sync', '5. Confirmação'].map((step, i) => (
                 <div key={step} className={`py-2 rounded-lg ${i === 0 ? 'bg-primary/10 text-primary font-medium' : 'bg-muted/20'}`}>{step}</div>
               ))}
@@ -212,7 +212,7 @@ export default function DataHubPage() {
               </div>
               <span className="text-[10px] text-muted-foreground shrink-0">{filteredTables.length} tabelas</span>
             </div>
-            <div className="grid grid-cols-4 gap-2 text-xs">
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-2 text-xs">
               {filteredTables.map(t => (
                 <button key={t} onClick={() => { toast.info(`Tabela "${t}" do banco "${explorerDb}" — abra o DB Manager para explorar dados`); }} className="text-left p-2 rounded-lg bg-muted/20 hover:bg-muted/40 transition-colors">
                   <Database className="h-3 w-3 text-primary inline mr-1" />{t}
@@ -257,7 +257,7 @@ export default function DataHubPage() {
               Resolve "quem é quem" entre os 5 bancos usando email, CNPJ (raiz 8 dígitos) e telefone normalizado.
               {irProgress && <span className="block text-primary animate-pulse mt-1">{irProgress}</span>}
             </p>
-            <div className="grid grid-cols-3 gap-3 mb-4">
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 mb-4">
               {[
                 { label: 'Resolvidas', value: irStats.resolved, color: 'text-emerald-400' },
                 { label: 'Pendentes (review)', value: irStats.pending, color: 'text-amber-400' },
@@ -309,7 +309,7 @@ export default function DataHubPage() {
 
         {/* Tab 6: Data Quality */}
         <TabsContent value="quality" className="mt-4 space-y-4">
-          <div className="grid grid-cols-4 gap-3">
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
             {[
               { label: 'Score Geral', value: '58/100', color: 'text-rose-400' },
               { label: 'Gaps Críticos', value: '8', color: 'text-rose-400' },

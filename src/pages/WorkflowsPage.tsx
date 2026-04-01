@@ -456,7 +456,7 @@ export default function WorkflowsPage() {
           </div>
 
           {/* Pipeline name + save */}
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-3 flex-wrap gap-y-2">
             <input
               value={pipelineName}
               onChange={e => setPipelineName(e.target.value)}

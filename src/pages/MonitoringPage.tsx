@@ -142,7 +142,7 @@ export default function MonitoringPage() {
             ))}
           </div>
 
-          <div className="mt-4 pt-4 border-t border-border/50 grid grid-cols-4 gap-4 text-center">
+          <div className="mt-4 pt-4 border-t border-border/50 grid grid-cols-2 md:grid-cols-4 gap-4 text-center">
             <div><p className="text-lg font-heading font-bold text-foreground">{(selectedTrace.duration / 1000).toFixed(1)}s</p><p className="text-[10px] text-muted-foreground">Duração total</p></div>
             <div><p className="text-lg font-heading font-bold text-foreground">{selectedTrace.tokens.toLocaleString()}</p><p className="text-[10px] text-muted-foreground">Tokens</p></div>
             <div><p className="text-lg font-heading font-bold text-foreground">${selectedTrace.cost.toFixed(3)}</p><p className="text-[10px] text-muted-foreground">Custo</p></div>
