@@ -1,5 +1,5 @@
 import { useAgentBuilderStore } from '@/stores/agentBuilderStore';
-import { SectionTitle, NexusBadge, ToggleField, SliderField, InputField, SelectField } from '../ui';
+import { SectionTitle, NexusBadge, ToggleField, SliderField, InputField } from '../ui';
 import { SelectionGrid } from '../ui/SelectionGrid';
 import { CollapsibleCard } from '../ui/CollapsibleCard';
 import { Button } from '@/components/ui/button';

@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { SectionTitle, ConfigCard, SliderField, InputField, ToggleField, ProgressBar } from '../ui';
+import { SectionTitle, SliderField, InputField, ToggleField, ProgressBar } from '../ui';
 import { useAgentBuilderStore } from '@/stores/agentBuilderStore';
 import { BarChart, Bar, LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend } from 'recharts';
 

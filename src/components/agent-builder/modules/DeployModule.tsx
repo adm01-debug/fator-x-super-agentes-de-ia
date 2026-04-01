@@ -1,8 +1,6 @@
 import { useAgentBuilderStore } from '@/stores/agentBuilderStore';
-import { SectionTitle, NexusBadge, ToggleField, SelectField } from '../ui';
-import { CollapsibleCard } from '../ui/CollapsibleCard';
-import { Button } from '@/components/ui/button';
-import { Plus, Trash2, Globe, MessageSquare, Mail, Hash, Send, Radio } from 'lucide-react';
+import { SectionTitle, NexusBadge, ToggleField } from '../ui';
+import { Globe, MessageSquare, Mail, Hash, Send, Radio } from 'lucide-react';
 import type { DeployChannelConfig, MonitoringKPI, DeployChannel } from '@/types/agentTypes';
 
 const ENVIRONMENT_OPTIONS = [
