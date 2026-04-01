@@ -1,0 +1,8 @@
+node_modules
+dist
+build
+coverage
+.env
+*.lock
+src/integrations/supabase/types.ts
+src/integrations/supabase/client.ts

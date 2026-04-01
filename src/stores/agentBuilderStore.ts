@@ -43,9 +43,9 @@ interface AgentBuilderStore {
 }
 
 function agentToDbRow(agent: AgentConfig, userId: string) {
-  const { id, created_at, updated_at, ...rest } = agent as Record<string, unknown>;
+  const { id, created_at: _ca, updated_at: _ua, ...rest } = agent;
   return {
-    ...(id ? { id } : {}),
+    ...(id ? { id: id as string } : {}),
     user_id: userId,
     name: agent.name,
     mission: agent.mission,
@@ -143,7 +143,7 @@ export const useAgentBuilderStore = create<AgentBuilderStore>((set, get) => ({
       const { error: e } = await supabase
         .from('agents')
         .update(row)
-        .eq('id', agent.id);
+        .eq('id', agent.id as string);
       error = e;
     } else {
       const { data, error: e } = await supabase

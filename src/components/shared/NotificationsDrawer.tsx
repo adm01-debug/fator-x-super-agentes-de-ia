@@ -74,11 +74,11 @@ export function NotificationsDrawer() {
         (payload) => {
           const row = payload.new as Record<string, unknown>;
           const notif: Notification = {
-            id: row.id,
+            id: String(row.id ?? ''),
             type: 'trace',
-            title: row.event,
-            level: row.level || 'error',
-            created_at: row.created_at,
+            title: String(row.event ?? ''),
+            level: String(row.level || 'error'),
+            created_at: String(row.created_at ?? ''),
             read: false,
           };
           setRealtimeNotifs(prev => [notif, ...prev.slice(0, 49)]);
@@ -144,13 +144,14 @@ export function NotificationsDrawer() {
           const row = payload.new as Record<string, unknown>;
           const old = payload.old as Record<string, unknown>;
           if (old.status !== 'completed' && row.status === 'completed') {
+            const passRate = typeof row.pass_rate === 'number' ? row.pass_rate : null;
             const notif: Notification = {
-              id: `eval-${row.id}`,
+              id: `eval-${String(row.id ?? '')}`,
               type: 'evaluation',
-              title: `Avaliação "${row.name}" concluída`,
-              description: row.pass_rate != null ? `Taxa de aprovação: ${(row.pass_rate * 100).toFixed(0)}%` : undefined,
+              title: `Avaliação "${String(row.name ?? '')}" concluída`,
+              description: passRate != null ? `Taxa de aprovação: ${(passRate * 100).toFixed(0)}%` : undefined,
               level: 'evaluation',
-              created_at: row.completed_at || new Date().toISOString(),
+              created_at: String(row.completed_at || new Date().toISOString()),
               read: false,
             };
             setRealtimeNotifs(prev => [notif, ...prev.slice(0, 49)]);
@@ -165,11 +166,11 @@ export function NotificationsDrawer() {
           const row = payload.new as Record<string, unknown>;
           if (row.status === 'completed') {
             const notif: Notification = {
-              id: `eval-${row.id}`,
+              id: `eval-${String(row.id ?? '')}`,
               type: 'evaluation',
-              title: `Avaliação "${row.name}" concluída`,
+              title: `Avaliação "${String(row.name ?? '')}" concluída`,
               level: 'evaluation',
-              created_at: row.created_at,
+              created_at: String(row.created_at ?? ''),
               read: false,
             };
             setRealtimeNotifs(prev => [notif, ...prev.slice(0, 49)]);
