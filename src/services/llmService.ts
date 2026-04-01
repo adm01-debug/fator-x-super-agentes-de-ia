@@ -52,6 +52,16 @@ export const AVAILABLE_MODELS = [
 
 let storedConfig: LLMConfig | null = null;
 
+// Auto-configure from environment variable if available
+function autoConfigureFromEnv(): void {
+  if (storedConfig) return; // Already configured manually
+  const envKey = import.meta.env.VITE_OPENROUTER_API_KEY;
+  if (envKey && typeof envKey === 'string' && envKey.length > 10) {
+    storedConfig = { provider: 'openrouter', apiKey: envKey };
+    logger.info('LLM auto-configured from VITE_OPENROUTER_API_KEY', 'llmService');
+  }
+}
+
 /** Store API key for LLM calls. Call this once when user configures the system. */
 export function configureLLM(config: LLMConfig): void {
   storedConfig = config;
@@ -60,11 +70,13 @@ export function configureLLM(config: LLMConfig): void {
 
 /** Check if LLM is configured */
 export function isLLMConfigured(): boolean {
+  autoConfigureFromEnv();
   return storedConfig !== null && storedConfig.apiKey.length > 10;
 }
 
 /** Get stored config (for UI display) */
 export function getLLMConfig(): { provider: string; hasKey: boolean } {
+  autoConfigureFromEnv();
   return {
     provider: storedConfig?.provider ?? 'none',
     hasKey: isLLMConfigured(),
