@@ -3,7 +3,7 @@ import { PageHeader } from '@/components/shared/PageHeader';
 import { StatusBadge } from '@/components/shared/StatusBadge';
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Database, Table2, Code, Rows3, Settings, Plug, Plus, Trash2, RefreshCw, Play, Eye, Edit, Search, AlertTriangle, CheckCircle, X, Save, Upload, Download, ChevronLeft, ChevronRight, ShieldCheck, BarChart3, Copy, GitMerge, Columns3, ArrowRightLeft } from 'lucide-react';
+import { Database, Table2, Code, Rows3, Settings, Plug, Plus, Trash2, RefreshCw, Play, Eye, Edit, Search, AlertTriangle, CheckCircle, X, Save, Upload, Download, ChevronLeft, ChevronRight, ShieldCheck, BarChart3, Copy, GitMerge, Columns3, ArrowRightLeft, Clock, Wrench } from 'lucide-react';
 import { toast } from 'sonner';
 import * as dbManager from '@/services/dbManager';
 import { PG_FUNCTIONS_CATALOG, PG_FUNCTION_CATEGORIES } from '@/config/supabase-functions-catalog';
@@ -128,6 +128,9 @@ export default function DatabaseManagerPage() {
   // Connection testing state
   const [testingConnection, setTestingConnection] = useState(false);
 
+  // History log state
+  const [historyLog, setHistoryLog] = useState<dbManager.OperationLogEntry[]>([]);
+
   // Get Supabase client for a specific connected DB
   const getClientForDb = useCallback((db: ConnectedDB) => {
     const key = db.serviceKey || db.anonKey;
@@ -163,13 +166,24 @@ export default function DatabaseManagerPage() {
   // Execute SQL
   const executeSql = useCallback(async () => {
     setSqlResult('Executando...');
-    // In production, this would call an Edge Function that executes raw SQL
-    // For now, we show the SQL that would be executed
-    setTimeout(() => {
-      setSqlResult(`-- Query executada com sucesso\n-- SQL: ${sqlQuery}\n\n-- Resultados apareceriam aqui via Edge Function\n-- (Requer service_role key para DDL/raw SQL)`);
-      toast.success('SQL enviado para execução');
-    }, 500);
-  }, [sqlQuery]);
+    const db = databases.find(d => d.id === selectedDb);
+    if (!db) { setSqlResult('-- Erro: Nenhum banco selecionado'); return; }
+    const client = getClientForDb(db);
+    const result = await dbManager.executeSQL(client, sqlQuery, db.url, db.serviceKey);
+    if (result.error) {
+      setSqlResult(`-- ERRO:\n${result.error}`);
+      toast.error('Erro na execução');
+    } else if (result.data.length > 0) {
+      // Format results as a readable table
+      const headers = Object.keys(result.data[0]);
+      const rows = result.data.map(row => headers.map(h => String(row[h] ?? 'NULL')).join(' | ')).join('\n');
+      setSqlResult(`-- ${result.rowCount ?? result.data.length} registro(s) retornado(s)\n\n${headers.join(' | ')}\n${'-'.repeat(headers.join(' | ').length)}\n${rows}`);
+      toast.success(`${result.rowCount ?? result.data.length} resultado(s)`);
+    } else {
+      setSqlResult(`-- Query executada com sucesso (0 resultados)\n-- SQL: ${sqlQuery}`);
+      toast.success('Query executada');
+    }
+  }, [sqlQuery, selectedDb, databases, getClientForDb]);
 
   // Delete row from table
   const handleDeleteRow = useCallback(async (tableName: string, rowId: string) => {
@@ -239,32 +253,57 @@ export default function DatabaseManagerPage() {
     setIsAnalyzing(true);
     toast.info(`Analisando ${connectForm.name}...`);
 
-    // Simulate analysis (in production, would use discoverTables + getTableRowCount)
-    setTimeout(() => {
+    // Real discovery: fetch tables from OpenAPI schema
+    try {
+      const discoveredTables = await dbManager.discoverTables(connectForm.url, key);
+      const client = dbManager.connectToRemoteDB(connectForm.url, key);
+
+      // Get row counts for each discovered table (limit to first 30 to avoid too many requests)
+      const tableInfos: TableInfo[] = [];
+      for (const dt of discoveredTables.slice(0, 30)) {
+        const rowCount = await dbManager.getTableRowCount(client, dt.name);
+        const hasFkCols = dt.columns.filter(c => c.endsWith('_id') && c !== 'id').length;
+        tableInfos.push({
+          name: dt.name,
+          columns: dt.columns.length,
+          rows: rowCount,
+          hasRls: false, // Would need information_schema query to know
+          fks: hasFkCols,
+          size: rowCount > 10000 ? '> 1 MB' : rowCount > 1000 ? '> 100 KB' : '< 100 KB',
+        });
+      }
+
+      const totalRows = tableInfos.reduce((s, t) => s + t.rows, 0);
+
       setDatabases(prev => prev.map(db =>
         db.id === newDb.id ? {
           ...db,
           status: 'connected' as const,
-          tables: Math.floor(10 + Math.random() * 50),
-          functions: Math.floor(5 + Math.random() * 20),
-          rows: Math.floor(1000 + Math.random() * 100000),
+          tables: discoveredTables.length,
+          functions: 0,
+          rows: totalRows,
           lastAnalysis: new Date().toISOString(),
         } : db
       ));
 
-      setTables([
-        { name: 'users', columns: 8, rows: 156, hasRls: true, fks: 0, size: '24 KB' },
-        { name: 'orders', columns: 12, rows: 2340, hasRls: true, fks: 2, size: '512 KB' },
-        { name: 'products', columns: 15, rows: 890, hasRls: false, fks: 1, size: '256 KB' },
-        { name: 'categories', columns: 5, rows: 42, hasRls: false, fks: 0, size: '8 KB' },
-        { name: 'payments', columns: 10, rows: 1820, hasRls: true, fks: 2, size: '384 KB' },
-      ]);
+      if (tableInfos.length > 0) {
+        setTables(tableInfos);
+      }
 
       setSelectedDb(newDb.id);
       setIsAnalyzing(false);
-      toast.success(`${connectForm.name} conectado! ${Math.floor(10 + Math.random() * 50)} tabelas descobertas.`);
+      toast.success(`${connectForm.name} conectado! ${discoveredTables.length} tabelas descobertas, ${totalRows.toLocaleString()} registros.`);
       setConnectForm({ name: '', url: '', anonKey: '', serviceKey: '' });
-    }, 3000);
+    } catch (err) {
+      // Fallback to basic connection without discovery
+      setDatabases(prev => prev.map(db =>
+        db.id === newDb.id ? { ...db, status: 'connected' as const, lastAnalysis: new Date().toISOString() } : db
+      ));
+      setSelectedDb(newDb.id);
+      setIsAnalyzing(false);
+      toast.warning(`${connectForm.name} conectado, mas a descoberta automática falhou. Use o Explorer manualmente.`);
+      setConnectForm({ name: '', url: '', anonKey: '', serviceKey: '' });
+    }
   };
 
   const handleDisconnect = (id: string) => {
@@ -504,6 +543,7 @@ export default function DatabaseManagerPage() {
             { id: 'functions', icon: Settings, label: 'Funções' },
             { id: 'data', icon: Rows3, label: 'Dados' },
             { id: 'transfer', icon: RefreshCw, label: 'Transferir' },
+            { id: 'history', icon: Clock, label: 'Histórico' },
           ].map(tab => (
             <TabsTrigger key={tab.id} value={tab.id} className="gap-1.5 text-xs whitespace-nowrap">
               <tab.icon className="h-3.5 w-3.5" /> {tab.label}
@@ -700,7 +740,22 @@ export default function DatabaseManagerPage() {
                         <td className="px-3 py-2 text-center">
                           <div className="flex items-center justify-center gap-1">
                             <button className="p-1 rounded hover:bg-muted/30" title="Ver dados" onClick={() => { loadTableData(t.name); setActiveTab('data'); }}><Eye className="h-3 w-3 text-muted-foreground" /></button>
-                            <button className="p-1 rounded hover:bg-muted/30" title="Adicionar coluna" onClick={() => { setSqlQuery(dbManager.generateAlterTableSQL(t.name, 'ADD_COLUMN', { columnName: 'nova_coluna', type: 'TEXT' })); setActiveTab('sql'); toast.info('SQL gerado — edite o nome da coluna e execute'); }}><Edit className="h-3 w-3 text-muted-foreground" /></button>
+                            <button className="p-1 rounded hover:bg-muted/30" title="Adicionar coluna" onClick={() => { setSqlQuery(dbManager.generateAlterTableSQL(t.name, 'ADD_COLUMN', { columnName: 'nova_coluna', type: 'TEXT' })); setActiveTab('sql'); toast.info('SQL gerado — edite o nome da coluna e execute'); }}><Plus className="h-3 w-3 text-muted-foreground" /></button>
+                            <button className="p-1 rounded hover:bg-muted/30" title="Renomear coluna" onClick={() => {
+                              const col = prompt('Nome da coluna a renomear:');
+                              const newName = col ? prompt(`Novo nome para "${col}":`) : null;
+                              if (col && newName) { setSqlQuery(dbManager.generateAlterTableSQL(t.name, 'RENAME_COLUMN', { columnName: col, newName })); setActiveTab('sql'); toast.info('SQL gerado — revise e execute'); }
+                            }}><Edit className="h-3 w-3 text-muted-foreground" /></button>
+                            <button className="p-1 rounded hover:bg-muted/30" title="Alterar tipo de coluna" onClick={() => {
+                              const col = prompt('Nome da coluna para alterar tipo:');
+                              const type = col ? prompt(`Novo tipo para "${col}" (ex: INTEGER, BOOLEAN, TEXT):`) : null;
+                              if (col && type) { setSqlQuery(dbManager.generateAlterTableSQL(t.name, 'ALTER_TYPE', { columnName: col, type })); setActiveTab('sql'); toast.info('SQL gerado — revise e execute'); }
+                            }}><Wrench className="h-3 w-3 text-muted-foreground" /></button>
+                            <button className="p-1 rounded hover:bg-amber-500/20" title="Remover coluna" onClick={() => {
+                              const col = prompt(`Remover coluna de "${t.name}" — digite o nome da coluna:`);
+                              if (col) { setSqlQuery(dbManager.generateAlterTableSQL(t.name, 'DROP_COLUMN', { columnName: col })); setActiveTab('sql'); toast.warning('SQL gerado — CUIDADO: revise antes de executar!'); }
+                            }}><X className="h-3 w-3 text-amber-400" /></button>
+                            <button className="p-1 rounded hover:bg-muted/30" title="Habilitar RLS" onClick={() => { setSqlQuery(dbManager.generateEnableRLSSQL(t.name)); setActiveTab('sql'); toast.info('SQL de RLS gerado'); }}><ShieldCheck className="h-3 w-3 text-muted-foreground" /></button>
                             <button className="p-1 rounded hover:bg-destructive/20" title="Excluir tabela" onClick={() => handleDropTable(t.name)}><Trash2 className="h-3 w-3 text-destructive" /></button>
                           </div>
                         </td>
@@ -850,12 +905,26 @@ export default function DatabaseManagerPage() {
                 </Button>
                 <Button variant="outline" size="sm" className="gap-1.5" onClick={() => { setFilterValue(''); setFilterColumn(''); viewingTable && loadTableData(viewingTable); }}><RefreshCw className="h-3.5 w-3.5" /> Limpar</Button>
                 <Button variant="outline" size="sm" className="gap-1.5" onClick={() => setShowFindReplace(!showFindReplace)} disabled={!viewingTable}><Edit className="h-3.5 w-3.5" /> Substituir</Button>
-                {/* Export */}
+                {/* Export page */}
                 <Button variant="outline" size="sm" className="gap-1.5" disabled={!viewingTable || tableData.length === 0} onClick={() => {
                   const csv = dbManager.exportToCSV(tableData, viewingTable!);
-                  dbManager.downloadFile(csv, `${viewingTable}.csv`, 'text/csv');
-                  toast.success(`${tableData.length} registros exportados para CSV`);
-                }}>Exportar CSV</Button>
+                  dbManager.downloadFile(csv, `${viewingTable}_page.csv`, 'text/csv');
+                  toast.success(`${tableData.length} registros (página) exportados para CSV`);
+                }}>CSV Página</Button>
+                {/* Export ALL */}
+                <Button variant="outline" size="sm" className="gap-1.5 text-primary" disabled={!viewingTable} onClick={async () => {
+                  const db = databases.find(d => d.id === selectedDb);
+                  if (!db || !viewingTable) return;
+                  toast.info('Buscando todos os registros...');
+                  const client = getClientForDb(db);
+                  const result = await dbManager.fetchAllRows(client, viewingTable, (fetched, total) => {
+                    if (fetched % 2000 === 0) toast.info(`${fetched}/${total} registros...`);
+                  });
+                  if (result.error) { toast.error(result.error); return; }
+                  const csv = dbManager.exportToCSV(result.data, viewingTable);
+                  dbManager.downloadFile(csv, `${viewingTable}_full.csv`, 'text/csv');
+                  toast.success(`${result.count} registros exportados (tabela completa)`);
+                }}>CSV Tudo</Button>
                 <Button variant="outline" size="sm" className="gap-1.5" disabled={!viewingTable || tableData.length === 0} onClick={() => {
                   const json = dbManager.exportToJSON(tableData);
                   dbManager.downloadFile(json, `${viewingTable}.json`, 'application/json');
@@ -1260,6 +1329,54 @@ export default function DatabaseManagerPage() {
                   </Button>
                 </div>
               </>
+            )}
+          </div>
+        </TabsContent>
+
+        {/* Tab 8: Histórico de Operações */}
+        <TabsContent value="history" className="mt-4 space-y-4">
+          <div className="nexus-card">
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="text-sm font-semibold text-foreground">Histórico de Operações</h3>
+              <div className="flex gap-2">
+                <Button variant="outline" size="sm" onClick={() => {
+                  const log = dbManager.getOperationLog();
+                  if (log.length === 0) { toast.info('Nenhuma operação registrada ainda'); return; }
+                  setHistoryLog(log);
+                  toast.success(`${log.length} operações carregadas`);
+                }}><RefreshCw className="h-3 w-3 mr-1" /> Atualizar</Button>
+                <Button variant="outline" size="sm" className="text-destructive" onClick={() => {
+                  if (!confirm('Limpar todo o histórico de operações?')) return;
+                  dbManager.clearOperationLog();
+                  setHistoryLog([]);
+                  toast.success('Histórico limpo');
+                }}><Trash2 className="h-3 w-3 mr-1" /> Limpar</Button>
+              </div>
+            </div>
+            {historyLog.length > 0 ? (
+              <div className="space-y-1.5 max-h-[500px] overflow-y-auto">
+                {historyLog.map(entry => (
+                  <div key={entry.id} className="flex items-center gap-3 p-2 rounded-lg bg-muted/10 text-xs">
+                    <span className={`px-2 py-0.5 rounded font-medium text-[10px] shrink-0 ${
+                      entry.operation === 'INSERT' || entry.operation === 'IMPORT' ? 'bg-emerald-500/20 text-emerald-400' :
+                      entry.operation === 'UPDATE' || entry.operation === 'BULK_UPDATE' ? 'bg-blue-500/20 text-blue-400' :
+                      entry.operation === 'DELETE' ? 'bg-red-500/20 text-red-400' :
+                      entry.operation === 'FIND_REPLACE' ? 'bg-purple-500/20 text-purple-400' :
+                      'bg-muted text-muted-foreground'
+                    }`}>{entry.operation}</span>
+                    <span className="font-mono text-foreground shrink-0">{entry.table_name}</span>
+                    <span className="text-muted-foreground truncate flex-1">{entry.details}</span>
+                    <span className="font-mono text-muted-foreground shrink-0">{entry.row_count} row(s)</span>
+                    <span className="text-muted-foreground shrink-0 text-[10px]">{new Date(entry.executed_at).toLocaleString('pt-BR')}</span>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <div className="text-center py-8">
+                <Clock className="h-8 w-8 mx-auto mb-2 text-muted-foreground opacity-30" />
+                <p className="text-xs text-muted-foreground">Nenhuma operação registrada.</p>
+                <p className="text-[10px] text-muted-foreground mt-1">Insira, edite ou exclua dados para ver o histórico aqui.</p>
+              </div>
             )}
           </div>
         </TabsContent>

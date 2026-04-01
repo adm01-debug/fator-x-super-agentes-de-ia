@@ -59,34 +59,57 @@ export async function testConnection(url: string, key: string): Promise<{ ok: bo
 
 // ═══ INTROSPECTION (Schema Discovery) ═══
 
-export async function discoverTables(client: SupabaseClient): Promise<{ name: string; type: string }[]> {
-  // Use PostgREST to query the schema - fetch all tables
-  // We try to access pg_catalog through rpc or direct query
-  const tables: { name: string; type: string }[] = [];
-
-  // Strategy: try to select from known common tables to discover what exists
-  // In production, this would use service_role key with information_schema access
+/**
+ * Discover tables by fetching the Supabase REST API OpenAPI schema.
+ * The PostgREST endpoint at / returns a JSON OpenAPI spec with all exposed tables in `definitions`.
+ */
+export async function discoverTables(url: string, key: string): Promise<{ name: string; type: string; columns: string[] }[]> {
+  const tables: { name: string; type: string; columns: string[] }[] = [];
   try {
-    const { data, error } = await client.rpc('get_tables', {}).maybeSingle();
-    if (data && !error) return data as { name: string; type: string }[];
-  } catch {
-    // RPC not available - fallback to probing
-  }
+    // Fetch the OpenAPI spec from PostgREST's root endpoint
+    const restUrl = url.replace(/\/$/, '') + '/rest/v1/';
+    const response = await fetch(restUrl, {
+      headers: {
+        'apikey': key,
+        'Authorization': `Bearer ${key}`,
+      },
+    });
+    if (!response.ok) return tables;
+    const spec = await response.json();
 
-  // Fallback: The Supabase REST API automatically exposes tables
-  // We can use the OpenAPI spec endpoint to discover tables
+    // PostgREST exposes tables as paths: /table_name
+    if (spec.paths) {
+      Object.keys(spec.paths).forEach(path => {
+        const name = path.replace(/^\//, '');
+        if (name && !name.startsWith('rpc/') && name !== '') {
+          const columns: string[] = [];
+          // Try to extract columns from definitions
+          if (spec.definitions?.[name]?.properties) {
+            columns.push(...Object.keys(spec.definitions[name].properties));
+          }
+          tables.push({ name, type: 'table', columns });
+        }
+      });
+    }
+  } catch {
+    // Network error or invalid response
+  }
   return tables;
 }
 
 export async function getTableColumns(client: SupabaseClient, tableName: string): Promise<TableColumn[]> {
   try {
-    // Try to get column info by selecting with limit 0
-    const { data, error } = await client.from(tableName).select('*').limit(0);
-    if (error) return [];
+    // Fetch one row to infer column names and types
+    const { data, error } = await client.from(tableName).select('*').limit(1);
+    if (error || !data || data.length === 0) return [];
 
-    // If we have data structure, we can infer columns
-    // In production, use information_schema query via Edge Function
-    return [];
+    return Object.entries(data[0]).map(([name, value]) => ({
+      name,
+      type: value === null ? 'unknown' : typeof value === 'number' ? 'numeric' : typeof value === 'boolean' ? 'boolean' : 'text',
+      nullable: true,
+      defaultValue: null,
+      isPrimary: name === 'id',
+    }));
   } catch {
     return [];
   }
@@ -140,6 +163,7 @@ export async function insertRow(
   try {
     const { data, error } = await client.from(tableName).insert(row).select().single();
     if (error) return { data: null, error: error.message };
+    logOperation('INSERT', tableName, `1 registro inserido`, 1);
     return { data };
   } catch (err) {
     return { data: null, error: err instanceof Error ? err.message : 'Erro ao inserir' };
@@ -156,6 +180,7 @@ export async function updateRow(
   try {
     const { data, error } = await client.from(tableName).update(updates).eq(idColumn, id).select().single();
     if (error) return { data: null, error: error.message };
+    logOperation('UPDATE', tableName, `Registro ${id} atualizado: ${Object.keys(updates).join(', ')}`, 1);
     return { data };
   } catch (err) {
     return { data: null, error: err instanceof Error ? err.message : 'Erro ao atualizar' };
@@ -171,10 +196,39 @@ export async function deleteRow(
   try {
     const { error } = await client.from(tableName).delete().eq(idColumn, id);
     if (error) return { error: error.message };
+    logOperation('DELETE', tableName, `Registro ${id} excluído`, 1);
     return {};
   } catch (err) {
     return { error: err instanceof Error ? err.message : 'Erro ao deletar' };
   }
+}
+
+// ═══ SQL SANITIZATION ═══
+
+const VALID_IDENTIFIER = /^[a-zA-Z_][a-zA-Z0-9_]{0,62}$/;
+const VALID_SQL_TYPE = /^[A-Z][A-Z0-9 _(),']+$/i;
+
+/** Sanitize a SQL identifier (table/column name). Throws if invalid. */
+export function sanitizeIdentifier(name: string): string {
+  const trimmed = name.trim();
+  if (!VALID_IDENTIFIER.test(trimmed)) {
+    throw new Error(`Nome SQL inválido: "${trimmed}". Use apenas letras, números e _ (máx 63 chars, começando com letra ou _).`);
+  }
+  return trimmed;
+}
+
+/** Sanitize a SQL type. Only allows known safe patterns. */
+function sanitizeType(type: string): string {
+  const trimmed = type.trim();
+  // Allow common types with optional params: TEXT, VARCHAR(255), NUMERIC(10,2), UUID DEFAULT gen_random_uuid(), etc.
+  if (!VALID_SQL_TYPE.test(trimmed) && !trimmed.includes('DEFAULT')) {
+    throw new Error(`Tipo SQL suspeito: "${trimmed}"`);
+  }
+  // Block obvious injection attempts
+  if (/;\s*(DROP|DELETE|INSERT|UPDATE|ALTER|CREATE|GRANT|REVOKE)/i.test(trimmed)) {
+    throw new Error(`Tipo SQL contém comando proibido: "${trimmed}"`);
+  }
+  return trimmed;
 }
 
 // ═══ DDL OPERATIONS (Table Management) ═══
@@ -185,14 +239,17 @@ export function generateCreateTableSQL(
   tableName: string,
   columns: { name: string; type: string; nullable: boolean; defaultValue?: string; isPrimary?: boolean }[]
 ): string {
+  const safeName = sanitizeIdentifier(tableName);
   const colDefs = columns.map(col => {
-    let def = `  ${col.name} ${col.type}`;
+    const colName = sanitizeIdentifier(col.name);
+    const colType = sanitizeType(col.type);
+    let def = `  ${colName} ${colType}`;
     if (col.isPrimary) def += ' PRIMARY KEY';
     if (!col.nullable) def += ' NOT NULL';
     if (col.defaultValue) def += ` DEFAULT ${col.defaultValue}`;
     return def;
   });
-  return `CREATE TABLE public.${tableName} (\n${colDefs.join(',\n')}\n);`;
+  return `CREATE TABLE public.${safeName} (\n${colDefs.join(',\n')}\n);`;
 }
 
 export function generateAlterTableSQL(
@@ -200,18 +257,106 @@ export function generateAlterTableSQL(
   action: 'ADD_COLUMN' | 'DROP_COLUMN' | 'RENAME_COLUMN' | 'ALTER_TYPE',
   details: { columnName: string; newName?: string; type?: string; nullable?: boolean; defaultValue?: string }
 ): string {
+  const safeName = sanitizeIdentifier(tableName);
+  const safeCol = sanitizeIdentifier(details.columnName);
   switch (action) {
-    case 'ADD_COLUMN':
-      return `ALTER TABLE public.${tableName} ADD COLUMN ${details.columnName} ${details.type ?? 'TEXT'}${details.nullable === false ? ' NOT NULL' : ''}${details.defaultValue ? ` DEFAULT ${details.defaultValue}` : ''};`;
+    case 'ADD_COLUMN': {
+      const safeType = sanitizeType(details.type ?? 'TEXT');
+      return `ALTER TABLE public.${safeName} ADD COLUMN ${safeCol} ${safeType}${details.nullable === false ? ' NOT NULL' : ''}${details.defaultValue ? ` DEFAULT ${details.defaultValue}` : ''};`;
+    }
     case 'DROP_COLUMN':
-      return `ALTER TABLE public.${tableName} DROP COLUMN ${details.columnName};`;
-    case 'RENAME_COLUMN':
-      return `ALTER TABLE public.${tableName} RENAME COLUMN ${details.columnName} TO ${details.newName};`;
-    case 'ALTER_TYPE':
-      return `ALTER TABLE public.${tableName} ALTER COLUMN ${details.columnName} TYPE ${details.type} USING ${details.columnName}::${details.type};`;
+      return `ALTER TABLE public.${safeName} DROP COLUMN ${safeCol};`;
+    case 'RENAME_COLUMN': {
+      const safeNew = sanitizeIdentifier(details.newName ?? 'new_column');
+      return `ALTER TABLE public.${safeName} RENAME COLUMN ${safeCol} TO ${safeNew};`;
+    }
+    case 'ALTER_TYPE': {
+      const safeType = sanitizeType(details.type ?? 'TEXT');
+      return `ALTER TABLE public.${safeName} ALTER COLUMN ${safeCol} TYPE ${safeType} USING ${safeCol}::${safeType};`;
+    }
     default:
       return '';
   }
+}
+
+// ═══ SQL EXECUTION ═══
+
+/**
+ * Execute raw SQL via Supabase's rpc or direct REST.
+ * Strategy 1: Try calling an 'execute_sql' RPC function (must be created in DB).
+ * Strategy 2: For SELECT queries, parse table name and use the REST API.
+ * Strategy 3: For DDL, requires service_role and Edge Function.
+ */
+export async function executeSQL(
+  client: SupabaseClient,
+  sql: string,
+  url?: string,
+  serviceKey?: string
+): Promise<{ data: TableRow[]; error?: string; rowCount?: number }> {
+  const trimmedSql = sql.trim();
+
+  // Strategy 1: Try RPC function (user must CREATE this function in their DB)
+  try {
+    const { data, error } = await client.rpc('execute_sql', { query: trimmedSql });
+    if (!error && data) {
+      const rows = Array.isArray(data) ? data : [data];
+      logOperation('SQL', 'raw', trimmedSql.slice(0, 100), rows.length);
+      return { data: rows, rowCount: rows.length };
+    }
+  } catch {
+    // RPC not available
+  }
+
+  // Strategy 2: For simple SELECT queries, parse and use REST API
+  const selectMatch = trimmedSql.match(/^SELECT\s+(.+?)\s+FROM\s+(?:public\.)?(\w+)/i);
+  if (selectMatch) {
+    const tableName = selectMatch[2];
+    const limitMatch = trimmedSql.match(/LIMIT\s+(\d+)/i);
+    const limit = limitMatch ? parseInt(limitMatch[1]) : 100;
+    const whereMatch = trimmedSql.match(/WHERE\s+(.+?)(?:\s+ORDER|\s+LIMIT|\s+GROUP|\s*;?\s*$)/i);
+
+    let query = client.from(tableName).select('*', { count: 'exact' }).limit(limit);
+
+    // Basic WHERE parsing for simple conditions
+    if (whereMatch) {
+      const condition = whereMatch[1].trim();
+      const eqMatch = condition.match(/^(\w+)\s*=\s*'([^']+)'/);
+      const ilikeMatch = condition.match(/^(\w+)\s+(?:I?LIKE)\s+'([^']+)'/i);
+      if (eqMatch) query = query.eq(eqMatch[1], eqMatch[2]);
+      else if (ilikeMatch) query = query.ilike(ilikeMatch[1], ilikeMatch[2]);
+    }
+
+    const { data, count, error } = await query;
+    if (error) return { data: [], error: `REST API: ${error.message}` };
+    logOperation('SQL', tableName, `SELECT ${data?.length ?? 0} rows`, data?.length ?? 0);
+    return { data: data ?? [], rowCount: count ?? data?.length ?? 0 };
+  }
+
+  // Strategy 3: DDL/DML via Edge Function (requires service_role key)
+  if (url && serviceKey) {
+    try {
+      const edgeFnUrl = `${url}/functions/v1/execute-sql`;
+      const response = await fetch(edgeFnUrl, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${serviceKey}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ sql: trimmedSql }),
+      });
+      if (response.ok) {
+        const result = await response.json();
+        logOperation('SQL_DDL', 'raw', trimmedSql.slice(0, 100), result.rowCount ?? 0);
+        return { data: result.data ?? [], rowCount: result.rowCount ?? 0 };
+      }
+      const errText = await response.text();
+      return { data: [], error: `Edge Function: ${errText}` };
+    } catch (err) {
+      return { data: [], error: `Edge Function indisponível: ${err instanceof Error ? err.message : 'Erro de rede'}` };
+    }
+  }
+
+  return { data: [], error: 'Para executar este SQL, crie a função RPC "execute_sql" no banco ou deploy a Edge Function "execute-sql".\n\nCREATE OR REPLACE FUNCTION execute_sql(query TEXT)\nRETURNS JSONB AS $$\nBEGIN\n  RETURN (SELECT jsonb_agg(row_to_json(t)) FROM (EXECUTE query) t);\nEND;\n$$ LANGUAGE plpgsql SECURITY DEFINER;' };
 }
 
 // ═══ FIND & REPLACE (Substituição em massa) ═══
@@ -288,6 +433,7 @@ export async function findAndReplace(
       }
     }
 
+    if (replaced > 0) logOperation('FIND_REPLACE', tableName, `"${searchValue}" → "${replaceValue}" na coluna ${column}: ${replaced} de ${matched}`, replaced);
     return { matched, replaced };
   } catch (err) {
     return { matched: 0, replaced: 0, error: err instanceof Error ? err.message : 'Erro na substituição' };
@@ -394,11 +540,13 @@ export async function transferData(
 }
 
 export function generateDropTableSQL(tableName: string): string {
-  return `DROP TABLE IF EXISTS public.${tableName} CASCADE;`;
+  const safeName = sanitizeIdentifier(tableName);
+  return `DROP TABLE IF EXISTS public.${safeName} CASCADE;`;
 }
 
 export function generateEnableRLSSQL(tableName: string): string {
-  return `ALTER TABLE public.${tableName} ENABLE ROW LEVEL SECURITY;`;
+  const safeName = sanitizeIdentifier(tableName);
+  return `ALTER TABLE public.${safeName} ENABLE ROW LEVEL SECURITY;`;
 }
 
 // ═══ CROSS-DATABASE TRANSFER (entre 2 bancos diferentes) ═══
@@ -439,37 +587,44 @@ export async function crossDatabaseTransfer(
   let transferred = 0;
   let failed = 0;
 
-  // 2. Para cada registro, mapear colunas e inserir no banco destino
-  for (let i = 0; i < sourceRows.length; i++) {
-    const sourceRow = sourceRows[i];
+  // 2. Mapear todas as rows de uma vez
+  const mappedRows = sourceRows.map(sourceRow => {
     const targetRow: Record<string, unknown> = {};
-
     Object.entries(columnMapping).forEach(([srcCol, tgtCol]) => {
-      if (sourceRow[srcCol] !== undefined) {
-        targetRow[tgtCol] = sourceRow[srcCol];
-      }
+      if (sourceRow[srcCol] !== undefined) targetRow[tgtCol] = sourceRow[srcCol];
     });
-
-    // Remover campos auto-gerados do destino
     delete targetRow.id;
     delete targetRow.created_at;
     delete targetRow.updated_at;
+    return targetRow;
+  });
 
-    const { error: insertError } = await targetClient.from(targetTable).insert(targetRow);
-
-    if (insertError) {
-      failed++;
-      if (errors.length < 5) errors.push(`Row ${i + 1}: ${insertError.message}`);
-    } else {
-      transferred++;
-      // 3. Se pediu para mover (não copiar), deletar da origem
-      if (options?.deleteFromSource) {
-        const idCol = Object.keys(sourceRow)[0];
-        await sourceClient.from(sourceTable).delete().eq(idCol, sourceRow[idCol]);
+  // 3. Inserir em batch no banco destino
+  const batches = chunk(mappedRows, BATCH_SIZE);
+  for (let b = 0; b < batches.length; b++) {
+    const batch = batches[b];
+    const { data, error: batchError } = await targetClient.from(targetTable).insert(batch).select();
+    if (batchError) {
+      // Fallback row-by-row
+      for (let i = 0; i < batch.length; i++) {
+        const { error: singleErr } = await targetClient.from(targetTable).insert(batch[i]);
+        if (singleErr) { failed++; if (errors.length < 5) errors.push(singleErr.message); }
+        else transferred++;
       }
+    } else {
+      transferred += data?.length ?? batch.length;
     }
-
     options?.onProgress?.(transferred + failed, total);
+  }
+
+  // 4. Se pediu para mover, deletar da origem em batch
+  if (options?.deleteFromSource && transferred > 0) {
+    const idCol = Object.keys(sourceRows[0])[0];
+    const idsToDelete = sourceRows.slice(0, transferred).map(r => r[idCol]);
+    const deleteBatches = chunk(idsToDelete as string[], BATCH_SIZE);
+    for (const batch of deleteBatches) {
+      await sourceClient.from(sourceTable).delete().in(idCol, batch);
+    }
   }
 
   return { transferred, failed, total, errors };
@@ -537,6 +692,31 @@ export async function crossDatabaseSync(
 
 // ═══ 1. EXPORTAR DADOS (CSV / JSON) ═══
 
+/** Fetch ALL rows from a table (paginated internally, returns full dataset). */
+export async function fetchAllRows(
+  client: SupabaseClient, tableName: string, onProgress?: (fetched: number, total: number) => void
+): Promise<{ data: TableRow[]; count: number; error?: string }> {
+  try {
+    // First get total count
+    const { count, error: countError } = await client.from(tableName).select('*', { count: 'exact', head: true });
+    if (countError) return { data: [], count: 0, error: countError.message };
+    const total = count ?? 0;
+    if (total === 0) return { data: [], count: 0 };
+
+    const allData: TableRow[] = [];
+    const pageSize = 1000;
+    for (let offset = 0; offset < total; offset += pageSize) {
+      const { data, error } = await client.from(tableName).select('*').range(offset, offset + pageSize - 1);
+      if (error) return { data: allData, count: total, error: error.message };
+      if (data) allData.push(...data);
+      onProgress?.(allData.length, total);
+    }
+    return { data: allData, count: total };
+  } catch (err) {
+    return { data: [], count: 0, error: err instanceof Error ? err.message : 'Erro ao buscar dados' };
+  }
+}
+
 export function exportToCSV(data: TableRow[], tableName: string): string {
   if (data.length === 0) return '';
   const headers = Object.keys(data[0]);
@@ -561,7 +741,19 @@ export function downloadFile(content: string, filename: string, mimeType: string
   URL.revokeObjectURL(url);
 }
 
-// ═══ 2. IMPORTAR DADOS (CSV parse + insert) ═══
+// ═══ BATCH HELPER ═══
+
+const BATCH_SIZE = 500;
+
+function chunk<T>(arr: T[], size: number): T[][] {
+  const chunks: T[][] = [];
+  for (let i = 0; i < arr.length; i += size) {
+    chunks.push(arr.slice(i, i + size));
+  }
+  return chunks;
+}
+
+// ═══ 2. IMPORTAR DADOS (CSV parse + insert) — BATCH ═══
 
 /** Parse CSV respecting quoted fields (handles commas inside quotes) */
 export function parseCSV(csv: string): TableRow[] {
@@ -599,10 +791,20 @@ export function parseCSV(csv: string): TableRow[] {
 
 export async function importRows(client: SupabaseClient, tableName: string, rows: TableRow[]): Promise<{ inserted: number; errors: number }> {
   let inserted = 0, errors = 0;
-  for (const row of rows) {
-    const { error } = await client.from(tableName).insert(row);
-    if (error) errors++; else inserted++;
+  const batches = chunk(rows, BATCH_SIZE);
+  for (const batch of batches) {
+    const { data, error } = await client.from(tableName).insert(batch).select();
+    if (error) {
+      // Fallback: try one-by-one for this batch to salvage partial data
+      for (const row of batch) {
+        const { error: singleErr } = await client.from(tableName).insert(row);
+        if (singleErr) errors++; else inserted++;
+      }
+    } else {
+      inserted += data?.length ?? batch.length;
+    }
   }
+  if (inserted > 0) logOperation('IMPORT', tableName, `${inserted} registros importados (${errors} erros)`, inserted);
   return { inserted, errors };
 }
 
@@ -704,10 +906,20 @@ export async function bulkUpdate(
   client: SupabaseClient, tableName: string, ids: string[], updates: Record<string, unknown>, idColumn = 'id'
 ): Promise<{ updated: number; error?: string }> {
   let updated = 0;
-  for (const id of ids) {
-    const { error } = await client.from(tableName).update(updates).eq(idColumn, id);
-    if (!error) updated++;
+  const batches = chunk(ids, BATCH_SIZE);
+  for (const batch of batches) {
+    const { data, error } = await client.from(tableName).update(updates).in(idColumn, batch).select();
+    if (error) {
+      // Fallback row-by-row
+      for (const id of batch) {
+        const { error: singleErr } = await client.from(tableName).update(updates).eq(idColumn, id);
+        if (!singleErr) updated++;
+      }
+    } else {
+      updated += data?.length ?? batch.length;
+    }
   }
+  if (updated > 0) logOperation('BULK_UPDATE', tableName, `${updated} de ${ids.length} registros atualizados em lote`, updated);
   return { updated };
 }
 
@@ -748,8 +960,62 @@ export async function validateTableData(
 }
 
 // ═══ 11. HISTÓRICO DE ALTERAÇÕES ═══
-// Implementado via db_operation_log table (migration 006)
-// Cada operação INSERT/UPDATE/DELETE grava automaticamente
+
+export interface OperationLogEntry {
+  id: string;
+  operation: string;
+  table_name: string;
+  details: string;
+  row_count: number;
+  executed_at: string;
+  user_id?: string;
+}
+
+/** Log an operation to the local operation history */
+const operationLog: OperationLogEntry[] = [];
+
+export function logOperation(operation: string, tableName: string, details: string, rowCount: number): void {
+  operationLog.unshift({
+    id: crypto.randomUUID(),
+    operation,
+    table_name: tableName,
+    details,
+    row_count: rowCount,
+    executed_at: new Date().toISOString(),
+  });
+  // Keep only last 200 entries in memory
+  if (operationLog.length > 200) operationLog.length = 200;
+}
+
+export function getOperationLog(): OperationLogEntry[] {
+  return [...operationLog];
+}
+
+export function clearOperationLog(): void {
+  operationLog.length = 0;
+}
+
+/**
+ * Fetch operation log from db_operation_log table (if available).
+ * Falls back to in-memory log.
+ */
+export async function fetchOperationLog(
+  client: SupabaseClient, limit = 50
+): Promise<{ data: OperationLogEntry[]; error?: string }> {
+  try {
+    const { data, error } = await client.from('db_operation_log')
+      .select('*')
+      .order('executed_at', { ascending: false })
+      .limit(limit);
+    if (error) {
+      // Table doesn't exist or no permission — use in-memory log
+      return { data: getOperationLog().slice(0, limit) };
+    }
+    return { data: data ?? [] };
+  } catch {
+    return { data: getOperationLog().slice(0, limit) };
+  }
+}
 
 // ═══ 12. RELACIONAMENTOS (FKs como links) ═══
 

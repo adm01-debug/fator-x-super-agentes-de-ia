@@ -9,6 +9,10 @@ import {
   generateDropTableSQL,
   generateEnableRLSSQL,
   extractForeignKeys,
+  sanitizeIdentifier,
+  logOperation,
+  getOperationLog,
+  clearOperationLog,
 } from '@/services/dbManager';
 
 // ═══ exportToCSV ═══
@@ -379,5 +383,85 @@ describe('extractForeignKeys', () => {
     const columns = [{ category_id: 5 }];
     const fks = extractForeignKeys(columns);
     expect(fks[0].refTable).toBe('categorys');
+  });
+});
+
+// ═══ sanitizeIdentifier ═══
+
+describe('sanitizeIdentifier', () => {
+  it('accepts valid identifiers', () => {
+    expect(sanitizeIdentifier('users')).toBe('users');
+    expect(sanitizeIdentifier('order_items')).toBe('order_items');
+    expect(sanitizeIdentifier('_private_table')).toBe('_private_table');
+    expect(sanitizeIdentifier('Table123')).toBe('Table123');
+  });
+
+  it('rejects SQL injection attempts', () => {
+    expect(() => sanitizeIdentifier('users; DROP TABLE payments--')).toThrow('Nome SQL inválido');
+    expect(() => sanitizeIdentifier('a b c')).toThrow('Nome SQL inválido');
+    expect(() => sanitizeIdentifier('')).toThrow('Nome SQL inválido');
+    expect(() => sanitizeIdentifier('123abc')).toThrow('Nome SQL inválido');
+  });
+
+  it('rejects names starting with numbers', () => {
+    expect(() => sanitizeIdentifier('1table')).toThrow();
+  });
+
+  it('trims whitespace', () => {
+    expect(sanitizeIdentifier('  users  ')).toBe('users');
+  });
+
+  it('blocks names over 63 characters', () => {
+    const long = 'a'.repeat(64);
+    expect(() => sanitizeIdentifier(long)).toThrow();
+  });
+
+  it('allows names exactly 63 characters', () => {
+    const exact = 'a'.repeat(63);
+    expect(sanitizeIdentifier(exact)).toBe(exact);
+  });
+});
+
+// ═══ generateCreateTableSQL with sanitization ═══
+
+describe('generateCreateTableSQL sanitization', () => {
+  it('rejects malicious table name', () => {
+    expect(() => generateCreateTableSQL('users; DROP TABLE x', [
+      { name: 'id', type: 'UUID', nullable: false, isPrimary: true },
+    ])).toThrow('Nome SQL inválido');
+  });
+
+  it('rejects malicious column name', () => {
+    expect(() => generateCreateTableSQL('safe_table', [
+      { name: 'col; DROP TABLE y', type: 'TEXT', nullable: true },
+    ])).toThrow('Nome SQL inválido');
+  });
+});
+
+// ═══ Operation Log ═══
+
+describe('operationLog', () => {
+  beforeEach(() => clearOperationLog());
+
+  it('logs operations and retrieves them', () => {
+    logOperation('INSERT', 'users', 'test insert', 1);
+    logOperation('DELETE', 'orders', 'test delete', 5);
+    const log = getOperationLog();
+    expect(log).toHaveLength(2);
+    expect(log[0].operation).toBe('DELETE'); // most recent first
+    expect(log[1].operation).toBe('INSERT');
+  });
+
+  it('clears the log', () => {
+    logOperation('INSERT', 'users', 'test', 1);
+    clearOperationLog();
+    expect(getOperationLog()).toHaveLength(0);
+  });
+
+  it('limits to 200 entries', () => {
+    for (let i = 0; i < 210; i++) {
+      logOperation('INSERT', 'users', `row ${i}`, 1);
+    }
+    expect(getOperationLog()).toHaveLength(200);
   });
 });
