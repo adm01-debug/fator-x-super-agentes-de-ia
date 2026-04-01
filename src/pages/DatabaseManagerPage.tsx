@@ -3,7 +3,7 @@ import { PageHeader } from '@/components/shared/PageHeader';
 import { StatusBadge } from '@/components/shared/StatusBadge';
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Database, Table2, Code, Rows3, Settings, Plug, Plus, Trash2, RefreshCw, Play, Eye, Edit, Search, AlertTriangle, CheckCircle, X, Save } from 'lucide-react';
+import { Database, Table2, Code, Rows3, Settings, Plug, Plus, Trash2, RefreshCw, Play, Eye, Edit, Search, AlertTriangle, CheckCircle, X, Save, Upload, Download, ChevronLeft, ChevronRight, ShieldCheck, BarChart3 } from 'lucide-react';
 import { toast } from 'sonner';
 import * as dbManager from '@/services/dbManager';
 import { PG_FUNCTIONS_CATALOG, PG_FUNCTION_CATEGORIES } from '@/config/supabase-functions-catalog';
@@ -12,6 +12,8 @@ interface ConnectedDB {
   id: string;
   name: string;
   url: string;
+  anonKey: string;
+  serviceKey?: string;
   status: 'connected' | 'error' | 'analyzing' | 'pending';
   tables: number;
   functions: number;
@@ -79,29 +81,58 @@ export default function DatabaseManagerPage() {
   const [frMatchCount, setFrMatchCount] = useState(0);
   const [frRunning, setFrRunning] = useState(false);
 
-  // Get active remote client
-  const getClient = useCallback(() => {
+  // Explorer search state
+  const [explorerSearch, setExplorerSearch] = useState('');
+
+  // Pagination state
+  const [currentPage, setCurrentPage] = useState(1);
+  const [pageSize] = useState(50);
+  const [totalPages, setTotalPages] = useState(1);
+
+  // Validate data state
+  const [showValidation, setShowValidation] = useState(false);
+  const [validationIssues, setValidationIssues] = useState<dbManager.DataQualityIssue[]>([]);
+  const [validating, setValidating] = useState(false);
+
+  // Group By state
+  const [showGroupBy, setShowGroupBy] = useState(false);
+  const [groupByColumn, setGroupByColumn] = useState('');
+  const [groupByResults, setGroupByResults] = useState<{ value: string; count: number }[]>([]);
+
+  // Import CSV state
+  const [importing, setImporting] = useState(false);
+
+  // Get Supabase client for a specific connected DB
+  const getClientForDb = useCallback((db: ConnectedDB) => {
+    const key = db.serviceKey || db.anonKey;
+    return dbManager.connectToRemoteDB(db.url, key);
+  }, []);
+
+  // Get client for currently selected DB
+  const getActiveClient = useCallback(() => {
     const db = databases.find(d => d.id === selectedDb);
     if (!db) return null;
-    return dbManager.connectToRemoteDB(db.url, connectForm.serviceKey || connectForm.anonKey || db.url.split('//')[1]?.split('.')[0] || '');
-  }, [selectedDb, databases, connectForm]);
+    return getClientForDb(db);
+  }, [selectedDb, databases, getClientForDb]);
 
-  // Load table data (with optional filter)
-  const loadTableData = useCallback(async (tableName: string, filters?: Record<string, string>) => {
+  // Load table data (with optional filter and pagination)
+  const loadTableData = useCallback(async (tableName: string, filters?: Record<string, string>, page = 1) => {
     const db = databases.find(d => d.id === selectedDb);
     if (!db) return;
     setDataLoading(true);
     setViewingTable(tableName);
-    const client = dbManager.connectToRemoteDB(db.url, db.url);
-    const result = await dbManager.selectRows(client, tableName, { limit: 100, filters });
+    setCurrentPage(page);
+    const client = getClientForDb(db);
+    const result = await dbManager.selectRowsPaginated(client, tableName, page, pageSize, undefined, filters);
     setTableData(result.data);
     setDataCount(result.count);
+    setTotalPages(result.totalPages || 1);
     setDataLoading(false);
     if (result.error) toast.error(result.error);
     else if (filters && Object.values(filters).some(v => v)) {
       toast.success(`${result.count} registros encontrados com filtro`);
     }
-  }, [selectedDb, databases]);
+  }, [selectedDb, databases, pageSize]);
 
   // Execute SQL
   const executeSql = useCallback(async () => {
@@ -119,7 +150,7 @@ export default function DatabaseManagerPage() {
     if (!confirm('Tem certeza que deseja excluir este registro?')) return;
     const db = databases.find(d => d.id === selectedDb);
     if (!db) return;
-    const client = dbManager.connectToRemoteDB(db.url, db.url);
+    const client = getClientForDb(db);
     const result = await dbManager.deleteRow(client, tableName, rowId);
     if (result.error) { toast.error(result.error); return; }
     toast.success('Registro excluído');
@@ -157,6 +188,8 @@ export default function DatabaseManagerPage() {
       id: crypto.randomUUID(),
       name: connectForm.name,
       url: connectForm.url,
+      anonKey: connectForm.anonKey,
+      serviceKey: connectForm.serviceKey || undefined,
       status: 'analyzing',
       tables: 0, functions: 0, rows: 0,
       lastAnalysis: '',
@@ -201,9 +234,9 @@ export default function DatabaseManagerPage() {
   };
 
   const handleReanalyze = (id: string) => {
-    setDatabases(databases.map(db => db.id === id ? { ...db, status: 'analyzing' as const } : db));
+    setDatabases(prev => prev.map(db => db.id === id ? { ...db, status: 'analyzing' as const } : db));
     setTimeout(() => {
-      setDatabases(databases.map(db => db.id === id ? { ...db, status: 'connected' as const, lastAnalysis: new Date().toISOString() } : db));
+      setDatabases(prev => prev.map(db => db.id === id ? { ...db, status: 'connected' as const, lastAnalysis: new Date().toISOString() } : db));
       toast.success('Reanálise concluída');
     }, 2000);
   };
@@ -217,7 +250,7 @@ export default function DatabaseManagerPage() {
     const cleanData: Record<string, string> = {};
     Object.entries(insertData).forEach(([k, v]) => { if (v.trim()) cleanData[k] = v; });
     if (Object.keys(cleanData).length === 0) { toast.error('Preencha pelo menos um campo'); return; }
-    const client = dbManager.connectToRemoteDB(db.url, db.url);
+    const client = getClientForDb(db);
     const result = await dbManager.insertRow(client, viewingTable, cleanData);
     if (result.error) { toast.error(`Erro: ${result.error}`); return; }
     toast.success('Registro inserido com sucesso');
@@ -231,7 +264,7 @@ export default function DatabaseManagerPage() {
     if (!viewingTable) return;
     const db = databases.find(d => d.id === selectedDb);
     if (!db) return;
-    const client = dbManager.connectToRemoteDB(db.url, db.url);
+    const client = getClientForDb(db);
     const result = await dbManager.updateRow(client, viewingTable, rowId, editingRowData);
     if (result.error) { toast.error(`Erro: ${result.error}`); return; }
     toast.success('Registro atualizado');
@@ -246,7 +279,7 @@ export default function DatabaseManagerPage() {
     const db = databases.find(d => d.id === selectedDb);
     if (!db) return;
     setFrRunning(true);
-    const client = dbManager.connectToRemoteDB(db.url, db.url);
+    const client = getClientForDb(db);
     const result = await dbManager.findAndReplace(client, viewingTable, frColumn, frSearch, frReplace, {
       caseSensitive: frCaseSensitive, exactMatch: frExact, dryRun: true,
     });
@@ -264,7 +297,7 @@ export default function DatabaseManagerPage() {
     const db = databases.find(d => d.id === selectedDb);
     if (!db) return;
     setFrRunning(true);
-    const client = dbManager.connectToRemoteDB(db.url, db.url);
+    const client = getClientForDb(db);
     const result = await dbManager.findAndReplace(client, viewingTable, frColumn, frSearch, frReplace, {
       caseSensitive: frCaseSensitive, exactMatch: frExact, dryRun: false,
     });
@@ -275,6 +308,60 @@ export default function DatabaseManagerPage() {
     setFrMatchCount(0);
     loadTableData(viewingTable);
   }, [viewingTable, frColumn, frSearch, frReplace, frCaseSensitive, frExact, frMatchCount, selectedDb, databases, loadTableData]);
+
+  // Import CSV handler
+  const handleImportCSV = useCallback(async (file: File) => {
+    if (!viewingTable) { toast.error('Selecione uma tabela primeiro'); return; }
+    const db = databases.find(d => d.id === selectedDb);
+    if (!db) return;
+    setImporting(true);
+    const text = await file.text();
+    const rows = dbManager.parseCSV(text);
+    if (rows.length === 0) { toast.error('CSV vazio ou formato inválido'); setImporting(false); return; }
+    const client = getClientForDb(db);
+    const result = await dbManager.importRows(client, viewingTable, rows);
+    setImporting(false);
+    toast.success(`${result.inserted} registros importados, ${result.errors} erros`);
+    loadTableData(viewingTable);
+  }, [viewingTable, selectedDb, databases, loadTableData]);
+
+  // Validate data handler
+  const handleValidate = useCallback(async () => {
+    if (!viewingTable) return;
+    const db = databases.find(d => d.id === selectedDb);
+    if (!db) return;
+    setValidating(true);
+    const client = getClientForDb(db);
+    const issues = await dbManager.validateTableData(client, viewingTable);
+    setValidationIssues(issues);
+    setShowValidation(true);
+    setValidating(false);
+    toast.info(`${issues.length} problema(s) de qualidade encontrado(s)`);
+  }, [viewingTable, selectedDb, databases]);
+
+  // Group By handler
+  const handleGroupBy = useCallback(async () => {
+    if (!viewingTable || !groupByColumn) { toast.error('Selecione uma coluna para agrupar'); return; }
+    const db = databases.find(d => d.id === selectedDb);
+    if (!db) return;
+    const client = getClientForDb(db);
+    const results = await dbManager.countByColumn(client, viewingTable, groupByColumn);
+    setGroupByResults(results);
+    toast.success(`${results.length} valores únicos na coluna "${groupByColumn}"`);
+  }, [viewingTable, groupByColumn, selectedDb, databases]);
+
+  // Backup handler
+  const handleBackup = useCallback(async () => {
+    if (!viewingTable) return;
+    const db = databases.find(d => d.id === selectedDb);
+    if (!db) return;
+    toast.info('Criando backup...');
+    const client = getClientForDb(db);
+    const backup = await dbManager.backupTable(client, viewingTable);
+    const json = JSON.stringify({ table: viewingTable, timestamp: backup.timestamp, count: backup.count, data: backup.data }, null, 2);
+    dbManager.downloadFile(json, `backup_${viewingTable}_${new Date().toISOString().slice(0, 10)}.json`, 'application/json');
+    toast.success(`Backup de ${backup.count} registros baixado`);
+  }, [viewingTable, selectedDb, databases]);
 
   const selectedDatabase = databases.find(db => db.id === selectedDb);
 
@@ -400,12 +487,12 @@ export default function DatabaseManagerPage() {
                 <h3 className="text-sm font-semibold text-foreground">Explorer — {selectedDatabase.name}</h3>
                 <div className="relative">
                   <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                  <input placeholder="Buscar tabela..." className="pl-9 bg-muted/30 border border-border rounded-lg px-3 py-2 text-sm text-foreground w-64" />
+                  <input value={explorerSearch} onChange={e => setExplorerSearch(e.target.value)} placeholder="Buscar tabela..." className="pl-9 bg-muted/30 border border-border rounded-lg px-3 py-2 text-sm text-foreground w-64" />
                 </div>
               </div>
               <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
-                {tables.map(t => (
-                  <button key={t.name} className="text-left p-3 rounded-xl border border-border bg-card hover:bg-muted/30 transition-all">
+                {tables.filter(t => !explorerSearch || t.name.toLowerCase().includes(explorerSearch.toLowerCase())).map(t => (
+                  <button key={t.name} onClick={() => { loadTableData(t.name); setActiveTab('data'); }} className="text-left p-3 rounded-xl border border-border bg-card hover:bg-muted/30 transition-all">
                     <div className="flex items-center gap-2 mb-1">
                       <Table2 className="h-3.5 w-3.5 text-primary" />
                       <span className="text-xs font-semibold text-foreground">{t.name}</span>
@@ -479,7 +566,7 @@ export default function DatabaseManagerPage() {
           <div className="nexus-card space-y-3">
             <div className="flex items-center justify-between">
               <h3 className="text-sm font-semibold text-foreground">SQL Editor {selectedDatabase ? `— ${selectedDatabase.name}` : ''}</h3>
-              <select className="text-xs bg-muted/30 border border-border rounded-lg px-2 py-1 text-foreground">
+              <select value={selectedDb ?? ''} onChange={e => setSelectedDb(e.target.value || null)} className="text-xs bg-muted/30 border border-border rounded-lg px-2 py-1 text-foreground">
                 {databases.map(db => <option key={db.id} value={db.id}>{db.name}</option>)}
               </select>
             </div>
@@ -488,8 +575,8 @@ export default function DatabaseManagerPage() {
               <Button size="sm" className="gap-1.5" onClick={executeSql}>
                 <Play className="h-3.5 w-3.5" /> Executar
               </Button>
-              <Button variant="outline" size="sm">Salvar Query</Button>
-              <Button variant="outline" size="sm">Formatar SQL</Button>
+              <Button variant="outline" size="sm" onClick={() => { navigator.clipboard.writeText(sqlQuery); toast.success('Query copiada para clipboard'); }}>Copiar Query</Button>
+              <Button variant="outline" size="sm" onClick={() => { setSqlQuery(sqlQuery.replace(/\s+/g, ' ').replace(/\s*,\s*/g, ',\n  ').replace(/\bSELECT\b/gi, 'SELECT\n  ').replace(/\bFROM\b/gi, '\nFROM').replace(/\bWHERE\b/gi, '\nWHERE').replace(/\bORDER BY\b/gi, '\nORDER BY').replace(/\bGROUP BY\b/gi, '\nGROUP BY').replace(/\bLIMIT\b/gi, '\nLIMIT')); toast.success('SQL formatado'); }}>Formatar SQL</Button>
             </div>
             <pre className="rounded-lg bg-muted/10 border border-border p-3 text-xs text-muted-foreground font-mono whitespace-pre-wrap max-h-64 overflow-auto">
               {sqlResult || 'Resultados aparecerão aqui após executar a query.'}
@@ -534,7 +621,7 @@ export default function DatabaseManagerPage() {
             <div className="nexus-card">
               <div className="flex items-center justify-between mb-3">
                 <h3 className="text-sm font-semibold text-foreground">Funções Customizadas — {selectedDatabase.name}</h3>
-                <Button size="sm" className="gap-1.5"><Plus className="h-3.5 w-3.5" /> Criar Função</Button>
+                <Button size="sm" className="gap-1.5" onClick={() => { setSqlQuery("CREATE OR REPLACE FUNCTION public.minha_funcao()\nRETURNS void AS $$\nBEGIN\n  -- Seu código aqui\nEND;\n$$ LANGUAGE plpgsql;"); setActiveTab('sql'); toast.info('Template de função gerado. Edite e execute.'); }}><Plus className="h-3.5 w-3.5" /> Criar Função</Button>
               </div>
               <div className="space-y-2">
                 {['update_updated_at()', 'handle_new_user()', 'get_user_workspace_id()', 'normalize_cnpj(text)', 'cnpj_raiz(text)', 'normalize_phone(text)'].map(fn => (
@@ -620,6 +707,19 @@ export default function DatabaseManagerPage() {
                   dbManager.downloadFile(json, `${viewingTable}.json`, 'application/json');
                   toast.success(`${tableData.length} registros exportados para JSON`);
                 }}>JSON</Button>
+                {/* Import CSV */}
+                <label className="inline-flex">
+                  <input type="file" accept=".csv" className="hidden" onChange={e => { const f = e.target.files?.[0]; if (f) handleImportCSV(f); e.target.value = ''; }} disabled={!viewingTable || importing} />
+                  <Button variant="outline" size="sm" className="gap-1.5 pointer-events-none" disabled={!viewingTable || importing} asChild>
+                    <span><Upload className="h-3.5 w-3.5" /> {importing ? 'Importando...' : 'Importar CSV'}</span>
+                  </Button>
+                </label>
+                {/* Backup */}
+                <Button variant="outline" size="sm" className="gap-1.5" disabled={!viewingTable} onClick={handleBackup}><Download className="h-3.5 w-3.5" /> Backup</Button>
+                {/* Validate */}
+                <Button variant="outline" size="sm" className="gap-1.5" disabled={!viewingTable || validating} onClick={handleValidate}><ShieldCheck className="h-3.5 w-3.5" /> {validating ? '...' : 'Qualidade'}</Button>
+                {/* Group By */}
+                <Button variant="outline" size="sm" className="gap-1.5" disabled={!viewingTable} onClick={() => setShowGroupBy(!showGroupBy)}><BarChart3 className="h-3.5 w-3.5" /> Agrupar</Button>
                 <Button size="sm" className="gap-1.5" disabled={!viewingTable} onClick={() => { setInsertData({}); setShowInsertRow(true); }}><Plus className="h-3.5 w-3.5" /> Inserir</Button>
               </div>
 
@@ -656,11 +756,60 @@ export default function DatabaseManagerPage() {
                       <div className="max-h-24 overflow-y-auto space-y-0.5">
                         {frPreview.slice(0, 5).map((row, i) => (
                           <div key={i} className="font-mono bg-muted/20 px-2 py-0.5 rounded">
-                            {String(row[frColumn])} → <span className="text-emerald-400">{String(row[frColumn]).replace(new RegExp(frSearch, 'gi'), frReplace)}</span>
+                            {String(row[frColumn])} → <span className="text-emerald-400">{String(row[frColumn]).replace(new RegExp(frSearch.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'gi'), frReplace)}</span>
                           </div>
                         ))}
                         {frMatchCount > 5 && <p>...e mais {frMatchCount - 5} registro(s)</p>}
                       </div>
+                    </div>
+                  )}
+                </div>
+              )}
+
+              {/* Validation Panel */}
+              {showValidation && validationIssues.length > 0 && (
+                <div className="rounded-xl border border-amber-500/30 bg-amber-500/5 p-4 space-y-2">
+                  <div className="flex items-center justify-between">
+                    <h4 className="text-xs font-semibold text-foreground">Qualidade de Dados — {viewingTable}</h4>
+                    <button onClick={() => setShowValidation(false)}><X className="h-3.5 w-3.5 text-muted-foreground" /></button>
+                  </div>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
+                    {validationIssues.slice(0, 20).map((issue, i) => (
+                      <div key={i} className="flex items-center gap-2 p-2 rounded-lg bg-muted/10 text-[10px]">
+                        <span className={`px-1.5 py-0.5 rounded font-medium ${issue.type === 'null' ? 'bg-amber-500/20 text-amber-400' : issue.type === 'duplicate' ? 'bg-blue-500/20 text-blue-400' : issue.type === 'empty_string' ? 'bg-orange-500/20 text-orange-400' : 'bg-red-500/20 text-red-400'}`}>
+                          {issue.type === 'null' ? 'NULL' : issue.type === 'duplicate' ? 'DUP' : issue.type === 'empty_string' ? 'VAZIO' : 'FORMATO'}
+                        </span>
+                        <span className="font-mono text-foreground">{issue.column}</span>
+                        <span className="text-muted-foreground">— {issue.count} registro(s)</span>
+                      </div>
+                    ))}
+                  </div>
+                  {validationIssues.length === 0 && <p className="text-[10px] text-emerald-400">Nenhum problema encontrado!</p>}
+                </div>
+              )}
+
+              {/* Group By Panel */}
+              {showGroupBy && viewingTable && tableData.length > 0 && (
+                <div className="rounded-xl border border-blue-500/30 bg-blue-500/5 p-4 space-y-3">
+                  <div className="flex items-center justify-between">
+                    <h4 className="text-xs font-semibold text-foreground">Agrupar por Coluna</h4>
+                    <button onClick={() => { setShowGroupBy(false); setGroupByResults([]); }}><X className="h-3.5 w-3.5 text-muted-foreground" /></button>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <select value={groupByColumn} onChange={e => setGroupByColumn(e.target.value)} className="bg-muted/30 border border-border rounded-lg px-2 py-1.5 text-xs text-foreground">
+                      <option value="">Selecione coluna...</option>
+                      {Object.keys(tableData[0]).map(col => <option key={col} value={col}>{col}</option>)}
+                    </select>
+                    <Button size="sm" onClick={handleGroupBy} disabled={!groupByColumn} className="text-[10px]"><BarChart3 className="h-3 w-3 mr-1" /> Contar</Button>
+                  </div>
+                  {groupByResults.length > 0 && (
+                    <div className="grid grid-cols-2 md:grid-cols-4 gap-1.5 max-h-48 overflow-y-auto">
+                      {groupByResults.map((r, i) => (
+                        <div key={i} className="flex items-center justify-between p-2 rounded-lg bg-muted/10 text-[10px]">
+                          <span className="font-mono text-foreground truncate mr-2">{r.value}</span>
+                          <span className="font-bold text-primary shrink-0">{r.count}</span>
+                        </div>
+                      ))}
                     </div>
                   )}
                 </div>
@@ -679,9 +828,10 @@ export default function DatabaseManagerPage() {
                             setSortColumn(col); setSortAsc(newAsc);
                             const db = databases.find(d => d.id === selectedDb);
                             if (!db || !viewingTable) return;
-                            const client = dbManager.connectToRemoteDB(db.url, db.url);
-                            const result = await dbManager.selectRowsSorted(client, viewingTable, col, newAsc);
-                            if (!result.error) { setTableData(result.data); setDataCount(result.count); }
+                            const client = getClientForDb(db);
+                            const filters = filterColumn && filterValue ? { [filterColumn]: filterValue } : undefined;
+                            const result = await dbManager.selectRowsPaginated(client, viewingTable, 1, pageSize, col, filters);
+                            if (!result.error) { setTableData(result.data); setDataCount(result.count); setTotalPages(result.totalPages || 1); setCurrentPage(1); }
                           }}>
                             {col} {sortColumn === col ? (sortAsc ? '↑' : '↓') : ''}
                           </th>
@@ -722,7 +872,7 @@ export default function DatabaseManagerPage() {
                                 <button className="p-1 rounded hover:bg-muted/30" onClick={async () => {
                                   const db = databases.find(d => d.id === selectedDb);
                                   if (!db || !viewingTable) return;
-                                  const client = dbManager.connectToRemoteDB(db.url, db.url);
+                                  const client = getClientForDb(db);
                                   const result = await dbManager.duplicateRow(client, viewingTable, rowId);
                                   if (result.error) toast.error(result.error); else { toast.success('Registro duplicado'); loadTableData(viewingTable); }
                                 }} title="Duplicar"><Plus className="h-3 w-3 text-primary" /></button>
@@ -735,7 +885,18 @@ export default function DatabaseManagerPage() {
                       })}
                     </tbody>
                   </table>
-                  <p className="text-[10px] text-muted-foreground mt-2">{dataCount} registros total (mostrando {tableData.length})</p>
+                  <div className="flex items-center justify-between mt-2">
+                    <p className="text-[10px] text-muted-foreground">{dataCount} registros total (mostrando {tableData.length}, página {currentPage} de {totalPages})</p>
+                    <div className="flex items-center gap-1">
+                      <Button variant="outline" size="sm" disabled={currentPage <= 1} onClick={() => viewingTable && loadTableData(viewingTable, filterColumn && filterValue ? { [filterColumn]: filterValue } : undefined, currentPage - 1)}>
+                        <ChevronLeft className="h-3 w-3" />
+                      </Button>
+                      <span className="text-[10px] text-muted-foreground px-2">{currentPage} / {totalPages}</span>
+                      <Button variant="outline" size="sm" disabled={currentPage >= totalPages} onClick={() => viewingTable && loadTableData(viewingTable, filterColumn && filterValue ? { [filterColumn]: filterValue } : undefined, currentPage + 1)}>
+                        <ChevronRight className="h-3 w-3" />
+                      </Button>
+                    </div>
+                  </div>
                 </div>
               )}
 
@@ -801,6 +962,7 @@ export default function DatabaseManagerPage() {
                 <div className="flex items-center gap-4 text-xs text-muted-foreground">
                   <label className="flex items-center gap-1.5"><input type="checkbox" id="xfer-delete" className="accent-primary" /> Mover (deletar da origem após copiar)</label>
                   <label className="flex items-center gap-1.5"><input type="checkbox" id="xfer-sync" className="accent-primary" /> Modo Sync (atualizar existentes por coluna-chave)</label>
+                  <input id="xfer-match-col" placeholder="Coluna-chave para sync (ex: email)" className="bg-muted/30 border border-border rounded-lg px-2 py-1 text-xs text-foreground font-mono ml-2 w-48" />
                 </div>
 
                 {/* Ações */}
@@ -812,12 +974,17 @@ export default function DatabaseManagerPage() {
                     const tgtTable = (document.getElementById('xfer-target-table') as HTMLInputElement)?.value;
                     const mappingText = (document.getElementById('xfer-mapping') as HTMLTextAreaElement)?.value;
                     const deleteFromSource = (document.getElementById('xfer-delete') as HTMLInputElement)?.checked;
+                    const isSyncMode = (document.getElementById('xfer-sync') as HTMLInputElement)?.checked;
+                    const matchCol = (document.getElementById('xfer-match-col') as HTMLInputElement)?.value;
 
                     if (!srcDbId || !tgtDbId || !srcTable || !tgtTable || !mappingText) {
                       toast.error('Preencha todos os campos'); return;
                     }
                     if (srcDbId === tgtDbId && srcTable === tgtTable) {
                       toast.error('Origem e destino não podem ser iguais'); return;
+                    }
+                    if (isSyncMode && !matchCol) {
+                      toast.error('Modo Sync requer uma coluna-chave (ex: email)'); return;
                     }
 
                     // Parse mapping
@@ -835,19 +1002,23 @@ export default function DatabaseManagerPage() {
                     const tgtDb = databases.find(d => d.id === tgtDbId);
                     if (!srcDb || !tgtDb) return;
 
-                    if (!confirm(`Transferir dados de ${srcDb.name}.${srcTable} para ${tgtDb.name}.${tgtTable}?\n${Object.keys(mapping).length} colunas mapeadas.${deleteFromSource ? '\n⚠️ Dados serão REMOVIDOS da origem!' : ''}`)) return;
+                    const modeLabel = isSyncMode ? 'Sincronizar' : 'Transferir';
+                    if (!confirm(`${modeLabel} dados de ${srcDb.name}.${srcTable} para ${tgtDb.name}.${tgtTable}?\n${Object.keys(mapping).length} colunas mapeadas.${deleteFromSource ? '\n⚠️ Dados serão REMOVIDOS da origem!' : ''}${isSyncMode ? `\nColuna-chave: ${matchCol}` : ''}`)) return;
 
-                    toast.info('Transferência iniciada...');
+                    toast.info(`${modeLabel} iniciada...`);
 
-                    const srcClient = dbManager.connectToRemoteDB(srcDb.url, srcDb.url);
-                    const tgtClient = dbManager.connectToRemoteDB(tgtDb.url, tgtDb.url);
+                    const srcClient = getClientForDb(srcDb);
+                    const tgtClient = getClientForDb(tgtDb);
 
-                    const result = await dbManager.crossDatabaseTransfer(srcClient, tgtClient, srcTable, tgtTable, mapping, { deleteFromSource });
-
-                    if (result.errors.length > 0) {
-                      toast.error(`${result.failed} erros: ${result.errors[0]}`);
+                    if (isSyncMode) {
+                      const result = await dbManager.crossDatabaseSync(srcClient, tgtClient, srcTable, tgtTable, matchCol, mapping);
+                      if (result.errors.length > 0) toast.error(`Erros: ${result.errors[0]}`);
+                      toast.success(`Sync: ${result.inserted} inseridos, ${result.updated} atualizados, ${result.skipped} ignorados`);
+                    } else {
+                      const result = await dbManager.crossDatabaseTransfer(srcClient, tgtClient, srcTable, tgtTable, mapping, { deleteFromSource });
+                      if (result.errors.length > 0) toast.error(`${result.failed} erros: ${result.errors[0]}`);
+                      toast.success(`${result.transferred} de ${result.total} registros transferidos de ${srcDb.name} para ${tgtDb.name}`);
                     }
-                    toast.success(`${result.transferred} de ${result.total} registros transferidos de ${srcDb.name} para ${tgtDb.name}`);
                   }}>
                     <Database className="h-3.5 w-3.5" /> Transferir
                   </Button>
@@ -862,7 +1033,7 @@ export default function DatabaseManagerPage() {
       </Tabs>
 
       {/* Modal: Inserir Registro */}
-      {showInsertRow && viewingTable && tableData.length > 0 && (
+      {showInsertRow && viewingTable && (
         <div className="fixed inset-0 z-50 bg-black/50 flex items-center justify-center p-4" onClick={() => setShowInsertRow(false)}>
           <div className="bg-card border border-border rounded-xl p-6 max-w-lg w-full space-y-4 max-h-[80vh] overflow-y-auto" onClick={e => e.stopPropagation()}>
             <div className="flex items-center justify-between">
@@ -870,7 +1041,7 @@ export default function DatabaseManagerPage() {
               <button onClick={() => setShowInsertRow(false)}><X className="h-4 w-4 text-muted-foreground" /></button>
             </div>
             <div className="space-y-2">
-              {Object.keys(tableData[0]).filter(col => col !== 'id' && col !== 'created_at' && col !== 'updated_at').map(col => (
+              {(tableData.length > 0 ? Object.keys(tableData[0]) : Object.keys(insertData).length > 0 ? Object.keys(insertData) : ['name', 'email', 'phone']).filter(col => col !== 'id' && col !== 'created_at' && col !== 'updated_at').map(col => (
                 <div key={col}>
                   <label className="text-[10px] text-muted-foreground">{col}</label>
                   <input

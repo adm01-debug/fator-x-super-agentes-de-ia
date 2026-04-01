@@ -118,8 +118,11 @@ export async function selectRows(
       });
     }
     if (options?.orderBy) query = query.order(options.orderBy, { ascending: false });
-    if (options?.limit) query = query.limit(options.limit);
-    if (options?.offset) query = query.range(options.offset, options.offset + (options?.limit ?? 50) - 1);
+    if (options?.offset !== undefined && options.offset > 0) {
+      query = query.range(options.offset, options.offset + (options?.limit ?? 50) - 1);
+    } else if (options?.limit) {
+      query = query.limit(options.limit);
+    }
 
     const { data, count, error } = await query;
     if (error) return { data: [], count: 0, error: error.message };
