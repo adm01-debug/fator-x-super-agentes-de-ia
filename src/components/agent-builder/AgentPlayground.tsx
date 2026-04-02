@@ -67,7 +67,7 @@ export function AgentPlayground() {
 
     if (streamMode) {
       // Streaming mode — add placeholder and update in real-time
-      const placeholderIdx = messages.length + 1; // after userMsg
+      // Streaming mode — add placeholder and update in real-time
       setMessages(prev => [...prev, { role: 'assistant', content: '' }]);
       streaming.reset();
       await streaming.stream({

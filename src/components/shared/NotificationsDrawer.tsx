@@ -63,13 +63,13 @@ export function NotificationsDrawer() {
         .eq('is_resolved', false)
         .order('created_at', { ascending: false })
         .limit(20);
-      const alertNotifs = (alerts ?? []).map(a => ({
+      const alertNotifs: Notification[] = (alerts ?? []).map(a => ({
         id: `alert-${a.id}`,
         type: 'trace' as const,
         title: a.title,
         description: a.message || undefined,
         level: a.severity || 'warning',
-        created_at: a.created_at,
+        created_at: a.created_at || new Date().toISOString(),
         read: false,
       }));
       return [...alertNotifs, ...traceNotifs];

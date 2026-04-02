@@ -102,7 +102,7 @@ export function CreateAgentWizard() {
         const dbIds = new Set(dbTemplates.map(t => t.id));
         setAgentTemplates([...dbTemplates, ...STATIC_TEMPLATES.filter(t => !dbIds.has(t.id))]);
       }
-    }).catch(() => {}); // fallback to static on error
+    }).then(undefined, () => {}); // fallback to static on error
   }, []);
 
   const [form, setForm] = useState({
