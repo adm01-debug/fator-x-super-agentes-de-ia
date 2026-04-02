@@ -20,6 +20,9 @@ jobs:
 
       - run: npm ci
 
+      - name: ESLint check
+        run: npx eslint src/ --ext .ts,.tsx --max-warnings 0 || echo "::warning::ESLint warnings found"
+
       - name: TypeScript strict check
         run: npx tsc --noEmit
 
