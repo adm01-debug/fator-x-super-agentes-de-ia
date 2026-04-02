@@ -177,7 +177,7 @@ export default function DashboardPage() {
                 <p className="text-xs sm:text-sm font-heading font-bold text-foreground">{usageStats.avgLatency}ms</p>
                 <p className="text-[9px] sm:text-[10px] text-muted-foreground">Latência média</p>
               </div>
-              <div className="nexus-card py-2.5 sm:py-3 text-center">
+              <div className="nexus-card nexus-metric-card py-2.5 sm:py-3 text-center">
                 <p className="text-xs sm:text-sm font-heading font-bold text-foreground">{(usageStats.totalTokens / 1000).toFixed(0)}k</p>
                 <p className="text-[9px] sm:text-[10px] text-muted-foreground">Tokens totais</p>
               </div>
