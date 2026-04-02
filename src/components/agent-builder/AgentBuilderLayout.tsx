@@ -111,9 +111,8 @@ export function AgentBuilderLayout({ children }: AgentBuilderLayoutProps) {
 
       {/* ═══ FOOTER NAV ═══ */}
       <footer
-        className="shrink-0 sticky bottom-0 px-5 py-3 flex items-center justify-between border-t backdrop-blur-lg"
+        className="shrink-0 sticky bottom-0 px-5 py-3 flex items-center justify-between border-t bg-background"
         style={{
-          background: 'hsl(var(--background) / 0.85)',
           borderColor: 'hsl(var(--border))',
         }}
       >
