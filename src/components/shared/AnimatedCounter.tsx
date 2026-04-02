@@ -1,5 +1,4 @@
-import { useEffect, useRef, useState } from "react";
-import { motion } from "framer-motion";
+import { useEffect, useRef } from "react";
 
 interface AnimatedCounterProps {
   value: number;
@@ -10,58 +9,58 @@ interface AnimatedCounterProps {
   className?: string;
 }
 
+/**
+ * Animated counter using direct DOM updates (no setState per frame).
+ */
 export function AnimatedCounter({
   value,
-  duration = 1.2,
+  duration = 0.6,
   prefix = "",
   suffix = "",
   decimals = 0,
   className,
 }: AnimatedCounterProps) {
-  const [displayValue, setDisplayValue] = useState(0);
+  const spanRef = useRef<HTMLSpanElement>(null);
   const prevValue = useRef(0);
-  const frameRef = useRef<number>();
 
   useEffect(() => {
+    const el = spanRef.current;
+    if (!el) return;
+
     const start = prevValue.current;
     const end = value;
     const startTime = performance.now();
     const durationMs = duration * 1000;
+    let frame: number;
 
     const animate = (now: number) => {
       const elapsed = now - startTime;
       const progress = Math.min(elapsed / durationMs, 1);
-      // Ease out cubic
       const eased = 1 - Math.pow(1 - progress, 3);
       const current = start + (end - start) * eased;
 
-      setDisplayValue(current);
+      const formatted = decimals > 0
+        ? current.toFixed(decimals)
+        : Math.round(current).toLocaleString("pt-BR");
+
+      el.textContent = `${prefix}${formatted}${suffix}`;
 
       if (progress < 1) {
-        frameRef.current = requestAnimationFrame(animate);
+        frame = requestAnimationFrame(animate);
       } else {
         prevValue.current = end;
       }
     };
 
-    frameRef.current = requestAnimationFrame(animate);
-    return () => {
-      if (frameRef.current) cancelAnimationFrame(frameRef.current);
-    };
-  }, [value, duration]);
+    frame = requestAnimationFrame(animate);
+    return () => cancelAnimationFrame(frame);
+  }, [value, duration, prefix, suffix, decimals]);
 
-  const formatted = decimals > 0
-    ? displayValue.toFixed(decimals)
-    : Math.round(displayValue).toLocaleString("pt-BR");
+  const initial = decimals > 0 ? value.toFixed(decimals) : Math.round(value).toLocaleString("pt-BR");
 
   return (
-    <motion.span
-      className={className}
-      initial={{ opacity: 0, y: 8 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.4 }}
-    >
-      {prefix}{formatted}{suffix}
-    </motion.span>
+    <span ref={spanRef} className={className}>
+      {prefix}{initial}{suffix}
+    </span>
   );
 }

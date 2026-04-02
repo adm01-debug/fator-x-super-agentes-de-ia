@@ -1,52 +1,36 @@
 import { useEffect, useState } from "react";
 import { useLocation } from "react-router-dom";
-import { motion, AnimatePresence } from "framer-motion";
 
 /**
- * Slim progress bar at the top of the page during route transitions.
- * Appears on navigation and completes when the new route renders.
+ * Lightweight CSS-only progress bar — no framer-motion overhead.
  */
 export function NavigationProgress() {
   const location = useLocation();
-  const [loading, setLoading] = useState(false);
-  const [progress, setProgress] = useState(0);
+  const [visible, setVisible] = useState(false);
 
   useEffect(() => {
-    setLoading(true);
-    setProgress(30);
-
-    const t1 = setTimeout(() => setProgress(60), 80);
-    const t2 = setTimeout(() => setProgress(85), 200);
-    const t3 = setTimeout(() => {
-      setProgress(100);
-      setTimeout(() => setLoading(false), 150);
-    }, 350);
-
-    return () => {
-      clearTimeout(t1);
-      clearTimeout(t2);
-      clearTimeout(t3);
-    };
+    setVisible(true);
+    const t = setTimeout(() => setVisible(false), 300);
+    return () => clearTimeout(t);
   }, [location.pathname]);
 
+  if (!visible) return null;
+
   return (
-    <AnimatePresence>
-      {loading && (
-        <motion.div
-          className="fixed top-0 left-0 right-0 z-50 h-[2px]"
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          exit={{ opacity: 0 }}
-          transition={{ duration: 0.15 }}
-        >
-          <motion.div
-            className="h-full bg-gradient-to-r from-primary via-primary to-primary/60 rounded-r-full shadow-[0_0_8px_hsl(var(--primary)/0.4)]"
-            initial={{ width: "0%" }}
-            animate={{ width: `${progress}%` }}
-            transition={{ duration: 0.3, ease: "easeOut" }}
-          />
-        </motion.div>
-      )}
-    </AnimatePresence>
+    <div className="fixed top-0 left-0 right-0 z-50 h-[2px]">
+      <div
+        className="h-full bg-primary rounded-r-full"
+        style={{
+          animation: "nav-progress 0.3s ease-out forwards",
+        }}
+      />
+      <style>{`
+        @keyframes nav-progress {
+          0% { width: 0%; }
+          50% { width: 70%; }
+          100% { width: 100%; opacity: 0; }
+        }
+      `}</style>
+    </div>
   );
 }
