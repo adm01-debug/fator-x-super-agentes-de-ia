@@ -126,7 +126,7 @@ export function LightBarChart({
               return (
                 <g
                   key={di}
-                  onMouseEnter={(e) => {
+                  onMouseEnter={() => {
                     const rect = ref.current?.getBoundingClientRect();
                     if (!rect) return;
                     setTooltip({
