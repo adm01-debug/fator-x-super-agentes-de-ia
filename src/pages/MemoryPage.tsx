@@ -69,7 +69,7 @@ export default function MemoryPage() {
   };
 
   const handleDelete = async (id: string) => {
-    const { error } = await supabase.from('agent_memories').delete().eq('id', id);
+    const { error } = await (supabase as any).from('agent_memories').delete().eq('id', id);
     if (error) toast.error(`Erro: ${error.message}`);
     else { queryClient.invalidateQueries({ queryKey: ['agent_memories'] }); toast.success('Removida'); }
   };
