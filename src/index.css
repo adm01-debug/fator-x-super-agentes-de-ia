@@ -202,12 +202,13 @@
   }
 
   .nexus-card {
-    @apply rounded-xl border bg-card p-5 transition-all duration-200;
+    @apply rounded-xl border bg-card p-5;
+    transition: all 0.25s cubic-bezier(0.22, 1, 0.36, 1);
   }
 
   .nexus-card:hover {
     @apply border-primary/30;
-    box-shadow: 0 0 30px -10px hsl(var(--nexus-glow) / 0.1);
+    box-shadow: 0 4px 30px -10px hsl(var(--nexus-glow) / 0.12);
   }
 
   .nexus-badge {
