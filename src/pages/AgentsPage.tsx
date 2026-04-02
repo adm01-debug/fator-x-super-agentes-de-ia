@@ -128,7 +128,7 @@ export default function AgentsPage() {
             return (
               <div
                 key={agent.id}
-                className="nexus-card cursor-pointer group"
+                className="nexus-card nexus-card-interactive cursor-pointer group"
                 onClick={() => navigate(`/builder/${agent.id}`)}
               >
                 <div className="flex items-start justify-between mb-3">
