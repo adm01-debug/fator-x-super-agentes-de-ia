@@ -196,7 +196,7 @@ export default function DashboardPage() {
           <div className="grid lg:grid-cols-2 gap-3 sm:gap-4">
             <div className="nexus-card">
               <h3 className="text-sm font-heading font-semibold text-foreground mb-3" id="recent-agents-heading">Agentes recentes</h3>
-              <div className="space-y-2 sm:space-y-3" role="list" aria-labelledby="recent-agents-heading">
+              <div className="stagger-list" role="list" aria-labelledby="recent-agents-heading">
                 {agents.slice(0, 5).map(agent => (
                   <div
                     key={agent.id}
