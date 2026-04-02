@@ -41,7 +41,7 @@ serve(async (req) => {
     // Get workspace
     const { data: member } = await supabase.from('workspace_members').select('workspace_id').eq('user_id', user.id).limit(1).single();
 
-    // Gather auto-facts context
+    // Gather auto-facts context from external Supabase projects
     const facts: string[] = [];
     if (member?.workspace_id) {
       for (const af of AUTO_FACTS) {
@@ -50,10 +50,26 @@ serve(async (req) => {
           if (!conn) continue;
           const { data: secret } = await supabase.from('workspace_secrets').select('key_value').eq('workspace_id', member.workspace_id).eq('key_name', conn.secretName).single();
           if (secret?.key_value) {
-            // Parse connection string and query
-            const extSupabase = createClient(secret.key_value.split('|')[0], secret.key_value.split('|')[1]);
-            const { data } = await extSupabase.rpc('sql', { query: af.query });
-            if (data?.[0]?.v) facts.push(af.template.replace('{v}', data[0].v));
+            // Format: "supabaseUrl|anonKey"
+            const parts = secret.key_value.split('|');
+            if (parts.length !== 2) continue;
+            const extSupabase = createClient(parts[0].trim(), parts[1].trim());
+            // Use table-based queries instead of raw SQL (rpc('sql') doesn't exist by default)
+            if (af.connection === 'bancodadosclientes') {
+              if (af.template.includes('clientes')) {
+                const { count } = await extSupabase.from('companies').select('id', { count: 'exact', head: true }).eq('is_customer', true).eq('status', 'ativo');
+                if (count !== null) facts.push(af.template.replace('{v}', String(count)));
+              } else if (af.template.includes('fornecedores')) {
+                const { count } = await extSupabase.from('companies').select('id', { count: 'exact', head: true }).eq('is_supplier', true).eq('status', 'ativo');
+                if (count !== null) facts.push(af.template.replace('{v}', String(count)));
+              } else if (af.template.includes('transportadoras')) {
+                const { count } = await extSupabase.from('companies').select('id', { count: 'exact', head: true }).eq('is_carrier', true).eq('status', 'ativo');
+                if (count !== null) facts.push(af.template.replace('{v}', String(count)));
+              }
+            } else if (af.connection === 'supabase-fuchsia-kite') {
+              const { count } = await extSupabase.from('products').select('id', { count: 'exact', head: true });
+              if (count !== null) facts.push(af.template.replace('{v}', String(count)));
+            }
           }
         } catch { /* skip failed connections */ }
       }

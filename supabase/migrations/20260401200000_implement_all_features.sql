@@ -28,10 +28,10 @@ CREATE INDEX IF NOT EXISTS idx_agent_memories_workspace ON public.agent_memories
 CREATE EXTENSION IF NOT EXISTS vector;
 
 ALTER TABLE public.chunks ADD COLUMN IF NOT EXISTS embedding vector(1536);
-CREATE INDEX IF NOT EXISTS idx_chunks_embedding ON public.chunks USING ivfflat (embedding vector_cosine_ops) WITH (lists = 100);
+CREATE INDEX IF NOT EXISTS idx_chunks_embedding ON public.chunks USING hnsw (embedding vector_cosine_ops);
 
 ALTER TABLE public.agent_memories ADD COLUMN IF NOT EXISTS embedding vector(1536);
-CREATE INDEX IF NOT EXISTS idx_memories_embedding ON public.agent_memories USING ivfflat (embedding vector_cosine_ops) WITH (lists = 100);
+CREATE INDEX IF NOT EXISTS idx_memories_embedding ON public.agent_memories USING hnsw (embedding vector_cosine_ops);
 
 -- Semantic search function for RAG
 CREATE OR REPLACE FUNCTION public.match_chunks(
@@ -240,6 +240,7 @@ CREATE OR REPLACE FUNCTION public.check_budget_alert()
 RETURNS TRIGGER AS $$
 DECLARE
   budget_rec RECORD;
+  existing_alert_count INTEGER;
 BEGIN
   FOR budget_rec IN
     SELECT * FROM public.budgets
@@ -247,17 +248,26 @@ BEGIN
       AND is_active = true
       AND current_usd >= (limit_usd * alert_threshold)
   LOOP
-    INSERT INTO public.alerts (workspace_id, severity, title, message)
-    VALUES (
-      NEW.workspace_id,
-      CASE WHEN budget_rec.current_usd >= budget_rec.limit_usd THEN 'critical' ELSE 'warning' END,
-      CASE WHEN budget_rec.current_usd >= budget_rec.limit_usd
-        THEN 'Budget "' || budget_rec.name || '" estourado!'
-        ELSE 'Budget "' || budget_rec.name || '" atingiu ' || ROUND((budget_rec.current_usd / budget_rec.limit_usd * 100)::numeric, 1) || '%'
-      END,
-      'Gasto atual: $' || ROUND(budget_rec.current_usd::numeric, 4) || ' / Limite: $' || ROUND(budget_rec.limit_usd::numeric, 2)
-    )
-    ON CONFLICT DO NOTHING;
+    -- Only create alert if no unresolved alert exists for this budget in the last hour
+    SELECT COUNT(*) INTO existing_alert_count
+    FROM public.alerts
+    WHERE workspace_id = NEW.workspace_id
+      AND is_resolved = false
+      AND title LIKE '%' || budget_rec.name || '%'
+      AND created_at > now() - interval '1 hour';
+
+    IF existing_alert_count = 0 THEN
+      INSERT INTO public.alerts (workspace_id, severity, title, message)
+      VALUES (
+        NEW.workspace_id,
+        CASE WHEN budget_rec.current_usd >= budget_rec.limit_usd THEN 'critical' ELSE 'warning' END,
+        CASE WHEN budget_rec.current_usd >= budget_rec.limit_usd
+          THEN 'Budget "' || budget_rec.name || '" estourado!'
+          ELSE 'Budget "' || budget_rec.name || '" atingiu ' || ROUND((budget_rec.current_usd / budget_rec.limit_usd * 100)::numeric, 1) || '%'
+        END,
+        'Gasto atual: $' || ROUND(budget_rec.current_usd::numeric, 4) || ' / Limite: $' || ROUND(budget_rec.limit_usd::numeric, 2)
+      );
+    END IF;
   END LOOP;
   RETURN NEW;
 END;

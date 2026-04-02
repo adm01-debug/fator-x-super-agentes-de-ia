@@ -10,9 +10,9 @@ const stores = [
   { icon: Database, name: 'pgvector', type: 'Vector DB', status: 'active' as const, latency: '12ms', desc: 'Banco vetorial integrado via extensão PostgreSQL' },
   { icon: Server, name: 'PostgreSQL', type: 'Relational DB', status: 'active' as const, latency: '5ms', desc: 'Banco principal para dados estruturados' },
   { icon: HardDrive, name: 'Object Storage', type: 'Files', status: 'active' as const, latency: '45ms', desc: 'Armazenamento de arquivos e artefatos' },
-  { icon: Cpu, name: 'Redis Cache', type: 'Cache', status: 'active' as const, latency: '1ms', desc: 'Cache de sessão e estado do agente (via Upstash)' },
-  { icon: FileText, name: 'Document Store', type: 'Document DB', status: 'active' as const, latency: '8ms', desc: 'Chunks + pgvector para RAG e memória semântica' },
-  { icon: Radio, name: 'Event Bus', type: 'Message Queue', status: 'active' as const, latency: '3ms', desc: 'Workflow Engine via Edge Functions' },
+  { icon: Cpu, name: 'Redis Cache', type: 'Cache', status: 'planned' as const, latency: '1ms', desc: 'Cache de sessão e estado do agente (requer Upstash ou similar)' },
+  { icon: FileText, name: 'pgvector Store', type: 'Vector DB', status: 'active' as const, latency: '8ms', desc: 'Chunks + embeddings para RAG e memória semântica' },
+  { icon: Radio, name: 'Workflow Engine', type: 'Edge Functions', status: 'active' as const, latency: '3ms', desc: 'Orquestração sequencial via Edge Functions' },
 ];
 
 export default function DataStoragePage() {

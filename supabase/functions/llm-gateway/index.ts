@@ -63,7 +63,9 @@ async function calculateCost(supabase: any, model: string, promptTokens: number,
   try {
     const { data: pricing } = await supabase.from('model_pricing').select('model_pattern, input_cost_per_1k, output_cost_per_1k');
     if (pricing) {
-      for (const p of pricing) {
+      // Sort by pattern length DESC so "gpt-4o-mini" matches before "gpt-4o"
+      const sorted = [...pricing].sort((a: any, b: any) => b.model_pattern.length - a.model_pattern.length);
+      for (const p of sorted) {
         if (model.includes(p.model_pattern)) {
           return (promptTokens / 1000 * Number(p.input_cost_per_1k)) + (completionTokens / 1000 * Number(p.output_cost_per_1k));
         }
@@ -110,6 +112,11 @@ async function checkBudget(supabase: any, workspaceId: string | undefined, agent
     if (budgets) {
       for (const b of budgets) {
         if (Number(b.current_usd) >= Number(b.limit_usd)) {
+          // Check agent-level kill switch OR workspace-level (over 120% = always block)
+          const overBy = Number(b.current_usd) / Number(b.limit_usd);
+          if (overBy >= 1.2) {
+            return { allowed: false, reason: `Budget "${b.name}" critically exceeded (${(overBy*100).toFixed(0)}%): $${Number(b.current_usd).toFixed(4)} / $${b.limit_usd}` };
+          }
           if (agentId) {
             const { data: agent } = await supabase.from('agents').select('config').eq('id', agentId).single();
             if ((agent?.config as any)?.budget_kill_switch) {
@@ -125,7 +132,7 @@ async function checkBudget(supabase: any, workspaceId: string | undefined, agent
 
 // ═══ Record Trace + Usage (non-blocking) ═══
 async function recordTrace(supabase: any, p: {
-  workspaceId?: string; agentId?: string; sessionId?: string;
+  workspaceId?: string; agentId?: string; sessionId?: string; userId?: string;
   userInput: string; assistantOutput: string; model: string; provider: string;
   promptTokens: number; completionTokens: number; totalTokens: number;
   costUsd: number; latencyMs: number; guardrailsTriggered: any[];
@@ -145,13 +152,15 @@ async function recordTrace(supabase: any, p: {
         tokens: p.totalTokens, cost_usd: p.costUsd,
         metadata: { model: p.model, provider: p.provider, latency_ms: p.latencyMs },
       });
-      // Daily aggregate
-      const today = new Date().toISOString().split('T')[0];
-      const { data: existing } = await supabase.from('agent_usage').select('id, total_tokens, total_cost, request_count').eq('workspace_id', p.workspaceId).eq('date', today).maybeSingle();
-      if (existing) {
-        await supabase.from('agent_usage').update({ total_tokens: (existing.total_tokens||0)+p.totalTokens, total_cost: (existing.total_cost||0)+p.costUsd, request_count: (existing.request_count||0)+1 }).eq('id', existing.id);
-      } else {
-        await supabase.from('agent_usage').insert({ workspace_id: p.workspaceId, date: today, total_tokens: p.totalTokens, total_cost: p.costUsd, request_count: 1 }).catch(()=>{});
+      // Daily aggregate (agent_usage uses: agent_id, user_id, date, requests, tokens_input, tokens_output, total_cost_usd)
+      if (p.agentId && p.userId) {
+        const today = new Date().toISOString().split('T')[0];
+        const { data: existing } = await supabase.from('agent_usage').select('id, requests, tokens_input, tokens_output, total_cost_usd').eq('agent_id', p.agentId).eq('user_id', p.userId).eq('date', today).maybeSingle();
+        if (existing) {
+          await supabase.from('agent_usage').update({ requests: (existing.requests||0)+1, tokens_input: (existing.tokens_input||0)+p.promptTokens, tokens_output: (existing.tokens_output||0)+p.completionTokens, total_cost_usd: (existing.total_cost_usd||0)+p.costUsd }).eq('id', existing.id);
+        } else {
+          await supabase.from('agent_usage').insert({ agent_id: p.agentId, user_id: p.userId, date: today, requests: 1, tokens_input: p.promptTokens, tokens_output: p.completionTokens, total_cost_usd: p.costUsd }).catch(()=>{});
+        }
       }
     }
   } catch (e) { console.error('Trace failed:', e); }
@@ -210,7 +219,7 @@ serve(async (req) => {
     // ═══ GUARDRAILS ═══
     const gr = await checkGuardrails(supabase, agent_id, userMessage);
     if (!gr.passed) {
-      recordTrace(supabase, { workspaceId, agentId: agent_id, sessionId: session_id, userInput: userMessage, assistantOutput: '[BLOCKED]', model, provider: 'none', promptTokens: 0, completionTokens: 0, totalTokens: 0, costUsd: 0, latencyMs: 0, guardrailsTriggered: gr.triggered, event: 'guardrail_block', level: 'warn' });
+      recordTrace(supabase, { workspaceId, agentId: agent_id, sessionId: session_id, userId: user.id, userInput: userMessage, assistantOutput: '[BLOCKED]', model, provider: 'none', promptTokens: 0, completionTokens: 0, totalTokens: 0, costUsd: 0, latencyMs: 0, guardrailsTriggered: gr.triggered, event: 'guardrail_block', level: 'warning' });
       return new Response(JSON.stringify({ error: 'Blocked by guardrails', guardrails_triggered: gr.triggered }), { status: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
     }
 
@@ -233,7 +242,7 @@ serve(async (req) => {
     const costUsd = await calculateCost(supabase, model, result.usage.prompt_tokens, result.usage.completion_tokens);
 
     // ═══ TRACE (non-blocking) ═══
-    recordTrace(supabase, { workspaceId, agentId: agent_id, sessionId: session_id, userInput: userMessage, assistantOutput: result.content, model, provider, promptTokens: result.usage.prompt_tokens, completionTokens: result.usage.completion_tokens, totalTokens: result.usage.total_tokens, costUsd, latencyMs, guardrailsTriggered: gr.triggered, event: 'llm_call', level: 'info' });
+    recordTrace(supabase, { workspaceId, agentId: agent_id, sessionId: session_id, userId: user.id, userInput: userMessage, assistantOutput: result.content, model, provider, promptTokens: result.usage.prompt_tokens, completionTokens: result.usage.completion_tokens, totalTokens: result.usage.total_tokens, costUsd, latencyMs, guardrailsTriggered: gr.triggered, event: 'llm_call', level: 'info' });
 
     return new Response(JSON.stringify({
       content: result.content, model, provider,

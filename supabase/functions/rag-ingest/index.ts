@@ -81,7 +81,7 @@ serve(async (req) => {
             const embeddings = await generateEmbeddings(batch.map(c => c.content), secret.key_value);
             for (let j = 0; j < batch.length; j++) {
               await supabase.from('chunks').update({
-                embedding: JSON.stringify(embeddings[j]),
+                embedding: `[${embeddings[j].join(',')}]`,
                 embedding_status: 'done',
               }).eq('id', batch[j].id);
               embeddingsGenerated++;
