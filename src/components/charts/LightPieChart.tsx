@@ -22,13 +22,6 @@ function polarToCartesian(cx: number, cy: number, r: number, angle: number) {
   return { x: cx + r * Math.cos(rad), y: cy + r * Math.sin(rad) };
 }
 
-function arcPath(cx: number, cy: number, r: number, startAngle: number, endAngle: number) {
-  const start = polarToCartesian(cx, cy, r, endAngle);
-  const end = polarToCartesian(cx, cy, r, startAngle);
-  const large = endAngle - startAngle > 180 ? 1 : 0;
-  return `M ${start.x} ${start.y} A ${r} ${r} 0 ${large} 0 ${end.x} ${end.y}`;
-}
-
 function sectorPath(cx: number, cy: number, innerR: number, outerR: number, startAngle: number, endAngle: number) {
   const outerStart = polarToCartesian(cx, cy, outerR, endAngle);
   const outerEnd = polarToCartesian(cx, cy, outerR, startAngle);

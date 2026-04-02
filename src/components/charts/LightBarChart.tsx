@@ -39,7 +39,7 @@ export function LightBarChart({
   const { ref, width, margin: m, inner } = useChartDimensions(margin);
   const [tooltip, setTooltip] = useState<TooltipState | null>(null);
 
-  const { yMax, ticks, isStacked, stackGroups } = useMemo(() => {
+  const { yMax, ticks, isStacked } = useMemo(() => {
     const stacked = series.some(s => s.stackId);
     let maxVal = 0;
 
