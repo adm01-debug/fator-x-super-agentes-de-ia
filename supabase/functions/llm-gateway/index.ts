@@ -460,7 +460,7 @@ serve(async (req) => {
 
     const startTime = Date.now();
     const callParams: LLMCallParams = { model, messages: safeMessages, temperature, max_tokens };
-    const { result, provider, model: usedModel, attempt, errors: fallbackErrors } = await callWithFallback(chain, callParams, supabaseUrl);
+    const { result, provider, model: usedModel, attempt, errors: fallbackErrors } = await callWithFallback(chain2, callParams, supabaseUrl);
 
     const latencyMs = Date.now() - startTime;
     const llmMs = latencyMs; // LLM call time
