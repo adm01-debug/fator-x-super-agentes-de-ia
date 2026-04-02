@@ -4,6 +4,7 @@ import { StatusBadge } from "@/components/shared/StatusBadge";
 import { InfoHint } from "@/components/shared/InfoHint";
 import { Button } from "@/components/ui/button";
 import * as ragPipeline from "@/services/ragPipeline";
+import * as edgeFunctions from "@/services/edgeFunctions";
 import { Plus, Search, BookOpen, RefreshCw, ArrowRight, Trash2, Upload, X, Save, Settings, FileText } from "lucide-react";
 import { toast } from "sonner";
 
@@ -84,18 +85,39 @@ export default function KnowledgePage() {
 
   const uploadDocuments = useCallback(async (kbId: string, files: FileList) => {
     const count = files.length;
-    toast.info(`Processando ${count} arquivo(s) via RAG pipeline...`);
+    toast.info(`Processando ${count} arquivo(s)...`);
     let totalChunks = 0;
+    const kb = kbs.find(k => k.id === kbId);
+
     for (let i = 0; i < files.length; i++) {
       const file = files[i];
-      const result = await ragPipeline.ingestDocument(file, kbId, {}, (stage) => toast.info(`${file.name}: ${stage}`));
-      if (result.error) { toast.error(`${file.name}: ${result.error}`); continue; }
-      totalChunks += result.chunks;
+      const content = await file.text();
+
+      // Try Edge Function first (real embeddings via OpenAI)
+      const edgeResult = await edgeFunctions.ragIngest({
+        knowledge_base_id: kbId,
+        document_name: file.name,
+        content,
+        chunk_size: kb?.chunkSize ?? 512,
+        chunk_overlap: kb?.chunkOverlap ?? 50,
+        embedding_model: kb?.embeddingModel ?? 'text-embedding-3-small',
+      });
+
+      if (!edgeResult.error && edgeResult.data) {
+        totalChunks += edgeResult.data.chunks_created;
+        toast.info(`${file.name}: ${edgeResult.data.chunks_created} chunks + ${edgeResult.data.embeddings_generated} embeddings (Edge Function)`);
+      } else {
+        // Fallback: local RAG pipeline (no real embeddings)
+        const result = await ragPipeline.ingestDocument(file, kbId, { chunkSize: kb?.chunkSize, chunkOverlap: kb?.chunkOverlap }, (stage) => toast.info(`${file.name}: ${stage}`));
+        if (result.error) { toast.error(`${file.name}: ${result.error}`); continue; }
+        totalChunks += result.chunks;
+      }
     }
+
     setKbs(prev => prev.map(k => k.id === kbId ? { ...k, documents: k.documents + count, chunks: k.chunks + totalChunks } : k));
-    toast.success(`${count} arquivo(s) processados — ${totalChunks} chunks criados via RAG pipeline`);
+    toast.success(`${count} arquivo(s) processados — ${totalChunks} chunks criados`);
     setShowUpload(null);
-  }, []);
+  }, [kbs]);
 
   const updateConfig = useCallback((kbId: string, updates: Partial<KnowledgeBase>) => {
     setKbs(prev => prev.map(k => k.id === kbId ? { ...k, ...updates } : k));

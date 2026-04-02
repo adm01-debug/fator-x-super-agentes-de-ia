@@ -3,6 +3,8 @@ import { PageHeader } from "@/components/shared/PageHeader";
 import { StatusBadge } from "@/components/shared/StatusBadge";
 import { InfoHint } from "@/components/shared/InfoHint";
 import { Button } from "@/components/ui/button";
+import * as edgeFunctions from "@/services/edgeFunctions";
+import * as testRunner from "@/services/testRunnerService";
 import { Plus, FlaskConical, Play, Trash2, Eye, X, Save, RefreshCw, ChevronDown, ChevronRight } from "lucide-react";
 import { toast } from "sonner";
 
@@ -99,9 +101,41 @@ export default function EvaluationsPage() {
     toast.success(`Avaliação "${newName}" criada com ${newTestCases.length} test cases`);
   }, [newName, newAgent, newTestCases]);
 
-  const runEval = useCallback((evalId: string) => {
+  const runEval = useCallback(async (evalId: string) => {
     setEvals(prev => prev.map(e => e.id === evalId ? { ...e, status: 'running' as const, progress: 0 } : e));
-    toast.info('Avaliação iniciada...');
+
+    const ev = evals.find(e => e.id === evalId);
+
+    // Try Edge Function test-runner first
+    if (ev) {
+      const edgeResult = await edgeFunctions.runTestSuite({
+        agent_id: 'default',
+        test_cases: ev.testCases.map(tc => ({ id: tc.id, input: tc.input, expected_output: tc.expectedBehavior, category: tc.category })),
+      });
+
+      if (!edgeResult.error && edgeResult.data) {
+        setEvals(prev => prev.map(e => {
+          if (e.id !== evalId) return e;
+          return {
+            ...e, status: 'completed' as const, progress: 100,
+            testCases: e.testCases.map(tc => {
+              const result = edgeResult.data!.results.find(r => r.test_case_id === tc.id);
+              return result ? { ...tc, status: result.status, score: result.score, actualOutput: result.actual_output } : tc;
+            }),
+            metrics: [
+              { label: 'Pass rate', value: edgeResult.data!.pass_rate, good: edgeResult.data!.pass_rate > 80 },
+              { label: 'Avg score', value: edgeResult.data!.avg_score, good: edgeResult.data!.avg_score > 75 },
+              { label: 'Custo', value: edgeResult.data!.total_cost_usd, good: true },
+            ],
+          };
+        }));
+        toast.success(`Avaliação concluída via Edge Function: ${edgeResult.data.passed}/${edgeResult.data.total_tests} passed`);
+        return;
+      }
+    }
+
+    // Fallback: simulated execution
+    toast.info('Avaliação iniciada (modo local)...');
 
     // Simulate execution progress
     let progress = 0;

@@ -4,6 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Plus, GitBranch, ArrowRight, Save, Trash2, GripVertical, List, LayoutDashboard, Info, X, Undo2, Redo2, ZoomIn, ZoomOut, Maximize } from "lucide-react";
 import { toast } from "sonner";
 import * as workflowEngine from "@/services/workflowEngine";
+import { supabase } from "@/integrations/supabase/client";
 
 // ═══ TYPES ═══
 
@@ -397,6 +398,13 @@ export default function WorkflowsPage() {
       createdAt: new Date().toLocaleString('pt-BR'),
     };
     updateSavedPipelines(prev => [...prev, pipeline]);
+    // Also persist to Supabase (async, non-blocking)
+    supabase.from('workflows').insert({
+      name: pipelineName,
+      description: `${nodes.length} nodes, ${connections.length} connections`,
+      config: { nodes, connections },
+      status: 'draft',
+    }).then(() => {}).catch(() => {});
     toast.success(`Pipeline "${pipelineName}" salvo com ${nodes.length} nodes e ${connections.length} conexões`);
   }, [pipelineName, nodes, connections]);
 
