@@ -122,7 +122,7 @@ export default function AgentsPage() {
           )}
         </div>
       ) : (
-        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3 stagger-children">
           {filtered.map((agent) => {
             const config = getConfig(agent);
             return (
