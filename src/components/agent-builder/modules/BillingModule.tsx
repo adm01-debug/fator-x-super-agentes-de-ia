@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { SectionTitle, SliderField, InputField, ToggleField, ProgressBar } from '../ui';
 import { useAgentBuilderStore } from '@/stores/agentBuilderStore';
-import { BarChart, Bar, LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend } from 'recharts';
+import { LightBarChart, LightLineChart } from '@/components/charts';
 
 const MOCK_USAGE = [
   { date: 'Seg', llm: 12.5, embedding: 2.1, tools: 3.2, storage: 0.8, total: 18.6 },
@@ -75,22 +75,19 @@ export function BillingModule() {
             ))}
           </div>
         </div>
-        <ResponsiveContainer width="100%" height={280}>
-          <BarChart data={MOCK_USAGE}>
-            <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
-            <XAxis dataKey="date" tick={{ fill: 'hsl(var(--muted-foreground))', fontSize: 12 }} />
-            <YAxis tick={{ fill: 'hsl(var(--muted-foreground))', fontSize: 12 }} tickFormatter={(v) => `$${v}`} />
-            <Tooltip
-              contentStyle={{ background: 'hsl(var(--card))', border: '1px solid hsl(var(--border))', borderRadius: 8 }}
-              labelStyle={{ color: 'hsl(var(--foreground))' }}
-            />
-            <Legend />
-            <Bar dataKey="llm" name="LLM" fill="hsl(var(--nexus-blue))" radius={[4, 4, 0, 0]} stackId="a" />
-            <Bar dataKey="embedding" name="Embedding" fill="hsl(var(--nexus-green))" radius={[0, 0, 0, 0]} stackId="a" />
-            <Bar dataKey="tools" name="Tools" fill="hsl(var(--nexus-yellow))" radius={[0, 0, 0, 0]} stackId="a" />
-            <Bar dataKey="storage" name="Storage" fill="hsl(var(--nexus-purple))" radius={[0, 0, 4, 4]} stackId="a" />
-          </BarChart>
-        </ResponsiveContainer>
+        <LightBarChart
+          data={MOCK_USAGE}
+          xKey="date"
+          height={280}
+          yFormatter={(v) => `$${v}`}
+          showLegend
+          series={[
+            { dataKey: 'llm', name: 'LLM', color: 'hsl(var(--nexus-blue))', radius: 4, stackId: 'a' },
+            { dataKey: 'embedding', name: 'Embedding', color: 'hsl(var(--nexus-green))', stackId: 'a' },
+            { dataKey: 'tools', name: 'Tools', color: 'hsl(var(--nexus-yellow))', stackId: 'a' },
+            { dataKey: 'storage', name: 'Storage', color: 'hsl(var(--nexus-purple))', stackId: 'a' },
+          ]}
+        />
       </div>
 
       {/* Category Breakdown */}
@@ -156,16 +153,16 @@ export function BillingModule() {
         <p className="text-sm text-muted-foreground mb-4">
           Baseado no uso atual, projeção para o mês: <span className="text-foreground font-bold">${projectedMonth.toFixed(0)}</span>
         </p>
-        <ResponsiveContainer width="100%" height={220}>
-          <LineChart data={MOCK_PROJECTION}>
-            <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
-            <XAxis dataKey="week" tick={{ fill: 'hsl(var(--muted-foreground))', fontSize: 12 }} />
-            <YAxis tick={{ fill: 'hsl(var(--muted-foreground))', fontSize: 12 }} tickFormatter={(v) => `$${v}`} />
-            <Tooltip contentStyle={{ background: 'hsl(var(--card))', border: '1px solid hsl(var(--border))', borderRadius: 8 }} />
-            <Line type="monotone" dataKey="real" name="Real" stroke="hsl(var(--nexus-blue))" strokeWidth={2} dot={{ r: 4 }} />
-            <Line type="monotone" dataKey="projetado" name="Projetado" stroke="hsl(var(--nexus-yellow))" strokeWidth={2} strokeDasharray="5 5" dot={{ r: 4 }} />
-          </LineChart>
-        </ResponsiveContainer>
+        <LightLineChart
+          data={MOCK_PROJECTION}
+          xKey="week"
+          height={220}
+          yFormatter={(v) => `$${v}`}
+          series={[
+            { dataKey: 'real', name: 'Real', stroke: 'hsl(var(--nexus-blue))', strokeWidth: 2, dotRadius: 4 },
+            { dataKey: 'projetado', name: 'Projetado', stroke: 'hsl(var(--nexus-yellow))', strokeWidth: 2, strokeDasharray: '5 5', dotRadius: 4 },
+          ]}
+        />
       </div>
     </div>
   );
