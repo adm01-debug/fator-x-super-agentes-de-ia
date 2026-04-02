@@ -120,7 +120,7 @@ export default function DashboardPage() {
           <Button onClick={() => navigate('/agents/new')} className="nexus-gradient-bg text-primary-foreground gap-2 hover:opacity-90 min-h-[44px]">
             <Plus className="h-4 w-4" aria-hidden="true" /> Criar seu primeiro agente
           </Button>
-          <div className="grid sm:grid-cols-3 gap-3 sm:gap-4 mt-8 sm:mt-10 w-full max-w-2xl">
+          <div className="grid sm:grid-cols-3 gap-3 sm:gap-4 mt-8 sm:mt-10 w-full max-w-2xl stagger-children">
             {[
               { emoji: '🧠', title: 'Super Cérebro', desc: 'Memória centralizada para toda a empresa', path: '/brain' },
               { emoji: '🔮', title: 'Oráculo', desc: 'Conselho de múltiplas IAs para melhores respostas', path: '/oracle' },
@@ -142,16 +142,16 @@ export default function DashboardPage() {
       ) : (
         <>
           {/* Metrics */}
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-3 sm:gap-4" role="region" aria-label="Métricas principais">
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-3 sm:gap-4 stagger-children" role="region" aria-label="Métricas principais">
             {[
               { icon: Bot, color: "text-primary", value: agents.length, label: "Total de agentes" },
               { icon: Zap, color: "text-nexus-emerald", value: activeCount, label: "Em produção" },
               { icon: DollarSign, color: "text-nexus-amber", value: usageStats?.totalCost ?? 0, label: "Custo (30d)", prefix: "$", decimals: 2, noData: !usageStats },
               { icon: TrendingUp, color: "text-primary", value: usageStats?.totalRequests ?? 0, label: "Requests (30d)", noData: !usageStats },
             ].map((metric, i) => (
-              <div
+             <div
                 key={metric.label}
-                className="nexus-card text-center"
+                className="nexus-card nexus-metric-card text-center"
               >
                 <div className="flex items-center justify-center gap-1.5 mb-1">
                   <metric.icon className={`h-4 w-4 ${metric.color}`} aria-hidden="true" />
@@ -172,16 +172,16 @@ export default function DashboardPage() {
 
           {/* Additional metrics row */}
           {usageStats && (
-            <div className="grid grid-cols-3 gap-2 sm:gap-3">
-              <div className="nexus-card py-2.5 sm:py-3 text-center">
+            <div className="grid grid-cols-3 gap-2 sm:gap-3 stagger-children">
+              <div className="nexus-card nexus-metric-card py-2.5 sm:py-3 text-center">
                 <p className="text-xs sm:text-sm font-heading font-bold text-foreground">{usageStats.avgLatency}ms</p>
                 <p className="text-[9px] sm:text-[10px] text-muted-foreground">Latência média</p>
               </div>
-              <div className="nexus-card py-2.5 sm:py-3 text-center">
+              <div className="nexus-card nexus-metric-card py-2.5 sm:py-3 text-center">
                 <p className="text-xs sm:text-sm font-heading font-bold text-foreground">{(usageStats.totalTokens / 1000).toFixed(0)}k</p>
                 <p className="text-[9px] sm:text-[10px] text-muted-foreground">Tokens totais</p>
               </div>
-              <div className="nexus-card py-2.5 sm:py-3 text-center">
+              <div className="nexus-card nexus-metric-card py-2.5 sm:py-3 text-center">
                 <p className="text-xs sm:text-sm font-heading font-bold text-foreground">{draftCount}</p>
                 <p className="text-[9px] sm:text-[10px] text-muted-foreground">Rascunhos</p>
               </div>
@@ -189,12 +189,14 @@ export default function DashboardPage() {
           )}
 
           {/* Analytics Charts */}
-          <UsageCharts data={usageData} />
+          <div className="animate-chart-reveal">
+            <UsageCharts data={usageData} />
+          </div>
 
           <div className="grid lg:grid-cols-2 gap-3 sm:gap-4">
             <div className="nexus-card">
               <h3 className="text-sm font-heading font-semibold text-foreground mb-3" id="recent-agents-heading">Agentes recentes</h3>
-              <div className="space-y-2 sm:space-y-3" role="list" aria-labelledby="recent-agents-heading">
+              <div className="stagger-list" role="list" aria-labelledby="recent-agents-heading">
                 {agents.slice(0, 5).map(agent => (
                   <div
                     key={agent.id}
@@ -227,7 +229,7 @@ export default function DashboardPage() {
               {recentTraces.length === 0 ? (
                 <p className="text-xs text-muted-foreground text-center py-8">Nenhuma atividade registrada. Traces aparecerão quando agentes estiverem em uso.</p>
               ) : (
-                <div className="space-y-2" role="list" aria-labelledby="recent-traces-heading">
+                <div className="stagger-list" role="list" aria-labelledby="recent-traces-heading">
                   {recentTraces.map(trace => (
                     <div
                       key={trace.id}

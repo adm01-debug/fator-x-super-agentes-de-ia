@@ -122,13 +122,13 @@ export default function AgentsPage() {
           )}
         </div>
       ) : (
-        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3 stagger-children">
           {filtered.map((agent) => {
             const config = getConfig(agent);
             return (
               <div
                 key={agent.id}
-                className="nexus-card cursor-pointer group"
+                className="nexus-card nexus-card-interactive cursor-pointer group"
                 onClick={() => navigate(`/builder/${agent.id}`)}
               >
                 <div className="flex items-start justify-between mb-3">
