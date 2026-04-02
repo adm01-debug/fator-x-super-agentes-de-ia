@@ -56,7 +56,7 @@ export function LightBarChart({
         }
       }
       const ym = niceMax(maxVal * 1.1);
-      return { yMax: ym, ticks: [0, ym * 0.25, ym * 0.5, ym * 0.75, ym], isStacked: true, stackGroups: groups };
+      return { yMax: ym, ticks: [0, ym * 0.25, ym * 0.5, ym * 0.75, ym], isStacked: true };
     } else {
       for (const d of data) {
         for (const s of series) {
