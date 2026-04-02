@@ -1,9 +1,10 @@
 import { useState, useRef, useCallback } from "react";
 import { PageHeader } from "@/components/shared/PageHeader";
 import { Button } from "@/components/ui/button";
-import { Plus, GitBranch, ArrowRight, Save, Trash2, GripVertical, List, LayoutDashboard, Info, X, Undo2, Redo2, ZoomIn, ZoomOut, Maximize } from "lucide-react";
+import { Plus, GitBranch, ArrowRight, Save, Trash2, GripVertical, List, LayoutDashboard, Info, X, Undo2, Redo2, ZoomIn, ZoomOut, Maximize, History } from "lucide-react";
 import { toast } from "sonner";
 import * as workflowEngine from "@/services/workflowEngine";
+import * as traceService from "@/services/traceService";
 import { supabase } from "@/integrations/supabase/client";
 
 // ═══ TYPES ═══
@@ -550,6 +551,45 @@ export default function WorkflowsPage() {
                 </button>
               ))}
             </div>
+          </div>
+
+          {/* Histórico de Execuções */}
+          <div>
+            <h3 className="text-sm font-heading font-semibold text-foreground mb-3 flex items-center gap-2">
+              <History className="h-4 w-4 text-primary" /> Histórico de Execuções
+            </h3>
+            {(() => {
+              const workflowTraces = traceService.getTraces(20).filter(t => t.agent_name !== 'LLM Call');
+              if (workflowTraces.length === 0) {
+                return (
+                  <div className="nexus-card text-center py-8">
+                    <History className="h-10 w-10 mx-auto mb-2 text-muted-foreground/30" />
+                    <p className="text-sm text-muted-foreground">Nenhuma execução ainda</p>
+                    <p className="text-xs text-muted-foreground mt-1">Execute um workflow para ver o histórico aqui</p>
+                  </div>
+                );
+              }
+              return (
+                <div className="grid gap-3 md:grid-cols-2">
+                  {workflowTraces.map(trace => (
+                    <div key={trace.id} className="nexus-card">
+                      <div className="flex items-center justify-between mb-2">
+                        <h4 className="text-xs font-semibold text-foreground">{trace.agent_name}</h4>
+                        <span className={`px-2 py-0.5 rounded text-[10px] font-medium ${trace.status === 'success' ? 'bg-emerald-500/20 text-emerald-400' : trace.status === 'error' ? 'bg-rose-500/20 text-rose-400' : 'bg-amber-500/20 text-amber-400'}`}>
+                          {trace.status}
+                        </span>
+                      </div>
+                      <div className="space-y-1 text-[11px] text-muted-foreground">
+                        <div className="flex justify-between"><span>Duração</span><span className="text-foreground font-mono">{trace.latency_ms}ms</span></div>
+                        <div className="flex justify-between"><span>Custo</span><span className="text-foreground font-mono">${trace.cost_usd.toFixed(4)}</span></div>
+                        <div className="flex justify-between"><span>Eventos</span><span className="text-foreground">{trace.events.length} nodes</span></div>
+                        <div className="flex justify-between"><span>Quando</span><span className="text-foreground">{new Date(trace.timestamp).toLocaleString('pt-BR')}</span></div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              );
+            })()}
           </div>
         </>
       )}

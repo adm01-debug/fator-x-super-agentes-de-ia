@@ -1,4 +1,4 @@
-import { useState, useCallback } from "react";
+import { useState, useCallback, useEffect } from "react";
 import { PageHeader } from "@/components/shared/PageHeader";
 import { StatusBadge } from "@/components/shared/StatusBadge";
 import { Button } from "@/components/ui/button";
@@ -7,6 +7,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Rocket, MessageSquare, Globe, Code, Hash, Smartphone, Plus, Trash2, X, Save, Play, RotateCcw, RefreshCw, Copy, Eye } from "lucide-react";
 import { toast } from "sonner";
 import * as widgetService from "@/services/widgetService";
+import { supabase } from "@/integrations/supabase/client";
 
 // ═══ TYPES ═══
 
