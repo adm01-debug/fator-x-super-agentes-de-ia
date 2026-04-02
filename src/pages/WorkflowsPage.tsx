@@ -58,7 +58,7 @@ const defaultCanvasEdges: CanvasEdge[] = [
 export default function WorkflowsPage() {
   // Workflows loaded from Supabase
   const queryClient = useQueryClient();
-  const { data: workflows = defaultTemplates, isLoading: loadingWf } = useQuery({
+  const { data: workflows = defaultTemplates } = useQuery({
     queryKey: ["workflows_list"],
     queryFn: async () => {
       const { data: member } = await supabase.from("workspace_members").select("workspace_id").limit(1).single();
