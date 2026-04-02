@@ -189,7 +189,9 @@ export default function DashboardPage() {
           )}
 
           {/* Analytics Charts */}
-          <UsageCharts data={usageData} />
+          <div className="animate-chart-reveal">
+            <UsageCharts data={usageData} />
+          </div>
 
           <div className="grid lg:grid-cols-2 gap-3 sm:gap-4">
             <div className="nexus-card">
