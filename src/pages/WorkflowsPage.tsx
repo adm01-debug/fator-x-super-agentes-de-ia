@@ -144,7 +144,20 @@ export default function WorkflowsPage() {
   const handleExecute = async (wf: Workflow) => {
     setExecuting(wf.id);
     try {
-      // Try workflow-engine for DB workflows, fallback to Gateway
+      // Try workflow-engine for DB workflows (UUID format), fallback to Gateway
+      if (wf.id.includes('-')) {
+        try {
+          const { data, error } = await supabase.functions.invoke('workflow-engine', {
+            body: { workflow_id: wf.id, input: `Execute o workflow "${wf.name}"` },
+          });
+          if (!error && data?.status === 'completed') {
+            toast.success(`Engine: ${data.steps_executed} etapas • $${data.total_cost_usd?.toFixed(4) || '0'}`);
+            setExecuting(null);
+            return;
+          }
+        } catch { /* fallback below */ }
+      }
+      // Fallback: execute step-by-step via Gateway
       let previousOutput = `Workflow: "${wf.name}". Etapas: ${wf.steps.join(' → ')}`;
       const results: string[] = [];
       for (const step of wf.steps) {
