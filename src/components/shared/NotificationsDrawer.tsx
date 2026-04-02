@@ -255,7 +255,7 @@ export function NotificationsDrawer() {
               <p className="text-xs text-muted-foreground/60 mt-1">Alertas de agentes e avaliações aparecerão aqui em tempo real</p>
             </div>
           ) : (
-            notifications.map((notif, i) => {
+            notifications.map((notif) => {
               const Icon = alertIcons[notif.level] || Info;
               const color = alertColors[notif.level] || alertColors.info;
               return (

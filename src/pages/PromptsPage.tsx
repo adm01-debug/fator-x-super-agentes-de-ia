@@ -73,7 +73,7 @@ export default function PromptsPage() {
               </tr>
             </thead>
             <tbody>
-              {latestPrompts.map((p, i) => {
+              {latestPrompts.map((p) => {
                 const agent = agentMap.get(p.agent_id);
                 return (
                   <tr key={p.id} className="border-b border-border/30 hover:bg-secondary/30 transition-colors cursor-pointer" onClick={() => navigate(`/prompts/${p.agent_id}`)}>

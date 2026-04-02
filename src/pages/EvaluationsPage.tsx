@@ -47,7 +47,7 @@ export default function EvaluationsPage() {
             </div>
           ) : (
             <div className="space-y-4">
-              {evaluations.map((ev, i) => (
+              {evaluations.map((ev) => (
                 <div key={ev.id} className="nexus-card">
                   <div className="flex items-start justify-between mb-3">
                     <div className="flex items-center gap-2.5">

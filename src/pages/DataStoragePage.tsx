@@ -65,7 +65,7 @@ export default function DataStoragePage() {
       )}
 
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-        {stores.map((s, i) => (
+        {stores.map((s) => (
           <div key={s.name} className="nexus-card">
             <div className="flex items-start justify-between mb-3">
               <div className="flex items-center gap-2.5">

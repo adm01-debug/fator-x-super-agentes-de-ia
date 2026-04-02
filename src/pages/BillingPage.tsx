@@ -177,7 +177,7 @@ export default function BillingPage() {
             </div>
           ) : (
             <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-              {budgets.map((b, i) => {
+              {budgets.map((b) => {
                 const pct = b.limit_usd > 0 ? ((b.current_usd ?? 0) / b.limit_usd) * 100 : 0;
                 const overThreshold = pct >= (b.alert_threshold ?? 80) * 100;
                 return (

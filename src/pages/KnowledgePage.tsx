@@ -69,7 +69,7 @@ export default function KnowledgePage() {
       <div className="nexus-card">
         <h3 className="text-sm font-heading font-semibold text-foreground mb-4">Pipeline de ingestão</h3>
         <div className="flex items-center gap-2 overflow-x-auto pb-2">
-          {pipeline.map((step, i) => (
+          {pipeline.map((step) => (
             <div key={step} className="flex items-center gap-2">
               <div className="flex flex-col items-center">
                 <div className="h-10 w-10 rounded-lg bg-primary/10 flex items-center justify-center text-xs font-semibold text-primary">{i + 1}</div>
@@ -98,7 +98,7 @@ export default function KnowledgePage() {
         </div>
       ) : (
         <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-          {filtered.map((kb, i) => (
+          {filtered.map((kb) => (
             <div key={kb.id}
               className="nexus-card group cursor-pointer"
               onClick={() => setSelectedKb({ id: kb.id, name: kb.name })}

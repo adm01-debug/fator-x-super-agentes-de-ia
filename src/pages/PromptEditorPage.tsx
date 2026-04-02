@@ -254,7 +254,7 @@ export default function PromptEditorPage() {
           <div className="grid lg:grid-cols-2 gap-4">
             <div className="space-y-2">
               <h3 className="text-sm font-semibold text-foreground mb-2">Histórico de versões</h3>
-              {versions.map((v, i) => (
+              {versions.map((v) => (
                 <div key={v.id}
                   className={`nexus-card flex items-center justify-between cursor-pointer transition-all ${
                     diffVersionId === v.id ? "ring-2 ring-primary bg-primary/5" : ""

@@ -13,8 +13,7 @@ export function StageProgress({ mode, currentStage }: StageProgressProps) {
       <div className="flex items-center gap-2">
         {stages.map((stage, i) => (
           <div key={stage} className="flex items-center gap-2 flex-1">
-            <div
-              animate={currentStage === i + 1 ? { scale: [1, 1.1, 1] } : {}}
+            <div : {}}
               className={`h-8 w-8 rounded-full flex items-center justify-center text-xs font-bold shrink-0 ${
                 currentStage > i + 1
                   ? 'bg-primary text-primary-foreground'

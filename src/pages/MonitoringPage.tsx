@@ -147,7 +147,7 @@ export default function MonitoringPage() {
                   <ResponsiveContainer width="100%" height={180}>
                     <PieChart>
                       <Pie data={pieData} cx="50%" cy="50%" innerRadius={40} outerRadius={70} dataKey="value" nameKey="name" label={({ name, percent }) => `${name} ${(percent * 100).toFixed(0)}%`}>
-                        {pieData.map((_, i) => <Cell key={i} fill={PIE_COLORS[i % PIE_COLORS.length]} />)}
+                        {pieData.map((_) => <Cell key={i} fill={PIE_COLORS[i % PIE_COLORS.length]} />)}
                       </Pie>
                       <Tooltip contentStyle={{ background: 'hsl(var(--card))', border: '1px solid hsl(var(--border))', borderRadius: 8, fontSize: 11 }} />
                     </PieChart>
@@ -225,7 +225,7 @@ export default function MonitoringPage() {
             </div>
           ) : (
             <div className="space-y-3">
-              {alerts.map((alert, i) => (
+              {alerts.map((alert) => (
                 <div key={alert.id}
                   className={`nexus-card flex items-start gap-3 ${alert.is_resolved ? 'opacity-60' : ''}`}
                 >
@@ -396,7 +396,7 @@ function SessionsPanel({ traces }: { traces: any[] }) {
 
   return (
     <div className="space-y-3">
-      {sessions.map((session, i) => (
+      {sessions.map((session) => (
         <div key={session.sessionId} className="nexus-card">
           <div className="flex items-center justify-between cursor-pointer" onClick={() => setExpandedSession(expandedSession === session.sessionId ? null : session.sessionId)}>
             <div>

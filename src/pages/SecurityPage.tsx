@@ -140,7 +140,7 @@ export default function SecurityPage() {
           <ShieldCheck className="h-4 w-4 text-primary" /> Postura de Segurança
         </h3>
         <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
-          {securityChecks.map((check, i) => (
+          {securityChecks.map((check) => (
             <div key={check.title}
               className="p-3 rounded-lg bg-secondary/30 border border-border/30 flex items-start gap-3"
             >
@@ -197,7 +197,7 @@ export default function SecurityPage() {
           </div>
         ) : (
           <div className="grid gap-3 md:grid-cols-2 lg:grid-cols-3">
-            {guardrails.map((g, i) => (
+            {guardrails.map((g) => (
               <div key={g.id}
                 className="p-3 rounded-lg bg-secondary/20 border border-border/30 flex items-center gap-3 group"
               >

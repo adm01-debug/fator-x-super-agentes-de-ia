@@ -156,7 +156,7 @@ export default function ToolsPage() {
         <div className="flex items-center justify-center py-20"><Loader2 className="h-6 w-6 animate-spin text-muted-foreground" /></div>
       ) : (
         <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
-          {filtered.map((tool, i) => (
+          {filtered.map((tool) => (
             <div key={tool.id} className="nexus-card group">
               <div className="flex items-center gap-2.5 mb-3">
                 <div className="h-10 w-10 rounded-xl bg-primary/10 flex items-center justify-center">

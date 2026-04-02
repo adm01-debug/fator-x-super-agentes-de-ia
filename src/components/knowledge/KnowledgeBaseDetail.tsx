@@ -196,7 +196,7 @@ export function KnowledgeBaseDetail({ kbId, kbName, onBack }: KnowledgeBaseDetai
               <p className="text-xs text-muted-foreground">Nenhuma collection. Crie uma para organizar documentos.</p>
             </div>
           ) : (
-            collections.map((coll, i) => (
+            collections.map((coll) => (
               <div
                 key={coll.id}
                 className={`nexus-card cursor-pointer p-3 group ${selectedCollectionId === coll.id ? 'border-primary/40 nexus-glow-sm' : ''}`}
@@ -264,7 +264,7 @@ export function KnowledgeBaseDetail({ kbId, kbName, onBack }: KnowledgeBaseDetai
               <p className="text-xs text-muted-foreground">Nenhum documento nesta collection.</p>
             </div>
           ) : (
-            documents.map((doc, i) => (
+            documents.map((doc) => (
               <div key={doc.id} className="nexus-card p-3 group">
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-2 min-w-0">
@@ -309,7 +309,7 @@ export function KnowledgeBaseDetail({ kbId, kbName, onBack }: KnowledgeBaseDetai
             </div>
           ) : (
             <div className="space-y-2 max-h-[600px] overflow-y-auto">
-              {chunks.map((chunk, i) => (
+              {chunks.map((chunk) => (
                 <div key={chunk.id} className="nexus-card p-3">
                   <div className="flex items-center justify-between mb-1.5">
                     <Badge variant="outline" className="text-[9px]">#{chunk.chunk_index}</Badge>

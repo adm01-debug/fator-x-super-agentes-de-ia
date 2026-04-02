@@ -127,8 +127,8 @@ export default function MemoryPage() {
         </div>
       ) : (
         <div className="space-y-2">
-            {filtered.map((entry, i) => (
-              <div key={entry.id} layout
+            {filtered.map((entry) => (
+              <div key={entry.id} 
                 className="nexus-card flex items-start gap-3">
                 <div className="flex-1 min-w-0">
                   <p className="text-xs text-foreground leading-relaxed">{entry.content}</p>

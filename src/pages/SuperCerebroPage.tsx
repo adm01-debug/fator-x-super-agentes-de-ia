@@ -138,7 +138,7 @@ export default function SuperCerebroPage() {
         {/* Knowledge Areas */}
         <TabsContent value="knowledge" className="mt-4 space-y-4">
           <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-            {knowledgeAreas.map((area, i) => (
+            {knowledgeAreas.map((area) => (
               <div key={area.title} className="nexus-card cursor-pointer hover:border-primary/30 transition-colors">
                 <div className="text-3xl mb-3">{area.icon}</div>
                 <h3 className="text-sm font-semibold text-foreground">{area.title}</h3>
