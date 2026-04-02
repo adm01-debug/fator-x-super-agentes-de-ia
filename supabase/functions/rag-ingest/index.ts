@@ -48,7 +48,7 @@ serve(async (req) => {
     if (!user) return new Response(JSON.stringify({ error: 'Unauthorized' }), { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
 
     const body = await req.json();
-    const { document_id, content, chunk_size = 1000, chunk_overlap = 200 } = body;
+    const { document_id, content, chunk_size = 1000, chunk_overlap = 200, contextual_chunking = false } = body;
 
     if (!document_id || !content) {
       return new Response(JSON.stringify({ error: 'document_id and content required' }), { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
@@ -57,13 +57,57 @@ serve(async (req) => {
     // Update document status
     await supabase.from('documents').update({ status: 'processing' }).eq('id', document_id);
 
+    // Check if KB has contextual chunking enabled
+    let useContextual = contextual_chunking;
+    if (!useContextual) {
+      const { data: doc } = await supabase.from('documents').select('collection_id').eq('id', document_id).single();
+      if (doc) {
+        const { data: col } = await supabase.from('collections').select('knowledge_base_id').eq('id', doc.collection_id).single();
+        if (col) {
+          const { data: kb } = await supabase.from('knowledge_bases').select('contextual_chunking_enabled').eq('id', col.knowledge_base_id).single();
+          useContextual = kb?.contextual_chunking_enabled || false;
+        }
+      }
+    }
+
     // Chunk
     const chunks = chunkText(content, chunk_size, chunk_overlap);
 
-    // Insert chunks
+    // Contextual chunking: prepend context to each chunk via LLM
+    const contextPrefixes: string[] = [];
+    if (useContextual && chunks.length > 1) {
+      const { data: mmbr } = await supabase.from('workspace_members').select('workspace_id').eq('user_id', user.id).limit(1).single();
+      if (mmbr?.workspace_id) {
+        const { data: apiKeyRow } = await supabase.from('workspace_secrets').select('key_value').eq('workspace_id', mmbr.workspace_id).eq('key_name', 'openai_api_key').single();
+        if (apiKeyRow?.key_value) {
+          const docSummary = content.substring(0, 3000); // Use first 3K chars as context
+          for (let i = 0; i < chunks.length; i++) {
+            try {
+              const resp = await fetch('https://api.openai.com/v1/chat/completions', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${apiKeyRow.key_value}` },
+                body: JSON.stringify({
+                  model: 'gpt-4o-mini', max_tokens: 100, temperature: 0,
+                  messages: [
+                    { role: 'system', content: 'Generate a very brief (1-2 sentence) context explaining where this chunk fits in the overall document. Respond ONLY with the context, no labels.' },
+                    { role: 'user', content: `Document excerpt:\n${docSummary}\n\nChunk ${i + 1}/${chunks.length}:\n${chunks[i].substring(0, 500)}` },
+                  ],
+                }),
+              });
+              const data = await resp.json();
+              contextPrefixes[i] = data.choices?.[0]?.message?.content?.trim() || '';
+            } catch { contextPrefixes[i] = ''; }
+          }
+        }
+      }
+    }
+
+    // Insert chunks (with context prefix if available)
     const chunkRows = chunks.map((c, i) => ({
-      document_id, content: c, chunk_index: i,
-      token_count: Math.ceil(c.length / 4),
+      document_id, content: contextPrefixes[i] ? `${contextPrefixes[i]}\n\n${c}` : c,
+      chunk_index: i,
+      context_prefix: contextPrefixes[i] || null,
+      token_count: Math.ceil((contextPrefixes[i] ? contextPrefixes[i].length + c.length : c.length) / 4),
       embedding_status: 'pending',
     }));
     const { data: insertedChunks, error: insertError } = await supabase.from('chunks').insert(chunkRows).select('id, content');

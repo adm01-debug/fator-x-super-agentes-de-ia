@@ -193,6 +193,19 @@ export const useAgentBuilderStore = create<AgentBuilderStore>((set, get) => ({
           }, { onConflict: 'agent_id,tool_integration_id' }).catch(() => {});
         }
       }
+      // ═══ Auto-versioning: snapshot agent config on every save ═══
+      if (agentId) {
+        (supabase as any).from('agent_versions').insert({
+          agent_id: agentId,
+          version: savedAgent.version || 1,
+          config: row.config || {},
+          system_prompt: (row.config as any)?.system_prompt || '',
+          model: savedAgent.model,
+          created_by: user.id,
+          change_summary: `Save at ${now}`,
+          environment: savedAgent.status === 'production' ? 'production' : savedAgent.status === 'staging' ? 'staging' : 'development',
+        }).catch(() => {}); // Ignore duplicate version errors
+      }
     }
   },
 
