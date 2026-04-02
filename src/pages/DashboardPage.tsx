@@ -149,9 +149,9 @@ export default function DashboardPage() {
               { icon: DollarSign, color: "text-nexus-amber", value: usageStats?.totalCost ?? 0, label: "Custo (30d)", prefix: "$", decimals: 2, noData: !usageStats },
               { icon: TrendingUp, color: "text-primary", value: usageStats?.totalRequests ?? 0, label: "Requests (30d)", noData: !usageStats },
             ].map((metric, i) => (
-              <div
+             <div
                 key={metric.label}
-                className="nexus-card text-center"
+                className="nexus-card nexus-metric-card text-center"
               >
                 <div className="flex items-center justify-center gap-1.5 mb-1">
                   <metric.icon className={`h-4 w-4 ${metric.color}`} aria-hidden="true" />
