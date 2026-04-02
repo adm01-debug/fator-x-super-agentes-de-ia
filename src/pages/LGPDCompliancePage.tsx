@@ -154,7 +154,7 @@ export default function LGPDCompliancePage() {
               {[...deletions.map((d: any) => ({ ...d, _type: 'deletion' })), ...consents.map((c: any) => ({ ...c, _type: 'consent' }))]
                 .sort((a: any, b: any) => new Date(b.created_at || b.requested_at).getTime() - new Date(a.created_at || a.requested_at).getTime())
                 .slice(0, 30)
-                .map((item: any, i: number) => (
+                .map((item: any) => (
                 <div key={item.id}
                   className="nexus-card flex items-center justify-between text-xs">
                   <div className="flex items-center gap-3">

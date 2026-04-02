@@ -114,7 +114,7 @@ export default function WorkflowsPage() {
         config: { step_names: steps },
       }).select('id').single();
       if (error) throw error;
-      await (supabase as any).from('workflow_steps').insert(steps.map((name) => ({ workflow_id: wf.id, name, step_order: i, role: 'executor' })));
+      await (supabase as any).from('workflow_steps').insert(steps.map((name, i) => ({ workflow_id: wf.id, name, step_order: i, role: 'executor' })));
       toast.success('Workflow salvo no banco!');
       setDialogOpen(false); setNewName(''); setNewSteps('');
       queryClient.invalidateQueries({ queryKey: ['workflows_list'] });

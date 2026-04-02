@@ -72,7 +72,7 @@ export default function ApprovalQueuePage() {
         </div>
       ) : (
         <div className="space-y-4">
-          {pendingRuns.map((run: any, i: number) => {
+          {pendingRuns.map((run: any) => {
             const pending = run.output?.pending_approval;
             const isSelected = selectedRun === run.id;
             return (
