@@ -4,7 +4,6 @@ import {
 } from "@/components/ui/sheet";
 import { Button } from "@/components/ui/button";
 import { Bell, AlertTriangle, XCircle, Info, CheckCircle2, FlaskConical } from "lucide-react";
-import { motion, AnimatePresence } from "framer-motion";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
@@ -226,16 +225,14 @@ export function NotificationsDrawer() {
       <SheetTrigger asChild>
         <Button variant="ghost" size="icon" className="relative text-muted-foreground hover:text-foreground" aria-label={`Notificações${uniqueUnread > 0 ? ` (${uniqueUnread})` : ""}`}>
           <Bell className="h-4 w-4" aria-hidden="true" />
-          <AnimatePresence>
-            {uniqueUnread > 0 && (
-              <motion.span
-                initial={{ scale: 0 }} animate={{ scale: 1 }} exit={{ scale: 0 }}
+          {uniqueUnread > 0 && (
+              <span
                 className="absolute -top-0.5 -right-0.5 h-4 w-4 rounded-full nexus-gradient-bg flex items-center justify-center text-[9px] font-bold text-primary-foreground"
               >
                 {uniqueUnread > 9 ? '9+' : uniqueUnread}
-              </motion.span>
+              </span>
             )}
-          </AnimatePresence>
+          
         </Button>
       </SheetTrigger>
       <SheetContent className="w-[400px] sm:w-[440px] p-0">
@@ -258,11 +255,11 @@ export function NotificationsDrawer() {
               <p className="text-xs text-muted-foreground/60 mt-1">Alertas de agentes e avaliações aparecerão aqui em tempo real</p>
             </div>
           ) : (
-            notifications.map((notif, i) => {
+            notifications.map((notif) => {
               const Icon = alertIcons[notif.level] || Info;
               const color = alertColors[notif.level] || alertColors.info;
               return (
-                <motion.div key={notif.id} initial={{ opacity: 0, y: 4 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.03 }}
+                <div key={notif.id}
                   className={`rounded-lg border border-border/50 p-3 hover:bg-secondary/30 transition-colors cursor-pointer ${!notif.read ? 'bg-secondary/20' : ''}`}
                 >
                   <div className="flex items-start gap-3">
@@ -290,7 +287,7 @@ export function NotificationsDrawer() {
                       </div>
                     </div>
                   </div>
-                </motion.div>
+                </div>
               );
             })
           )}

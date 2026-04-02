@@ -15,7 +15,6 @@ import { ConsensusMatrix } from '@/components/oracle/ConsensusMatrix';
 import { ModelCard } from '@/components/oracle/ModelCard';
 import { OracleHistory } from '@/components/oracle/OracleHistory';
 import { exportToMarkdown, downloadText } from '@/lib/oracleExport';
-import { motion, AnimatePresence } from 'framer-motion';
 import { toast } from 'sonner';
 
 const CHAIRMAN_MODELS = [
@@ -75,18 +74,16 @@ export default function OraclePage() {
         </div>
 
         {/* Preset selector (collapsible) */}
-        <AnimatePresence>
-          {showPresets && (
-            <motion.div initial={{ height: 0, opacity: 0 }} animate={{ height: 'auto', opacity: 1 }} exit={{ height: 0, opacity: 0 }} className="overflow-hidden">
+        {showPresets && (
+            <div className="overflow-hidden">
               <PresetSelector selectedPreset={store.selectedPreset} onSelect={(id) => { store.setSelectedPreset(id); setShowPresets(false); }} />
-            </motion.div>
+            </div>
           )}
-        </AnimatePresence>
+        
 
         {/* Advanced settings (collapsible) */}
-        <AnimatePresence>
-          {showAdvanced && (
-            <motion.div initial={{ height: 0, opacity: 0 }} animate={{ height: 'auto', opacity: 1 }} exit={{ height: 0, opacity: 0 }} className="overflow-hidden">
+        {showAdvanced && (
+            <div className="overflow-hidden">
               <div className="p-3 rounded-lg bg-secondary/30 border border-border/30 space-y-3">
                 <div className="grid grid-cols-2 gap-4">
                   {/* Chairman selector */}
@@ -120,9 +117,9 @@ export default function OraclePage() {
                   <Switch checked={store.enableThinking} onCheckedChange={store.setEnableThinking} />
                 </div>
               </div>
-            </motion.div>
+            </div>
           )}
-        </AnimatePresence>
+        
 
         {/* Query input */}
         <Textarea
@@ -154,7 +151,7 @@ export default function OraclePage() {
 
       {/* ═══ RESULTS ═══ */}
       {store.results && (
-        <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} className="space-y-4">
+        <div className="space-y-4">
           {/* Metrics cards */}
           <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
             {[
@@ -261,7 +258,7 @@ export default function OraclePage() {
               </div>
             </TabsContent>
           </Tabs>
-        </motion.div>
+        </div>
       )}
 
       {/* ═══ HISTORY ═══ */}
@@ -274,13 +271,12 @@ export default function OraclePage() {
           <span className="text-sm font-medium text-foreground">Histórico de Consultas</span>
           {showHistory ? <ChevronUp className="h-3.5 w-3.5 text-muted-foreground ml-auto" /> : <ChevronDown className="h-3.5 w-3.5 text-muted-foreground ml-auto" />}
         </button>
-        <AnimatePresence>
-          {showHistory && (
-            <motion.div initial={{ height: 0, opacity: 0 }} animate={{ height: 'auto', opacity: 1 }} exit={{ height: 0, opacity: 0 }} className="overflow-hidden mt-4">
+        {showHistory && (
+            <div className="overflow-hidden mt-4">
               <OracleHistory />
-            </motion.div>
+            </div>
           )}
-        </AnimatePresence>
+        
       </div>
     </div>
   );

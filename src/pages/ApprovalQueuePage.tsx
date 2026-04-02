@@ -7,7 +7,6 @@ import { CheckCircle, XCircle, Clock, Loader2 } from 'lucide-react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
-import { motion } from 'framer-motion';
 
 export default function ApprovalQueuePage() {
   const queryClient = useQueryClient();
@@ -73,11 +72,11 @@ export default function ApprovalQueuePage() {
         </div>
       ) : (
         <div className="space-y-4">
-          {pendingRuns.map((run: any, i: number) => {
+          {pendingRuns.map((run: any) => {
             const pending = run.output?.pending_approval;
             const isSelected = selectedRun === run.id;
             return (
-              <motion.div key={run.id} initial={{ opacity: 0, y: 6 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.05 }}
+              <div key={run.id}
                 className={`nexus-card ${isSelected ? 'border-primary/30' : ''}`}>
                 <div className="flex items-start justify-between cursor-pointer" onClick={() => setSelectedRun(isSelected ? null : run.id)}>
                   <div>
@@ -108,7 +107,7 @@ export default function ApprovalQueuePage() {
                     </div>
                   </div>
                 )}
-              </motion.div>
+              </div>
             );
           })}
         </div>

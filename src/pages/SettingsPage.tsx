@@ -7,7 +7,6 @@ import { Switch } from "@/components/ui/switch";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Palette, Globe, Bell, Key, Plus, Trash2, Save, Eye, EyeOff, Loader2 } from "lucide-react";
-import { motion } from "framer-motion";
 import { toast } from "sonner";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
@@ -183,7 +182,7 @@ export default function SettingsPage() {
             ) : (
               <div className="space-y-2">
                 {secrets.map(s => (
-                  <motion.div key={s.id} initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="flex items-center gap-3 p-3 rounded-lg bg-secondary/30 border border-border/30">
+                  <div key={s.id} className="flex items-center gap-3 p-3 rounded-lg bg-secondary/30 border border-border/30">
                     <div className="flex-1 min-w-0">
                       <p className="text-xs font-mono font-medium text-foreground">{s.key_name}</p>
                       <p className="text-[10px] text-muted-foreground font-mono truncate">
@@ -196,7 +195,7 @@ export default function SettingsPage() {
                     <Button size="icon" variant="ghost" className="h-7 w-7 text-destructive" onClick={() => deleteKeyMutation.mutate(s.id)}>
                       <Trash2 className="h-3.5 w-3.5" />
                     </Button>
-                  </motion.div>
+                  </div>
                 ))}
               </div>
             )}

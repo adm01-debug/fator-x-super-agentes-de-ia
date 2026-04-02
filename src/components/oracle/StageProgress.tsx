@@ -1,5 +1,4 @@
 import { ORACLE_MODES, type OracleMode } from '@/stores/oracleStore';
-import { motion } from 'framer-motion';
 
 interface StageProgressProps {
   mode: OracleMode;
@@ -14,9 +13,7 @@ export function StageProgress({ mode, currentStage }: StageProgressProps) {
       <div className="flex items-center gap-2">
         {stages.map((stage, i) => (
           <div key={stage} className="flex items-center gap-2 flex-1">
-            <motion.div
-              animate={currentStage === i + 1 ? { scale: [1, 1.1, 1] } : {}}
-              transition={{ repeat: Infinity, duration: 1.5 }}
+            <div
               className={`h-8 w-8 rounded-full flex items-center justify-center text-xs font-bold shrink-0 ${
                 currentStage > i + 1
                   ? 'bg-primary text-primary-foreground'
@@ -26,7 +23,7 @@ export function StageProgress({ mode, currentStage }: StageProgressProps) {
               }`}
             >
               {currentStage > i + 1 ? '✓' : i + 1}
-            </motion.div>
+            </div>
             <span className={`text-xs whitespace-nowrap ${currentStage >= i + 1 ? 'text-foreground font-medium' : 'text-muted-foreground'}`}>
               {stage}
             </span>

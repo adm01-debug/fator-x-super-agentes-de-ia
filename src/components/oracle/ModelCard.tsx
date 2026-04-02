@@ -2,7 +2,6 @@ import { useState } from 'react';
 import { Badge } from '@/components/ui/badge';
 import { ModelResponse } from '@/stores/oracleStore';
 import { ChevronDown, ChevronRight } from 'lucide-react';
-import { motion, AnimatePresence } from 'framer-motion';
 
 interface ModelCardProps {
   response: ModelResponse;
@@ -55,20 +54,16 @@ export function ModelCard({ response, rank, showThinking }: ModelCardProps) {
             {expanded ? <ChevronDown className="h-3 w-3" /> : <ChevronRight className="h-3 w-3" />}
             💭 {expanded ? 'Ocultar raciocínio' : 'Ver raciocínio'}
           </button>
-          <AnimatePresence>
-            {expanded && (
-              <motion.div
-                initial={{ height: 0, opacity: 0 }}
-                animate={{ height: 'auto', opacity: 1 }}
-                exit={{ height: 0, opacity: 0 }}
+          {expanded && (
+              <div
                 className="overflow-hidden"
               >
                 <div className="mt-2 p-2.5 rounded-md bg-secondary/40 border border-border/30 text-[11px] text-muted-foreground whitespace-pre-wrap max-h-[200px] overflow-y-auto">
                   {thinking}
                 </div>
-              </motion.div>
+              </div>
             )}
-          </AnimatePresence>
+          
         </div>
       )}
 

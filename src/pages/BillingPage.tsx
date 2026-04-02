@@ -13,7 +13,6 @@ import { supabase } from "@/integrations/supabase/client";
 import { getWorkspaceId } from "@/lib/agentService";
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid } from "recharts";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { motion } from "framer-motion";
 import { toast } from "sonner";
 
 export default function BillingPage() {
@@ -178,11 +177,11 @@ export default function BillingPage() {
             </div>
           ) : (
             <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-              {budgets.map((b, i) => {
+              {budgets.map((b) => {
                 const pct = b.limit_usd > 0 ? ((b.current_usd ?? 0) / b.limit_usd) * 100 : 0;
                 const overThreshold = pct >= (b.alert_threshold ?? 80) * 100;
                 return (
-                  <motion.div key={b.id} initial={{ opacity: 0, y: 6 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.04 }} className="nexus-card group">
+                  <div key={b.id} className="nexus-card group">
                     <div className="flex items-center justify-between mb-3">
                       <div>
                         <h4 className="text-sm font-semibold text-foreground">{b.name}</h4>
@@ -213,7 +212,7 @@ export default function BillingPage() {
                         <span className="text-[10px]">Alerta: {pct.toFixed(0)}% do limite</span>
                       </div>
                     )}
-                  </motion.div>
+                  </div>
                 );
               })}
             </div>

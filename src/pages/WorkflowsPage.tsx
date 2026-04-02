@@ -10,7 +10,6 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Plus, GitBranch, ArrowRight, Brain, Search, Shield, CheckCircle, Wrench, FileText, Play, Trash2, LayoutGrid, Network, Save, FolderOpen, Loader2 } from "lucide-react";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
-import { motion, AnimatePresence } from "framer-motion";
 import { toast } from "sonner";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { WorkflowCanvas, type CanvasNode, type CanvasEdge } from "@/components/workflows/WorkflowCanvas";
@@ -284,9 +283,8 @@ export default function WorkflowsPage() {
           </InfoHint>
 
           <div className="grid gap-4 md:grid-cols-2">
-            <AnimatePresence>
-              {workflows.map((wf: any, i: number) => (
-                <motion.div key={wf.id} initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -8 }} transition={{ delay: i * 0.06 }} className="nexus-card group">
+            {workflows.map((wf: any) => (
+                <div key={wf.id} className="nexus-card group">
                   <div className="flex items-center justify-between mb-4">
                     <div className="flex items-center gap-2.5">
                       <div className="h-10 w-10 rounded-xl bg-primary/10 flex items-center justify-center">
@@ -329,9 +327,9 @@ export default function WorkflowsPage() {
                       );
                     })}
                   </div>
-                </motion.div>
+                </div>
               ))}
-            </AnimatePresence>
+            
           </div>
         </TabsContent>
 
@@ -357,8 +355,8 @@ function WorkflowRunsHistory() {
 
   return (
     <div className="space-y-3">
-      {runs.map((run: any, i: number) => (
-        <motion.div key={run.id} initial={{ opacity: 0, y: 6 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.03 }} className="nexus-card">
+      {runs.map((run: any) => (
+        <div key={run.id} className="nexus-card">
           <div className="flex items-center justify-between">
             <div>
               <p className="text-sm font-semibold text-foreground">{run.workflows?.name || 'Workflow'}</p>
@@ -372,7 +370,7 @@ function WorkflowRunsHistory() {
             </Badge>
           </div>
           {run.error && <p className="text-xs text-destructive mt-2">{run.error}</p>}
-        </motion.div>
+        </div>
       ))}
     </div>
   );

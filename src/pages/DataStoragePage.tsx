@@ -2,7 +2,6 @@ import { PageHeader } from "@/components/shared/PageHeader";
 import { InfoHint } from "@/components/shared/InfoHint";
 import { StatusBadge } from "@/components/shared/StatusBadge";
 import { Database, Server, HardDrive, Cpu, Radio, FileText } from "lucide-react";
-import { motion } from "framer-motion";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 
@@ -66,8 +65,8 @@ export default function DataStoragePage() {
       )}
 
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-        {stores.map((s, i) => (
-          <motion.div key={s.name} initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.05 }} className="nexus-card">
+        {stores.map((s) => (
+          <div key={s.name} className="nexus-card">
             <div className="flex items-start justify-between mb-3">
               <div className="flex items-center gap-2.5">
                 <div className="h-10 w-10 rounded-xl bg-primary/10 flex items-center justify-center">
@@ -84,7 +83,7 @@ export default function DataStoragePage() {
             <div className="text-xs border-t border-border/50 pt-3">
               <div className="flex justify-between"><span className="text-muted-foreground">Latência típica</span><span className="text-foreground font-mono">{s.latency}</span></div>
             </div>
-          </motion.div>
+          </div>
         ))}
       </div>
     </div>

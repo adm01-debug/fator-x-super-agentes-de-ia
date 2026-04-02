@@ -10,7 +10,6 @@ import { Search, Trash2, RefreshCw, Loader2, Database, Bot, Activity, BookOpen, 
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
-import { motion } from "framer-motion";
 import { format } from "date-fns";
 
 type TableName = "agents" | "agent_traces" | "knowledge_bases" | "prompt_versions" | "evaluation_runs" | "oracle_history";
@@ -229,7 +228,7 @@ export default function AdminPage() {
         description="Visualize e gerencie todos os dados do sistema — CRUD completo"
       />
 
-      <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }}>
+      <div>
         <Tabs defaultValue="agents" className="space-y-4">
           <TabsList className="bg-secondary/50 flex-wrap h-auto gap-1 p-1">
             {TABLE_CONFIG.map((t) => (
@@ -246,7 +245,7 @@ export default function AdminPage() {
             </TabsContent>
           ))}
         </Tabs>
-      </motion.div>
+      </div>
     </div>
   );
 }

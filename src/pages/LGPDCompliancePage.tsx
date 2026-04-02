@@ -7,7 +7,6 @@ import { Shield, Trash2, Download, AlertTriangle, Loader2, FileText } from 'luci
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
-import { motion } from 'framer-motion';
 
 export default function LGPDCompliancePage() {
   const queryClient = useQueryClient();
@@ -155,8 +154,8 @@ export default function LGPDCompliancePage() {
               {[...deletions.map((d: any) => ({ ...d, _type: 'deletion' })), ...consents.map((c: any) => ({ ...c, _type: 'consent' }))]
                 .sort((a: any, b: any) => new Date(b.created_at || b.requested_at).getTime() - new Date(a.created_at || a.requested_at).getTime())
                 .slice(0, 30)
-                .map((item: any, i: number) => (
-                <motion.div key={item.id} initial={{ opacity: 0, y: 4 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.02 }}
+                .map((item: any) => (
+                <div key={item.id}
                   className="nexus-card flex items-center justify-between text-xs">
                   <div className="flex items-center gap-3">
                     {item._type === 'deletion' ? <Trash2 className="h-3.5 w-3.5 text-destructive" /> : <Shield className="h-3.5 w-3.5 text-primary" />}
@@ -170,7 +169,7 @@ export default function LGPDCompliancePage() {
                   <Badge variant={item.status === 'completed' || item.granted ? 'default' : item.status === 'failed' ? 'destructive' : 'outline'} className="text-[9px]">
                     {item.status || (item.granted ? 'ativo' : 'revogado')}
                   </Badge>
-                </motion.div>
+                </div>
               ))}
             </div>
           )}

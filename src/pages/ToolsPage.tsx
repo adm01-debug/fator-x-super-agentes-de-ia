@@ -9,7 +9,6 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
 import { Search, Loader2, Wrench, Globe, Database, Mail, FileSearch, Code, Webhook, Plus, Trash2 } from "lucide-react";
-import { motion } from "framer-motion";
 import { useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
@@ -157,8 +156,8 @@ export default function ToolsPage() {
         <div className="flex items-center justify-center py-20"><Loader2 className="h-6 w-6 animate-spin text-muted-foreground" /></div>
       ) : (
         <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
-          {filtered.map((tool, i) => (
-            <motion.div key={tool.id} initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.04 }} className="nexus-card group">
+          {filtered.map((tool) => (
+            <div key={tool.id} className="nexus-card group">
               <div className="flex items-center gap-2.5 mb-3">
                 <div className="h-10 w-10 rounded-xl bg-primary/10 flex items-center justify-center">
                   <tool.icon className="h-5 w-5 text-primary" />
@@ -194,7 +193,7 @@ export default function ToolsPage() {
                   </AlertDialog>
                 </div>
               )}
-            </motion.div>
+            </div>
           ))}
         </div>
       )}

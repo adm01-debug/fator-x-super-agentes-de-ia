@@ -1,7 +1,6 @@
 import { useState, useEffect } from "react";
 import { PageHeader } from "@/components/shared/PageHeader";
 import { useNavigate } from "react-router-dom";
-import { motion, AnimatePresence } from "framer-motion";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -383,14 +382,11 @@ export function CreateAgentWizard() {
       </div>
 
       {/* Content */}
-      <AnimatePresence mode="wait">
-        <motion.div key={`${mode}-${step}`}
-          initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }}
-          exit={{ opacity: 0, x: -20 }} transition={{ duration: 0.2 }}
+      <div key={`${mode}-${step}`}
         >
           {mode === "template" ? renderTemplateStep() : renderScratchStep()}
-        </motion.div>
-      </AnimatePresence>
+        </div>
+      
 
       {/* Navigation */}
       <div className="flex items-center justify-between pt-4 border-t border-border/50">

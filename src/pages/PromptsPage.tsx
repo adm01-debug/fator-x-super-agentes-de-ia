@@ -3,7 +3,6 @@ import { PageHeader } from "@/components/shared/PageHeader";
 import { InfoHint } from "@/components/shared/InfoHint";
 import { FileText, Loader2 } from "lucide-react";
 import { StatusBadge } from "@/components/shared/StatusBadge";
-import { motion } from "framer-motion";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { CreatePromptDialog } from "@/components/dialogs/CreatePromptDialog";
@@ -74,10 +73,10 @@ export default function PromptsPage() {
               </tr>
             </thead>
             <tbody>
-              {latestPrompts.map((p, i) => {
+              {latestPrompts.map((p) => {
                 const agent = agentMap.get(p.agent_id);
                 return (
-                  <motion.tr key={p.id} initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: i * 0.05 }} className="border-b border-border/30 hover:bg-secondary/30 transition-colors cursor-pointer" onClick={() => navigate(`/prompts/${p.agent_id}`)}>
+                  <tr key={p.id} className="border-b border-border/30 hover:bg-secondary/30 transition-colors cursor-pointer" onClick={() => navigate(`/prompts/${p.agent_id}`)}>
                     <td className="px-5 py-3">
                       <div className="flex items-center gap-2.5">
                         <FileText className="h-4 w-4 text-primary" />
@@ -88,7 +87,7 @@ export default function PromptsPage() {
                     <td className="px-5 py-3"><span className="text-xs font-mono text-foreground">v{p.version}</span></td>
                     <td className="px-5 py-3"><StatusBadge status={p.is_active ? 'active' : 'draft'} /></td>
                     <td className="px-5 py-3 text-xs text-muted-foreground">{new Date(p.created_at).toLocaleDateString('pt-BR')}</td>
-                  </motion.tr>
+                  </tr>
                 );
               })}
             </tbody>

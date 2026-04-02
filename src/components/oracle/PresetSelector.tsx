@@ -1,5 +1,4 @@
 import { ORACLE_PRESETS, ORACLE_MODES, type OracleMode } from '@/stores/oracleStore';
-import { motion } from 'framer-motion';
 
 interface PresetSelectorProps {
   selectedPreset: string;
@@ -27,10 +26,8 @@ export function PresetSelector({ selectedPreset, onSelect }: PresetSelectorProps
             </div>
             <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-2">
               {presets.map(preset => (
-                <motion.button
+                <button
                   key={preset.id}
-                  whileHover={{ scale: 1.02 }}
-                  whileTap={{ scale: 0.98 }}
                   onClick={() => onSelect(preset.id)}
                   className={`p-3 rounded-lg border text-left transition-all ${
                     selectedPreset === preset.id
@@ -48,7 +45,7 @@ export function PresetSelector({ selectedPreset, onSelect }: PresetSelectorProps
                     {preset.enablePeerReview && <span className="text-[9px] px-1.5 py-0.5 rounded bg-secondary text-muted-foreground">review</span>}
                     {preset.enableThinking && <span className="text-[9px] px-1.5 py-0.5 rounded bg-secondary text-muted-foreground">thinking</span>}
                   </div>
-                </motion.button>
+                </button>
               ))}
             </div>
           </div>

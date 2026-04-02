@@ -4,7 +4,6 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Bot, Plus, Search, Filter, ArrowRight, Loader2 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
-import { motion } from "framer-motion";
 import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
@@ -124,14 +123,11 @@ export default function AgentsPage() {
         </div>
       ) : (
         <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-          {filtered.map((agent, i) => {
+          {filtered.map((agent) => {
             const config = getConfig(agent);
             return (
-              <motion.div
+              <div
                 key={agent.id}
-                initial={{ opacity: 0, y: 8 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: i * 0.05 }}
                 className="nexus-card cursor-pointer group"
                 onClick={() => navigate(`/builder/${agent.id}`)}
               >
@@ -163,7 +159,7 @@ export default function AgentsPage() {
                   </p>
                   <ArrowRight className="h-4 w-4 text-muted-foreground group-hover:text-primary transition-colors" />
                 </div>
-              </motion.div>
+              </div>
             );
           })}
         </div>

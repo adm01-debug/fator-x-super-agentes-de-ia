@@ -9,7 +9,6 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
 import { Shield, Lock, Eye, AlertTriangle, CheckCircle, Loader2, ShieldAlert, ShieldCheck, Key, UserX, Plus, Trash2 } from "lucide-react";
-import { motion } from "framer-motion";
 import { useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
@@ -141,8 +140,8 @@ export default function SecurityPage() {
           <ShieldCheck className="h-4 w-4 text-primary" /> Postura de Segurança
         </h3>
         <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
-          {securityChecks.map((check, i) => (
-            <motion.div key={check.title} initial={{ opacity: 0, y: 6 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.05 }}
+          {securityChecks.map((check) => (
+            <div key={check.title}
               className="p-3 rounded-lg bg-secondary/30 border border-border/30 flex items-start gap-3"
             >
               <div className={`h-8 w-8 rounded-lg flex items-center justify-center shrink-0 ${check.status === 'pass' ? 'bg-emerald-500/10' : 'bg-amber-500/10'}`}>
@@ -155,7 +154,7 @@ export default function SecurityPage() {
                 </div>
                 <p className="text-[10px] text-muted-foreground mt-0.5">{check.desc}</p>
               </div>
-            </motion.div>
+            </div>
           ))}
         </div>
       </div>
@@ -198,8 +197,8 @@ export default function SecurityPage() {
           </div>
         ) : (
           <div className="grid gap-3 md:grid-cols-2 lg:grid-cols-3">
-            {guardrails.map((g, i) => (
-              <motion.div key={g.id} initial={{ opacity: 0, y: 6 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.04 }}
+            {guardrails.map((g) => (
+              <div key={g.id}
                 className="p-3 rounded-lg bg-secondary/20 border border-border/30 flex items-center gap-3 group"
               >
                 <ShieldCheck className={`h-5 w-5 shrink-0 ${g.is_enabled ? 'text-emerald-400' : 'text-muted-foreground'}`} />
@@ -219,7 +218,7 @@ export default function SecurityPage() {
                     <AlertDialogFooter><AlertDialogCancel>Cancelar</AlertDialogCancel><AlertDialogAction onClick={() => handleDelete(g.id)} className="bg-destructive text-destructive-foreground">Remover</AlertDialogAction></AlertDialogFooter>
                   </AlertDialogContent>
                 </AlertDialog>
-              </motion.div>
+              </div>
             ))}
           </div>
         )}
@@ -253,13 +252,13 @@ function AuditLogSection() {
       ) : (
         <div className="space-y-1 max-h-[300px] overflow-y-auto">
           {logs.map((log: any, i: number) => (
-            <motion.div key={log.id || i} initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: i * 0.02 }}
+            <div key={log.id || i}
               className="flex items-center gap-3 py-2 px-2 rounded hover:bg-secondary/30 text-xs">
               <span className="text-muted-foreground w-[130px] shrink-0 font-mono text-[10px]">{new Date(log.created_at).toLocaleString('pt-BR')}</span>
               <Badge variant="outline" className="text-[9px] shrink-0">{log.action || log.event || 'action'}</Badge>
               <span className="text-foreground truncate">{log.description || log.details || JSON.stringify(log.metadata || {}).substring(0, 100)}</span>
               <span className="text-muted-foreground ml-auto shrink-0">{log.user_email || ''}</span>
-            </motion.div>
+            </div>
           ))}
         </div>
       )}

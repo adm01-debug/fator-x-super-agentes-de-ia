@@ -11,7 +11,6 @@ import {
   Save, GitBranch, CheckCircle, AlertTriangle,
   RotateCcw, Trash2, Loader2, FileText,
 } from "lucide-react";
-import { motion } from "framer-motion";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { PageHeader } from "@/components/shared/PageHeader";
@@ -255,8 +254,8 @@ export default function PromptEditorPage() {
           <div className="grid lg:grid-cols-2 gap-4">
             <div className="space-y-2">
               <h3 className="text-sm font-semibold text-foreground mb-2">Histórico de versões</h3>
-              {versions.map((v, i) => (
-                <motion.div key={v.id} initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: i * 0.04 }}
+              {versions.map((v) => (
+                <div key={v.id}
                   className={`nexus-card flex items-center justify-between cursor-pointer transition-all ${
                     diffVersionId === v.id ? "ring-2 ring-primary bg-primary/5" : ""
                   } ${v.is_active ? "border-primary/30" : ""}`}
@@ -284,7 +283,7 @@ export default function PromptEditorPage() {
                       <Trash2 className="h-3 w-3" />
                     </Button>
                   </div>
-                </motion.div>
+                </div>
               ))}
             </div>
 

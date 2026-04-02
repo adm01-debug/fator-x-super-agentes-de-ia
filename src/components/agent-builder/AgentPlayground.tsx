@@ -7,7 +7,6 @@ import { useAgentBuilderStore } from '@/stores/agentBuilderStore';
 import { supabase } from '@/integrations/supabase/client';
 import { useStreaming } from '@/hooks/useStreaming';
 import { Send, MessageSquare, Trash2, Bug, Loader2 } from 'lucide-react';
-import { motion } from 'framer-motion';
 
 interface ChatMessage {
   role: 'user' | 'assistant';
@@ -178,7 +177,7 @@ export function AgentPlayground() {
               </div>
             )}
             {messages.map((msg, i) => (
-              <motion.div key={i} initial={{ opacity: 0, y: 4 }} animate={{ opacity: 1, y: 0 }}>
+              <div key={i}>
                 <div className={`rounded-xl p-3 text-sm ${
                   msg.role === 'user'
                     ? 'bg-primary/10 text-foreground ml-8'
@@ -197,7 +196,7 @@ export function AgentPlayground() {
                     {msg.metadata.cost_usd != null && <span className="text-[9px] text-muted-foreground">${msg.metadata.cost_usd.toFixed(4)}</span>}
                   </div>
                 )}
-              </motion.div>
+              </div>
             ))}
             {loading && (
               <div className="flex items-center gap-2 text-muted-foreground ml-1">
