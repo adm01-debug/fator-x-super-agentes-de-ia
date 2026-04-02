@@ -3,6 +3,7 @@ import { PageHeader } from "@/components/shared/PageHeader";
 import { StatusBadge } from "@/components/shared/StatusBadge";
 import { InfoHint } from "@/components/shared/InfoHint";
 import { Button } from "@/components/ui/button";
+import * as ragPipeline from "@/services/ragPipeline";
 import { Plus, Search, BookOpen, RefreshCw, ArrowRight, Trash2, Upload, X, Save, Settings, FileText } from "lucide-react";
 import { toast } from "sonner";
 
@@ -81,15 +82,19 @@ export default function KnowledgePage() {
     }, 2000 + Math.random() * 2000);
   }, []);
 
-  const uploadDocuments = useCallback((kbId: string, files: FileList) => {
+  const uploadDocuments = useCallback(async (kbId: string, files: FileList) => {
     const count = files.length;
-    toast.info(`Uploading ${count} arquivo(s)...`);
-    setTimeout(() => {
-      const newChunks = count * (80 + Math.floor(Math.random() * 100));
-      setKbs(prev => prev.map(k => k.id === kbId ? { ...k, documents: k.documents + count, chunks: k.chunks + newChunks } : k));
-      toast.success(`${count} arquivo(s) processados — ${newChunks} chunks criados`);
-      setShowUpload(null);
-    }, 1500);
+    toast.info(`Processando ${count} arquivo(s) via RAG pipeline...`);
+    let totalChunks = 0;
+    for (let i = 0; i < files.length; i++) {
+      const file = files[i];
+      const result = await ragPipeline.ingestDocument(file, kbId, {}, (stage) => toast.info(`${file.name}: ${stage}`));
+      if (result.error) { toast.error(`${file.name}: ${result.error}`); continue; }
+      totalChunks += result.chunks;
+    }
+    setKbs(prev => prev.map(k => k.id === kbId ? { ...k, documents: k.documents + count, chunks: k.chunks + totalChunks } : k));
+    toast.success(`${count} arquivo(s) processados — ${totalChunks} chunks criados via RAG pipeline`);
+    setShowUpload(null);
   }, []);
 
   const updateConfig = useCallback((kbId: string, updates: Partial<KnowledgeBase>) => {

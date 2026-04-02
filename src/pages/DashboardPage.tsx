@@ -9,7 +9,8 @@ import {
   Bot, Zap, Clock, DollarSign, CheckCircle, Target, FileText, Database,
   Plus, AlertTriangle, XCircle, Info,
 } from "lucide-react";
-import { agents as mockAgents, alerts, activities, costByModelData, sessionsPerDayData, latencyByAgentData, errorRateData } from "@/lib/mock-data";
+import { agents as mockAgents, alerts as mockAlerts, activities, costByModelData, sessionsPerDayData, latencyByAgentData, errorRateData } from "@/lib/mock-data";
+import * as alertService from "@/services/alertService";
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, LineChart, Line, CartesianGrid, Cell } from "recharts";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
@@ -182,7 +183,11 @@ export default function DashboardPage() {
         <div className="nexus-card md:col-span-1">
           <h3 className="text-sm font-heading font-semibold text-foreground mb-3">Alertas recentes</h3>
           <div className="space-y-2.5">
-            {alerts.slice(0, 4).map((alert) => (
+            {(() => {
+              const realAlerts = alertService.getAlerts(4).map(a => ({ id: a.id, type: a.severity === 'critical' ? 'error' : a.severity, title: a.title, message: a.message, time: new Date(a.timestamp).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' }) }));
+              const alerts = realAlerts.length > 0 ? realAlerts : mockAlerts.slice(0, 4);
+              return alerts;
+            })().map((alert) => (
               <div key={alert.id} className="flex items-start gap-2.5 p-2 rounded-lg hover:bg-secondary/30 -mx-2 transition-colors cursor-pointer">
                 {alert.type === 'error' ? <XCircle className="h-4 w-4 mt-0.5 shrink-0 text-nexus-rose" /> :
                  alert.type === 'warning' ? <AlertTriangle className="h-4 w-4 mt-0.5 shrink-0 text-nexus-amber" /> :

@@ -3,6 +3,7 @@ import { PageHeader } from "@/components/shared/PageHeader";
 import { Button } from "@/components/ui/button";
 import { Plus, GitBranch, ArrowRight, Save, Trash2, GripVertical, List, LayoutDashboard, Info, X, Undo2, Redo2, ZoomIn, ZoomOut, Maximize } from "lucide-react";
 import { toast } from "sonner";
+import * as workflowEngine from "@/services/workflowEngine";
 
 // ═══ TYPES ═══
 
@@ -464,6 +465,20 @@ export default function WorkflowsPage() {
               placeholder="Nome do pipeline"
             />
             <Button onClick={savePipeline} className="gap-1.5"><Save className="h-4 w-4" /> Salvar</Button>
+            <Button className="gap-1.5 bg-emerald-600 hover:bg-emerald-700 text-white" disabled={nodes.length === 0} onClick={async () => {
+              const input = prompt('Input inicial para o workflow:');
+              if (!input) return;
+              toast.info(`Executando workflow "${pipelineName}" com ${nodes.length} nodes...`);
+              const result = await workflowEngine.executeWorkflow(
+                pipelineName,
+                nodes.map(n => ({ id: n.id, type: n.type, label: n.label })),
+                connections.map(c => ({ id: c.id, fromNodeId: c.fromNodeId, toNodeId: c.toNodeId })),
+                input,
+                (nodeId, r) => toast.info(`${r.nodeLabel}: ${r.status} (${r.durationMs}ms)`)
+              );
+              toast.success(`Workflow ${result.status}: ${result.nodeResults.length} nodes, ${result.totalDurationMs}ms, $${result.totalCostUsd.toFixed(4)}`);
+              if (result.finalOutput) alert(`Output final:\n\n${result.finalOutput.slice(0, 1000)}`);
+            }}><GitBranch className="h-4 w-4" /> Executar</Button>
             <Button variant="outline" onClick={clearCanvas} className="gap-1.5"><Trash2 className="h-4 w-4" /> Limpar</Button>
             <div className="flex items-center gap-1 ml-auto">
               <Button variant="outline" size="sm" onClick={undo} disabled={historyIndex <= 0} title="Undo (Ctrl+Z)"><Undo2 className="h-3.5 w-3.5" /></Button>
