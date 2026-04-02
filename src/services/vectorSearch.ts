@@ -205,7 +205,8 @@ export async function storeFact(
         domain,
         confidence,
         source_type: sourceType,
-        embedding: embedding,
+        // BUG 6 fix: pgvector expects literal format [0.1,0.2,...] not JSON string
+        embedding: `[${embedding.join(',')}]`,
       })
       .select('id')
       .single();

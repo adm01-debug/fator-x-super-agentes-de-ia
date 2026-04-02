@@ -204,7 +204,8 @@ export async function callModel(
       outputTokens = data.usage?.completion_tokens ?? 0;
     }
 
-    const modelInfo = AVAILABLE_MODELS.find(m => m.id === modelId);
+    // BUG 8 fix: exact match first, then longest-prefix match for model variants (e.g., claude-opus-4.6)
+    const modelInfo = AVAILABLE_MODELS.find(m => m.id === modelId) ?? [...AVAILABLE_MODELS].sort((a, b) => b.id.length - a.id.length).find(m => modelId.includes(m.id));
     const cost = ((inputTokens + outputTokens) / 1000) * (modelInfo?.costPer1kTokens ?? 0.003);
 
     logger.info(`LLM response: ${modelId}, ${inputTokens}+${outputTokens} tokens, ${latencyMs}ms`, 'llmService');

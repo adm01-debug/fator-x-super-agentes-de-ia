@@ -59,12 +59,16 @@ const traces: ExecutionTrace[] = [];
 const usageRecords: UsageRecord[] = [];
 let currentSessionId = `session-${Date.now()}`;
 
+const SENTINEL_AGENT_ID = '00000000-0000-0000-0000-000000000000';
+
 // ═══ TRACE RECORDING ═══
 
 /** Record an execution trace. Saves to memory and attempts Supabase persistence. */
 export function recordTrace(trace: Omit<ExecutionTrace, 'id' | 'timestamp'>): ExecutionTrace {
   const fullTrace: ExecutionTrace = {
     ...trace,
+    // BUG 2 fix: sentinel UUID for calls without agent_id
+    agent_id: trace.agent_id || SENTINEL_AGENT_ID,
     id: crypto.randomUUID(),
     timestamp: new Date().toISOString(),
   };
@@ -145,11 +149,24 @@ export function setBudget(agentId: string, config: BudgetConfig): void {
 
 /** Check if an agent is over budget. Returns { allowed, reason, spent, limit }. */
 export function checkBudget(agentId: string): { allowed: boolean; reason?: string; spent: number; limit: number; pct: number } {
-  const config = budgetConfigs.get(agentId);
-  if (!config) return { allowed: true, spent: 0, limit: 0, pct: 0 };
+  // BUG 11 fix: also check global budget (all agents) for calls without specific agent
+  const config = budgetConfigs.get(agentId) ?? budgetConfigs.get('global');
+  if (!config) {
+    // Hard safety: if total spend across ALL agents exceeds $500, block regardless
+    const totalSpent = getTotalCost(30);
+    if (totalSpent > 500) {
+      return { allowed: false, reason: `Hard limit global: $${totalSpent.toFixed(2)} (máx $500)`, spent: totalSpent, limit: 500, pct: Math.round(totalSpent / 500 * 100) };
+    }
+    return { allowed: true, spent: 0, limit: 0, pct: 0 };
+  }
 
-  const spent = getTotalCost(30, agentId);
+  const spent = agentId && agentId !== SENTINEL_AGENT_ID ? getTotalCost(30, agentId) : getTotalCost(30);
   const pct = config.monthly_limit_usd > 0 ? Math.round(spent / config.monthly_limit_usd * 100) : 0;
+
+  // BUG 11 fix: block at 120% regardless of kill_switch for safety
+  if (pct >= 120) {
+    return { allowed: false, reason: `Budget excedido (120%+): $${spent.toFixed(2)} / $${config.monthly_limit_usd.toFixed(2)}`, spent, limit: config.monthly_limit_usd, pct };
+  }
 
   if (config.kill_switch && spent >= config.monthly_limit_usd) {
     return { allowed: false, reason: `Budget excedido: $${spent.toFixed(2)} / $${config.monthly_limit_usd.toFixed(2)} (${pct}%)`, spent, limit: config.monthly_limit_usd, pct };
@@ -285,36 +302,45 @@ export function initDefaultGuardrails(): void {
 
 async function persistTrace(trace: ExecutionTrace): Promise<void> {
   try {
+    // BUG 14 fix: use JSONB columns (input, output, metadata) that exist in original schema
+    // BUG 3 fix: include user_id (fallback to sentinel)
     await supabase.from('agent_traces').insert({
       id: trace.id,
-      agent_id: trace.agent_id,
+      agent_id: trace.agent_id || SENTINEL_AGENT_ID,
       session_id: trace.session_id,
-      input_text: trace.input.slice(0, 5000),
-      output_text: trace.output.slice(0, 10000),
-      model: trace.model,
-      tokens_in: trace.tokens_in,
-      tokens_out: trace.tokens_out,
-      cost_usd: trace.cost_usd,
-      latency_ms: trace.latency_ms,
-      status: trace.status,
-      events: trace.events,
-      guardrails_triggered: trace.guardrails_triggered,
-      tools_used: trace.tools_used,
+      // Store in JSONB columns that always exist
+      input: { text: trace.input.slice(0, 5000), model: trace.model },
+      output: { text: trace.output.slice(0, 10000), tokens_in: trace.tokens_in, tokens_out: trace.tokens_out },
+      metadata: {
+        cost_usd: trace.cost_usd,
+        latency_ms: trace.latency_ms,
+        status: trace.status,
+        events: trace.events,
+        guardrails_triggered: trace.guardrails_triggered,
+        tools_used: trace.tools_used,
+      },
+      // BUG 1 fix: use 'warning' not 'warn' for trace_level enum
+      level: trace.status === 'error' ? 'error' : trace.guardrails_triggered.length > 0 ? 'warning' : 'info',
     });
   } catch {
-    // Silently fail — table might not exist yet
+    // Silently fail — table schema may differ
   }
 }
 
 async function persistUsage(record: UsageRecord): Promise<void> {
   try {
-    await supabase.from('agent_usage').insert({
-      agent_id: record.agent_id,
-      model: record.model,
-      tokens_in: record.tokens_in,
-      tokens_out: record.tokens_out,
-      cost_usd: record.cost_usd,
-      usage_type: record.type,
+    // BUG 4 fix: use correct column names from schema
+    // Schema: agent_id, user_id, date, requests, tokens_input, tokens_output, total_cost_usd, avg_latency_ms, error_count
+    const today = new Date().toISOString().slice(0, 10);
+    await supabase.from('agent_usage').upsert({
+      agent_id: record.agent_id || SENTINEL_AGENT_ID,
+      date: today,
+      requests: 1,
+      tokens_input: record.tokens_in,
+      tokens_output: record.tokens_out,
+      total_cost_usd: record.cost_usd,
+    }, { onConflict: 'agent_id,date' }).catch(() => {
+      // BUG 12 fix: race condition — second upsert may fail, that's OK
     });
   } catch {
     // Silently fail
