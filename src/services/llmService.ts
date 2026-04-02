@@ -4,6 +4,7 @@
  * and single-model calls for Super Cérebro fact extraction.
  */
 import { logger } from '@/lib/logger';
+import * as traceService from './traceService';
 
 // ═══ TYPES ═══
 
@@ -207,6 +208,20 @@ export async function callModel(
     const cost = ((inputTokens + outputTokens) / 1000) * (modelInfo?.costPer1kTokens ?? 0.003);
 
     logger.info(`LLM response: ${modelId}, ${inputTokens}+${outputTokens} tokens, ${latencyMs}ms`, 'llmService');
+
+    // Auto-record trace and usage
+    const userMsg = messages.find(m => m.role === 'user')?.content ?? '';
+    traceService.recordUsage({ agent_id: 'default', model: modelInfo?.name ?? modelId, tokens_in: inputTokens, tokens_out: outputTokens, cost_usd: parseFloat(cost.toFixed(4)), type: 'llm' });
+    traceService.recordTrace({
+      agent_id: 'default', agent_name: 'LLM Call', session_id: traceService.getSessionId(),
+      model: modelInfo?.name ?? modelId, input: userMsg.slice(0, 1000), output: content.slice(0, 2000),
+      tokens_in: inputTokens, tokens_out: outputTokens, cost_usd: parseFloat(cost.toFixed(4)),
+      latency_ms: latencyMs, status: 'success', events: [
+        { type: 'input', label: 'User message', duration_ms: 0, status: 'success' },
+        { type: 'model', label: `${modelInfo?.name ?? modelId}`, detail: `${inputTokens}+${outputTokens} tokens`, duration_ms: latencyMs, status: 'success' },
+        { type: 'output', label: 'Response', duration_ms: 0, status: 'success' },
+      ], guardrails_triggered: [], tools_used: [],
+    });
 
     return {
       model: modelInfo?.name ?? modelId,

@@ -5,6 +5,7 @@ import { NexusBadge } from '../ui/NexusBadge';
 import { Button } from '@/components/ui/button';
 import { Send, ThumbsUp, ThumbsDown, Bug, RotateCcw, Sparkles } from 'lucide-react';
 import * as llm from '@/services/llmService';
+import * as traceService from '@/services/traceService';
 
 interface PlaygroundMessage {
   id: string;
@@ -60,24 +61,36 @@ export function PlaygroundModule() {
       { role: 'user' as const, content: input.trim() },
     ];
 
+    // ═══ GUARDRAILS CHECK ═══
+    const guardCheck = traceService.checkInputGuardrails(input.trim());
+    if (!guardCheck.allowed) {
+      setMessages(prev => [...prev, { id: crypto.randomUUID(), role: 'assistant', content: `⚠️ Bloqueado por guardrail: ${guardCheck.blocked}`, timestamp: new Date().toISOString(), metadata: { model: 'guardrail', tokens: 0, latency_ms: 0, tools_used: guardCheck.triggered, guardrails_passed: false } }]);
+      setIsLoading(false);
+      return;
+    }
+
     if (llm.isLLMConfigured()) {
-      // ═══ REAL LLM CALL ═══
+      // ═══ REAL LLM CALL (with auto-trace) ═══
       const modelId = agent.model?.includes('/') ? agent.model : `anthropic/${agent.model || 'claude-sonnet-4'}`;
       const response = await llm.callModel(modelId, history, {
         temperature: (agent.temperature ?? 70) / 100,
         maxTokens: agent.max_tokens ?? 2048,
       });
 
+      // Output guardrails check
+      const outputCheck = traceService.checkOutputGuardrails(response.content);
+      const guardrailsTriggered = [...guardCheck.triggered, ...outputCheck.triggered];
+
       const assistantMsg: PlaygroundMessage = {
         id: crypto.randomUUID(), role: 'assistant',
-        content: response.content,
+        content: outputCheck.allowed ? response.content : `${response.content}\n\n⚠️ Guardrail: ${outputCheck.triggered.join(', ')}`,
         timestamp: new Date().toISOString(),
         metadata: {
           model: response.model,
           tokens: response.tokens.input + response.tokens.output,
           latency_ms: response.latencyMs,
-          tools_used: response.error ? ['error'] : [],
-          guardrails_passed: !response.error,
+          tools_used: response.error ? ['error'] : guardrailsTriggered.length > 0 ? guardrailsTriggered : [],
+          guardrails_passed: guardrailsTriggered.length === 0,
         },
       };
       setMessages(prev => [...prev, assistantMsg]);
