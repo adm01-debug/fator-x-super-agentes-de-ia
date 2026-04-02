@@ -40,13 +40,20 @@ const statusConfig: Record<string, { className: string; label: string }> = {
   development: { className: 'nexus-badge-primary', label: 'Dev' },
   info: { className: 'nexus-badge-info', label: 'Info' },
   debug: { className: 'nexus-badge-info', label: 'Debug' },
+  planned: { className: 'nexus-badge-warning', label: 'Planejado' },
 };
+
+const ACTIVE_STATUSES = new Set(['active', 'connected', 'production', 'monitoring', 'running', 'syncing']);
 
 export const StatusBadge = memo(function StatusBadge({ status, size = 'sm' }: StatusBadgeProps) {
   const config = statusConfig[status] || { className: 'nexus-badge-info', label: status };
+  const isActive = ACTIVE_STATUSES.has(status);
   return (
     <span className={`${config.className} ${size === 'md' ? 'px-2.5 py-1 text-xs' : ''}`} role="status">
-      <span className="inline-block h-1.5 w-1.5 rounded-full bg-current opacity-80" aria-hidden="true" />
+      <span
+        className={`inline-block h-1.5 w-1.5 rounded-full bg-current ${isActive ? 'animate-glow-pulse' : 'opacity-80'}`}
+        aria-hidden="true"
+      />
       {config.label}
     </span>
   );
