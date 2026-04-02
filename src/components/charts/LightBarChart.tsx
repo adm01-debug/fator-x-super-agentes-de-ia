@@ -67,6 +67,7 @@ export function LightBarChart({
       const ym = niceMax(maxVal * 1.1);
       return { yMax: ym, ticks: [0, ym * 0.25, ym * 0.5, ym * 0.75, ym], isStacked: false };
     }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [data, series]);
 
   if (!width || inner.width <= 0 || inner.height <= 0) {
