@@ -7,6 +7,7 @@ import { Brain, Database, Search, Shield, Activity, FlaskConical, Plus, RefreshC
 import { toast } from 'sonner';
 import * as vectorSearch from '@/services/vectorSearch';
 import * as llm from '@/services/llmService';
+import * as advancedRag from '@/services/advancedRag';
 
 // Mock data
 const MOCK_FACTS = [
@@ -236,6 +237,25 @@ export default function SuperCerebroPage() {
               <Button onClick={async () => {
                 if (!searchQuery.trim()) { toast.error('Digite algo para buscar'); return; }
                 toast.info('Buscando...');
+
+                // Strategy 0: Try advancedRag hybrid search first (BM25 + semantic + RRF)
+                const mockChunks = MOCK_FACTS.map((f, i) => ({ content: f.content, source: f.source, chunkIndex: i }));
+                const hybridResults = advancedRag.hybridSearch(searchQuery, mockChunks, 10);
+                if (hybridResults.length > 0) {
+                  const mapped = hybridResults.map((r, i) => ({
+                    id: `hybrid-${i}`,
+                    content: r.content,
+                    domain: MOCK_FACTS.find(f => f.content === r.content)?.domain ?? 'geral',
+                    confidence: Math.round(r.score * 100),
+                    source: r.source,
+                    validated: r.score > 0.8,
+                    validatedBy: 'advancedRag-hybrid',
+                    createdAt: new Date().toISOString().slice(0, 10),
+                  }));
+                  setSearchResults(mapped);
+                  toast.success(`Hybrid search: ${mapped.length} resultado(s) via advancedRag`);
+                  return;
+                }
 
                 // Strategy 1: Try real vector/text search via Supabase
                 const dbResults = await vectorSearch.searchFacts(searchQuery, { limit: 10 });

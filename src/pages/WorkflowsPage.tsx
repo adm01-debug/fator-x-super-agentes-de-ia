@@ -4,6 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Plus, GitBranch, ArrowRight, Save, Trash2, GripVertical, List, LayoutDashboard, Info, X, Undo2, Redo2, ZoomIn, ZoomOut, Maximize, History } from "lucide-react";
 import { toast } from "sonner";
 import * as workflowEngine from "@/services/workflowEngine";
+import * as graphEngine from "@/services/graphEngine";
 import * as traceService from "@/services/traceService";
 import { supabase } from "@/integrations/supabase/client";
 
@@ -478,6 +479,8 @@ export default function WorkflowsPage() {
               const input = prompt('Input inicial para o workflow:');
               if (!input) return;
               toast.info(`Executando workflow "${pipelineName}" com ${nodes.length} nodes...`);
+              // graphEngine is available for graph-based execution with LLM nodes, HITL gates and ReAct patterns
+              // e.g. graphEngine.createReActGraph(...) or graphEngine.createReflectionGraph(...)
               const result = await workflowEngine.executeWorkflow(
                 pipelineName,
                 nodes.map(n => ({ id: n.id, type: n.type, label: n.label })),

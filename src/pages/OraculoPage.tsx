@@ -5,6 +5,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Sparkles, Settings, BookOpen, BarChart3, Zap, Plus, Send, Clock, DollarSign, CheckCircle, Key } from 'lucide-react';
 import { toast } from 'sonner';
 import * as llm from '@/services/llmService';
+import * as modelRouter from '@/services/modelRouter';
 
 const PRESETS = [
   // Originais
@@ -123,8 +124,30 @@ export default function OraculoPage() {
         setConsultStage('');
         toast.success(`Consulta REAL concluída — consenso ${result.consensus}% entre ${modelIds.length} modelos ($${result.totalCost.toFixed(4)})`);
       } catch (err) {
-        toast.error(`Erro: ${err instanceof Error ? err.message : 'Falha na consulta'}`);
-        setConsultStage('');
+        // Fallback via modelRouter when council fails
+        setConsultStage('🔄 Fallback via modelRouter...');
+        try {
+          const fallbackResponse = await modelRouter.callWithFallback(
+            [{ role: 'user', content: consultQuery }],
+            { temperature: 0.7, maxTokens: 2048 }
+          );
+          setConsultResult({
+            query: consultQuery,
+            preset: preset.name,
+            mode: 'fallback',
+            consensus: 50,
+            responses: [{ model: fallbackResponse.model, summary: fallbackResponse.content.slice(0, 300), score: 70 }],
+            synthesis: fallbackResponse.content,
+            cost: fallbackResponse.cost ?? 0,
+            latency: fallbackResponse.latencyMs,
+            timestamp: new Date().toLocaleString('pt-BR'),
+          });
+          setConsultStage('');
+          toast.warning(`Council falhou — resposta via modelRouter fallback (${fallbackResponse.routing.modelId})`);
+        } catch (fallbackErr) {
+          toast.error(`Erro: ${fallbackErr instanceof Error ? fallbackErr.message : 'Falha no fallback'}`);
+          setConsultStage('');
+        }
       }
     } else {
       // ═══ FALLBACK SIMULATION ═══

@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
 import { Brain, Clock, Globe, User, Users, Database, Trash2, Eye, Settings, Search } from "lucide-react";
 import { toast } from "sonner";
+import * as selfEditingMemory from '@/services/selfEditingMemory';
 
 interface MemoryLayer {
   id: string; name: string; icon: string; description: string; enabled: boolean;
@@ -43,11 +44,20 @@ export default function MemoryPage() {
     toast.success('Estratégia atualizada');
   }, []);
 
-  const clearLayer = useCallback((id: string) => {
+  const clearLayer = useCallback(async (id: string) => {
     const layer = layers.find(l => l.id === id);
     if (!confirm(`Limpar todos os ${layer?.entries ?? 0} registros da memória "${layer?.name}"?\n\nEssa ação NÃO pode ser desfeita.`)) return;
+    // Compact memory before clearing to preserve important facts
+    await selfEditingMemory.compactMemory(id);
     setLayers(prev => prev.map(l => l.id === id ? { ...l, entries: 0, sizeKb: 0 } : l));
-    toast.success(`Memória "${layer?.name}" limpa`);
+    toast.success(`Memória "${layer?.name}" compactada e limpa`);
+  }, [layers]);
+
+  const compactLayer = useCallback(async (id: string) => {
+    const layer = layers.find(l => l.id === id);
+    toast.info(`Compactando memória "${layer?.name}"...`);
+    const result = await selfEditingMemory.compactMemory(id);
+    toast.success(`Compactação: ${result.mergedCount} mesclados, ${result.removedCount} removidos, ${result.keptCount} mantidos`);
   }, [layers]);
 
   const totalEntries = layers.filter(l => l.enabled).reduce((s, l) => s + l.entries, 0);
@@ -113,6 +123,9 @@ export default function MemoryPage() {
                     <div className="col-span-2 flex gap-2 items-end">
                       <Button variant="outline" size="sm" className="text-[10px] h-7 gap-1" onClick={() => toast.info(`${layer.entries} registros na camada "${layer.name}"`)}>
                         <Eye className="h-3 w-3" /> Inspecionar
+                      </Button>
+                      <Button variant="outline" size="sm" className="text-[10px] h-7 gap-1" disabled={layer.entries === 0} onClick={() => compactLayer(layer.id)}>
+                        <Database className="h-3 w-3" /> Compactar
                       </Button>
                       <Button variant="outline" size="sm" className="text-[10px] h-7 gap-1 text-destructive border-destructive/30" disabled={layer.entries === 0} onClick={() => clearLayer(layer.id)}>
                         <Trash2 className="h-3 w-3" /> Limpar

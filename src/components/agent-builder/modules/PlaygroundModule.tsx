@@ -7,6 +7,8 @@ import { Send, ThumbsUp, ThumbsDown, Bug, RotateCcw, Sparkles } from 'lucide-rea
 import * as llm from '@/services/llmService';
 import * as traceService from '@/services/traceService';
 import * as memoryService from '@/services/memoryService';
+import * as securityService from '@/services/securityService';
+import * as contextManager from '@/services/contextManager';
 
 interface PlaygroundMessage {
   id: string;
@@ -52,6 +54,12 @@ export function PlaygroundModule() {
     setInput('');
     setIsLoading(true);
 
+    // Trim conversation to fit context window
+    const trimmedMessages = contextManager.trimConversation(
+      messages.map(m => ({ role: m.role as 'user' | 'assistant', content: m.content })),
+      8000
+    );
+
     // Build system prompt from agent config
     const systemPrompt = agent.system_prompt || `Você é ${agent.name || 'um assistente'}, um ${agent.persona || 'assistente'} especializado. ${agent.scope ? `Escopo: ${agent.scope}.` : ''} Responda de forma ${agent.formality > 70 ? 'formal' : 'casual'} e ${agent.verbosity > 70 ? 'detalhada' : 'concisa'}.`;
 
@@ -61,6 +69,14 @@ export function PlaygroundModule() {
       ...messages.map(m => ({ role: m.role as 'user' | 'assistant', content: m.content })),
       { role: 'user' as const, content: input.trim() },
     ];
+
+    // ═══ SECURITY CHECK ═══
+    const secCheck = securityService.checkInputSecurity(input.trim());
+    if (!secCheck.allowed) {
+      setMessages(prev => [...prev, { id: crypto.randomUUID(), role: 'assistant', content: `🛡️ Bloqueado: ${secCheck.blockedReason}`, timestamp: new Date().toISOString() }]);
+      setIsLoading(false);
+      return;
+    }
 
     // ═══ GUARDRAILS CHECK ═══
     const guardCheck = traceService.checkInputGuardrails(input.trim());

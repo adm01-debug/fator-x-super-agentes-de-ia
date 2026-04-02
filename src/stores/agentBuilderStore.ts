@@ -3,6 +3,7 @@ import type { AgentConfig, PromptVersion, ReadinessScore, ReadinessItem } from '
 import { DEFAULT_AGENT, TABS } from '@/data/agentBuilderData';
 import * as agentService from '@/services/agentService';
 import { AgentConfigSchema } from '@/lib/validation';
+import * as agentGovernance from '@/services/agentGovernance';
 
 interface AgentBuilderStore {
   agent: AgentConfig;
@@ -221,6 +222,7 @@ export const useAgentBuilderStore = create<AgentBuilderStore>((set, get) => ({
       const saved = await agentService.saveAgent(agent, currentUserId);
       const now = new Date().toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
       set({ agent: saved, isSaving: false, isDirty: false, lastSaved: now });
+      agentGovernance.saveVersion(saved.id ?? 'new', saved as unknown as Record<string, unknown>, 'Auto-save');
     } catch {
       set({ isSaving: false });
     }
