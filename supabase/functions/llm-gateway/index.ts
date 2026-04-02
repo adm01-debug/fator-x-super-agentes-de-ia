@@ -12,6 +12,15 @@ const corsHeaders = {
 const rateLimitMap = new Map<string, number[]>();
 const RATE_LIMIT_MAX = 30;
 const RATE_LIMIT_WINDOW_MS = 60_000;
+// Clean stale entries every 5 minutes to prevent memory leak
+setInterval(() => {
+  const now = Date.now();
+  for (const [key, timestamps] of rateLimitMap.entries()) {
+    const fresh = timestamps.filter(t => now - t < RATE_LIMIT_WINDOW_MS);
+    if (fresh.length === 0) rateLimitMap.delete(key);
+    else rateLimitMap.set(key, fresh);
+  }
+}, 300_000);
 
 function checkRateLimit(userId: string): boolean {
   const now = Date.now();
@@ -151,18 +160,18 @@ async function recordTrace(supabase: any, p: {
     });
     if (p.workspaceId) {
       await supabase.from('usage_records').insert({
-        workspace_id: p.workspaceId, agent_id: p.agentId, record_type: 'llm_call',
+        workspace_id: p.workspaceId, agent_id: p.agentId || null, record_type: 'llm_call',
         tokens: p.totalTokens, cost_usd: p.costUsd,
         metadata: { model: p.model, provider: p.provider, latency_ms: p.latencyMs },
       });
       // Daily aggregate (agent_usage uses: agent_id, user_id, date, requests, tokens_input, tokens_output, total_cost_usd)
-      if (p.agentId && p.userId) {
+      if (p.userId) {
         const today = new Date().toISOString().split('T')[0];
-        const { data: existing } = await supabase.from('agent_usage').select('id, requests, tokens_input, tokens_output, total_cost_usd').eq('agent_id', p.agentId).eq('user_id', p.userId).eq('date', today).maybeSingle();
+        const { data: existing } = await supabase.from('agent_usage').select('id, requests, tokens_input, tokens_output, total_cost_usd').eq('agent_id', p.agentId || '00000000-0000-0000-0000-000000000000').eq('user_id', p.userId).eq('date', today).maybeSingle();
         if (existing) {
           await supabase.from('agent_usage').update({ requests: (existing.requests||0)+1, tokens_input: (existing.tokens_input||0)+p.promptTokens, tokens_output: (existing.tokens_output||0)+p.completionTokens, total_cost_usd: (existing.total_cost_usd||0)+p.costUsd }).eq('id', existing.id);
         } else {
-          await supabase.from('agent_usage').insert({ agent_id: p.agentId, user_id: p.userId, date: today, requests: 1, tokens_input: p.promptTokens, tokens_output: p.completionTokens, total_cost_usd: p.costUsd }).catch(()=>{});
+          await supabase.from('agent_usage').insert({ agent_id: p.agentId || '00000000-0000-0000-0000-000000000000', user_id: p.userId, date: today, requests: 1, tokens_input: p.promptTokens, tokens_output: p.completionTokens, total_cost_usd: p.costUsd }).catch(()=>{});
         }
       }
     }

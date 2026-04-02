@@ -9,6 +9,9 @@ const corsHeaders = {
 
 // Simple text chunker
 function chunkText(text: string, chunkSize: number = 1000, overlap: number = 200): string[] {
+  // Validate: overlap must be less than chunkSize
+  if (overlap >= chunkSize) overlap = Math.floor(chunkSize * 0.2);
+  if (chunkSize < 100) chunkSize = 100;
   const chunks: string[] = [];
   let start = 0;
   while (start < text.length) {

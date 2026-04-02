@@ -55,8 +55,11 @@ serve(async (req) => {
 
       try {
         const stepStart = Date.now();
+        const controller = new AbortController();
+        const stepTimeout = setTimeout(() => controller.abort(), 30000); // 30s per step
         const resp = await fetch(gatewayUrl, {
           method: 'POST',
+          signal: controller.signal,
           headers: { 'Content-Type': 'application/json', 'Authorization': authHeader, 'apikey': supabaseKey },
           body: JSON.stringify({
             model, agent_id: agent?.id,
@@ -67,6 +70,7 @@ serve(async (req) => {
             temperature: 0.7, max_tokens: 3000,
           }),
         });
+        clearTimeout(stepTimeout);
         const result = await resp.json();
         const latencyMs = Date.now() - stepStart;
 

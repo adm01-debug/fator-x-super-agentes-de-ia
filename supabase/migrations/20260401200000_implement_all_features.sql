@@ -314,3 +314,59 @@ CREATE POLICY "alert_rules_all" ON public.alert_rules FOR ALL TO authenticated
 CREATE POLICY "ab_tests_all" ON public.prompt_ab_tests FOR ALL TO authenticated
   USING (agent_id IN (SELECT a.id FROM public.agents a WHERE a.user_id = auth.uid()))
   WITH CHECK (agent_id IN (SELECT a.id FROM public.agents a WHERE a.user_id = auth.uid()));
+
+-- ═══ FIX: Create sentinel agent for non-agent traces ═══
+INSERT INTO public.agents (id, user_id, name, mission, persona, model, avatar_emoji, reasoning, status, version, tags, config)
+SELECT '00000000-0000-0000-0000-000000000000', 
+       (SELECT id FROM auth.users LIMIT 1),
+       '[Sistema]', 'Traces de chamadas sem agente específico', 'assistant', 'system', '⚙️', 'react', 'production', 1, ARRAY['system'], '{}'::jsonb
+WHERE NOT EXISTS (SELECT 1 FROM public.agents WHERE id = '00000000-0000-0000-0000-000000000000');
+
+-- ═══ FIX: Unique constraint on agent_usage to prevent race condition duplicates ═══
+DO $$ BEGIN
+  IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'agent_usage_unique_agent_user_date') THEN
+    ALTER TABLE public.agent_usage ADD CONSTRAINT agent_usage_unique_agent_user_date UNIQUE (agent_id, user_id, date);
+  END IF;
+EXCEPTION WHEN duplicate_table THEN NULL;
+END $$;
+
+-- ═══ FIX: Unique constraint on alerts to prevent duplicate alerts ═══
+DO $$ BEGIN
+  IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'alerts_unique_title_workspace') THEN
+    ALTER TABLE public.alerts ADD CONSTRAINT alerts_unique_title_workspace UNIQUE (workspace_id, title);
+  END IF;
+EXCEPTION WHEN duplicate_table THEN NULL;
+END $$;
+
+-- ═══ FIX: Budget alert trigger — only fire if value actually changed ═══
+CREATE OR REPLACE FUNCTION public.check_budget_alert()
+RETURNS TRIGGER AS $$
+DECLARE
+  budget_rec RECORD;
+BEGIN
+  -- Only fire if current_usd actually increased
+  IF NEW.current_usd <= OLD.current_usd THEN
+    RETURN NEW;
+  END IF;
+  
+  IF NEW.current_usd >= (NEW.limit_usd * NEW.alert_threshold) THEN
+    INSERT INTO public.alerts (workspace_id, severity, title, message)
+    VALUES (
+      NEW.workspace_id,
+      CASE WHEN NEW.current_usd >= NEW.limit_usd THEN 'critical' ELSE 'warning' END,
+      CASE WHEN NEW.current_usd >= NEW.limit_usd
+        THEN 'Budget "' || NEW.name || '" estourado!'
+        ELSE 'Budget "' || NEW.name || '" atingiu ' || ROUND((NEW.current_usd / NEW.limit_usd * 100)::numeric, 1) || '%'
+      END,
+      'Gasto atual: $' || ROUND(NEW.current_usd::numeric, 4) || ' / Limite: $' || ROUND(NEW.limit_usd::numeric, 2)
+    )
+    ON CONFLICT (workspace_id, title) DO UPDATE SET
+      message = EXCLUDED.message,
+      severity = EXCLUDED.severity,
+      is_resolved = false,
+      created_at = now();
+  END IF;
+  
+  RETURN NEW;
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER;
