@@ -33,7 +33,7 @@ serve(async (req) => {
       let deleted = 0;
       try {
         if (scope === 'all' || scope === 'traces') {
-          const { count } = await supabase.from('agent_traces').delete().eq('user_id', user.id).select('id', { count: 'exact', head: true });
+          const { count } = await supabase.from('agent_traces').delete().eq('user_id', user.id);
           deleted += count || 0;
         }
         if (scope === 'all' || scope === 'sessions') {

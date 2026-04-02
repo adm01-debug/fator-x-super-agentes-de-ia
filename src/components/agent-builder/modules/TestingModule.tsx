@@ -261,7 +261,7 @@ export function TestingModule() {
       )}
 
       {/* Ação: Executar Testes */}
-      <TestExecutionPanel testCases={testCases} />
+      <TestExecutionPanel testCases={agent.test_cases} />
     </div>
   );
 }

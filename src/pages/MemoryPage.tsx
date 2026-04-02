@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { PageHeader } from "@/components/shared/PageHeader";
 import { InfoHint } from "@/components/shared/InfoHint";
 import { Button } from "@/components/ui/button";
@@ -33,14 +33,14 @@ export default function MemoryPage() {
   const { data: memories = [], isLoading } = useQuery({
     queryKey: ['agent_memories', activeType],
     queryFn: async () => {
-      const { data, error } = await supabase
+      const { data, error } = await (supabase as any)
         .from('agent_memories')
         .select('*')
         .eq('memory_type', activeType)
         .order('created_at', { ascending: false })
         .limit(100);
       if (error) throw error;
-      return data ?? [];
+      return (data ?? []) as Array<{ id: string; content: string; source: string; created_at: string; relevance_score: number | null }>;
     },
   });
 
@@ -53,7 +53,7 @@ export default function MemoryPage() {
     setSaving(true);
     try {
       const workspaceId = await getWorkspaceId();
-      const { error } = await supabase.from('agent_memories').insert({
+      const { error } = await (supabase as any).from('agent_memories').insert({
         workspace_id: workspaceId,
         memory_type: activeType,
         content: newContent.trim(),
@@ -69,7 +69,7 @@ export default function MemoryPage() {
   };
 
   const handleDelete = async (id: string) => {
-    const { error } = await supabase.from('agent_memories').delete().eq('id', id);
+    const { error } = await (supabase as any).from('agent_memories').delete().eq('id', id);
     if (error) toast.error(`Erro: ${error.message}`);
     else { queryClient.invalidateQueries({ queryKey: ['agent_memories'] }); toast.success('Removida'); }
   };

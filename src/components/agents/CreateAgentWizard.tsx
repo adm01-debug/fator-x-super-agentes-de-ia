@@ -19,7 +19,6 @@ import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { AGENT_TEMPLATES as STATIC_TEMPLATES, type AgentTemplate } from "@/data/agentTemplates";
-import { supabase } from "@/integrations/supabase/client";
 
 const STEPS = [
   { key: "identity", label: "Identidade", icon: User, description: "Nome, descrição e objetivo" },
@@ -103,7 +102,7 @@ export function CreateAgentWizard() {
         const dbIds = new Set(dbTemplates.map(t => t.id));
         setAgentTemplates([...dbTemplates, ...STATIC_TEMPLATES.filter(t => !dbIds.has(t.id))]);
       }
-    }).catch(() => {}); // fallback to static on error
+    }).then(undefined, () => {}); // fallback to static on error
   }, []);
 
   const [form, setForm] = useState({

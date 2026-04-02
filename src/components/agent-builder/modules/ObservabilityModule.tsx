@@ -277,7 +277,7 @@ function MetricBox({ icon, label, value }: { icon: React.ReactNode; label: strin
   );
 }
 
-function AbTestPanel({ agentId, currentVersion }: { agentId: string; currentVersion: number }) {
+function AbTestPanel({ agentId }: { agentId: string; currentVersion?: number }) {
   const queryClient = useQueryClient();
   const [testName, setTestName] = useState('');
   const [split, setSplit] = useState('50');

@@ -239,7 +239,7 @@ serve(async (req) => {
       }
 
       // ═══ RESOLVE NEXT NODE via edges ═══
-      if (node.type !== 'conditional' && node.type !== 'parallel') {
+      if ((node.type as string) !== 'conditional' && (node.type as string) !== 'parallel') {
         const outEdges = graph.edges.filter(e => e.from === node.id);
         if (outEdges.length === 0) break; // No outgoing edges = end
         // If conditional edges exist, evaluate

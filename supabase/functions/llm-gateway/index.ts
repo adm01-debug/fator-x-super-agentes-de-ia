@@ -1,7 +1,7 @@
 import "https://deno.land/x/xhr@0.1.0/mod.ts";
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.49.4";
-import { callLovable, callOpenRouter, callAnthropic, callOpenAICompatible, type LLMCallParams } from "./providers.ts";
+import { callLovable, callOpenRouter, callAnthropic, callOpenAICompatible, type LLMCallParams, type LLMResult } from "./providers.ts";
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -455,12 +455,12 @@ serve(async (req) => {
     // ═══ NON-STREAMING LLM CALL — with fallback chain ═══
     const tPreCall = Date.now();
     const guardrailMs = tPreCall - t0; // includes injection + PII + guardrails + budget
-    const chain = await resolveFallbackChain(supabase, workspaceId ?? undefined, model);
-    if (chain.length === 0) return new Response(JSON.stringify({ error: 'No API key configured for any provider' }), { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
+    const chain2 = await resolveFallbackChain(supabase, workspaceId ?? undefined, model);
+    if (chain2.length === 0) return new Response(JSON.stringify({ error: 'No API key configured for any provider' }), { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
 
     const startTime = Date.now();
     const callParams: LLMCallParams = { model, messages: safeMessages, temperature, max_tokens };
-    const { result, provider, model: usedModel, attempt, errors: fallbackErrors } = await callWithFallback(chain, callParams, supabaseUrl);
+    const { result, provider, model: usedModel, attempt, errors: fallbackErrors } = await callWithFallback(chain2, callParams, supabaseUrl);
 
     const latencyMs = Date.now() - startTime;
     const llmMs = latencyMs; // LLM call time

@@ -410,7 +410,7 @@ function SessionsPanel({ traces }: { traces: any[] }) {
           </div>
           {expandedSession === session.sessionId && (
             <div className="mt-3 pt-3 border-t border-border/30 space-y-2">
-              {session.traces.map((t: any, j: number) => (
+              {session.traces.map((t: any) => (
                 <div key={t.id} className="flex items-center gap-3 text-xs py-1">
                   <span className="text-muted-foreground w-[60px] shrink-0 font-mono">{new Date(t.created_at).toLocaleTimeString('pt-BR')}</span>
                   <Badge variant="outline" className={`text-[9px] shrink-0 ${t.level === 'error' ? 'border-destructive text-destructive' : t.level === 'warning' ? 'border-amber-500 text-amber-400' : ''}`}>{t.level || 'info'}</Badge>

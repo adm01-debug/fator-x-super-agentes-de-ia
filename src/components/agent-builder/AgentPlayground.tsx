@@ -6,7 +6,7 @@ import { Badge } from '@/components/ui/badge';
 import { useAgentBuilderStore } from '@/stores/agentBuilderStore';
 import { supabase } from '@/integrations/supabase/client';
 import { useStreaming } from '@/hooks/useStreaming';
-import { Send, MessageSquare, Trash2, Bug, Loader2, Zap } from 'lucide-react';
+import { Send, MessageSquare, Trash2, Bug, Loader2 } from 'lucide-react';
 import { motion } from 'framer-motion';
 
 interface ChatMessage {
@@ -27,7 +27,7 @@ export function AgentPlayground() {
   const [input, setInput] = useState('');
   const [loading, setLoading] = useState(false);
   const [debugMode, setDebugMode] = useState(false);
-  const [streamMode, setStreamMode] = useState(true);
+  const [streamMode] = useState(true);
   const scrollRef = useRef<HTMLDivElement>(null);
   const agent = useAgentBuilderStore((s) => s.agent);
   const streaming = useStreaming();
@@ -67,7 +67,7 @@ export function AgentPlayground() {
 
     if (streamMode) {
       // Streaming mode — add placeholder and update in real-time
-      const placeholderIdx = messages.length + 1; // after userMsg
+      // Streaming mode — add placeholder and update in real-time
       setMessages(prev => [...prev, { role: 'assistant', content: '' }]);
       streaming.reset();
       await streaming.stream({

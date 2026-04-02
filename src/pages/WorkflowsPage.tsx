@@ -58,7 +58,7 @@ const defaultCanvasEdges: CanvasEdge[] = [
 export default function WorkflowsPage() {
   // Workflows loaded from Supabase
   const queryClient = useQueryClient();
-  const { data: workflows = defaultTemplates, isLoading: loadingWf } = useQuery({
+  const { data: workflows = defaultTemplates } = useQuery({
     queryKey: ["workflows_list"],
     queryFn: async () => {
       const { data: member } = await supabase.from("workspace_members").select("workspace_id").limit(1).single();
@@ -132,7 +132,7 @@ export default function WorkflowsPage() {
 
   const handleToggleStatus = async (id: string) => {
     if (id.includes('-')) {
-      const wf = workflows.find(w => w.id === id);
+      const wf = workflows.find((w: any) => w.id === id);
       if (wf) {
         await (supabase as any).from('workflows').update({ status: wf.status === 'active' ? 'draft' : 'active' }).eq('id', id);
         queryClient.invalidateQueries({ queryKey: ['workflows_list'] });
@@ -285,7 +285,7 @@ export default function WorkflowsPage() {
 
           <div className="grid gap-4 md:grid-cols-2">
             <AnimatePresence>
-              {workflows.map((wf, i) => (
+              {workflows.map((wf: any, i: number) => (
                 <motion.div key={wf.id} initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -8 }} transition={{ delay: i * 0.06 }} className="nexus-card group">
                   <div className="flex items-center justify-between mb-4">
                     <div className="flex items-center gap-2.5">
@@ -314,7 +314,7 @@ export default function WorkflowsPage() {
                   </div>
 
                   <div className="flex items-center gap-1.5 overflow-x-auto pb-2">
-                    {wf.steps.map((step, j) => {
+                    {wf.steps.map((step: any, j: number) => {
                       const Icon = stepIcons[step] || Brain;
                       return (
                         <div key={j} className="flex items-center gap-1.5 shrink-0">

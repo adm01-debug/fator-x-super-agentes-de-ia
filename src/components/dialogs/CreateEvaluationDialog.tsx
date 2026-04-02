@@ -22,7 +22,7 @@ export function CreateEvaluationDialog({ onCreated }: CreateEvaluationDialogProp
   const [useJudge, setUseJudge] = useState(false);
   const [judgeMode, setJudgeMode] = useState<'pointwise' | 'faithfulness'>('pointwise');
   const [agents, setAgents] = useState<Array<{ id: string; name: string }>>([]);
-  const [datasets, setDatasets] = useState<Array<{ id: string; name: string; case_count: number }>>([]);
+  const [datasets, setDatasets] = useState<Array<{ id: string; name: string; case_count: number | null }>>([]);
 
   const loadAgents = async () => {
     const { data } = await supabase.from('agents').select('id, name').order('name');
