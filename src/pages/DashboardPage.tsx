@@ -229,7 +229,7 @@ export default function DashboardPage() {
               {recentTraces.length === 0 ? (
                 <p className="text-xs text-muted-foreground text-center py-8">Nenhuma atividade registrada. Traces aparecerão quando agentes estiverem em uso.</p>
               ) : (
-                <div className="space-y-2" role="list" aria-labelledby="recent-traces-heading">
+                <div className="stagger-list" role="list" aria-labelledby="recent-traces-heading">
                   {recentTraces.map(trace => (
                     <div
                       key={trace.id}
