@@ -283,7 +283,7 @@ export default function WorkflowsPage() {
           </InfoHint>
 
           <div className="grid gap-4 md:grid-cols-2">
-            {workflows.map((wf: any, i: number) => (
+            {workflows.map((wf: any) => (
                 <div key={wf.id} className="nexus-card group">
                   <div className="flex items-center justify-between mb-4">
                     <div className="flex items-center gap-2.5">
