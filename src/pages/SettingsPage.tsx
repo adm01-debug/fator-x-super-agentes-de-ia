@@ -9,6 +9,7 @@ import {
 import { toast } from "sonner";
 import { useTheme } from "next-themes";
 import * as llm from "@/services/llmService";
+import { setLocale, getLocale, getLocales } from "@/lib/i18n";
 
 // ═══ PERSISTENCE ═══
 
@@ -195,7 +196,7 @@ function GeneralSection({ settings, update }: SectionProps) {
         <input value={settings.workspaceName} onChange={e => update({ workspaceName: e.target.value })} className="text-sm bg-secondary border border-border rounded-lg px-3 py-1.5 text-foreground w-48 text-right" />
       </FieldRow>
       <FieldRow label="Idioma">
-        <select value={settings.language} onChange={e => update({ language: e.target.value })} className="text-xs bg-secondary border border-border rounded-lg px-3 py-1.5 text-foreground">
+        <select value={settings.language} onChange={e => { update({ language: e.target.value }); setLocale(e.target.value as 'pt-BR' | 'en-US' | 'es-ES'); toast.success(`Idioma: ${e.target.value}`); }} className="text-xs bg-secondary border border-border rounded-lg px-3 py-1.5 text-foreground">
           <option value="pt-BR">Português (Brasil)</option>
           <option value="en">English</option>
           <option value="es">Español</option>
