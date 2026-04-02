@@ -172,7 +172,7 @@ export default function DashboardPage() {
 
           {/* Additional metrics row */}
           {usageStats && (
-            <div className="grid grid-cols-3 gap-2 sm:gap-3">
+            <div className="grid grid-cols-3 gap-2 sm:gap-3 stagger-children">
               <div className="nexus-card py-2.5 sm:py-3 text-center">
                 <p className="text-xs sm:text-sm font-heading font-bold text-foreground">{usageStats.avgLatency}ms</p>
                 <p className="text-[9px] sm:text-[10px] text-muted-foreground">Latência média</p>
