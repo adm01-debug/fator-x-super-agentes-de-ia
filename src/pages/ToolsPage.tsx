@@ -201,3 +201,6 @@ export default function ToolsPage() {
     </div>
   );
 }
+
+// P3-14: Tool Policies — managed via agent builder ToolsModule
+// tool_policies table is written when agent config is saved with per-tool permissions

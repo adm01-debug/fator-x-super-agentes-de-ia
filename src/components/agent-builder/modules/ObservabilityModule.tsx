@@ -89,6 +89,22 @@ export function ObservabilityModule() {
           <ToggleField label="Alertas Habilitados" checked={agent.alerting_enabled} onCheckedChange={(v) => updateAgent({ alerting_enabled: v })} />
           <ToggleField label="A/B Testing" checked={agent.ab_testing_enabled} onCheckedChange={(v) => updateAgent({ ab_testing_enabled: v })} />
         </div>
+
+        {/* A/B Test Panel - shown when enabled */}
+        {agent.ab_testing_enabled && (
+          <div className="rounded-xl border border-primary/20 bg-primary/5 p-4 space-y-2">
+            <p className="text-xs font-semibold text-foreground">A/B Testing Ativo</p>
+            <p className="text-[10px] text-muted-foreground">
+              Quando ativado, o sistema pode rotear tráfego entre duas versões de prompt.
+              Crie versões no Prompt Editor e configure o split via tabela prompt_ab_tests.
+            </p>
+            <div className="flex items-center gap-2 text-[10px] text-muted-foreground">
+              <span>Variante A: Prompt atual (v{agent.system_prompt_version})</span>
+              <span>•</span>
+              <span>Split: 50/50</span>
+            </div>
+          </div>
+        )}
       </section>
 
       {/* KPIs */}

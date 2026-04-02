@@ -174,10 +174,24 @@ export const useAgentBuilderStore = create<AgentBuilderStore>((set, get) => ({
 
     if (!error) {
       const savedAgent = get().agent;
+      const agentId = (agent.id || savedAgent.id) as string;
       if (agent.id) {
         audit.agentUpdated(agent.id as string, ['config']);
       } else if (savedAgent.id) {
         audit.agentCreated(savedAgent.id as string, savedAgent.name);
+      }
+      // Sync tool_policies to DB (non-blocking)
+      if (agentId && savedAgent.tools?.length > 0) {
+        for (const tool of savedAgent.tools) {
+          (supabase as any).from('tool_policies').upsert({
+            agent_id: agentId,
+            tool_integration_id: null,
+            is_allowed: tool.enabled,
+            max_calls_per_run: tool.max_calls_per_session,
+            requires_approval: tool.requires_approval,
+            config: { name: tool.name, category: tool.category, permission_level: tool.permission_level },
+          }, { onConflict: 'agent_id,tool_integration_id' }).catch(() => {});
+        }
       }
     }
   },

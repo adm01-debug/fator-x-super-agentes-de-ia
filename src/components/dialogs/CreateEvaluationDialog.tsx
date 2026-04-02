@@ -18,29 +18,50 @@ export function CreateEvaluationDialog({ onCreated }: CreateEvaluationDialogProp
   const [name, setName] = useState('');
   const [testCases, setTestCases] = useState('5');
   const [agentId, setAgentId] = useState('');
+  const [datasetId, setDatasetId] = useState('');
   const [agents, setAgents] = useState<Array<{ id: string; name: string }>>([]);
+  const [datasets, setDatasets] = useState<Array<{ id: string; name: string; case_count: number }>>([]);
 
   const loadAgents = async () => {
     const { data } = await supabase.from('agents').select('id, name').order('name');
     if (data) setAgents(data);
+    const { data: ds } = await supabase.from('evaluation_datasets').select('id, name, case_count').order('name');
+    if (ds) setDatasets(ds);
   };
 
   const handleCreate = async () => {
     if (!name.trim()) { toast.error('Nome é obrigatório'); return; }
+    if (!agentId) { toast.error('Selecione um agente'); return; }
     setLoading(true);
     try {
       const { data: member } = await supabase.from('workspace_members').select('workspace_id').limit(1).single();
-      const { error } = await supabase.from('evaluation_runs').insert({
+      const { data: evalRun, error } = await supabase.from('evaluation_runs').insert({
         name: name.trim(),
         test_cases: parseInt(testCases) || 5,
-        agent_id: agentId || null,
+        agent_id: agentId,
         workspace_id: member?.workspace_id,
-        status: 'queued',
-      });
-      if (error) throw error;
-      toast.success('Avaliação criada!');
+        status: 'running',
+      }).select('id').single();
+      if (error || !evalRun) throw error || new Error('Failed to create');
+
+      // If a dataset is selected, call test-runner Edge Function
+      if (datasetId) {
+        toast.info('Executando testes via test-runner...');
+        const { data: result, error: runError } = await supabase.functions.invoke('test-runner', {
+          body: { agent_id: agentId, dataset_id: datasetId, evaluation_run_id: evalRun.id },
+        });
+        if (runError) {
+          toast.warning(`Avaliação criada mas execução falhou: ${runError.message}`);
+          await supabase.from('evaluation_runs').update({ status: 'failed' }).eq('id', evalRun.id);
+        } else {
+          toast.success(`Testes concluídos: ${result?.passed || 0}/${result?.total || 0} aprovados (${((result?.pass_rate || 0) * 100).toFixed(0)}%)`);
+        }
+      } else {
+        toast.success('Avaliação criada (sem dataset — execute manualmente)');
+      }
       setOpen(false);
       setName('');
+      setDatasetId('');
       onCreated?.();
     } catch (e: any) {
       toast.error(e.message || 'Erro ao criar avaliação');
@@ -71,6 +92,15 @@ export function CreateEvaluationDialog({ onCreated }: CreateEvaluationDialogProp
               <SelectTrigger className="bg-secondary/50"><SelectValue placeholder="Selecione um agente" /></SelectTrigger>
               <SelectContent>
                 {agents.map(a => <SelectItem key={a.id} value={a.id}>{a.name}</SelectItem>)}
+              </SelectContent>
+            </Select>
+          </div>
+          <div className="space-y-1.5">
+            <Label className="text-xs">Dataset de Testes</Label>
+            <Select value={datasetId} onValueChange={setDatasetId}>
+              <SelectTrigger className="bg-secondary/50"><SelectValue placeholder="Selecione um dataset (opcional)" /></SelectTrigger>
+              <SelectContent>
+                {datasets.map(d => <SelectItem key={d.id} value={d.id}>{d.name} ({d.case_count} cases)</SelectItem>)}
               </SelectContent>
             </Select>
           </div>

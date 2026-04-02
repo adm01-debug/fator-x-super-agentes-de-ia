@@ -12,6 +12,7 @@ import { Plus, GitBranch, ArrowRight, Brain, Search, Shield, CheckCircle, Wrench
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
 import { motion, AnimatePresence } from "framer-motion";
 import { toast } from "sonner";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { WorkflowCanvas, type CanvasNode, type CanvasEdge } from "@/components/workflows/WorkflowCanvas";
 import { useWorkflowPersistence } from "@/hooks/use-workflow-persistence";
 import { supabase } from "@/integrations/supabase/client";
@@ -55,7 +56,18 @@ const defaultCanvasEdges: CanvasEdge[] = [
 ];
 
 export default function WorkflowsPage() {
-  const [workflows, setWorkflows] = useState<Workflow[]>(defaultTemplates);
+  // Workflows loaded from Supabase
+  const queryClient = useQueryClient();
+  const { data: workflows = defaultTemplates, isLoading: loadingWf } = useQuery({
+    queryKey: ["workflows_list"],
+    queryFn: async () => {
+      const { data: member } = await supabase.from("workspace_members").select("workspace_id").limit(1).single();
+      if (!member?.workspace_id) return defaultTemplates;
+      const { data: wfs } = await (supabase as any).from("workflows").select("*, workflow_steps(id, name, step_order)").eq("workspace_id", member.workspace_id).order("created_at", { ascending: false });
+      if (!wfs || wfs.length === 0) return defaultTemplates;
+      return wfs.map((w: any) => ({ id: w.id, name: w.name, steps: (w.workflow_steps || []).sort((a: any, b: any) => a.step_order - b.step_order).map((s: any) => s.name), status: w.status as "draft" | "active", createdAt: w.created_at ? new Date(w.created_at).toISOString().split("T")[0] : "" }));
+    },
+  });
   const [dialogOpen, setDialogOpen] = useState(false);
   const [newName, setNewName] = useState('');
   const [newSteps, setNewSteps] = useState('');
@@ -92,36 +104,47 @@ export default function WorkflowsPage() {
     }
   };
 
-  const handleCreate = () => {
+  const handleCreate = async () => {
     if (!newName.trim()) { toast.error('Nome é obrigatório'); return; }
     const steps = newSteps.split(',').map(s => s.trim()).filter(Boolean);
     if (steps.length < 2) { toast.error('Adicione pelo menos 2 etapas separadas por vírgula'); return; }
-    setWorkflows(prev => [{
-      id: Date.now().toString(),
-      name: newName.trim(),
-      steps,
-      status: 'draft',
-      createdAt: new Date().toISOString().split('T')[0],
-    }, ...prev]);
-    toast.success('Workflow criado!');
-    setDialogOpen(false);
-    setNewName(''); setNewSteps('');
+    try {
+      const { data: member } = await supabase.from('workspace_members').select('workspace_id').limit(1).single();
+      const { data: wf, error } = await (supabase as any).from('workflows').insert({
+        workspace_id: member?.workspace_id, name: newName.trim(), status: 'draft',
+        config: { step_names: steps },
+      }).select('id').single();
+      if (error) throw error;
+      await (supabase as any).from('workflow_steps').insert(steps.map((name, i) => ({ workflow_id: wf.id, name, step_order: i, role: 'executor' })));
+      toast.success('Workflow salvo no banco!');
+      setDialogOpen(false); setNewName(''); setNewSteps('');
+      queryClient.invalidateQueries({ queryKey: ['workflows_list'] });
+    } catch (e: any) { toast.error(e.message); }
   };
 
-  const handleDelete = (id: string) => {
-    setWorkflows(prev => prev.filter(w => w.id !== id));
+  const handleDelete = async (id: string) => {
+    if (id.includes('-')) { // UUID = from DB
+      await (supabase as any).from('workflows').delete().eq('id', id);
+      queryClient.invalidateQueries({ queryKey: ['workflows_list'] });
+    }
     toast.success('Workflow removido');
   };
 
-  const handleToggleStatus = (id: string) => {
-    setWorkflows(prev => prev.map(w => w.id === id ? { ...w, status: w.status === 'active' ? 'draft' : 'active' } : w));
+  const handleToggleStatus = async (id: string) => {
+    if (id.includes('-')) {
+      const wf = workflows.find(w => w.id === id);
+      if (wf) {
+        await (supabase as any).from('workflows').update({ status: wf.status === 'active' ? 'draft' : 'active' }).eq('id', id);
+        queryClient.invalidateQueries({ queryKey: ['workflows_list'] });
+      }
+    }
   };
 
   const [executing, setExecuting] = useState<string | null>(null);
   const handleExecute = async (wf: Workflow) => {
     setExecuting(wf.id);
     try {
-      // Execute steps sequentially via LLM Gateway (local workflows don't have DB UUIDs yet)
+      // Try workflow-engine for DB workflows, fallback to Gateway
       let previousOutput = `Workflow: "${wf.name}". Etapas: ${wf.steps.join(' → ')}`;
       const results: string[] = [];
       for (const step of wf.steps) {

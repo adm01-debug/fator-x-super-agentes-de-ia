@@ -2,13 +2,14 @@ import { PageHeader } from "@/components/shared/PageHeader";
 import { StatusBadge } from "@/components/shared/StatusBadge";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Clock, DollarSign, Wrench, Activity, Loader2, Bell, CheckCircle } from "lucide-react";
+import { Clock, DollarSign, Wrench, Activity, Loader2, Bell, CheckCircle, Trash2 } from "lucide-react";
 import { motion } from "framer-motion";
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid, PieChart, Pie, Cell } from "recharts";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { toast } from "sonner";
 
 const PIE_COLORS = ['hsl(var(--primary))', 'hsl(var(--nexus-emerald, 142 71% 45%))', 'hsl(var(--nexus-amber, 38 92% 50%))', 'hsl(var(--nexus-cyan, 190 90% 50%))', 'hsl(var(--destructive))'];
@@ -16,15 +17,27 @@ const PIE_COLORS = ['hsl(var(--primary))', 'hsl(var(--nexus-emerald, 142 71% 45%
 export default function MonitoringPage() {
   const queryClient = useQueryClient();
   const [selectedId, setSelectedId] = useState<string | null>(null);
+  const [agentFilter, setAgentFilter] = useState<string>('all');
+
+  // Load agents for filter
+  const { data: agentsList = [] } = useQuery({
+    queryKey: ['agents_list_monitoring'],
+    queryFn: async () => {
+      const { data } = await supabase.from('agents').select('id, name').order('name');
+      return data ?? [];
+    },
+  });
 
   const { data: traces = [], isLoading } = useQuery({
-    queryKey: ['agent_traces'],
+    queryKey: ['agent_traces', agentFilter],
     queryFn: async () => {
-      const { data, error } = await supabase
+      let query = supabase
         .from('agent_traces')
         .select('*')
         .order('created_at', { ascending: false })
         .limit(50);
+      if (agentFilter !== 'all') query = query.eq('agent_id', agentFilter);
+      const { data, error } = await query;
       if (error) throw error;
       return data ?? [];
     },
@@ -78,9 +91,22 @@ export default function MonitoringPage() {
     <div className="p-6 space-y-6 max-w-[1400px] mx-auto">
       <PageHeader title="Monitoring" description="Traces, alertas e observabilidade em tempo real" />
 
+      {/* Agent filter */}
+      <div className="flex items-center gap-3">
+        <Select value={agentFilter} onValueChange={setAgentFilter}>
+          <SelectTrigger className="w-[220px] bg-secondary/50 text-xs"><SelectValue placeholder="Filtrar por agente" /></SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">Todos os agentes</SelectItem>
+            {agentsList.map((a: any) => <SelectItem key={a.id} value={a.id}>{a.name}</SelectItem>)}
+          </SelectContent>
+        </Select>
+        {agentFilter !== 'all' && <Badge variant="outline" className="text-[10px]">Filtrado</Badge>}
+      </div>
+
       <Tabs defaultValue="traces" className="space-y-4">
         <TabsList>
           <TabsTrigger value="traces">Traces</TabsTrigger>
+          <TabsTrigger value="sessions">Sessões</TabsTrigger>
           <TabsTrigger value="alerts" className="gap-1.5">
             Alertas {unresolvedCount > 0 && <Badge variant="destructive" className="text-[9px] h-4 px-1">{unresolvedCount}</Badge>}
           </TabsTrigger>
@@ -184,6 +210,11 @@ export default function MonitoringPage() {
           )}
         </TabsContent>
 
+        {/* Sessions - grouped traces */}
+        <TabsContent value="sessions">
+          <SessionsPanel traces={traces} />
+        </TabsContent>
+
         <TabsContent value="alerts">
           {loadingAlerts ? (
             <div className="flex justify-center py-12"><Loader2 className="h-5 w-5 animate-spin text-muted-foreground" /></div>
@@ -220,8 +251,177 @@ export default function MonitoringPage() {
               ))}
             </div>
           )}
+
+          {/* Alert Rules Management */}
+          <AlertRulesPanel />
         </TabsContent>
       </Tabs>
+    </div>
+  );
+}
+
+// ═══ P2-10: Alert Rules Management ═══
+function AlertRulesPanel() {
+  const queryClient = useQueryClient();
+  const [creating, setCreating] = useState(false);
+  const [ruleName, setRuleName] = useState('');
+  const [ruleMetric, setRuleMetric] = useState('cost_usd');
+  const [ruleOp, setRuleOp] = useState('>');
+  const [ruleThreshold, setRuleThreshold] = useState('10');
+  const [ruleSeverity, setRuleSeverity] = useState('warning');
+
+  const { data: rules = [] } = useQuery({
+    queryKey: ['alert_rules'],
+    queryFn: async () => {
+      const { data: member } = await supabase.from('workspace_members').select('workspace_id').limit(1).single();
+      if (!member?.workspace_id) return [];
+      const { data } = await (supabase as any).from('alert_rules').select('*').eq('workspace_id', member.workspace_id).order('created_at', { ascending: false });
+      return data ?? [];
+    },
+  });
+
+  const handleCreateRule = async () => {
+    if (!ruleName.trim()) { toast.error('Nome é obrigatório'); return; }
+    setCreating(true);
+    try {
+      const { data: member } = await supabase.from('workspace_members').select('workspace_id').limit(1).single();
+      await (supabase as any).from('alert_rules').insert({
+        workspace_id: member?.workspace_id, name: ruleName.trim(),
+        metric: ruleMetric, operator: ruleOp,
+        threshold: parseFloat(ruleThreshold) || 0, severity: ruleSeverity,
+      });
+      toast.success('Regra criada!');
+      setRuleName('');
+      queryClient.invalidateQueries({ queryKey: ['alert_rules'] });
+    } catch (e: any) { toast.error(e.message); }
+    finally { setCreating(false); }
+  };
+
+  const handleDeleteRule = async (id: string) => {
+    await (supabase as any).from('alert_rules').delete().eq('id', id);
+    queryClient.invalidateQueries({ queryKey: ['alert_rules'] });
+    toast.success('Regra removida');
+  };
+
+  const handleToggleRule = async (id: string, enabled: boolean) => {
+    await (supabase as any).from('alert_rules').update({ is_enabled: enabled }).eq('id', id);
+    queryClient.invalidateQueries({ queryKey: ['alert_rules'] });
+  };
+
+  return (
+    <div className="nexus-card mt-6">
+      <h3 className="text-sm font-heading font-semibold text-foreground mb-3">Regras de Alerta Automático</h3>
+      <p className="text-xs text-muted-foreground mb-4">Crie regras que disparam alertas quando métricas ultrapassam limites.</p>
+
+      {/* Create form */}
+      <div className="grid grid-cols-2 md:grid-cols-6 gap-2 mb-4 items-end">
+        <div><label className="text-[10px] text-muted-foreground">Nome</label><input value={ruleName} onChange={e => setRuleName(e.target.value)} placeholder="Ex: Custo alto" className="w-full rounded-lg border border-border bg-secondary/50 px-2 py-1.5 text-xs" /></div>
+        <div><label className="text-[10px] text-muted-foreground">Métrica</label>
+          <select value={ruleMetric} onChange={e => setRuleMetric(e.target.value)} className="w-full rounded-lg border border-border bg-secondary/50 px-2 py-1.5 text-xs">
+            <option value="cost_usd">Custo (USD)</option><option value="latency_ms">Latência (ms)</option><option value="tokens_used">Tokens</option><option value="error_count">Erros</option>
+          </select></div>
+        <div><label className="text-[10px] text-muted-foreground">Operador</label>
+          <select value={ruleOp} onChange={e => setRuleOp(e.target.value)} className="w-full rounded-lg border border-border bg-secondary/50 px-2 py-1.5 text-xs">
+            <option value=">">&gt;</option><option value=">=">&gt;=</option><option value="<">&lt;</option><option value="<=">&lt;=</option><option value="==">=</option>
+          </select></div>
+        <div><label className="text-[10px] text-muted-foreground">Threshold</label><input type="number" value={ruleThreshold} onChange={e => setRuleThreshold(e.target.value)} className="w-full rounded-lg border border-border bg-secondary/50 px-2 py-1.5 text-xs" /></div>
+        <div><label className="text-[10px] text-muted-foreground">Severidade</label>
+          <select value={ruleSeverity} onChange={e => setRuleSeverity(e.target.value)} className="w-full rounded-lg border border-border bg-secondary/50 px-2 py-1.5 text-xs">
+            <option value="info">Info</option><option value="warning">Warning</option><option value="critical">Critical</option>
+          </select></div>
+        <Button size="sm" onClick={handleCreateRule} disabled={creating} className="nexus-gradient-bg text-primary-foreground text-xs">
+          {creating ? <Loader2 className="h-3 w-3 animate-spin" /> : 'Criar regra'}
+        </Button>
+      </div>
+
+      {/* Rules list */}
+      {rules.length === 0 ? (
+        <p className="text-xs text-muted-foreground text-center py-4">Nenhuma regra criada. Alertas de budget são automáticos via trigger.</p>
+      ) : (
+        <div className="space-y-2">
+          {rules.map((rule: any) => (
+            <div key={rule.id} className="flex items-center justify-between py-2 px-3 rounded-lg bg-secondary/30 text-xs">
+              <div className="flex items-center gap-3">
+                <input type="checkbox" checked={rule.is_enabled} onChange={e => handleToggleRule(rule.id, e.target.checked)} className="rounded" />
+                <div>
+                  <span className="font-medium text-foreground">{rule.name}</span>
+                  <span className="text-muted-foreground ml-2">{rule.metric} {rule.operator} {rule.threshold}</span>
+                </div>
+                <Badge variant={rule.severity === 'critical' ? 'destructive' : 'outline'} className="text-[9px]">{rule.severity}</Badge>
+              </div>
+              <Button variant="ghost" size="icon" className="h-6 w-6 text-destructive" onClick={() => handleDeleteRule(rule.id)}>
+                <Trash2 className="h-3 w-3" />
+              </Button>
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ═══ P3-11: Sessions Tracking ═══
+
+function SessionsPanel({ traces }: { traces: any[] }) {
+  // Group traces by session_id
+  const sessions = useMemo(() => {
+    const map = new Map<string, any[]>();
+    for (const t of traces) {
+      const sid = t.session_id || 'no-session';
+      if (!map.has(sid)) map.set(sid, []);
+      map.get(sid)!.push(t);
+    }
+    return Array.from(map.entries())
+      .map(([sessionId, sessionTraces]) => ({
+        sessionId,
+        traces: sessionTraces.sort((a: any, b: any) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime()),
+        totalTokens: sessionTraces.reduce((s: number, t: any) => s + (t.tokens_used || 0), 0),
+        totalCost: sessionTraces.reduce((s: number, t: any) => s + (t.cost_usd || 0), 0),
+        startedAt: sessionTraces[0]?.created_at,
+        events: sessionTraces.length,
+      }))
+      .sort((a, b) => new Date(b.startedAt || 0).getTime() - new Date(a.startedAt || 0).getTime());
+  }, [traces]);
+
+  const [expandedSession, setExpandedSession] = useState<string | null>(null);
+
+  if (sessions.length === 0) {
+    return (
+      <div className="flex flex-col items-center justify-center py-20 text-center">
+        <Activity className="h-12 w-12 text-muted-foreground mb-4" />
+        <h2 className="text-lg font-semibold text-foreground mb-1">Nenhuma sessão</h2>
+        <p className="text-sm text-muted-foreground">Sessões são agrupamentos de traces por session_id.</p>
+      </div>
+    );
+  }
+
+  return (
+    <div className="space-y-3">
+      {sessions.map((session, i) => (
+        <motion.div key={session.sessionId} initial={{ opacity: 0, y: 6 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.03 }} className="nexus-card">
+          <div className="flex items-center justify-between cursor-pointer" onClick={() => setExpandedSession(expandedSession === session.sessionId ? null : session.sessionId)}>
+            <div>
+              <p className="text-sm font-semibold text-foreground font-mono">{session.sessionId === 'no-session' ? '(sem sessão)' : session.sessionId.substring(0, 12) + '...'}</p>
+              <p className="text-[11px] text-muted-foreground">{session.events} eventos • {session.totalTokens} tokens • ${session.totalCost.toFixed(4)}</p>
+            </div>
+            <div className="text-xs text-muted-foreground">
+              {session.startedAt ? new Date(session.startedAt).toLocaleString('pt-BR') : ''}
+            </div>
+          </div>
+          {expandedSession === session.sessionId && (
+            <div className="mt-3 pt-3 border-t border-border/30 space-y-2">
+              {session.traces.map((t: any, j: number) => (
+                <div key={t.id} className="flex items-center gap-3 text-xs py-1">
+                  <span className="text-muted-foreground w-[60px] shrink-0 font-mono">{new Date(t.created_at).toLocaleTimeString('pt-BR')}</span>
+                  <Badge variant="outline" className={`text-[9px] shrink-0 ${t.level === 'error' ? 'border-destructive text-destructive' : t.level === 'warning' ? 'border-amber-500 text-amber-400' : ''}`}>{t.level || 'info'}</Badge>
+                  <span className="text-foreground truncate">{t.event}</span>
+                  <span className="text-muted-foreground ml-auto shrink-0">{t.latency_ms || 0}ms • {t.tokens_used || 0}t</span>
+                </div>
+              ))}
+            </div>
+          )}
+        </motion.div>
+      ))}
     </div>
   );
 }

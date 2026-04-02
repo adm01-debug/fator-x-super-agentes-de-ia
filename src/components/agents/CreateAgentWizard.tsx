@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { PageHeader } from "@/components/shared/PageHeader";
 import { useNavigate } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
@@ -18,7 +18,8 @@ import {
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
-import { AGENT_TEMPLATES, type AgentTemplate } from "@/data/agentTemplates";
+import { AGENT_TEMPLATES as STATIC_TEMPLATES, type AgentTemplate } from "@/data/agentTemplates";
+import { supabase } from "@/integrations/supabase/client";
 
 const STEPS = [
   { key: "identity", label: "Identidade", icon: User, description: "Nome, descrição e objetivo" },
@@ -84,6 +85,26 @@ export function CreateAgentWizard() {
   const [step, setStep] = useState(0);
   const [saving, setSaving] = useState(false);
   const [selectedTemplate, setSelectedTemplate] = useState<AgentTemplate | null>(null);
+  const [AGENT_TEMPLATES, setAgentTemplates] = useState<AgentTemplate[]>(STATIC_TEMPLATES);
+
+  // Load templates from DB, merge with static
+  useEffect(() => {
+    supabase.from('agent_templates').select('*').eq('is_public', true).order('usage_count', { ascending: false }).then(({ data }) => {
+      if (data && data.length > 0) {
+        const dbTemplates: AgentTemplate[] = data.map((t: any) => ({
+          id: t.id, name: t.name, emoji: t.icon || '🤖', category: t.category || 'general',
+          description: t.description || '', type: t.category || 'assistant',
+          model: (t.config as any)?.model || 'gpt-4o',
+          prompt: (t.config as any)?.system_prompt || '',
+          tools: (t.config as any)?.tools?.map((tool: any) => tool.name) || [],
+          memory: (t.config as any)?.memory || [],
+        }));
+        // DB templates first, then static that aren't duplicated
+        const dbIds = new Set(dbTemplates.map(t => t.id));
+        setAgentTemplates([...dbTemplates, ...STATIC_TEMPLATES.filter(t => !dbIds.has(t.id))]);
+      }
+    }).catch(() => {}); // fallback to static on error
+  }, []);
 
   const [form, setForm] = useState({
     name: "",

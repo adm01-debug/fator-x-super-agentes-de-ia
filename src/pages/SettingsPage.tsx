@@ -83,6 +83,7 @@ export default function SettingsPage() {
           <TabsTrigger value="appearance" className="text-xs gap-1.5"><Palette className="h-3.5 w-3.5" /> Aparência</TabsTrigger>
           <TabsTrigger value="apikeys" className="text-xs gap-1.5"><Key className="h-3.5 w-3.5" /> API Keys</TabsTrigger>
           <TabsTrigger value="notifications" className="text-xs gap-1.5"><Bell className="h-3.5 w-3.5" /> Notificações</TabsTrigger>
+          <TabsTrigger value="environments" className="text-xs gap-1.5"><Globe className="h-3.5 w-3.5" /> Ambientes</TabsTrigger>
         </TabsList>
 
         {/* General */}
@@ -235,7 +236,70 @@ export default function SettingsPage() {
             </Button>
           </div>
         </TabsContent>
+
+        <TabsContent value="environments" className="space-y-4 mt-4">
+          <EnvironmentsManager />
+        </TabsContent>
       </Tabs>
+    </div>
+  );
+}
+
+function EnvironmentsManager() {
+  const queryClient = useQueryClient();
+  const [newEnvName, setNewEnvName] = useState('');
+  const [creating, setCreating] = useState(false);
+
+  const { data: environments = [], isLoading } = useQuery({
+    queryKey: ['environments'],
+    queryFn: async () => {
+      const wsId = await getWorkspaceId();
+      const { data } = await (supabase as any).from('environments').select('*').eq('workspace_id', wsId).order('created_at');
+      return data ?? [];
+    },
+  });
+
+  const handleCreate = async () => {
+    if (!newEnvName.trim()) return;
+    setCreating(true);
+    const wsId = await getWorkspaceId();
+    await (supabase as any).from('environments').insert({ workspace_id: wsId, name: newEnvName.trim() });
+    setNewEnvName('');
+    setCreating(false);
+    queryClient.invalidateQueries({ queryKey: ['environments'] });
+    toast.success('Ambiente criado');
+  };
+
+  const handleDelete = async (id: string) => {
+    await (supabase as any).from('environments').delete().eq('id', id);
+    queryClient.invalidateQueries({ queryKey: ['environments'] });
+    toast.success('Ambiente removido');
+  };
+
+  return (
+    <div className="nexus-card space-y-4">
+      <h3 className="text-sm font-semibold text-foreground">Ambientes de Deploy</h3>
+      <p className="text-xs text-muted-foreground">Gerencie ambientes (development, staging, production) para isolamento de configurações.</p>
+      <div className="flex gap-2">
+        <Input value={newEnvName} onChange={e => setNewEnvName(e.target.value)} placeholder="Ex: staging" className="bg-secondary/50 text-xs" />
+        <Button size="sm" onClick={handleCreate} disabled={creating}>Criar</Button>
+      </div>
+      {isLoading ? <p className="text-xs text-muted-foreground">Carregando...</p> : (
+        <div className="space-y-2">
+          {environments.map((env: any) => (
+            <div key={env.id} className="flex items-center justify-between py-2 px-3 rounded-lg bg-secondary/30">
+              <div>
+                <p className="text-sm font-medium text-foreground">{env.name}</p>
+                <p className="text-[10px] text-muted-foreground">{new Date(env.created_at).toLocaleDateString('pt-BR')}</p>
+              </div>
+              <Button variant="ghost" size="icon" className="h-7 w-7 text-destructive" onClick={() => handleDelete(env.id)}>
+                <Trash2 className="h-3.5 w-3.5" />
+              </Button>
+            </div>
+          ))}
+          {environments.length === 0 && <p className="text-xs text-muted-foreground text-center py-4">Nenhum ambiente criado. Padrão: development.</p>}
+        </div>
+      )}
     </div>
   );
 }

@@ -1,6 +1,8 @@
 import { useAgentBuilderStore } from '@/stores/agentBuilderStore';
 import { SectionTitle, NexusBadge, ToggleField } from '../ui';
 import { Globe, MessageSquare, Mail, Hash, Send, Radio } from 'lucide-react';
+import { supabase } from '@/integrations/supabase/client';
+import { getWorkspaceId } from '@/lib/agentService';
 import type { DeployChannelConfig, MonitoringKPI, DeployChannel } from '@/types/agentTypes';
 
 const ENVIRONMENT_OPTIONS = [
@@ -50,6 +52,18 @@ export function DeployModule() {
   const updateChannel = (id: string, partial: Partial<DeployChannelConfig>) => {
     const updated = channels.map((c) => (c.id === id ? { ...c, ...partial } : c));
     updateAgent({ deploy_channels: updated });
+    // Sync to deploy_connections table (non-blocking)
+    if (agent.id) {
+      const ch = updated.find(c => c.id === id);
+      if (ch) {
+        getWorkspaceId().then(wsId => {
+          (supabase as any).from('deploy_connections').upsert({
+            agent_id: agent.id, workspace_id: wsId, channel: ch.channel,
+            status: ch.enabled ? 'active' : 'inactive', config: ch.config,
+          }, { onConflict: 'agent_id,channel' }).catch(() => {});
+        }).catch(() => {});
+      }
+    }
   };
 
   const updateKPI = (id: string, partial: Partial<MonitoringKPI>) => {

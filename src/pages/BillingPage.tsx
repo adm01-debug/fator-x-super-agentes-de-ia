@@ -113,6 +113,7 @@ export default function BillingPage() {
           <TabsTrigger value="overview">Visão geral</TabsTrigger>
           <TabsTrigger value="budgets">Orçamentos</TabsTrigger>
           <TabsTrigger value="records">Registros de uso</TabsTrigger>
+          <TabsTrigger value="pricing">Preços por modelo</TabsTrigger>
         </TabsList>
 
         <TabsContent value="overview">
@@ -248,7 +249,47 @@ export default function BillingPage() {
             </div>
           )}
         </TabsContent>
+
+        <TabsContent value="pricing">
+          <PricingTable />
+        </TabsContent>
       </Tabs>
+    </div>
+  );
+}
+
+function PricingTable() {
+  const { data: pricing = [], isLoading } = useQuery({
+    queryKey: ['model_pricing'],
+    queryFn: async () => {
+      const { data, error } = await supabase.from('model_pricing').select('*').order('model_pattern');
+      if (error) throw error;
+      return data ?? [];
+    },
+  });
+
+  if (isLoading) return <div className="flex justify-center py-12"><Loader2 className="h-5 w-5 animate-spin text-muted-foreground" /></div>;
+
+  return (
+    <div className="nexus-card overflow-x-auto">
+      <table className="w-full text-xs">
+        <thead><tr className="border-b border-border/50 text-muted-foreground">
+          <th className="text-left p-3 font-medium">Modelo</th>
+          <th className="text-right p-3 font-medium">Input ($/1K tokens)</th>
+          <th className="text-right p-3 font-medium">Output ($/1K tokens)</th>
+          <th className="text-right p-3 font-medium">Custo estimado / 1M tokens</th>
+        </tr></thead>
+        <tbody>
+          {pricing.map((p: any) => (
+            <tr key={p.id} className="border-b border-border/20 hover:bg-secondary/30">
+              <td className="p-3 font-mono text-foreground">{p.model_pattern}</td>
+              <td className="p-3 text-right text-foreground">${Number(p.input_cost_per_1k).toFixed(6)}</td>
+              <td className="p-3 text-right text-foreground">${Number(p.output_cost_per_1k).toFixed(6)}</td>
+              <td className="p-3 text-right text-muted-foreground">${((Number(p.input_cost_per_1k) + Number(p.output_cost_per_1k)) * 500).toFixed(2)}</td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
     </div>
   );
 }

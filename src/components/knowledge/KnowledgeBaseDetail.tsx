@@ -102,20 +102,22 @@ export function KnowledgeBaseDetail({ kbId, kbName, onBack }: KnowledgeBaseDetai
       collection_id: selectedCollectionId,
       source_url: docSourceUrl.trim() || null,
       source_type: docSourceUrl.trim() ? 'url' : 'manual',
-      status: 'processed',
+      status: 'pending',
     }).select('id').single();
 
     if (error || !doc) { toast.error(error?.message || 'Erro'); setSaving(false); return; }
 
-    // If manual content provided, create a chunk
+    // If manual content provided, call rag-ingest for chunking + embeddings
     if (docContent.trim()) {
-      await supabase.from('chunks').insert({
-        document_id: doc.id,
-        content: docContent.trim(),
-        chunk_index: 0,
-        token_count: Math.ceil(docContent.trim().split(/\s+/).length * 1.3),
-        embedding_status: 'pending',
+      toast.info('Gerando embeddings...');
+      const { data: ingestResult, error: ingestError } = await supabase.functions.invoke('rag-ingest', {
+        body: { document_id: doc.id, content: docContent.trim(), chunk_size: 1000, chunk_overlap: 200 },
       });
+      if (ingestError) {
+        toast.warning(`Documento salvo mas embeddings falharam: ${ingestError.message}`);
+      } else {
+        toast.success(`${ingestResult?.chunks_created || 0} chunks criados, ${ingestResult?.embeddings_generated || 0} embeddings gerados`);
+      }
     }
 
     // Update KB counts

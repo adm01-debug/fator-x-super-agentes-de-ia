@@ -224,6 +224,45 @@ export default function SecurityPage() {
           </div>
         )}
       </div>
+
+      {/* Audit Log */}
+      <AuditLogSection />
+    </div>
+  );
+}
+
+function AuditLogSection() {
+  const { data: logs = [], isLoading } = useQuery({
+    queryKey: ['audit_log'],
+    queryFn: async () => {
+      const { data, error } = await (supabase as any).from('audit_log').select('*').order('created_at', { ascending: false }).limit(50);
+      if (error) return [];
+      return data ?? [];
+    },
+  });
+
+  return (
+    <div className="nexus-card">
+      <h3 className="text-sm font-heading font-semibold text-foreground mb-3 flex items-center gap-2">
+        <ShieldCheck className="h-4 w-4 text-primary" /> Audit Trail
+      </h3>
+      {isLoading ? (
+        <div className="flex justify-center py-8"><Loader2 className="h-5 w-5 animate-spin text-muted-foreground" /></div>
+      ) : logs.length === 0 ? (
+        <p className="text-xs text-muted-foreground py-4 text-center">Nenhum evento registrado</p>
+      ) : (
+        <div className="space-y-1 max-h-[300px] overflow-y-auto">
+          {logs.map((log: any, i: number) => (
+            <motion.div key={log.id || i} initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: i * 0.02 }}
+              className="flex items-center gap-3 py-2 px-2 rounded hover:bg-secondary/30 text-xs">
+              <span className="text-muted-foreground w-[130px] shrink-0 font-mono text-[10px]">{new Date(log.created_at).toLocaleString('pt-BR')}</span>
+              <Badge variant="outline" className="text-[9px] shrink-0">{log.action || log.event || 'action'}</Badge>
+              <span className="text-foreground truncate">{log.description || log.details || JSON.stringify(log.metadata || {}).substring(0, 100)}</span>
+              <span className="text-muted-foreground ml-auto shrink-0">{log.user_email || ''}</span>
+            </motion.div>
+          ))}
+        </div>
+      )}
     </div>
   );
 }

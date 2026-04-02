@@ -168,12 +168,76 @@ export default function KnowledgePage() {
         </div>
       )}
 
+      {/* Vector Indexes Status */}
+      <VectorIndexesStatus />
+
       <EditKnowledgeBaseDialog
         kb={editKb}
         open={!!editKb}
         onOpenChange={(open) => { if (!open) setEditKb(null); }}
         onUpdated={() => refetch()}
       />
+    </div>
+  );
+}
+
+function VectorIndexesStatus() {
+  const { data: indexes = [] } = useQuery({
+    queryKey: ['vector_indexes'],
+    queryFn: async () => {
+      const { data } = await (supabase as any).from('vector_indexes').select('*, knowledge_bases(name)').order('created_at', { ascending: false });
+      return data ?? [];
+    },
+  });
+
+  const { data: chunkStats } = useQuery({
+    queryKey: ['chunk_embedding_stats'],
+    queryFn: async () => {
+      const [done, pending, failed] = await Promise.all([
+        supabase.from('chunks').select('id', { count: 'exact', head: true }).eq('embedding_status', 'done'),
+        supabase.from('chunks').select('id', { count: 'exact', head: true }).eq('embedding_status', 'pending'),
+        supabase.from('chunks').select('id', { count: 'exact', head: true }).eq('embedding_status', 'failed'),
+      ]);
+      return { done: done.count ?? 0, pending: pending.count ?? 0, failed: failed.count ?? 0 };
+    },
+  });
+
+  if (!chunkStats && indexes.length === 0) return null;
+
+  return (
+    <div className="nexus-card">
+      <h3 className="text-sm font-heading font-semibold text-foreground mb-3 flex items-center gap-2">
+        <Database className="h-4 w-4 text-primary" /> Embeddings & Vector Indexes
+      </h3>
+      {chunkStats && (
+        <div className="grid grid-cols-3 gap-3 mb-4">
+          <div className="text-center py-2 rounded-lg bg-emerald-500/10">
+            <p className="text-lg font-bold text-emerald-400">{chunkStats.done}</p>
+            <p className="text-[10px] text-muted-foreground">Embeddings prontos</p>
+          </div>
+          <div className="text-center py-2 rounded-lg bg-amber-500/10">
+            <p className="text-lg font-bold text-amber-400">{chunkStats.pending}</p>
+            <p className="text-[10px] text-muted-foreground">Pendentes</p>
+          </div>
+          <div className="text-center py-2 rounded-lg bg-destructive/10">
+            <p className="text-lg font-bold text-destructive">{chunkStats.failed}</p>
+            <p className="text-[10px] text-muted-foreground">Falharam</p>
+          </div>
+        </div>
+      )}
+      {indexes.length > 0 && (
+        <div className="space-y-2">
+          {indexes.map((idx: any) => (
+            <div key={idx.id} className="flex items-center justify-between py-2 px-3 rounded-lg bg-secondary/30 text-xs">
+              <div>
+                <span className="font-medium text-foreground">{(idx as any).knowledge_bases?.name || 'KB'}</span>
+                <span className="text-muted-foreground ml-2">{idx.provider} • {idx.model} • {idx.dimensions}d</span>
+              </div>
+              <span className={`text-[10px] ${idx.status === 'active' ? 'text-emerald-400' : 'text-amber-400'}`}>{idx.status}</span>
+            </div>
+          ))}
+        </div>
+      )}
     </div>
   );
 }

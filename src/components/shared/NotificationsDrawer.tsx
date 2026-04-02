@@ -41,13 +41,14 @@ export function NotificationsDrawer() {
   const { data: dbAlerts = [] } = useQuery({
     queryKey: ['notifications'],
     queryFn: async () => {
-      const { data } = await supabase
+      // Fetch warning/error traces
+      const { data: traces } = await supabase
         .from('agent_traces')
         .select('id, event, level, created_at, metadata')
         .in('level', ['warning', 'error', 'critical'])
         .order('created_at', { ascending: false })
         .limit(20);
-      return (data ?? []).map(a => ({
+      const traceNotifs = (traces ?? []).map(a => ({
         id: a.id,
         type: 'trace' as const,
         title: a.event,
@@ -55,6 +56,23 @@ export function NotificationsDrawer() {
         created_at: a.created_at,
         read: false,
       }));
+      // Fetch unresolved alerts (budget, guardrails, etc)
+      const { data: alerts } = await supabase
+        .from('alerts')
+        .select('id, title, message, severity, is_resolved, created_at')
+        .eq('is_resolved', false)
+        .order('created_at', { ascending: false })
+        .limit(20);
+      const alertNotifs = (alerts ?? []).map(a => ({
+        id: `alert-${a.id}`,
+        type: 'trace' as const,
+        title: a.title,
+        description: a.message || undefined,
+        level: a.severity || 'warning',
+        created_at: a.created_at,
+        read: false,
+      }));
+      return [...alertNotifs, ...traceNotifs];
     },
     enabled: open,
   });
