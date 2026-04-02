@@ -53,7 +53,7 @@ export default function MemoryPage() {
     setSaving(true);
     try {
       const workspaceId = await getWorkspaceId();
-      const { error } = await supabase.from('agent_memories').insert({
+      const { error } = await (supabase as any).from('agent_memories').insert({
         workspace_id: workspaceId,
         memory_type: activeType,
         content: newContent.trim(),
