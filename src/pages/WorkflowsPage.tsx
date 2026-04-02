@@ -314,7 +314,7 @@ export default function WorkflowsPage() {
                   </div>
 
                   <div className="flex items-center gap-1.5 overflow-x-auto pb-2">
-                    {wf.steps.map((step, j) => {
+                    {wf.steps.map((step: any, j: number) => {
                       const Icon = stepIcons[step] || Brain;
                       return (
                         <div key={j} className="flex items-center gap-1.5 shrink-0">

@@ -14,6 +14,47 @@ export type Database = {
   }
   public: {
     Tables: {
+      agent_memories: {
+        Row: {
+          content: string
+          created_at: string
+          id: string
+          memory_type: string
+          relevance_score: number | null
+          source: string | null
+          updated_at: string
+          workspace_id: string | null
+        }
+        Insert: {
+          content: string
+          created_at?: string
+          id?: string
+          memory_type?: string
+          relevance_score?: number | null
+          source?: string | null
+          updated_at?: string
+          workspace_id?: string | null
+        }
+        Update: {
+          content?: string
+          created_at?: string
+          id?: string
+          memory_type?: string
+          relevance_score?: number | null
+          source?: string | null
+          updated_at?: string
+          workspace_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "agent_memories_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       agent_templates: {
         Row: {
           category: string | null
@@ -701,6 +742,30 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      model_pricing: {
+        Row: {
+          created_at: string
+          id: string
+          input_cost_per_1k: number
+          model_pattern: string
+          output_cost_per_1k: number
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          input_cost_per_1k?: number
+          model_pattern: string
+          output_cost_per_1k?: number
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          input_cost_per_1k?: number
+          model_pattern?: string
+          output_cost_per_1k?: number
+        }
+        Relationships: []
       }
       oracle_history: {
         Row: {
