@@ -6,7 +6,7 @@ import { Badge } from '@/components/ui/badge';
 import { useAgentBuilderStore } from '@/stores/agentBuilderStore';
 import { supabase } from '@/integrations/supabase/client';
 import { useStreaming } from '@/hooks/useStreaming';
-import { Send, MessageSquare, Trash2, Bug, Loader2, Zap } from 'lucide-react';
+import { Send, MessageSquare, Trash2, Bug, Loader2 } from 'lucide-react';
 import { motion } from 'framer-motion';
 
 interface ChatMessage {
