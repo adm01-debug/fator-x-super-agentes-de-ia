@@ -2,6 +2,7 @@ import { PageHeader } from "@/components/shared/PageHeader";
 import { StatusBadge } from "@/components/shared/StatusBadge";
 import { Button } from "@/components/ui/button";
 import { traces as mockTraces } from "@/lib/mock-data";
+import * as traceService from "@/services/traceService";
 import { Clock, DollarSign, Wrench, Search, Download, RefreshCw, Filter, X } from "lucide-react";
 import { useState, useCallback } from "react";
 import { toast } from "sonner";
@@ -14,7 +15,25 @@ const stepColors: Record<string, string> = {
 type StatusFilter = 'all' | 'success' | 'error' | 'blocked' | 'timeout';
 
 export default function MonitoringPage() {
-  const [allTraces] = useState(mockTraces);
+  // Use real traces if available, fallback to mock
+  const realTraces = traceService.getTraces(100);
+  const mappedReal = realTraces.map(t => ({
+    id: t.id,
+    agent: t.agent_name,
+    sessionId: t.session_id,
+    timestamp: new Date(t.timestamp).toLocaleString('pt-BR'),
+    user: t.user_id ?? 'system',
+    status: t.status as string,
+    duration: t.latency_ms,
+    tokens: t.tokens_in + t.tokens_out,
+    cost: t.cost_usd,
+    toolCalls: t.tools_used.length,
+    steps: t.events.map((e, i) => ({
+      id: `step-${i}`, type: e.type, label: e.label, detail: e.detail ?? '',
+      duration: e.duration_ms, status: e.status,
+    })),
+  }));
+  const [allTraces] = useState(mappedReal.length > 0 ? mappedReal : mockTraces);
   const [selectedTrace, setSelectedTrace] = useState(mockTraces[0]);
   const [searchQuery, setSearchQuery] = useState('');
   const [statusFilter, setStatusFilter] = useState<StatusFilter>('all');

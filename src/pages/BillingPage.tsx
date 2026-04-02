@@ -3,6 +3,7 @@ import { PageHeader } from "@/components/shared/PageHeader";
 import { MetricCard } from "@/components/shared/MetricCard";
 import { Button } from "@/components/ui/button";
 import { usageBreakdown, costByModelData } from "@/lib/mock-data";
+import * as traceService from "@/services/traceService";
 import { DollarSign, Cpu, Database, Wrench, Hash, HardDrive, Save, AlertTriangle, TrendingUp, Download } from "lucide-react";
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid, Cell, LineChart, Line } from "recharts";
 import { toast } from "sonner";
@@ -22,7 +23,10 @@ export default function BillingPage() {
   const [tempBudget, setTempBudget] = useState(budget);
   const [tempThreshold, setTempThreshold] = useState(alertThreshold);
 
-  const spent = 3240;
+  // Real cost from traceService (converted from USD to BRL ~5.2x)
+  const realCostUsd = traceService.getTotalCost(30);
+  const realCostBrl = realCostUsd * 5.2;
+  const spent = realCostBrl > 0 ? Math.round(realCostBrl) : 3240;
   const pct = Math.round(spent / budget * 100);
   const projection = 4350;
 

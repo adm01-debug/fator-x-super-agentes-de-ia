@@ -6,6 +6,7 @@ import { Button } from '@/components/ui/button';
 import { Send, ThumbsUp, ThumbsDown, Bug, RotateCcw, Sparkles } from 'lucide-react';
 import * as llm from '@/services/llmService';
 import * as traceService from '@/services/traceService';
+import * as memoryService from '@/services/memoryService';
 
 interface PlaygroundMessage {
   id: string;
@@ -94,6 +95,8 @@ export function PlaygroundModule() {
         },
       };
       setMessages(prev => [...prev, assistantMsg]);
+      // Auto-extract memory from conversation
+      memoryService.autoExtractFromConversation(agent.id ?? 'default', input.trim(), response.content);
     } else {
       // ═══ FALLBACK SIMULATION ═══
       const sim = SIMULATED_RESPONSES[Math.floor(Math.random() * SIMULATED_RESPONSES.length)];
