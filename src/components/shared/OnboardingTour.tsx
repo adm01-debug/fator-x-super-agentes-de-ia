@@ -91,7 +91,8 @@ export function OnboardingTour() {
           {/* Progress bar */}
           <div className="h-1 bg-secondary">
             <div
-              className="h-full bg-gradient-to-r from-primary to-primary/70 rounded-r-full"%` }}
+              className="h-full bg-gradient-to-r from-primary to-primary/70 rounded-r-full"
+              style={{ width: `${((step + 1) / TOUR_STEPS.length) * 100}%`, transition: 'width 0.3s ease' }}
             />
           </div>
 
