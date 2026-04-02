@@ -151,6 +151,7 @@ Only return the JSON, nothing else.`;
     const scores = JSON.parse(response.content.replace(/```json?\n?/g, '').replace(/```/g, '').trim());
     if (Array.isArray(scores)) {
       return scores
+        .filter((s: { index: number }) => s.index >= 0 && s.index < results.length) // HIGH-7 fix: bounds check
         .sort((a: { score: number }, b: { score: number }) => b.score - a.score)
         .slice(0, topK)
         .map((s: { index: number; score: number }, newRank: number) => ({

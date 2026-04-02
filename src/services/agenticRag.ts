@@ -27,10 +27,11 @@ export interface AgenticRAGResult {
  * Agentic RAG: query → decide strategy → retrieve → evaluate → optionally re-retrieve → generate → verify
  */
 export async function agenticQuery(
-  query: string,
+  initialQuery: string,
   knowledgeBaseId?: string,
   options?: { maxIterations?: number; systemPrompt?: string; minFaithfulness?: number }
 ): Promise<AgenticRAGResult> {
+  let query = initialQuery; // Mutable for refinement across iterations
   const startTime = Date.now();
   const maxIter = options?.maxIterations ?? 3;
   const minFaith = options?.minFaithfulness ?? 70;
@@ -99,7 +100,11 @@ export async function agenticQuery(
         { role: 'user', content: `Original query: ${query}\nAnswer quality: ${faithfulness}%\nImprove the search query:` },
       ], { temperature: 0.3, maxTokens: 100 });
       totalCost += refineResp.cost;
-      // Use refined query for next iteration (would modify query variable in production)
+      // HIGH-5 fix: actually use the refined query for next retrieval iteration
+      if (refineResp.content.trim().length > 5) {
+        query = refineResp.content.trim();
+        logger.info(`Agentic RAG: refined query to "${query.slice(0, 80)}..."`, 'agenticRag');
+      }
     }
   }
 

@@ -221,6 +221,10 @@ export async function executeGraph(
       Object.assign(state, updates);
       state.iteration++;
       nodesVisited.push(currentNode.id);
+      // HIGH-9 fix: accumulate cost from node execution
+      if (typeof (updates as Record<string, unknown>).lastCost === 'number') {
+        totalCost += (updates as Record<string, unknown>).lastCost as number;
+      }
 
       const nodeDuration = Date.now() - nodeStart;
       logger.debug(`Node "${currentNode.label}": ${nodeDuration}ms`, 'graphEngine');

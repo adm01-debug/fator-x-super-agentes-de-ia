@@ -181,7 +181,7 @@ export async function executeWorkflow(
 
   // Record workflow trace
   traceService.recordTrace({
-    agent_id: 'workflow', agent_name: pipelineName, session_id: traceService.getSessionId(),
+    agent_id: '00000000-0000-0000-0000-000000000000', agent_name: pipelineName, session_id: traceService.getSessionId(),
     model: 'workflow-engine', input: initialInput.slice(0, 500), output: finalOutput.slice(0, 1000),
     tokens_in: 0, tokens_out: 0, cost_usd: totalCost, latency_ms: totalDuration,
     status: hasErrors ? 'error' : 'success',

@@ -55,6 +55,8 @@ const DEFAULT_CONFIG: RagConfig = {
 
 const documents: RagDocument[] = [];
 const chunks: RagChunk[] = [];
+const MAX_DOCUMENTS = 200;
+const MAX_CHUNKS = 5000;
 
 // ═══ DOCUMENT PARSING ═══
 
@@ -159,6 +161,7 @@ export async function ingestDocument(
     ingestedAt: new Date().toISOString(),
   };
   documents.push(doc);
+  if (documents.length > MAX_DOCUMENTS) documents.shift();
 
   // Stage 3: Chunk
   onProgress?.('✂️ Chunking text...');
@@ -171,6 +174,7 @@ export async function ingestDocument(
   // Stage 4: Store chunks
   onProgress?.(`💾 Storing ${docChunks.length} chunks...`);
   chunks.push(...docChunks);
+  if (chunks.length > MAX_CHUNKS) chunks.splice(0, chunks.length - MAX_CHUNKS);
 
   const duration = Date.now() - startTime;
   logger.info(`RAG ingest: ${file.name} → ${docChunks.length} chunks (${duration}ms)`, 'ragPipeline');
