@@ -121,11 +121,25 @@ export default function WorkflowsPage() {
   const handleExecute = async (wf: Workflow) => {
     setExecuting(wf.id);
     try {
-      const { data, error } = await supabase.functions.invoke('workflow-engine', {
-        body: { workflow_id: wf.id, input: `Execute o workflow "${wf.name}" com as etapas: ${wf.steps.join(' → ')}` },
-      });
-      if (error) throw error;
-      toast.success(`Workflow executado! ${data?.steps_executed || 0} etapas • $${data?.total_cost_usd?.toFixed(4) || '0'}`);
+      // Execute steps sequentially via LLM Gateway (local workflows don't have DB UUIDs yet)
+      let previousOutput = `Workflow: "${wf.name}". Etapas: ${wf.steps.join(' → ')}`;
+      const results: string[] = [];
+      for (const step of wf.steps) {
+        const { data, error } = await supabase.functions.invoke('llm-gateway', {
+          body: {
+            model: 'claude-sonnet-4.6',
+            messages: [
+              { role: 'system', content: `Você é o agente "${step}" em um workflow multi-agente. Execute sua função.` },
+              { role: 'user', content: `Contexto anterior:\n${previousOutput}\n\nExecute seu papel como "${step}".` },
+            ],
+            temperature: 0.7, max_tokens: 2000,
+          },
+        });
+        if (error) throw error;
+        previousOutput = data?.content || '';
+        results.push(`[${step}] ${previousOutput.substring(0, 100)}...`);
+      }
+      toast.success(`Workflow executado! ${wf.steps.length} etapas concluídas`);
     } catch (e: any) {
       toast.error(`Erro: ${e.message}`);
     } finally { setExecuting(null); }
@@ -252,6 +266,9 @@ export default function WorkflowsPage() {
                       </Badge>
                       <Button size="icon" variant="ghost" className="h-7 w-7 opacity-0 group-hover:opacity-100" onClick={() => handleToggleStatus(wf.id)}>
                         <Play className="h-3 w-3" />
+                      </Button>
+                      <Button size="icon" variant="ghost" className="h-7 w-7 opacity-0 group-hover:opacity-100 text-primary" onClick={() => handleExecute(wf)} disabled={executing === wf.id} title="Executar workflow">
+                        {executing === wf.id ? <Loader2 className="h-3 w-3 animate-spin" /> : <ArrowRight className="h-3 w-3" />}
                       </Button>
                       <Button size="icon" variant="ghost" className="h-7 w-7 opacity-0 group-hover:opacity-100 text-destructive" onClick={() => handleDelete(wf.id)}>
                         <Trash2 className="h-3 w-3" />

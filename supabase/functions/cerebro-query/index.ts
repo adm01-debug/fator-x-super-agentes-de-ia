@@ -7,22 +7,6 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
-// External DB connections (resolved via workspace secrets)
-const DB_CONNECTIONS: Record<string, { secretName: string; description: string }> = {
-  bancodadosclientes: { secretName: 'supabase_clientes_url', description: 'CRM - Clientes, Fornecedores, Transportadoras' },
-  'supabase-fuchsia-kite': { secretName: 'supabase_produtos_url', description: 'Catálogo de Produtos' },
-  gestao_time_promo: { secretName: 'supabase_rh_url', description: 'RH - Colaboradores, Ponto, Departamentos' },
-  backupgiftstore: { secretName: 'supabase_whatsapp_url', description: 'WhatsApp - Conversas e Contatos' },
-};
-
-// Auto-facts queries
-const AUTO_FACTS = [
-  { connection: 'bancodadosclientes', query: "SELECT COUNT(*) as v FROM companies WHERE is_customer AND status='ativo'", template: 'Temos {v} clientes ativos' },
-  { connection: 'bancodadosclientes', query: "SELECT COUNT(*) as v FROM companies WHERE is_supplier AND status='ativo'", template: 'Temos {v} fornecedores ativos' },
-  { connection: 'bancodadosclientes', query: "SELECT COUNT(*) as v FROM companies WHERE is_carrier AND status='ativo'", template: 'Temos {v} transportadoras ativas' },
-  { connection: 'supabase-fuchsia-kite', query: 'SELECT COUNT(*) as v FROM products', template: 'Temos {v} produtos no catálogo' },
-];
-
 serve(async (req) => {
   if (req.method === 'OPTIONS') return new Response(null, { headers: corsHeaders });
 
@@ -36,79 +20,102 @@ serve(async (req) => {
     if (!user) return new Response(JSON.stringify({ error: 'Unauthorized' }), { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
 
     const body = await req.json();
-    const { query, mode = 'chat' } = body;
+    const { query } = body;
 
-    // Get workspace
     const { data: member } = await supabase.from('workspace_members').select('workspace_id').eq('user_id', user.id).limit(1).single();
 
-    // Gather auto-facts context from external Supabase projects
+    // ═══ Gather context from LOCAL Supabase tables ═══
     const facts: string[] = [];
+
+    // Count agents
+    const { count: agentCount } = await supabase.from('agents').select('id', { count: 'exact', head: true });
+    if (agentCount) facts.push(`Temos ${agentCount} agentes configurados na plataforma`);
+
+    // Count knowledge bases
+    const { count: kbCount } = await supabase.from('knowledge_bases').select('id', { count: 'exact', head: true });
+    if (kbCount) facts.push(`Temos ${kbCount} bases de conhecimento`);
+
+    // Count traces (last 24h)
+    const yesterday = new Date(Date.now() - 86400000).toISOString();
+    const { count: traceCount } = await supabase.from('agent_traces').select('id', { count: 'exact', head: true }).gte('created_at', yesterday);
+    if (traceCount) facts.push(`${traceCount} interações nas últimas 24h`);
+
+    // Get recent usage
+    const { data: usage } = await supabase.from('agent_usage').select('total_cost_usd, requests').order('date', { ascending: false }).limit(7);
+    if (usage && usage.length > 0) {
+      const totalCost = usage.reduce((s: number, u: any) => s + (u.total_cost_usd || 0), 0);
+      const totalReqs = usage.reduce((s: number, u: any) => s + (u.requests || 0), 0);
+      facts.push(`Últimos 7 dias: ${totalReqs} requests, custo total $${totalCost.toFixed(4)}`);
+    }
+
+    // Get budget status
     if (member?.workspace_id) {
-      for (const af of AUTO_FACTS) {
-        try {
-          const conn = DB_CONNECTIONS[af.connection];
-          if (!conn) continue;
-          const { data: secret } = await supabase.from('workspace_secrets').select('key_value').eq('workspace_id', member.workspace_id).eq('key_name', conn.secretName).single();
-          if (secret?.key_value) {
-            // Format: "supabaseUrl|anonKey"
-            const parts = secret.key_value.split('|');
-            if (parts.length !== 2) continue;
-            const extSupabase = createClient(parts[0].trim(), parts[1].trim());
-            // Use table-based queries instead of raw SQL (rpc('sql') doesn't exist by default)
-            if (af.connection === 'bancodadosclientes') {
-              if (af.template.includes('clientes')) {
-                const { count } = await extSupabase.from('companies').select('id', { count: 'exact', head: true }).eq('is_customer', true).eq('status', 'ativo');
-                if (count !== null) facts.push(af.template.replace('{v}', String(count)));
-              } else if (af.template.includes('fornecedores')) {
-                const { count } = await extSupabase.from('companies').select('id', { count: 'exact', head: true }).eq('is_supplier', true).eq('status', 'ativo');
-                if (count !== null) facts.push(af.template.replace('{v}', String(count)));
-              } else if (af.template.includes('transportadoras')) {
-                const { count } = await extSupabase.from('companies').select('id', { count: 'exact', head: true }).eq('is_carrier', true).eq('status', 'ativo');
-                if (count !== null) facts.push(af.template.replace('{v}', String(count)));
-              }
-            } else if (af.connection === 'supabase-fuchsia-kite') {
-              const { count } = await extSupabase.from('products').select('id', { count: 'exact', head: true });
-              if (count !== null) facts.push(af.template.replace('{v}', String(count)));
-            }
-          }
-        } catch { /* skip failed connections */ }
+      const { data: budgets } = await supabase.from('budgets').select('name, limit_usd, current_usd').eq('workspace_id', member.workspace_id).eq('is_active', true);
+      if (budgets) {
+        for (const b of budgets) {
+          facts.push(`Budget "${b.name}": $${Number(b.current_usd || 0).toFixed(2)} / $${b.limit_usd} (${(Number(b.current_usd || 0) / Number(b.limit_usd) * 100).toFixed(0)}%)`);
+        }
       }
     }
 
-    // Load knowledge base chunks (semantic search if available)
+    // ═══ Gather context from external DBs via workspace secrets ═══
+    // External queries use Supabase REST API (URL + anon key stored as secrets)
+    const externalFacts: string[] = [];
+    if (member?.workspace_id) {
+      const extDbs = [
+        { urlKey: 'ext_clientes_url', anonKey: 'ext_clientes_anon', label: 'CRM Clientes', queries: [
+          { table: 'companies', filter: 'is_customer.eq.true,status.eq.ativo', countLabel: 'clientes ativos' },
+          { table: 'companies', filter: 'is_supplier.eq.true,status.eq.ativo', countLabel: 'fornecedores ativos' },
+        ]},
+        { urlKey: 'ext_produtos_url', anonKey: 'ext_produtos_anon', label: 'Catálogo', queries: [
+          { table: 'products', filter: '', countLabel: 'produtos no catálogo' },
+        ]},
+      ];
+
+      for (const db of extDbs) {
+        try {
+          const { data: urlSecret } = await supabase.from('workspace_secrets').select('key_value').eq('workspace_id', member.workspace_id).eq('key_name', db.urlKey).single();
+          const { data: anonSecret } = await supabase.from('workspace_secrets').select('key_value').eq('workspace_id', member.workspace_id).eq('key_name', db.anonKey).single();
+          if (urlSecret?.key_value && anonSecret?.key_value) {
+            const extClient = createClient(urlSecret.key_value, anonSecret.key_value);
+            for (const q of db.queries) {
+              let query = extClient.from(q.table).select('id', { count: 'exact', head: true });
+              if (q.filter) {
+                for (const f of q.filter.split(',')) {
+                  const [col, op, val] = f.split('.');
+                  if (op === 'eq') query = query.eq(col, val === 'true' ? true : val);
+                }
+              }
+              const { count } = await query;
+              if (count !== null) externalFacts.push(`${count} ${q.countLabel}`);
+            }
+          }
+        } catch { /* skip failed external connections */ }
+      }
+    }
+
+    // ═══ RAG context from knowledge base chunks ═══
     let ragContext = '';
     try {
-      const { data: kbs } = await supabase.from('knowledge_bases').select('id').limit(3);
-      if (kbs) {
-        for (const kb of kbs) {
-          const { data: chunks } = await supabase.from('chunks').select('content').eq('embedding_status', 'done').limit(5);
-          if (chunks) ragContext += chunks.map(c => c.content).join('\n---\n');
-        }
-      }
-    } catch { /* no RAG */ }
+      const { data: chunks } = await supabase.from('chunks').select('content').eq('embedding_status', 'done').limit(10);
+      if (chunks && chunks.length > 0) ragContext = chunks.map((c: any) => c.content).join('\n---\n').substring(0, 3000);
+    } catch { /* no RAG data */ }
 
-    // Load business rules
-    let rulesContext = '';
-    try {
-      const { data: rules } = await supabase.from('config_regras_negocio').select('chave, valor, descricao').limit(20);
-      if (rules) rulesContext = rules.map(r => `${r.descricao || r.chave}: ${r.valor}`).join('\n');
-    } catch { /* no rules table */ }
-
-    // Build enriched system prompt
+    // ═══ Build system prompt ═══
+    const allFacts = [...facts, ...externalFacts];
     const systemPrompt = `Você é o Super Cérebro da Promo Brindes — a inteligência central da empresa.
 
-## Fatos Atualizados
-${facts.length > 0 ? facts.join('\n') : 'Nenhum fato auto-calculado disponível (configure as conexões externas em Settings)'}
+## Dados da Plataforma Fator X
+${allFacts.length > 0 ? allFacts.map(f => `- ${f}`).join('\n') : '- Nenhum dado carregado ainda'}
 
-${rulesContext ? `## Regras de Negócio\n${rulesContext}` : ''}
+${externalFacts.length > 0 ? `## Dados dos Bancos Externos\n${externalFacts.map(f => '- ' + f).join('\n')}` : ''}
 
-${ragContext ? `## Contexto da Base de Conhecimento\n${ragContext.substring(0, 3000)}` : ''}
+${ragContext ? `## Base de Conhecimento (RAG)\n${ragContext}` : ''}
 
 ## Instruções
-- Responda com base nos dados reais disponíveis
-- Se não tiver dados suficientes, diga claramente o que falta
-- Use números e fatos concretos quando disponíveis
-- Responda em português do Brasil`;
+- Responda com base nos dados reais disponíveis acima
+- Se não tiver dados, diga claramente
+- Use português do Brasil`;
 
     // Call LLM Gateway
     const gatewayUrl = `${supabaseUrl}/functions/v1/llm-gateway`;
@@ -117,24 +124,18 @@ ${ragContext ? `## Contexto da Base de Conhecimento\n${ragContext.substring(0, 3
       headers: { 'Content-Type': 'application/json', 'Authorization': authHeader, 'apikey': supabaseKey },
       body: JSON.stringify({
         model: 'claude-sonnet-4.6',
-        messages: [
-          { role: 'system', content: systemPrompt },
-          { role: 'user', content: query },
-        ],
+        messages: [{ role: 'system', content: systemPrompt }, { role: 'user', content: query }],
         temperature: 0.5, max_tokens: 4000,
       }),
     });
-
     const result = await resp.json();
 
     return new Response(JSON.stringify({
       response: result.content || result.error,
-      facts_loaded: facts.length,
-      rag_chunks_used: ragContext ? true : false,
-      rules_loaded: rulesContext ? true : false,
-      model: result.model,
-      tokens: result.tokens,
-      cost_usd: result.cost_usd,
+      facts_loaded: allFacts.length,
+      external_facts: externalFacts.length,
+      rag_chunks_used: ragContext.length > 0,
+      model: result.model, tokens: result.tokens, cost_usd: result.cost_usd,
     }), { headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
   } catch (error: any) {
     return new Response(JSON.stringify({ error: error.message }), { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });

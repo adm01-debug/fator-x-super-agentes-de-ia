@@ -140,11 +140,14 @@ async function recordTrace(supabase: any, p: {
 }) {
   try {
     await supabase.from('agent_traces').insert({
-      workspace_id: p.workspaceId, agent_id: p.agentId, session_id: p.sessionId,
+      agent_id: p.agentId || '00000000-0000-0000-0000-000000000000',
+      user_id: p.userId,
+      workspace_id: p.workspaceId, session_id: p.sessionId,
       event: p.event, level: p.level, latency_ms: p.latencyMs, tokens_used: p.totalTokens,
-      cost_usd: p.costUsd, user_input: p.userInput, assistant_output: p.assistantOutput?.substring(0, 5000),
-      model: p.model, provider: p.provider, guardrails_triggered: p.guardrailsTriggered,
-      metadata: { prompt_tokens: p.promptTokens, completion_tokens: p.completionTokens },
+      cost_usd: p.costUsd,
+      input: { user_message: p.userInput, model: p.model, provider: p.provider },
+      output: { content: p.assistantOutput?.substring(0, 5000) },
+      metadata: { prompt_tokens: p.promptTokens, completion_tokens: p.completionTokens, guardrails: p.guardrailsTriggered },
     });
     if (p.workspaceId) {
       await supabase.from('usage_records').insert({
