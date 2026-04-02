@@ -86,6 +86,94 @@ export default function AgentDetailPage() {
           </div>
         </div>
       </div>
+
+      {/* Agent Metrics */}
+      <AgentMetrics agentId={id!} />
+    </div>
+  );
+}
+
+function AgentMetrics({ agentId }: { agentId: string }) {
+  const { data: traces = [] } = useQuery({
+    queryKey: ['agent_detail_traces', agentId],
+    queryFn: async () => {
+      const { data } = await supabase.from('agent_traces').select('latency_ms, tokens_used, cost_usd, level, created_at').eq('agent_id', agentId).order('created_at', { ascending: false }).limit(50);
+      return data ?? [];
+    },
+  });
+
+  const { data: usage = [] } = useQuery({
+    queryKey: ['agent_detail_usage', agentId],
+    queryFn: async () => {
+      const sevenDays = new Date(); sevenDays.setDate(sevenDays.getDate() - 7);
+      const { data } = await supabase.from('agent_usage').select('*').eq('agent_id', agentId).gte('date', sevenDays.toISOString().split('T')[0]).order('date');
+      return data ?? [];
+    },
+  });
+
+  const { data: recentAlerts = [] } = useQuery({
+    queryKey: ['agent_detail_alerts', agentId],
+    queryFn: async () => {
+      const { data } = await supabase.from('alerts').select('title, severity, created_at, is_resolved').eq('agent_id', agentId).order('created_at', { ascending: false }).limit(5);
+      return data ?? [];
+    },
+  });
+
+  const totalRequests = usage.reduce((s, u) => s + (u.requests || 0), 0);
+  const totalCost = usage.reduce((s, u) => s + (u.total_cost_usd || 0), 0);
+  const avgLatency = traces.length > 0 ? Math.round(traces.reduce((s, t) => s + (t.latency_ms || 0), 0) / traces.length) : 0;
+  const errorRate = traces.length > 0 ? traces.filter(t => t.level === 'error' || t.level === 'critical').length / traces.length : 0;
+
+  return (
+    <div className="space-y-4">
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+        <div className="nexus-card text-center">
+          <p className="text-lg font-bold text-foreground">{totalRequests}</p>
+          <p className="text-[10px] text-muted-foreground">Requests (7d)</p>
+        </div>
+        <div className="nexus-card text-center">
+          <p className="text-lg font-bold text-foreground">${totalCost.toFixed(4)}</p>
+          <p className="text-[10px] text-muted-foreground">Custo (7d)</p>
+        </div>
+        <div className="nexus-card text-center">
+          <p className="text-lg font-bold text-foreground">{avgLatency}ms</p>
+          <p className="text-[10px] text-muted-foreground">Latência média</p>
+        </div>
+        <div className="nexus-card text-center">
+          <p className={`text-lg font-bold ${errorRate > 0.1 ? 'text-destructive' : 'text-emerald-400'}`}>{(errorRate * 100).toFixed(1)}%</p>
+          <p className="text-[10px] text-muted-foreground">Taxa de erro</p>
+        </div>
+      </div>
+
+      {traces.length > 0 && (
+        <div className="nexus-card">
+          <h3 className="text-sm font-heading font-semibold text-foreground mb-3">Traces Recentes</h3>
+          <div className="space-y-1.5 max-h-[200px] overflow-y-auto">
+            {traces.slice(0, 10).map(t => (
+              <div key={t.created_at} className="flex items-center gap-3 text-xs py-1">
+                <span className="text-muted-foreground font-mono text-[10px] w-[70px] shrink-0">{new Date(t.created_at).toLocaleTimeString('pt-BR')}</span>
+                <span className={`w-2 h-2 rounded-full shrink-0 ${t.level === 'error' ? 'bg-destructive' : t.level === 'warning' ? 'bg-amber-400' : 'bg-emerald-400'}`} />
+                <span className="text-foreground">{t.tokens_used || 0}t</span>
+                <span className="text-muted-foreground">{t.latency_ms || 0}ms</span>
+                <span className="text-muted-foreground ml-auto">${(t.cost_usd || 0).toFixed(6)}</span>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {recentAlerts.length > 0 && (
+        <div className="nexus-card">
+          <h3 className="text-sm font-heading font-semibold text-foreground mb-3">Alertas</h3>
+          {recentAlerts.map((a, i) => (
+            <div key={i} className="flex items-center gap-2 text-xs py-1">
+              <span className={`w-2 h-2 rounded-full shrink-0 ${a.severity === 'critical' ? 'bg-destructive' : 'bg-amber-400'}`} />
+              <span className="text-foreground">{a.title}</span>
+              {a.is_resolved && <span className="text-emerald-400 text-[10px]">✓ resolvido</span>}
+            </div>
+          ))}
+        </div>
+      )}
     </div>
   );
 }

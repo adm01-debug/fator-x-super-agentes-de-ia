@@ -262,12 +262,49 @@ export default function DashboardPage() {
               )}
             </div>
           </div>
+
+          {/* Alerts */}
+          <DashboardAlerts />
         </>
       )}
 
       <InfoHint title="O que são superagentes de IA?">
         Superagentes combinam modelos de linguagem, memória persistente, ferramentas externas e RAG para executar tarefas complexas de forma autônoma. Esta plataforma permite criar, treinar, avaliar e operar esses agentes com governança e observabilidade completas.
       </InfoHint>
+    </div>
+  );
+}
+
+function DashboardAlerts() {
+  const navigate = useNavigate();
+  const { data: alerts = [] } = useQuery({
+    queryKey: ['dashboard_alerts'],
+    queryFn: async () => {
+      const { data } = await supabase.from('alerts').select('id, title, severity, created_at, is_resolved').eq('is_resolved', false).order('created_at', { ascending: false }).limit(5);
+      return data ?? [];
+    },
+  });
+
+  if (alerts.length === 0) return null;
+
+  return (
+    <div className="nexus-card border-amber-500/20">
+      <div className="flex items-center justify-between mb-3">
+        <h3 className="text-sm font-heading font-semibold text-foreground flex items-center gap-2">
+          <span className="h-2 w-2 rounded-full bg-amber-400 animate-pulse" />
+          Alertas Ativos ({alerts.length})
+        </h3>
+        <button onClick={() => navigate('/monitoring')} className="text-[10px] text-primary hover:underline">Ver todos</button>
+      </div>
+      <div className="space-y-2">
+        {alerts.map(a => (
+          <div key={a.id} className="flex items-center gap-2 text-xs py-1">
+            <span className={`w-2 h-2 rounded-full shrink-0 ${a.severity === 'critical' ? 'bg-destructive' : 'bg-amber-400'}`} />
+            <span className="text-foreground truncate">{a.title}</span>
+            <span className="text-muted-foreground ml-auto shrink-0 text-[10px]">{new Date(a.created_at).toLocaleDateString('pt-BR')}</span>
+          </div>
+        ))}
+      </div>
     </div>
   );
 }

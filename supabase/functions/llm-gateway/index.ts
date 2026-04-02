@@ -148,6 +148,7 @@ async function recordTrace(supabase: any, p: {
   event: string; level: string;
 }) {
   try {
+    // 1. agent_traces (primary observability)
     await supabase.from('agent_traces').insert({
       agent_id: p.agentId || '00000000-0000-0000-0000-000000000000',
       user_id: p.userId,
@@ -158,13 +159,36 @@ async function recordTrace(supabase: any, p: {
       output: { content: p.assistantOutput?.substring(0, 5000) },
       metadata: { prompt_tokens: p.promptTokens, completion_tokens: p.completionTokens, guardrails: p.guardrailsTriggered },
     });
+
+    // 2. Sessions lifecycle — upsert session + insert session_trace
+    if (p.sessionId && p.userId) {
+      // Upsert session (create if new, update last activity)
+      const agentId = p.agentId || '00000000-0000-0000-0000-000000000000';
+      const { data: existingSession } = await (supabase as any).from('sessions').select('id').eq('id', p.sessionId).maybeSingle();
+      if (!existingSession) {
+        await (supabase as any).from('sessions').insert({ id: p.sessionId, agent_id: agentId, user_id: p.userId, status: 'active' }).catch(() => {});
+      }
+      // Insert session_trace
+      const { data: strace } = await (supabase as any).from('session_traces').insert({
+        session_id: p.sessionId, trace_type: p.event,
+        input: { message: p.userInput }, output: { content: p.assistantOutput?.substring(0, 2000) },
+        latency_ms: p.latencyMs, tokens_used: p.totalTokens, cost_usd: p.costUsd,
+        metadata: { model: p.model, provider: p.provider },
+      }).select('id').single().catch(() => null);
+      // Insert trace_event
+      if (strace?.data?.id) {
+        await (supabase as any).from('trace_events').insert({ session_trace_id: strace.data.id, event_type: p.event, data: { level: p.level, guardrails: p.guardrailsTriggered } }).catch(() => {});
+      }
+    }
+
+    // 3. usage_records
     if (p.workspaceId) {
       await supabase.from('usage_records').insert({
         workspace_id: p.workspaceId, agent_id: p.agentId || null, record_type: 'llm_call',
         tokens: p.totalTokens, cost_usd: p.costUsd,
         metadata: { model: p.model, provider: p.provider, latency_ms: p.latencyMs },
       });
-      // Daily aggregate (agent_usage uses: agent_id, user_id, date, requests, tokens_input, tokens_output, total_cost_usd)
+      // 4. Daily aggregate
       if (p.userId) {
         const today = new Date().toISOString().split('T')[0];
         const { data: existing } = await supabase.from('agent_usage').select('id, requests, tokens_input, tokens_output, total_cost_usd').eq('agent_id', p.agentId || '00000000-0000-0000-0000-000000000000').eq('user_id', p.userId).eq('date', today).maybeSingle();

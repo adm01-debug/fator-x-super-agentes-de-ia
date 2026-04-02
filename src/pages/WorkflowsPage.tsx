@@ -214,6 +214,7 @@ export default function WorkflowsPage() {
         <TabsList>
           <TabsTrigger value="canvas" className="gap-1.5"><Network className="h-3.5 w-3.5" /> Canvas Visual</TabsTrigger>
           <TabsTrigger value="list" className="gap-1.5"><LayoutGrid className="h-3.5 w-3.5" /> Lista</TabsTrigger>
+          <TabsTrigger value="runs" className="gap-1.5"><Play className="h-3.5 w-3.5" /> Execuções</TabsTrigger>
         </TabsList>
 
         <TabsContent value="canvas" className="space-y-4">
@@ -333,7 +334,46 @@ export default function WorkflowsPage() {
             </AnimatePresence>
           </div>
         </TabsContent>
+
+        <TabsContent value="runs" className="space-y-4">
+          <WorkflowRunsHistory />
+        </TabsContent>
       </Tabs>
+    </div>
+  );
+}
+
+function WorkflowRunsHistory() {
+  const { data: runs = [], isLoading } = useQuery({
+    queryKey: ['workflow_runs'],
+    queryFn: async () => {
+      const { data } = await (supabase as any).from('workflow_runs').select('*, workflows(name)').order('started_at', { ascending: false }).limit(30);
+      return data ?? [];
+    },
+  });
+
+  if (isLoading) return <div className="flex justify-center py-12"><Loader2 className="h-5 w-5 animate-spin text-muted-foreground" /></div>;
+  if (runs.length === 0) return <div className="text-center py-12 text-sm text-muted-foreground">Nenhuma execução registrada. Execute um workflow salvo no banco.</div>;
+
+  return (
+    <div className="space-y-3">
+      {runs.map((run: any, i: number) => (
+        <motion.div key={run.id} initial={{ opacity: 0, y: 6 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.03 }} className="nexus-card">
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-sm font-semibold text-foreground">{run.workflows?.name || 'Workflow'}</p>
+              <p className="text-[11px] text-muted-foreground">
+                {run.total_steps} etapas • {run.total_tokens || 0} tokens • ${(run.total_cost_usd || 0).toFixed(4)}
+                {run.started_at && ` • ${new Date(run.started_at).toLocaleString('pt-BR')}`}
+              </p>
+            </div>
+            <Badge variant={run.status === 'completed' ? 'default' : run.status === 'failed' ? 'destructive' : 'outline'} className="text-[10px]">
+              {run.status}
+            </Badge>
+          </div>
+          {run.error && <p className="text-xs text-destructive mt-2">{run.error}</p>}
+        </motion.div>
+      ))}
     </div>
   );
 }

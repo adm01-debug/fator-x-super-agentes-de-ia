@@ -12,16 +12,28 @@ export default function DeploymentsPage() {
       const { data } = await supabase.from('agents').select('id, name, avatar_emoji, status, config, version, updated_at')
         .in('status', ['production', 'staging', 'monitoring']);
       if (!data) return [];
+      // Fetch deploy_connections for all deployed agents
+      const agentIds = data.map(a => a.id);
+      const { data: connections } = await (supabase as any).from('deploy_connections').select('agent_id, channel, status, message_count, last_message_at, error_message').in('agent_id', agentIds);
+      const connMap = new Map<string, any[]>();
+      for (const c of (connections || [])) {
+        if (!connMap.has(c.agent_id)) connMap.set(c.agent_id, []);
+        connMap.get(c.agent_id)!.push(c);
+      }
       return data.map(a => {
         const config = a.config as Record<string, any> | null;
-        const channels = (config?.deploy_channels || []) as Array<{ name: string; enabled: boolean }>;
+        const configChannels = (config?.deploy_channels || []) as Array<{ channel: string; name: string; enabled: boolean }>;
+        const liveConns = connMap.get(a.id) || [];
         return {
           id: a.id,
           name: a.name,
           emoji: a.avatar_emoji,
           status: a.status,
           version: `v${a.version}`,
-          channels: channels.filter(c => c.enabled).map(c => c.name),
+          channels: configChannels.filter(c => c.enabled).map(c => {
+            const live = liveConns.find((lc: any) => lc.channel === c.channel);
+            return { name: c.name || c.channel, status: live?.status || 'inactive', messages: live?.message_count || 0, lastMsg: live?.last_message_at, error: live?.error_message };
+          }),
           environment: config?.deploy_environment || 'production',
           updated: a.updated_at,
         };
@@ -57,7 +69,11 @@ export default function DeploymentsPage() {
               </div>
               {dep.channels.length > 0 && (
                 <div className="flex flex-wrap gap-1 mt-2">
-                  {dep.channels.map(c => <span key={c} className="nexus-badge-primary text-[10px]">{c}</span>)}
+                  {dep.channels.map((c: any) => (
+                    <span key={c.name} className={`text-[10px] px-2 py-0.5 rounded-full ${c.status === 'active' ? 'bg-emerald-500/10 text-emerald-400' : c.status === 'error' ? 'bg-destructive/10 text-destructive' : 'nexus-badge-primary'}`} title={c.error || `${c.messages} msgs`}>
+                      {c.name} {c.messages > 0 ? `(${c.messages})` : ''}
+                    </span>
+                  ))}
                 </div>
               )}
               <p className="text-[11px] text-muted-foreground mt-3">{new Date(dep.updated).toLocaleDateString('pt-BR')}</p>
