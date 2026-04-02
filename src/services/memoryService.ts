@@ -176,3 +176,80 @@ async function persistToSupabase(entry: MemoryEntry): Promise<void> {
     // Table might not exist — silently fail
   }
 }
+
+// ═══ FORGETTING POLICIES ═══
+
+export interface ForgettingPolicy {
+  layer: MemoryEntry['layer'];
+  strategy: 'time_decay' | 'relevance_decay' | 'lru' | 'compliance';
+  maxAgeDays: number;
+  minConfidence: number;
+  maxEntries: number;
+}
+
+const DEFAULT_POLICIES: ForgettingPolicy[] = [
+  { layer: 'short_term', strategy: 'time_decay', maxAgeDays: 1, minConfidence: 0, maxEntries: 20 },
+  { layer: 'episodic', strategy: 'relevance_decay', maxAgeDays: 90, minConfidence: 30, maxEntries: 200 },
+  { layer: 'semantic', strategy: 'lru', maxAgeDays: 365, minConfidence: 50, maxEntries: 500 },
+  { layer: 'procedural', strategy: 'lru', maxAgeDays: 365, minConfidence: 60, maxEntries: 100 },
+  { layer: 'profile', strategy: 'compliance', maxAgeDays: 365, minConfidence: 0, maxEntries: 50 },
+  { layer: 'shared', strategy: 'lru', maxAgeDays: 365, minConfidence: 40, maxEntries: 300 },
+];
+
+/** Apply forgetting policies to an agent's memory. Returns count of removed entries. */
+export function applyForgettingPolicies(agentId: string, customPolicies?: ForgettingPolicy[]): { removed: number; byLayer: Record<string, number> } {
+  const policies = customPolicies ?? DEFAULT_POLICIES;
+  const all = loadAll();
+  let totalRemoved = 0;
+  const byLayer: Record<string, number> = {};
+
+  for (const policy of policies) {
+    const key = `${agentId}:${policy.layer}`;
+    const entries = all[key] ?? [];
+    if (entries.length === 0) continue;
+
+    const now = Date.now();
+    const maxAgeMs = policy.maxAgeDays * 86400000;
+    let removed = 0;
+
+    // Filter by age
+    let filtered = entries.filter(e => {
+      const age = now - new Date(e.createdAt).getTime();
+      if (age > maxAgeMs) { removed++; return false; }
+      return true;
+    });
+
+    // Filter by confidence (relevance decay)
+    if (policy.strategy === 'relevance_decay') {
+      filtered = filtered.filter(e => {
+        // Ebbinghaus decay: confidence decreases over time
+        const ageDays = (now - new Date(e.createdAt).getTime()) / 86400000;
+        const decayedConfidence = (e.confidence ?? 80) * Math.exp(-0.01 * ageDays);
+        if (decayedConfidence < policy.minConfidence) { removed++; return false; }
+        return true;
+      });
+    }
+
+    // Cap max entries (LRU: keep newest)
+    if (filtered.length > policy.maxEntries) {
+      removed += filtered.length - policy.maxEntries;
+      filtered = filtered.slice(0, policy.maxEntries);
+    }
+
+    all[key] = filtered;
+    totalRemoved += removed;
+    if (removed > 0) byLayer[policy.layer] = removed;
+  }
+
+  saveAll(all);
+  if (totalRemoved > 0) {
+    logger.info(`Forgetting policies applied for ${agentId}: ${totalRemoved} entries removed`, 'memoryService');
+  }
+
+  return { removed: totalRemoved, byLayer };
+}
+
+/** Get forgetting policies for display/editing. */
+export function getForgettingPolicies(): ForgettingPolicy[] {
+  return [...DEFAULT_POLICIES];
+}

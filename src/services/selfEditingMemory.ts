@@ -26,6 +26,10 @@ export interface CompactionResult {
   compactedEntries: number;
   removedEntries: number;
   summariesCreated: number;
+  // Aliases for UI compatibility
+  mergedCount: number;
+  removedCount: number;
+  keptCount: number;
 }
 
 // ═══ CORE MEMORY (always in context) ═══
@@ -163,7 +167,7 @@ export async function compactMemory(agentId: string): Promise<CompactionResult> 
   const compactedTotal = originalTotal - removed + summariesCreated;
   logger.info(`Memory compaction: ${originalTotal} → ${compactedTotal} entries (removed ${removed}, created ${summariesCreated} summaries)`, 'selfEditingMemory');
 
-  return { originalEntries: originalTotal, compactedEntries: compactedTotal, removedEntries: removed, summariesCreated };
+  return { originalEntries: originalTotal, compactedEntries: compactedTotal, removedEntries: removed, summariesCreated, mergedCount: summariesCreated, removedCount: removed, keptCount: compactedTotal };
 }
 
 // ═══ BUILD MEMORY-AUGMENTED PROMPT ═══
