@@ -3,12 +3,13 @@ import { useAgentBuilderStore } from '@/stores/agentBuilderStore';
 import { SectionTitle } from '../ui';
 import { NexusBadge } from '../ui/NexusBadge';
 import { Button } from '@/components/ui/button';
-import { Send, ThumbsUp, ThumbsDown, Bug, RotateCcw, Sparkles } from 'lucide-react';
+import { Send, ThumbsUp, ThumbsDown, Bug, RotateCcw, Sparkles, Mic } from 'lucide-react';
 import * as llm from '@/services/llmService';
 import * as traceService from '@/services/traceService';
 import * as memoryService from '@/services/memoryService';
 import * as securityService from '@/services/securityService';
 import * as contextManager from '@/services/contextManager';
+import * as voiceService from '@/services/voiceService';
 
 interface PlaygroundMessage {
   id: string;
@@ -249,6 +250,16 @@ export function PlaygroundModule() {
           />
           <Button size="sm" onClick={sendMessage} disabled={isLoading || !input.trim()} className="gap-1.5">
             <Send className="h-3.5 w-3.5" /> Enviar
+          </Button>
+          <Button size="sm" variant="outline" disabled={isLoading} className="gap-1.5" onClick={async () => {
+            try {
+              const result = await voiceService.startListening();
+              setInput(result.text);
+            } catch {
+              // Voice not supported or user denied permission
+            }
+          }}>
+            <Mic className="h-3.5 w-3.5" />
           </Button>
         </div>
       </div>

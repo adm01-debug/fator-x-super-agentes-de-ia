@@ -8,6 +8,7 @@ import { toast } from 'sonner';
 import * as vectorSearch from '@/services/vectorSearch';
 import * as llm from '@/services/llmService';
 import * as advancedRag from '@/services/advancedRag';
+import * as graphRag from '@/services/graphRag';
 
 // Mock data
 const MOCK_FACTS = [
@@ -198,6 +199,26 @@ export default function SuperCerebroPage() {
                 </div>
               ))}
             </div>
+          </div>
+          <div className="nexus-card flex items-center justify-between">
+            <div>
+              <h3 className="text-sm font-semibold text-foreground">Construir Knowledge Graph</h3>
+              <p className="text-xs text-muted-foreground">Extraia entidades e relações dos fatos usando GraphRAG</p>
+            </div>
+            <Button className="gap-2" onClick={async () => {
+              toast.info('Construindo grafo...');
+              try {
+                const chunks = MOCK_FACTS.map(f => ({ content: f.content, source: f.source }));
+                const graph = await graphRag.buildGraph('super-cerebro', chunks, 'enterprise', (stage, pct) => {
+                  toast.info(`${stage} (${pct}%)`);
+                });
+                toast.success(`Grafo construído: ${graph.entities.length} entidades, ${graph.relations.length} relações`);
+              } catch (err) {
+                toast.error('Erro ao construir grafo');
+              }
+            }}>
+              <Network className="h-4 w-4" /> Construir Grafo
+            </Button>
           </div>
           <div className="nexus-card text-center py-8">
             <Network className="h-12 w-12 text-primary mx-auto mb-3 opacity-50" />

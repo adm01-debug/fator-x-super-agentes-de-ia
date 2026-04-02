@@ -7,6 +7,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Rocket, MessageSquare, Globe, Code, Hash, Smartphone, Plus, Trash2, X, Save, Play, RotateCcw, RefreshCw, Copy, Eye } from "lucide-react";
 import { toast } from "sonner";
 import * as widgetService from "@/services/widgetService";
+import * as cicdService from "@/services/cicdService";
 import { supabase } from "@/integrations/supabase/client";
 
 // Deploy connection stats type
@@ -312,6 +313,25 @@ export default function DeploymentsPage() {
         {widgetCode && (
           <pre className="rounded-xl bg-muted/10 border border-border p-4 text-[10px] font-mono text-muted-foreground overflow-x-auto max-h-48">{widgetCode}</pre>
         )}
+      </div>
+
+      {/* SDK Code Generator */}
+      <div className="nexus-card space-y-4">
+        <h3 className="text-sm font-heading font-semibold text-foreground">SDK & Integração</h3>
+        <p className="text-xs text-muted-foreground">Integre seu agente em qualquer aplicação com NPM, Python ou cURL.</p>
+        <div className="flex gap-2">
+          {(['npm', 'python', 'curl'] as const).map(lang => (
+            <Button key={lang} variant="outline" size="sm" className="gap-1 text-xs" onClick={() => {
+              const agentId = `agent-${widgetAgent.toLowerCase().replace(/\s/g, '-')}`;
+              const sdk = cicdService.generateSDKCode(agentId, widgetAgent, window.location.origin);
+              const code = sdk[lang];
+              navigator.clipboard.writeText(code);
+              toast.success(`Código ${lang.toUpperCase()} copiado!`);
+            }}>
+              <Code className="h-3.5 w-3.5" /> {lang === 'npm' ? 'NPM' : lang === 'python' ? 'Python' : 'cURL'}
+            </Button>
+          ))}
+        </div>
       </div>
 
       {/* Create Modal */}
