@@ -455,8 +455,8 @@ serve(async (req) => {
     // ═══ NON-STREAMING LLM CALL — with fallback chain ═══
     const tPreCall = Date.now();
     const guardrailMs = tPreCall - t0; // includes injection + PII + guardrails + budget
-    const chain = await resolveFallbackChain(supabase, workspaceId ?? undefined, model);
-    if (chain.length === 0) return new Response(JSON.stringify({ error: 'No API key configured for any provider' }), { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
+    const chain2 = await resolveFallbackChain(supabase, workspaceId ?? undefined, model);
+    if (chain2.length === 0) return new Response(JSON.stringify({ error: 'No API key configured for any provider' }), { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
 
     const startTime = Date.now();
     const callParams: LLMCallParams = { model, messages: safeMessages, temperature, max_tokens };
