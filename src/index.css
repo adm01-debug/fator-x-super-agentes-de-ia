@@ -149,6 +149,27 @@
       transition-duration: 0.01ms !important;
       scroll-behavior: auto !important;
     }
+    .stagger-children > *,
+    .stagger-list > *,
+    .animate-card-enter,
+    .animate-fade-in-up,
+    .animate-fade-in,
+    .animate-number-pop,
+    .animate-glow-pulse,
+    .animate-border-glow,
+    .animate-chart-reveal {
+      animation: none !important;
+      opacity: 1 !important;
+      transform: none !important;
+    }
+    .nexus-metric-card::after {
+      display: none !important;
+    }
+    .nexus-card-hover:hover,
+    .nexus-card-interactive:hover,
+    .nexus-card-interactive:active {
+      transform: none !important;
+    }
   }
 
   html {
