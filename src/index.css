@@ -188,8 +188,8 @@
   }
 
   .nexus-glass {
-    @apply backdrop-blur-xl border;
-    background: hsl(var(--card) / 0.6);
+    @apply border;
+    background: hsl(var(--card));
     border-color: hsl(var(--border) / 0.5);
   }
 
