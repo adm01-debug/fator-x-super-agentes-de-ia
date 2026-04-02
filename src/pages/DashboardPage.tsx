@@ -142,7 +142,7 @@ export default function DashboardPage() {
       ) : (
         <>
           {/* Metrics */}
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-3 sm:gap-4" role="region" aria-label="Métricas principais">
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-3 sm:gap-4 stagger-children" role="region" aria-label="Métricas principais">
             {[
               { icon: Bot, color: "text-primary", value: agents.length, label: "Total de agentes" },
               { icon: Zap, color: "text-nexus-emerald", value: activeCount, label: "Em produção" },
