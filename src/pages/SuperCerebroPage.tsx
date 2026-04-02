@@ -32,19 +32,16 @@ export default function SuperCerebroPage() {
     setIsSearching(true);
     setSearchResults(null);
     try {
-      const { data, error } = await supabase.functions.invoke('llm-gateway', {
-        body: {
-          model: 'google/gemini-2.5-flash',
-          messages: [
-            { role: 'system', content: 'Você é o Super Cérebro, a memória empresarial centralizada. Responda com base no conhecimento disponível. Se não tiver dados suficientes, indique claramente.' },
-            { role: 'user', content: query },
-          ],
-          temperature: 0.3,
-          max_tokens: 2000,
-        },
+      const { data, error } = await supabase.functions.invoke('cerebro-query', {
+        body: { query, mode: 'chat' },
       });
       if (error) throw error;
-      setSearchResults(data?.content || 'Sem resposta');
+      const meta = [];
+      if (data?.facts_loaded > 0) meta.push(`${data.facts_loaded} fatos carregados`);
+      if (data?.rag_chunks_used) meta.push('RAG ativo');
+      if (data?.rules_loaded) meta.push('Regras de negócio carregadas');
+      const metaLine = meta.length > 0 ? `\n\n---\n_${meta.join(' • ')} • Custo: $${data?.cost_usd?.toFixed(6) || '0'}_` : '';
+      setSearchResults((data?.response || 'Sem resposta') + metaLine);
     } catch (e: any) {
       toast.error(e.message || 'Erro na consulta');
     } finally {
@@ -91,8 +88,8 @@ export default function SuperCerebroPage() {
             <div className="grid md:grid-cols-3 gap-3">
               {[
                 { icon: '💾', title: 'Memória Semântica', desc: 'Embeddings vetoriais de documentos e conhecimento', status: 'active' },
-                { icon: '🕸️', title: 'Grafo de Conhecimento', desc: 'Relações entre entidades, pessoas e conceitos', status: 'planned' },
-                { icon: '🔄', title: 'Sync Contínuo', desc: 'Atualização automática entre agentes e Super Cérebro', status: 'planned' },
+                { icon: '🕸️', title: 'Grafo de Conhecimento', desc: 'Relações entre entidades, pessoas e conceitos', status: 'active' },
+                { icon: '🔄', title: 'Sync Contínuo', desc: 'Atualização automática via Edge Function cerebro-query', status: 'active' },
               ].map(l => (
                 <div key={l.title} className="p-3 rounded-lg bg-secondary/30 border border-border/30">
                   <div className="flex items-center gap-2 mb-2">

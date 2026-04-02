@@ -29,7 +29,7 @@ const complianceFrameworks = [
   { name: 'LGPD', status: 'compliant', coverage: 92 },
   { name: 'SOC 2', status: 'partial', coverage: 78 },
   { name: 'GDPR', status: 'compliant', coverage: 88 },
-  { name: 'ISO 27001', status: 'planned', coverage: 45 },
+  { name: 'ISO 27001', status: 'in_progress', coverage: 65 },
 ];
 
 export default function SecurityPage() {

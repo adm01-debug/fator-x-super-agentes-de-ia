@@ -70,6 +70,7 @@ export function AgentPlayground() {
           messages: allMessages,
           temperature: agent.temperature ?? 0.7,
           max_tokens: agent.max_tokens ?? 4000,
+          agent_id: agent.id || undefined,
         },
       });
 

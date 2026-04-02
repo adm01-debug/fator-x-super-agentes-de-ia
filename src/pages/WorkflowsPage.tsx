@@ -14,6 +14,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { toast } from "sonner";
 import { WorkflowCanvas, type CanvasNode, type CanvasEdge } from "@/components/workflows/WorkflowCanvas";
 import { useWorkflowPersistence } from "@/hooks/use-workflow-persistence";
+import { supabase } from "@/integrations/supabase/client";
 
 interface Workflow {
   id: string;
@@ -114,6 +115,20 @@ export default function WorkflowsPage() {
 
   const handleToggleStatus = (id: string) => {
     setWorkflows(prev => prev.map(w => w.id === id ? { ...w, status: w.status === 'active' ? 'draft' : 'active' } : w));
+  };
+
+  const [executing, setExecuting] = useState<string | null>(null);
+  const handleExecute = async (wf: Workflow) => {
+    setExecuting(wf.id);
+    try {
+      const { data, error } = await supabase.functions.invoke('workflow-engine', {
+        body: { workflow_id: wf.id, input: `Execute o workflow "${wf.name}" com as etapas: ${wf.steps.join(' → ')}` },
+      });
+      if (error) throw error;
+      toast.success(`Workflow executado! ${data?.steps_executed || 0} etapas • $${data?.total_cost_usd?.toFixed(4) || '0'}`);
+    } catch (e: any) {
+      toast.error(`Erro: ${e.message}`);
+    } finally { setExecuting(null); }
   };
 
   return (

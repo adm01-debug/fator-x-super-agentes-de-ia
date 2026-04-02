@@ -1,8 +1,11 @@
+import { useState } from 'react';
 import { useAgentBuilderStore } from '@/stores/agentBuilderStore';
 import { SectionTitle, NexusBadge, InputField, TextAreaField, SelectField } from '../ui';
 import { CollapsibleCard } from '../ui/CollapsibleCard';
 import { Button } from '@/components/ui/button';
-import { Plus, Trash2, Play, CheckCircle2, XCircle, Clock, SkipForward } from 'lucide-react';
+import { Plus, Trash2, Play, CheckCircle2, XCircle, Clock, SkipForward, Loader2 } from 'lucide-react';
+import { supabase } from '@/integrations/supabase/client';
+import { toast } from 'sonner';
 import type { TestCase, EvalMetric } from '@/types/agentTypes';
 
 const TEST_CATEGORIES = [
@@ -258,18 +261,69 @@ export function TestingModule() {
       )}
 
       {/* Ação: Executar Testes */}
-      <section>
-        <div className="rounded-xl border border-dashed border-primary/30 bg-primary/5 p-6 text-center">
-          <Play className="h-8 w-8 text-primary mx-auto mb-3" />
-          <p className="text-sm font-semibold text-foreground mb-1">Executar Suite de Testes</p>
-          <p className="text-xs text-muted-foreground mb-4">
-            Execute todos os casos de teste contra o agente configurado.
-          </p>
-          <Button variant="default" size="sm" disabled>
-            <Play className="h-4 w-4 mr-2" /> Executar Testes (em breve)
-          </Button>
-        </div>
-      </section>
+      <TestExecutionPanel testCases={testCases} />
     </div>
+  );
+}
+
+function TestExecutionPanel({ testCases }: { testCases: TestCase[] }) {
+  const agent = useAgentBuilderStore((s) => s.agent);
+  const [running, setRunning] = useState(false);
+  const [results, setResults] = useState<Array<{ input: string; expected: string; actual: string; passed: boolean; latency_ms: number }>>([]);
+
+  const handleRun = async () => {
+    if (!agent.id) { toast.error('Salve o agente antes de testar'); return; }
+    if (testCases.length === 0) { toast.error('Adicione test cases primeiro'); return; }
+    setRunning(true); setResults([]);
+    try {
+      const config = agent as Record<string, any>;
+      const systemPrompt = config.system_prompt || `You are ${agent.name}. ${agent.mission}`;
+      const model = agent.model || 'claude-sonnet-4.6';
+      const newResults: typeof results = [];
+
+      for (const tc of testCases) {
+        const start = Date.now();
+        const { data, error } = await supabase.functions.invoke('llm-gateway', {
+          body: { model, agent_id: agent.id, messages: [{ role: 'system', content: systemPrompt }, { role: 'user', content: tc.input }], temperature: 0.3, max_tokens: 2000 },
+        });
+        const actual = data?.content || data?.error || error?.message || '';
+        const passed = tc.expected_behavior ? actual.toLowerCase().includes(tc.expected_behavior.toLowerCase().substring(0, 100)) : true;
+        newResults.push({ input: tc.input, expected: tc.expected_behavior, actual, passed, latency_ms: Date.now() - start });
+        setResults([...newResults]);
+      }
+      const passRate = newResults.filter(r => r.passed).length / newResults.length;
+      toast.success(`Testes concluídos: ${(passRate * 100).toFixed(0)}% aprovados`);
+    } catch (e: any) { toast.error(`Erro: ${e.message}`); } finally { setRunning(false); }
+  };
+
+  return (
+    <section className="space-y-4">
+      <div className="rounded-xl border border-dashed border-primary/30 bg-primary/5 p-6 text-center">
+        <Play className="h-8 w-8 text-primary mx-auto mb-3" />
+        <p className="text-sm font-semibold text-foreground mb-1">Executar Suite de Testes</p>
+        <p className="text-xs text-muted-foreground mb-4">
+          {testCases.length} test cases • Modelo: {agent.model}
+        </p>
+        <Button variant="default" size="sm" onClick={handleRun} disabled={running || testCases.length === 0}>
+          {running ? <><Loader2 className="h-4 w-4 mr-2 animate-spin" /> Executando ({results.length}/{testCases.length})...</> : <><Play className="h-4 w-4 mr-2" /> Executar Testes</>}
+        </Button>
+      </div>
+      {results.length > 0 && (
+        <div className="space-y-2">
+          <p className="text-xs font-semibold text-foreground">Resultados: {results.filter(r=>r.passed).length}/{results.length} aprovados</p>
+          {results.map((r, i) => (
+            <div key={i} className={`nexus-card text-xs ${r.passed ? 'border-green-500/30' : 'border-red-500/30'}`}>
+              <div className="flex items-center gap-2 mb-1">
+                {r.passed ? <CheckCircle2 className="h-3.5 w-3.5 text-green-500" /> : <XCircle className="h-3.5 w-3.5 text-red-500" />}
+                <span className="font-mono text-muted-foreground">{r.latency_ms}ms</span>
+              </div>
+              <p className="text-foreground"><strong>Input:</strong> {r.input.substring(0, 100)}</p>
+              {r.expected && <p className="text-muted-foreground mt-0.5"><strong>Expected:</strong> {r.expected.substring(0, 100)}</p>}
+              <p className="text-muted-foreground mt-0.5"><strong>Output:</strong> {r.actual.substring(0, 200)}</p>
+            </div>
+          ))}
+        </div>
+      )}
+    </section>
   );
 }
