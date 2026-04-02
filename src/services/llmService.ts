@@ -212,9 +212,10 @@ export async function callModel(
 
     // Auto-record trace and usage
     const userMsg = messages.find(m => m.role === 'user')?.content ?? '';
-    traceService.recordUsage({ agent_id: 'default', model: modelInfo?.name ?? modelId, tokens_in: inputTokens, tokens_out: outputTokens, cost_usd: parseFloat(cost.toFixed(4)), type: 'llm' });
+    // BUG 2/8 fix: use sentinel UUID, never undefined/default
+    traceService.recordUsage({ agent_id: '00000000-0000-0000-0000-000000000000', model: modelInfo?.name ?? modelId, tokens_in: inputTokens, tokens_out: outputTokens, cost_usd: parseFloat(cost.toFixed(4)), type: 'llm' });
     traceService.recordTrace({
-      agent_id: 'default', agent_name: 'LLM Call', session_id: traceService.getSessionId(),
+      agent_id: '00000000-0000-0000-0000-000000000000', agent_name: 'LLM Call', session_id: traceService.getSessionId(),
       model: modelInfo?.name ?? modelId, input: userMsg.slice(0, 1000), output: content.slice(0, 2000),
       tokens_in: inputTokens, tokens_out: outputTokens, cost_usd: parseFloat(cost.toFixed(4)),
       latency_ms: latencyMs, status: 'success', events: [

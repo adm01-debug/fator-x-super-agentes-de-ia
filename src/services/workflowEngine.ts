@@ -117,6 +117,12 @@ export async function executeWorkflow(
   onNodeComplete?: (nodeId: string, result: NodeResult) => void
 ): Promise<WorkflowResult> {
   const startTime = Date.now();
+
+  // Guard: empty workflow
+  if (!nodes || nodes.length === 0) {
+    return { pipelineId: `wf-${Date.now()}`, pipelineName, status: 'failed', nodeResults: [], totalDurationMs: 0, totalCostUsd: 0, finalOutput: 'No steps found' };
+  }
+
   const nodeResults: NodeResult[] = [];
   const nodeOutputs = new Map<string, string>();
 
@@ -139,7 +145,10 @@ export async function executeWorkflow(
     const executor = nodeExecutors[node.type] ?? nodeExecutors.executor;
 
     try {
-      const { output, costUsd } = await executor(combinedInput, node);
+      // BUG 5 fix: 30s timeout per step to prevent hanging on LLM outages
+      const stepPromise = executor(combinedInput, node);
+      const timeoutPromise = new Promise<never>((_, reject) => setTimeout(() => reject(new Error('Step timeout (30s)')), 30000));
+      const { output, costUsd } = await Promise.race([stepPromise, timeoutPromise]);
       const duration = Date.now() - nodeStart;
 
       nodeOutputs.set(nodeId, output);

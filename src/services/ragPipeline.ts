@@ -88,8 +88,10 @@ export async function parseDocument(file: File): Promise<{ content: string; erro
 
 /** Split text into chunks with overlap. */
 export function chunkText(text: string, config: Partial<RagConfig> = {}): RagChunk[] {
-  const chunkSize = config.chunkSize ?? DEFAULT_CONFIG.chunkSize;
-  const overlap = config.chunkOverlap ?? DEFAULT_CONFIG.chunkOverlap;
+  // BUG 7 fix: sanitize chunk params to prevent infinite loop
+  let chunkSize = Math.max(config.chunkSize ?? DEFAULT_CONFIG.chunkSize, 100);
+  let overlap = config.chunkOverlap ?? DEFAULT_CONFIG.chunkOverlap;
+  if (overlap >= chunkSize) overlap = Math.floor(chunkSize * 0.2); // Cap at 20%
 
   // Split by paragraphs first, then by sentences, then by fixed size
   const paragraphs = text.split(/\n\n+/).filter(p => p.trim().length > 0);
