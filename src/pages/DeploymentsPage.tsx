@@ -9,6 +9,12 @@ import { toast } from "sonner";
 import * as widgetService from "@/services/widgetService";
 import { supabase } from "@/integrations/supabase/client";
 
+// Deploy connection stats type
+interface DeployConnectionStat {
+  message_count: number;
+  last_message_at: string;
+}
+
 // ═══ TYPES ═══
 
 interface Deployment {
@@ -43,6 +49,22 @@ const SEED_DEPLOYMENTS: Deployment[] = [
 export default function DeploymentsPage() {
   const [deployments, setDeployments] = useState<Deployment[]>(SEED_DEPLOYMENTS);
   const [showCreate, setShowCreate] = useState(false);
+  const [deployStats, setDeployStats] = useState<Record<string, DeployConnectionStat>>({});
+
+  // Fetch deploy_connections stats from Supabase
+  useEffect(() => {
+    supabase
+      .from('deploy_connections' as string)
+      .select('channel, message_count, last_message_at')
+      .then(({ data, error }) => {
+        if (error || !data) return;
+        const stats: Record<string, DeployConnectionStat> = {};
+        (data as Array<{ channel: string; message_count: number; last_message_at: string }>).forEach((row) => {
+          stats[row.channel] = { message_count: row.message_count, last_message_at: row.last_message_at };
+        });
+        setDeployStats(stats);
+      });
+  }, []);
 
   // Create form
   const [newAgent, setNewAgent] = useState(AGENTS[0]);
@@ -160,6 +182,12 @@ export default function DeploymentsPage() {
                   <span className={`font-mono font-bold ${dep.healthScore >= 90 ? 'text-emerald-400' : dep.healthScore >= 70 ? 'text-amber-400' : 'text-rose-400'}`}>{dep.healthScore}%</span>
                 </div>
                 <div className="flex justify-between"><span className="text-muted-foreground">Deploy</span><span className="text-foreground">{dep.lastDeployed}</span></div>
+                {deployStats[dep.channel] && (
+                  <>
+                    <div className="flex justify-between"><span className="text-muted-foreground">Mensagens</span><span className="text-foreground font-mono">{deployStats[dep.channel].message_count}</span></div>
+                    <div className="flex justify-between"><span className="text-muted-foreground">Última msg</span><span className="text-foreground">{new Date(deployStats[dep.channel].last_message_at).toLocaleString('pt-BR')}</span></div>
+                  </>
+                )}
               </div>
 
               {/* Actions */}

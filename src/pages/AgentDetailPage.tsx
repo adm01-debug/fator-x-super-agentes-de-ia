@@ -8,8 +8,9 @@ import { Input } from "@/components/ui/input";
 import { InfoHint } from "@/components/shared/InfoHint";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Bot, Zap, Clock, DollarSign, CheckCircle, Star, ArrowLeft, Wrench, Send, MessageSquare } from "lucide-react";
+import { Bot, Zap, Clock, DollarSign, CheckCircle, Star, ArrowLeft, Wrench, Send, MessageSquare, Activity } from "lucide-react";
 import { useState } from "react";
+import * as traceService from "@/services/traceService";
 
 const chatHistory = [
   { role: 'user', content: 'Como integro a API de pagamentos com o módulo de assinaturas?' },
@@ -95,6 +96,44 @@ export default function AgentDetailPage() {
             </TabsList>
 
             <TabsContent value="overview" className="mt-4 space-y-4">
+              {/* Métricas em Tempo Real */}
+              <div className="nexus-card">
+                <h3 className="text-sm font-heading font-semibold text-foreground mb-3 flex items-center gap-2">
+                  <Activity className="h-4 w-4 text-primary" /> Métricas em Tempo Real
+                </h3>
+                {(() => {
+                  const recentTraces = traceService.getTraces(100, agent.id);
+                  const totalCost = traceService.getTotalCost(30, agent.id);
+                  if (recentTraces.length === 0) {
+                    return (
+                      <p className="text-xs text-muted-foreground py-2">Sem dados de execução ainda</p>
+                    );
+                  }
+                  const avgLatency = Math.round(recentTraces.reduce((s, t) => s + t.latency_ms, 0) / recentTraces.length);
+                  const lastTrace = recentTraces[0];
+                  return (
+                    <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+                      <div className="rounded-xl bg-secondary/30 p-3 text-center">
+                        <p className="text-lg font-heading font-bold text-foreground">{recentTraces.length}</p>
+                        <p className="text-[10px] text-muted-foreground">Execuções recentes</p>
+                      </div>
+                      <div className="rounded-xl bg-secondary/30 p-3 text-center">
+                        <p className="text-lg font-heading font-bold text-foreground">${totalCost.toFixed(4)}</p>
+                        <p className="text-[10px] text-muted-foreground">Custo total (30d)</p>
+                      </div>
+                      <div className="rounded-xl bg-secondary/30 p-3 text-center">
+                        <p className="text-lg font-heading font-bold text-foreground">{avgLatency}ms</p>
+                        <p className="text-[10px] text-muted-foreground">Latência média</p>
+                      </div>
+                      <div className="rounded-xl bg-secondary/30 p-3 text-center">
+                        <p className="text-lg font-heading font-bold text-foreground">{new Date(lastTrace.timestamp).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}</p>
+                        <p className="text-[10px] text-muted-foreground">Último trace</p>
+                      </div>
+                    </div>
+                  );
+                })()}
+              </div>
+
               <div className="nexus-card">
                 <h3 className="text-sm font-heading font-semibold text-foreground mb-3">Readiness Score</h3>
                 <div className="flex items-center gap-4">

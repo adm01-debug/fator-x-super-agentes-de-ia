@@ -184,7 +184,7 @@ export default function DashboardPage() {
           <h3 className="text-sm font-heading font-semibold text-foreground mb-3">Alertas recentes</h3>
           <div className="space-y-2.5">
             {(() => {
-              const realAlerts = alertService.getAlerts(4).map(a => ({ id: a.id, type: a.severity === 'critical' ? 'error' : a.severity, title: a.title, message: a.message, time: new Date(a.timestamp).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' }) }));
+              const realAlerts = alertService.getAlerts(4).map(a => ({ id: a.id, type: (a.severity === 'critical' ? 'error' : a.severity) as string, title: a.title, description: a.message, timestamp: new Date(a.timestamp).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' }) }));
               const alerts = realAlerts.length > 0 ? realAlerts : mockAlerts.slice(0, 4);
               return alerts;
             })().map((alert) => (
