@@ -27,7 +27,7 @@ export function AgentPlayground() {
   const [input, setInput] = useState('');
   const [loading, setLoading] = useState(false);
   const [debugMode, setDebugMode] = useState(false);
-  const [streamMode, setStreamMode] = useState(true);
+  const [streamMode] = useState(true);
   const scrollRef = useRef<HTMLDivElement>(null);
   const agent = useAgentBuilderStore((s) => s.agent);
   const streaming = useStreaming();
