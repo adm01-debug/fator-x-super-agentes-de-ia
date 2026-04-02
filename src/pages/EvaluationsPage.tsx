@@ -2,7 +2,6 @@ import { PageHeader } from "@/components/shared/PageHeader";
 import { StatusBadge } from "@/components/shared/StatusBadge";
 import { InfoHint } from "@/components/shared/InfoHint";
 import { FlaskConical, Loader2 } from "lucide-react";
-import { motion } from "framer-motion";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { CreateEvaluationDialog } from "@/components/dialogs/CreateEvaluationDialog";
@@ -49,7 +48,7 @@ export default function EvaluationsPage() {
           ) : (
             <div className="space-y-4">
               {evaluations.map((ev, i) => (
-                <motion.div key={ev.id} initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.06 }} className="nexus-card">
+                <div key={ev.id} className="nexus-card">
                   <div className="flex items-start justify-between mb-3">
                     <div className="flex items-center gap-2.5">
                       <div className="h-10 w-10 rounded-xl bg-primary/10 flex items-center justify-center">
@@ -81,7 +80,7 @@ export default function EvaluationsPage() {
                       </div>
                     </div>
                   )}
-                </motion.div>
+                </div>
               ))}
             </div>
           )}

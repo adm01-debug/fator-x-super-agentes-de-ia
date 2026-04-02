@@ -7,7 +7,6 @@ import { Trash2, Eye, FileText, Clock, Filter } from 'lucide-react';
 import { fetchOracleHistory, deleteOracleHistory, type OracleHistoryEntry, type HistoryFilters } from '@/lib/oracleHistory';
 import { exportToMarkdown, downloadText } from '@/lib/oracleExport';
 import { ORACLE_MODES, ORACLE_PRESETS, type OracleMode } from '@/stores/oracleStore';
-import { motion, AnimatePresence } from 'framer-motion';
 import { toast } from 'sonner';
 
 interface OracleHistoryProps {
@@ -67,9 +66,8 @@ export function OracleHistory(_props: OracleHistoryProps) {
       </div>
 
       {/* Filters */}
-      <AnimatePresence>
-        {showFilters && (
-          <motion.div initial={{ height: 0, opacity: 0 }} animate={{ height: 'auto', opacity: 1 }} exit={{ height: 0, opacity: 0 }} className="overflow-hidden">
+      {showFilters && (
+          <div className="overflow-hidden">
             <div className="p-3 rounded-lg bg-secondary/30 border border-border/30 grid grid-cols-3 gap-3">
               <Select value={filters.mode || '__all'} onValueChange={v => setFilters(f => ({ ...f, mode: v === '__all' ? undefined : v as OracleMode }))}>
                 <SelectTrigger className="h-8 text-xs"><SelectValue placeholder="Modo" /></SelectTrigger>
@@ -91,9 +89,9 @@ export function OracleHistory(_props: OracleHistoryProps) {
               </Select>
               <Input type="date" className="h-8 text-xs" value={filters.dateFrom || ''} onChange={e => setFilters(f => ({ ...f, dateFrom: e.target.value || undefined }))} />
             </div>
-          </motion.div>
+          </div>
         )}
-      </AnimatePresence>
+      
 
       {/* Entries */}
       {entries.length === 0 ? (
@@ -130,9 +128,8 @@ export function OracleHistory(_props: OracleHistoryProps) {
                     </Button>
                   </div>
                 </div>
-                <AnimatePresence>
-                  {expandedId === entry.id && (
-                    <motion.div initial={{ height: 0, opacity: 0 }} animate={{ height: 'auto', opacity: 1 }} exit={{ height: 0, opacity: 0 }} className="overflow-hidden mt-3 pt-3 border-t border-border/30">
+                {expandedId === entry.id && (
+                    <div className="overflow-hidden mt-3 pt-3 border-t border-border/30">
                       <div className="text-xs text-foreground whitespace-pre-wrap max-h-[300px] overflow-y-auto bg-secondary/30 p-3 rounded-lg">
                         {entry.results?.final_response || 'Sem resposta'}
                       </div>
@@ -141,9 +138,9 @@ export function OracleHistory(_props: OracleHistoryProps) {
                         <span>⏱️ {((entry.total_latency_ms || 0) / 1000).toFixed(1)}s</span>
                         <span>📊 {entry.total_tokens?.toLocaleString()} tokens</span>
                       </div>
-                    </motion.div>
+                    </div>
                   )}
-                </AnimatePresence>
+                
               </div>
             );
           })}

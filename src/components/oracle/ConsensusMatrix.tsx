@@ -1,6 +1,5 @@
 import { Badge } from '@/components/ui/badge';
 import { ConsensusPoint } from '@/stores/oracleStore';
-import { motion } from 'framer-motion';
 
 interface ConsensusMatrixProps {
   points: ConsensusPoint[];
@@ -35,7 +34,7 @@ export function ConsensusMatrix({ points, overallConsensus }: ConsensusMatrixPro
   };
 
   return (
-    <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="space-y-4">
+    <div className="space-y-4">
       {/* Header */}
       <div className="flex items-center justify-between">
         <h3 className="text-sm font-semibold text-foreground flex items-center gap-2">
@@ -95,6 +94,6 @@ export function ConsensusMatrix({ points, overallConsensus }: ConsensusMatrixPro
           </table>
         </div>
       </div>
-    </motion.div>
+    </div>
   );
 }

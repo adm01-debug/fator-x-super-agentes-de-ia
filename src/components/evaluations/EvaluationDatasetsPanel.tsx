@@ -11,7 +11,6 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
 
 import { Database, Plus, Loader2, Trash2, FileText, ChevronRight } from 'lucide-react';
-import { motion } from 'framer-motion';
 import { toast } from 'sonner';
 
 export function EvaluationDatasetsPanel() {
@@ -149,11 +148,8 @@ export function EvaluationDatasetsPanel() {
               </div>
             ) : (
               datasets.map((ds, i) => (
-                <motion.div
+                <div
                   key={ds.id}
-                  initial={{ opacity: 0, y: 4 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ delay: i * 0.03 }}
                   className={`nexus-card cursor-pointer p-3 group ${selectedDatasetId === ds.id ? 'border-primary/40 nexus-glow-sm' : ''}`}
                   onClick={() => setSelectedDatasetId(ds.id)}
                 >
@@ -177,7 +173,7 @@ export function EvaluationDatasetsPanel() {
                       <ChevronRight className="h-3 w-3 text-muted-foreground" />
                     </div>
                   </div>
-                </motion.div>
+                </div>
               ))
             )}
           </div>
@@ -220,7 +216,7 @@ export function EvaluationDatasetsPanel() {
             ) : (
               <div className="space-y-2 max-h-[500px] overflow-y-auto">
                 {testCases.map((tc, i) => (
-                  <motion.div key={tc.id} initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: i * 0.02 }} className="nexus-card p-3 group">
+                  <div key={tc.id} className="nexus-card p-3 group">
                     <div className="flex items-start justify-between mb-2">
                       <div className="flex flex-wrap gap-1">
                         {(tc.tags ?? []).map(tag => <Badge key={tag} variant="secondary" className="text-[9px]">{tag}</Badge>)}
@@ -241,7 +237,7 @@ export function EvaluationDatasetsPanel() {
                       <div><p className="text-[10px] font-semibold text-muted-foreground uppercase">Input</p><p className="text-xs text-foreground">{tc.input}</p></div>
                       {tc.expected_output && <div><p className="text-[10px] font-semibold text-muted-foreground uppercase">Expected</p><p className="text-xs text-foreground">{tc.expected_output}</p></div>}
                     </div>
-                  </motion.div>
+                  </div>
                 ))}
               </div>
             )}

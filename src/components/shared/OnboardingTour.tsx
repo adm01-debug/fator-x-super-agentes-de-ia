@@ -1,5 +1,4 @@
 import { useState, useEffect, useCallback } from "react";
-import { motion, AnimatePresence } from "framer-motion";
 import { useNavigate } from "react-router-dom";
 import { X, ArrowRight, Bot, Sparkles, Keyboard, Rocket } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -79,31 +78,21 @@ export function OnboardingTour() {
   const isLast = step === TOUR_STEPS.length - 1;
 
   return (
-    <AnimatePresence>
-      <motion.div
+    <div
         className="fixed inset-0 z-[60] bg-black/40 backdrop-blur-sm flex items-end sm:items-center justify-center p-4"
-        initial={{ opacity: 0 }}
-        animate={{ opacity: 1 }}
-        exit={{ opacity: 0 }}
         onClick={dismiss}
       >
-        <motion.div
+        <div
           className="w-full max-w-md rounded-2xl border border-border bg-background shadow-2xl overflow-hidden"
-          initial={{ opacity: 0, y: 40, scale: 0.95 }}
-          animate={{ opacity: 1, y: 0, scale: 1 }}
-          exit={{ opacity: 0, y: 40, scale: 0.95 }}
-          transition={{ type: "spring", stiffness: 300, damping: 30 }}
           onClick={(e) => e.stopPropagation()}
           role="dialog"
           aria-label="Tour de boas-vindas"
         >
           {/* Progress bar */}
           <div className="h-1 bg-secondary">
-            <motion.div
+            <div
               className="h-full bg-gradient-to-r from-primary to-primary/70 rounded-r-full"
-              initial={{ width: "0%" }}
               animate={{ width: `${((step + 1) / TOUR_STEPS.length) * 100}%` }}
-              transition={{ duration: 0.3 }}
             />
           </div>
 
@@ -158,8 +147,8 @@ export function OnboardingTour() {
               </div>
             </div>
           </div>
-        </motion.div>
-      </motion.div>
-    </AnimatePresence>
+        </div>
+      </div>
+    
   );
 }

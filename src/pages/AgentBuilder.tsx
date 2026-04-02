@@ -17,7 +17,6 @@ import { BillingModule } from '@/components/agent-builder/modules/BillingModule'
 import { ReadinessModule } from '@/components/agent-builder/modules/ReadinessModule';
 import { BlueprintModule } from '@/components/agent-builder/modules/BlueprintModule';
 import { SettingsModule } from '@/components/agent-builder/modules/SettingsModule';
-import { motion, AnimatePresence } from 'framer-motion';
 import { Loader2 } from 'lucide-react';
 
 function ActiveModule({ tabId }: { tabId: string }) {
@@ -72,17 +71,12 @@ export default function AgentBuilder() {
 
   return (
     <AgentBuilderLayout>
-      <AnimatePresence mode="wait">
-        <motion.div
+      <div
           key={activeTab}
-          initial={{ opacity: 0, y: 8 }}
-          animate={{ opacity: 1, y: 0 }}
-          exit={{ opacity: 0, y: -8 }}
-          transition={{ duration: 0.25, ease: 'easeOut' }}
         >
           <ActiveModule tabId={activeTab} />
-        </motion.div>
-      </AnimatePresence>
+        </div>
+      
     </AgentBuilderLayout>
   );
 }

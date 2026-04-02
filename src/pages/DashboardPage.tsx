@@ -9,7 +9,6 @@ import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { UsageCharts } from "@/components/dashboard/UsageCharts";
 import { Skeleton } from "@/components/ui/skeleton";
-import { motion } from "framer-motion";
 
 // ═══ Dashboard Skeleton ═══
 function DashboardLoadingSkeleton() {
@@ -150,12 +149,9 @@ export default function DashboardPage() {
               { icon: DollarSign, color: "text-nexus-amber", value: usageStats?.totalCost ?? 0, label: "Custo (30d)", prefix: "$", decimals: 2, noData: !usageStats },
               { icon: TrendingUp, color: "text-primary", value: usageStats?.totalRequests ?? 0, label: "Requests (30d)", noData: !usageStats },
             ].map((metric, i) => (
-              <motion.div
+              <div
                 key={metric.label}
                 className="nexus-card text-center"
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.4, delay: i * 0.08 }}
               >
                 <div className="flex items-center justify-center gap-1.5 mb-1">
                   <metric.icon className={`h-4 w-4 ${metric.color}`} aria-hidden="true" />
@@ -170,7 +166,7 @@ export default function DashboardPage() {
                   )}
                 </p>
                 <p className="text-[10px] sm:text-[11px] text-muted-foreground">{metric.label}</p>
-              </motion.div>
+              </div>
             ))}
           </div>
 

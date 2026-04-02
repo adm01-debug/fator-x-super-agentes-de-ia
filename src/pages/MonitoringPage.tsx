@@ -3,7 +3,6 @@ import { StatusBadge } from "@/components/shared/StatusBadge";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Clock, DollarSign, Wrench, Activity, Loader2, Bell, CheckCircle, Trash2 } from "lucide-react";
-import { motion } from "framer-motion";
 import { useState, useMemo } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
@@ -160,7 +159,7 @@ export default function MonitoringPage() {
                 <div className="space-y-2 max-h-[500px] overflow-y-auto">
                   <h3 className="text-xs font-heading font-semibold text-muted-foreground uppercase tracking-wider mb-2">Eventos recentes</h3>
                   {traces.map(trace => (
-                    <motion.div key={trace.id} initial={{ opacity: 0 }} animate={{ opacity: 1 }}
+                    <div key={trace.id}
                       className={`nexus-card cursor-pointer p-3 ${selected?.id === trace.id ? 'border-primary/40 nexus-glow-sm' : ''}`}
                       onClick={() => setSelectedId(trace.id)}
                     >
@@ -174,7 +173,7 @@ export default function MonitoringPage() {
                         {trace.cost_usd != null && <span className="flex items-center gap-1"><DollarSign className="h-3 w-3" /> ${Number(trace.cost_usd).toFixed(3)}</span>}
                         {trace.tokens_used && <span className="flex items-center gap-1"><Wrench className="h-3 w-3" /> {trace.tokens_used}</span>}
                       </div>
-                    </motion.div>
+                    </div>
                   ))}
                 </div>
 
@@ -227,7 +226,7 @@ export default function MonitoringPage() {
           ) : (
             <div className="space-y-3">
               {alerts.map((alert, i) => (
-                <motion.div key={alert.id} initial={{ opacity: 0, y: 6 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.04 }}
+                <div key={alert.id}
                   className={`nexus-card flex items-start gap-3 ${alert.is_resolved ? 'opacity-60' : ''}`}
                 >
                   <div className={`h-8 w-8 rounded-lg flex items-center justify-center shrink-0 ${alert.severity === 'critical' ? 'bg-destructive/10' : alert.severity === 'warning' ? 'bg-amber-500/10' : 'bg-primary/10'}`}>
@@ -247,7 +246,7 @@ export default function MonitoringPage() {
                       Resolver
                     </Button>
                   )}
-                </motion.div>
+                </div>
               ))}
             </div>
           )}
@@ -398,7 +397,7 @@ function SessionsPanel({ traces }: { traces: any[] }) {
   return (
     <div className="space-y-3">
       {sessions.map((session, i) => (
-        <motion.div key={session.sessionId} initial={{ opacity: 0, y: 6 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.03 }} className="nexus-card">
+        <div key={session.sessionId} className="nexus-card">
           <div className="flex items-center justify-between cursor-pointer" onClick={() => setExpandedSession(expandedSession === session.sessionId ? null : session.sessionId)}>
             <div>
               <p className="text-sm font-semibold text-foreground font-mono">{session.sessionId === 'no-session' ? '(sem sessão)' : session.sessionId.substring(0, 12) + '...'}</p>
@@ -420,7 +419,7 @@ function SessionsPanel({ traces }: { traces: any[] }) {
               ))}
             </div>
           )}
-        </motion.div>
+        </div>
       ))}
     </div>
   );

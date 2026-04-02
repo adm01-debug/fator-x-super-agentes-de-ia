@@ -1,5 +1,4 @@
 import { ORACLE_PRESETS, ORACLE_MODES, type OracleMode } from '@/stores/oracleStore';
-import { motion } from 'framer-motion';
 
 interface PresetSelectorProps {
   selectedPreset: string;
@@ -29,8 +28,6 @@ export function PresetSelector({ selectedPreset, onSelect }: PresetSelectorProps
               {presets.map(preset => (
                 <motion.button
                   key={preset.id}
-                  whileHover={{ scale: 1.02 }}
-                  whileTap={{ scale: 0.98 }}
                   onClick={() => onSelect(preset.id)}
                   className={`p-3 rounded-lg border text-left transition-all ${
                     selectedPreset === preset.id

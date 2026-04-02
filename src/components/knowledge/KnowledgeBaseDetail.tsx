@@ -9,7 +9,6 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
 import { ArrowLeft, FolderOpen, FileText, Hash, Plus, Loader2, Trash2, ChevronRight } from 'lucide-react';
-import { motion } from 'framer-motion';
 import { toast } from 'sonner';
 
 interface KnowledgeBaseDetailProps {
@@ -198,11 +197,8 @@ export function KnowledgeBaseDetail({ kbId, kbName, onBack }: KnowledgeBaseDetai
             </div>
           ) : (
             collections.map((coll, i) => (
-              <motion.div
+              <div
                 key={coll.id}
-                initial={{ opacity: 0, y: 4 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: i * 0.03 }}
                 className={`nexus-card cursor-pointer p-3 group ${selectedCollectionId === coll.id ? 'border-primary/40 nexus-glow-sm' : ''}`}
                 onClick={() => setSelectedCollectionId(coll.id)}
               >
@@ -227,7 +223,7 @@ export function KnowledgeBaseDetail({ kbId, kbName, onBack }: KnowledgeBaseDetai
                   </div>
                 </div>
                 {coll.description && <p className="text-[10px] text-muted-foreground mt-1 truncate">{coll.description}</p>}
-              </motion.div>
+              </div>
             ))
           )}
         </div>
@@ -269,7 +265,7 @@ export function KnowledgeBaseDetail({ kbId, kbName, onBack }: KnowledgeBaseDetai
             </div>
           ) : (
             documents.map((doc, i) => (
-              <motion.div key={doc.id} initial={{ opacity: 0, y: 4 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.03 }} className="nexus-card p-3 group">
+              <div key={doc.id} className="nexus-card p-3 group">
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-2 min-w-0">
                     <FileText className="h-4 w-4 text-primary shrink-0" />
@@ -291,7 +287,7 @@ export function KnowledgeBaseDetail({ kbId, kbName, onBack }: KnowledgeBaseDetai
                   </AlertDialog>
                 </div>
                 {doc.source_url && <p className="text-[10px] text-muted-foreground mt-1 truncate">{doc.source_url}</p>}
-              </motion.div>
+              </div>
             ))
           )}
         </div>
@@ -314,7 +310,7 @@ export function KnowledgeBaseDetail({ kbId, kbName, onBack }: KnowledgeBaseDetai
           ) : (
             <div className="space-y-2 max-h-[600px] overflow-y-auto">
               {chunks.map((chunk, i) => (
-                <motion.div key={chunk.id} initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: i * 0.02 }} className="nexus-card p-3">
+                <div key={chunk.id} className="nexus-card p-3">
                   <div className="flex items-center justify-between mb-1.5">
                     <Badge variant="outline" className="text-[9px]">#{chunk.chunk_index}</Badge>
                     <div className="flex items-center gap-2">
@@ -325,7 +321,7 @@ export function KnowledgeBaseDetail({ kbId, kbName, onBack }: KnowledgeBaseDetai
                     </div>
                   </div>
                   <p className="text-xs text-muted-foreground line-clamp-3">{chunk.content}</p>
-                </motion.div>
+                </div>
               ))}
             </div>
           )}

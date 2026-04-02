@@ -1,5 +1,4 @@
 import { useState, useEffect } from "react";
-import { motion, AnimatePresence } from "framer-motion";
 import { Keyboard, X } from "lucide-react";
 
 interface ShortcutEntry {
@@ -41,22 +40,14 @@ export function KeyboardShortcutsDialog() {
   const categories = [...new Set(SHORTCUTS.map((s) => s.category))];
 
   return (
-    <AnimatePresence>
-      {open && (
+    {open && (
         <>
-          <motion.div
+          <div
             className="fixed inset-0 z-50 bg-black/50 backdrop-blur-sm"
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
             onClick={() => setOpen(false)}
           />
-          <motion.div
+          <div
             className="fixed z-50 top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-full max-w-md rounded-xl border border-border bg-background shadow-2xl"
-            initial={{ opacity: 0, scale: 0.95, y: 10 }}
-            animate={{ opacity: 1, scale: 1, y: 0 }}
-            exit={{ opacity: 0, scale: 0.95, y: 10 }}
-            transition={{ duration: 0.15 }}
             role="dialog"
             aria-label="Atalhos de teclado"
           >
@@ -104,9 +95,9 @@ export function KeyboardShortcutsDialog() {
                 Pressione <kbd className="inline-flex h-5 items-center rounded border border-border bg-secondary/50 px-1 text-[10px] font-mono">?</kbd> para abrir/fechar
               </p>
             </div>
-          </motion.div>
+          </div>
         </>
       )}
-    </AnimatePresence>
+    
   );
 }

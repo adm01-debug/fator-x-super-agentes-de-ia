@@ -6,7 +6,6 @@ import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Brain, Search, Network, Loader2, Sparkles, BookOpen, MessageSquare } from "lucide-react";
-import { motion } from "framer-motion";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 
@@ -128,10 +127,10 @@ export default function SuperCerebroPage() {
               </Button>
             </div>
             {searchResults && (
-              <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} className="p-4 rounded-lg bg-secondary/30 border border-border/30">
+              <div className="p-4 rounded-lg bg-secondary/30 border border-border/30">
                 <p className="text-xs font-semibold text-foreground mb-2">Resposta do Super Cérebro:</p>
                 <div className="text-sm text-foreground whitespace-pre-wrap leading-relaxed">{searchResults}</div>
-              </motion.div>
+              </div>
             )}
           </div>
         </TabsContent>
@@ -140,7 +139,7 @@ export default function SuperCerebroPage() {
         <TabsContent value="knowledge" className="mt-4 space-y-4">
           <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
             {knowledgeAreas.map((area, i) => (
-              <motion.div key={area.title} initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.04 }} className="nexus-card cursor-pointer hover:border-primary/30 transition-colors">
+              <div key={area.title} className="nexus-card cursor-pointer hover:border-primary/30 transition-colors">
                 <div className="text-3xl mb-3">{area.icon}</div>
                 <h3 className="text-sm font-semibold text-foreground">{area.title}</h3>
                 <p className="text-[10px] text-muted-foreground mt-1 mb-3">{area.desc}</p>
@@ -148,7 +147,7 @@ export default function SuperCerebroPage() {
                   <span className="text-[10px] text-muted-foreground">{area.docs} documentos</span>
                   <Badge variant="outline" className="text-[9px]">Configurar</Badge>
                 </div>
-              </motion.div>
+              </div>
             ))}
           </div>
         </TabsContent>

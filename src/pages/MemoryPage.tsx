@@ -7,7 +7,6 @@ import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
 import { Brain, Clock, Globe, User, Users, Database, Plus, Trash2, Search, Loader2 } from "lucide-react";
-import { motion, AnimatePresence } from "framer-motion";
 import { toast } from "sonner";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
@@ -127,10 +126,9 @@ export default function MemoryPage() {
           <p className="text-sm text-muted-foreground">{search ? 'Nenhuma memória encontrada' : 'Nenhuma memória deste tipo ainda'}</p>
         </div>
       ) : (
-        <AnimatePresence mode="popLayout">
-          <div className="space-y-2">
+        <div className="space-y-2">
             {filtered.map((entry, i) => (
-              <motion.div key={entry.id} layout initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, scale: 0.95 }} transition={{ delay: i * 0.03 }}
+              <div key={entry.id} layout
                 className="nexus-card flex items-start gap-3">
                 <div className="flex-1 min-w-0">
                   <p className="text-xs text-foreground leading-relaxed">{entry.content}</p>
@@ -160,10 +158,10 @@ export default function MemoryPage() {
                     </AlertDialogFooter>
                   </AlertDialogContent>
                 </AlertDialog>
-              </motion.div>
+              </div>
             ))}
           </div>
-        </AnimatePresence>
+        
       )}
     </div>
   );

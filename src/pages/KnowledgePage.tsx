@@ -5,7 +5,6 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
 import { Search, BookOpen, ArrowRight, Loader2, Database, Pencil, Trash2 } from "lucide-react";
-import { motion } from "framer-motion";
 import { useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
@@ -100,7 +99,7 @@ export default function KnowledgePage() {
       ) : (
         <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
           {filtered.map((kb, i) => (
-            <motion.div key={kb.id} initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.05 }}
+            <div key={kb.id}
               className="nexus-card group cursor-pointer"
               onClick={() => setSelectedKb({ id: kb.id, name: kb.name })}
             >
@@ -163,7 +162,7 @@ export default function KnowledgePage() {
                   </AlertDialogContent>
                 </AlertDialog>
               </div>
-            </motion.div>
+            </div>
           ))}
         </div>
       )}
