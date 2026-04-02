@@ -285,7 +285,7 @@ export default function WorkflowsPage() {
 
           <div className="grid gap-4 md:grid-cols-2">
             <AnimatePresence>
-              {workflows.map((wf, i) => (
+              {workflows.map((wf: any, i: number) => (
                 <motion.div key={wf.id} initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -8 }} transition={{ delay: i * 0.06 }} className="nexus-card group">
                   <div className="flex items-center justify-between mb-4">
                     <div className="flex items-center gap-2.5">
