@@ -113,7 +113,6 @@ export function AgentBuilderLayout({ children }: AgentBuilderLayoutProps) {
       <footer
         className="shrink-0 sticky bottom-0 px-5 py-3 flex items-center justify-between border-t border-border bg-background"
       >
-      >
         <Button
           variant="outline"
           size="sm"
