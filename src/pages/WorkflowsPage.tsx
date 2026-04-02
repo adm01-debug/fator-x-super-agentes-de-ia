@@ -355,7 +355,7 @@ function WorkflowRunsHistory() {
 
   return (
     <div className="space-y-3">
-      {runs.map((run: any, i: number) => (
+      {runs.map((run: any) => (
         <div key={run.id} className="nexus-card">
           <div className="flex items-center justify-between">
             <div>
