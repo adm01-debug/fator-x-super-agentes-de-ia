@@ -33,14 +33,14 @@ export default function MemoryPage() {
   const { data: memories = [], isLoading } = useQuery({
     queryKey: ['agent_memories', activeType],
     queryFn: async () => {
-      const { data, error } = await supabase
+      const { data, error } = await (supabase as any)
         .from('agent_memories')
         .select('*')
         .eq('memory_type', activeType)
         .order('created_at', { ascending: false })
         .limit(100);
       if (error) throw error;
-      return data ?? [];
+      return (data ?? []) as Array<{ id: string; content: string; source: string; created_at: string; relevance_score: number | null }>;
     },
   });
 
