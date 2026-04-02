@@ -35,6 +35,8 @@ const SecurityPage = lazy(() => import("./pages/SecurityPage"));
 const TeamPage = lazy(() => import("./pages/TeamPage"));
 const BillingPage = lazy(() => import("./pages/BillingPage"));
 const SettingsPage = lazy(() => import("./pages/SettingsPage"));
+const LGPDCompliancePage = lazy(() => import("./pages/LGPDCompliancePage"));
+const ApprovalQueuePage = lazy(() => import("./pages/ApprovalQueuePage"));
 const NotFound = lazy(() => import("./pages/NotFound"));
 
 const queryClient = new QueryClient({
@@ -91,6 +93,8 @@ const App = () => (
                         <Route path="/team" element={<TeamPage />} />
                         <Route path="/billing" element={<BillingPage />} />
                         <Route path="/settings" element={<SettingsPage />} />
+                        <Route path="/lgpd" element={<LGPDCompliancePage />} />
+                        <Route path="/approvals" element={<ApprovalQueuePage />} />
                         <Route path="*" element={<NotFound />} />
                       </Routes>
                     </Suspense>

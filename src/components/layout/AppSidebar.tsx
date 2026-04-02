@@ -50,6 +50,8 @@ const navSections = [
     label: "Administração",
     items: [
       { title: "Security & Guardrails", url: "/security", icon: Shield },
+      { title: "LGPD Compliance", url: "/lgpd", icon: Shield },
+      { title: "Aprovações (HITL)", url: "/approvals", icon: Shield },
       { title: "Team & Roles", url: "/team", icon: Users },
       { title: "Billing / Usage", url: "/billing", icon: CreditCard },
       { title: "Settings", url: "/settings", icon: Settings },

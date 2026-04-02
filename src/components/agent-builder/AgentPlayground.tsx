@@ -5,7 +5,8 @@ import { Textarea } from '@/components/ui/textarea';
 import { Badge } from '@/components/ui/badge';
 import { useAgentBuilderStore } from '@/stores/agentBuilderStore';
 import { supabase } from '@/integrations/supabase/client';
-import { Send, MessageSquare, Trash2, Bug, Loader2 } from 'lucide-react';
+import { useStreaming } from '@/hooks/useStreaming';
+import { Send, MessageSquare, Trash2, Bug, Loader2, Zap } from 'lucide-react';
 import { motion } from 'framer-motion';
 
 interface ChatMessage {
@@ -26,8 +27,10 @@ export function AgentPlayground() {
   const [input, setInput] = useState('');
   const [loading, setLoading] = useState(false);
   const [debugMode, setDebugMode] = useState(false);
+  const [streamMode, setStreamMode] = useState(true);
   const scrollRef = useRef<HTMLDivElement>(null);
   const agent = useAgentBuilderStore((s) => s.agent);
+  const streaming = useStreaming();
 
   useEffect(() => {
     scrollRef.current?.scrollTo({ top: scrollRef.current.scrollHeight, behavior: 'smooth' });
@@ -50,50 +53,80 @@ export function AgentPlayground() {
   };
 
   const sendMessage = async () => {
-    if (!input.trim() || loading) return;
+    if (!input.trim() || loading || streaming.isStreaming) return;
     const userMsg: ChatMessage = { role: 'user', content: input.trim() };
     setMessages(prev => [...prev, userMsg]);
     setInput('');
-    setLoading(true);
 
-    try {
-      const systemPrompt = buildSystemPrompt();
-      const allMessages = [
-        { role: 'system', content: systemPrompt },
-        ...messages.map(m => ({ role: m.role, content: m.content })),
-        { role: 'user', content: userMsg.content },
-      ];
+    const systemPrompt = buildSystemPrompt();
+    const allMessages = [
+      { role: 'system', content: systemPrompt },
+      ...messages.map(m => ({ role: m.role, content: m.content })),
+      { role: 'user', content: userMsg.content },
+    ];
 
-      const { data, error } = await supabase.functions.invoke('llm-gateway', {
-        body: {
-          model: agent.model || 'google/gemini-2.5-flash',
-          messages: allMessages,
-          temperature: agent.temperature ?? 0.7,
-          max_tokens: agent.max_tokens ?? 4000,
-          agent_id: agent.id || undefined,
-        },
+    if (streamMode) {
+      // Streaming mode — add placeholder and update in real-time
+      const placeholderIdx = messages.length + 1; // after userMsg
+      setMessages(prev => [...prev, { role: 'assistant', content: '' }]);
+      streaming.reset();
+      await streaming.stream({
+        model: agent.model || 'google/gemini-2.5-flash',
+        messages: allMessages,
+        temperature: agent.temperature ?? 0.7,
+        max_tokens: agent.max_tokens ?? 4000,
+        agent_id: agent.id as string || undefined,
       });
-
-      if (error) throw error;
-
-      const assistantMsg: ChatMessage = {
-        role: 'assistant',
-        content: data.content || 'Sem resposta',
-        metadata: {
-          model: data.model,
-          tokens: data.tokens,
-          latency_ms: data.latency_ms,
-          cost_usd: data.cost_usd,
-          provider: data.provider,
-        },
-      };
-      setMessages(prev => [...prev, assistantMsg]);
-    } catch (e: any) {
-      setMessages(prev => [...prev, { role: 'assistant', content: `❌ Erro: ${e.message || 'Falha na chamada'}` }]);
-    } finally {
-      setLoading(false);
+    } else {
+      // Non-streaming mode
+      setLoading(true);
+      try {
+        const { data, error } = await supabase.functions.invoke('llm-gateway', {
+          body: {
+            model: agent.model || 'google/gemini-2.5-flash',
+            messages: allMessages,
+            temperature: agent.temperature ?? 0.7,
+            max_tokens: agent.max_tokens ?? 4000,
+            agent_id: agent.id || undefined,
+          },
+        });
+        if (error) throw error;
+        setMessages(prev => [...prev, {
+          role: 'assistant', content: data.content || 'Sem resposta',
+          metadata: { model: data.model, tokens: data.tokens, latency_ms: data.latency_ms, cost_usd: data.cost_usd, provider: data.provider },
+        }]);
+      } catch (e: any) {
+        setMessages(prev => [...prev, { role: 'assistant', content: `❌ Erro: ${e.message || 'Falha na chamada'}` }]);
+      } finally { setLoading(false); }
     }
   };
+
+  // Update last message with streaming content
+  useEffect(() => {
+    if (streaming.content && streaming.isStreaming) {
+      setMessages(prev => {
+        const copy = [...prev];
+        const last = copy[copy.length - 1];
+        if (last?.role === 'assistant') {
+          copy[copy.length - 1] = { ...last, content: streaming.content };
+        }
+        return copy;
+      });
+    }
+    if (!streaming.isStreaming && streaming.content) {
+      setMessages(prev => {
+        const copy = [...prev];
+        const last = copy[copy.length - 1];
+        if (last?.role === 'assistant') {
+          copy[copy.length - 1] = {
+            ...last, content: streaming.content,
+            metadata: { model: streaming.model, provider: streaming.provider, tokens: streaming.tokens, cost_usd: streaming.costUsd, latency_ms: streaming.latencyMs },
+          };
+        }
+        return copy;
+      });
+    }
+  }, [streaming.content, streaming.isStreaming]);
 
   return (
     <>

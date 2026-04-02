@@ -147,7 +147,7 @@ export default function WorkflowsPage() {
       // Try workflow-engine for DB workflows (UUID format), fallback to Gateway
       if (wf.id.includes('-')) {
         try {
-          const { data, error } = await supabase.functions.invoke('workflow-engine', {
+          const { data, error } = await supabase.functions.invoke('workflow-engine-v2', {
             body: { workflow_id: wf.id, input: `Execute o workflow "${wf.name}"` },
           });
           if (!error && data?.status === 'completed') {

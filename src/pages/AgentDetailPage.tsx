@@ -89,6 +89,7 @@ export default function AgentDetailPage() {
 
       {/* Agent Metrics */}
       <AgentMetrics agentId={id!} />
+      <VersionHistory agentId={id!} />
     </div>
   );
 }
@@ -174,6 +175,41 @@ function AgentMetrics({ agentId }: { agentId: string }) {
           ))}
         </div>
       )}
+    </div>
+  );
+}
+
+function VersionHistory({ agentId }: { agentId: string }) {
+  const { data: versions = [], isLoading } = useQuery({
+    queryKey: ['agent_versions', agentId],
+    queryFn: async () => {
+      const { data } = await (supabase as any).from('agent_versions').select('*').eq('agent_id', agentId).order('version', { ascending: false }).limit(20);
+      return data ?? [];
+    },
+  });
+
+  if (isLoading || versions.length === 0) return null;
+
+  return (
+    <div className="nexus-card">
+      <h3 className="text-sm font-heading font-semibold text-foreground mb-3">Histórico de Versões</h3>
+      <div className="space-y-2 max-h-[250px] overflow-y-auto">
+        {versions.map((v: any, i: number) => (
+          <div key={v.id} className={`flex items-center justify-between py-2 px-3 rounded-lg text-xs ${i === 0 ? 'bg-primary/10 border border-primary/20' : 'bg-secondary/30'}`}>
+            <div className="flex items-center gap-3">
+              <span className="font-mono font-bold text-foreground">v{v.version}</span>
+              <span className="text-muted-foreground">{v.model}</span>
+              {v.change_summary && <span className="text-muted-foreground truncate max-w-[200px]">{v.change_summary}</span>}
+            </div>
+            <div className="flex items-center gap-2">
+              <span className={`text-[9px] px-1.5 py-0.5 rounded ${v.environment === 'production' ? 'bg-emerald-500/10 text-emerald-400' : v.environment === 'staging' ? 'bg-amber-500/10 text-amber-400' : 'bg-secondary text-muted-foreground'}`}>
+                {v.environment}
+              </span>
+              <span className="text-muted-foreground text-[10px]">{new Date(v.created_at).toLocaleDateString('pt-BR')}</span>
+            </div>
+          </div>
+        ))}
+      </div>
     </div>
   );
 }
