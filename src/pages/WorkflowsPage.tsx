@@ -132,7 +132,7 @@ export default function WorkflowsPage() {
 
   const handleToggleStatus = async (id: string) => {
     if (id.includes('-')) {
-      const wf = workflows.find(w => w.id === id);
+      const wf = workflows.find((w: any) => w.id === id);
       if (wf) {
         await (supabase as any).from('workflows').update({ status: wf.status === 'active' ? 'draft' : 'active' }).eq('id', id);
         queryClient.invalidateQueries({ queryKey: ['workflows_list'] });
