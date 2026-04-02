@@ -1,5 +1,6 @@
 import { useLocation } from "react-router-dom";
 import { NavLink } from "@/components/NavLink";
+import { t } from "@/lib/i18n";
 import {
   LayoutDashboard, Bot, BookOpen, Brain, Puzzle, FileText, GitBranch,
   FlaskConical, Rocket, Activity, Database, Shield, Users, CreditCard, Settings, Package,
@@ -17,41 +18,41 @@ const navSections = [
   {
     label: "Geral",
     items: [
-      { title: "Dashboard", url: "/", icon: LayoutDashboard },
-      { title: "Agents", url: "/agents", icon: Bot },
+      { title: t('nav.dashboard'), url: "/", icon: LayoutDashboard },
+      { title: t('nav.agents'), url: "/agents", icon: Bot },
     ],
   },
   {
     label: "Desenvolvimento",
     items: [
-      { title: "Knowledge / RAG", url: "/knowledge", icon: BookOpen },
-      { title: "Memory", url: "/memory", icon: Brain },
-      { title: "Tools & Integrations", url: "/tools", icon: Puzzle },
-      { title: "Prompts", url: "/prompts", icon: FileText },
-      { title: "Workflows", url: "/workflows", icon: GitBranch },
+      { title: t('nav.knowledge'), url: "/knowledge", icon: BookOpen },
+      { title: t('nav.memory'), url: "/memory", icon: Brain },
+      { title: t('nav.tools'), url: "/tools", icon: Puzzle },
+      { title: t('nav.prompts'), url: "/prompts", icon: FileText },
+      { title: t('nav.workflows'), url: "/workflows", icon: GitBranch },
     ],
   },
   {
     label: "Operações",
     items: [
-      { title: "Evaluations", url: "/evaluations", icon: FlaskConical },
-      { title: "Deployments", url: "/deployments", icon: Rocket },
-      { title: "Monitoring", url: "/monitoring", icon: Activity },
+      { title: t('nav.evaluations'), url: "/evaluations", icon: FlaskConical },
+      { title: t('nav.deployments'), url: "/deployments", icon: Rocket },
+      { title: t('nav.monitoring'), url: "/monitoring", icon: Activity },
       { title: "Data & Storage", url: "/data-storage", icon: Database },
       { title: "DataHub", url: "/datahub", icon: Database },
       { title: "Super Cérebro", url: "/brain", icon: Brain },
       { title: "Oráculo", url: "/oracle", icon: Sparkles },
       { title: "DB Manager", url: "/db-manager", icon: Database },
-      { title: "Marketplace", url: "/marketplace", icon: Package },
+      { title: t('nav.marketplace'), url: "/marketplace", icon: Package },
     ],
   },
   {
     label: "Administração",
     items: [
-      { title: "Security & Guardrails", url: "/security", icon: Shield },
-      { title: "Team & Roles", url: "/team", icon: Users },
-      { title: "Billing / Usage", url: "/billing", icon: CreditCard },
-      { title: "Settings", url: "/settings", icon: Settings },
+      { title: t('nav.security'), url: "/security", icon: Shield },
+      { title: t('nav.team'), url: "/team", icon: Users },
+      { title: t('nav.billing'), url: "/billing", icon: CreditCard },
+      { title: t('nav.settings'), url: "/settings", icon: Settings },
     ],
   },
 ];
