@@ -6,12 +6,13 @@ import { Clock, DollarSign, Wrench, Activity, Loader2, Bell, CheckCircle, Trash2
 import { useState, useMemo } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
-import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid, PieChart, Pie, Cell } from "recharts";
+import { LightBarChart, LightPieChart } from "@/components/charts";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { toast } from "sonner";
 
 const PIE_COLORS = ['hsl(var(--primary))', 'hsl(var(--nexus-emerald, 142 71% 45%))', 'hsl(var(--nexus-amber, 38 92% 50%))', 'hsl(var(--nexus-cyan, 190 90% 50%))', 'hsl(var(--destructive))'];
+const PIE_COLOR_ARRAY = PIE_COLORS;
 
 export default function MonitoringPage() {
   const queryClient = useQueryClient();
@@ -132,26 +133,23 @@ export default function MonitoringPage() {
               <div className="grid lg:grid-cols-2 gap-4">
                 <div className="nexus-card">
                   <h3 className="text-sm font-heading font-semibold text-foreground mb-3">Latência por evento</h3>
-                  <ResponsiveContainer width="100%" height={180}>
-                    <BarChart data={latencyData}>
-                      <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
-                      <XAxis dataKey="time" tick={{ fill: 'hsl(var(--muted-foreground))', fontSize: 10 }} axisLine={false} tickLine={false} />
-                      <YAxis tick={{ fill: 'hsl(var(--muted-foreground))', fontSize: 10 }} axisLine={false} tickLine={false} tickFormatter={v => `${v}ms`} />
-                      <Tooltip contentStyle={{ background: 'hsl(var(--card))', border: '1px solid hsl(var(--border))', borderRadius: 8, fontSize: 11 }} formatter={(v: number) => `${v}ms`} />
-                      <Bar dataKey="latency" radius={[3, 3, 0, 0]} fill="hsl(var(--primary))" />
-                    </BarChart>
-                  </ResponsiveContainer>
+                  <LightBarChart
+                    data={latencyData}
+                    xKey="time"
+                    height={180}
+                    yFormatter={(v) => `${v}ms`}
+                    tooltipFormatter={(v) => `${v}ms`}
+                    series={[{ dataKey: 'latency', name: 'Latência', color: 'hsl(var(--primary))', radius: 3 }]}
+                  />
                 </div>
                 <div className="nexus-card">
                   <h3 className="text-sm font-heading font-semibold text-foreground mb-3">Distribuição por nível</h3>
-                  <ResponsiveContainer width="100%" height={180}>
-                    <PieChart>
-                      <Pie data={pieData} cx="50%" cy="50%" innerRadius={40} outerRadius={70} dataKey="value" nameKey="name" label={({ name, percent }) => `${name} ${(percent * 100).toFixed(0)}%`}>
-                        {pieData.map((_, i) => <Cell key={i} fill={PIE_COLORS[i % PIE_COLORS.length]} />)}
-                      </Pie>
-                      <Tooltip contentStyle={{ background: 'hsl(var(--card))', border: '1px solid hsl(var(--border))', borderRadius: 8, fontSize: 11 }} />
-                    </PieChart>
-                  </ResponsiveContainer>
+                  <LightPieChart
+                    data={pieData.map((p, i) => ({ ...p, color: PIE_COLOR_ARRAY[i % PIE_COLOR_ARRAY.length] }))}
+                    height={180}
+                    innerRadius={40}
+                    outerRadius={70}
+                  />
                 </div>
               </div>
 

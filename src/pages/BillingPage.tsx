@@ -11,7 +11,7 @@ import { useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { getWorkspaceId } from "@/lib/agentService";
-import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid } from "recharts";
+import { LightBarChart } from "@/components/charts";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { toast } from "sonner";
 
@@ -134,15 +134,14 @@ export default function BillingPage() {
               </div>
               <div className="nexus-card">
                 <h3 className="text-sm font-heading font-semibold text-foreground mb-4">Custo diário (últimos 30 dias)</h3>
-                <ResponsiveContainer width="100%" height={250}>
-                  <BarChart data={chartData}>
-                    <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
-                    <XAxis dataKey="date" tick={{ fill: 'hsl(var(--muted-foreground))', fontSize: 11 }} axisLine={false} tickLine={false} />
-                    <YAxis tick={{ fill: 'hsl(var(--muted-foreground))', fontSize: 11 }} axisLine={false} tickLine={false} tickFormatter={(v) => `$${v}`} />
-                    <Tooltip contentStyle={{ background: 'hsl(var(--card))', border: '1px solid hsl(var(--border))', borderRadius: 8, fontSize: 12 }} formatter={(v: number) => `$${v.toFixed(2)}`} />
-                    <Bar dataKey="cost" radius={[4, 4, 0, 0]} fill="hsl(var(--primary))" />
-                  </BarChart>
-                </ResponsiveContainer>
+                <LightBarChart
+                  data={chartData}
+                  xKey="date"
+                  height={250}
+                  yFormatter={(v) => `$${v}`}
+                  tooltipFormatter={(v) => `$${v.toFixed(2)}`}
+                  series={[{ dataKey: 'cost', name: 'Custo', color: 'hsl(var(--primary))', radius: 4 }]}
+                />
               </div>
             </>
           )}
