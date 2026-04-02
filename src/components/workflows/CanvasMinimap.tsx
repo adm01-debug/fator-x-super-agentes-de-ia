@@ -43,7 +43,7 @@ export function CanvasMinimap({ nodes, edges, zoom, pan, containerWidth, contain
 
   return (
     <div
-      className="absolute bottom-3 right-3 rounded-lg border border-border bg-card/90 backdrop-blur-sm shadow-lg z-20 overflow-hidden"
+      className="absolute bottom-3 right-3 rounded-lg border border-border bg-card shadow-lg z-20 overflow-hidden"
       style={{ width: MINIMAP_W, height: MINIMAP_H }}
     >
       <svg width={MINIMAP_W} height={MINIMAP_H} xmlns="http://www.w3.org/2000/svg">
