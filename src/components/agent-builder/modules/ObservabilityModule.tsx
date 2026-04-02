@@ -1,8 +1,13 @@
 import { useAgentBuilderStore } from '@/stores/agentBuilderStore';
 import { SectionTitle, NexusBadge, ToggleField } from '../ui';
 import { CollapsibleCard } from '../ui/CollapsibleCard';
-import { Activity, Clock, DollarSign, AlertTriangle, CheckCircle, XCircle, Filter } from 'lucide-react';
+import { Activity, Clock, DollarSign, AlertTriangle, CheckCircle, XCircle, Filter, Loader2, Plus, Trash2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Badge } from '@/components/ui/badge';
+import { supabase } from '@/integrations/supabase/client';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
+import { toast } from 'sonner';
 import type { ExecutionTrace } from '@/types/agentTypes';
 import { useState } from 'react';
 
@@ -92,18 +97,7 @@ export function ObservabilityModule() {
 
         {/* A/B Test Panel - shown when enabled */}
         {agent.ab_testing_enabled && (
-          <div className="rounded-xl border border-primary/20 bg-primary/5 p-4 space-y-2">
-            <p className="text-xs font-semibold text-foreground">A/B Testing Ativo</p>
-            <p className="text-[10px] text-muted-foreground">
-              Quando ativado, o sistema pode rotear tráfego entre duas versões de prompt.
-              Crie versões no Prompt Editor e configure o split via tabela prompt_ab_tests.
-            </p>
-            <div className="flex items-center gap-2 text-[10px] text-muted-foreground">
-              <span>Variante A: Prompt atual (v{agent.system_prompt_version})</span>
-              <span>•</span>
-              <span>Split: 50/50</span>
-            </div>
-          </div>
+          <AbTestPanel agentId={agent.id as string} currentVersion={agent.system_prompt_version} />
         )}
       </section>
 
@@ -279,6 +273,111 @@ function MetricBox({ icon, label, value }: { icon: React.ReactNode; label: strin
       <div className="flex justify-center mb-2">{icon}</div>
       <p className="text-lg font-bold text-foreground">{value}</p>
       <p className="text-[10px] text-muted-foreground">{label}</p>
+    </div>
+  );
+}
+
+function AbTestPanel({ agentId, currentVersion }: { agentId: string; currentVersion: number }) {
+  const queryClient = useQueryClient();
+  const [testName, setTestName] = useState('');
+  const [split, setSplit] = useState('50');
+  const [creating, setCreating] = useState(false);
+
+  // Load existing A/B tests
+  const { data: tests = [], isLoading } = useQuery({
+    queryKey: ['prompt_ab_tests', agentId],
+    queryFn: async () => {
+      if (!agentId) return [];
+      const { data } = await (supabase as any).from('prompt_ab_tests').select('*').eq('agent_id', agentId).order('created_at', { ascending: false });
+      return data ?? [];
+    },
+    enabled: !!agentId,
+  });
+
+  // Load prompt versions for selection
+  const { data: versions = [] } = useQuery({
+    queryKey: ['prompt_versions_for_ab', agentId],
+    queryFn: async () => {
+      if (!agentId) return [];
+      const { data } = await supabase.from('prompt_versions').select('id, version, change_summary, is_active').eq('agent_id', agentId).order('version', { ascending: false });
+      return data ?? [];
+    },
+    enabled: !!agentId,
+  });
+
+  const handleCreate = async () => {
+    if (!testName.trim()) { toast.error('Nome é obrigatório'); return; }
+    if (versions.length < 2) { toast.error('Precisa de pelo menos 2 versões de prompt'); return; }
+    setCreating(true);
+    try {
+      await (supabase as any).from('prompt_ab_tests').insert({
+        agent_id: agentId, name: testName.trim(),
+        variant_a_prompt_id: versions[0]?.id, variant_b_prompt_id: versions[1]?.id,
+        traffic_split: parseFloat(split) / 100, status: 'running',
+        started_at: new Date().toISOString(),
+      });
+      toast.success('Teste A/B criado!');
+      setTestName('');
+      queryClient.invalidateQueries({ queryKey: ['prompt_ab_tests'] });
+    } catch (e: any) { toast.error(e.message); }
+    finally { setCreating(false); }
+  };
+
+  const handleStop = async (id: string) => {
+    await (supabase as any).from('prompt_ab_tests').update({ status: 'completed', completed_at: new Date().toISOString() }).eq('id', id);
+    queryClient.invalidateQueries({ queryKey: ['prompt_ab_tests'] });
+    toast.success('Teste encerrado');
+  };
+
+  const handleDelete = async (id: string) => {
+    await (supabase as any).from('prompt_ab_tests').delete().eq('id', id);
+    queryClient.invalidateQueries({ queryKey: ['prompt_ab_tests'] });
+    toast.success('Teste removido');
+  };
+
+  return (
+    <div className="rounded-xl border border-primary/20 bg-primary/5 p-4 space-y-3">
+      <p className="text-xs font-semibold text-foreground">A/B Testing — Gerenciamento</p>
+
+      {/* Create form */}
+      <div className="flex gap-2 items-end">
+        <div className="flex-1">
+          <label className="text-[10px] text-muted-foreground">Nome do teste</label>
+          <Input value={testName} onChange={e => setTestName(e.target.value)} placeholder="Ex: Teste tom formal vs informal" className="bg-secondary/50 text-xs h-8" />
+        </div>
+        <div className="w-20">
+          <label className="text-[10px] text-muted-foreground">Split A%</label>
+          <Input type="number" value={split} onChange={e => setSplit(e.target.value)} min="10" max="90" className="bg-secondary/50 text-xs h-8" />
+        </div>
+        <Button size="sm" onClick={handleCreate} disabled={creating} className="h-8 text-xs gap-1">
+          {creating ? <Loader2 className="h-3 w-3 animate-spin" /> : <Plus className="h-3 w-3" />} Criar
+        </Button>
+      </div>
+
+      <p className="text-[10px] text-muted-foreground">
+        Variante A: v{versions[0]?.version || '?'} ({versions[0]?.change_summary || 'atual'}) •
+        Variante B: v{versions[1]?.version || '?'} ({versions[1]?.change_summary || 'anterior'}) •
+        {versions.length} versões disponíveis
+      </p>
+
+      {/* Existing tests */}
+      {isLoading ? <Loader2 className="h-4 w-4 animate-spin mx-auto" /> : tests.length > 0 && (
+        <div className="space-y-2 pt-2 border-t border-border/30">
+          {tests.map((t: any) => (
+            <div key={t.id} className="flex items-center justify-between text-xs py-1">
+              <div>
+                <span className="font-medium text-foreground">{t.name}</span>
+                <span className="text-muted-foreground ml-2">Split: {((t.traffic_split || 0.5) * 100).toFixed(0)}/{(100 - (t.traffic_split || 0.5) * 100).toFixed(0)}</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <Badge variant={t.status === 'running' ? 'default' : 'outline'} className="text-[9px]">{t.status}</Badge>
+                {t.status === 'running' && <Button variant="ghost" size="sm" className="h-6 text-[10px]" onClick={() => handleStop(t.id)}>Encerrar</Button>}
+                <Button variant="ghost" size="icon" className="h-5 w-5 text-destructive" onClick={() => handleDelete(t.id)}><Trash2 className="h-3 w-3" /></Button>
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
     </div>
   );
 }
