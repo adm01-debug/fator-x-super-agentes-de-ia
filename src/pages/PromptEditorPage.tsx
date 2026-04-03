@@ -126,7 +126,7 @@ export default function PromptEditorPage() {
       toast.success("Versão removida");
       queryClient.invalidateQueries({ queryKey: ["prompt_versions", agentId] });
     },
-    onError: (e: any) => toast.error(e instanceof Error ? e.message : 'Erro inesperado'),
+    onError: (e: Error) => toast.error(e.message || 'Erro inesperado'),
   });
 
   // Restore (activate) a specific version
