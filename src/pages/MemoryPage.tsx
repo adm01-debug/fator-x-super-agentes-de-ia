@@ -4,13 +4,12 @@ import { InfoHint } from "@/components/shared/InfoHint";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
-import { Badge } from "@/components/ui/badge";
+// Badge removed — unused
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
-import { Brain, Clock, Globe, User, Users, Database, Plus, Trash2, Search, Loader2 } from "lucide-react";
+import { Brain, Clock, Globe, User, Users, Database, Plus, Trash2, Search, Loader2, Zap, Archive } from "lucide-react";
 import { toast } from "sonner";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
-import { getWorkspaceId } from "@/lib/agentService";
 
 const memoryTypes = [
   { key: 'short_term', icon: Clock, title: 'Short-term', desc: 'Memória da conversa atual', retention: 'Sessão', color: 'text-nexus-cyan' },
@@ -21,17 +20,40 @@ const memoryTypes = [
   { key: 'external', icon: Database, title: 'Conectores Externos', desc: 'Redis, Pinecone, PostgreSQL', retention: 'Conforme provider', color: 'text-muted-foreground' },
 ];
 
+async function invokeMemoryTool(tool: string, params: Record<string, unknown>) {
+  const { data, error } = await supabase.functions.invoke('memory-tools', {
+    body: { tool, params },
+  });
+  if (error) throw new Error(error.message || 'Erro ao chamar memory-tools');
+  if (data?.error) throw new Error(data.error);
+  return data;
+}
+
 export default function MemoryPage() {
   const [activeType, setActiveType] = useState('semantic');
   const [newContent, setNewContent] = useState('');
   const [newSource, setNewSource] = useState('');
   const [search, setSearch] = useState('');
   const [saving, setSaving] = useState(false);
+  const [compacting, setCompacting] = useState(false);
   const queryClient = useQueryClient();
 
   const { data: memories = [], isLoading } = useQuery({
-    queryKey: ['agent_memories', activeType],
+    queryKey: ['agent_memories', activeType, search],
     queryFn: async () => {
+      // Use memory_search when there's a search query, otherwise list all
+      if (search.trim()) {
+        try {
+          const result = await invokeMemoryTool('memory_search', {
+            query: search.trim(),
+            memory_type: activeType,
+            limit: 50,
+          });
+          return (result?.memories ?? []) as Array<{ id: string; content: string; source: string; created_at: string; relevance_score: number | null }>;
+        } catch {
+          // Fallback to direct query if edge function fails
+        }
+      }
       const { data, error } = await (supabase as any)
         .from('agent_memories')
         .select('*')
@@ -43,42 +65,52 @@ export default function MemoryPage() {
     },
   });
 
-  const filtered = memories.filter(m =>
-    search ? m.content.toLowerCase().includes(search.toLowerCase()) : true
-  );
-
   const handleAdd = async () => {
     if (!newContent.trim()) { toast.error('Conteúdo é obrigatório'); return; }
     setSaving(true);
     try {
-      const workspaceId = await getWorkspaceId();
-      const { error } = await (supabase as any).from('agent_memories').insert({
-        workspace_id: workspaceId,
-        memory_type: activeType,
+      await invokeMemoryTool('memory_save', {
         content: newContent.trim(),
+        memory_type: activeType,
         source: newSource.trim() || 'Manual',
       });
-      if (error) throw error;
       setNewContent(''); setNewSource('');
       queryClient.invalidateQueries({ queryKey: ['agent_memories'] });
-      toast.success('Memória salva!');
+      toast.success('Memória salva via Memory Engine!');
     } catch (e: any) {
       toast.error(`Erro: ${e.message}`);
     } finally { setSaving(false); }
   };
 
   const handleDelete = async (id: string) => {
-    const { error } = await (supabase as any).from('agent_memories').delete().eq('id', id);
-    if (error) toast.error(`Erro: ${error.message}`);
-    else { queryClient.invalidateQueries({ queryKey: ['agent_memories'] }); toast.success('Removida'); }
+    try {
+      await invokeMemoryTool('memory_forget', { memory_id: id });
+      queryClient.invalidateQueries({ queryKey: ['agent_memories'] });
+      toast.success('Memória removida');
+    } catch (e: any) {
+      toast.error(`Erro: ${e.message}`);
+    }
+  };
+
+  const handleCompact = async () => {
+    setCompacting(true);
+    try {
+      const result = await invokeMemoryTool('memory_compact', {
+        memory_type: activeType,
+      });
+      queryClient.invalidateQueries({ queryKey: ['agent_memories'] });
+      toast.success(`Compactação concluída: ${result?.compacted ?? 0} memórias consolidadas`);
+    } catch (e: any) {
+      toast.error(`Erro na compactação: ${e.message}`);
+    } finally { setCompacting(false); }
   };
 
   return (
     <div className="p-6 space-y-6 max-w-[1400px] mx-auto">
       <PageHeader title="Memory Engine" description="Sistema de memória persistente — cada tipo com governança e ciclo de vida próprios" />
 
-      <InfoHint title="Memória persistente ativada">
-        Todas as memórias agora são salvas no Supabase com suporte a busca semântica (pgvector), TTL, e governança por tipo.
+      <InfoHint title="MemGPT Engine ativado">
+        Todas as operações usam a edge function memory-tools (padrão MemGPT/Letta) com suporte a save, search, compact e forget.
       </InfoHint>
 
       {/* Type Selector */}
@@ -86,24 +118,28 @@ export default function MemoryPage() {
         {memoryTypes.map(mt => {
           const Icon = mt.icon;
           const isActive = activeType === mt.key;
-          const count = isActive ? filtered.length : null;
           return (
             <button key={mt.key} onClick={() => setActiveType(mt.key)}
               className={`nexus-card text-left transition-all ${isActive ? 'ring-1 ring-primary border-primary' : 'hover:border-primary/30'}`}>
               <Icon className={`h-5 w-5 mb-2 ${mt.color}`} />
               <div className="text-xs font-semibold text-foreground">{mt.title}</div>
               <div className="text-[10px] text-muted-foreground mt-0.5">{mt.desc}</div>
-              {count !== null && <Badge variant="secondary" className="mt-2 text-[10px]">{count} itens</Badge>}
             </button>
           );
         })}
       </div>
 
-      {/* Add + Search */}
+      {/* Add + Search + Compact */}
       <div className="nexus-card space-y-3">
-        <div className="relative">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground" />
-          <Input value={search} onChange={e => setSearch(e.target.value)} placeholder="Buscar memórias..." className="pl-9 bg-secondary/50 text-xs" />
+        <div className="flex gap-2">
+          <div className="relative flex-1">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground" />
+            <Input value={search} onChange={e => setSearch(e.target.value)} placeholder="Buscar memórias (semântica via memory-tools)..." className="pl-9 bg-secondary/50 text-xs" />
+          </div>
+          <Button size="sm" variant="outline" onClick={handleCompact} disabled={compacting} className="gap-1.5 text-xs shrink-0">
+            {compacting ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Archive className="h-3.5 w-3.5" />}
+            Compactar
+          </Button>
         </div>
         <div className="space-y-2">
           <Textarea value={newContent} onChange={e => setNewContent(e.target.value)} placeholder="Conteúdo da memória..." rows={2} className="bg-secondary/50 text-xs" />
@@ -120,48 +156,46 @@ export default function MemoryPage() {
       {/* Entries */}
       {isLoading ? (
         <div className="flex items-center justify-center py-16"><Loader2 className="h-6 w-6 animate-spin text-muted-foreground" /></div>
-      ) : filtered.length === 0 ? (
+      ) : memories.length === 0 ? (
         <div className="flex flex-col items-center justify-center py-16 text-center">
           <Brain className="h-10 w-10 text-muted-foreground mb-3" />
           <p className="text-sm text-muted-foreground">{search ? 'Nenhuma memória encontrada' : 'Nenhuma memória deste tipo ainda'}</p>
         </div>
       ) : (
         <div className="space-y-2">
-            {filtered.map((entry) => (
-              <div key={entry.id} 
-                className="nexus-card flex items-start gap-3">
-                <div className="flex-1 min-w-0">
-                  <p className="text-xs text-foreground leading-relaxed">{entry.content}</p>
-                  <div className="flex items-center gap-2 mt-1.5 text-[10px] text-muted-foreground">
-                    <span>{entry.source}</span>
-                    <span>•</span>
-                    <span>{new Date(entry.created_at).toLocaleDateString('pt-BR')}</span>
-                    {entry.relevance_score && entry.relevance_score !== 1 && (
-                      <><span>•</span><span>Relevância: {(Number(entry.relevance_score) * 100).toFixed(0)}%</span></>
-                    )}
-                  </div>
+          {memories.map((entry) => (
+            <div key={entry.id} className="nexus-card flex items-start gap-3">
+              <div className="flex-1 min-w-0">
+                <p className="text-xs text-foreground leading-relaxed">{entry.content}</p>
+                <div className="flex items-center gap-2 mt-1.5 text-[10px] text-muted-foreground">
+                  <span>{entry.source}</span>
+                  <span>•</span>
+                  <span>{new Date(entry.created_at).toLocaleDateString('pt-BR')}</span>
+                  {entry.relevance_score && entry.relevance_score !== 1 && (
+                    <><span>•</span><span className="flex items-center gap-0.5"><Zap className="h-2.5 w-2.5" /> {(Number(entry.relevance_score) * 100).toFixed(0)}%</span></>
+                  )}
                 </div>
-                <AlertDialog>
-                  <AlertDialogTrigger asChild>
-                    <Button variant="ghost" size="icon" className="h-7 w-7 shrink-0">
-                      <Trash2 className="h-3.5 w-3.5 text-destructive" />
-                    </Button>
-                  </AlertDialogTrigger>
-                  <AlertDialogContent>
-                    <AlertDialogHeader>
-                      <AlertDialogTitle>Remover memória?</AlertDialogTitle>
-                      <AlertDialogDescription>Esta ação não pode ser desfeita.</AlertDialogDescription>
-                    </AlertDialogHeader>
-                    <AlertDialogFooter>
-                      <AlertDialogCancel>Cancelar</AlertDialogCancel>
-                      <AlertDialogAction onClick={() => handleDelete(entry.id)}>Remover</AlertDialogAction>
-                    </AlertDialogFooter>
-                  </AlertDialogContent>
-                </AlertDialog>
               </div>
-            ))}
-          </div>
-        
+              <AlertDialog>
+                <AlertDialogTrigger asChild>
+                  <Button variant="ghost" size="icon" className="h-7 w-7 shrink-0">
+                    <Trash2 className="h-3.5 w-3.5 text-destructive" />
+                  </Button>
+                </AlertDialogTrigger>
+                <AlertDialogContent>
+                  <AlertDialogHeader>
+                    <AlertDialogTitle>Remover memória?</AlertDialogTitle>
+                    <AlertDialogDescription>Esta ação não pode ser desfeita.</AlertDialogDescription>
+                  </AlertDialogHeader>
+                  <AlertDialogFooter>
+                    <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                    <AlertDialogAction onClick={() => handleDelete(entry.id)}>Remover</AlertDialogAction>
+                  </AlertDialogFooter>
+                </AlertDialogContent>
+              </AlertDialog>
+            </div>
+          ))}
+        </div>
       )}
     </div>
   );
