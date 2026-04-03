@@ -321,10 +321,10 @@ function DashboardAlerts() {
   if (alerts.length === 0) return null;
 
   return (
-    <div className="nexus-card border-amber-500/20">
+    <div className="nexus-card border-nexus-amber/20">
       <div className="flex items-center justify-between mb-3">
         <h3 className="text-sm font-heading font-semibold text-foreground flex items-center gap-2">
-          <span className="h-2 w-2 rounded-full bg-amber-400 animate-pulse" />
+          <span className="h-2 w-2 rounded-full bg-nexus-amber animate-pulse" />
           Alertas Ativos ({alerts.length})
         </h3>
         <button onClick={() => navigate('/monitoring')} className="text-[11px] text-primary hover:underline">Ver todos</button>
