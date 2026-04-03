@@ -289,7 +289,7 @@ function AbTestPanel({ agentId }: { agentId: string; currentVersion?: number }) 
     queryKey: ['prompt_ab_tests', agentId],
     queryFn: async () => {
       if (!agentId) return [];
-      const { data } = await (supabase as any).from('prompt_ab_tests').select('*').eq('agent_id', agentId).order('created_at', { ascending: false });
+      const { data } = await fromTable('prompt_ab_tests').select('*').eq('agent_id', agentId).order('created_at', { ascending: false });
       return data ?? [];
     },
     enabled: !!agentId,
