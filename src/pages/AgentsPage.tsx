@@ -132,9 +132,24 @@ export default function AgentsPage() {
                 onClick={() => navigate(`/builder/${agent.id}`)}
               >
                 <div className="flex items-start justify-between mb-3">
-                  <div className="flex items-center gap-2.5">
-                    <div className="h-10 w-10 rounded-xl bg-primary/10 flex items-center justify-center text-lg">
-                      {agent.avatar_emoji || "🤖"}
+                  <div className="flex items-center gap-3">
+                    <div className="relative">
+                      <div className="h-11 w-11 rounded-xl bg-primary/10 flex items-center justify-center text-lg">
+                        {agent.avatar_emoji || "🤖"}
+                      </div>
+                      {/* Health pulse dot */}
+                      <span
+                        className={`absolute -top-0.5 -right-0.5 h-2.5 w-2.5 rounded-full border-2 border-card ${
+                          agent.status === 'production' || agent.status === 'monitoring'
+                            ? 'bg-nexus-emerald animate-glow-pulse'
+                            : agent.status === 'error' || agent.status === 'deprecated'
+                            ? 'bg-destructive'
+                            : agent.status === 'draft'
+                            ? 'bg-muted-foreground/40'
+                            : 'bg-nexus-amber'
+                        }`}
+                        aria-hidden="true"
+                      />
                     </div>
                     <div>
                       <h3 className="text-sm font-semibold text-foreground">{agent.name}</h3>
@@ -145,13 +160,16 @@ export default function AgentsPage() {
                   </div>
                   <StatusBadge status={agent.status || "draft"} />
                 </div>
-                <p className="text-xs text-muted-foreground line-clamp-2 mb-4">
+                <p className="text-xs text-muted-foreground line-clamp-2 mb-3">
                   {agent.mission || config.description || "Sem descrição"}
                 </p>
                 <div className="flex gap-1.5 mt-1 flex-wrap">
-                  {(agent.tags ?? []).map(tag => (
+                  {(agent.tags ?? []).slice(0, 3).map(tag => (
                     <span key={tag} className="nexus-badge-primary">{tag}</span>
                   ))}
+                  {(agent.tags ?? []).length > 3 && (
+                    <span className="nexus-badge-muted">+{(agent.tags ?? []).length - 3}</span>
+                  )}
                 </div>
                 <div className="flex items-center justify-between mt-3 pt-3 border-t border-border/50">
                   <p className="text-[11px] text-muted-foreground">
