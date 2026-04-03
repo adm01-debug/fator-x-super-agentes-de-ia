@@ -262,6 +262,7 @@ export default function AuthPage() {
 
       {/* ─── Left branding panel (hidden on mobile) ─── */}
       <div className="hidden lg:flex lg:w-[55%] relative flex-col justify-between p-12 xl:p-16">
+        <MeshGradient />
         {/* Logo area */}
         <div className="animate-fade-in">
           <div className="flex items-center gap-3">
