@@ -2,7 +2,7 @@ import { PageHeader } from "@/components/shared/PageHeader";
 import { StatusBadge } from "@/components/shared/StatusBadge";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Clock, DollarSign, Wrench, Activity, Loader2, Bell, CheckCircle, Trash2 } from "lucide-react";
+import { Clock, DollarSign, Wrench, Activity, Loader2, Bell, CheckCircle, Trash2, Layers } from "lucide-react";
 import { useState, useMemo } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
@@ -40,6 +40,68 @@ export default function MonitoringPage() {
       const { data, error } = await query;
       if (error) throw error;
       return data ?? [];
+    },
+  });
+
+  // ═══ Real sessions from sessions table ═══
+  const { data: sessions = [], isLoading: loadingSessions } = useQuery({
+    queryKey: ['sessions_real', agentFilter],
+    queryFn: async () => {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return [];
+      let query = (supabase as any)
+        .from('sessions')
+        .select('*')
+        .eq('user_id', user.id)
+        .order('started_at', { ascending: false })
+        .limit(50);
+      if (agentFilter !== 'all') query = query.eq('agent_id', agentFilter);
+      const { data, error } = await query;
+      if (error) throw error;
+      return (data ?? []) as Array<{
+        id: string; agent_id: string | null; status: string;
+        started_at: string; ended_at: string | null; metadata: any;
+      }>;
+    },
+  });
+
+  // ═══ Session traces for expanded session ═══
+  const [expandedSessionId, setExpandedSessionId] = useState<string | null>(null);
+  const { data: sessionTraces = [] } = useQuery({
+    queryKey: ['session_traces', expandedSessionId],
+    enabled: !!expandedSessionId,
+    queryFn: async () => {
+      if (!expandedSessionId) return [];
+      const { data, error } = await (supabase as any)
+        .from('session_traces')
+        .select('*')
+        .eq('session_id', expandedSessionId)
+        .order('created_at', { ascending: true });
+      if (error) throw error;
+      return (data ?? []) as Array<{
+        id: string; trace_type: string; input: any; output: any;
+        latency_ms: number | null; tokens_used: number | null;
+        cost_usd: number | null; created_at: string; metadata: any;
+      }>;
+    },
+  });
+
+  // ═══ Trace events for expanded session trace ═══
+  const [expandedTraceId, setExpandedTraceId] = useState<string | null>(null);
+  const { data: traceEvents = [] } = useQuery({
+    queryKey: ['trace_events', expandedTraceId],
+    enabled: !!expandedTraceId,
+    queryFn: async () => {
+      if (!expandedTraceId) return [];
+      const { data, error } = await (supabase as any)
+        .from('trace_events')
+        .select('*')
+        .eq('session_trace_id', expandedTraceId)
+        .order('created_at', { ascending: true });
+      if (error) throw error;
+      return (data ?? []) as Array<{
+        id: string; event_type: string; data: any; created_at: string;
+      }>;
     },
   });
 
@@ -87,9 +149,15 @@ export default function MonitoringPage() {
 
   const unresolvedCount = alerts.filter(a => !a.is_resolved).length;
 
+  const agentName = (id: string | null) => {
+    if (!id) return '—';
+    const a = agentsList.find((ag: any) => ag.id === id);
+    return a ? (a as any).name : id.substring(0, 8);
+  };
+
   return (
     <div className="p-6 space-y-6 max-w-[1400px] mx-auto">
-      <PageHeader title="Monitoring" description="Traces, alertas e observabilidade em tempo real" />
+      <PageHeader title="Monitoring" description="Traces, sessões, alertas e observabilidade em tempo real" />
 
       {/* Agent filter */}
       <div className="flex items-center gap-3">
@@ -106,7 +174,10 @@ export default function MonitoringPage() {
       <Tabs defaultValue="traces" className="space-y-4">
         <TabsList>
           <TabsTrigger value="traces">Traces</TabsTrigger>
-          <TabsTrigger value="sessions">Sessões</TabsTrigger>
+          <TabsTrigger value="sessions" className="gap-1.5">
+            <Layers className="h-3.5 w-3.5" /> Sessões
+            {sessions.length > 0 && <Badge variant="secondary" className="text-[9px] h-4 px-1 ml-1">{sessions.length}</Badge>}
+          </TabsTrigger>
           <TabsTrigger value="alerts" className="gap-1.5">
             Alertas {unresolvedCount > 0 && <Badge variant="destructive" className="text-[9px] h-4 px-1">{unresolvedCount}</Badge>}
           </TabsTrigger>
@@ -207,9 +278,100 @@ export default function MonitoringPage() {
           )}
         </TabsContent>
 
-        {/* Sessions - grouped traces */}
+        {/* ═══ REAL SESSIONS from sessions table ═══ */}
         <TabsContent value="sessions">
-          <SessionsPanel traces={traces} />
+          {loadingSessions ? (
+            <div className="flex items-center justify-center py-20"><Loader2 className="h-6 w-6 animate-spin text-muted-foreground" /></div>
+          ) : sessions.length === 0 ? (
+            <div className="flex flex-col items-center justify-center py-20 text-center">
+              <Layers className="h-12 w-12 text-muted-foreground mb-4" />
+              <h2 className="text-lg font-semibold text-foreground mb-1">Nenhuma sessão registrada</h2>
+              <p className="text-sm text-muted-foreground">Sessões são criadas quando agentes interagem com usuários.</p>
+            </div>
+          ) : (
+            <div className="space-y-3">
+              {sessions.map((session) => (
+                <div key={session.id} className="nexus-card">
+                  <div
+                    className="flex items-center justify-between cursor-pointer"
+                    onClick={() => setExpandedSessionId(expandedSessionId === session.id ? null : session.id)}
+                  >
+                    <div>
+                      <div className="flex items-center gap-2">
+                        <p className="text-sm font-semibold text-foreground font-mono">{session.id.substring(0, 12)}...</p>
+                        <Badge variant={session.status === 'active' ? 'default' : 'secondary'} className="text-[9px]">
+                          {session.status}
+                        </Badge>
+                      </div>
+                      <p className="text-[11px] text-muted-foreground mt-0.5">
+                        Agente: {agentName(session.agent_id)} • Início: {session.started_at ? new Date(session.started_at).toLocaleString('pt-BR') : '—'}
+                        {session.ended_at && ` • Fim: ${new Date(session.ended_at).toLocaleString('pt-BR')}`}
+                      </p>
+                    </div>
+                    <div className="text-xs text-muted-foreground">
+                      {session.started_at ? new Date(session.started_at).toLocaleDateString('pt-BR') : ''}
+                    </div>
+                  </div>
+
+                  {/* Session Traces (granular) */}
+                  {expandedSessionId === session.id && (
+                    <div className="mt-3 pt-3 border-t border-border/30 space-y-2">
+                      {sessionTraces.length === 0 ? (
+                        <p className="text-xs text-muted-foreground text-center py-4">Nenhum trace nesta sessão</p>
+                      ) : (
+                        sessionTraces.map((st) => (
+                          <div key={st.id} className="rounded-lg bg-secondary/20 p-2.5">
+                            <div
+                              className="flex items-center gap-3 text-xs cursor-pointer"
+                              onClick={() => setExpandedTraceId(expandedTraceId === st.id ? null : st.id)}
+                            >
+                              <Badge variant="outline" className="text-[9px] shrink-0">{st.trace_type}</Badge>
+                              <span className="text-foreground truncate flex-1">
+                                {st.latency_ms ? `${st.latency_ms}ms` : ''} {st.tokens_used ? `• ${st.tokens_used}t` : ''} {st.cost_usd ? `• $${Number(st.cost_usd).toFixed(4)}` : ''}
+                              </span>
+                              <span className="text-muted-foreground shrink-0 font-mono">
+                                {new Date(st.created_at || '').toLocaleTimeString('pt-BR')}
+                              </span>
+                            </div>
+
+                            {/* Trace Events (most granular level) */}
+                            {expandedTraceId === st.id && traceEvents.length > 0 && (
+                              <div className="mt-2 pt-2 border-t border-border/20 space-y-1 pl-4">
+                                <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider mb-1">Eventos</p>
+                                {traceEvents.map((ev) => (
+                                  <div key={ev.id} className="flex items-center gap-2 text-[11px]">
+                                    <span className="text-muted-foreground font-mono w-[55px] shrink-0">
+                                      {new Date(ev.created_at || '').toLocaleTimeString('pt-BR')}
+                                    </span>
+                                    <Badge variant="outline" className="text-[8px] shrink-0">{ev.event_type}</Badge>
+                                    {ev.data && (
+                                      <span className="text-muted-foreground truncate">{JSON.stringify(ev.data).substring(0, 80)}</span>
+                                    )}
+                                  </div>
+                                ))}
+                              </div>
+                            )}
+
+                            {/* Input/Output for session trace */}
+                            {expandedTraceId === st.id && (
+                              <div className="mt-2 space-y-2">
+                                {st.input && (
+                                  <div><p className="text-[10px] font-semibold text-foreground">Input</p><pre className="text-[10px] text-muted-foreground bg-secondary/30 p-2 rounded max-h-[120px] overflow-auto">{JSON.stringify(st.input, null, 2)}</pre></div>
+                                )}
+                                {st.output && (
+                                  <div><p className="text-[10px] font-semibold text-foreground">Output</p><pre className="text-[10px] text-muted-foreground bg-secondary/30 p-2 rounded max-h-[120px] overflow-auto">{JSON.stringify(st.output, null, 2)}</pre></div>
+                                )}
+                              </div>
+                            )}
+                          </div>
+                        ))
+                      )}
+                    </div>
+                  )}
+                </div>
+              ))}
+            </div>
+          )}
         </TabsContent>
 
         <TabsContent value="alerts">
@@ -257,7 +419,7 @@ export default function MonitoringPage() {
   );
 }
 
-// ═══ P2-10: Alert Rules Management ═══
+// ═══ Alert Rules Management ═══
 function AlertRulesPanel() {
   const queryClient = useQueryClient();
   const [creating, setCreating] = useState(false);
@@ -353,72 +515,6 @@ function AlertRulesPanel() {
           ))}
         </div>
       )}
-    </div>
-  );
-}
-
-// ═══ P3-11: Sessions Tracking ═══
-
-function SessionsPanel({ traces }: { traces: any[] }) {
-  // Group traces by session_id
-  const sessions = useMemo(() => {
-    const map = new Map<string, any[]>();
-    for (const t of traces) {
-      const sid = t.session_id || 'no-session';
-      if (!map.has(sid)) map.set(sid, []);
-      map.get(sid)!.push(t);
-    }
-    return Array.from(map.entries())
-      .map(([sessionId, sessionTraces]) => ({
-        sessionId,
-        traces: sessionTraces.sort((a: any, b: any) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime()),
-        totalTokens: sessionTraces.reduce((s: number, t: any) => s + (t.tokens_used || 0), 0),
-        totalCost: sessionTraces.reduce((s: number, t: any) => s + (t.cost_usd || 0), 0),
-        startedAt: sessionTraces[0]?.created_at,
-        events: sessionTraces.length,
-      }))
-      .sort((a, b) => new Date(b.startedAt || 0).getTime() - new Date(a.startedAt || 0).getTime());
-  }, [traces]);
-
-  const [expandedSession, setExpandedSession] = useState<string | null>(null);
-
-  if (sessions.length === 0) {
-    return (
-      <div className="flex flex-col items-center justify-center py-20 text-center">
-        <Activity className="h-12 w-12 text-muted-foreground mb-4" />
-        <h2 className="text-lg font-semibold text-foreground mb-1">Nenhuma sessão</h2>
-        <p className="text-sm text-muted-foreground">Sessões são agrupamentos de traces por session_id.</p>
-      </div>
-    );
-  }
-
-  return (
-    <div className="space-y-3">
-      {sessions.map((session) => (
-        <div key={session.sessionId} className="nexus-card">
-          <div className="flex items-center justify-between cursor-pointer" onClick={() => setExpandedSession(expandedSession === session.sessionId ? null : session.sessionId)}>
-            <div>
-              <p className="text-sm font-semibold text-foreground font-mono">{session.sessionId === 'no-session' ? '(sem sessão)' : session.sessionId.substring(0, 12) + '...'}</p>
-              <p className="text-[11px] text-muted-foreground">{session.events} eventos • {session.totalTokens} tokens • ${session.totalCost.toFixed(4)}</p>
-            </div>
-            <div className="text-xs text-muted-foreground">
-              {session.startedAt ? new Date(session.startedAt).toLocaleString('pt-BR') : ''}
-            </div>
-          </div>
-          {expandedSession === session.sessionId && (
-            <div className="mt-3 pt-3 border-t border-border/30 space-y-2">
-              {session.traces.map((t: any) => (
-                <div key={t.id} className="flex items-center gap-3 text-xs py-1">
-                  <span className="text-muted-foreground w-[60px] shrink-0 font-mono">{new Date(t.created_at).toLocaleTimeString('pt-BR')}</span>
-                  <Badge variant="outline" className={`text-[9px] shrink-0 ${t.level === 'error' ? 'border-destructive text-destructive' : t.level === 'warning' ? 'border-amber-500 text-amber-400' : ''}`}>{t.level || 'info'}</Badge>
-                  <span className="text-foreground truncate">{t.event}</span>
-                  <span className="text-muted-foreground ml-auto shrink-0">{t.latency_ms || 0}ms • {t.tokens_used || 0}t</span>
-                </div>
-              ))}
-            </div>
-          )}
-        </div>
-      ))}
     </div>
   );
 }

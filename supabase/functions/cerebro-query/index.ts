@@ -27,20 +27,16 @@ serve(async (req) => {
     // ═══ Gather context from LOCAL Supabase tables ═══
     const facts: string[] = [];
 
-    // Count agents
     const { count: agentCount } = await supabase.from('agents').select('id', { count: 'exact', head: true });
     if (agentCount) facts.push(`Temos ${agentCount} agentes configurados na plataforma`);
 
-    // Count knowledge bases
     const { count: kbCount } = await supabase.from('knowledge_bases').select('id', { count: 'exact', head: true });
     if (kbCount) facts.push(`Temos ${kbCount} bases de conhecimento`);
 
-    // Count traces (last 24h)
     const yesterday = new Date(Date.now() - 86400000).toISOString();
     const { count: traceCount } = await supabase.from('agent_traces').select('id', { count: 'exact', head: true }).gte('created_at', yesterday);
     if (traceCount) facts.push(`${traceCount} interações nas últimas 24h`);
 
-    // Get recent usage
     const { data: usage } = await supabase.from('agent_usage').select('total_cost_usd, requests').order('date', { ascending: false }).limit(7);
     if (usage && usage.length > 0) {
       const totalCost = usage.reduce((s: number, u: any) => s + (u.total_cost_usd || 0), 0);
@@ -48,7 +44,6 @@ serve(async (req) => {
       facts.push(`Últimos 7 dias: ${totalReqs} requests, custo total $${totalCost.toFixed(4)}`);
     }
 
-    // Get budget status
     if (member?.workspace_id) {
       const { data: budgets } = await supabase.from('budgets').select('name, limit_usd, current_usd').eq('workspace_id', member.workspace_id).eq('is_active', true);
       if (budgets) {
@@ -58,8 +53,7 @@ serve(async (req) => {
       }
     }
 
-    // ═══ Gather context from external DBs via workspace secrets ═══
-    // External queries use Supabase REST API (URL + anon key stored as secrets)
+    // ═══ External DBs context ═══
     const externalFacts: string[] = [];
     if (member?.workspace_id) {
       const extDbs = [
@@ -79,14 +73,14 @@ serve(async (req) => {
           if (urlSecret?.key_value && anonSecret?.key_value) {
             const extClient = createClient(urlSecret.key_value, anonSecret.key_value);
             for (const q of db.queries) {
-              let query = extClient.from(q.table).select('id', { count: 'exact', head: true });
+              let extQuery = extClient.from(q.table).select('id', { count: 'exact', head: true });
               if (q.filter) {
                 for (const f of q.filter.split(',')) {
                   const [col, op, val] = f.split('.');
-                  if (op === 'eq') query = query.eq(col, val === 'true' ? true : val);
+                  if (op === 'eq') extQuery = extQuery.eq(col, val === 'true' ? true : val);
                 }
               }
-              const { count } = await query;
+              const { count } = await extQuery;
               if (count !== null) externalFacts.push(`${count} ${q.countLabel}`);
             }
           }
@@ -94,11 +88,40 @@ serve(async (req) => {
       }
     }
 
-    // ═══ RAG context from knowledge base chunks ═══
+    // ═══ RAG context with reranking ═══
     let ragContext = '';
+    let ragReranked = false;
     try {
-      const { data: chunks } = await supabase.from('chunks').select('content').eq('embedding_status', 'done').limit(10);
-      if (chunks && chunks.length > 0) ragContext = chunks.map((c: any) => c.content).join('\n---\n').substring(0, 3000);
+      const { data: chunks } = await supabase.from('chunks').select('id, content, chunk_index, metadata').eq('embedding_status', 'done').limit(20);
+      if (chunks && chunks.length > 0) {
+        // Try to rerank via rag-rerank edge function
+        try {
+          const rerankUrl = `${supabaseUrl}/functions/v1/rag-rerank`;
+          const rerankResp = await fetch(rerankUrl, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', 'Authorization': authHeader, 'apikey': supabaseKey },
+            body: JSON.stringify({ query, chunks, top_k: 5 }),
+          });
+          if (rerankResp.ok) {
+            const rerankData = await rerankResp.json();
+            if (rerankData.reranked && rerankData.reranked.length > 0) {
+              ragContext = rerankData.reranked
+                .map((r: any) => r.chunk?.content || r.content)
+                .filter(Boolean)
+                .join('\n---\n')
+                .substring(0, 3000);
+              ragReranked = true;
+            }
+          } else {
+            await rerankResp.text(); // consume body
+          }
+        } catch { /* rerank failed, fallback to raw chunks */ }
+
+        // Fallback: use raw chunks if rerank failed
+        if (!ragContext) {
+          ragContext = chunks.map((c: any) => c.content).join('\n---\n').substring(0, 3000);
+        }
+      }
     } catch { /* no RAG data */ }
 
     // ═══ Build system prompt ═══
@@ -110,7 +133,7 @@ ${allFacts.length > 0 ? allFacts.map(f => `- ${f}`).join('\n') : '- Nenhum dado 
 
 ${externalFacts.length > 0 ? `## Dados dos Bancos Externos\n${externalFacts.map(f => '- ' + f).join('\n')}` : ''}
 
-${ragContext ? `## Base de Conhecimento (RAG)\n${ragContext}` : ''}
+${ragContext ? `## Base de Conhecimento (RAG${ragReranked ? ' — Reranked' : ''})\n${ragContext}` : ''}
 
 ## Instruções
 - Responda com base nos dados reais disponíveis acima
@@ -135,6 +158,7 @@ ${ragContext ? `## Base de Conhecimento (RAG)\n${ragContext}` : ''}
       facts_loaded: allFacts.length,
       external_facts: externalFacts.length,
       rag_chunks_used: ragContext.length > 0,
+      rag_reranked: ragReranked,
       model: result.model, tokens: result.tokens, cost_usd: result.cost_usd,
     }), { headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
   } catch (error: any) {
