@@ -293,7 +293,7 @@ function TestExecutionPanel({ testCases }: { testCases: TestCase[] }) {
       }
       const passRate = newResults.filter(r => r.passed).length / newResults.length;
       toast.success(`Testes concluídos: ${(passRate * 100).toFixed(0)}% aprovados`);
-    } catch (e: any) { toast.error(`Erro: ${e.message}`); } finally { setRunning(false); }
+    } catch (e: unknown) { toast.error(e instanceof Error ? e.message : "Erro inesperado"); } finally { setRunning(false); }
   };
 
   return (

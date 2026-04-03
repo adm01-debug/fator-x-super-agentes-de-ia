@@ -320,7 +320,7 @@ function AbTestPanel({ agentId }: { agentId: string; currentVersion?: number }) 
       toast.success('Teste A/B criado!');
       setTestName('');
       queryClient.invalidateQueries({ queryKey: ['prompt_ab_tests'] });
-    } catch (e: any) { toast.error(e.message); }
+    } catch (e: unknown) { toast.error(e instanceof Error ? e.message : "Erro inesperado"); }
     finally { setCreating(false); }
   };
 

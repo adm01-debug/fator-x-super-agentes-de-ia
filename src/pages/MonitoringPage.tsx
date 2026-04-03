@@ -452,7 +452,7 @@ function AlertRulesPanel() {
       toast.success('Regra criada!');
       setRuleName('');
       queryClient.invalidateQueries({ queryKey: ['alert_rules'] });
-    } catch (e: any) { toast.error(e.message); }
+    } catch (e: unknown) { toast.error(e instanceof Error ? e.message : "Erro inesperado"); }
     finally { setCreating(false); }
   };
 
