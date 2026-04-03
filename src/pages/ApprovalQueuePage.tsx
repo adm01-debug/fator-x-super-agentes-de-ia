@@ -18,7 +18,7 @@ export default function ApprovalQueuePage() {
   const { data: pendingRuns = [], isLoading } = useQuery({
     queryKey: ['hitl_pending'],
     queryFn: async () => {
-      const { data } = await (supabase as any).from('workflow_runs')
+      const { data } = await fromTable('workflow_runs')
         .select('id, workflow_id, status, output, started_at, current_step, total_steps, workflows(name)')
         .eq('status', 'awaiting_approval')
         .order('started_at', { ascending: false })
