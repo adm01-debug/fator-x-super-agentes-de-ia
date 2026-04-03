@@ -6,14 +6,13 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
-/**
- * Connection registry — maps logical connection IDs to env var prefixes.
- */
+/* ── Connection registry ─────────────────────────────── */
+
 const CONNECTION_REGISTRY: Record<string, { urlEnv: string; keyEnv: string }> = {
-  bancodadosclientes:    { urlEnv: 'BANCODADOSCLIENTES_URL',    keyEnv: 'BANCODADOSCLIENTES_SERVICE_ROLE_KEY' },
-  'supabase-fuchsia-kite': { urlEnv: 'FUCHSIA_KITE_URL',       keyEnv: 'FUCHSIA_KITE_SERVICE_ROLE_KEY' },
-  gestao_time_promo:     { urlEnv: 'GESTAO_TIME_PROMO_URL',     keyEnv: 'GESTAO_TIME_PROMO_SERVICE_ROLE_KEY' },
-  backupgiftstore:       { urlEnv: 'BACKUPGIFTSTORE_URL',       keyEnv: 'BACKUPGIFTSTORE_SERVICE_ROLE_KEY' },
+  bancodadosclientes:      { urlEnv: 'BANCODADOSCLIENTES_URL',      keyEnv: 'BANCODADOSCLIENTES_SERVICE_ROLE_KEY' },
+  'supabase-fuchsia-kite': { urlEnv: 'FUCHSIA_KITE_URL',            keyEnv: 'FUCHSIA_KITE_SERVICE_ROLE_KEY' },
+  gestao_time_promo:       { urlEnv: 'GESTAO_TIME_PROMO_URL',       keyEnv: 'GESTAO_TIME_PROMO_SERVICE_ROLE_KEY' },
+  backupgiftstore:         { urlEnv: 'BACKUPGIFTSTORE_URL',          keyEnv: 'BACKUPGIFTSTORE_SERVICE_ROLE_KEY' },
 };
 
 function getExternalClient(connectionId: string) {
@@ -25,9 +24,8 @@ function getExternalClient(connectionId: string) {
   return createClient(url, key);
 }
 
-/**
- * Entity mappings (server-side mirror of datahub-entities.ts).
- */
+/* ── Entity mappings ─────────────────────────────────── */
+
 const ENTITY_MAPPINGS: Record<string, any> = {
   cliente: {
     primary: { connection: 'bancodadosclientes', table: 'companies', id_column: 'id', display_column: 'razao_social', filter: "is_customer = true AND status = 'ativo' AND razao_social IS NOT NULL AND razao_social != ''" },
@@ -38,6 +36,8 @@ const ENTITY_MAPPINGS: Record<string, any> = {
       { table: 'company_emails', join_col: 'company_id', fields: ['email'] },
     ],
     cross_db: [{ connection: 'backupgiftstore', table: 'contacts', match_by: 'phone' }],
+    group_by: 'grupo_economico_id',
+    exclude_self: true,
   },
   fornecedor: {
     primary: { connection: 'bancodadosclientes', table: 'companies', id_column: 'id', display_column: 'razao_social', filter: "is_supplier = true AND status = 'ativo'" },
@@ -79,11 +79,59 @@ const ENTITY_MAPPINGS: Record<string, any> = {
   },
 };
 
+/* ── Filter parser helper ────────────────────────────── */
+
+function applyStaticFilter(query: any, filterStr: string) {
+  const parts = filterStr.split(' AND ').map((f: string) => f.trim());
+  for (const f of parts) {
+    const eqMatch = f.match(/^(\w+)\s*=\s*(.+)$/);
+    if (eqMatch) {
+      const [, col, val] = eqMatch;
+      const cleanVal = val.replace(/^'|'$/g, '');
+      if (cleanVal === 'true') query = query.eq(col, true);
+      else if (cleanVal === 'false') query = query.eq(col, false);
+      else query = query.eq(col, cleanVal);
+    }
+    const neqMatch = f.match(/^(\w+)\s*(IS NOT NULL|!= '')$/i);
+    if (neqMatch) {
+      const [, col, op] = neqMatch;
+      if (op.toUpperCase() === 'IS NOT NULL') query = query.not(col, 'is', null);
+      else query = query.neq(col, '');
+    }
+  }
+  return query;
+}
+
+/* ── Dynamic filters from client ─────────────────────── */
+
+function applyDynamicFilters(query: any, filters: any[]) {
+  for (const f of filters) {
+    if (!f.column || !f.operator) continue;
+    const col = String(f.column).replace(/[^a-zA-Z0-9_]/g, '');
+    const val = f.value;
+    switch (f.operator) {
+      case 'eq':
+        if (val === 'true') query = query.eq(col, true);
+        else if (val === 'false') query = query.eq(col, false);
+        else query = query.eq(col, val);
+        break;
+      case 'neq': query = query.neq(col, val); break;
+      case 'ilike': query = query.ilike(col, val); break;
+      case 'gt': query = query.gt(col, val); break;
+      case 'lt': query = query.lt(col, val); break;
+      case 'gte': query = query.gte(col, val); break;
+      case 'lte': query = query.lte(col, val); break;
+    }
+  }
+  return query;
+}
+
+/* ── Main handler ────────────────────────────────────── */
+
 serve(async (req) => {
   if (req.method === 'OPTIONS') return new Response(null, { headers: corsHeaders });
 
   try {
-    // Auth check
     const authHeader = req.headers.get('Authorization')!;
     const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
     const supabaseKey = Deno.env.get('SUPABASE_ANON_KEY')!;
@@ -97,10 +145,9 @@ serve(async (req) => {
     // ═══ ACTION: test_connections ═══
     if (action === 'test_connections') {
       const results: Record<string, { status: string; count?: number; error?: string }> = {};
-      for (const [connId, reg] of Object.entries(CONNECTION_REGISTRY)) {
+      for (const [connId] of Object.entries(CONNECTION_REGISTRY)) {
         try {
           const client = getExternalClient(connId);
-          // Simple health check — try to count a known table
           const testTable = connId === 'bancodadosclientes' ? 'companies'
             : connId === 'supabase-fuchsia-kite' ? 'products'
             : connId === 'gestao_time_promo' ? 'colaboradores'
@@ -122,26 +169,7 @@ serve(async (req) => {
         try {
           const client = getExternalClient(mapping.primary.connection);
           let query = client.from(mapping.primary.table).select('id', { count: 'exact', head: true });
-          if (mapping.primary.filter) {
-            // Parse simple filters like "is_customer = true AND status = 'ativo'"
-            const filters = mapping.primary.filter.split(' AND ').map((f: string) => f.trim());
-            for (const f of filters) {
-              const eqMatch = f.match(/^(\w+)\s*=\s*(.+)$/);
-              if (eqMatch) {
-                const [, col, val] = eqMatch;
-                const cleanVal = val.replace(/^'|'$/g, '');
-                if (cleanVal === 'true') query = query.eq(col, true);
-                else if (cleanVal === 'false') query = query.eq(col, false);
-                else query = query.eq(col, cleanVal);
-              }
-              const neqMatch = f.match(/^(\w+)\s*(IS NOT NULL|!= '')$/i);
-              if (neqMatch) {
-                const [, col, op] = neqMatch;
-                if (op.toUpperCase() === 'IS NOT NULL') query = query.not(col, 'is', null);
-                else query = query.neq(col, '');
-              }
-            }
-          }
+          if (mapping.primary.filter) query = applyStaticFilter(query, mapping.primary.filter);
           const { count } = await query;
           counts[entityId] = count ?? 0;
         } catch {
@@ -153,29 +181,35 @@ serve(async (req) => {
 
     // ═══ ACTION: query_entity ═══
     if (action === 'query_entity') {
-      const { entity, search: searchTerm, page = 0, page_size = 25, record_id } = body;
+      const {
+        entity,
+        search: searchTerm,
+        page = 0,
+        page_size = 25,
+        record_id,
+        sort_column,
+        sort_direction = 'asc',
+        filters: dynamicFilters = [],
+        exclude_id,
+      } = body;
+
       const mapping = ENTITY_MAPPINGS[entity];
       if (!mapping) return new Response(JSON.stringify({ error: `Unknown entity: ${entity}` }), { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
 
       const client = getExternalClient(mapping.primary.connection);
       const prim = mapping.primary;
 
-      // Build select columns
-      const selectCols = '*';
-
+      // ─── Single record with enrichment ───
       if (record_id) {
-        // Single record with enrichment
-        const { data: record, error } = await client.from(prim.table).select(selectCols).eq(prim.id_column, record_id).single();
+        const { data: record, error } = await client.from(prim.table).select('*').eq(prim.id_column, record_id).single();
         if (error) throw new Error(error.message);
 
-        // Strip sensitive fields
         if (mapping.sensitive_fields) {
           for (const sf of mapping.sensitive_fields) {
             if (record && sf in record) record[sf] = '***REDACTED***';
           }
         }
 
-        // Fetch secondary data
         const enriched: Record<string, any> = {};
         if (mapping.secondary) {
           for (const sec of mapping.secondary) {
@@ -183,16 +217,7 @@ serve(async (req) => {
               const joinCol = sec.join_col;
               const joinVal = sec.join_source ? record[sec.join_source] : record_id;
               let sq = client.from(sec.table).select(sec.fields ? sec.fields.join(',') : '*').eq(joinCol, joinVal);
-              if (sec.extra_filter) {
-                const parts = sec.extra_filter.split(' AND ');
-                for (const p of parts) {
-                  const m = p.trim().match(/^(\w+)\s*=\s*(.+)$/);
-                  if (m) {
-                    const v = m[2].replace(/^'|'$/g, '');
-                    sq = sq.eq(m[1], v === 'true' ? true : v === 'false' ? false : v);
-                  }
-                }
-              }
+              if (sec.extra_filter) sq = applyStaticFilter(sq, sec.extra_filter);
               if (sec.limit) sq = sq.limit(sec.limit);
               const { data: secData } = await sq;
               enriched[sec.table] = secData ?? [];
@@ -200,13 +225,11 @@ serve(async (req) => {
           }
         }
 
-        // Cross-db enrichment
         const crossData: Record<string, any> = {};
         if (mapping.cross_db) {
           for (const cross of mapping.cross_db) {
             try {
               const crossClient = getExternalClient(cross.connection);
-              // Get match value from primary record or enriched data
               let matchValue: string | null = null;
               if (cross.match_by === 'phone' && enriched['company_phones']?.length > 0) {
                 matchValue = enriched['company_phones'][0].phone;
@@ -217,13 +240,8 @@ serve(async (req) => {
               } else if (cross.match_by === 'phone' && record?.phone) {
                 matchValue = record.phone;
               }
-
               if (matchValue) {
-                const { data: crossResult } = await crossClient
-                  .from(cross.table)
-                  .select('*')
-                  .eq(cross.match_by, matchValue)
-                  .limit(5);
+                const { data: crossResult } = await crossClient.from(cross.table).select('*').eq(cross.match_by, matchValue).limit(5);
                 crossData[`${cross.connection}.${cross.table}`] = crossResult ?? [];
               }
             } catch { crossData[`${cross.connection}.${cross.table}`] = []; }
@@ -233,41 +251,33 @@ serve(async (req) => {
         return new Response(JSON.stringify({ record, enriched, cross_db: crossData }), { headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
       }
 
-      // List query
-      let query = client.from(prim.table).select(selectCols, { count: 'exact' });
+      // ─── List query ───
+      let query = client.from(prim.table).select('*', { count: 'exact' });
 
-      // Apply entity filters
-      if (prim.filter) {
-        const filters = prim.filter.split(' AND ').map((f: string) => f.trim());
-        for (const f of filters) {
-          const eqMatch = f.match(/^(\w+)\s*=\s*(.+)$/);
-          if (eqMatch) {
-            const [, col, val] = eqMatch;
-            const cleanVal = val.replace(/^'|'$/g, '');
-            if (cleanVal === 'true') query = query.eq(col, true);
-            else if (cleanVal === 'false') query = query.eq(col, false);
-            else query = query.eq(col, cleanVal);
-          }
-          const neqMatch = f.match(/^(\w+)\s*(IS NOT NULL|!= '')$/i);
-          if (neqMatch) {
-            const [, col, op] = neqMatch;
-            if (op.toUpperCase() === 'IS NOT NULL') query = query.not(col, 'is', null);
-            else query = query.neq(col, '');
-          }
-        }
-      }
+      // Static entity filters
+      if (prim.filter) query = applyStaticFilter(query, prim.filter);
+
+      // Dynamic filters from client
+      if (dynamicFilters.length > 0) query = applyDynamicFilters(query, dynamicFilters);
 
       // Search
       if (searchTerm && prim.display_column) {
         query = query.ilike(prim.display_column, `%${searchTerm}%`);
       }
 
+      // Exclude self (for group queries)
+      if (exclude_id) {
+        query = query.neq(prim.id_column, exclude_id);
+      }
+
+      // Sorting
+      const sortCol = sort_column || prim.display_column;
+      const sortDir = sort_direction === 'desc' ? false : true;
+      if (sortCol) query = query.order(sortCol, { ascending: sortDir });
+
       // Pagination
       const from = page * page_size;
       query = query.range(from, from + page_size - 1);
-
-      // Order
-      if (prim.display_column) query = query.order(prim.display_column, { ascending: true });
 
       const { data, count, error } = await query;
       if (error) throw new Error(error.message);

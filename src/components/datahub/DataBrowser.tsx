@@ -1,0 +1,331 @@
+import { useState, useEffect, useCallback } from "react";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Badge } from "@/components/ui/badge";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import {
+  Search, ChevronLeft, ChevronRight, Loader2, Eye, Database,
+  ArrowUpDown, ArrowUp, ArrowDown, Download, Filter, X, Plus,
+  Users, Factory, Truck, Package, UserCheck, MessageCircle,
+} from "lucide-react";
+import { ENTITY_MAPPINGS } from "@/config/datahub-entities";
+import {
+  ENTITY_DISPLAY_COLUMNS, ENTITY_FILTER_OPTIONS,
+  formatCellValue, exportToCSV,
+} from "@/config/datahub-columns";
+import { RecordDetail } from "./RecordDetail";
+import { supabase } from "@/integrations/supabase/client";
+import { toast } from "sonner";
+
+const ENTITY_ICONS: Record<string, React.ElementType> = {
+  cliente: Users, fornecedor: Factory, transportadora: Truck,
+  produto: Package, colaborador: UserCheck, conversa_whatsapp: MessageCircle,
+};
+
+interface ActiveFilter {
+  column: string;
+  operator: string;
+  value: string;
+  label: string;
+}
+
+export function DataBrowser({ entityId, onClose }: { entityId: string; onClose: () => void }) {
+  const mapping = ENTITY_MAPPINGS[entityId];
+  const columns = ENTITY_DISPLAY_COLUMNS[entityId] ?? [
+    { key: mapping?.primary.display_column ?? 'id', label: 'Nome', sortable: true },
+  ];
+  const filterOptions = ENTITY_FILTER_OPTIONS[entityId] ?? [];
+
+  const [data, setData] = useState<any[]>([]);
+  const [total, setTotal] = useState(0);
+  const [page, setPage] = useState(0);
+  const [searchTerm, setSearchTerm] = useState("");
+  const [loading, setLoading] = useState(false);
+  const [selectedRecord, setSelectedRecord] = useState<any>(null);
+  const [enrichedData, setEnrichedData] = useState<any>(null);
+  const [sortColumn, setSortColumn] = useState<string | null>(null);
+  const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('asc');
+  const [filters, setFilters] = useState<ActiveFilter[]>([]);
+  const [showFilters, setShowFilters] = useState(false);
+  const [newFilterCol, setNewFilterCol] = useState<string>('');
+  const [newFilterVal, setNewFilterVal] = useState<string>('');
+
+  const pageSize = 25;
+
+  const fetchData = useCallback(async () => {
+    setLoading(true);
+    try {
+      const body: any = {
+        action: 'query_entity',
+        entity: entityId,
+        search: searchTerm,
+        page,
+        page_size: pageSize,
+      };
+      if (sortColumn) {
+        body.sort_column = sortColumn;
+        body.sort_direction = sortDirection;
+      }
+      if (filters.length > 0) {
+        body.filters = filters.map(f => ({
+          column: f.column,
+          operator: f.operator,
+          value: f.value,
+        }));
+      }
+      const { data: result, error } = await supabase.functions.invoke('datahub-query', { body });
+      if (error) throw error;
+      setData(result.data ?? []);
+      setTotal(result.total ?? 0);
+    } catch (e: any) {
+      toast.error(`Erro ao buscar dados: ${e.message}`);
+    } finally {
+      setLoading(false);
+    }
+  }, [entityId, searchTerm, page, sortColumn, sortDirection, filters]);
+
+  useEffect(() => { fetchData(); }, [fetchData]);
+
+  const fetchRecord = async (recordId: string) => {
+    try {
+      const { data: result, error } = await supabase.functions.invoke('datahub-query', {
+        body: { action: 'query_entity', entity: entityId, record_id: recordId },
+      });
+      if (error) throw error;
+      setSelectedRecord(result.record);
+      setEnrichedData({ enriched: result.enriched, cross_db: result.cross_db });
+    } catch (e: any) {
+      toast.error(`Erro: ${e.message}`);
+    }
+  };
+
+  const handleSort = (col: string) => {
+    if (sortColumn === col) {
+      setSortDirection(d => d === 'asc' ? 'desc' : 'asc');
+    } else {
+      setSortColumn(col);
+      setSortDirection('asc');
+    }
+    setPage(0);
+  };
+
+  const addFilter = () => {
+    if (!newFilterCol || !newFilterVal) return;
+    const opt = filterOptions.find(f => f.column === newFilterCol);
+    const operator = opt?.type === 'boolean' ? 'eq' : (opt?.type === 'select' ? 'eq' : 'ilike');
+    const value = operator === 'ilike' ? `%${newFilterVal}%` : newFilterVal;
+    setFilters(prev => [...prev, {
+      column: newFilterCol,
+      operator,
+      value,
+      label: `${opt?.label ?? newFilterCol}: ${newFilterVal}`,
+    }]);
+    setNewFilterCol('');
+    setNewFilterVal('');
+    setPage(0);
+  };
+
+  const removeFilter = (index: number) => {
+    setFilters(prev => prev.filter((_, i) => i !== index));
+    setPage(0);
+  };
+
+  const handleExport = () => {
+    exportToCSV(data, columns, entityId);
+    toast.success(`${data.length} registros exportados para CSV`);
+  };
+
+  const totalPages = Math.ceil(total / pageSize);
+  const Icon = ENTITY_ICONS[entityId] ?? Database;
+  const displayCol = mapping?.primary.display_column ?? 'id';
+
+  return (
+    <div className="nexus-card space-y-4">
+      {/* Header */}
+      <div className="flex items-center justify-between flex-wrap gap-2">
+        <div className="flex items-center gap-3">
+          <Button size="sm" variant="ghost" onClick={onClose}><ChevronLeft className="h-4 w-4" /></Button>
+          <Icon className="h-5 w-5 text-primary" />
+          <h3 className="text-lg font-heading font-bold text-foreground">{mapping?.name ?? entityId}</h3>
+          <Badge variant="secondary" className="text-[10px]">{total.toLocaleString()} registros</Badge>
+        </div>
+        <div className="flex items-center gap-2">
+          <Button size="sm" variant="outline" className="gap-1.5 text-xs" onClick={() => setShowFilters(v => !v)}>
+            <Filter className="h-3.5 w-3.5" />
+            Filtros {filters.length > 0 && <Badge variant="default" className="text-[9px] h-4 ml-1">{filters.length}</Badge>}
+          </Button>
+          <Button size="sm" variant="outline" className="gap-1.5 text-xs" onClick={handleExport} disabled={!data.length}>
+            <Download className="h-3.5 w-3.5" /> CSV
+          </Button>
+        </div>
+      </div>
+
+      {/* Search */}
+      <div className="relative max-w-md">
+        <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+        <Input
+          placeholder={`Buscar por ${displayCol}...`}
+          value={searchTerm}
+          onChange={e => { setSearchTerm(e.target.value); setPage(0); }}
+          className="pl-10 bg-secondary/30"
+        />
+      </div>
+
+      {/* Advanced filters */}
+      {showFilters && (
+        <div className="rounded-lg bg-secondary/20 border border-border/30 p-3 space-y-3 animate-in slide-in-from-top-1 duration-150">
+          <div className="flex items-center gap-2 flex-wrap">
+            <Select value={newFilterCol} onValueChange={setNewFilterCol}>
+              <SelectTrigger className="w-[160px] h-8 text-xs"><SelectValue placeholder="Coluna..." /></SelectTrigger>
+              <SelectContent>
+                {filterOptions.map(opt => (
+                  <SelectItem key={opt.column} value={opt.column}>{opt.label}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+
+            {newFilterCol && (() => {
+              const opt = filterOptions.find(f => f.column === newFilterCol);
+              if (opt?.type === 'select') {
+                return (
+                  <Select value={newFilterVal} onValueChange={setNewFilterVal}>
+                    <SelectTrigger className="w-[140px] h-8 text-xs"><SelectValue placeholder="Valor..." /></SelectTrigger>
+                    <SelectContent>
+                      {opt.options?.map(o => (
+                        <SelectItem key={o.value} value={o.value}>{o.label}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                );
+              }
+              if (opt?.type === 'boolean') {
+                return (
+                  <Select value={newFilterVal} onValueChange={setNewFilterVal}>
+                    <SelectTrigger className="w-[100px] h-8 text-xs"><SelectValue placeholder="..." /></SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="true">Sim</SelectItem>
+                      <SelectItem value="false">Não</SelectItem>
+                    </SelectContent>
+                  </Select>
+                );
+              }
+              return (
+                <Input
+                  placeholder="Valor..."
+                  value={newFilterVal}
+                  onChange={e => setNewFilterVal(e.target.value)}
+                  className="w-[180px] h-8 text-xs"
+                  onKeyDown={e => e.key === 'Enter' && addFilter()}
+                />
+              );
+            })()}
+
+            <Button size="sm" variant="default" className="h-8 gap-1 text-xs" onClick={addFilter} disabled={!newFilterCol || !newFilterVal}>
+              <Plus className="h-3 w-3" /> Adicionar
+            </Button>
+          </div>
+
+          {filters.length > 0 && (
+            <div className="flex flex-wrap gap-1.5">
+              {filters.map((f, i) => (
+                <Badge key={i} variant="secondary" className="text-[10px] gap-1 pr-1">
+                  {f.label}
+                  <button onClick={() => removeFilter(i)} className="ml-1 hover:text-destructive"><X className="h-3 w-3" /></button>
+                </Badge>
+              ))}
+              <Button size="sm" variant="ghost" className="h-5 text-[10px] text-destructive" onClick={() => { setFilters([]); setPage(0); }}>
+                Limpar tudo
+              </Button>
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* Table */}
+      {loading ? (
+        <div className="flex items-center justify-center py-12"><Loader2 className="h-6 w-6 animate-spin text-muted-foreground" /></div>
+      ) : (
+        <>
+          <div className="rounded-lg border border-border overflow-hidden">
+            <div className="overflow-x-auto max-h-[500px]">
+              <table className="w-full text-xs">
+                <thead className="bg-secondary/50 sticky top-0 z-10">
+                  <tr>
+                    {columns.map(col => (
+                      <th
+                        key={col.key}
+                        className={`text-left p-2 font-medium text-muted-foreground select-none ${col.width ?? ''} ${col.sortable ? 'cursor-pointer hover:text-foreground' : ''}`}
+                        onClick={() => col.sortable && handleSort(col.key)}
+                      >
+                        <div className="flex items-center gap-1">
+                          {col.label}
+                          {col.sortable && (
+                            sortColumn === col.key ? (
+                              sortDirection === 'asc'
+                                ? <ArrowUp className="h-3 w-3 text-primary" />
+                                : <ArrowDown className="h-3 w-3 text-primary" />
+                            ) : <ArrowUpDown className="h-3 w-3 text-muted-foreground/40" />
+                          )}
+                        </div>
+                      </th>
+                    ))}
+                    <th className="text-left p-2 font-medium text-muted-foreground w-[60px]">Ações</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {data.map((row, i) => (
+                    <tr key={row.id ?? i} className="border-t border-border/30 hover:bg-secondary/20 transition-colors">
+                      {columns.map(col => (
+                        <td key={col.key} className={`p-2 ${col.width ?? ''} ${col.format === 'sensitive' && (String(row[col.key]).includes('REDACTED') || String(row[col.key]) === '***') ? 'text-destructive/60' : 'text-foreground'}`}>
+                          <span className="font-mono text-[11px] truncate block max-w-[300px]">
+                            {formatCellValue(row[col.key], col.format)}
+                          </span>
+                        </td>
+                      ))}
+                      <td className="p-2">
+                        <Button size="sm" variant="ghost" className="h-6 text-[10px] gap-1" onClick={() => fetchRecord(row.id)}>
+                          <Eye className="h-3 w-3" /> Ver
+                        </Button>
+                      </td>
+                    </tr>
+                  ))}
+                  {data.length === 0 && (
+                    <tr><td colSpan={columns.length + 1} className="p-8 text-center text-muted-foreground">Nenhum registro encontrado</td></tr>
+                  )}
+                </tbody>
+              </table>
+            </div>
+          </div>
+
+          {/* Pagination */}
+          <div className="flex items-center justify-between">
+            <p className="text-[11px] text-muted-foreground">
+              Mostrando {data.length > 0 ? page * pageSize + 1 : 0}–{Math.min((page + 1) * pageSize, total)} de {total.toLocaleString()}
+            </p>
+            <div className="flex items-center gap-1">
+              <Button size="sm" variant="outline" disabled={page === 0} onClick={() => setPage(p => p - 1)}>
+                <ChevronLeft className="h-3.5 w-3.5" />
+              </Button>
+              <span className="text-[11px] text-muted-foreground px-2">
+                {page + 1} / {totalPages || 1}
+              </span>
+              <Button size="sm" variant="outline" disabled={page >= totalPages - 1} onClick={() => setPage(p => p + 1)}>
+                <ChevronRight className="h-3.5 w-3.5" />
+              </Button>
+            </div>
+          </div>
+        </>
+      )}
+
+      {/* Record detail */}
+      {selectedRecord && (
+        <RecordDetail
+          record={selectedRecord}
+          enrichedData={enrichedData}
+          entityId={entityId}
+          onClose={() => { setSelectedRecord(null); setEnrichedData(null); }}
+        />
+      )}
+    </div>
+  );
+}

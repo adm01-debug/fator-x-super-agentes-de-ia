@@ -10,11 +10,12 @@ import {
   Search, Database, ArrowRight, ExternalLink, AlertTriangle,
   Users, Factory, Truck, Package, UserCheck, MessageCircle,
   Link2, Eye, RefreshCcw, Table2, GitBranch, Loader2, CheckCircle2,
-  ChevronLeft, ChevronRight, XCircle,
+  XCircle, Snowflake,
 } from "lucide-react";
 import { ENTITY_MAPPINGS, ENTITY_LIST } from "@/config/datahub-entities";
 import type { EntityMapping, SecondaryMapping, CrossDbMapping } from "@/config/datahub-entities";
 import { DATAHUB_TABLE_BLACKLIST } from "@/config/datahub-blacklist";
+import { DataBrowser } from "@/components/datahub/DataBrowser";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 
@@ -23,7 +24,7 @@ interface ConnectionDef {
   id: string;
   label: string;
   desc: string;
-  status: "connected" | "disconnected" | "error";
+  status: "connected" | "disconnected" | "error" | "hibernated";
   tables: number;
   icon: string;
   count?: number;
@@ -35,6 +36,7 @@ const DEFAULT_CONNECTIONS: ConnectionDef[] = [
   { id: "supabase-fuchsia-kite", label: "Catálogo Produtos", desc: "Products, variants, suppliers, pricing", status: "disconnected", tables: 12, icon: "📦" },
   { id: "gestao_time_promo", label: "Gestão RH", desc: "Colaboradores, ponto, departamentos, cargos", status: "disconnected", tables: 6, icon: "👨‍💼" },
   { id: "backupgiftstore", label: "WhatsApp Backup", desc: "Contacts, messages, media", status: "disconnected", tables: 3, icon: "💬" },
+  { id: "financeiro_promo", label: "Financeiro Promo", desc: "Contas a pagar/receber, fluxo de caixa — HIBERNADO", status: "hibernated", tables: 0, icon: "💰" },
 ];
 
 /* ── Entity icon map ─────────────────────────────────── */
@@ -59,8 +61,10 @@ function ConnectionCard({ conn }: { conn: ConnectionDef }) {
     e.cross_db?.some(c => c.connection === conn.id)
   );
 
+  const isHibernated = conn.status === "hibernated";
+
   return (
-    <div className="nexus-card group hover:border-primary/30 transition-colors">
+    <div className={`nexus-card group transition-colors ${isHibernated ? 'opacity-60' : 'hover:border-primary/30'}`}>
       <div className="flex items-start justify-between mb-3">
         <div className="flex items-center gap-3">
           <div className="h-10 w-10 rounded-xl bg-primary/10 flex items-center justify-center text-lg">
@@ -71,7 +75,13 @@ function ConnectionCard({ conn }: { conn: ConnectionDef }) {
             <p className="text-[11px] text-muted-foreground font-mono">{conn.id}</p>
           </div>
         </div>
-        <StatusBadge status={conn.status === "connected" ? "active" : conn.status === "error" ? "error" : "planned"} />
+        {isHibernated ? (
+          <Badge variant="outline" className="gap-1 text-[10px] border-blue-500/30 text-blue-400">
+            <Snowflake className="h-3 w-3" /> Hibernado
+          </Badge>
+        ) : (
+          <StatusBadge status={conn.status === "connected" ? "active" : conn.status === "error" ? "error" : "planned"} />
+        )}
       </div>
 
       <p className="text-xs text-muted-foreground mb-3">{conn.desc}</p>
@@ -83,10 +93,12 @@ function ConnectionCard({ conn }: { conn: ConnectionDef }) {
             <span className="text-foreground font-mono">{conn.count.toLocaleString()}</span>
           </div>
         )}
-        <div className="flex justify-between text-xs">
-          <span className="text-muted-foreground">Tabelas mapeadas</span>
-          <span className="text-foreground font-mono">{conn.tables}</span>
-        </div>
+        {!isHibernated && (
+          <div className="flex justify-between text-xs">
+            <span className="text-muted-foreground">Tabelas mapeadas</span>
+            <span className="text-foreground font-mono">{conn.tables}</span>
+          </div>
+        )}
 
         {entitiesUsing.length > 0 && (
           <div className="flex flex-wrap gap-1 mt-2">
@@ -122,6 +134,13 @@ function ConnectionCard({ conn }: { conn: ConnectionDef }) {
           Aguardando teste de conexão...
         </div>
       )}
+
+      {isHibernated && (
+        <div className="mt-3 p-2 rounded-lg bg-blue-500/10 border border-blue-500/20 flex items-center gap-2 text-[11px] text-blue-400">
+          <Snowflake className="h-3.5 w-3.5 shrink-0" />
+          Projeto Supabase pausado. Score: 0/100.
+        </div>
+      )}
     </div>
   );
 }
@@ -152,6 +171,13 @@ function EntityDetailPanel({ entityId, mapping, onBrowse }: { entityId: string; 
       {mapping.note && (
         <div className="p-2.5 rounded-lg bg-nexus-amber/10 border border-nexus-amber/20 text-[11px] text-nexus-amber">
           ⚠️ {mapping.note}
+        </div>
+      )}
+
+      {mapping.group_by && (
+        <div className="p-2.5 rounded-lg bg-primary/5 border border-primary/20 text-[11px] text-primary">
+          🏢 Agrupável por: <span className="font-mono">{mapping.group_by}</span>
+          {mapping.exclude_self && <span className="text-muted-foreground ml-2">(exclui a própria empresa no grupo)</span>}
         </div>
       )}
 
@@ -239,176 +265,6 @@ function EntityDetailPanel({ entityId, mapping, onBrowse }: { entityId: string; 
   );
 }
 
-/* ── Data Browser Panel ─────────────────────────────── */
-function DataBrowser({ entityId, onClose }: { entityId: string; onClose: () => void }) {
-  const mapping = ENTITY_MAPPINGS[entityId];
-  const [data, setData] = useState<any[]>([]);
-  const [total, setTotal] = useState(0);
-  const [page, setPage] = useState(0);
-  const [searchTerm, setSearchTerm] = useState("");
-  const [loading, setLoading] = useState(false);
-  const [selectedRecord, setSelectedRecord] = useState<any>(null);
-  const [enrichedData, setEnrichedData] = useState<any>(null);
-  const pageSize = 25;
-
-  const fetchData = useCallback(async () => {
-    setLoading(true);
-    try {
-      const { data: result, error } = await supabase.functions.invoke('datahub-query', {
-        body: { action: 'query_entity', entity: entityId, search: searchTerm, page, page_size: pageSize },
-      });
-      if (error) throw error;
-      setData(result.data ?? []);
-      setTotal(result.total ?? 0);
-    } catch (e: any) {
-      toast.error(`Erro ao buscar dados: ${e.message}`);
-    } finally {
-      setLoading(false);
-    }
-  }, [entityId, searchTerm, page]);
-
-  useEffect(() => { fetchData(); }, [fetchData]);
-
-  const fetchRecord = async (recordId: string) => {
-    try {
-      const { data: result, error } = await supabase.functions.invoke('datahub-query', {
-        body: { action: 'query_entity', entity: entityId, record_id: recordId },
-      });
-      if (error) throw error;
-      setSelectedRecord(result.record);
-      setEnrichedData({ enriched: result.enriched, cross_db: result.cross_db });
-    } catch (e: any) {
-      toast.error(`Erro: ${e.message}`);
-    }
-  };
-
-  const displayCol = mapping?.primary.display_column ?? 'id';
-  const totalPages = Math.ceil(total / pageSize);
-  const Icon = ENTITY_ICONS[entityId] ?? Database;
-
-  return (
-    <div className="nexus-card space-y-4">
-      <div className="flex items-center justify-between">
-        <div className="flex items-center gap-3">
-          <Button size="sm" variant="ghost" onClick={onClose}><ChevronLeft className="h-4 w-4" /></Button>
-          <Icon className="h-5 w-5 text-primary" />
-          <h3 className="text-lg font-heading font-bold text-foreground">{mapping?.name ?? entityId}</h3>
-          <Badge variant="secondary" className="text-[10px]">{total.toLocaleString()} registros</Badge>
-        </div>
-      </div>
-
-      <div className="relative max-w-md">
-        <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-        <Input
-          placeholder={`Buscar por ${displayCol}...`}
-          value={searchTerm}
-          onChange={e => { setSearchTerm(e.target.value); setPage(0); }}
-          className="pl-10 bg-secondary/30"
-        />
-      </div>
-
-      {loading ? (
-        <div className="flex items-center justify-center py-12"><Loader2 className="h-6 w-6 animate-spin text-muted-foreground" /></div>
-      ) : (
-        <>
-          <div className="rounded-lg border border-border overflow-hidden">
-            <div className="overflow-x-auto max-h-[500px]">
-              <table className="w-full text-xs">
-                <thead className="bg-secondary/50 sticky top-0">
-                  <tr>
-                    <th className="text-left p-2 font-medium text-muted-foreground">{displayCol}</th>
-                    <th className="text-left p-2 font-medium text-muted-foreground">ID</th>
-                    <th className="text-left p-2 font-medium text-muted-foreground">Ações</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {data.map((row, i) => (
-                    <tr key={row.id ?? i} className="border-t border-border/30 hover:bg-secondary/20 transition-colors">
-                      <td className="p-2 text-foreground font-medium max-w-[300px] truncate">{row[displayCol] ?? '—'}</td>
-                      <td className="p-2 text-muted-foreground font-mono text-[10px]">{row.id?.substring(0, 8) ?? '—'}...</td>
-                      <td className="p-2">
-                        <Button size="sm" variant="ghost" className="h-6 text-[10px] gap-1" onClick={() => fetchRecord(row.id)}>
-                          <Eye className="h-3 w-3" /> Ver
-                        </Button>
-                      </td>
-                    </tr>
-                  ))}
-                  {data.length === 0 && (
-                    <tr><td colSpan={3} className="p-8 text-center text-muted-foreground">Nenhum registro encontrado</td></tr>
-                  )}
-                </tbody>
-              </table>
-            </div>
-          </div>
-
-          <div className="flex items-center justify-between">
-            <p className="text-[11px] text-muted-foreground">
-              Página {page + 1} de {totalPages || 1}
-            </p>
-            <div className="flex gap-1">
-              <Button size="sm" variant="outline" disabled={page === 0} onClick={() => setPage(p => p - 1)}>
-                <ChevronLeft className="h-3.5 w-3.5" />
-              </Button>
-              <Button size="sm" variant="outline" disabled={page >= totalPages - 1} onClick={() => setPage(p => p + 1)}>
-                <ChevronRight className="h-3.5 w-3.5" />
-              </Button>
-            </div>
-          </div>
-        </>
-      )}
-
-      {/* Record detail modal */}
-      {selectedRecord && (
-        <div className="space-y-3 border-t border-border pt-4">
-          <div className="flex items-center justify-between">
-            <h4 className="text-sm font-semibold text-foreground">📋 Detalhes: {selectedRecord[displayCol]}</h4>
-            <Button size="sm" variant="ghost" onClick={() => { setSelectedRecord(null); setEnrichedData(null); }}>
-              <XCircle className="h-4 w-4" />
-            </Button>
-          </div>
-
-          <div className="rounded-lg bg-secondary/20 p-3 text-xs font-mono space-y-1 max-h-[300px] overflow-y-auto">
-            {Object.entries(selectedRecord).map(([key, val]) => (
-              <div key={key} className="flex gap-2">
-                <span className="text-muted-foreground min-w-[140px]">{key}:</span>
-                <span className="text-foreground break-all">{val === null ? 'null' : String(val)}</span>
-              </div>
-            ))}
-          </div>
-
-          {enrichedData?.enriched && Object.keys(enrichedData.enriched).length > 0 && (
-            <div className="space-y-2">
-              <h5 className="text-xs font-semibold text-nexus-cyan flex items-center gap-1">
-                <GitBranch className="h-3 w-3" /> Dados Secundários
-              </h5>
-              {Object.entries(enrichedData.enriched).map(([table, rows]: [string, any]) => (
-                <div key={table} className="rounded-lg bg-nexus-cyan/5 border border-nexus-cyan/20 p-2 text-[11px]">
-                  <p className="font-mono font-semibold text-foreground mb-1">{table} ({Array.isArray(rows) ? rows.length : 0})</p>
-                  <pre className="text-muted-foreground text-[10px] overflow-x-auto max-h-[100px]">{JSON.stringify(rows, null, 2)}</pre>
-                </div>
-              ))}
-            </div>
-          )}
-
-          {enrichedData?.cross_db && Object.keys(enrichedData.cross_db).length > 0 && (
-            <div className="space-y-2">
-              <h5 className="text-xs font-semibold text-nexus-emerald flex items-center gap-1">
-                <Link2 className="h-3 w-3" /> Cross-Database
-              </h5>
-              {Object.entries(enrichedData.cross_db).map(([key, rows]: [string, any]) => (
-                <div key={key} className="rounded-lg bg-nexus-emerald/5 border border-nexus-emerald/20 p-2 text-[11px]">
-                  <p className="font-mono font-semibold text-foreground mb-1">{key} ({Array.isArray(rows) ? rows.length : 0})</p>
-                  <pre className="text-muted-foreground text-[10px] overflow-x-auto max-h-[100px]">{JSON.stringify(rows, null, 2)}</pre>
-                </div>
-              ))}
-            </div>
-          )}
-        </div>
-      )}
-    </div>
-  );
-}
-
 /* ── Main Page ───────────────────────────────────────── */
 export default function DataHubPage() {
   const [search, setSearch] = useState("");
@@ -419,7 +275,7 @@ export default function DataHubPage() {
   const [testingConnections, setTestingConnections] = useState(false);
   const [loadingCounts, setLoadingCounts] = useState(false);
 
-  const testConnections = async () => {
+  const testConnections = useCallback(async () => {
     setTestingConnections(true);
     try {
       const { data, error } = await supabase.functions.invoke('datahub-query', {
@@ -427,6 +283,7 @@ export default function DataHubPage() {
       });
       if (error) throw error;
       setConnections(prev => prev.map(c => {
+        if (c.status === 'hibernated') return c; // skip hibernated
         const result = data.connections?.[c.id];
         if (!result) return c;
         return {
@@ -443,9 +300,9 @@ export default function DataHubPage() {
     } finally {
       setTestingConnections(false);
     }
-  };
+  }, []);
 
-  const loadEntityCounts = async () => {
+  const loadEntityCounts = useCallback(async () => {
     setLoadingCounts(true);
     try {
       const { data, error } = await supabase.functions.invoke('datahub-query', {
@@ -458,12 +315,12 @@ export default function DataHubPage() {
     } finally {
       setLoadingCounts(false);
     }
-  };
+  }, []);
 
   useEffect(() => {
     testConnections();
     loadEntityCounts();
-  }, []);
+  }, [testConnections, loadEntityCounts]);
 
   const filteredEntities = useMemo(() => {
     if (!search.trim()) return ENTITY_LIST;
@@ -477,7 +334,8 @@ export default function DataHubPage() {
   }, [search]);
 
   const selectedMapping = selectedEntity ? ENTITY_MAPPINGS[selectedEntity] : null;
-  const connectedCount = connections.filter(c => c.status === "connected").length;
+  const activeConnections = connections.filter(c => c.status !== "hibernated");
+  const connectedCount = activeConnections.filter(c => c.status === "connected").length;
 
   if (browsingEntity) {
     return (
@@ -533,6 +391,7 @@ export default function DataHubPage() {
                 const secondaryCount = entity.secondary?.length ?? 0;
                 const crossCount = entity.cross_db?.length ?? 0;
                 const count = entityCounts[entity.id];
+                const hasGroupBy = !!entity.group_by;
 
                 return (
                   <button
@@ -573,6 +432,11 @@ export default function DataHubPage() {
                             {crossCount} cross-db
                           </Badge>
                         )}
+                        {hasGroupBy && (
+                          <Badge variant="outline" className="text-[9px] border-primary/30 text-primary">
+                            🏢 grupo
+                          </Badge>
+                        )}
                         <ArrowRight className={`h-4 w-4 text-muted-foreground transition-transform ${isSelected ? "rotate-90" : ""}`} />
                       </div>
                     </div>
@@ -605,7 +469,8 @@ export default function DataHubPage() {
         <TabsContent value="connections" className="space-y-4">
           <div className="flex items-center justify-between">
             <p className="text-sm text-muted-foreground">
-              <span className="font-semibold text-foreground">{connectedCount}</span> de {connections.length} conexões ativas
+              <span className="font-semibold text-foreground">{connectedCount}</span> de {activeConnections.length} conexões ativas
+              <span className="text-muted-foreground/60 ml-2">· 1 hibernada</span>
             </p>
             <Button variant="outline" size="sm" className="gap-1.5 text-xs" onClick={testConnections} disabled={testingConnections}>
               {testingConnections ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <RefreshCcw className="h-3.5 w-3.5" />}
@@ -665,7 +530,7 @@ export default function DataHubPage() {
 
           <div className="nexus-card space-y-3">
             <h3 className="text-sm font-semibold text-foreground">Resumo do Schema</h3>
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+            <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
               <div className="rounded-lg bg-secondary/30 p-3 text-center">
                 <p className="text-2xl font-heading font-bold text-foreground">{ENTITY_LIST.length}</p>
                 <p className="text-[10px] text-muted-foreground">Entidades</p>
@@ -686,6 +551,12 @@ export default function DataHubPage() {
                 </p>
                 <p className="text-[10px] text-muted-foreground">Cross-DB Links</p>
               </div>
+              <div className="rounded-lg bg-secondary/30 p-3 text-center">
+                <p className="text-2xl font-heading font-bold text-foreground">
+                  {ENTITY_LIST.filter(e => !!e.group_by).length}
+                </p>
+                <p className="text-[10px] text-muted-foreground">Com Grupo Econ.</p>
+              </div>
             </div>
           </div>
 
@@ -699,18 +570,23 @@ export default function DataHubPage() {
               });
 
               return (
-                <div key={conn.id} className="nexus-card space-y-2">
+                <div key={conn.id} className={`nexus-card space-y-2 ${conn.status === 'hibernated' ? 'opacity-50' : ''}`}>
                   <div className="flex items-center gap-2">
                     <span>{conn.icon}</span>
                     <h4 className="text-sm font-semibold text-foreground">{conn.label}</h4>
                     <Badge variant="secondary" className="text-[9px]">{allTables.size} tabelas</Badge>
                     {conn.status === "connected" && <CheckCircle2 className="h-3.5 w-3.5 text-nexus-emerald" />}
+                    {conn.status === "hibernated" && <Snowflake className="h-3.5 w-3.5 text-blue-400" />}
                   </div>
-                  <div className="flex flex-wrap gap-1">
-                    {Array.from(allTables).sort().map(t => (
-                      <Badge key={t} variant="outline" className="text-[10px] font-mono">{t}</Badge>
-                    ))}
-                  </div>
+                  {allTables.size > 0 ? (
+                    <div className="flex flex-wrap gap-1">
+                      {Array.from(allTables).sort().map(t => (
+                        <Badge key={t} variant="outline" className="text-[10px] font-mono">{t}</Badge>
+                      ))}
+                    </div>
+                  ) : (
+                    <p className="text-[10px] text-muted-foreground italic">Nenhuma tabela mapeada</p>
+                  )}
                 </div>
               );
             })}
