@@ -461,7 +461,7 @@ function AlertRulesPanel() {
   };
 
   const handleToggleRule = async (id: string, enabled: boolean) => {
-    await (supabase as any).from('alert_rules').update({ is_enabled: enabled }).eq('id', id);
+    await fromTable('alert_rules').update({ is_enabled: enabled }).eq('id', id);
     queryClient.invalidateQueries({ queryKey: ['alert_rules'] });
   };
 
