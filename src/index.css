@@ -451,3 +451,29 @@
 .collapsible-content > * {
   overflow: hidden;
 }
+
+/* ── Auth mesh gradient animations ── */
+@keyframes meshBlob1 {
+  0%, 100% { transform: translate(0, 0) scale(1); }
+  25% { transform: translate(60px, 40px) scale(1.1); }
+  50% { transform: translate(20px, 80px) scale(0.95); }
+  75% { transform: translate(-30px, 20px) scale(1.05); }
+}
+@keyframes meshBlob2 {
+  0%, 100% { transform: translate(0, 0) scale(1); }
+  33% { transform: translate(-50px, -40px) scale(1.15); }
+  66% { transform: translate(40px, -60px) scale(0.9); }
+}
+@keyframes meshBlob3 {
+  0%, 100% { transform: translate(0, 0) scale(1); }
+  20% { transform: translate(-40px, 50px) scale(1.1); }
+  40% { transform: translate(30px, 30px) scale(0.95); }
+  60% { transform: translate(50px, -20px) scale(1.08); }
+  80% { transform: translate(-20px, -40px) scale(1); }
+}
+@keyframes floatParticle {
+  0%, 100% { transform: translateY(0) translateX(0); opacity: 0.3; }
+  25% { opacity: 0.8; }
+  50% { transform: translateY(-30px) translateX(15px); opacity: 0.5; }
+  75% { opacity: 0.9; }
+}

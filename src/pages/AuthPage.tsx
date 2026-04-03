@@ -63,10 +63,59 @@ function GridBackground() {
           backgroundSize: '60px 60px',
         }}
       />
-      {/* Radial glow top-left */}
-      <div className="absolute -top-[30%] -left-[20%] w-[70%] h-[70%] rounded-full bg-primary/[0.04] blur-[120px]" />
-      {/* Radial glow bottom-right */}
-      <div className="absolute -bottom-[20%] -right-[15%] w-[60%] h-[60%] rounded-full bg-accent/[0.03] blur-[100px]" />
+    </div>
+  );
+}
+
+/* ── Animated Mesh Gradient ───────────────────────────── */
+function MeshGradient() {
+  return (
+    <div className="absolute inset-0 overflow-hidden pointer-events-none" aria-hidden="true">
+      {/* Blob 1 — primary */}
+      <div
+        className="absolute w-[500px] h-[500px] rounded-full opacity-20 blur-[100px]"
+        style={{
+          background: 'hsl(var(--primary))',
+          top: '10%',
+          left: '5%',
+          animation: 'meshBlob1 12s ease-in-out infinite',
+        }}
+      />
+      {/* Blob 2 — accent */}
+      <div
+        className="absolute w-[400px] h-[400px] rounded-full opacity-15 blur-[100px]"
+        style={{
+          background: 'hsl(var(--accent))',
+          top: '50%',
+          left: '30%',
+          animation: 'meshBlob2 15s ease-in-out infinite',
+        }}
+      />
+      {/* Blob 3 — nexus-cyan */}
+      <div
+        className="absolute w-[350px] h-[350px] rounded-full opacity-10 blur-[120px]"
+        style={{
+          background: 'hsl(var(--nexus-purple))',
+          top: '20%',
+          right: '0%',
+          animation: 'meshBlob3 18s ease-in-out infinite',
+        }}
+      />
+      {/* Floating particles */}
+      {Array.from({ length: 20 }).map((_, i) => (
+        <div
+          key={i}
+          className="absolute rounded-full bg-primary/30"
+          style={{
+            width: `${2 + Math.random() * 3}px`,
+            height: `${2 + Math.random() * 3}px`,
+            top: `${Math.random() * 100}%`,
+            left: `${Math.random() * 100}%`,
+            animation: `floatParticle ${8 + Math.random() * 12}s ease-in-out infinite`,
+            animationDelay: `${Math.random() * -20}s`,
+          }}
+        />
+      ))}
     </div>
   );
 }
@@ -213,6 +262,7 @@ export default function AuthPage() {
 
       {/* ─── Left branding panel (hidden on mobile) ─── */}
       <div className="hidden lg:flex lg:w-[55%] relative flex-col justify-between p-12 xl:p-16">
+        <MeshGradient />
         {/* Logo area */}
         <div className="animate-fade-in">
           <div className="flex items-center gap-3">
