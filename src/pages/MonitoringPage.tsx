@@ -442,7 +442,7 @@ function AlertRulesPanel() {
     setCreating(true);
     try {
       const { data: member } = await supabase.from('workspace_members').select('workspace_id').limit(1).single();
-      await (supabase as any).from('alert_rules').insert({
+      await fromTable('alert_rules').insert({
         workspace_id: member?.workspace_id, name: ruleName.trim(),
         metric: ruleMetric, operator: ruleOp,
         threshold: parseFloat(ruleThreshold) || 0, severity: ruleSeverity,
