@@ -64,6 +64,11 @@ export default function KnowledgePage() {
         actions={<CreateKnowledgeBaseDialog onCreated={() => refetch()} />}
       />
 
+      <QuickActionsBar actions={[
+        { label: 'Agents', icon: Bot, path: '/agents' },
+        { label: 'Prompts', icon: FileText, path: '/prompts' },
+      ]} />
+
       <InfoHint title="O que é RAG?">
         Retrieval-Augmented Generation combina busca em documentos com geração de linguagem. O agente recupera trechos relevantes da base de conhecimento antes de responder, melhorando a factualidade e permitindo citações.
       </InfoHint>
