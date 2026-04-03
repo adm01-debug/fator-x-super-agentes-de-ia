@@ -3,6 +3,7 @@ import { SectionTitle, NexusBadge, ToggleField, SelectField, SliderField } from 
 import { CollapsibleCard } from '../ui/CollapsibleCard';
 import { Button } from '@/components/ui/button';
 import { toast } from 'sonner';
+import * as openClaw from '@/services/openClawService';
 import { Plus, Trash2, Globe, MessageSquare, Mail, Hash, Send, Radio } from 'lucide-react';
 import type { DeployChannelConfig, MonitoringKPI, DeployChannel } from '@/types/agentTypes';
 
@@ -330,6 +331,53 @@ export function DeployModule() {
               <Button variant="outline" size="sm" className="text-destructive">Revogar</Button>
             </div>
             <p className="text-[11px] text-muted-foreground">Rate limit: 100 req/min · Usage tracking por chave</p>
+          </div>
+        </div>
+      </section>
+
+      {/* ═══ OPENCLAW DEPLOY ═══ */}
+      <section>
+        <SectionTitle icon="🦞" title="OpenClaw Deploy" subtitle="Gere SOUL.md + SKILL.md para deploy no OpenClaw runtime" />
+        <div className="rounded-xl border border-border bg-card p-4 space-y-3">
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-sm font-semibold text-foreground">OpenClaw Package</p>
+              <p className="text-[11px] text-muted-foreground">Exporta personalidade (SOUL.md) + capacidades (SKILL.md) do agente</p>
+            </div>
+            <div className="flex gap-2">
+              <Button variant="outline" size="sm" onClick={() => {
+                const pkg = openClaw.generateDeployPackage(agent);
+                toast.success(`Package gerado: SOUL.md + ${pkg.skills.length} skills`);
+                // Show preview
+                const preview = `SOUL.md:\n${pkg.soulMd.slice(0, 200)}...\n\nSkills: ${pkg.skills.map(s => s.name).join(', ')}`;
+                alert(preview);
+              }}>Preview</Button>
+              <Button size="sm" className="gap-1.5" onClick={() => {
+                openClaw.downloadDeployPackage(agent);
+                toast.success('OpenClaw package baixado!');
+              }}>
+                Download Package
+              </Button>
+            </div>
+          </div>
+
+          <div className="grid grid-cols-2 gap-3 text-xs">
+            <div className="rounded-lg bg-muted/20 p-3">
+              <p className="font-semibold text-foreground mb-1">SOUL.md</p>
+              <p className="text-muted-foreground">Personalidade, tom, regras, escopo, fallback</p>
+              <p className="text-[10px] text-primary mt-1">Gerado de: persona + mission + system_prompt</p>
+            </div>
+            <div className="rounded-lg bg-muted/20 p-3">
+              <p className="font-semibold text-foreground mb-1">SKILL.md ({agent.tools?.filter((t: { enabled: boolean }) => t.enabled).length ?? 0} skills)</p>
+              <p className="text-muted-foreground">APIs e ferramentas que o agente pode chamar</p>
+              <p className="text-[10px] text-primary mt-1">Gerado de: tools habilitadas</p>
+            </div>
+          </div>
+
+          <div className="flex items-center gap-2 text-[10px] text-muted-foreground">
+            <span>Canais suportados: WhatsApp · Telegram · Slack · Discord · Web</span>
+            <span className="text-primary">|</span>
+            <a href="https://docs.openclaw.ai" target="_blank" rel="noopener noreferrer" className="text-primary hover:underline">Docs OpenClaw</a>
           </div>
         </div>
       </section>
