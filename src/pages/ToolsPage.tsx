@@ -161,8 +161,8 @@ export default function ToolsPage() {
           {filtered.map((tool) => (
             <div key={tool.id} className="nexus-card group">
               <div className="flex items-center gap-2.5 mb-3">
-                <div className="h-10 w-10 rounded-xl bg-primary/10 flex items-center justify-center">
-                  <tool.icon className="h-5 w-5 text-primary" />
+                <div className={`h-10 w-10 rounded-xl ${tool.bg} flex items-center justify-center`}>
+                  <tool.icon className={`h-5 w-5 ${tool.color}`} />
                 </div>
                 <div className="min-w-0 flex-1">
                   <div className="flex items-center gap-1.5">
