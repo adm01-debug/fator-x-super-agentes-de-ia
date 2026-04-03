@@ -73,7 +73,7 @@ function getInitialCollapsed(): Record<string, boolean> {
     if (stored) return JSON.parse(stored);
   } catch {}
   // Default: only "Geral" expanded
-  return { geral: false, dev: true, ops: true, admin: true };
+  return { geral: false, dev: false, ops: true, admin: true };
 }
 
 export function AppSidebar() {
