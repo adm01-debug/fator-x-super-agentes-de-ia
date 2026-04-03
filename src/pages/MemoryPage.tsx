@@ -11,6 +11,7 @@ import { toast } from "sonner";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { fromTable } from "@/lib/supabaseExtended";
+import { memorySchema } from "@/lib/validations/agentSchema";
 
 const memoryTypes = [
   { key: 'short_term', icon: Clock, title: 'Short-term', desc: 'Memória da conversa atual', retention: 'Sessão', color: 'text-nexus-cyan' },

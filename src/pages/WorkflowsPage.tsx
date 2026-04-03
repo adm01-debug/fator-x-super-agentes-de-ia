@@ -105,9 +105,9 @@ export default function WorkflowsPage() {
   };
 
   const handleCreate = async () => {
-    if (!newName.trim()) { toast.error('Nome é obrigatório'); return; }
     const steps = newSteps.split(',').map(s => s.trim()).filter(Boolean);
-    if (steps.length < 2) { toast.error('Adicione pelo menos 2 etapas separadas por vírgula'); return; }
+    const result = workflowSchema.safeParse({ name: newName, steps });
+    if (!result.success) { toast.error(result.error.errors[0]?.message || 'Dados inválidos'); return; }
     try {
       const { data: member } = await supabase.from('workspace_members').select('workspace_id').limit(1).single();
       const { data: wf, error } = await fromTable('workflows').insert({
