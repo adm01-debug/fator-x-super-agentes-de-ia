@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Bot, Loader2 } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
+import { fromTable } from "@/lib/supabaseExtended";
 
 export default function AgentDetailPage() {
   const { id } = useParams();
