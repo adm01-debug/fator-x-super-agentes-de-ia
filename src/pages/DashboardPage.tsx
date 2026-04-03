@@ -153,17 +153,19 @@ export default function DashboardPage() {
           </Button>
           <div className="grid sm:grid-cols-3 gap-3 sm:gap-4 mt-8 sm:mt-10 w-full max-w-2xl stagger-children">
             {[
-              { emoji: '🧠', title: 'Super Cérebro', desc: 'Memória centralizada para toda a empresa', path: '/brain' },
-              { emoji: '🔮', title: 'Oráculo', desc: 'Conselho de múltiplas IAs para melhores respostas', path: '/oracle' },
-              { emoji: '🛡️', title: 'Guardrails', desc: 'Segurança e compliance em tempo real', path: '/security' },
+              { emoji: '🧠', title: 'Super Cérebro', desc: 'Memória centralizada para toda a empresa', path: '/brain', accent: 'border-purple-500/30 hover:border-purple-500/50', iconBg: 'bg-purple-500/10' },
+              { emoji: '🔮', title: 'Oráculo', desc: 'Conselho de múltiplas IAs para melhores respostas', path: '/oracle', accent: 'border-nexus-cyan/30 hover:border-nexus-cyan/50', iconBg: 'bg-nexus-cyan/10' },
+              { emoji: '🛡️', title: 'Guardrails', desc: 'Segurança e compliance em tempo real', path: '/security', accent: 'border-nexus-emerald/30 hover:border-nexus-emerald/50', iconBg: 'bg-nexus-emerald/10' },
             ].map(card => (
               <button
                 key={card.title}
-                className="nexus-card text-center cursor-pointer hover:border-primary/30 transition-colors min-h-[44px] w-full"
+                className={`nexus-card text-center cursor-pointer transition-all min-h-[44px] w-full ${card.accent}`}
                 onClick={() => navigate(card.path)}
                 aria-label={`Navegar para ${card.title}: ${card.desc}`}
               >
-                <div className="text-3xl mb-2" aria-hidden="true">{card.emoji}</div>
+                <div className={`inline-flex items-center justify-center h-12 w-12 rounded-xl ${card.iconBg} mb-3 mx-auto`}>
+                  <span className="text-2xl" aria-hidden="true">{card.emoji}</span>
+                </div>
                 <h3 className="text-sm font-semibold text-foreground">{card.title}</h3>
                 <p className="text-[11px] text-muted-foreground mt-1">{card.desc}</p>
               </button>
