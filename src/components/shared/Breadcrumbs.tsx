@@ -18,11 +18,16 @@ const routeLabels: Record<string, string> = {
   deployments: "Deployments",
   monitoring: "Monitoring",
   "data-storage": "Data & Storage",
+  datahub: "DataHub",
   security: "Security & Guardrails",
+  lgpd: "LGPD Compliance",
+  approvals: "Aprovações",
   team: "Team & Roles",
   billing: "Billing / Usage",
   settings: "Settings",
+  admin: "Admin BD",
   auth: "Autenticação",
+  "reset-password": "Redefinir Senha",
 };
 
 interface BreadcrumbItem {
