@@ -173,7 +173,7 @@ export function AppSidebar() {
                             to={item.url}
                             end={item.url === "/"}
                             className="flex items-center gap-2.5 rounded-lg px-2.5 py-2 text-sm transition-all text-sidebar-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground hover:translate-x-0.5"
-                            activeClassName="bg-primary/10 text-primary font-medium"
+                            activeClassName="bg-primary/12 text-primary font-medium shadow-[inset_3px_0_0_hsl(var(--primary))]"
                             aria-current={isActive ? "page" : undefined}
                           >
                             <item.icon className="h-4 w-4 shrink-0" />
