@@ -89,14 +89,18 @@ export function CreateAgentWizard() {
   useEffect(() => {
     supabase.from('agent_templates').select('*').eq('is_public', true).order('usage_count', { ascending: false }).then(({ data }) => {
       if (data && data.length > 0) {
-        const dbTemplates: AgentTemplate[] = data.map((t: any) => ({
-          id: t.id, name: t.name, emoji: t.icon || '🤖', category: t.category || 'general',
-          description: t.description || '', type: t.category || 'assistant',
-          model: (t.config as any)?.model || 'gpt-4o',
-          prompt: (t.config as any)?.system_prompt || '',
-          tools: (t.config as any)?.tools?.map((tool: any) => tool.name) || [],
-          memory: (t.config as any)?.memory || [],
-        }));
+        const dbTemplates: AgentTemplate[] = data.map((t) => {
+          const cfg = t.config as Record<string, unknown> | null;
+          const tools = cfg?.tools as Array<{ name: string }> | undefined;
+          return {
+            id: t.id, name: t.name, emoji: t.icon || '🤖', category: t.category || 'general',
+            description: t.description || '', type: t.category || 'assistant',
+            model: (cfg?.model as string) || 'gpt-4o',
+            prompt: (cfg?.system_prompt as string) || '',
+            tools: tools?.map((tool) => tool.name) || [],
+            memory: (cfg?.memory as string[]) || [],
+          };
+        });
         // DB templates first, then static that aren't duplicated
         const dbIds = new Set(dbTemplates.map(t => t.id));
         setAgentTemplates([...dbTemplates, ...STATIC_TEMPLATES.filter(t => !dbIds.has(t.id))]);
