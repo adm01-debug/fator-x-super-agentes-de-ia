@@ -92,8 +92,7 @@ export default function MonitoringPage() {
     enabled: !!expandedTraceId,
     queryFn: async () => {
       if (!expandedTraceId) return [];
-      const { data, error } = await (supabase as any)
-        .from('trace_events')
+      const { data, error } = await fromTable('trace_events')
         .select('*')
         .eq('session_trace_id', expandedTraceId)
         .order('created_at', { ascending: true });
