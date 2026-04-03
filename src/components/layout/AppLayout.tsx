@@ -75,21 +75,30 @@ export function AppLayout({ children }: AppLayoutProps) {
       '/agents': 'Agentes',
       '/brain': 'Super Cérebro',
       '/oracle': 'Oráculo',
-      '/knowledge': 'Knowledge',
+      '/knowledge': 'Knowledge / RAG',
       '/memory': 'Memory',
-      '/tools': 'Tools',
+      '/tools': 'Tools & Integrations',
       '/prompts': 'Prompts',
       '/workflows': 'Workflows',
       '/evaluations': 'Evaluations',
       '/deployments': 'Deployments',
       '/monitoring': 'Monitoring',
       '/data-storage': 'Data & Storage',
-      '/security': 'Security',
-      '/team': 'Team',
-      '/billing': 'Billing',
+      '/datahub': 'DataHub',
+      '/security': 'Security & Guardrails',
+      '/lgpd': 'LGPD Compliance',
+      '/approvals': 'Aprovações',
+      '/team': 'Team & Roles',
+      '/billing': 'Billing / Usage',
       '/settings': 'Settings',
+      '/admin': 'Admin BD',
     };
-    return titles[path] || 'Página';
+    // Match exact or prefix for dynamic routes
+    if (titles[path]) return titles[path];
+    for (const [route, title] of Object.entries(titles)) {
+      if (path.startsWith(route + '/')) return title;
+    }
+    return 'Página';
   }, [location.pathname]);
 
   return (

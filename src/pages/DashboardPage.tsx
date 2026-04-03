@@ -3,7 +3,7 @@ import { StatusBadge } from "@/components/shared/StatusBadge";
 import { InfoHint } from "@/components/shared/InfoHint";
 import { AnimatedCounter } from "@/components/shared/AnimatedCounter";
 import { Button } from "@/components/ui/button";
-import { Bot, Plus, ArrowRight, TrendingUp, DollarSign, Clock, Zap } from "lucide-react";
+import { Bot, Plus, ArrowRight, TrendingUp, DollarSign, Clock, Zap, Sparkles } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
@@ -293,6 +293,9 @@ export default function DashboardPage() {
             </div>
           </div>
 
+          {/* AI Insight */}
+          <DashboardInsight agents={agents} usageStats={usageStats} recentTraces={recentTraces} />
+
           {/* Alerts */}
           <DashboardAlerts />
         </>
@@ -318,10 +321,10 @@ function DashboardAlerts() {
   if (alerts.length === 0) return null;
 
   return (
-    <div className="nexus-card border-amber-500/20">
+    <div className="nexus-card border-nexus-amber/20">
       <div className="flex items-center justify-between mb-3">
         <h3 className="text-sm font-heading font-semibold text-foreground flex items-center gap-2">
-          <span className="h-2 w-2 rounded-full bg-amber-400 animate-pulse" />
+          <span className="h-2 w-2 rounded-full bg-nexus-amber animate-pulse" />
           Alertas Ativos ({alerts.length})
         </h3>
         <button onClick={() => navigate('/monitoring')} className="text-[11px] text-primary hover:underline">Ver todos</button>
@@ -329,9 +332,82 @@ function DashboardAlerts() {
       <div className="space-y-2">
         {alerts.map(a => (
           <div key={a.id} className="flex items-center gap-2 text-xs py-1">
-            <span className={`w-2 h-2 rounded-full shrink-0 ${a.severity === 'critical' ? 'bg-destructive' : 'bg-amber-400'}`} />
+            <span className={`w-2 h-2 rounded-full shrink-0 ${a.severity === 'critical' ? 'bg-destructive' : 'bg-nexus-amber'}`} />
             <span className="text-foreground truncate">{a.title}</span>
             <span className="text-muted-foreground ml-auto shrink-0 text-[11px]">{new Date(a.created_at || '').toLocaleDateString('pt-BR')}</span>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+interface InsightProps {
+  agents: Array<{ status: string | null; name: string }>;
+  usageStats: { totalCost: number; totalRequests: number; avgLatency: number; totalTokens: number } | null;
+  recentTraces: Array<{ level: string | null; event: string }>;
+}
+
+function DashboardInsight({ agents, usageStats, recentTraces }: InsightProps) {
+  const insights: Array<{ icon: string; text: string; type: 'info' | 'warning' | 'success' }> = [];
+
+  // Generate contextual insights
+  const errorTraces = recentTraces.filter(t => t.level === 'error' || t.level === 'critical');
+  if (errorTraces.length > 0) {
+    insights.push({
+      icon: '⚠️',
+      text: `${errorTraces.length} erro${errorTraces.length > 1 ? 's' : ''} detectado${errorTraces.length > 1 ? 's' : ''} recentemente — verifique o Monitoring para detalhes.`,
+      type: 'warning',
+    });
+  }
+
+  if (usageStats && usageStats.avgLatency > 2000) {
+    insights.push({
+      icon: '🐢',
+      text: `Latência média de ${usageStats.avgLatency}ms está acima do ideal. Considere otimizar prompts ou trocar de modelo.`,
+      type: 'warning',
+    });
+  }
+
+  const draftAgents = agents.filter(a => a.status === 'draft');
+  if (draftAgents.length > 2) {
+    insights.push({
+      icon: '📝',
+      text: `Você tem ${draftAgents.length} agentes em rascunho. Considere finalizá-los ou arquivar os que não serão usados.`,
+      type: 'info',
+    });
+  }
+
+  const productionAgents = agents.filter(a => a.status === 'production' || a.status === 'monitoring');
+  if (productionAgents.length > 0 && errorTraces.length === 0) {
+    insights.push({
+      icon: '✅',
+      text: `${productionAgents.length} agente${productionAgents.length > 1 ? 's' : ''} em produção operando sem erros. Tudo funcionando bem!`,
+      type: 'success',
+    });
+  }
+
+  if (usageStats && usageStats.totalCost > 50) {
+    insights.push({
+      icon: '💰',
+      text: `Custo de $${usageStats.totalCost.toFixed(2)} nos últimos 30 dias. Confira o Billing para detalhes por agente.`,
+      type: 'info',
+    });
+  }
+
+  if (insights.length === 0) return null;
+
+  return (
+    <div className="nexus-card border-primary/10 bg-gradient-to-r from-card to-primary/[0.02]">
+      <div className="flex items-center gap-2 mb-3">
+        <Sparkles className="h-4 w-4 text-primary" aria-hidden="true" />
+        <h3 className="text-sm font-heading font-semibold text-foreground">Insights da IA</h3>
+      </div>
+      <div className="space-y-2">
+        {insights.slice(0, 3).map((insight, i) => (
+          <div key={i} className="flex items-start gap-2 text-xs text-muted-foreground">
+            <span className="shrink-0 mt-0.5" aria-hidden="true">{insight.icon}</span>
+            <p>{insight.text}</p>
           </div>
         ))}
       </div>
