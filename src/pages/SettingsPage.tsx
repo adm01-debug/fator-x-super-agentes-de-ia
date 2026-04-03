@@ -262,7 +262,7 @@ function EnvironmentsManager() {
     if (!newEnvName.trim()) return;
     setCreating(true);
     const wsId = await getWorkspaceId();
-    await (supabase as any).from('environments').insert({ workspace_id: wsId, name: newEnvName.trim() });
+    await fromTable('environments').insert({ workspace_id: wsId, name: newEnvName.trim() });
     setNewEnvName('');
     setCreating(false);
     queryClient.invalidateQueries({ queryKey: ['environments'] });
