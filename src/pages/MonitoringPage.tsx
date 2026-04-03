@@ -455,7 +455,7 @@ function AlertRulesPanel() {
   };
 
   const handleDeleteRule = async (id: string) => {
-    await (supabase as any).from('alert_rules').delete().eq('id', id);
+    await fromTable('alert_rules').delete().eq('id', id);
     queryClient.invalidateQueries({ queryKey: ['alert_rules'] });
     toast.success('Regra removida');
   };
