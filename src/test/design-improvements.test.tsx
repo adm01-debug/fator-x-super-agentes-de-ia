@@ -608,9 +608,7 @@ describe("Round 3: Visual & Token Polish", () => {
         "glow", "cyan", "emerald", "amber", "rose",
       ];
       // Verify via tailwind config structure
-      for (const token of expectedTokens) {
-        expect(true).toBe(true); // Token verified in tailwind.config.ts nexus block
-      }
+      expect(expectedTokens.length).toBe(13);
     });
   });
 
