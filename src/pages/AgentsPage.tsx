@@ -1,8 +1,9 @@
 import { PageHeader } from "@/components/shared/PageHeader";
 import { StatusBadge } from "@/components/shared/StatusBadge";
+import { QuickActionsBar } from "@/components/shared/QuickActionsBar";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Bot, Plus, Search, Filter, ArrowRight, Loader2 } from "lucide-react";
+import { Bot, Plus, Search, Filter, ArrowRight, Loader2, BookOpen, GitBranch, Activity } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
@@ -70,6 +71,12 @@ export default function AgentsPage() {
           </Button>
         }
       />
+
+      <QuickActionsBar actions={[
+        { label: 'Knowledge', icon: BookOpen, path: '/knowledge' },
+        { label: 'Workflows', icon: GitBranch, path: '/workflows' },
+        { label: 'Monitoring', icon: Activity, path: '/monitoring' },
+      ]} />
 
       <div className="flex items-center gap-3">
         <div className="relative flex-1 max-w-sm">

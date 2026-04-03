@@ -1,5 +1,5 @@
-import { useMemo } from "react";
-import { LightAreaChart, LightBarChart } from "@/components/charts";
+import { useMemo, useState } from "react";
+import { LightAreaChart, LightBarChart, ComparisonToggle, generateComparisonData } from "@/components/charts";
 import { format, subDays, eachDayOfInterval } from "date-fns";
 import { ptBR } from "date-fns/locale";
 
@@ -47,6 +47,9 @@ function buildDailyMap(data: UsageRow[]) {
 }
 
 export function UsageCharts({ data }: UsageChartsProps) {
+  const [compareRequests, setCompareRequests] = useState(false);
+  const [compareCost, setCompareCost] = useState(false);
+
   const chartData = useMemo(() => {
     const today = new Date();
     const start = subDays(today, 29);
@@ -69,15 +72,46 @@ export function UsageCharts({ data }: UsageChartsProps) {
     });
   }, [data]);
 
+  // Comparison data: shift 15 days back
+  const requestsData = useMemo(
+    () => compareRequests ? generateComparisonData(chartData, ['requests'], 15) : chartData,
+    [chartData, compareRequests]
+  );
+
+  const costData = useMemo(
+    () => compareCost ? generateComparisonData(chartData, ['cost'], 15) : chartData,
+    [chartData, compareCost]
+  );
+
+  // Auto-detect peak day for annotation
+  const peakRequestIdx = useMemo(() => {
+    let maxIdx = 0, maxVal = 0;
+    chartData.forEach((d, i) => {
+      if (d.requests > maxVal) { maxVal = d.requests; maxIdx = i; }
+    });
+    return maxVal > 0 ? maxIdx : -1;
+  }, [chartData]);
+
+  const peakCostIdx = useMemo(() => {
+    let maxIdx = 0, maxVal = 0;
+    chartData.forEach((d, i) => {
+      if (d.cost > maxVal) { maxVal = d.cost; maxIdx = i; }
+    });
+    return maxVal > 0 ? maxIdx : -1;
+  }, [chartData]);
+
   return (
     <div className="grid gap-4 lg:grid-cols-2">
       {/* Requests & Errors */}
       <div className="nexus-card">
-        <h3 className="text-sm font-heading font-semibold text-foreground mb-4">
-          Requests &amp; Erros <span className="text-muted-foreground font-normal">(30 dias)</span>
-        </h3>
+        <div className="flex items-center justify-between mb-4">
+          <h3 className="text-sm font-heading font-semibold text-foreground">
+            Requests &amp; Erros <span className="text-muted-foreground font-normal">(30 dias)</span>
+          </h3>
+          <ComparisonToggle enabled={compareRequests} onToggle={setCompareRequests} label="vs anterior" />
+        </div>
         <LightAreaChart
-          data={chartData}
+          data={requestsData}
           xKey="label"
           height={220}
           margin={{ top: 4, right: 4, left: -20, bottom: 0 }}
@@ -85,24 +119,44 @@ export function UsageCharts({ data }: UsageChartsProps) {
           series={[
             { dataKey: "requests", name: "Requests", stroke: "hsl(var(--primary))", gradientFrom: "hsl(var(--primary))" },
             { dataKey: "errors", name: "Erros", stroke: "#f43f5e", gradientFrom: "#f43f5e", strokeWidth: 1.5 },
+            ...(compareRequests ? [{ dataKey: "prev_requests", name: "Anterior", stroke: "hsl(var(--muted-foreground))", gradientFrom: "hsl(var(--muted-foreground))", strokeWidth: 1 }] : []),
           ]}
         />
+        {peakRequestIdx >= 0 && (
+          <p className="text-[10px] text-muted-foreground mt-2 flex items-center gap-1">
+            <span className="inline-block h-1.5 w-1.5 rounded-full bg-primary" />
+            Pico: {chartData[peakRequestIdx]?.label} ({chartData[peakRequestIdx]?.requests} requests)
+          </p>
+        )}
       </div>
 
       {/* Cost */}
       <div className="nexus-card">
-        <h3 className="text-sm font-heading font-semibold text-foreground mb-4">
-          Custo USD <span className="text-muted-foreground font-normal">(30 dias)</span>
-        </h3>
+        <div className="flex items-center justify-between mb-4">
+          <h3 className="text-sm font-heading font-semibold text-foreground">
+            Custo USD <span className="text-muted-foreground font-normal">(30 dias)</span>
+          </h3>
+          <ComparisonToggle enabled={compareCost} onToggle={setCompareCost} label="vs anterior" />
+        </div>
         <LightBarChart
-          data={chartData}
+          data={costData}
           xKey="label"
           height={220}
           margin={{ top: 4, right: 4, left: -20, bottom: 0 }}
           yFormatter={(v) => `$${v}`}
           tooltipFormatter={(v) => `$${v.toFixed(4)}`}
-          series={[{ dataKey: "cost", name: "Custo", color: "hsl(var(--primary))", radius: 3 }]}
+          showLegend={compareCost}
+          series={[
+            { dataKey: "cost", name: "Custo", color: "hsl(var(--primary))", radius: 3 },
+            ...(compareCost ? [{ dataKey: "prev_cost", name: "Anterior", color: "hsl(var(--muted-foreground))", radius: 3 }] : []),
+          ]}
         />
+        {peakCostIdx >= 0 && (
+          <p className="text-[10px] text-muted-foreground mt-2 flex items-center gap-1">
+            <span className="inline-block h-1.5 w-1.5 rounded-full bg-nexus-amber" />
+            Pico: {chartData[peakCostIdx]?.label} (${chartData[peakCostIdx]?.cost})
+          </p>
+        )}
       </div>
 
       {/* Latency */}

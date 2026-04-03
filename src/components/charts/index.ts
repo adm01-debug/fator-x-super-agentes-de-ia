@@ -5,3 +5,6 @@ export { LightPieChart } from './LightPieChart';
 export { LightRadarChart } from './LightRadarChart';
 export { ChartTooltip } from './ChartTooltip';
 export { ChartLegend } from './ChartLegend';
+export { ChartAnnotations } from './ChartAnnotation';
+export type { Annotation } from './ChartAnnotation';
+export { ComparisonToggle, generateComparisonData } from './ComparisonToggle';

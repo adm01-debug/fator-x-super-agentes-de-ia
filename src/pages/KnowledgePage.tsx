@@ -1,10 +1,11 @@
 import { PageHeader } from "@/components/shared/PageHeader";
 import { StatusBadge } from "@/components/shared/StatusBadge";
 import { InfoHint } from "@/components/shared/InfoHint";
+import { QuickActionsBar } from "@/components/shared/QuickActionsBar";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
-import { Search, BookOpen, ArrowRight, Loader2, Database, Pencil, Trash2 } from "lucide-react";
+import { Search, BookOpen, ArrowRight, Loader2, Database, Pencil, Trash2, Bot, FileText } from "lucide-react";
 import { useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
@@ -62,6 +63,11 @@ export default function KnowledgePage() {
         description="Gerencie bases de conhecimento, documentos e pipelines de ingestão"
         actions={<CreateKnowledgeBaseDialog onCreated={() => refetch()} />}
       />
+
+      <QuickActionsBar actions={[
+        { label: 'Agents', icon: Bot, path: '/agents' },
+        { label: 'Prompts', icon: FileText, path: '/prompts' },
+      ]} />
 
       <InfoHint title="O que é RAG?">
         Retrieval-Augmented Generation combina busca em documentos com geração de linguagem. O agente recupera trechos relevantes da base de conhecimento antes de responder, melhorando a factualidade e permitindo citações.
