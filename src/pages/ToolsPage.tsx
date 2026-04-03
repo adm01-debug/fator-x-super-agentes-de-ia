@@ -17,12 +17,12 @@ import { getWorkspaceId } from "@/lib/agentService";
 import { toast } from "sonner";
 
 const builtInTools = [
-  { name: 'Web Search', category: 'Pesquisa', icon: Globe, desc: 'Busca na web em tempo real' },
-  { name: 'Knowledge Search', category: 'RAG', icon: FileSearch, desc: 'Busca semântica nas bases de conhecimento' },
-  { name: 'SQL Query', category: 'Database', icon: Database, desc: 'Consultas SQL no banco de dados' },
-  { name: 'Email Send', category: 'Comunicação', icon: Mail, desc: 'Envio de emails transacionais' },
-  { name: 'Code Executor', category: 'Código', icon: Code, desc: 'Execução de código Python/JS' },
-  { name: 'Webhook', category: 'Integração', icon: Webhook, desc: 'Chamadas HTTP para APIs externas' },
+  { name: 'Web Search', category: 'Pesquisa', icon: Globe, desc: 'Busca na web em tempo real', color: 'text-nexus-blue', bg: 'bg-nexus-blue/10' },
+  { name: 'Knowledge Search', category: 'RAG', icon: FileSearch, desc: 'Busca semântica nas bases de conhecimento', color: 'text-nexus-purple', bg: 'bg-nexus-purple/10' },
+  { name: 'SQL Query', category: 'Database', icon: Database, desc: 'Consultas SQL no banco de dados', color: 'text-nexus-emerald', bg: 'bg-nexus-emerald/10' },
+  { name: 'Email Send', category: 'Comunicação', icon: Mail, desc: 'Envio de emails transacionais', color: 'text-nexus-amber', bg: 'bg-nexus-amber/10' },
+  { name: 'Code Executor', category: 'Código', icon: Code, desc: 'Execução de código Python/JS', color: 'text-nexus-cyan', bg: 'bg-nexus-cyan/10' },
+  { name: 'Webhook', category: 'Integração', icon: Webhook, desc: 'Chamadas HTTP para APIs externas', color: 'text-nexus-orange', bg: 'bg-nexus-orange/10' },
 ];
 
 const iconMap: Record<string, React.ElementType> = {
@@ -97,6 +97,8 @@ export default function ToolsPage() {
       built_in: false,
       id: t.id,
       is_enabled: t.is_enabled ?? true,
+      color: 'text-primary',
+      bg: 'bg-primary/10',
     })),
   ];
 
@@ -159,8 +161,8 @@ export default function ToolsPage() {
           {filtered.map((tool) => (
             <div key={tool.id} className="nexus-card group">
               <div className="flex items-center gap-2.5 mb-3">
-                <div className="h-10 w-10 rounded-xl bg-primary/10 flex items-center justify-center">
-                  <tool.icon className="h-5 w-5 text-primary" />
+                <div className={`h-10 w-10 rounded-xl ${tool.bg} flex items-center justify-center`}>
+                  <tool.icon className={`h-5 w-5 ${tool.color}`} />
                 </div>
                 <div className="min-w-0 flex-1">
                   <div className="flex items-center gap-1.5">

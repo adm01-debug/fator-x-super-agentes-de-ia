@@ -173,7 +173,7 @@ export function AppSidebar() {
                             to={item.url}
                             end={item.url === "/"}
                             className="flex items-center gap-2.5 rounded-lg px-2.5 py-2 text-sm transition-all text-sidebar-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground hover:translate-x-0.5"
-                            activeClassName="bg-primary/10 text-primary font-medium"
+                            activeClassName="bg-primary/12 text-primary font-medium shadow-[inset_3px_0_0_hsl(var(--primary))]"
                             aria-current={isActive ? "page" : undefined}
                           >
                             <item.icon className="h-4 w-4 shrink-0" />
@@ -199,8 +199,8 @@ export function AppSidebar() {
                 <p className="text-[11px] font-semibold text-foreground">Workspace {planLabel}</p>
                 <span className="text-[11px] text-muted-foreground">{agentCount}/{maxAgents}</span>
               </div>
-              <div className="h-1 rounded-full bg-secondary" role="progressbar" aria-valuenow={usage} aria-valuemin={0} aria-valuemax={100} aria-label="Uso de agentes">
-                <div className="h-full rounded-full nexus-gradient-bg transition-all" style={{ width: `${usage}%` }} />
+              <div className="h-1.5 rounded-full bg-secondary" role="progressbar" aria-valuenow={usage} aria-valuemin={0} aria-valuemax={100} aria-label="Uso de agentes">
+                <div className="h-full rounded-full nexus-gradient-bg transition-all" style={{ width: `${Math.max(usage, 4)}%` }} />
               </div>
             </div>
             <Separator className="bg-border/30" />
@@ -218,6 +218,7 @@ export function AppSidebar() {
                 </Button>
               </div>
             )}
+            <p className="text-[9px] text-muted-foreground/40 text-center px-2 select-none">Fator X v1.0 • Nexus Platform</p>
           </>
         )}
         <Button

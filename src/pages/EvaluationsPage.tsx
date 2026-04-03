@@ -41,9 +41,11 @@ export default function EvaluationsPage() {
             <div className="flex items-center justify-center py-20"><Loader2 className="h-6 w-6 animate-spin text-muted-foreground" /></div>
           ) : evaluations.length === 0 ? (
             <div className="flex flex-col items-center justify-center py-20 text-center">
-              <FlaskConical className="h-12 w-12 text-muted-foreground mb-4" />
-              <h2 className="text-lg font-semibold text-foreground mb-1">Nenhuma avaliação executada</h2>
-              <p className="text-sm text-muted-foreground">Crie avaliações para testar seus agentes sistematicamente.</p>
+              <div className="h-16 w-16 rounded-2xl bg-nexus-purple/10 flex items-center justify-center mb-4">
+                <FlaskConical className="h-8 w-8 text-nexus-purple" />
+              </div>
+              <h2 className="text-lg font-heading font-semibold text-foreground mb-1">Nenhuma avaliação executada</h2>
+              <p className="text-sm text-muted-foreground max-w-sm">Crie avaliações para testar seus agentes sistematicamente e detectar regressões.</p>
             </div>
           ) : (
             <div className="space-y-4">

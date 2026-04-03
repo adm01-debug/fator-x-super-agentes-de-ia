@@ -160,8 +160,10 @@ export default function MemoryPage() {
         <div className="flex items-center justify-center py-16"><Loader2 className="h-6 w-6 animate-spin text-muted-foreground" /></div>
       ) : memories.length === 0 ? (
         <div className="flex flex-col items-center justify-center py-16 text-center">
-          <Brain className="h-10 w-10 text-muted-foreground mb-3" />
-          <p className="text-sm text-muted-foreground">{search ? 'Nenhuma memória encontrada' : 'Nenhuma memória deste tipo ainda'}</p>
+          <div className="h-16 w-16 rounded-2xl bg-nexus-cyan/10 flex items-center justify-center mb-4">
+            <Brain className="h-8 w-8 text-nexus-cyan" />
+          </div>
+          <p className="text-sm text-muted-foreground">{search ? 'Nenhuma memória encontrada para essa busca' : 'Nenhuma memória deste tipo ainda. Adicione acima para começar.'}</p>
         </div>
       ) : (
         <div className="space-y-2">

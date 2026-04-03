@@ -382,6 +382,22 @@
 .stagger-children > *:nth-child(7) { animation-delay: 300ms; }
 .stagger-children > *:nth-child(8) { animation-delay: 350ms; }
 
+/* ═══ Skeleton shimmer animation ═══ */
+@keyframes skeleton-shimmer {
+  0%   { background-position: -200% 0; }
+  100% { background-position: 200% 0; }
+}
+.skeleton-shimmer {
+  background: linear-gradient(
+    90deg,
+    hsl(var(--muted) / 0.3) 25%,
+    hsl(var(--muted) / 0.5) 50%,
+    hsl(var(--muted) / 0.3) 75%
+  );
+  background-size: 200% 100%;
+  animation: skeleton-shimmer 1.5s ease-in-out infinite;
+}
+
 /* ═══ Metric card shimmer on hover ═══ */
 @keyframes shimmer-slide {
   from { transform: translateX(-100%); }
@@ -401,6 +417,20 @@
 }
 .nexus-metric-card:hover::after {
   animation: shimmer-slide 0.6s ease-out;
+}
+
+/* ═══ Alternating table rows ═══ */
+.nexus-table-striped tbody tr:nth-child(even) {
+  background: hsl(var(--muted) / 0.05);
+}
+.nexus-table-striped tbody tr {
+  transition: background-color 0.15s ease;
+}
+
+/* ═══ Active sidebar item stronger contrast ═══ */
+.sidebar-active-glow {
+  box-shadow: inset 3px 0 0 hsl(var(--primary));
+  background: hsl(var(--primary) / 0.12) !important;
 }
 
 /* ═══ Glow pulse for active status dots ═══ */

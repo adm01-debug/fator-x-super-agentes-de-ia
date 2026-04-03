@@ -116,8 +116,10 @@ export default function AgentsPage() {
             </>
           ) : (
             <>
-              <div className="text-5xl mb-4" aria-hidden="true">🤖</div>
-              <h2 className="text-lg font-semibold text-foreground mb-1">Nenhum agente ainda</h2>
+              <div className="h-16 w-16 rounded-2xl bg-primary/10 flex items-center justify-center mb-4">
+                <Bot className="h-8 w-8 text-primary" />
+              </div>
+              <h2 className="text-lg font-heading font-semibold text-foreground mb-1">Nenhum agente ainda</h2>
               <p className="text-sm text-muted-foreground mb-4 max-w-sm">
                 Crie seu primeiro agente e comece a explorar o poder dos superagentes de IA.
               </p>

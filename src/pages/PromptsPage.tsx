@@ -56,12 +56,14 @@ export default function PromptsPage() {
         <div className="flex items-center justify-center py-20"><Loader2 className="h-6 w-6 animate-spin text-muted-foreground" /></div>
       ) : latestPrompts.length === 0 ? (
         <div className="flex flex-col items-center justify-center py-20 text-center">
-          <FileText className="h-12 w-12 text-muted-foreground mb-4" />
-          <h2 className="text-lg font-semibold text-foreground mb-1">Nenhum prompt cadastrado</h2>
-          <p className="text-sm text-muted-foreground mb-4">Crie seu primeiro prompt para começar a versionar.</p>
+          <div className="h-16 w-16 rounded-2xl bg-primary/10 flex items-center justify-center mb-4">
+            <FileText className="h-8 w-8 text-primary" />
+          </div>
+          <h2 className="text-lg font-heading font-semibold text-foreground mb-1">Nenhum prompt cadastrado</h2>
+          <p className="text-sm text-muted-foreground mb-4 max-w-sm">Crie seu primeiro prompt para começar a versionar e iterar com métricas.</p>
         </div>
       ) : (
-        <div className="nexus-card overflow-hidden p-0">
+        <div className="nexus-card overflow-hidden p-0 nexus-table-striped">
           <table className="w-full">
             <thead>
               <tr className="border-b border-border/50 text-[11px] text-muted-foreground uppercase tracking-wider">
