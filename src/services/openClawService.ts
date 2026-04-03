@@ -163,7 +163,8 @@ export function agentToolsToSkills(tools: { name: string; type: string; descript
 
 // ═══ OPENCLAW GATEWAY API BRIDGE ═══
 
-const DEFAULT_GATEWAY = 'http://localhost:3007';
+const DEFAULT_GATEWAY = import.meta.env.VITE_OPENCLAW_GATEWAY_URL ?? 'https://openclaw-sbem.srv1481814.hstgr.cloud';
+const DEFAULT_TOKEN = import.meta.env.VITE_OPENCLAW_API_TOKEN ?? '';
 
 /**
  * Send a message to an OpenClaw agent via its Gateway API.
@@ -174,10 +175,11 @@ export async function sendMessage(
 ): Promise<{ response: string; sessionId: string; error?: string }> {
   const url = config.gatewayUrl ?? DEFAULT_GATEWAY;
   const sessionId = config.sessionId ?? 'main';
+  const token = config.apiToken ?? DEFAULT_TOKEN;
 
   try {
     const headers: Record<string, string> = { 'Content-Type': 'application/json' };
-    if (config.apiToken) headers['Authorization'] = `Bearer ${config.apiToken}`;
+    if (token) headers['Authorization'] = `Bearer ${token}`;
 
     const resp = await fetch(`${url}/api/sessions/${sessionId}/messages`, {
       method: 'POST',
@@ -208,10 +210,11 @@ export async function getSessionHistory(
 ): Promise<{ messages: { role: string; content: string }[]; error?: string }> {
   const url = config.gatewayUrl ?? DEFAULT_GATEWAY;
   const sessionId = config.sessionId ?? 'main';
+  const token = config.apiToken ?? DEFAULT_TOKEN;
 
   try {
     const headers: Record<string, string> = {};
-    if (config.apiToken) headers['Authorization'] = `Bearer ${config.apiToken}`;
+    if (token) headers['Authorization'] = `Bearer ${token}`;
 
     const resp = await fetch(`${url}/api/sessions/${sessionId}`, { headers });
     if (!resp.ok) return { messages: [], error: `${resp.status}` };
