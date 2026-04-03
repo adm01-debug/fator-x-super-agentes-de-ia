@@ -149,8 +149,8 @@ export default function MonitoringPage() {
 
   const agentName = (id: string | null) => {
     if (!id) return '—';
-    const a = agentsList.find((ag: any) => ag.id === id);
-    return a ? (a as any).name : id.substring(0, 8);
+    const a = agentsList.find((ag) => ag.id === id);
+    return a ? a.name : id.substring(0, 8);
   };
 
   return (

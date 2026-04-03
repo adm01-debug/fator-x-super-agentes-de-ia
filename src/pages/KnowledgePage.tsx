@@ -227,10 +227,10 @@ function VectorIndexesStatus() {
       )}
       {indexes.length > 0 && (
         <div className="space-y-2">
-          {indexes.map((idx: any) => (
-            <div key={idx.id} className="flex items-center justify-between py-2 px-3 rounded-lg bg-secondary/30 text-xs">
+          {indexes.map((idx: Record<string, unknown>) => (
+            <div key={idx.id as string} className="flex items-center justify-between py-2 px-3 rounded-lg bg-secondary/30 text-xs">
               <div>
-                <span className="font-medium text-foreground">{(idx as any).knowledge_bases?.name || 'KB'}</span>
+                <span className="font-medium text-foreground">{(idx.knowledge_bases as Record<string, string> | null)?.name || 'KB'}</span>
                 <span className="text-muted-foreground ml-2">{idx.provider} • {idx.model} • {idx.dimensions}d</span>
               </div>
               <span className={`text-[10px] ${idx.status === 'active' ? 'text-emerald-400' : 'text-amber-400'}`}>{idx.status}</span>
