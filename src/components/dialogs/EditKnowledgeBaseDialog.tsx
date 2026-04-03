@@ -59,7 +59,7 @@ export function EditKnowledgeBaseDialog({ kb, open, onOpenChange, onUpdated }: E
       onOpenChange(false);
       onUpdated?.();
     } catch (e: unknown) {
-      toast.error(e.message || 'Erro ao atualizar');
+      toast.error(e instanceof Error ? e.message : 'Erro ao atualizar');
     } finally {
       setLoading(false);
     }

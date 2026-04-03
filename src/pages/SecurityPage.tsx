@@ -67,7 +67,7 @@ export default function SecurityPage() {
       setGrName('');
       queryClient.invalidateQueries({ queryKey: ['guardrail_policies'] });
     } catch (e: unknown) {
-      toast.error(e.message);
+      toast.error(e instanceof Error ? e.message : 'Erro inesperado');
     } finally {
       setSaving(false);
     }

@@ -113,7 +113,7 @@ export default function PromptEditorPage() {
       setDirty(false);
       queryClient.invalidateQueries({ queryKey: ["prompt_versions", agentId] });
     },
-    onError: (e: any) => toast.error(e.message),
+    onError: (e: any) => toast.error(e instanceof Error ? e.message : 'Erro inesperado'),
   });
 
   // Delete a version
@@ -126,7 +126,7 @@ export default function PromptEditorPage() {
       toast.success("Versão removida");
       queryClient.invalidateQueries({ queryKey: ["prompt_versions", agentId] });
     },
-    onError: (e: any) => toast.error(e.message),
+    onError: (e: any) => toast.error(e instanceof Error ? e.message : 'Erro inesperado'),
   });
 
   // Restore (activate) a specific version
@@ -143,7 +143,7 @@ export default function PromptEditorPage() {
       setDiffVersionId(null);
       queryClient.invalidateQueries({ queryKey: ["prompt_versions", agentId] });
     },
-    onError: (e: any) => toast.error(e.message),
+    onError: (e: any) => toast.error(e instanceof Error ? e.message : 'Erro inesperado'),
   });
 
   // Score calculation based on content

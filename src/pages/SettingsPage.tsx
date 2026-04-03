@@ -50,7 +50,7 @@ export default function SettingsPage() {
       setNewKeyName(''); setNewKeyValue('');
       queryClient.invalidateQueries({ queryKey: ['workspace_secrets'] });
     },
-    onError: (e: any) => toast.error(e.message),
+    onError: (e: any) => toast.error(e instanceof Error ? e.message : 'Erro inesperado'),
   });
 
   const deleteKeyMutation = useMutation({

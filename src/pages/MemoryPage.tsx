@@ -80,7 +80,7 @@ export default function MemoryPage() {
       queryClient.invalidateQueries({ queryKey: ['agent_memories'] });
       toast.success('Memória salva via Memory Engine!');
     } catch (e: unknown) {
-      toast.error(`Erro: ${e.message}`);
+      toast.error(e instanceof Error ? e.message : "Erro inesperado");
     } finally { setSaving(false); }
   };
 
@@ -90,7 +90,7 @@ export default function MemoryPage() {
       queryClient.invalidateQueries({ queryKey: ['agent_memories'] });
       toast.success('Memória removida');
     } catch (e: unknown) {
-      toast.error(`Erro: ${e.message}`);
+      toast.error(e instanceof Error ? e.message : "Erro inesperado");
     }
   };
 
@@ -103,7 +103,7 @@ export default function MemoryPage() {
       queryClient.invalidateQueries({ queryKey: ['agent_memories'] });
       toast.success(`Compactação concluída: ${result?.compacted ?? 0} memórias consolidadas`);
     } catch (e: unknown) {
-      toast.error(`Erro na compactação: ${e.message}`);
+      toast.error(e instanceof Error ? `Erro na compactação: ${e.message}` : "Erro na compactação");
     } finally { setCompacting(false); }
   };
 

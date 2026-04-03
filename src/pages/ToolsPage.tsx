@@ -68,7 +68,7 @@ export default function ToolsPage() {
       setToolName(''); setToolDesc('');
       queryClient.invalidateQueries({ queryKey: ['tool_integrations'] });
     } catch (e: unknown) {
-      toast.error(e.message);
+      toast.error(e instanceof Error ? e.message : 'Erro inesperado');
     } finally {
       setSaving(false);
     }

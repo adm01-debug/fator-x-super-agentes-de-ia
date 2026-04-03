@@ -178,7 +178,7 @@ export default function WorkflowsPage() {
       }
       toast.success(`Workflow executado! ${wf.steps.length} etapas concluídas`);
     } catch (e: unknown) {
-      toast.error(`Erro: ${e.message}`);
+      toast.error(e instanceof Error ? e.message : "Erro inesperado");
     } finally { setExecuting(null); }
   };
 

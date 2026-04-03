@@ -91,7 +91,7 @@ export default function BillingPage() {
       setBudgetName('');
       queryClient.invalidateQueries({ queryKey: ['budgets'] });
     } catch (e: unknown) {
-      toast.error(e.message);
+      toast.error(e instanceof Error ? e.message : 'Erro inesperado');
     } finally {
       setSaving(false);
     }
