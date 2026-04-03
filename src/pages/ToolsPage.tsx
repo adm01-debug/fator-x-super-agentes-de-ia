@@ -97,6 +97,8 @@ export default function ToolsPage() {
       built_in: false,
       id: t.id,
       is_enabled: t.is_enabled ?? true,
+      color: 'text-primary',
+      bg: 'bg-primary/10',
     })),
   ];
 
