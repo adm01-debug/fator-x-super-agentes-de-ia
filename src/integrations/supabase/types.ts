@@ -200,6 +200,56 @@ export type Database = {
           },
         ]
       }
+      agent_versions: {
+        Row: {
+          agent_id: string
+          change_summary: string | null
+          config: Json
+          created_at: string
+          created_by: string | null
+          id: string
+          mission: string | null
+          model: string | null
+          name: string | null
+          persona: string | null
+          version: number
+        }
+        Insert: {
+          agent_id: string
+          change_summary?: string | null
+          config?: Json
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          mission?: string | null
+          model?: string | null
+          name?: string | null
+          persona?: string | null
+          version?: number
+        }
+        Update: {
+          agent_id?: string
+          change_summary?: string | null
+          config?: Json
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          mission?: string | null
+          model?: string | null
+          name?: string | null
+          persona?: string | null
+          version?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "agent_versions_agent_id_fkey"
+            columns: ["agent_id"]
+            isOneToOne: false
+            referencedRelation: "agents"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       agents: {
         Row: {
           avatar_emoji: string | null
@@ -474,6 +524,126 @@ export type Database = {
             columns: ["knowledge_base_id"]
             isOneToOne: false
             referencedRelation: "knowledge_bases"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      consent_records: {
+        Row: {
+          consent_type: string
+          created_at: string
+          granted: boolean
+          id: string
+          ip_address: string | null
+          metadata: Json | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          consent_type: string
+          created_at?: string
+          granted?: boolean
+          id?: string
+          ip_address?: string | null
+          metadata?: Json | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          consent_type?: string
+          created_at?: string
+          granted?: boolean
+          id?: string
+          ip_address?: string | null
+          metadata?: Json | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      data_deletion_requests: {
+        Row: {
+          completed_at: string | null
+          id: string
+          metadata: Json | null
+          reason: string | null
+          requested_at: string
+          status: string
+          user_id: string
+        }
+        Insert: {
+          completed_at?: string | null
+          id?: string
+          metadata?: Json | null
+          reason?: string | null
+          requested_at?: string
+          status?: string
+          user_id: string
+        }
+        Update: {
+          completed_at?: string | null
+          id?: string
+          metadata?: Json | null
+          reason?: string | null
+          requested_at?: string
+          status?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      deploy_connections: {
+        Row: {
+          agent_id: string
+          channel: string
+          config: Json | null
+          created_at: string
+          error_message: string | null
+          id: string
+          last_message_at: string | null
+          message_count: number | null
+          status: string
+          updated_at: string
+          workspace_id: string | null
+        }
+        Insert: {
+          agent_id: string
+          channel: string
+          config?: Json | null
+          created_at?: string
+          error_message?: string | null
+          id?: string
+          last_message_at?: string | null
+          message_count?: number | null
+          status?: string
+          updated_at?: string
+          workspace_id?: string | null
+        }
+        Update: {
+          agent_id?: string
+          channel?: string
+          config?: Json | null
+          created_at?: string
+          error_message?: string | null
+          id?: string
+          last_message_at?: string | null
+          message_count?: number | null
+          status?: string
+          updated_at?: string
+          workspace_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "deploy_connections_agent_id_fkey"
+            columns: ["agent_id"]
+            isOneToOne: false
+            referencedRelation: "agents"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "deploy_connections_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
             referencedColumns: ["id"]
           },
         ]
@@ -1200,6 +1370,53 @@ export type Database = {
             columns: ["knowledge_base_id"]
             isOneToOne: false
             referencedRelation: "knowledge_bases"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      workflow_runs: {
+        Row: {
+          completed_at: string | null
+          created_at: string
+          current_step: number | null
+          error: string | null
+          id: string
+          output: Json | null
+          started_at: string | null
+          status: string
+          total_steps: number | null
+          workflow_id: string
+        }
+        Insert: {
+          completed_at?: string | null
+          created_at?: string
+          current_step?: number | null
+          error?: string | null
+          id?: string
+          output?: Json | null
+          started_at?: string | null
+          status?: string
+          total_steps?: number | null
+          workflow_id: string
+        }
+        Update: {
+          completed_at?: string | null
+          created_at?: string
+          current_step?: number | null
+          error?: string | null
+          id?: string
+          output?: Json | null
+          started_at?: string | null
+          status?: string
+          total_steps?: number | null
+          workflow_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "workflow_runs_workflow_id_fkey"
+            columns: ["workflow_id"]
+            isOneToOne: false
+            referencedRelation: "workflows"
             referencedColumns: ["id"]
           },
         ]
