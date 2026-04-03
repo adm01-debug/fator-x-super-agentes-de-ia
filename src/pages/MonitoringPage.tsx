@@ -50,8 +50,7 @@ export default function MonitoringPage() {
     queryFn: async () => {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) return [];
-      let query = (supabase as any)
-        .from('sessions')
+      let query = fromTable('sessions')
         .select('*')
         .eq('user_id', user.id)
         .order('started_at', { ascending: false })
