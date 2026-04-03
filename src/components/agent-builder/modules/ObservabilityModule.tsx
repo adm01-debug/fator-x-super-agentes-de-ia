@@ -331,7 +331,7 @@ function AbTestPanel({ agentId }: { agentId: string; currentVersion?: number }) 
   };
 
   const handleDelete = async (id: string) => {
-    await (supabase as any).from('prompt_ab_tests').delete().eq('id', id);
+    await fromTable('prompt_ab_tests').delete().eq('id', id);
     queryClient.invalidateQueries({ queryKey: ['prompt_ab_tests'] });
     toast.success('Teste removido');
   };
