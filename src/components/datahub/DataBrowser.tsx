@@ -11,7 +11,7 @@ import {
 import { ENTITY_MAPPINGS } from "@/config/datahub-entities";
 import {
   ENTITY_DISPLAY_COLUMNS, ENTITY_FILTER_OPTIONS,
-  formatCellValue, exportToCSV, type ColumnDef,
+  formatCellValue, exportToCSV,
 } from "@/config/datahub-columns";
 import { RecordDetail } from "./RecordDetail";
 import { supabase } from "@/integrations/supabase/client";
