@@ -196,7 +196,7 @@ export const useAgentBuilderStore = create<AgentBuilderStore>((set, get) => ({
       }
       // ═══ Auto-versioning: snapshot agent config on every save ═══
       if (agentId) {
-        (supabase as any).from('agent_versions').insert({
+        fromTable('agent_versions').insert({
           agent_id: agentId,
           version: savedAgent.version || 1,
           config: row.config || {},
