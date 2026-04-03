@@ -134,7 +134,7 @@ export default function WorkflowsPage() {
     if (id.includes('-')) {
       const wf = workflows.find((w: any) => w.id === id);
       if (wf) {
-        await (supabase as any).from('workflows').update({ status: wf.status === 'active' ? 'draft' : 'active' }).eq('id', id);
+        await fromTable('workflows').update({ status: wf.status === 'active' ? 'draft' : 'active' }).eq('id', id);
         queryClient.invalidateQueries({ queryKey: ['workflows_list'] });
       }
     }
