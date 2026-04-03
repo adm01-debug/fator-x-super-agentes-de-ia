@@ -174,6 +174,25 @@ export default function DashboardPage() {
         </div>
       ) : (
         <>
+          {/* Quick Actions */}
+          <div className="flex items-center gap-2 flex-wrap">
+            {[
+              { label: 'Novo Agente', icon: Plus, path: '/agents/new' },
+              { label: 'Knowledge', icon: BookOpen, path: '/knowledge' },
+              { label: 'Monitoring', icon: Activity, path: '/monitoring' },
+              { label: 'Workflows', icon: GitBranch, path: '/workflows' },
+            ].map(action => (
+              <button
+                key={action.label}
+                onClick={() => navigate(action.path)}
+                className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-border/50 bg-card text-xs font-medium text-muted-foreground hover:text-foreground hover:border-primary/30 hover:bg-primary/5 transition-all"
+              >
+                <action.icon className="h-3.5 w-3.5" />
+                {action.label}
+              </button>
+            ))}
+          </div>
+
           {/* Metrics */}
           <div className="grid grid-cols-2 md:grid-cols-4 gap-3 sm:gap-4 stagger-children" role="region" aria-label="Métricas principais">
             {[
