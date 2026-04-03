@@ -1,0 +1,298 @@
+import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2.49.4";
+
+const corsHeaders = {
+  'Access-Control-Allow-Origin': '*',
+  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+};
+
+/**
+ * Connection registry — maps logical connection IDs to env var prefixes.
+ */
+const CONNECTION_REGISTRY: Record<string, { urlEnv: string; keyEnv: string }> = {
+  bancodadosclientes:    { urlEnv: 'BANCODADOSCLIENTES_URL',    keyEnv: 'BANCODADOSCLIENTES_SERVICE_ROLE_KEY' },
+  'supabase-fuchsia-kite': { urlEnv: 'FUCHSIA_KITE_URL',       keyEnv: 'FUCHSIA_KITE_SERVICE_ROLE_KEY' },
+  gestao_time_promo:     { urlEnv: 'GESTAO_TIME_PROMO_URL',     keyEnv: 'GESTAO_TIME_PROMO_SERVICE_ROLE_KEY' },
+  backupgiftstore:       { urlEnv: 'BACKUPGIFTSTORE_URL',       keyEnv: 'BACKUPGIFTSTORE_SERVICE_ROLE_KEY' },
+};
+
+function getExternalClient(connectionId: string) {
+  const reg = CONNECTION_REGISTRY[connectionId];
+  if (!reg) throw new Error(`Unknown connection: ${connectionId}`);
+  const url = Deno.env.get(reg.urlEnv);
+  const key = Deno.env.get(reg.keyEnv);
+  if (!url || !key) throw new Error(`Missing env vars for connection "${connectionId}": ${reg.urlEnv} / ${reg.keyEnv}`);
+  return createClient(url, key);
+}
+
+/**
+ * Entity mappings (server-side mirror of datahub-entities.ts).
+ */
+const ENTITY_MAPPINGS: Record<string, any> = {
+  cliente: {
+    primary: { connection: 'bancodadosclientes', table: 'companies', id_column: 'id', display_column: 'razao_social', filter: "is_customer = true AND status = 'ativo' AND razao_social IS NOT NULL AND razao_social != ''" },
+    secondary: [
+      { table: 'customers', join_col: 'company_id', fields: ['vendedor_id', 'vendedor_nome'] },
+      { table: 'company_addresses', join_col: 'company_id', fields: ['cidade', 'estado', 'cep'], extra_filter: "is_primary = true" },
+      { table: 'company_phones', join_col: 'company_id', fields: ['phone'] },
+      { table: 'company_emails', join_col: 'company_id', fields: ['email'] },
+    ],
+    cross_db: [{ connection: 'backupgiftstore', table: 'contacts', match_by: 'phone' }],
+  },
+  fornecedor: {
+    primary: { connection: 'bancodadosclientes', table: 'companies', id_column: 'id', display_column: 'razao_social', filter: "is_supplier = true AND status = 'ativo'" },
+    secondary: [
+      { table: 'suppliers', join_col: 'company_id', fields: ['homologado', 'score_geral', 'data_homologacao'] },
+      { table: 'company_addresses', join_col: 'company_id', fields: ['cidade', 'estado'], extra_filter: "is_primary = true" },
+    ],
+    cross_db: [{ connection: 'supabase-fuchsia-kite', table: 'suppliers', match_by: 'cnpj_raiz' }],
+  },
+  transportadora: {
+    primary: { connection: 'bancodadosclientes', table: 'companies', id_column: 'id', display_column: 'razao_social', filter: "is_carrier = true AND status = 'ativo'" },
+    secondary: [
+      { table: 'carriers', join_col: 'company_id', fields: ['score_geral', 'cobertura_estados'] },
+      { table: 'company_addresses', join_col: 'company_id', fields: ['cidade', 'estado'], extra_filter: "is_primary = true" },
+    ],
+  },
+  produto: {
+    primary: { connection: 'supabase-fuchsia-kite', table: 'products', id_column: 'id', display_column: 'name' },
+    secondary: [
+      { table: 'product_variants', join_col: 'product_id', fields: ['sku', 'color_name'] },
+      { table: 'product_images', join_col: 'product_id', fields: ['url', 'type'], limit: 5 },
+    ],
+  },
+  colaborador: {
+    primary: { connection: 'gestao_time_promo', table: 'colaboradores', id_column: 'id', display_column: 'nome_completo', filter: "status = 'ativo'" },
+    secondary: [
+      { table: 'departamentos', join_col: 'id', join_source: 'departamento_id', fields: ['nome'] },
+      { table: 'cargos', join_col: 'id', join_source: 'cargo_id', fields: ['nome', 'nivel'] },
+    ],
+    sensitive_fields: ['cpf', 'salario', 'conta_bancaria', 'pix'],
+    cross_db: [{ connection: 'bancodadosclientes', table: 'users', match_by: 'email' }],
+  },
+  conversa_whatsapp: {
+    primary: { connection: 'backupgiftstore', table: 'contacts', id_column: 'id', display_column: 'name' },
+    secondary: [
+      { table: 'messages', join_col: 'contact_id', fields: ['body', 'type', 'timestamp'], limit: 50 },
+    ],
+    cross_db: [{ connection: 'bancodadosclientes', table: 'company_phones', match_by: 'phone' }],
+  },
+};
+
+serve(async (req) => {
+  if (req.method === 'OPTIONS') return new Response(null, { headers: corsHeaders });
+
+  try {
+    // Auth check
+    const authHeader = req.headers.get('Authorization')!;
+    const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
+    const supabaseKey = Deno.env.get('SUPABASE_ANON_KEY')!;
+    const supabase = createClient(supabaseUrl, supabaseKey, { global: { headers: { Authorization: authHeader } } });
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) return new Response(JSON.stringify({ error: 'Unauthorized' }), { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
+
+    const body = await req.json();
+    const { action } = body;
+
+    // ═══ ACTION: test_connections ═══
+    if (action === 'test_connections') {
+      const results: Record<string, { status: string; count?: number; error?: string }> = {};
+      for (const [connId, reg] of Object.entries(CONNECTION_REGISTRY)) {
+        try {
+          const client = getExternalClient(connId);
+          // Simple health check — try to count a known table
+          const testTable = connId === 'bancodadosclientes' ? 'companies'
+            : connId === 'supabase-fuchsia-kite' ? 'products'
+            : connId === 'gestao_time_promo' ? 'colaboradores'
+            : 'contacts';
+          const { count, error } = await client.from(testTable).select('id', { count: 'exact', head: true });
+          if (error) throw new Error(error.message);
+          results[connId] = { status: 'connected', count: count ?? 0 };
+        } catch (e: any) {
+          results[connId] = { status: 'error', error: e.message };
+        }
+      }
+      return new Response(JSON.stringify({ connections: results }), { headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
+    }
+
+    // ═══ ACTION: list_entities ═══
+    if (action === 'list_entities') {
+      const counts: Record<string, number> = {};
+      for (const [entityId, mapping] of Object.entries(ENTITY_MAPPINGS)) {
+        try {
+          const client = getExternalClient(mapping.primary.connection);
+          let query = client.from(mapping.primary.table).select('id', { count: 'exact', head: true });
+          if (mapping.primary.filter) {
+            // Parse simple filters like "is_customer = true AND status = 'ativo'"
+            const filters = mapping.primary.filter.split(' AND ').map((f: string) => f.trim());
+            for (const f of filters) {
+              const eqMatch = f.match(/^(\w+)\s*=\s*(.+)$/);
+              if (eqMatch) {
+                const [, col, val] = eqMatch;
+                const cleanVal = val.replace(/^'|'$/g, '');
+                if (cleanVal === 'true') query = query.eq(col, true);
+                else if (cleanVal === 'false') query = query.eq(col, false);
+                else query = query.eq(col, cleanVal);
+              }
+              const neqMatch = f.match(/^(\w+)\s*(IS NOT NULL|!= '')$/i);
+              if (neqMatch) {
+                const [, col, op] = neqMatch;
+                if (op.toUpperCase() === 'IS NOT NULL') query = query.not(col, 'is', null);
+                else query = query.neq(col, '');
+              }
+            }
+          }
+          const { count } = await query;
+          counts[entityId] = count ?? 0;
+        } catch {
+          counts[entityId] = -1;
+        }
+      }
+      return new Response(JSON.stringify({ entities: counts }), { headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
+    }
+
+    // ═══ ACTION: query_entity ═══
+    if (action === 'query_entity') {
+      const { entity, search: searchTerm, page = 0, page_size = 25, record_id } = body;
+      const mapping = ENTITY_MAPPINGS[entity];
+      if (!mapping) return new Response(JSON.stringify({ error: `Unknown entity: ${entity}` }), { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
+
+      const client = getExternalClient(mapping.primary.connection);
+      const prim = mapping.primary;
+
+      // Build select columns
+      const selectCols = '*';
+
+      if (record_id) {
+        // Single record with enrichment
+        const { data: record, error } = await client.from(prim.table).select(selectCols).eq(prim.id_column, record_id).single();
+        if (error) throw new Error(error.message);
+
+        // Strip sensitive fields
+        if (mapping.sensitive_fields) {
+          for (const sf of mapping.sensitive_fields) {
+            if (record && sf in record) record[sf] = '***REDACTED***';
+          }
+        }
+
+        // Fetch secondary data
+        const enriched: Record<string, any> = {};
+        if (mapping.secondary) {
+          for (const sec of mapping.secondary) {
+            try {
+              const joinCol = sec.join_col;
+              const joinVal = sec.join_source ? record[sec.join_source] : record_id;
+              let sq = client.from(sec.table).select(sec.fields ? sec.fields.join(',') : '*').eq(joinCol, joinVal);
+              if (sec.extra_filter) {
+                const parts = sec.extra_filter.split(' AND ');
+                for (const p of parts) {
+                  const m = p.trim().match(/^(\w+)\s*=\s*(.+)$/);
+                  if (m) {
+                    const v = m[2].replace(/^'|'$/g, '');
+                    sq = sq.eq(m[1], v === 'true' ? true : v === 'false' ? false : v);
+                  }
+                }
+              }
+              if (sec.limit) sq = sq.limit(sec.limit);
+              const { data: secData } = await sq;
+              enriched[sec.table] = secData ?? [];
+            } catch { enriched[sec.table] = []; }
+          }
+        }
+
+        // Cross-db enrichment
+        const crossData: Record<string, any> = {};
+        if (mapping.cross_db) {
+          for (const cross of mapping.cross_db) {
+            try {
+              const crossClient = getExternalClient(cross.connection);
+              // Get match value from primary record or enriched data
+              let matchValue: string | null = null;
+              if (cross.match_by === 'phone' && enriched['company_phones']?.length > 0) {
+                matchValue = enriched['company_phones'][0].phone;
+              } else if (cross.match_by === 'email') {
+                matchValue = record?.email ?? null;
+              } else if (cross.match_by === 'cnpj_raiz' && record?.cnpj) {
+                matchValue = record.cnpj.substring(0, 8);
+              } else if (cross.match_by === 'phone' && record?.phone) {
+                matchValue = record.phone;
+              }
+
+              if (matchValue) {
+                const { data: crossResult } = await crossClient
+                  .from(cross.table)
+                  .select('*')
+                  .eq(cross.match_by, matchValue)
+                  .limit(5);
+                crossData[`${cross.connection}.${cross.table}`] = crossResult ?? [];
+              }
+            } catch { crossData[`${cross.connection}.${cross.table}`] = []; }
+          }
+        }
+
+        return new Response(JSON.stringify({ record, enriched, cross_db: crossData }), { headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
+      }
+
+      // List query
+      let query = client.from(prim.table).select(selectCols, { count: 'exact' });
+
+      // Apply entity filters
+      if (prim.filter) {
+        const filters = prim.filter.split(' AND ').map((f: string) => f.trim());
+        for (const f of filters) {
+          const eqMatch = f.match(/^(\w+)\s*=\s*(.+)$/);
+          if (eqMatch) {
+            const [, col, val] = eqMatch;
+            const cleanVal = val.replace(/^'|'$/g, '');
+            if (cleanVal === 'true') query = query.eq(col, true);
+            else if (cleanVal === 'false') query = query.eq(col, false);
+            else query = query.eq(col, cleanVal);
+          }
+          const neqMatch = f.match(/^(\w+)\s*(IS NOT NULL|!= '')$/i);
+          if (neqMatch) {
+            const [, col, op] = neqMatch;
+            if (op.toUpperCase() === 'IS NOT NULL') query = query.not(col, 'is', null);
+            else query = query.neq(col, '');
+          }
+        }
+      }
+
+      // Search
+      if (searchTerm && prim.display_column) {
+        query = query.ilike(prim.display_column, `%${searchTerm}%`);
+      }
+
+      // Pagination
+      const from = page * page_size;
+      query = query.range(from, from + page_size - 1);
+
+      // Order
+      if (prim.display_column) query = query.order(prim.display_column, { ascending: true });
+
+      const { data, count, error } = await query;
+      if (error) throw new Error(error.message);
+
+      // Strip sensitive
+      if (mapping.sensitive_fields && data) {
+        for (const row of data) {
+          for (const sf of mapping.sensitive_fields) {
+            if (sf in row) row[sf] = '***';
+          }
+        }
+      }
+
+      return new Response(JSON.stringify({
+        data: data ?? [],
+        total: count ?? 0,
+        page,
+        page_size,
+        total_pages: Math.ceil((count ?? 0) / page_size),
+      }), { headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
+    }
+
+    return new Response(JSON.stringify({ error: 'Invalid action. Use: test_connections, list_entities, query_entity' }), { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
+  } catch (error: any) {
+    console.error('datahub-query error:', error);
+    return new Response(JSON.stringify({ error: error.message }), { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
+  }
+});
