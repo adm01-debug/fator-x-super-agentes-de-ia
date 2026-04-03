@@ -3,7 +3,7 @@ import { StatusBadge } from "@/components/shared/StatusBadge";
 import { InfoHint } from "@/components/shared/InfoHint";
 import { AnimatedCounter } from "@/components/shared/AnimatedCounter";
 import { Button } from "@/components/ui/button";
-import { Bot, Plus, ArrowRight, TrendingUp, DollarSign, Clock, Zap } from "lucide-react";
+import { Bot, Plus, ArrowRight, TrendingUp, DollarSign, Clock, Zap, Sparkles } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
