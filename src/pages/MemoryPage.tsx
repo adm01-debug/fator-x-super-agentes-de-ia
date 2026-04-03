@@ -66,7 +66,8 @@ export default function MemoryPage() {
   });
 
   const handleAdd = async () => {
-    if (!newContent.trim()) { toast.error('Conteúdo é obrigatório'); return; }
+    const result = memorySchema.safeParse({ content: newContent, memory_type: activeType, source: newSource || undefined });
+    if (!result.success) { toast.error(result.error.errors[0]?.message || 'Dados inválidos'); return; }
     setSaving(true);
     try {
       await invokeMemoryTool('memory_save', {
