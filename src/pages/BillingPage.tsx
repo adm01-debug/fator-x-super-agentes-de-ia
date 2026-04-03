@@ -90,7 +90,7 @@ export default function BillingPage() {
       setNewBudgetOpen(false);
       setBudgetName('');
       queryClient.invalidateQueries({ queryKey: ['budgets'] });
-    } catch (e: any) {
+    } catch (e: unknown) {
       toast.error(e.message);
     } finally {
       setSaving(false);

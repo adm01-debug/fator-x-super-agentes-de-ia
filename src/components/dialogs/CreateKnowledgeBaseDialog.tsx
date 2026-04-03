@@ -38,7 +38,7 @@ export function CreateKnowledgeBaseDialog({ onCreated }: CreateKnowledgeBaseDial
       setOpen(false);
       setName(''); setDescription('');
       onCreated?.();
-    } catch (e: any) {
+    } catch (e: unknown) {
       toast.error(e.message || 'Erro ao criar base');
     } finally {
       setLoading(false);

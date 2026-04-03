@@ -177,7 +177,7 @@ export default function WorkflowsPage() {
         results.push(`[${step}] ${previousOutput.substring(0, 100)}...`);
       }
       toast.success(`Workflow executado! ${wf.steps.length} etapas concluídas`);
-    } catch (e: any) {
+    } catch (e: unknown) {
       toast.error(`Erro: ${e.message}`);
     } finally { setExecuting(null); }
   };

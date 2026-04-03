@@ -65,7 +65,7 @@ export function SettingsModule() {
       setEditingKey(null);
       setEditValue('');
       toast.success('API Key salva com sucesso!');
-    } catch (e: any) {
+    } catch (e: unknown) {
       toast.error(e.message || 'Erro ao salvar key');
     } finally {
       setSaving(false);

@@ -67,7 +67,7 @@ export default function ToolsPage() {
       setNewToolOpen(false);
       setToolName(''); setToolDesc('');
       queryClient.invalidateQueries({ queryKey: ['tool_integrations'] });
-    } catch (e: any) {
+    } catch (e: unknown) {
       toast.error(e.message);
     } finally {
       setSaving(false);

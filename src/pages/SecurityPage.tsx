@@ -66,7 +66,7 @@ export default function SecurityPage() {
       setNewOpen(false);
       setGrName('');
       queryClient.invalidateQueries({ queryKey: ['guardrail_policies'] });
-    } catch (e: any) {
+    } catch (e: unknown) {
       toast.error(e.message);
     } finally {
       setSaving(false);

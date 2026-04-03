@@ -79,7 +79,7 @@ export default function MemoryPage() {
       setNewContent(''); setNewSource('');
       queryClient.invalidateQueries({ queryKey: ['agent_memories'] });
       toast.success('Memória salva via Memory Engine!');
-    } catch (e: any) {
+    } catch (e: unknown) {
       toast.error(`Erro: ${e.message}`);
     } finally { setSaving(false); }
   };
@@ -89,7 +89,7 @@ export default function MemoryPage() {
       await invokeMemoryTool('memory_forget', { memory_id: id });
       queryClient.invalidateQueries({ queryKey: ['agent_memories'] });
       toast.success('Memória removida');
-    } catch (e: any) {
+    } catch (e: unknown) {
       toast.error(`Erro: ${e.message}`);
     }
   };
@@ -102,7 +102,7 @@ export default function MemoryPage() {
       });
       queryClient.invalidateQueries({ queryKey: ['agent_memories'] });
       toast.success(`Compactação concluída: ${result?.compacted ?? 0} memórias consolidadas`);
-    } catch (e: any) {
+    } catch (e: unknown) {
       toast.error(`Erro na compactação: ${e.message}`);
     } finally { setCompacting(false); }
   };

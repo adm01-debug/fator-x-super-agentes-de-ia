@@ -58,7 +58,7 @@ export function EditKnowledgeBaseDialog({ kb, open, onOpenChange, onUpdated }: E
       toast.success('Base atualizada!');
       onOpenChange(false);
       onUpdated?.();
-    } catch (e: any) {
+    } catch (e: unknown) {
       toast.error(e.message || 'Erro ao atualizar');
     } finally {
       setLoading(false);

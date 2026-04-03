@@ -41,7 +41,7 @@ export default function SuperCerebroPage() {
       if (data?.rules_loaded) meta.push('Regras de negócio carregadas');
       const metaLine = meta.length > 0 ? `\n\n---\n_${meta.join(' • ')} • Custo: $${data?.cost_usd?.toFixed(6) || '0'}_` : '';
       setSearchResults((data?.response || 'Sem resposta') + metaLine);
-    } catch (e: any) {
+    } catch (e: unknown) {
       toast.error(e.message || 'Erro na consulta');
     } finally {
       setIsSearching(false);

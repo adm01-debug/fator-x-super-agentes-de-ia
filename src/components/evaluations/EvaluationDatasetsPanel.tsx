@@ -67,7 +67,7 @@ export function EvaluationDatasetsPanel() {
       setNewDsOpen(false);
       setDsName(''); setDsDesc('');
       queryClient.invalidateQueries({ queryKey: ['evaluation_datasets'] });
-    } catch (e: any) {
+    } catch (e: unknown) {
       toast.error(e.message);
     } finally {
       setSaving(false);

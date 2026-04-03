@@ -37,7 +37,7 @@ export function InviteMemberDialog({ onInvited }: InviteMemberDialogProps) {
       setOpen(false);
       setEmail(''); setName('');
       onInvited?.();
-    } catch (e: any) {
+    } catch (e: unknown) {
       toast.error(e.message || 'Erro ao convidar');
     } finally {
       setLoading(false);
