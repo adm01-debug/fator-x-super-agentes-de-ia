@@ -432,7 +432,7 @@ function AlertRulesPanel() {
     queryFn: async () => {
       const { data: member } = await supabase.from('workspace_members').select('workspace_id').limit(1).single();
       if (!member?.workspace_id) return [];
-      const { data } = await (supabase as any).from('alert_rules').select('*').eq('workspace_id', member.workspace_id).order('created_at', { ascending: false });
+      const { data } = await fromTable('alert_rules').select('*').eq('workspace_id', member.workspace_id).order('created_at', { ascending: false });
       return data ?? [];
     },
   });
