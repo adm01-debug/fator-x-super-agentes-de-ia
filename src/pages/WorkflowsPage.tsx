@@ -15,6 +15,7 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { WorkflowCanvas, type CanvasNode, type CanvasEdge } from "@/components/workflows/WorkflowCanvas";
 import { useWorkflowPersistence } from "@/hooks/use-workflow-persistence";
 import { supabase } from "@/integrations/supabase/client";
+import { fromTable } from "@/lib/supabaseExtended";
 
 interface Workflow {
   id: string;
