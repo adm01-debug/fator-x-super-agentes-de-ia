@@ -98,12 +98,12 @@ export default function DashboardPage() {
   const activeCount = agents.filter(a => a.status === 'production' || a.status === 'monitoring').length;
   const draftCount = agents.filter(a => a.status === 'draft').length;
 
-  // Contextual greeting
+  // Contextual greeting with user name
   const getGreeting = () => {
     const hour = new Date().getHours();
-    if (hour < 12) return 'Bom dia';
-    if (hour < 18) return 'Boa tarde';
-    return 'Boa noite';
+    const name = user?.email?.split('@')[0] || '';
+    const prefix = hour < 12 ? 'Bom dia' : hour < 18 ? 'Boa tarde' : 'Boa noite';
+    return name ? `${prefix}, ${name}` : prefix;
   };
 
   // Smart summary
