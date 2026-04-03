@@ -311,7 +311,7 @@ function AbTestPanel({ agentId }: { agentId: string; currentVersion?: number }) 
     if (versions.length < 2) { toast.error('Precisa de pelo menos 2 versões de prompt'); return; }
     setCreating(true);
     try {
-      await (supabase as any).from('prompt_ab_tests').insert({
+      await fromTable('prompt_ab_tests').insert({
         agent_id: agentId, name: testName.trim(),
         variant_a_prompt_id: versions[0]?.id, variant_b_prompt_id: versions[1]?.id,
         traffic_split: parseFloat(split) / 100, status: 'running',
