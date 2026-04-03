@@ -97,7 +97,7 @@ export function AppSidebar() {
         {navSections.map((section, sectionIdx) => (
           <SidebarGroup key={section.label}>
             {!collapsed && (
-              <SidebarGroupLabel className="text-[10px] uppercase tracking-wider text-muted-foreground/70 px-2.5 mb-1">
+              <SidebarGroupLabel className="text-[11px] uppercase tracking-wider text-muted-foreground/70 px-2.5 mb-1">
                 {section.label}
               </SidebarGroupLabel>
             )}
@@ -137,7 +137,7 @@ export function AppSidebar() {
           <>
             <div className="rounded-lg bg-secondary/50 p-3">
               <p className="text-[11px] font-medium text-foreground">Workspace {planLabel}</p>
-              <p className="text-[10px] text-muted-foreground mt-0.5">{agentCount} de {maxAgents} agentes usados</p>
+              <p className="text-[11px] text-muted-foreground mt-0.5">{agentCount} de {maxAgents} agentes usados</p>
               <div className="mt-2 h-1 rounded-full bg-secondary" role="progressbar" aria-valuenow={usage} aria-valuemin={0} aria-valuemax={100} aria-label="Uso de agentes">
                 <div className="h-full rounded-full nexus-gradient-bg transition-all" style={{ width: `${usage}%` }} />
               </div>
@@ -149,7 +149,7 @@ export function AppSidebar() {
                 </div>
                 <div className="flex-1 min-w-0">
                   <p className="text-[11px] font-medium text-foreground truncate">{wsInfo?.userName || 'Usuário'}</p>
-                  <p className="text-[10px] text-muted-foreground truncate">{user.email}</p>
+                  <p className="text-[11px] text-muted-foreground truncate">{user.email}</p>
                 </div>
                 <Button variant="ghost" size="icon" className="h-6 w-6 shrink-0 text-muted-foreground hover:text-destructive min-h-[44px] min-w-[44px] flex items-center justify-center" onClick={signOut} aria-label="Sair da conta">
                   <LogOut className="h-3.5 w-3.5" />

@@ -131,19 +131,19 @@ function AgentMetrics({ agentId }: { agentId: string }) {
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
         <div className="nexus-card text-center">
           <p className="text-lg font-bold text-foreground">{totalRequests}</p>
-          <p className="text-[10px] text-muted-foreground">Requests (7d)</p>
+          <p className="text-[11px] text-muted-foreground">Requests (7d)</p>
         </div>
         <div className="nexus-card text-center">
           <p className="text-lg font-bold text-foreground">${totalCost.toFixed(4)}</p>
-          <p className="text-[10px] text-muted-foreground">Custo (7d)</p>
+          <p className="text-[11px] text-muted-foreground">Custo (7d)</p>
         </div>
         <div className="nexus-card text-center">
           <p className="text-lg font-bold text-foreground">{avgLatency}ms</p>
-          <p className="text-[10px] text-muted-foreground">Latência média</p>
+          <p className="text-[11px] text-muted-foreground">Latência média</p>
         </div>
         <div className="nexus-card text-center">
           <p className={`text-lg font-bold ${errorRate > 0.1 ? 'text-destructive' : 'text-emerald-400'}`}>{(errorRate * 100).toFixed(1)}%</p>
-          <p className="text-[10px] text-muted-foreground">Taxa de erro</p>
+          <p className="text-[11px] text-muted-foreground">Taxa de erro</p>
         </div>
       </div>
 
@@ -153,7 +153,7 @@ function AgentMetrics({ agentId }: { agentId: string }) {
           <div className="space-y-1.5 max-h-[200px] overflow-y-auto">
             {traces.slice(0, 10).map(t => (
               <div key={t.created_at} className="flex items-center gap-3 text-xs py-1">
-                <span className="text-muted-foreground font-mono text-[10px] w-[70px] shrink-0">{new Date(t.created_at).toLocaleTimeString('pt-BR')}</span>
+                <span className="text-muted-foreground font-mono text-[11px] w-[70px] shrink-0">{new Date(t.created_at).toLocaleTimeString('pt-BR')}</span>
                 <span className={`w-2 h-2 rounded-full shrink-0 ${t.level === 'error' ? 'bg-destructive' : t.level === 'warning' ? 'bg-amber-400' : 'bg-emerald-400'}`} />
                 <span className="text-foreground">{t.tokens_used || 0}t</span>
                 <span className="text-muted-foreground">{t.latency_ms || 0}ms</span>
@@ -171,7 +171,7 @@ function AgentMetrics({ agentId }: { agentId: string }) {
             <div key={i} className="flex items-center gap-2 text-xs py-1">
               <span className={`w-2 h-2 rounded-full shrink-0 ${a.severity === 'critical' ? 'bg-destructive' : 'bg-amber-400'}`} />
               <span className="text-foreground">{a.title}</span>
-              {a.is_resolved && <span className="text-emerald-400 text-[10px]">✓ resolvido</span>}
+              {a.is_resolved && <span className="text-emerald-400 text-[11px]">✓ resolvido</span>}
             </div>
           ))}
         </div>
@@ -203,10 +203,10 @@ function VersionHistory({ agentId }: { agentId: string }) {
               {v.change_summary && <span className="text-muted-foreground truncate max-w-[200px]">{v.change_summary}</span>}
             </div>
             <div className="flex items-center gap-2">
-              <span className={`text-[9px] px-1.5 py-0.5 rounded ${v.environment === 'production' ? 'bg-emerald-500/10 text-emerald-400' : v.environment === 'staging' ? 'bg-amber-500/10 text-amber-400' : 'bg-secondary text-muted-foreground'}`}>
+              <span className={`text-[11px] px-1.5 py-0.5 rounded ${v.environment === 'production' ? 'bg-emerald-500/10 text-emerald-400' : v.environment === 'staging' ? 'bg-amber-500/10 text-amber-400' : 'bg-secondary text-muted-foreground'}`}>
                 {v.environment}
               </span>
-              <span className="text-muted-foreground text-[10px]">{new Date(v.created_at).toLocaleDateString('pt-BR')}</span>
+              <span className="text-muted-foreground text-[11px]">{new Date(v.created_at).toLocaleDateString('pt-BR')}</span>
             </div>
           </div>
         ))}

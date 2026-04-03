@@ -52,7 +52,7 @@ function OverviewTab() {
               <div key={m.label} className="nexus-card text-center py-4">
                 <p className="text-2xl mb-1">{m.icon}</p>
                 <p className={`text-xl font-heading font-bold ${m.color}`}>{m.value}</p>
-                <p className="text-[10px] text-muted-foreground">{m.label}</p>
+                <p className="text-[11px] text-muted-foreground">{m.label}</p>
               </div>
             ))}
           </div>
@@ -71,9 +71,9 @@ function OverviewTab() {
                   <div className="flex items-center gap-2 mb-2">
                     <span className="text-lg">{l.icon}</span>
                     <span className="text-xs font-semibold text-foreground">{l.title}</span>
-                    <Badge variant="outline" className="text-[9px] ml-auto border-emerald-500/30 text-emerald-400">Ativo</Badge>
+                    <Badge variant="outline" className="text-[11px] ml-auto border-emerald-500/30 text-emerald-400">Ativo</Badge>
                   </div>
-                  <p className="text-[10px] text-muted-foreground">{l.desc}</p>
+                  <p className="text-[11px] text-muted-foreground">{l.desc}</p>
                 </div>
               ))}
             </div>
@@ -127,7 +127,7 @@ function SearchTab() {
         onKeyDown={e => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); handleSearch(); } }}
       />
       <div className="flex justify-between items-center">
-        <p className="text-[10px] text-muted-foreground">Consulta semântica ao conhecimento da empresa (fatos + RAG + bancos externos)</p>
+        <p className="text-[11px] text-muted-foreground">Consulta semântica ao conhecimento da empresa (fatos + RAG + bancos externos)</p>
         <Button onClick={handleSearch} disabled={isSearching || !query.trim()} className="nexus-gradient-bg text-primary-foreground gap-2">
           {isSearching ? <Loader2 className="h-4 w-4 animate-spin" /> : <Sparkles className="h-4 w-4" />}
           {isSearching ? 'Buscando...' : '🧠 Consultar'}
@@ -164,9 +164,9 @@ function KnowledgeAreasTab() {
         <div key={area.title} className="nexus-card cursor-pointer hover:border-primary/30 transition-colors">
           <div className="text-3xl mb-3">{area.icon}</div>
           <h3 className="text-sm font-semibold text-foreground">{area.title}</h3>
-          <p className="text-[10px] text-muted-foreground mt-1 mb-3">{area.desc}</p>
+          <p className="text-[11px] text-muted-foreground mt-1 mb-3">{area.desc}</p>
           <div className="flex items-center justify-between pt-2 border-t border-border/30">
-            <Badge variant="outline" className="text-[9px]">{area.domain}</Badge>
+            <Badge variant="outline" className="text-[11px]">{area.domain}</Badge>
           </div>
         </div>
       ))}
@@ -204,7 +204,7 @@ function KnowledgeGraphTab() {
           <h3 className="text-sm font-heading font-semibold text-foreground flex items-center gap-2">
             <Network className="h-4 w-4 text-primary" /> Grafo de Conhecimento
           </h3>
-          <p className="text-[10px] text-muted-foreground mt-0.5">Mapa visual de entidades e suas relações no ecossistema</p>
+          <p className="text-[11px] text-muted-foreground mt-0.5">Mapa visual de entidades e suas relações no ecossistema</p>
         </div>
         <Button size="sm" variant="outline" onClick={() => refetch()} className="gap-1.5 text-xs">
           <RefreshCw className="h-3.5 w-3.5" /> Atualizar
@@ -221,7 +221,7 @@ function KnowledgeGraphTab() {
               <div key={type} className={`nexus-card text-center py-3 border ${cfg.color}`}>
                 <p className="text-xl mb-1">{cfg.emoji}</p>
                 <p className="text-lg font-bold text-foreground">{nodesByType(type).length}</p>
-                <p className="text-[10px] text-muted-foreground">{cfg.label}</p>
+                <p className="text-[11px] text-muted-foreground">{cfg.label}</p>
               </div>
             ))}
           </div>
@@ -242,7 +242,7 @@ function KnowledgeGraphTab() {
                         <span className="text-sm">{n.emoji || cfg.emoji}</span>
                         <div className="flex-1 min-w-0">
                           <p className="text-xs font-medium text-foreground truncate">{n.label}</p>
-                          <p className="text-[10px] text-muted-foreground">
+                          <p className="text-[11px] text-muted-foreground">
                             {n.status && <span className="capitalize">{n.status}</span>}
                             {n.docs != null && ` • ${n.docs} docs`}
                             {n.chunks != null && ` • ${n.chunks} chunks`}
@@ -317,7 +317,7 @@ function KnowledgeHealthTab() {
           <h3 className="text-sm font-heading font-semibold text-foreground flex items-center gap-2">
             <Activity className="h-4 w-4 text-primary" /> Saúde do Conhecimento
           </h3>
-          <p className="text-[10px] text-muted-foreground mt-0.5">Detecção de degradação, gaps e frescor dos dados</p>
+          <p className="text-[11px] text-muted-foreground mt-0.5">Detecção de degradação, gaps e frescor dos dados</p>
         </div>
         <Button size="sm" variant="outline" onClick={() => refetch()} className="gap-1.5 text-xs">
           <RefreshCw className="h-3.5 w-3.5" /> Analisar
@@ -332,21 +332,21 @@ function KnowledgeHealthTab() {
           <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
             <div className="nexus-card text-center py-3">
               <p className="text-lg font-bold text-emerald-400">{data.summary?.fresh || 0}</p>
-              <p className="text-[10px] text-muted-foreground flex items-center justify-center gap-1"><CheckCircle className="h-3 w-3" /> Atualizados</p>
+              <p className="text-[11px] text-muted-foreground flex items-center justify-center gap-1"><CheckCircle className="h-3 w-3" /> Atualizados</p>
             </div>
             <div className="nexus-card text-center py-3">
               <p className="text-lg font-bold text-amber-400">{data.summary?.aging || 0}</p>
-              <p className="text-[10px] text-muted-foreground flex items-center justify-center gap-1"><Clock className="h-3 w-3" /> Envelhecendo</p>
+              <p className="text-[11px] text-muted-foreground flex items-center justify-center gap-1"><Clock className="h-3 w-3" /> Envelhecendo</p>
             </div>
             <div className="nexus-card text-center py-3">
               <p className="text-lg font-bold text-destructive">{data.summary?.stale || 0}</p>
-              <p className="text-[10px] text-muted-foreground flex items-center justify-center gap-1"><AlertTriangle className="h-3 w-3" /> Desatualizados</p>
+              <p className="text-[11px] text-muted-foreground flex items-center justify-center gap-1"><AlertTriangle className="h-3 w-3" /> Desatualizados</p>
             </div>
             <div className="nexus-card text-center py-3">
               <p className="text-lg font-bold text-primary">{data.chunks?.done || 0}</p>
-              <p className="text-[10px] text-muted-foreground">Chunks embeddados</p>
+              <p className="text-[11px] text-muted-foreground">Chunks embeddados</p>
               {(data.chunks?.pending > 0 || data.chunks?.failed > 0) && (
-                <p className="text-[9px] text-muted-foreground mt-0.5">
+                <p className="text-[11px] text-muted-foreground mt-0.5">
                   {data.chunks.pending > 0 && <span className="text-amber-400">{data.chunks.pending} pendentes</span>}
                   {data.chunks.pending > 0 && data.chunks.failed > 0 && ' • '}
                   {data.chunks.failed > 0 && <span className="text-destructive">{data.chunks.failed} falhas</span>}
@@ -381,19 +381,19 @@ function KnowledgeHealthTab() {
                   {freshnessIcon(item.freshness)}
                   <div className="flex-1 min-w-0">
                     <p className="text-xs font-medium text-foreground truncate">{item.name}</p>
-                    <p className="text-[10px] text-muted-foreground">
+                    <p className="text-[11px] text-muted-foreground">
                       {item.type === 'knowledge_base' ? '📚 Base de Conhecimento' : '🤖 Agente'}
                       {item.docs != null && ` • ${item.docs} docs`}
                       {item.status && ` • ${item.status}`}
                     </p>
                   </div>
                   <div className="text-right">
-                    <Badge variant="outline" className={`text-[9px] ${
+                    <Badge variant="outline" className={`text-[11px] ${
                       item.freshness === 'fresh' ? 'border-emerald-500/30 text-emerald-400' :
                       item.freshness === 'aging' ? 'border-amber-500/30 text-amber-400' :
                       'border-destructive/30 text-destructive'
                     }`}>{freshnessLabel(item.freshness)}</Badge>
-                    <p className="text-[9px] text-muted-foreground mt-0.5">{item.daysSinceUpdate}d atrás</p>
+                    <p className="text-[11px] text-muted-foreground mt-0.5">{item.daysSinceUpdate}d atrás</p>
                   </div>
                 </div>
               ))}
@@ -438,13 +438,13 @@ function AutoExtractionTab() {
         <h3 className="text-sm font-heading font-semibold text-foreground flex items-center gap-2">
           <Zap className="h-4 w-4 text-primary" /> Extração Automática via LLM
         </h3>
-        <p className="text-[10px] text-muted-foreground mt-0.5">Cole um texto e extraia entidades, fatos, regras ou contatos automaticamente</p>
+        <p className="text-[11px] text-muted-foreground mt-0.5">Cole um texto e extraia entidades, fatos, regras ou contatos automaticamente</p>
       </div>
 
       <div className="nexus-card space-y-4">
         <div className="flex gap-3 items-end">
           <div className="flex-1 space-y-1.5">
-            <label className="text-[10px] text-muted-foreground font-medium">Tipo de extração</label>
+            <label className="text-[11px] text-muted-foreground font-medium">Tipo de extração</label>
             <Select value={extractType} onValueChange={setExtractType}>
               <SelectTrigger className="bg-secondary/50 text-xs"><SelectValue /></SelectTrigger>
               <SelectContent>
@@ -465,7 +465,7 @@ function AutoExtractionTab() {
         />
 
         <div className="flex justify-between items-center">
-          <p className="text-[10px] text-muted-foreground">{text.length} caracteres</p>
+          <p className="text-[11px] text-muted-foreground">{text.length} caracteres</p>
           <Button onClick={handleExtract} disabled={isExtracting || !text.trim()} className="nexus-gradient-bg text-primary-foreground gap-2">
             {isExtracting ? <Loader2 className="h-4 w-4 animate-spin" /> : <Zap className="h-4 w-4" />}
             {isExtracting ? 'Extraindo...' : 'Extrair'}
@@ -507,7 +507,7 @@ function ExpertDiscoveryTab() {
         <h3 className="text-sm font-heading font-semibold text-foreground flex items-center gap-2">
           <Users className="h-4 w-4 text-primary" /> Descoberta de Especialistas
         </h3>
-        <p className="text-[10px] text-muted-foreground mt-0.5">Descubra quem (agente ou humano) sabe o quê na organização</p>
+        <p className="text-[11px] text-muted-foreground mt-0.5">Descubra quem (agente ou humano) sabe o quê na organização</p>
       </div>
 
       {isLoading ? (
@@ -524,13 +524,13 @@ function ExpertDiscoveryTab() {
                     <span className="text-lg">{expert.emoji}</span>
                     <div className="flex-1 min-w-0">
                       <p className="text-xs font-semibold text-foreground">{expert.name}</p>
-                      {expert.mission && <p className="text-[10px] text-muted-foreground mt-0.5 line-clamp-2">{expert.mission}</p>}
+                      {expert.mission && <p className="text-[11px] text-muted-foreground mt-0.5 line-clamp-2">{expert.mission}</p>}
                       <div className="flex flex-wrap gap-1 mt-1.5">
                         {expert.domains?.map((d: string, i: number) => (
                           <Badge key={i} variant="outline" className="text-[8px] px-1.5">{d}</Badge>
                         ))}
                       </div>
-                      <div className="flex gap-3 mt-1.5 text-[9px] text-muted-foreground">
+                      <div className="flex gap-3 mt-1.5 text-[11px] text-muted-foreground">
                         {expert.hasRAG && <span className="text-emerald-400">📚 RAG</span>}
                         {expert.toolCount > 0 && <span className="text-amber-400">🔧 {expert.toolCount}</span>}
                         <span className="capitalize">{expert.status}</span>
@@ -614,7 +614,7 @@ function BrainSandboxTab() {
         <h3 className="text-sm font-heading font-semibold text-foreground flex items-center gap-2">
           <FlaskConical className="h-4 w-4 text-primary" /> Brain Sandbox
         </h3>
-        <p className="text-[10px] text-muted-foreground mt-0.5">Teste como o Super Cérebro responde com diferentes contextos — compare respostas lado a lado</p>
+        <p className="text-[11px] text-muted-foreground mt-0.5">Teste como o Super Cérebro responde com diferentes contextos — compare respostas lado a lado</p>
       </div>
 
       <div className="nexus-card space-y-4">
@@ -627,7 +627,7 @@ function BrainSandboxTab() {
 
         <div className="flex gap-3 items-end">
           <div className="flex-1 space-y-1.5">
-            <label className="text-[10px] text-muted-foreground font-medium">Modo de Contexto</label>
+            <label className="text-[11px] text-muted-foreground font-medium">Modo de Contexto</label>
             <Select value={contextMode} onValueChange={setContextMode}>
               <SelectTrigger className="bg-secondary/50 text-xs"><SelectValue /></SelectTrigger>
               <SelectContent>
@@ -654,8 +654,8 @@ function BrainSandboxTab() {
           {results.map((r, i) => (
             <div key={i} className="nexus-card">
               <div className="flex items-center justify-between mb-2">
-                <Badge variant="outline" className="text-[9px]">{modeLabels[r.mode] || r.mode}</Badge>
-                <span className="text-[9px] text-muted-foreground">
+                <Badge variant="outline" className="text-[11px]">{modeLabels[r.mode] || r.mode}</Badge>
+                <span className="text-[11px] text-muted-foreground">
                   {r.context_size} chars • ${r.cost.toFixed(6)}
                 </span>
               </div>

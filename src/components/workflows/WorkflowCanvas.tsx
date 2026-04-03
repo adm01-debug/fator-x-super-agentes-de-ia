@@ -177,7 +177,7 @@ export function WorkflowCanvas({ nodes, edges, onNodesChange, onEdgesChange }: P
         ))}
         <div className="ml-auto flex items-center gap-1">
           <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => setZoom(z => Math.min(MAX_ZOOM, z * 1.2))}><ZoomIn className="h-3.5 w-3.5" /></Button>
-          <span className="text-[10px] text-muted-foreground w-10 text-center">{Math.round(zoom * 100)}%</span>
+          <span className="text-[11px] text-muted-foreground w-10 text-center">{Math.round(zoom * 100)}%</span>
           <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => setZoom(z => Math.max(MIN_ZOOM, z / 1.2))}><ZoomOut className="h-3.5 w-3.5" /></Button>
           <Button variant="ghost" size="icon" className="h-7 w-7" onClick={resetView}><Maximize className="h-3.5 w-3.5" /></Button>
         </div>
@@ -296,7 +296,7 @@ export function WorkflowCanvas({ nodes, edges, onNodesChange, onEdgesChange }: P
                     ) : (
                       <p className="text-xs font-semibold text-foreground truncate">{node.label}</p>
                     )}
-                    <p className="text-[9px] text-muted-foreground">{node.type}</p>
+                    <p className="text-[11px] text-muted-foreground">{node.type}</p>
                   </div>
                   {/* Connect handle */}
                   <div
@@ -328,7 +328,7 @@ export function WorkflowCanvas({ nodes, edges, onNodesChange, onEdgesChange }: P
 
         <CanvasMinimap nodes={nodes} edges={edges} zoom={zoom} pan={pan} containerWidth={containerRef.current?.clientWidth ?? 800} containerHeight={480} />
       </div>
-      <p className="text-[10px] text-muted-foreground">
+      <p className="text-[11px] text-muted-foreground">
         Arraste nodes para posicionar • Ponto azul para conectar • Clique na linha para remover • Scroll para zoom • Alt+arraste para pan • Duplo-clique para renomear • Arraste da toolbar para o canvas
       </p>
     </div>

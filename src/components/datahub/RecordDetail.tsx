@@ -98,7 +98,7 @@ function VendorCard({ data }: { data: any[] }) {
       <User className="h-3.5 w-3.5 text-primary shrink-0" />
       <div>
         <p className="text-foreground font-medium">{vendor.vendedor_nome || 'Sem vendedor'}</p>
-        {vendor.vendedor_id && <p className="text-muted-foreground font-mono text-[10px]">ID: {vendor.vendedor_id}</p>}
+        {vendor.vendedor_id && <p className="text-muted-foreground font-mono text-[11px]">ID: {vendor.vendedor_id}</p>}
       </div>
     </div>
   );
@@ -115,7 +115,7 @@ function SupplierScoreCard({ data }: { data: any[] }) {
         <div className="flex items-center gap-2">
           <span className="text-foreground font-medium">Fornecedor</span>
           {s.homologado !== undefined && (
-            <Badge variant={s.homologado ? 'default' : 'secondary'} className="text-[9px] h-4">
+            <Badge variant={s.homologado ? 'default' : 'secondary'} className="text-[11px] h-4">
               {s.homologado ? '✅ Homologado' : 'Não homologado'}
             </Badge>
           )}
@@ -137,7 +137,7 @@ function MessagesTimeline({ messages }: { messages: any[] }) {
   return (
     <div className="space-y-1.5 max-h-[200px] overflow-y-auto">
       {messages.slice(0, 20).map((msg, i) => (
-        <div key={i} className="flex gap-2 px-2.5 py-1.5 rounded-lg bg-secondary/20 border border-border/10 text-[10px]">
+        <div key={i} className="flex gap-2 px-2.5 py-1.5 rounded-lg bg-secondary/20 border border-border/10 text-[11px]">
           <MessageCircle className="h-3 w-3 text-primary mt-0.5 shrink-0" />
           <div className="flex-1 min-w-0">
             <p className="text-foreground truncate">{msg.body || '[sem conteúdo]'}</p>
@@ -146,7 +146,7 @@ function MessagesTimeline({ messages }: { messages: any[] }) {
         </div>
       ))}
       {messages.length > 20 && (
-        <p className="text-[10px] text-muted-foreground text-center">+{messages.length - 20} mensagens...</p>
+        <p className="text-[11px] text-muted-foreground text-center">+{messages.length - 20} mensagens...</p>
       )}
     </div>
   );
@@ -162,7 +162,7 @@ function GenericSecondaryCard({ tableName, data }: { tableName: string; data: an
         {data.map((row, i) => (
           <div key={i} className="flex flex-wrap gap-x-3 gap-y-0.5 py-1 border-b border-border/10 last:border-0">
             {Object.entries(row).map(([k, v]) => (
-              <span key={k} className="text-[10px]">
+              <span key={k} className="text-[11px]">
                 <span className="text-muted-foreground">{k}: </span>
                 <span className="text-foreground font-mono">{v === null ? '—' : String(v)}</span>
               </span>
@@ -175,13 +175,13 @@ function GenericSecondaryCard({ tableName, data }: { tableName: string; data: an
 }
 
 function EmptySecondary({ label }: { label: string }) {
-  return <p className="text-[10px] text-muted-foreground italic">{label}</p>;
+  return <p className="text-[11px] text-muted-foreground italic">{label}</p>;
 }
 
 /* ── Cross-DB results ───────────────────────────────── */
 function CrossDbResults({ data }: { data: Record<string, any[]> }) {
   const entries = Object.entries(data).filter(([, rows]) => Array.isArray(rows) && rows.length > 0);
-  if (!entries.length) return <p className="text-[10px] text-muted-foreground italic">Nenhum dado cross-database encontrado</p>;
+  if (!entries.length) return <p className="text-[11px] text-muted-foreground italic">Nenhum dado cross-database encontrado</p>;
 
   return (
     <div className="space-y-2">
@@ -192,15 +192,15 @@ function CrossDbResults({ data }: { data: Record<string, any[]> }) {
             <div className="flex items-center gap-2 mb-2">
               <ExternalLink className="h-3 w-3 text-nexus-emerald" />
               <span className="text-[11px] font-mono text-foreground">{conn}</span>
-              <span className="text-[10px] text-muted-foreground">→</span>
+              <span className="text-[11px] text-muted-foreground">→</span>
               <span className="text-[11px] font-mono text-nexus-emerald">{table}</span>
-              <Badge variant="outline" className="text-[9px] h-4 border-nexus-emerald/30 text-nexus-emerald">
+              <Badge variant="outline" className="text-[11px] h-4 border-nexus-emerald/30 text-nexus-emerald">
                 {rows.length} resultado{rows.length !== 1 ? 's' : ''}
               </Badge>
             </div>
             <div className="space-y-1 max-h-[150px] overflow-y-auto">
               {rows.map((row, i) => (
-                <div key={i} className="flex flex-wrap gap-x-3 gap-y-0.5 py-1 border-b border-nexus-emerald/10 last:border-0 text-[10px]">
+                <div key={i} className="flex flex-wrap gap-x-3 gap-y-0.5 py-1 border-b border-nexus-emerald/10 last:border-0 text-[11px]">
                   {Object.entries(row).slice(0, 8).map(([k, v]) => (
                     <span key={k}>
                       <span className="text-muted-foreground">{k}: </span>
@@ -255,7 +255,7 @@ function GroupMembers({ entityId, grupoId, excludeId }: { entityId: string; grup
       </div>
       <div className="space-y-1">
         {members.map((m, i) => (
-          <div key={i} className="flex items-center justify-between py-1 text-[10px]">
+          <div key={i} className="flex items-center justify-between py-1 text-[11px]">
             <span className="text-foreground">{m[displayCol] || m.id}</span>
             {m.cnpj && <span className="text-muted-foreground font-mono">{formatCNPJ(m.cnpj)}</span>}
           </div>
@@ -309,7 +309,7 @@ export function RecordDetail({ record, enrichedData, entityId, onClose }: Record
         <h4 className="text-sm font-semibold text-foreground flex items-center gap-2">
           📋 {record[displayCol] || 'Registro'}
           {record.id && (
-            <span className="text-[10px] font-mono text-muted-foreground">#{String(record.id).slice(0, 8)}</span>
+            <span className="text-[11px] font-mono text-muted-foreground">#{String(record.id).slice(0, 8)}</span>
           )}
         </h4>
         <Button size="sm" variant="ghost" onClick={onClose}>
@@ -319,14 +319,14 @@ export function RecordDetail({ record, enrichedData, entityId, onClose }: Record
 
       {/* Primary fields */}
       <div className="rounded-lg bg-secondary/20 border border-border/20 p-3">
-        <h5 className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider mb-2">Dados Primários</h5>
+        <h5 className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider mb-2">Dados Primários</h5>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-x-6">
           {primaryFields.map(([key, val]) => (
             <FieldValue key={key} label={key} value={val} sensitive={sensitiveFields.has(key)} />
           ))}
         </div>
         {record.created_at && (
-          <p className="text-[9px] text-muted-foreground mt-2 border-t border-border/10 pt-1">
+          <p className="text-[11px] text-muted-foreground mt-2 border-t border-border/10 pt-1">
             Criado: {formatDate(record.created_at)} · Atualizado: {formatDate(record.updated_at)}
           </p>
         )}
@@ -354,7 +354,7 @@ export function RecordDetail({ record, enrichedData, entityId, onClose }: Record
                 <div className="flex items-center gap-1.5 text-[11px]">
                   {info?.icon ?? <GitBranch className="h-3 w-3 text-muted-foreground" />}
                   <span className="font-semibold text-foreground">{info?.label ?? table}</span>
-                  <Badge variant="secondary" className="text-[9px] h-4">{Array.isArray(rows) ? rows.length : 0}</Badge>
+                  <Badge variant="secondary" className="text-[11px] h-4">{Array.isArray(rows) ? rows.length : 0}</Badge>
                 </div>
                 {renderer ? renderer(rows as any[]) : <GenericSecondaryCard tableName={table} data={rows as any[]} />}
               </div>

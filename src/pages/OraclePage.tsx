@@ -57,10 +57,10 @@ export default function OraclePage() {
               <span className="text-xs font-medium text-foreground">{currentPreset?.name.replace(/^[^\s]+\s/, '') || 'Conselho Executivo'}</span>
               {showPresets ? <ChevronUp className="h-3 w-3 text-muted-foreground" /> : <ChevronDown className="h-3 w-3 text-muted-foreground" />}
             </button>
-            <Badge variant="outline" className="text-[10px]">
+            <Badge variant="outline" className="text-[11px]">
               {modeConfig.icon} {modeConfig.label}
             </Badge>
-            <Badge variant="outline" className="text-[10px] text-muted-foreground">
+            <Badge variant="outline" className="text-[11px] text-muted-foreground">
               {currentPreset?.members.length || 3} modelos
             </Badge>
           </div>
@@ -112,7 +112,7 @@ export default function OraclePage() {
                 <div className="flex items-center justify-between">
                   <div>
                     <Label className="text-[11px]">💭 Modo Thinking</Label>
-                    <p className="text-[10px] text-muted-foreground">Mostra raciocínio passo-a-passo de cada modelo</p>
+                    <p className="text-[11px] text-muted-foreground">Mostra raciocínio passo-a-passo de cada modelo</p>
                   </div>
                   <Switch checked={store.enableThinking} onCheckedChange={store.setEnableThinking} />
                 </div>
@@ -131,7 +131,7 @@ export default function OraclePage() {
 
         {/* Submit */}
         <div className="flex items-center justify-between">
-          <p className="text-[10px] text-muted-foreground">{modeConfig.stages.join(' → ')}</p>
+          <p className="text-[11px] text-muted-foreground">{modeConfig.stages.join(' → ')}</p>
           <Button onClick={store.submitQuery} disabled={store.isRunning || !store.query.trim()} className="nexus-gradient-bg text-primary-foreground gap-2">
             {store.isRunning ? <Loader2 className="h-4 w-4 animate-spin" /> : <Sparkles className="h-4 w-4" />}
             {store.isRunning ? 'Consultando...' : '🔮 Convocar Conselho'}
@@ -162,7 +162,7 @@ export default function OraclePage() {
             ].map(m => (
               <div key={m.l} className="nexus-card text-center py-3">
                 <p className={`text-xl font-heading font-bold ${m.c}`}>{m.v}</p>
-                <p className="text-[10px] text-muted-foreground">{m.l}</p>
+                <p className="text-[11px] text-muted-foreground">{m.l}</p>
               </div>
             ))}
           </div>
@@ -180,8 +180,8 @@ export default function OraclePage() {
             <TabsContent value="response" className="mt-4">
               <div className="nexus-card">
                 <div className="flex items-center gap-2 mb-3">
-                  <Badge variant="outline" className="text-[10px]">{modeConfig.icon} {modeConfig.label}</Badge>
-                  <Badge variant="outline" className="text-[10px] text-muted-foreground">Chairman: {store.chairmanModel.split('/').pop()}</Badge>
+                  <Badge variant="outline" className="text-[11px]">{modeConfig.icon} {modeConfig.label}</Badge>
+                  <Badge variant="outline" className="text-[11px] text-muted-foreground">Chairman: {store.chairmanModel.split('/').pop()}</Badge>
                 </div>
                 <div className="text-foreground whitespace-pre-wrap text-sm leading-relaxed prose prose-sm max-w-none dark:prose-invert">
                   {store.results.final_response}

@@ -58,7 +58,7 @@ export default function DataStoragePage() {
           ].map(s => (
             <div key={s.label} className="nexus-card text-center py-3">
               <p className="text-lg font-heading font-bold text-foreground">{s.value}</p>
-              <p className="text-[9px] text-muted-foreground">{s.label}</p>
+              <p className="text-[11px] text-muted-foreground">{s.label}</p>
             </div>
           ))}
         </div>

@@ -26,7 +26,7 @@ export function NexusBadge({ children, color = 'blue', variant = 'filled', class
   return (
     <span
       className={cn(
-        'inline-flex items-center gap-1 rounded-md px-2 py-0.5 text-[10px] font-semibold leading-tight',
+        'inline-flex items-center gap-1 rounded-md px-2 py-0.5 text-[11px] font-semibold leading-tight',
         variant === 'filled' ? cn(c.bg, c.text) : cn('bg-transparent border', c.border, c.text),
         className
       )}

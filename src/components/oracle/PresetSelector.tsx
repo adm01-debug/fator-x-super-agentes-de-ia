@@ -39,11 +39,11 @@ export function PresetSelector({ selectedPreset, onSelect }: PresetSelectorProps
                     <span className="text-sm">{preset.icon}</span>
                     <span className="text-[11px] font-medium text-foreground truncate">{preset.name.replace(/^[^\s]+\s/, '')}</span>
                   </div>
-                  <p className="text-[10px] text-muted-foreground line-clamp-2">{preset.description}</p>
+                  <p className="text-[11px] text-muted-foreground line-clamp-2">{preset.description}</p>
                   <div className="flex gap-1 mt-1.5">
-                    <span className="text-[9px] px-1.5 py-0.5 rounded bg-secondary text-muted-foreground">{preset.members.length} modelos</span>
-                    {preset.enablePeerReview && <span className="text-[9px] px-1.5 py-0.5 rounded bg-secondary text-muted-foreground">review</span>}
-                    {preset.enableThinking && <span className="text-[9px] px-1.5 py-0.5 rounded bg-secondary text-muted-foreground">thinking</span>}
+                    <span className="text-[11px] px-1.5 py-0.5 rounded bg-secondary text-muted-foreground">{preset.members.length} modelos</span>
+                    {preset.enablePeerReview && <span className="text-[11px] px-1.5 py-0.5 rounded bg-secondary text-muted-foreground">review</span>}
+                    {preset.enableThinking && <span className="text-[11px] px-1.5 py-0.5 rounded bg-secondary text-muted-foreground">thinking</span>}
                   </div>
                 </button>
               ))}

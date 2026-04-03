@@ -146,7 +146,7 @@ export function AgentPlayground() {
                 <span className="text-lg">{agent.avatar_emoji || '🤖'}</span>
                 <div>
                   <SheetTitle className="text-sm font-heading font-bold text-foreground">{agent.name || 'Agente'}</SheetTitle>
-                  <p className="text-[10px] text-muted-foreground">{agent.model} • Playground</p>
+                  <p className="text-[11px] text-muted-foreground">{agent.model} • Playground</p>
                 </div>
               </div>
               <div className="flex items-center gap-1">
@@ -162,8 +162,8 @@ export function AgentPlayground() {
 
           {debugMode && (
             <div className="px-5 py-2 bg-secondary/30 border-b border-border/50 shrink-0">
-              <p className="text-[10px] font-mono text-muted-foreground">System Prompt:</p>
-              <pre className="text-[10px] text-foreground font-mono whitespace-pre-wrap max-h-32 overflow-y-auto mt-1">
+              <p className="text-[11px] font-mono text-muted-foreground">System Prompt:</p>
+              <pre className="text-[11px] text-foreground font-mono whitespace-pre-wrap max-h-32 overflow-y-auto mt-1">
                 {buildSystemPrompt()}
               </pre>
             </div>
@@ -183,17 +183,17 @@ export function AgentPlayground() {
                     ? 'bg-primary/10 text-foreground ml-8'
                     : 'bg-secondary/50 text-foreground mr-4'
                 }`}>
-                  <p className="text-[10px] font-medium text-muted-foreground mb-1">
+                  <p className="text-[11px] font-medium text-muted-foreground mb-1">
                     {msg.role === 'user' ? 'Você' : agent.name || 'Assistente'}
                   </p>
                   <div className="whitespace-pre-wrap text-xs leading-relaxed">{msg.content}</div>
                 </div>
                 {msg.metadata && (
                   <div className="flex items-center gap-2 mt-1 ml-1">
-                    {msg.metadata.model && <Badge variant="outline" className="text-[9px] h-4">{msg.metadata.provider || msg.metadata.model}</Badge>}
-                    {msg.metadata.tokens && <span className="text-[9px] text-muted-foreground">{msg.metadata.tokens.total} tokens</span>}
-                    {msg.metadata.latency_ms && <span className="text-[9px] text-muted-foreground">{(msg.metadata.latency_ms / 1000).toFixed(1)}s</span>}
-                    {msg.metadata.cost_usd != null && <span className="text-[9px] text-muted-foreground">${msg.metadata.cost_usd.toFixed(4)}</span>}
+                    {msg.metadata.model && <Badge variant="outline" className="text-[11px] h-4">{msg.metadata.provider || msg.metadata.model}</Badge>}
+                    {msg.metadata.tokens && <span className="text-[11px] text-muted-foreground">{msg.metadata.tokens.total} tokens</span>}
+                    {msg.metadata.latency_ms && <span className="text-[11px] text-muted-foreground">{(msg.metadata.latency_ms / 1000).toFixed(1)}s</span>}
+                    {msg.metadata.cost_usd != null && <span className="text-[11px] text-muted-foreground">${msg.metadata.cost_usd.toFixed(4)}</span>}
                   </div>
                 )}
               </div>

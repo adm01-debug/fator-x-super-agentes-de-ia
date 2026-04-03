@@ -171,7 +171,7 @@ function AdminTable({ config }: { config: typeof TABLE_CONFIG[0] }) {
                     {config.columns.map((col) => (
                       <TableCell key={col.key} className="text-xs py-2.5 max-w-[200px] truncate">
                         {col.key === "status" || col.key === "level" ? (
-                          <Badge variant="outline" className="text-[10px]">
+                          <Badge variant="outline" className="text-[11px]">
                             {formatCell(row[col.key], col.key)}
                           </Badge>
                         ) : col.key === "is_active" ? (

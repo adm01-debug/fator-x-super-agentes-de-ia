@@ -153,7 +153,7 @@ export function ObservabilityModule() {
               >
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-3 min-w-0 flex-1">
-                    <span className={`flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-medium ${sc.className}`}>
+                    <span className={`flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-medium ${sc.className}`}>
                       {sc.icon} {sc.label}
                     </span>
                     <p className="text-sm text-foreground truncate">{trace.user_input}</p>
@@ -201,7 +201,7 @@ export function ObservabilityModule() {
                 <div className="space-y-2">
                   {selected.memories_used.map((mem, i) => (
                     <div key={i} className="rounded-lg bg-muted/30 p-3">
-                      <span className="text-[10px] font-medium text-primary uppercase">{mem.type}</span>
+                      <span className="text-[11px] font-medium text-primary uppercase">{mem.type}</span>
                       <p className="text-sm text-foreground mt-1">{mem.content}</p>
                     </div>
                   ))}
@@ -235,7 +235,7 @@ export function ObservabilityModule() {
                     <div key={i} className="rounded-lg bg-orange-500/5 border border-orange-500/20 p-3">
                       <div className="flex items-center justify-between text-xs">
                         <span className="font-medium text-foreground">{gr.id}</span>
-                        <span className="text-orange-500 uppercase text-[10px]">{gr.action}</span>
+                        <span className="text-orange-500 uppercase text-[11px]">{gr.action}</span>
                       </div>
                       <p className="text-[11px] text-muted-foreground mt-1">{gr.reason}</p>
                     </div>
@@ -273,7 +273,7 @@ function MetricBox({ icon, label, value }: { icon: React.ReactNode; label: strin
     <div className="rounded-xl border border-border bg-card p-4 text-center">
       <div className="flex justify-center mb-2">{icon}</div>
       <p className="text-lg font-bold text-foreground">{value}</p>
-      <p className="text-[10px] text-muted-foreground">{label}</p>
+      <p className="text-[11px] text-muted-foreground">{label}</p>
     </div>
   );
 }
@@ -343,11 +343,11 @@ function AbTestPanel({ agentId }: { agentId: string; currentVersion?: number }) 
       {/* Create form */}
       <div className="flex gap-2 items-end">
         <div className="flex-1">
-          <label className="text-[10px] text-muted-foreground">Nome do teste</label>
+          <label className="text-[11px] text-muted-foreground">Nome do teste</label>
           <Input value={testName} onChange={e => setTestName(e.target.value)} placeholder="Ex: Teste tom formal vs informal" className="bg-secondary/50 text-xs h-8" />
         </div>
         <div className="w-20">
-          <label className="text-[10px] text-muted-foreground">Split A%</label>
+          <label className="text-[11px] text-muted-foreground">Split A%</label>
           <Input type="number" value={split} onChange={e => setSplit(e.target.value)} min="10" max="90" className="bg-secondary/50 text-xs h-8" />
         </div>
         <Button size="sm" onClick={handleCreate} disabled={creating} className="h-8 text-xs gap-1">
@@ -355,7 +355,7 @@ function AbTestPanel({ agentId }: { agentId: string; currentVersion?: number }) 
         </Button>
       </div>
 
-      <p className="text-[10px] text-muted-foreground">
+      <p className="text-[11px] text-muted-foreground">
         Variante A: v{versions[0]?.version || '?'} ({versions[0]?.change_summary || 'atual'}) •
         Variante B: v{versions[1]?.version || '?'} ({versions[1]?.change_summary || 'anterior'}) •
         {versions.length} versões disponíveis
@@ -371,8 +371,8 @@ function AbTestPanel({ agentId }: { agentId: string; currentVersion?: number }) 
                 <span className="text-muted-foreground ml-2">Split: {((t.traffic_split || 0.5) * 100).toFixed(0)}/{(100 - (t.traffic_split || 0.5) * 100).toFixed(0)}</span>
               </div>
               <div className="flex items-center gap-2">
-                <Badge variant={t.status === 'running' ? 'default' : 'outline'} className="text-[9px]">{t.status}</Badge>
-                {t.status === 'running' && <Button variant="ghost" size="sm" className="h-6 text-[10px]" onClick={() => handleStop(t.id)}>Encerrar</Button>}
+                <Badge variant={t.status === 'running' ? 'default' : 'outline'} className="text-[11px]">{t.status}</Badge>
+                {t.status === 'running' && <Button variant="ghost" size="sm" className="h-6 text-[11px]" onClick={() => handleStop(t.id)}>Encerrar</Button>}
                 <Button variant="ghost" size="icon" className="h-5 w-5 text-destructive" onClick={() => handleDelete(t.id)}><Trash2 className="h-3 w-3" /></Button>
               </div>
             </div>

@@ -85,7 +85,7 @@ export function CommandPalette() {
             <CommandItem key={agent.id} onSelect={() => go(`/builder/${agent.id}`)} className="gap-2">
               <Bot className="h-4 w-4 text-muted-foreground" />
               <span>{agent.name}</span>
-              <span className="ml-auto text-[10px] text-muted-foreground">{agent.persona} • {agent.model}</span>
+              <span className="ml-auto text-[11px] text-muted-foreground">{agent.persona} • {agent.model}</span>
             </CommandItem>
           ))}
         </CommandGroup>

@@ -165,7 +165,7 @@ export default function DashboardPage() {
                     />
                   )}
                 </p>
-                <p className="text-[10px] sm:text-[11px] text-muted-foreground">{metric.label}</p>
+                <p className="text-[11px] sm:text-[11px] text-muted-foreground">{metric.label}</p>
               </div>
             ))}
           </div>
@@ -175,15 +175,15 @@ export default function DashboardPage() {
             <div className="grid grid-cols-3 gap-2 sm:gap-3 stagger-children">
               <div className="nexus-card nexus-metric-card py-2.5 sm:py-3 text-center">
                 <p className="text-xs sm:text-sm font-heading font-bold text-foreground">{usageStats.avgLatency}ms</p>
-                <p className="text-[9px] sm:text-[10px] text-muted-foreground">Latência média</p>
+                <p className="text-[11px] sm:text-[11px] text-muted-foreground">Latência média</p>
               </div>
               <div className="nexus-card nexus-metric-card py-2.5 sm:py-3 text-center">
                 <p className="text-xs sm:text-sm font-heading font-bold text-foreground">{(usageStats.totalTokens / 1000).toFixed(0)}k</p>
-                <p className="text-[9px] sm:text-[10px] text-muted-foreground">Tokens totais</p>
+                <p className="text-[11px] sm:text-[11px] text-muted-foreground">Tokens totais</p>
               </div>
               <div className="nexus-card nexus-metric-card py-2.5 sm:py-3 text-center">
                 <p className="text-xs sm:text-sm font-heading font-bold text-foreground">{draftCount}</p>
-                <p className="text-[9px] sm:text-[10px] text-muted-foreground">Rascunhos</p>
+                <p className="text-[11px] sm:text-[11px] text-muted-foreground">Rascunhos</p>
               </div>
             </div>
           )}
@@ -244,13 +244,13 @@ export default function DashboardPage() {
                         <StatusBadge status={trace.level || 'info'} />
                         <div>
                           <p className="text-xs font-medium text-foreground">{trace.event}</p>
-                          <p className="text-[10px] text-muted-foreground">
+                          <p className="text-[11px] text-muted-foreground">
                             <time dateTime={trace.created_at}>{new Date(trace.created_at).toLocaleString('pt-BR')}</time>
                           </p>
                         </div>
                       </div>
                       {trace.latency_ms && (
-                        <span className="text-[10px] text-muted-foreground flex items-center gap-1">
+                        <span className="text-[11px] text-muted-foreground flex items-center gap-1">
                           <Clock className="h-3 w-3" aria-hidden="true" />{(trace.latency_ms / 1000).toFixed(1)}s
                         </span>
                       )}
@@ -292,14 +292,14 @@ function DashboardAlerts() {
           <span className="h-2 w-2 rounded-full bg-amber-400 animate-pulse" />
           Alertas Ativos ({alerts.length})
         </h3>
-        <button onClick={() => navigate('/monitoring')} className="text-[10px] text-primary hover:underline">Ver todos</button>
+        <button onClick={() => navigate('/monitoring')} className="text-[11px] text-primary hover:underline">Ver todos</button>
       </div>
       <div className="space-y-2">
         {alerts.map(a => (
           <div key={a.id} className="flex items-center gap-2 text-xs py-1">
             <span className={`w-2 h-2 rounded-full shrink-0 ${a.severity === 'critical' ? 'bg-destructive' : 'bg-amber-400'}`} />
             <span className="text-foreground truncate">{a.title}</span>
-            <span className="text-muted-foreground ml-auto shrink-0 text-[10px]">{new Date(a.created_at || '').toLocaleDateString('pt-BR')}</span>
+            <span className="text-muted-foreground ml-auto shrink-0 text-[11px]">{new Date(a.created_at || '').toLocaleDateString('pt-BR')}</span>
           </div>
         ))}
       </div>

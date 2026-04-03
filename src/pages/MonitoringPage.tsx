@@ -167,7 +167,7 @@ export default function MonitoringPage() {
             {agentsList.map((a: any) => <SelectItem key={a.id} value={a.id}>{a.name}</SelectItem>)}
           </SelectContent>
         </Select>
-        {agentFilter !== 'all' && <Badge variant="outline" className="text-[10px]">Filtrado</Badge>}
+        {agentFilter !== 'all' && <Badge variant="outline" className="text-[11px]">Filtrado</Badge>}
       </div>
 
       <Tabs defaultValue="traces" className="space-y-4">
@@ -175,10 +175,10 @@ export default function MonitoringPage() {
           <TabsTrigger value="traces">Traces</TabsTrigger>
           <TabsTrigger value="sessions" className="gap-1.5">
             <Layers className="h-3.5 w-3.5" /> Sessões
-            {sessions.length > 0 && <Badge variant="secondary" className="text-[9px] h-4 px-1 ml-1">{sessions.length}</Badge>}
+            {sessions.length > 0 && <Badge variant="secondary" className="text-[11px] h-4 px-1 ml-1">{sessions.length}</Badge>}
           </TabsTrigger>
           <TabsTrigger value="alerts" className="gap-1.5">
-            Alertas {unresolvedCount > 0 && <Badge variant="destructive" className="text-[9px] h-4 px-1">{unresolvedCount}</Badge>}
+            Alertas {unresolvedCount > 0 && <Badge variant="destructive" className="text-[11px] h-4 px-1">{unresolvedCount}</Badge>}
           </TabsTrigger>
         </TabsList>
 
@@ -194,10 +194,10 @@ export default function MonitoringPage() {
           ) : (
             <>
               <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-                <div className="nexus-card text-center py-3"><p className="text-xl font-heading font-bold text-foreground">{stats.total}</p><p className="text-[10px] text-muted-foreground">Total de traces</p></div>
-                <div className="nexus-card text-center py-3"><p className="text-xl font-heading font-bold text-destructive">{stats.errors}</p><p className="text-[10px] text-muted-foreground">Erros</p></div>
-                <div className="nexus-card text-center py-3"><p className="text-xl font-heading font-bold text-foreground">{stats.avgLatency}ms</p><p className="text-[10px] text-muted-foreground">Latência média</p></div>
-                <div className="nexus-card text-center py-3"><p className="text-xl font-heading font-bold text-foreground">${stats.totalCost.toFixed(3)}</p><p className="text-[10px] text-muted-foreground">Custo total</p></div>
+                <div className="nexus-card text-center py-3"><p className="text-xl font-heading font-bold text-foreground">{stats.total}</p><p className="text-[11px] text-muted-foreground">Total de traces</p></div>
+                <div className="nexus-card text-center py-3"><p className="text-xl font-heading font-bold text-destructive">{stats.errors}</p><p className="text-[11px] text-muted-foreground">Erros</p></div>
+                <div className="nexus-card text-center py-3"><p className="text-xl font-heading font-bold text-foreground">{stats.avgLatency}ms</p><p className="text-[11px] text-muted-foreground">Latência média</p></div>
+                <div className="nexus-card text-center py-3"><p className="text-xl font-heading font-bold text-foreground">${stats.totalCost.toFixed(3)}</p><p className="text-[11px] text-muted-foreground">Custo total</p></div>
               </div>
 
               <div className="grid lg:grid-cols-2 gap-4">
@@ -266,9 +266,9 @@ export default function MonitoringPage() {
                       )}
                     </div>
                     <div className="mt-4 pt-4 border-t border-border/50 grid grid-cols-3 gap-4 text-center">
-                      <div><p className="text-lg font-heading font-bold text-foreground">{selected.latency_ms ? (selected.latency_ms / 1000).toFixed(1) + 's' : '—'}</p><p className="text-[10px] text-muted-foreground">Latência</p></div>
-                      <div><p className="text-lg font-heading font-bold text-foreground">{selected.tokens_used?.toLocaleString() || '—'}</p><p className="text-[10px] text-muted-foreground">Tokens</p></div>
-                      <div><p className="text-lg font-heading font-bold text-foreground">{selected.cost_usd != null ? `$${Number(selected.cost_usd).toFixed(3)}` : '—'}</p><p className="text-[10px] text-muted-foreground">Custo</p></div>
+                      <div><p className="text-lg font-heading font-bold text-foreground">{selected.latency_ms ? (selected.latency_ms / 1000).toFixed(1) + 's' : '—'}</p><p className="text-[11px] text-muted-foreground">Latência</p></div>
+                      <div><p className="text-lg font-heading font-bold text-foreground">{selected.tokens_used?.toLocaleString() || '—'}</p><p className="text-[11px] text-muted-foreground">Tokens</p></div>
+                      <div><p className="text-lg font-heading font-bold text-foreground">{selected.cost_usd != null ? `$${Number(selected.cost_usd).toFixed(3)}` : '—'}</p><p className="text-[11px] text-muted-foreground">Custo</p></div>
                     </div>
                   </div>
                 )}
@@ -298,7 +298,7 @@ export default function MonitoringPage() {
                     <div>
                       <div className="flex items-center gap-2">
                         <p className="text-sm font-semibold text-foreground font-mono">{session.id.substring(0, 12)}...</p>
-                        <Badge variant={session.status === 'active' ? 'default' : 'secondary'} className="text-[9px]">
+                        <Badge variant={session.status === 'active' ? 'default' : 'secondary'} className="text-[11px]">
                           {session.status}
                         </Badge>
                       </div>
@@ -324,7 +324,7 @@ export default function MonitoringPage() {
                               className="flex items-center gap-3 text-xs cursor-pointer"
                               onClick={() => setExpandedTraceId(expandedTraceId === st.id ? null : st.id)}
                             >
-                              <Badge variant="outline" className="text-[9px] shrink-0">{st.trace_type}</Badge>
+                              <Badge variant="outline" className="text-[11px] shrink-0">{st.trace_type}</Badge>
                               <span className="text-foreground truncate flex-1">
                                 {st.latency_ms ? `${st.latency_ms}ms` : ''} {st.tokens_used ? `• ${st.tokens_used}t` : ''} {st.cost_usd ? `• $${Number(st.cost_usd).toFixed(4)}` : ''}
                               </span>
@@ -336,7 +336,7 @@ export default function MonitoringPage() {
                             {/* Trace Events (most granular level) */}
                             {expandedTraceId === st.id && traceEvents.length > 0 && (
                               <div className="mt-2 pt-2 border-t border-border/20 space-y-1 pl-4">
-                                <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider mb-1">Eventos</p>
+                                <p className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider mb-1">Eventos</p>
                                 {traceEvents.map((ev) => (
                                   <div key={ev.id} className="flex items-center gap-2 text-[11px]">
                                     <span className="text-muted-foreground font-mono w-[55px] shrink-0">
@@ -355,10 +355,10 @@ export default function MonitoringPage() {
                             {expandedTraceId === st.id && (
                               <div className="mt-2 space-y-2">
                                 {st.input && (
-                                  <div><p className="text-[10px] font-semibold text-foreground">Input</p><pre className="text-[10px] text-muted-foreground bg-secondary/30 p-2 rounded max-h-[120px] overflow-auto">{JSON.stringify(st.input, null, 2)}</pre></div>
+                                  <div><p className="text-[11px] font-semibold text-foreground">Input</p><pre className="text-[11px] text-muted-foreground bg-secondary/30 p-2 rounded max-h-[120px] overflow-auto">{JSON.stringify(st.input, null, 2)}</pre></div>
                                 )}
                                 {st.output && (
-                                  <div><p className="text-[10px] font-semibold text-foreground">Output</p><pre className="text-[10px] text-muted-foreground bg-secondary/30 p-2 rounded max-h-[120px] overflow-auto">{JSON.stringify(st.output, null, 2)}</pre></div>
+                                  <div><p className="text-[11px] font-semibold text-foreground">Output</p><pre className="text-[11px] text-muted-foreground bg-secondary/30 p-2 rounded max-h-[120px] overflow-auto">{JSON.stringify(st.output, null, 2)}</pre></div>
                                 )}
                               </div>
                             )}
@@ -394,11 +394,11 @@ export default function MonitoringPage() {
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-2 mb-1">
                       <p className="text-sm font-medium text-foreground">{alert.title}</p>
-                      <Badge variant={alert.severity === 'critical' ? 'destructive' : 'outline'} className="text-[9px]">{alert.severity}</Badge>
-                      {alert.is_resolved && <Badge variant="secondary" className="text-[9px] gap-1"><CheckCircle className="h-2.5 w-2.5" /> Resolvido</Badge>}
+                      <Badge variant={alert.severity === 'critical' ? 'destructive' : 'outline'} className="text-[11px]">{alert.severity}</Badge>
+                      {alert.is_resolved && <Badge variant="secondary" className="text-[11px] gap-1"><CheckCircle className="h-2.5 w-2.5" /> Resolvido</Badge>}
                     </div>
                     {alert.message && <p className="text-xs text-muted-foreground">{alert.message}</p>}
-                    <p className="text-[10px] text-muted-foreground mt-1">{alert.created_at ? new Date(alert.created_at).toLocaleString('pt-BR') : ''}</p>
+                    <p className="text-[11px] text-muted-foreground mt-1">{alert.created_at ? new Date(alert.created_at).toLocaleString('pt-BR') : ''}</p>
                   </div>
                   {!alert.is_resolved && (
                     <Button variant="outline" size="sm" className="text-xs shrink-0" onClick={() => handleResolveAlert(alert.id)}>
@@ -474,17 +474,17 @@ function AlertRulesPanel() {
 
       {/* Create form */}
       <div className="grid grid-cols-2 md:grid-cols-6 gap-2 mb-4 items-end">
-        <div><label className="text-[10px] text-muted-foreground">Nome</label><input value={ruleName} onChange={e => setRuleName(e.target.value)} placeholder="Ex: Custo alto" className="w-full rounded-lg border border-border bg-secondary/50 px-2 py-1.5 text-xs" /></div>
-        <div><label className="text-[10px] text-muted-foreground">Métrica</label>
+        <div><label className="text-[11px] text-muted-foreground">Nome</label><input value={ruleName} onChange={e => setRuleName(e.target.value)} placeholder="Ex: Custo alto" className="w-full rounded-lg border border-border bg-secondary/50 px-2 py-1.5 text-xs" /></div>
+        <div><label className="text-[11px] text-muted-foreground">Métrica</label>
           <select value={ruleMetric} onChange={e => setRuleMetric(e.target.value)} className="w-full rounded-lg border border-border bg-secondary/50 px-2 py-1.5 text-xs">
             <option value="cost_usd">Custo (USD)</option><option value="latency_ms">Latência (ms)</option><option value="tokens_used">Tokens</option><option value="error_count">Erros</option>
           </select></div>
-        <div><label className="text-[10px] text-muted-foreground">Operador</label>
+        <div><label className="text-[11px] text-muted-foreground">Operador</label>
           <select value={ruleOp} onChange={e => setRuleOp(e.target.value)} className="w-full rounded-lg border border-border bg-secondary/50 px-2 py-1.5 text-xs">
             <option value=">">&gt;</option><option value=">=">&gt;=</option><option value="<">&lt;</option><option value="<=">&lt;=</option><option value="==">=</option>
           </select></div>
-        <div><label className="text-[10px] text-muted-foreground">Threshold</label><input type="number" value={ruleThreshold} onChange={e => setRuleThreshold(e.target.value)} className="w-full rounded-lg border border-border bg-secondary/50 px-2 py-1.5 text-xs" /></div>
-        <div><label className="text-[10px] text-muted-foreground">Severidade</label>
+        <div><label className="text-[11px] text-muted-foreground">Threshold</label><input type="number" value={ruleThreshold} onChange={e => setRuleThreshold(e.target.value)} className="w-full rounded-lg border border-border bg-secondary/50 px-2 py-1.5 text-xs" /></div>
+        <div><label className="text-[11px] text-muted-foreground">Severidade</label>
           <select value={ruleSeverity} onChange={e => setRuleSeverity(e.target.value)} className="w-full rounded-lg border border-border bg-secondary/50 px-2 py-1.5 text-xs">
             <option value="info">Info</option><option value="warning">Warning</option><option value="critical">Critical</option>
           </select></div>
@@ -506,7 +506,7 @@ function AlertRulesPanel() {
                   <span className="font-medium text-foreground">{rule.name}</span>
                   <span className="text-muted-foreground ml-2">{rule.metric} {rule.operator} {rule.threshold}</span>
                 </div>
-                <Badge variant={rule.severity === 'critical' ? 'destructive' : 'outline'} className="text-[9px]">{rule.severity}</Badge>
+                <Badge variant={rule.severity === 'critical' ? 'destructive' : 'outline'} className="text-[11px]">{rule.severity}</Badge>
               </div>
               <Button variant="ghost" size="icon" className="h-6 w-6 text-destructive" onClick={() => handleDeleteRule(rule.id)}>
                 <Trash2 className="h-3 w-3" />

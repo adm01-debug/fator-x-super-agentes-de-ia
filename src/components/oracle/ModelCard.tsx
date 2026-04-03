@@ -30,26 +30,26 @@ export function ModelCard({ response, rank, showThinking }: ModelCardProps) {
       {/* Header */}
       <div className="flex items-center justify-between mb-2">
         <div className="flex items-center gap-2">
-          <Badge variant="outline" className="text-[10px]">{shortName}</Badge>
+          <Badge variant="outline" className="text-[11px]">{shortName}</Badge>
           {rank && (
-            <Badge variant="default" className="text-[10px] bg-primary/20 text-primary border-primary/30">
+            <Badge variant="default" className="text-[11px] bg-primary/20 text-primary border-primary/30">
               #{rank}
             </Badge>
           )}
         </div>
-        <Badge variant={response.success ? 'default' : 'destructive'} className="text-[10px]">
+        <Badge variant={response.success ? 'default' : 'destructive'} className="text-[11px]">
           {response.success ? '✓' : '✗'}
         </Badge>
       </div>
 
-      <p className="text-[10px] text-muted-foreground mb-2 font-medium">{response.persona}</p>
+      <p className="text-[11px] text-muted-foreground mb-2 font-medium">{response.persona}</p>
 
       {/* Thinking toggle */}
       {showThinking && thinking && (
         <div className="mb-2">
           <button
             onClick={() => setExpanded(!expanded)}
-            className="flex items-center gap-1 text-[10px] text-muted-foreground hover:text-foreground transition-colors"
+            className="flex items-center gap-1 text-[11px] text-muted-foreground hover:text-foreground transition-colors"
           >
             {expanded ? <ChevronDown className="h-3 w-3" /> : <ChevronRight className="h-3 w-3" />}
             💭 {expanded ? 'Ocultar raciocínio' : 'Ver raciocínio'}
@@ -73,7 +73,7 @@ export function ModelCard({ response, rank, showThinking }: ModelCardProps) {
       </div>
 
       {/* Footer metrics */}
-      <div className="flex gap-3 mt-3 pt-2 border-t border-border/30 text-[10px] text-muted-foreground">
+      <div className="flex gap-3 mt-3 pt-2 border-t border-border/30 text-[11px] text-muted-foreground">
         <span>{response.tokens?.total || 0} tok</span>
         <span>⏱️ {(response.latency_ms / 1000).toFixed(1)}s</span>
         <span>💰 ${(response.cost_usd || 0).toFixed(4)}</span>

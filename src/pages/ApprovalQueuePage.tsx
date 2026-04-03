@@ -84,14 +84,14 @@ export default function ApprovalQueuePage() {
                     <div className="flex items-center gap-2 mb-1">
                       <Clock className="h-4 w-4 text-amber-400" />
                       <p className="text-sm font-semibold text-foreground">{run.workflows?.name || 'Workflow'}</p>
-                      <Badge variant="outline" className="text-[9px] text-amber-400 border-amber-400/30">Aguardando aprovação</Badge>
+                      <Badge variant="outline" className="text-[11px] text-amber-400 border-amber-400/30">Aguardando aprovação</Badge>
                     </div>
                     <p className="text-xs text-muted-foreground">
                       Etapa {run.current_step}/{run.total_steps} • Nodo: {pending?.label || 'HITL Gate'}
                     </p>
                     {pending?.context && <p className="text-xs text-foreground/80 mt-1 max-w-xl">{pending.context}</p>}
                   </div>
-                  <span className="text-[10px] text-muted-foreground">{run.started_at ? new Date(run.started_at).toLocaleString('pt-BR') : ''}</span>
+                  <span className="text-[11px] text-muted-foreground">{run.started_at ? new Date(run.started_at).toLocaleString('pt-BR') : ''}</span>
                 </div>
 
                 {isSelected && (

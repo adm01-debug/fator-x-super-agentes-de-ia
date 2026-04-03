@@ -92,7 +92,7 @@ export function TestingModule() {
                 <div key={status} className="rounded-xl border border-border bg-card p-4 text-center">
                   <div className={`flex justify-center mb-2 ${meta.color}`}>{meta.icon}</div>
                   <p className="text-lg font-bold text-foreground">{count}</p>
-                  <p className="text-[10px] text-muted-foreground">{meta.label}</p>
+                  <p className="text-[11px] text-muted-foreground">{meta.label}</p>
                 </div>
               );
             })}
@@ -215,7 +215,7 @@ export function TestingModule() {
                   <div className="flex items-center gap-2">
                     <p className="text-sm font-medium text-foreground">{metric.name}</p>
                     {metric.is_blocker && (
-                      <span className="rounded-full bg-destructive/10 text-destructive px-2 py-0.5 text-[10px] font-medium">
+                      <span className="rounded-full bg-destructive/10 text-destructive px-2 py-0.5 text-[11px] font-medium">
                         Blocker
                       </span>
                     )}
@@ -253,7 +253,7 @@ export function TestingModule() {
             ].map((item) => (
               <div key={item.label} className="rounded-xl border border-border bg-card p-4 text-center">
                 <p className="text-lg font-bold text-foreground">{item.value}</p>
-                <p className="text-[10px] text-muted-foreground">{item.label}</p>
+                <p className="text-[11px] text-muted-foreground">{item.label}</p>
               </div>
             ))}
           </div>

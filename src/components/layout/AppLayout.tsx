@@ -131,7 +131,7 @@ export function AppLayout({ children }: AppLayoutProps) {
                 >
                   <Search className="h-3.5 w-3.5" aria-hidden="true" />
                   <span>Buscar...</span>
-                  <kbd className="ml-4 inline-flex h-5 items-center gap-0.5 rounded border border-border bg-background px-1.5 text-[10px] font-mono text-muted-foreground" aria-hidden="true">
+                  <kbd className="ml-4 inline-flex h-5 items-center gap-0.5 rounded border border-border bg-background px-1.5 text-[11px] font-mono text-muted-foreground" aria-hidden="true">
                     <Command className="h-2.5 w-2.5" />K
                   </kbd>
                 </button>
@@ -164,7 +164,7 @@ export function AppLayout({ children }: AppLayoutProps) {
                       window.dispatchEvent(event);
                     }} className="gap-2 cursor-pointer">
                       <Keyboard className="h-3.5 w-3.5" /> Atalhos de teclado
-                      <kbd className="ml-auto text-[10px] font-mono text-muted-foreground">?</kbd>
+                      <kbd className="ml-auto text-[11px] font-mono text-muted-foreground">?</kbd>
                     </DropdownMenuItem>
                     <DropdownMenuSeparator />
                     <DropdownMenuItem onClick={signOut} className="gap-2 cursor-pointer text-destructive focus:text-destructive">

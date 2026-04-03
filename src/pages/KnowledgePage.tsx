@@ -122,11 +122,11 @@ export default function KnowledgePage() {
               <div className="grid grid-cols-2 gap-2 text-center border-t border-border/50 pt-3">
                 <div>
                   <p className="text-lg font-heading font-bold text-foreground">{kb.document_count ?? 0}</p>
-                  <p className="text-[10px] text-muted-foreground">Docs</p>
+                  <p className="text-[11px] text-muted-foreground">Docs</p>
                 </div>
                 <div>
                   <p className="text-lg font-heading font-bold text-foreground">{(kb.chunk_count ?? 0).toLocaleString()}</p>
-                  <p className="text-[10px] text-muted-foreground">Chunks</p>
+                  <p className="text-[11px] text-muted-foreground">Chunks</p>
                 </div>
               </div>
               <div className="flex items-center gap-2 mt-3 pt-3 border-t border-border/50" onClick={e => e.stopPropagation()}>
@@ -213,15 +213,15 @@ function VectorIndexesStatus() {
         <div className="grid grid-cols-3 gap-3 mb-4">
           <div className="text-center py-2 rounded-lg bg-emerald-500/10">
             <p className="text-lg font-bold text-emerald-400">{chunkStats.done}</p>
-            <p className="text-[10px] text-muted-foreground">Embeddings prontos</p>
+            <p className="text-[11px] text-muted-foreground">Embeddings prontos</p>
           </div>
           <div className="text-center py-2 rounded-lg bg-amber-500/10">
             <p className="text-lg font-bold text-amber-400">{chunkStats.pending}</p>
-            <p className="text-[10px] text-muted-foreground">Pendentes</p>
+            <p className="text-[11px] text-muted-foreground">Pendentes</p>
           </div>
           <div className="text-center py-2 rounded-lg bg-destructive/10">
             <p className="text-lg font-bold text-destructive">{chunkStats.failed}</p>
-            <p className="text-[10px] text-muted-foreground">Falharam</p>
+            <p className="text-[11px] text-muted-foreground">Falharam</p>
           </div>
         </div>
       )}
@@ -233,7 +233,7 @@ function VectorIndexesStatus() {
                 <span className="font-medium text-foreground">{(idx.knowledge_bases as Record<string, string> | null)?.name || 'KB'}</span>
                 <span className="text-muted-foreground ml-2">{String(idx.provider)} • {String(idx.model)} • {String(idx.dimensions)}d</span>
               </div>
-              <span className={`text-[10px] ${idx.status === 'active' ? 'text-emerald-400' : 'text-amber-400'}`}>{String(idx.status)}</span>
+              <span className={`text-[11px] ${idx.status === 'active' ? 'text-emerald-400' : 'text-amber-400'}`}>{String(idx.status)}</span>
             </div>
           ))}
         </div>

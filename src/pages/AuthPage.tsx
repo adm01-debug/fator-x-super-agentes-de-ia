@@ -32,7 +32,7 @@ function PasswordStrength({ password }: { password: string }) {
       </div>
       <div className="grid grid-cols-2 gap-1">
         {checks.map(c => (
-          <span key={c.label} className={`text-[10px] flex items-center gap-1 ${c.ok ? 'text-nexus-emerald' : 'text-muted-foreground'}`}>
+          <span key={c.label} className={`text-[11px] flex items-center gap-1 ${c.ok ? 'text-nexus-emerald' : 'text-muted-foreground'}`}>
             {c.ok ? <Check className="h-2.5 w-2.5" /> : <X className="h-2.5 w-2.5" />}
             {c.label}
           </span>
@@ -478,7 +478,7 @@ export default function AuthPage() {
 
           {/* Trust badge (mobile) */}
           <div className="lg:hidden text-center">
-            <p className="text-[10px] text-muted-foreground/50">
+            <p className="text-[11px] text-muted-foreground/50">
               🔒 Criptografia ponta-a-ponta · LGPD Compliant
             </p>
           </div>

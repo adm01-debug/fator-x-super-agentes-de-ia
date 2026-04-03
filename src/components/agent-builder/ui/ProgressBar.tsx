@@ -23,7 +23,7 @@ export function ProgressBar({ value, max = 100, color, className, showLabel, siz
           }}
         />
       </div>
-      {showLabel && <span className="text-[10px] font-mono text-muted-foreground shrink-0">{Math.round(pct)}%</span>}
+      {showLabel && <span className="text-[11px] font-mono text-muted-foreground shrink-0">{Math.round(pct)}%</span>}
     </div>
   );
 }

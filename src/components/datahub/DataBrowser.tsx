@@ -147,12 +147,12 @@ export function DataBrowser({ entityId, onClose }: { entityId: string; onClose: 
           <Button size="sm" variant="ghost" onClick={onClose}><ChevronLeft className="h-4 w-4" /></Button>
           <Icon className="h-5 w-5 text-primary" />
           <h3 className="text-lg font-heading font-bold text-foreground">{mapping?.name ?? entityId}</h3>
-          <Badge variant="secondary" className="text-[10px]">{total.toLocaleString()} registros</Badge>
+          <Badge variant="secondary" className="text-[11px]">{total.toLocaleString()} registros</Badge>
         </div>
         <div className="flex items-center gap-2">
           <Button size="sm" variant="outline" className="gap-1.5 text-xs" onClick={() => setShowFilters(v => !v)}>
             <Filter className="h-3.5 w-3.5" />
-            Filtros {filters.length > 0 && <Badge variant="default" className="text-[9px] h-4 ml-1">{filters.length}</Badge>}
+            Filtros {filters.length > 0 && <Badge variant="default" className="text-[11px] h-4 ml-1">{filters.length}</Badge>}
           </Button>
           <Button size="sm" variant="outline" className="gap-1.5 text-xs" onClick={handleExport} disabled={!data.length}>
             <Download className="h-3.5 w-3.5" /> CSV
@@ -228,12 +228,12 @@ export function DataBrowser({ entityId, onClose }: { entityId: string; onClose: 
           {filters.length > 0 && (
             <div className="flex flex-wrap gap-1.5">
               {filters.map((f, i) => (
-                <Badge key={i} variant="secondary" className="text-[10px] gap-1 pr-1">
+                <Badge key={i} variant="secondary" className="text-[11px] gap-1 pr-1">
                   {f.label}
                   <button onClick={() => removeFilter(i)} className="ml-1 hover:text-destructive"><X className="h-3 w-3" /></button>
                 </Badge>
               ))}
-              <Button size="sm" variant="ghost" className="h-5 text-[10px] text-destructive" onClick={() => { setFilters([]); setPage(0); }}>
+              <Button size="sm" variant="ghost" className="h-5 text-[11px] text-destructive" onClick={() => { setFilters([]); setPage(0); }}>
                 Limpar tudo
               </Button>
             </div>
@@ -283,7 +283,7 @@ export function DataBrowser({ entityId, onClose }: { entityId: string; onClose: 
                         </td>
                       ))}
                       <td className="p-2">
-                        <Button size="sm" variant="ghost" className="h-6 text-[10px] gap-1" onClick={() => fetchRecord(row.id)}>
+                        <Button size="sm" variant="ghost" className="h-6 text-[11px] gap-1" onClick={() => fetchRecord(row.id)}>
                           <Eye className="h-3 w-3" /> Ver
                         </Button>
                       </td>

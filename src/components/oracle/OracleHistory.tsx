@@ -106,14 +106,14 @@ export function OracleHistory(_props: OracleHistoryProps) {
                   <div className="flex-1 min-w-0">
                     <p className="text-xs text-foreground line-clamp-2 font-medium">{entry.query}</p>
                     <div className="flex items-center gap-1.5 mt-1.5 flex-wrap">
-                      <Badge variant="outline" className="text-[9px]">{modeConf?.icon} {modeConf?.label}</Badge>
-                      <Badge variant="outline" className="text-[9px] text-muted-foreground">{entry.preset_name || entry.preset_id}</Badge>
+                      <Badge variant="outline" className="text-[11px]">{modeConf?.icon} {modeConf?.label}</Badge>
+                      <Badge variant="outline" className="text-[11px] text-muted-foreground">{entry.preset_name || entry.preset_id}</Badge>
                       {entry.confidence_score != null && (
-                        <Badge variant="outline" className={`text-[9px] ${Number(entry.confidence_score) >= 80 ? 'text-emerald-400 border-emerald-500/30' : Number(entry.confidence_score) >= 50 ? 'text-amber-400 border-amber-500/30' : 'text-red-400 border-red-500/30'}`}>
+                        <Badge variant="outline" className={`text-[11px] ${Number(entry.confidence_score) >= 80 ? 'text-emerald-400 border-emerald-500/30' : Number(entry.confidence_score) >= 50 ? 'text-amber-400 border-amber-500/30' : 'text-red-400 border-red-500/30'}`}>
                           {entry.confidence_score}%
                         </Badge>
                       )}
-                      <span className="text-[9px] text-muted-foreground">{new Date(entry.created_at).toLocaleString('pt-BR')}</span>
+                      <span className="text-[11px] text-muted-foreground">{new Date(entry.created_at).toLocaleString('pt-BR')}</span>
                     </div>
                   </div>
                   <div className="flex items-center gap-1 shrink-0">
@@ -133,7 +133,7 @@ export function OracleHistory(_props: OracleHistoryProps) {
                       <div className="text-xs text-foreground whitespace-pre-wrap max-h-[300px] overflow-y-auto bg-secondary/30 p-3 rounded-lg">
                         {entry.results?.final_response || 'Sem resposta'}
                       </div>
-                      <div className="flex gap-2 mt-2 text-[10px] text-muted-foreground">
+                      <div className="flex gap-2 mt-2 text-[11px] text-muted-foreground">
                         <span>💰 ${Number(entry.total_cost_usd || 0).toFixed(4)}</span>
                         <span>⏱️ {((entry.total_latency_ms || 0) / 1000).toFixed(1)}s</span>
                         <span>📊 {entry.total_tokens?.toLocaleString()} tokens</span>

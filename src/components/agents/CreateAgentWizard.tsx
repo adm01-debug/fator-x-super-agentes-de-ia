@@ -271,7 +271,7 @@ export function CreateAgentWizard() {
                       <span className="text-2xl">{t.emoji}</span>
                       <div>
                         <p className="font-medium text-sm text-foreground">{t.name}</p>
-                        <Badge variant="outline" className="text-[10px]">{t.category}</Badge>
+                        <Badge variant="outline" className="text-[11px]">{t.category}</Badge>
                       </div>
                     </div>
                     <p className="text-xs text-muted-foreground line-clamp-2">{t.description}</p>
@@ -371,7 +371,7 @@ export function CreateAgentWizard() {
                 "text-muted-foreground"
               }`}
             >
-              <div className={`h-6 w-6 rounded-full flex items-center justify-center text-[10px] font-bold shrink-0 ${
+              <div className={`h-6 w-6 rounded-full flex items-center justify-center text-[11px] font-bold shrink-0 ${
                 isDone ? "bg-primary text-primary-foreground" :
                 isActive ? "bg-primary/20 text-primary border border-primary/40" :
                 "bg-secondary text-muted-foreground"
@@ -481,7 +481,7 @@ function StepModel({ form, update }: { form: any; update: (k: string, v: unknown
             >
               <div className="flex items-center justify-between mb-2">
                 <span className="font-semibold text-sm text-foreground">{m.name}</span>
-                <Badge variant="outline" className="text-[10px]">{m.provider}</Badge>
+                <Badge variant="outline" className="text-[11px]">{m.provider}</Badge>
               </div>
               <div className="flex gap-3 text-xs text-muted-foreground">
                 <span>Custo: <strong className="text-foreground">{m.cost}</strong></span>
@@ -528,7 +528,7 @@ function StepTools({ form, toggle }: { form: any; toggle: (id: string) => void }
                 </div>
                 <div>
                   <p className="text-xs font-medium text-foreground">{t.name}</p>
-                  <p className="text-[10px] text-muted-foreground">{t.category}</p>
+                  <p className="text-[11px] text-muted-foreground">{t.category}</p>
                 </div>
               </div>
               {selected && <Check className="h-3.5 w-3.5 text-primary absolute top-2 right-2" />}
