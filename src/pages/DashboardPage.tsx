@@ -175,16 +175,16 @@ export default function DashboardPage() {
           {/* Metrics */}
           <div className="grid grid-cols-2 md:grid-cols-4 gap-3 sm:gap-4 stagger-children" role="region" aria-label="Métricas principais">
             {[
-              { icon: Bot, color: "text-primary", value: agents.length, label: "Total de agentes" },
-              { icon: Zap, color: "text-nexus-emerald", value: activeCount, label: "Em produção" },
-              { icon: DollarSign, color: "text-nexus-amber", value: usageStats?.totalCost ?? 0, label: "Custo (30d)", prefix: "$", decimals: 2, noData: !usageStats },
-              { icon: TrendingUp, color: "text-primary", value: usageStats?.totalRequests ?? 0, label: "Requests (30d)", noData: !usageStats },
+              { icon: Bot, color: "text-primary", bgColor: "bg-primary/10", value: agents.length, label: "Total de agentes", hint: `${draftCount} rascunhos` },
+              { icon: Zap, color: "text-nexus-emerald", bgColor: "bg-nexus-emerald/10", value: activeCount, label: "Em produção", hint: activeCount > 0 ? "Operando normalmente" : "Nenhum ativo" },
+              { icon: DollarSign, color: "text-nexus-amber", bgColor: "bg-nexus-amber/10", value: usageStats?.totalCost ?? 0, label: "Custo (30d)", prefix: "$", decimals: 2, noData: !usageStats, hint: usageStats ? `${usageStats.totalRequests} requests` : undefined },
+              { icon: TrendingUp, color: "text-primary", bgColor: "bg-primary/10", value: usageStats?.totalRequests ?? 0, label: "Requests (30d)", noData: !usageStats, hint: usageStats ? `~${usageStats.avgLatency}ms latência` : undefined },
             ].map((metric, i) => (
              <div
                 key={metric.label}
-                className="nexus-card nexus-metric-card text-center"
+                className="nexus-card nexus-metric-card text-center group"
               >
-                <div className="flex items-center justify-center gap-1.5 mb-1">
+                <div className={`inline-flex items-center justify-center h-8 w-8 rounded-lg ${metric.bgColor} mb-2`}>
                   <metric.icon className={`h-4 w-4 ${metric.color}`} aria-hidden="true" />
                 </div>
                 <p className={`text-xl sm:text-2xl font-heading font-bold ${i === 1 ? "text-nexus-emerald" : "text-foreground"}`}>
@@ -196,7 +196,8 @@ export default function DashboardPage() {
                     />
                   )}
                 </p>
-                <p className="text-[11px] sm:text-[11px] text-muted-foreground">{metric.label}</p>
+                <p className="text-[11px] text-muted-foreground font-medium">{metric.label}</p>
+                {metric.hint && <p className="text-[11px] text-muted-foreground/60 mt-0.5">{metric.hint}</p>}
               </div>
             ))}
           </div>
