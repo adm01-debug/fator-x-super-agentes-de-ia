@@ -30,6 +30,7 @@ const EvaluationsPage = lazy(() => import("./pages/EvaluationsPage"));
 const DeploymentsPage = lazy(() => import("./pages/DeploymentsPage"));
 const MonitoringPage = lazy(() => import("./pages/MonitoringPage"));
 const DataStoragePage = lazy(() => import("./pages/DataStoragePage"));
+const DataHubPage = lazy(() => import("./pages/DataHubPage"));
 const AdminPage = lazy(() => import("./pages/AdminPage"));
 const SecurityPage = lazy(() => import("./pages/SecurityPage"));
 const TeamPage = lazy(() => import("./pages/TeamPage"));
