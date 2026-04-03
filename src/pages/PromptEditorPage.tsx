@@ -113,7 +113,7 @@ export default function PromptEditorPage() {
       setDirty(false);
       queryClient.invalidateQueries({ queryKey: ["prompt_versions", agentId] });
     },
-    onError: (e: any) => toast.error(e instanceof Error ? e.message : 'Erro inesperado'),
+    onError: (e: Error) => toast.error(e.message || 'Erro inesperado'),
   });
 
   // Delete a version
