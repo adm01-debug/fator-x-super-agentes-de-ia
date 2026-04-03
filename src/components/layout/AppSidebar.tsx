@@ -172,7 +172,7 @@ export function AppSidebar() {
                           <NavLink
                             to={item.url}
                             end={item.url === "/"}
-                            className="flex items-center gap-2.5 rounded-lg px-2.5 py-2 text-sm transition-colors text-sidebar-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground"
+                            className="flex items-center gap-2.5 rounded-lg px-2.5 py-2 text-sm transition-all text-sidebar-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground hover:translate-x-0.5"
                             activeClassName="bg-primary/10 text-primary font-medium"
                             aria-current={isActive ? "page" : undefined}
                           >
