@@ -2,6 +2,7 @@ import { create } from 'zustand';
 import type { AgentConfig, PromptVersion } from '@/types/agentTypes';
 import { DEFAULT_AGENT, TABS } from '@/data/agentBuilderData';
 import { supabase } from '@/integrations/supabase/client';
+import { fromTable } from '@/lib/supabaseExtended';
 import type { Json } from '@/integrations/supabase/types';
 import { audit } from '@/lib/auditService';
 
