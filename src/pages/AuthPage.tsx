@@ -6,7 +6,8 @@ import { Label } from "@/components/ui/label";
 import { useAuth } from "@/contexts/AuthContext";
 import { lovable } from "@/integrations/lovable/index";
 import { toast } from "sonner";
-import { Mail, Lock, ArrowRight, Eye, EyeOff, Check, X, Zap, Shield, Brain } from "lucide-react";
+import { Mail, Lock, ArrowRight, Eye, EyeOff, Check, X, Shield, Brain, Zap } from "lucide-react";
+import { FatorXLogo } from "@/components/shared/FatorXLogo";
 
 /* ── Password Strength ────────────────────────────────── */
 function PasswordStrength({ password }: { password: string }) {
