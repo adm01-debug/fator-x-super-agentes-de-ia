@@ -293,6 +293,9 @@ export default function DashboardPage() {
             </div>
           </div>
 
+          {/* AI Insight */}
+          <DashboardInsight agents={agents} usageStats={usageStats} recentTraces={recentTraces} />
+
           {/* Alerts */}
           <DashboardAlerts />
         </>
