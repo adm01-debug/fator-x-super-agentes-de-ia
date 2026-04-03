@@ -190,26 +190,30 @@ export function AppSidebar() {
         })}
       </SidebarContent>
 
-      <SidebarFooter className="p-3 space-y-2">
+      <SidebarFooter className="p-2 space-y-1.5">
         {!collapsed && (
           <>
-            <div className="rounded-lg bg-secondary/50 p-3">
-              <p className="text-[11px] font-medium text-foreground">Workspace {planLabel}</p>
-              <p className="text-[11px] text-muted-foreground mt-0.5">{agentCount} de {maxAgents} agentes usados</p>
-              <div className="mt-2 h-1 rounded-full bg-secondary" role="progressbar" aria-valuenow={usage} aria-valuemin={0} aria-valuemax={100} aria-label="Uso de agentes">
+            <Separator className="bg-border/30" />
+            <div className="rounded-lg bg-secondary/40 px-3 py-2.5">
+              <div className="flex items-center justify-between mb-1.5">
+                <p className="text-[11px] font-semibold text-foreground">Workspace {planLabel}</p>
+                <span className="text-[11px] text-muted-foreground">{agentCount}/{maxAgents}</span>
+              </div>
+              <div className="h-1 rounded-full bg-secondary" role="progressbar" aria-valuenow={usage} aria-valuemin={0} aria-valuemax={100} aria-label="Uso de agentes">
                 <div className="h-full rounded-full nexus-gradient-bg transition-all" style={{ width: `${usage}%` }} />
               </div>
             </div>
+            <Separator className="bg-border/30" />
             {user && (
-              <div className="rounded-lg bg-secondary/30 p-2.5 flex items-center gap-2">
-                <div className="h-7 w-7 rounded-full bg-primary/20 flex items-center justify-center text-xs font-bold text-primary shrink-0">
+              <div className="flex items-center gap-2.5 px-2 py-1.5 rounded-lg hover:bg-secondary/30 transition-colors">
+                <div className="h-7 w-7 rounded-full nexus-gradient-bg flex items-center justify-center text-xs font-bold text-primary-foreground shrink-0">
                   {(wsInfo?.userName?.[0] || user.email?.[0] || 'U').toUpperCase()}
                 </div>
                 <div className="flex-1 min-w-0">
-                  <p className="text-[11px] font-medium text-foreground truncate">{wsInfo?.userName || 'Usuário'}</p>
+                  <p className="text-xs font-medium text-foreground truncate">{wsInfo?.userName || 'Usuário'}</p>
                   <p className="text-[11px] text-muted-foreground truncate">{user.email}</p>
                 </div>
-                <Button variant="ghost" size="icon" className="h-6 w-6 shrink-0 text-muted-foreground hover:text-destructive min-h-[44px] min-w-[44px] flex items-center justify-center" onClick={signOut} aria-label="Sair da conta">
+                <Button variant="ghost" size="icon" className="h-7 w-7 shrink-0 text-muted-foreground hover:text-destructive" onClick={signOut} aria-label="Sair da conta">
                   <LogOut className="h-3.5 w-3.5" />
                 </Button>
               </div>
@@ -220,7 +224,7 @@ export function AppSidebar() {
           variant="ghost"
           size="sm"
           onClick={toggleSidebar}
-          className="w-full justify-start gap-2 text-muted-foreground hover:text-foreground text-xs"
+          className="w-full justify-start gap-2 text-muted-foreground hover:text-foreground text-xs h-8"
           aria-label={collapsed ? "Expandir sidebar" : "Recolher sidebar"}
         >
           {collapsed ? <PanelLeft className="h-4 w-4" /> : <PanelLeftClose className="h-4 w-4" />}
