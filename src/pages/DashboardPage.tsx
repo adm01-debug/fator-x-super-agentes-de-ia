@@ -16,30 +16,30 @@ function DashboardLoadingSkeleton() {
     <div className="p-4 sm:p-8 lg:p-10 space-y-6 max-w-[1400px] mx-auto" aria-busy="true" aria-label="Carregando dashboard">
       <div className="flex items-center justify-between">
         <div className="space-y-2">
-          <Skeleton className="h-7 w-40 bg-muted/50" />
-          <Skeleton className="h-4 w-64 bg-muted/30" />
+          <div className="h-7 w-40 rounded-md skeleton-shimmer" />
+          <div className="h-4 w-64 rounded-md skeleton-shimmer" />
         </div>
-        <Skeleton className="h-10 w-36 rounded-lg bg-muted/50" />
+        <div className="h-10 w-36 rounded-lg skeleton-shimmer" />
       </div>
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3 sm:gap-4">
         {Array.from({ length: 4 }).map((_, i) => (
-          <div key={i} className="nexus-card text-center space-y-2">
-            <Skeleton className="h-4 w-4 mx-auto bg-muted/50 rounded" />
-            <Skeleton className="h-7 w-12 mx-auto bg-muted/50" />
-            <Skeleton className="h-3 w-20 mx-auto bg-muted/30" />
+          <div key={i} className="nexus-card text-center space-y-2" style={{ animationDelay: `${i * 100}ms` }}>
+            <div className="h-8 w-8 mx-auto rounded-lg skeleton-shimmer" />
+            <div className="h-7 w-16 mx-auto rounded skeleton-shimmer" />
+            <div className="h-3 w-20 mx-auto rounded skeleton-shimmer" />
           </div>
         ))}
       </div>
       <div className="grid lg:grid-cols-2 gap-4">
         {Array.from({ length: 2 }).map((_, i) => (
           <div key={i} className="nexus-card space-y-3">
-            <Skeleton className="h-4 w-32 bg-muted/50" />
+            <div className="h-4 w-32 rounded skeleton-shimmer" />
             {Array.from({ length: 4 }).map((_, j) => (
               <div key={j} className="flex items-center gap-3">
-                <Skeleton className="h-8 w-8 rounded-lg bg-muted/50 shrink-0" />
+                <div className="h-8 w-8 rounded-lg skeleton-shimmer shrink-0" />
                 <div className="flex-1 space-y-1.5">
-                  <Skeleton className="h-3 w-3/4 bg-muted/50" />
-                  <Skeleton className="h-2.5 w-1/2 bg-muted/30" />
+                  <div className="h-3 w-3/4 rounded skeleton-shimmer" />
+                  <div className="h-2.5 w-1/2 rounded skeleton-shimmer" />
                 </div>
               </div>
             ))}
