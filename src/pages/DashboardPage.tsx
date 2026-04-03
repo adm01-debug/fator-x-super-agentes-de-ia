@@ -8,7 +8,7 @@ import { useNavigate } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { UsageCharts } from "@/components/dashboard/UsageCharts";
-import { Skeleton } from "@/components/ui/skeleton";
+
 
 // ═══ Dashboard Skeleton ═══
 function DashboardLoadingSkeleton() {
