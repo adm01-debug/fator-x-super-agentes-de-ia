@@ -153,11 +153,32 @@ export const useAgentBuilderStore = create<AgentBuilderStore>((set, get) => ({
 
     let error;
     if (agent.id) {
+      // ═══ Optimistic locking: check version hasn't changed ═══
+      const { data: current } = await supabase
+        .from('agents')
+        .select('version, updated_at')
+        .eq('id', agent.id as string)
+        .single();
+
+      if (current && current.version !== agent.version) {
+        set({ isSaving: false });
+        const overwrite = window.confirm(
+          `⚠️ Conflito de versão detectado!\n\nVocê está na versão ${agent.version}, mas o banco tem a versão ${current.version}.\nAlguém pode ter salvo mudanças depois de você.\n\nDeseja sobrescrever mesmo assim?`
+        );
+        if (!overwrite) return;
+      }
+
+      // Bump version on update
+      row.version = (agent.version || 1) + 1;
+
       const { error: e } = await supabase
         .from('agents')
         .update(row)
         .eq('id', agent.id as string);
       error = e;
+      if (!e) {
+        set((s) => ({ agent: { ...s.agent, version: row.version } }));
+      }
     } else {
       const { data, error: e } = await supabase
         .from('agents')
