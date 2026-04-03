@@ -139,7 +139,7 @@ export function DeployModule() {
                   <div className="space-y-2">
                     {Object.entries(ch.config).map(([key, value]) => (
                       <div key={key}>
-                        <label className="text-[10px] text-muted-foreground uppercase">{key.replace(/_/g, ' ')}</label>
+                        <label className="text-[11px] text-muted-foreground uppercase">{key.replace(/_/g, ' ')}</label>
                         <input
                           className="w-full rounded-lg border border-border bg-muted/30 px-3 py-1.5 text-xs text-foreground"
                           value={value}
@@ -151,7 +151,7 @@ export function DeployModule() {
                     ))}
                     <div className="flex items-center gap-1.5">
                       <span className={`h-2 w-2 rounded-full ${ch.status === 'active' ? 'bg-green-500' : ch.status === 'error' ? 'bg-destructive' : 'bg-muted-foreground'}`} />
-                      <span className="text-[10px] text-muted-foreground capitalize">{ch.status}</span>
+                      <span className="text-[11px] text-muted-foreground capitalize">{ch.status}</span>
                     </div>
                   </div>
                 )}

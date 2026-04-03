@@ -19,7 +19,7 @@ export function TextAreaField({ label, value, onChange, placeholder, rows = 4, m
       <div className="flex items-center justify-between">
         <label className="text-xs font-medium text-foreground">{label}</label>
         {maxLength && (
-          <span className="text-[10px] font-mono text-muted-foreground">
+          <span className="text-[11px] font-mono text-muted-foreground">
             {value.length}/{maxLength}
           </span>
         )}

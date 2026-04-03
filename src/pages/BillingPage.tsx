@@ -105,7 +105,7 @@ export default function BillingPage() {
   };
 
   return (
-    <div className="p-6 space-y-6 max-w-[1400px] mx-auto">
+    <div className="p-6 sm:p-8 lg:p-10 space-y-6 max-w-[1400px] mx-auto">
       <PageHeader title="Billing & Usage" description="Acompanhe custos, orçamentos e consumo por recurso" />
 
       <Tabs defaultValue="overview" className="space-y-4">
@@ -185,7 +185,7 @@ export default function BillingPage() {
                     <div className="flex items-center justify-between mb-3">
                       <div>
                         <h4 className="text-sm font-semibold text-foreground">{b.name}</h4>
-                        <p className="text-[10px] text-muted-foreground">{b.period} • {b.is_active ? 'Ativo' : 'Inativo'}</p>
+                        <p className="text-[11px] text-muted-foreground">{b.period} • {b.is_active ? 'Ativo' : 'Inativo'}</p>
                       </div>
                       <AlertDialog>
                         <AlertDialogTrigger asChild>
@@ -209,7 +209,7 @@ export default function BillingPage() {
                     {overThreshold && (
                       <div className="flex items-center gap-1 mt-2 text-amber-400">
                         <AlertTriangle className="h-3 w-3" />
-                        <span className="text-[10px]">Alerta: {pct.toFixed(0)}% do limite</span>
+                        <span className="text-[11px]">Alerta: {pct.toFixed(0)}% do limite</span>
                       </div>
                     )}
                   </div>
@@ -237,7 +237,7 @@ export default function BillingPage() {
                 <tbody>
                   {usageRecords.map(r => (
                     <tr key={r.id} className="border-b border-border/30 hover:bg-secondary/30 transition-colors">
-                      <td className="px-4 py-2"><Badge variant="outline" className="text-[9px]">{r.record_type}</Badge></td>
+                      <td className="px-4 py-2"><Badge variant="outline" className="text-[11px]">{r.record_type}</Badge></td>
                       <td className="px-4 py-2 text-xs text-foreground">{(r.tokens ?? 0).toLocaleString()}</td>
                       <td className="px-4 py-2 text-xs text-foreground">${Number(r.cost_usd ?? 0).toFixed(4)}</td>
                       <td className="px-4 py-2 text-xs text-muted-foreground">{r.created_at ? new Date(r.created_at).toLocaleString('pt-BR') : '—'}</td>

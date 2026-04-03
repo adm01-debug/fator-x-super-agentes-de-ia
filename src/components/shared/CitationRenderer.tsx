@@ -39,13 +39,13 @@ export function CitationRenderer({ text, citations }: CitationRendererProps) {
           if (match) {
             const idx = parseInt(match[1]);
             const citation = citations.find(c => c.index === idx);
-            if (!citation) return <sup key={i} className="text-muted-foreground text-[10px]">[{idx}]</sup>;
+            if (!citation) return <sup key={i} className="text-muted-foreground text-[11px]">[{idx}]</sup>;
             return (
               <sup key={i}
                 className="inline-flex items-center cursor-pointer"
                 onClick={() => setExpandedCitation(expandedCitation === idx ? null : idx)}
               >
-                <Badge variant="outline" className="text-[9px] h-4 px-1 ml-0.5 hover:bg-primary/10 transition-colors">
+                <Badge variant="outline" className="text-[11px] h-4 px-1 ml-0.5 hover:bg-primary/10 transition-colors">
                   {idx}
                 </Badge>
               </sup>
@@ -75,7 +75,7 @@ export function CitationRenderer({ text, citations }: CitationRendererProps) {
                 <p className="text-muted-foreground italic">{c.content_preview}</p>
                 {c.source_url && (
                   <a href={c.source_url} target="_blank" rel="noopener noreferrer"
-                    className="flex items-center gap-1 text-primary hover:underline text-[10px]">
+                    className="flex items-center gap-1 text-primary hover:underline text-[11px]">
                     <ExternalLink className="h-3 w-3" /> Ver fonte
                   </a>
                 )}
@@ -88,9 +88,9 @@ export function CitationRenderer({ text, citations }: CitationRendererProps) {
       {/* Citation list footer */}
       {citations.length > 0 && (
         <div className="flex flex-wrap gap-1.5 pt-1 border-t border-border/30">
-          <span className="text-[10px] text-muted-foreground mr-1">Fontes:</span>
+          <span className="text-[11px] text-muted-foreground mr-1">Fontes:</span>
           {citations.map(c => (
-            <Badge key={c.index} variant="outline" className="text-[9px] cursor-pointer hover:bg-primary/10"
+            <Badge key={c.index} variant="outline" className="text-[11px] cursor-pointer hover:bg-primary/10"
               onClick={() => setExpandedCitation(expandedCitation === c.index ? null : c.index)}>
               [{c.index}] {c.document_title?.substring(0, 20) || 'Doc'}
             </Badge>

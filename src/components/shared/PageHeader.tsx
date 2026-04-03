@@ -18,10 +18,10 @@ export function PageHeader({ title, description, actions, backTo, hideBreadcrumb
       {backTo && (
         <BackButton to={typeof backTo === "string" ? backTo : undefined} />
       )}
-      <div className="flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between">
+      <div className="flex flex-col gap-1.5 sm:flex-row sm:items-center sm:justify-between">
         <div>
-          <h1 className="text-2xl font-heading font-bold text-foreground tracking-tight">{title}</h1>
-          {description && <p className="mt-1 text-sm text-muted-foreground">{description}</p>}
+          <h1 className="text-2xl sm:text-3xl font-heading font-bold text-foreground tracking-tight">{title}</h1>
+          {description && <p className="mt-1.5 text-sm text-muted-foreground max-w-xl">{description}</p>}
         </div>
         {actions && <div className="flex items-center gap-2 mt-3 sm:mt-0">{actions}</div>}
       </div>

@@ -94,7 +94,7 @@ export default function SecurityPage() {
   };
 
   return (
-    <div className="p-6 space-y-6 max-w-[1400px] mx-auto">
+    <div className="p-6 sm:p-8 lg:p-10 space-y-6 max-w-[1400px] mx-auto">
       <PageHeader
         title="Security & Guardrails"
         description="Segurança, compliance e governança dos agentes de IA"
@@ -153,7 +153,7 @@ export default function SecurityPage() {
                   <p className="text-xs font-medium text-foreground">{check.title}</p>
                   {check.status === 'pass' ? <CheckCircle className="h-3 w-3 text-emerald-400" /> : <AlertTriangle className="h-3 w-3 text-amber-400" />}
                 </div>
-                <p className="text-[10px] text-muted-foreground mt-0.5">{check.desc}</p>
+                <p className="text-[11px] text-muted-foreground mt-0.5">{check.desc}</p>
               </div>
             </div>
           ))}
@@ -173,8 +173,8 @@ export default function SecurityPage() {
                 <div className="h-full rounded-full nexus-gradient-bg transition-all" style={{ width: `${fw.coverage}%` }} />
               </div>
               <div className="flex items-center justify-between mt-2">
-                <span className="text-[10px] text-muted-foreground">{fw.coverage}%</span>
-                <Badge variant="outline" className={`text-[9px] ${fw.status === 'compliant' ? 'border-emerald-500/30 text-emerald-400' : fw.status === 'partial' ? 'border-amber-500/30 text-amber-400' : 'border-muted-foreground/30 text-muted-foreground'}`}>
+                <span className="text-[11px] text-muted-foreground">{fw.coverage}%</span>
+                <Badge variant="outline" className={`text-[11px] ${fw.status === 'compliant' ? 'border-emerald-500/30 text-emerald-400' : fw.status === 'partial' ? 'border-amber-500/30 text-amber-400' : 'border-muted-foreground/30 text-muted-foreground'}`}>
                   {fw.status === 'compliant' ? 'Conforme' : fw.status === 'partial' ? 'Parcial' : 'Planejado'}
                 </Badge>
               </div>
@@ -186,7 +186,7 @@ export default function SecurityPage() {
       {/* Guardrail Policies from DB */}
       <div className="nexus-card">
         <h3 className="text-sm font-heading font-semibold text-foreground mb-4 flex items-center gap-2">
-          <ShieldAlert className="h-4 w-4 text-primary" /> Guardrail Policies <Badge variant="outline" className="text-[9px] ml-1">{guardrails.length}</Badge>
+          <ShieldAlert className="h-4 w-4 text-primary" /> Guardrail Policies <Badge variant="outline" className="text-[11px] ml-1">{guardrails.length}</Badge>
         </h3>
         {isLoading ? (
           <div className="flex items-center justify-center py-12"><Loader2 className="h-5 w-5 animate-spin text-muted-foreground" /></div>
@@ -194,7 +194,7 @@ export default function SecurityPage() {
           <div className="flex flex-col items-center justify-center py-12 text-center">
             <Shield className="h-10 w-10 text-muted-foreground mb-3" />
             <p className="text-xs text-muted-foreground">Nenhum guardrail configurado.</p>
-            <p className="text-[10px] text-muted-foreground mt-1">Crie guardrails para proteger seus agentes.</p>
+            <p className="text-[11px] text-muted-foreground mt-1">Crie guardrails para proteger seus agentes.</p>
           </div>
         ) : (
           <div className="grid gap-3 md:grid-cols-2 lg:grid-cols-3">
@@ -205,7 +205,7 @@ export default function SecurityPage() {
                 <ShieldCheck className={`h-5 w-5 shrink-0 ${g.is_enabled ? 'text-emerald-400' : 'text-muted-foreground'}`} />
                 <div className="flex-1 min-w-0">
                   <p className="text-xs font-medium text-foreground truncate">{g.name}</p>
-                  <p className="text-[10px] text-muted-foreground">{typeLabels[g.type] || g.type}</p>
+                  <p className="text-[11px] text-muted-foreground">{typeLabels[g.type] || g.type}</p>
                 </div>
                 <Switch checked={g.is_enabled ?? true} onCheckedChange={(v) => handleToggle(g.id, v)} />
                 <AlertDialog>
@@ -255,8 +255,8 @@ function AuditLogSection() {
           {logs.map((log: any, i: number) => (
             <div key={log.id || i}
               className="flex items-center gap-3 py-2 px-2 rounded hover:bg-secondary/30 text-xs">
-              <span className="text-muted-foreground w-[130px] shrink-0 font-mono text-[10px]">{new Date(log.created_at).toLocaleString('pt-BR')}</span>
-              <Badge variant="outline" className="text-[9px] shrink-0">{log.action || log.event || 'action'}</Badge>
+              <span className="text-muted-foreground w-[130px] shrink-0 font-mono text-[11px]">{new Date(log.created_at).toLocaleString('pt-BR')}</span>
+              <Badge variant="outline" className="text-[11px] shrink-0">{log.action || log.event || 'action'}</Badge>
               <span className="text-foreground truncate">{log.description || log.details || JSON.stringify(log.metadata || {}).substring(0, 100)}</span>
               <span className="text-muted-foreground ml-auto shrink-0">{log.user_email || ''}</span>
             </div>

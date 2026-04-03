@@ -183,7 +183,7 @@ export default function WorkflowsPage() {
   };
 
   return (
-    <div className="p-6 space-y-6 max-w-[1400px] mx-auto">
+    <div className="p-6 sm:p-8 lg:p-10 space-y-6 max-w-[1400px] mx-auto">
       <PageHeader
         title="Workflow Studio"
         description="Crie fluxos de orquestração multi-agente e automações complexas"
@@ -202,7 +202,7 @@ export default function WorkflowsPage() {
                 <div className="space-y-1.5">
                   <Label className="text-xs">Etapas (separadas por vírgula) *</Label>
                   <Input value={newSteps} onChange={e => setNewSteps(e.target.value)} placeholder="Classificar, Processar, Validar, Notificar" className="bg-secondary/50" />
-                  <p className="text-[10px] text-muted-foreground">Mínimo 2 etapas. Ex: Triagem, Diagnóstico, Solução</p>
+                  <p className="text-[11px] text-muted-foreground">Mínimo 2 etapas. Ex: Triagem, Diagnóstico, Solução</p>
                 </div>
                 <Button onClick={handleCreate} className="w-full nexus-gradient-bg text-primary-foreground">Criar Workflow</Button>
               </div>
@@ -252,7 +252,7 @@ export default function WorkflowsPage() {
 
             {persistence.selectedId && (
               <>
-                <Badge variant="outline" className="text-[10px] border-primary/30 text-primary">
+                <Badge variant="outline" className="text-[11px] border-primary/30 text-primary">
                   Salvo no banco
                 </Badge>
                 <AlertDialog>
@@ -298,7 +298,7 @@ export default function WorkflowsPage() {
                       </div>
                     </div>
                     <div className="flex items-center gap-1">
-                      <Badge variant="outline" className={`text-[9px] ${wf.status === 'active' ? 'border-emerald-500/30 text-emerald-400' : 'border-muted-foreground/30'}`}>
+                      <Badge variant="outline" className={`text-[11px] ${wf.status === 'active' ? 'border-emerald-500/30 text-emerald-400' : 'border-muted-foreground/30'}`}>
                         {wf.status === 'active' ? 'Ativo' : 'Rascunho'}
                       </Badge>
                       <Button size="icon" variant="ghost" className="h-7 w-7 opacity-0 group-hover:opacity-100" onClick={() => handleToggleStatus(wf.id)}>
@@ -322,7 +322,7 @@ export default function WorkflowsPage() {
                             <div className="h-9 w-9 rounded-lg bg-secondary flex items-center justify-center">
                               <Icon className="h-4 w-4 text-foreground" />
                             </div>
-                            <p className="text-[9px] text-muted-foreground mt-1 text-center max-w-[60px] truncate">{step}</p>
+                            <p className="text-[11px] text-muted-foreground mt-1 text-center max-w-[60px] truncate">{step}</p>
                           </div>
                           {j < wf.steps.length - 1 && <ArrowRight className="h-3 w-3 text-muted-foreground shrink-0 mt-[-12px]" />}
                         </div>
@@ -367,7 +367,7 @@ function WorkflowRunsHistory() {
                 {run.started_at && ` • ${new Date(run.started_at).toLocaleString('pt-BR')}`}
               </p>
             </div>
-            <Badge variant={run.status === 'completed' ? 'default' : run.status === 'failed' ? 'destructive' : 'outline'} className="text-[10px]">
+            <Badge variant={run.status === 'completed' ? 'default' : run.status === 'failed' ? 'destructive' : 'outline'} className="text-[11px]">
               {run.status}
             </Badge>
           </div>

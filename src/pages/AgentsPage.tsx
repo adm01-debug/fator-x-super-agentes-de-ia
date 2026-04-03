@@ -60,7 +60,7 @@ export default function AgentsPage() {
   };
 
   return (
-    <div className="p-6 space-y-6 max-w-[1400px] mx-auto">
+    <div className="p-6 sm:p-8 lg:p-10 space-y-6 max-w-[1400px] mx-auto">
       <PageHeader
         title="Agents"
         description="Gerencie seus agentes de IA — crie, configure e monitore"
@@ -108,17 +108,23 @@ export default function AgentsPage() {
         </div>
       ) : filtered.length === 0 ? (
         <div className="flex flex-col items-center justify-center py-20 text-center">
-          <Bot className="h-12 w-12 text-muted-foreground mb-4" />
-          <h2 className="text-lg font-semibold text-foreground mb-1">
-            {search || statusFilter !== "all" ? "Nenhum agente encontrado" : "Nenhum agente ainda"}
-          </h2>
-          <p className="text-sm text-muted-foreground mb-4">
-            {search || statusFilter !== "all" ? "Tente ajustar os filtros." : "Crie seu primeiro agente para começar."}
-          </p>
-          {!search && statusFilter === "all" && (
-            <Button onClick={() => navigate('/agents/new')} className="nexus-gradient-bg text-primary-foreground gap-2">
-              <Plus className="h-4 w-4" /> Criar agente
-            </Button>
+          {search || statusFilter !== "all" ? (
+            <>
+              <Search className="h-10 w-10 text-muted-foreground/50 mb-4" />
+              <h2 className="text-lg font-semibold text-foreground mb-1">Nenhum agente encontrado</h2>
+              <p className="text-sm text-muted-foreground mb-4">Tente ajustar os filtros ou o termo de busca.</p>
+            </>
+          ) : (
+            <>
+              <div className="text-5xl mb-4" aria-hidden="true">🤖</div>
+              <h2 className="text-lg font-semibold text-foreground mb-1">Nenhum agente ainda</h2>
+              <p className="text-sm text-muted-foreground mb-4 max-w-sm">
+                Crie seu primeiro agente e comece a explorar o poder dos superagentes de IA.
+              </p>
+              <Button onClick={() => navigate('/agents/new')} className="nexus-gradient-bg text-primary-foreground gap-2">
+                <Plus className="h-4 w-4" /> Criar agente
+              </Button>
+            </>
           )}
         </div>
       ) : (
@@ -132,9 +138,24 @@ export default function AgentsPage() {
                 onClick={() => navigate(`/builder/${agent.id}`)}
               >
                 <div className="flex items-start justify-between mb-3">
-                  <div className="flex items-center gap-2.5">
-                    <div className="h-10 w-10 rounded-xl bg-primary/10 flex items-center justify-center text-lg">
-                      {agent.avatar_emoji || "🤖"}
+                  <div className="flex items-center gap-3">
+                    <div className="relative">
+                      <div className="h-11 w-11 rounded-xl bg-primary/10 flex items-center justify-center text-lg">
+                        {agent.avatar_emoji || "🤖"}
+                      </div>
+                      {/* Health pulse dot */}
+                      <span
+                        className={`absolute -top-0.5 -right-0.5 h-2.5 w-2.5 rounded-full border-2 border-card ${
+                          agent.status === 'production' || agent.status === 'monitoring'
+                            ? 'bg-nexus-emerald animate-glow-pulse'
+                            : agent.status === 'deprecated' || agent.status === 'archived'
+                            ? 'bg-destructive'
+                            : agent.status === 'draft'
+                            ? 'bg-muted-foreground/40'
+                            : 'bg-nexus-amber'
+                        }`}
+                        aria-hidden="true"
+                      />
                     </div>
                     <div>
                       <h3 className="text-sm font-semibold text-foreground">{agent.name}</h3>
@@ -145,13 +166,16 @@ export default function AgentsPage() {
                   </div>
                   <StatusBadge status={agent.status || "draft"} />
                 </div>
-                <p className="text-xs text-muted-foreground line-clamp-2 mb-4">
+                <p className="text-xs text-muted-foreground line-clamp-2 mb-3">
                   {agent.mission || config.description || "Sem descrição"}
                 </p>
                 <div className="flex gap-1.5 mt-1 flex-wrap">
-                  {(agent.tags ?? []).map(tag => (
+                  {(agent.tags ?? []).slice(0, 3).map(tag => (
                     <span key={tag} className="nexus-badge-primary">{tag}</span>
                   ))}
+                  {(agent.tags ?? []).length > 3 && (
+                    <span className="nexus-badge-muted">+{(agent.tags ?? []).length - 3}</span>
+                  )}
                 </div>
                 <div className="flex items-center justify-between mt-3 pt-3 border-t border-border/50">
                   <p className="text-[11px] text-muted-foreground">

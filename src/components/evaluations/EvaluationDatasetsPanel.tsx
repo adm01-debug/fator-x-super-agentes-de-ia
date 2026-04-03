@@ -156,7 +156,7 @@ export function EvaluationDatasetsPanel() {
                   <div className="flex items-center justify-between">
                     <div className="min-w-0">
                       <p className="text-sm font-medium text-foreground truncate">{ds.name}</p>
-                      <p className="text-[10px] text-muted-foreground">{ds.case_count ?? 0} cases</p>
+                      <p className="text-[11px] text-muted-foreground">{ds.case_count ?? 0} cases</p>
                     </div>
                     <div className="flex items-center gap-1">
                       <AlertDialog>
@@ -182,7 +182,7 @@ export function EvaluationDatasetsPanel() {
           <div className="lg:col-span-2 space-y-3">
             <div className="flex items-center justify-between">
               <h4 className="text-xs font-heading font-semibold text-muted-foreground uppercase tracking-wider">
-                Test Cases {selectedDatasetId && <Badge variant="outline" className="text-[9px] ml-1">{testCases.length}</Badge>}
+                Test Cases {selectedDatasetId && <Badge variant="outline" className="text-[11px] ml-1">{testCases.length}</Badge>}
               </h4>
               {selectedDatasetId && (
                 <Dialog open={newCaseOpen} onOpenChange={setNewCaseOpen}>
@@ -219,7 +219,7 @@ export function EvaluationDatasetsPanel() {
                   <div key={tc.id} className="nexus-card p-3 group">
                     <div className="flex items-start justify-between mb-2">
                       <div className="flex flex-wrap gap-1">
-                        {(tc.tags ?? []).map(tag => <Badge key={tag} variant="secondary" className="text-[9px]">{tag}</Badge>)}
+                        {(tc.tags ?? []).map(tag => <Badge key={tag} variant="secondary" className="text-[11px]">{tag}</Badge>)}
                       </div>
                       <AlertDialog>
                         <AlertDialogTrigger asChild>
@@ -234,8 +234,8 @@ export function EvaluationDatasetsPanel() {
                       </AlertDialog>
                     </div>
                     <div className="space-y-1.5">
-                      <div><p className="text-[10px] font-semibold text-muted-foreground uppercase">Input</p><p className="text-xs text-foreground">{tc.input}</p></div>
-                      {tc.expected_output && <div><p className="text-[10px] font-semibold text-muted-foreground uppercase">Expected</p><p className="text-xs text-foreground">{tc.expected_output}</p></div>}
+                      <div><p className="text-[11px] font-semibold text-muted-foreground uppercase">Input</p><p className="text-xs text-foreground">{tc.input}</p></div>
+                      {tc.expected_output && <div><p className="text-[11px] font-semibold text-muted-foreground uppercase">Expected</p><p className="text-xs text-foreground">{tc.expected_output}</p></div>}
                     </div>
                   </div>
                 ))}

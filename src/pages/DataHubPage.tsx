@@ -76,7 +76,7 @@ function ConnectionCard({ conn }: { conn: ConnectionDef }) {
           </div>
         </div>
         {isHibernated ? (
-          <Badge variant="outline" className="gap-1 text-[10px] border-blue-500/30 text-blue-400">
+          <Badge variant="outline" className="gap-1 text-[11px] border-blue-500/30 text-blue-400">
             <Snowflake className="h-3 w-3" /> Hibernado
           </Badge>
         ) : (
@@ -103,7 +103,7 @@ function ConnectionCard({ conn }: { conn: ConnectionDef }) {
         {entitiesUsing.length > 0 && (
           <div className="flex flex-wrap gap-1 mt-2">
             {entitiesUsing.map(e => (
-              <Badge key={e.id} variant="secondary" className="text-[10px] gap-1">
+              <Badge key={e.id} variant="secondary" className="text-[11px] gap-1">
                 {e.icon} {e.name}
               </Badge>
             ))}
@@ -113,7 +113,7 @@ function ConnectionCard({ conn }: { conn: ConnectionDef }) {
         {crossRefs.length > 0 && (
           <div className="flex flex-wrap gap-1">
             {crossRefs.map(e => (
-              <Badge key={e.id} variant="outline" className="text-[10px] gap-1 border-nexus-cyan/30 text-nexus-cyan">
+              <Badge key={e.id} variant="outline" className="text-[11px] gap-1 border-nexus-cyan/30 text-nexus-cyan">
                 <Link2 className="h-2.5 w-2.5" /> {e.name}
               </Badge>
             ))}
@@ -192,7 +192,7 @@ function EntityDetailPanel({ entityId, mapping, onBrowse }: { entityId: string; 
           {mapping.primary.filter && (
             <div className="pt-1.5 border-t border-border/30">
               <span className="text-muted-foreground">filtro: </span>
-              <span className="text-nexus-cyan text-[10px] break-all">{mapping.primary.filter}</span>
+              <span className="text-nexus-cyan text-[11px] break-all">{mapping.primary.filter}</span>
             </div>
           )}
         </div>
@@ -209,19 +209,19 @@ function EntityDetailPanel({ entityId, mapping, onBrowse }: { entityId: string; 
                 <div className="flex items-center justify-between">
                   <span className="text-foreground font-semibold">{sec.table}</span>
                   <div className="flex gap-1">
-                    {sec.aggregate && <Badge variant="outline" className="text-[9px] h-4">{sec.aggregate}</Badge>}
-                    {sec.limit && <Badge variant="outline" className="text-[9px] h-4">limit {sec.limit}</Badge>}
+                    {sec.aggregate && <Badge variant="outline" className="text-[11px] h-4">{sec.aggregate}</Badge>}
+                    {sec.limit && <Badge variant="outline" className="text-[11px] h-4">limit {sec.limit}</Badge>}
                   </div>
                 </div>
-                <p className="text-muted-foreground text-[10px] mt-0.5">JOIN: {sec.join}</p>
+                <p className="text-muted-foreground text-[11px] mt-0.5">JOIN: {sec.join}</p>
                 {sec.fields && (
                   <div className="flex flex-wrap gap-1 mt-1">
                     {sec.fields.map(f => (
-                      <span key={f} className="text-[9px] px-1.5 py-0.5 rounded bg-primary/10 text-primary">{f}</span>
+                      <span key={f} className="text-[11px] px-1.5 py-0.5 rounded bg-primary/10 text-primary">{f}</span>
                     ))}
                   </div>
                 )}
-                {sec.note && <p className="text-[9px] text-nexus-amber mt-1">⚠️ {sec.note}</p>}
+                {sec.note && <p className="text-[11px] text-nexus-amber mt-1">⚠️ {sec.note}</p>}
               </div>
             ))}
           </div>
@@ -241,12 +241,12 @@ function EntityDetailPanel({ entityId, mapping, onBrowse }: { entityId: string; 
                 <ArrowRight className="h-3 w-3 text-muted-foreground" />
                 <span className="font-mono text-foreground">{cross.table}</span>
               </div>
-              <p className="text-muted-foreground font-mono text-[10px]">match: {cross.match_with} → {cross.match_by}</p>
-              {cross.fallback && <p className="text-[10px] text-nexus-amber">fallback: {cross.fallback}</p>}
+              <p className="text-muted-foreground font-mono text-[11px]">match: {cross.match_with} → {cross.match_by}</p>
+              {cross.fallback && <p className="text-[11px] text-nexus-amber">fallback: {cross.fallback}</p>}
               {cross.enrich && (
                 <div className="flex flex-wrap gap-1 mt-1">
                   {cross.enrich.map(f => (
-                    <span key={f} className="text-[9px] px-1.5 py-0.5 rounded bg-nexus-emerald/10 text-nexus-emerald">{f}</span>
+                    <span key={f} className="text-[11px] px-1.5 py-0.5 rounded bg-nexus-emerald/10 text-nexus-emerald">{f}</span>
                   ))}
                 </div>
               )}
@@ -339,7 +339,7 @@ export default function DataHubPage() {
 
   if (browsingEntity) {
     return (
-      <div className="p-6 space-y-6 max-w-[1400px] mx-auto">
+      <div className="p-6 sm:p-8 lg:p-10 space-y-6 max-w-[1400px] mx-auto">
         <PageHeader title="DataHub" description="Explorando dados reais" />
         <DataBrowser entityId={browsingEntity} onClose={() => setBrowsingEntity(null)} />
       </div>
@@ -347,7 +347,7 @@ export default function DataHubPage() {
   }
 
   return (
-    <div className="p-6 space-y-6 max-w-[1400px] mx-auto">
+    <div className="p-6 sm:p-8 lg:p-10 space-y-6 max-w-[1400px] mx-auto">
       <PageHeader
         title="DataHub"
         description="Central de dados: explore entidades, conexões e mapeamentos cross-database"
@@ -410,30 +410,30 @@ export default function DataHubPage() {
                         </div>
                         <div>
                           <h3 className="text-sm font-semibold text-foreground">{entity.name}</h3>
-                          <p className="text-[10px] text-muted-foreground font-mono">
+                          <p className="text-[11px] text-muted-foreground font-mono">
                             {entity.primary.table} → {getConnectionLabel(entity.primary.connection)}
                           </p>
                         </div>
                       </div>
                       <div className="flex items-center gap-2">
                         {count !== undefined && count >= 0 && (
-                          <Badge variant="secondary" className="text-[9px] font-mono">
+                          <Badge variant="secondary" className="text-[11px] font-mono">
                             {count.toLocaleString()}
                           </Badge>
                         )}
                         {count === -1 && (
-                          <Badge variant="destructive" className="text-[9px]">erro</Badge>
+                          <Badge variant="destructive" className="text-[11px]">erro</Badge>
                         )}
                         {secondaryCount > 0 && (
-                          <Badge variant="secondary" className="text-[9px]">+{secondaryCount} joins</Badge>
+                          <Badge variant="secondary" className="text-[11px]">+{secondaryCount} joins</Badge>
                         )}
                         {crossCount > 0 && (
-                          <Badge variant="outline" className="text-[9px] border-nexus-emerald/30 text-nexus-emerald">
+                          <Badge variant="outline" className="text-[11px] border-nexus-emerald/30 text-nexus-emerald">
                             {crossCount} cross-db
                           </Badge>
                         )}
                         {hasGroupBy && (
-                          <Badge variant="outline" className="text-[9px] border-primary/30 text-primary">
+                          <Badge variant="outline" className="text-[11px] border-primary/30 text-primary">
                             🏢 grupo
                           </Badge>
                         )}
@@ -521,7 +521,7 @@ export default function DataHubPage() {
             </p>
             <div className="flex flex-wrap gap-1.5">
               {Array.from(DATAHUB_TABLE_BLACKLIST).sort().map(t => (
-                <Badge key={t} variant="outline" className="text-[10px] font-mono text-destructive/70 border-destructive/20">
+                <Badge key={t} variant="outline" className="text-[11px] font-mono text-destructive/70 border-destructive/20">
                   {t}
                 </Badge>
               ))}
@@ -533,29 +533,29 @@ export default function DataHubPage() {
             <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
               <div className="rounded-lg bg-secondary/30 p-3 text-center">
                 <p className="text-2xl font-heading font-bold text-foreground">{ENTITY_LIST.length}</p>
-                <p className="text-[10px] text-muted-foreground">Entidades</p>
+                <p className="text-[11px] text-muted-foreground">Entidades</p>
               </div>
               <div className="rounded-lg bg-secondary/30 p-3 text-center">
                 <p className="text-2xl font-heading font-bold text-foreground">{connections.length}</p>
-                <p className="text-[10px] text-muted-foreground">Conexões</p>
+                <p className="text-[11px] text-muted-foreground">Conexões</p>
               </div>
               <div className="rounded-lg bg-secondary/30 p-3 text-center">
                 <p className="text-2xl font-heading font-bold text-foreground">
                   {ENTITY_LIST.reduce((acc, e) => acc + (e.secondary?.length ?? 0), 0)}
                 </p>
-                <p className="text-[10px] text-muted-foreground">Joins Secundários</p>
+                <p className="text-[11px] text-muted-foreground">Joins Secundários</p>
               </div>
               <div className="rounded-lg bg-secondary/30 p-3 text-center">
                 <p className="text-2xl font-heading font-bold text-foreground">
                   {ENTITY_LIST.reduce((acc, e) => acc + (e.cross_db?.length ?? 0), 0)}
                 </p>
-                <p className="text-[10px] text-muted-foreground">Cross-DB Links</p>
+                <p className="text-[11px] text-muted-foreground">Cross-DB Links</p>
               </div>
               <div className="rounded-lg bg-secondary/30 p-3 text-center">
                 <p className="text-2xl font-heading font-bold text-foreground">
                   {ENTITY_LIST.filter(e => !!e.group_by).length}
                 </p>
-                <p className="text-[10px] text-muted-foreground">Com Grupo Econ.</p>
+                <p className="text-[11px] text-muted-foreground">Com Grupo Econ.</p>
               </div>
             </div>
           </div>
@@ -574,18 +574,18 @@ export default function DataHubPage() {
                   <div className="flex items-center gap-2">
                     <span>{conn.icon}</span>
                     <h4 className="text-sm font-semibold text-foreground">{conn.label}</h4>
-                    <Badge variant="secondary" className="text-[9px]">{allTables.size} tabelas</Badge>
+                    <Badge variant="secondary" className="text-[11px]">{allTables.size} tabelas</Badge>
                     {conn.status === "connected" && <CheckCircle2 className="h-3.5 w-3.5 text-nexus-emerald" />}
                     {conn.status === "hibernated" && <Snowflake className="h-3.5 w-3.5 text-blue-400" />}
                   </div>
                   {allTables.size > 0 ? (
                     <div className="flex flex-wrap gap-1">
                       {Array.from(allTables).sort().map(t => (
-                        <Badge key={t} variant="outline" className="text-[10px] font-mono">{t}</Badge>
+                        <Badge key={t} variant="outline" className="text-[11px] font-mono">{t}</Badge>
                       ))}
                     </div>
                   ) : (
-                    <p className="text-[10px] text-muted-foreground italic">Nenhuma tabela mapeada</p>
+                    <p className="text-[11px] text-muted-foreground italic">Nenhuma tabela mapeada</p>
                   )}
                 </div>
               );

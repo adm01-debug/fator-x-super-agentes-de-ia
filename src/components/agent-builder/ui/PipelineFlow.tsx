@@ -26,7 +26,7 @@ export function PipelineFlow({ steps, className }: PipelineFlowProps) {
             <div className="min-w-0">
               <span className="font-medium text-foreground whitespace-nowrap">{step.label}</span>
               {step.sublabel && (
-                <span className="block text-[10px] text-muted-foreground">{step.sublabel}</span>
+                <span className="block text-[11px] text-muted-foreground">{step.sublabel}</span>
               )}
             </div>
           </div>

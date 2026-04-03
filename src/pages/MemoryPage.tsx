@@ -108,7 +108,7 @@ export default function MemoryPage() {
   };
 
   return (
-    <div className="p-6 space-y-6 max-w-[1400px] mx-auto">
+    <div className="p-6 sm:p-8 lg:p-10 space-y-6 max-w-[1400px] mx-auto">
       <PageHeader title="Memory Engine" description="Sistema de memória persistente — cada tipo com governança e ciclo de vida próprios" />
 
       <InfoHint title="MemGPT Engine ativado">
@@ -125,7 +125,7 @@ export default function MemoryPage() {
               className={`nexus-card text-left transition-all ${isActive ? 'ring-1 ring-primary border-primary' : 'hover:border-primary/30'}`}>
               <Icon className={`h-5 w-5 mb-2 ${mt.color}`} />
               <div className="text-xs font-semibold text-foreground">{mt.title}</div>
-              <div className="text-[10px] text-muted-foreground mt-0.5">{mt.desc}</div>
+              <div className="text-[11px] text-muted-foreground mt-0.5">{mt.desc}</div>
             </button>
           );
         })}
@@ -169,7 +169,7 @@ export default function MemoryPage() {
             <div key={entry.id} className="nexus-card flex items-start gap-3">
               <div className="flex-1 min-w-0">
                 <p className="text-xs text-foreground leading-relaxed">{entry.content}</p>
-                <div className="flex items-center gap-2 mt-1.5 text-[10px] text-muted-foreground">
+                <div className="flex items-center gap-2 mt-1.5 text-[11px] text-muted-foreground">
                   <span>{entry.source}</span>
                   <span>•</span>
                   <span>{new Date(entry.created_at).toLocaleDateString('pt-BR')}</span>

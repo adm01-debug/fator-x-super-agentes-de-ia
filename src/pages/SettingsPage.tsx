@@ -75,7 +75,7 @@ export default function SettingsPage() {
   });
 
   return (
-    <div className="p-6 space-y-6 max-w-[1000px] mx-auto">
+    <div className="p-6 sm:p-8 lg:p-10 space-y-6 max-w-[1000px] mx-auto">
       <PageHeader title="Settings" description="Configure seu workspace e preferências da plataforma" />
 
       <Tabs defaultValue="general">
@@ -147,7 +147,7 @@ export default function SettingsPage() {
                   className={`p-4 rounded-lg border text-left transition-all ${theme === t.value ? 'border-primary bg-primary/10' : 'border-border/50 bg-secondary/30 hover:bg-secondary/50'}`}
                 >
                   <p className="text-sm font-medium text-foreground">{t.label}</p>
-                  <p className="text-[10px] text-muted-foreground mt-1">{t.desc}</p>
+                  <p className="text-[11px] text-muted-foreground mt-1">{t.desc}</p>
                 </button>
               ))}
             </div>
@@ -163,11 +163,11 @@ export default function SettingsPage() {
             {/* Add new key */}
             <div className="grid grid-cols-[1fr_1fr_auto] gap-2 items-end">
               <div className="space-y-1">
-                <Label className="text-[10px]">Nome da chave</Label>
+                <Label className="text-[11px]">Nome da chave</Label>
                 <Input value={newKeyName} onChange={e => setNewKeyName(e.target.value)} placeholder="openrouter_api_key" className="bg-secondary/50 text-xs font-mono" />
               </div>
               <div className="space-y-1">
-                <Label className="text-[10px]">Valor</Label>
+                <Label className="text-[11px]">Valor</Label>
                 <Input type="password" value={newKeyValue} onChange={e => setNewKeyValue(e.target.value)} placeholder="sk-..." className="bg-secondary/50 text-xs font-mono" />
               </div>
               <Button size="sm" onClick={() => addKeyMutation.mutate()} disabled={addKeyMutation.isPending} className="gap-1 nexus-gradient-bg text-primary-foreground">
@@ -191,7 +191,7 @@ export default function SettingsPage() {
                     <div key={s.id} className="flex items-center gap-3 p-3 rounded-lg bg-secondary/30 border border-border/30">
                       <div className="flex-1 min-w-0">
                         <p className="text-xs font-mono font-medium text-foreground">{s.key_name}</p>
-                        <p className="text-[10px] text-muted-foreground font-mono truncate">
+                        <p className="text-[11px] text-muted-foreground font-mono truncate">
                           {showValues[s.id] ? s.key_value : masked}
                         </p>
                       </div>
@@ -208,7 +208,7 @@ export default function SettingsPage() {
             )}
 
             <div className="rounded-lg bg-secondary/20 p-3 border border-border/30">
-              <p className="text-[10px] text-muted-foreground">
+              <p className="text-[11px] text-muted-foreground">
                 💡 <strong>Dica:</strong> Adicione <code className="font-mono">openrouter_api_key</code> para usar múltiplos modelos via OpenRouter, 
                 ou chaves específicas: <code className="font-mono">openai_api_key</code>, <code className="font-mono">anthropic_api_key</code>, <code className="font-mono">google_ai_api_key</code>
               </p>
@@ -297,7 +297,7 @@ function EnvironmentsManager() {
             <div key={env.id} className="flex items-center justify-between py-2 px-3 rounded-lg bg-secondary/30">
               <div>
                 <p className="text-sm font-medium text-foreground">{env.name}</p>
-                <p className="text-[10px] text-muted-foreground">{new Date(env.created_at).toLocaleDateString('pt-BR')}</p>
+                <p className="text-[11px] text-muted-foreground">{new Date(env.created_at).toLocaleDateString('pt-BR')}</p>
               </div>
               <Button variant="ghost" size="icon" className="h-7 w-7 text-destructive" onClick={() => handleDelete(env.id)}>
                 <Trash2 className="h-3.5 w-3.5" />

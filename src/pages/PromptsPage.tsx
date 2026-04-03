@@ -41,7 +41,7 @@ export default function PromptsPage() {
   const latestPrompts = Array.from(grouped.values());
 
   return (
-    <div className="p-6 space-y-6 max-w-[1400px] mx-auto">
+    <div className="p-6 sm:p-8 lg:p-10 space-y-6 max-w-[1400px] mx-auto">
       <PageHeader
         title="Prompt Library"
         description="Biblioteca de prompts reutilizáveis com versionamento e scoring"

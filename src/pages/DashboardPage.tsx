@@ -13,7 +13,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 // ═══ Dashboard Skeleton ═══
 function DashboardLoadingSkeleton() {
   return (
-    <div className="p-4 sm:p-6 space-y-6 max-w-[1400px] mx-auto" aria-busy="true" aria-label="Carregando dashboard">
+    <div className="p-4 sm:p-8 lg:p-10 space-y-6 max-w-[1400px] mx-auto" aria-busy="true" aria-label="Carregando dashboard">
       <div className="flex items-center justify-between">
         <div className="space-y-2">
           <Skeleton className="h-7 w-40 bg-muted/50" />
@@ -96,19 +96,50 @@ export default function DashboardPage() {
   const activeCount = agents.filter(a => a.status === 'production' || a.status === 'monitoring').length;
   const draftCount = agents.filter(a => a.status === 'draft').length;
 
+  // Contextual greeting
+  const getGreeting = () => {
+    const hour = new Date().getHours();
+    if (hour < 12) return 'Bom dia';
+    if (hour < 18) return 'Boa tarde';
+    return 'Boa noite';
+  };
+
+  // Smart summary
+  const getSummary = () => {
+    if (agents.length === 0) return null;
+    const parts: string[] = [];
+    if (activeCount > 0) parts.push(`${activeCount} agente${activeCount > 1 ? 's' : ''} em produção`);
+    if (draftCount > 0) parts.push(`${draftCount} rascunho${draftCount > 1 ? 's' : ''}`);
+    if (usageStats) {
+      parts.push(`$${usageStats.totalCost.toFixed(2)} de custo nos últimos 30 dias`);
+      if (usageStats.avgLatency > 0) parts.push(`latência média de ${usageStats.avgLatency}ms`);
+    }
+    return parts.length > 0 ? parts.join(' · ') : null;
+  };
+
   if (isLoading) return <DashboardLoadingSkeleton />;
 
+  const summary = getSummary();
+
   return (
-    <div className="p-4 sm:p-6 space-y-4 sm:space-y-6 max-w-[1400px] mx-auto" role="main" aria-label="Dashboard principal">
-      <PageHeader
-        title="Dashboard"
-        description="Visão executiva da operação de agentes de IA"
-        actions={
-          <Button onClick={() => navigate('/agents/new')} className="nexus-gradient-bg text-primary-foreground gap-2 hover:opacity-90 min-h-[44px]">
-            <Plus className="h-4 w-4" aria-hidden="true" /> Criar agente
-          </Button>
-        }
-      />
+    <div className="p-4 sm:p-8 lg:p-10 space-y-5 sm:space-y-6 max-w-[1400px] mx-auto" role="main" aria-label="Dashboard principal">
+      <div className="space-y-1">
+        <PageHeader
+          title={`${getGreeting()} 👋`}
+          description="Visão executiva da operação de agentes de IA"
+          actions={
+            <Button onClick={() => navigate('/agents/new')} className="nexus-gradient-bg text-primary-foreground gap-2 hover:opacity-90 min-h-[44px]">
+              <Plus className="h-4 w-4" aria-hidden="true" /> Criar agente
+            </Button>
+          }
+        />
+        {summary && (
+          <div className="flex items-center gap-2 mt-2">
+            <Zap className="h-3.5 w-3.5 text-primary shrink-0" aria-hidden="true" />
+            <p className="text-xs text-muted-foreground">{summary}</p>
+          </div>
+        )}
+      </div>
 
       {agents.length === 0 ? (
         <div className="flex flex-col items-center justify-center py-12 sm:py-20 text-center px-4">
@@ -144,16 +175,16 @@ export default function DashboardPage() {
           {/* Metrics */}
           <div className="grid grid-cols-2 md:grid-cols-4 gap-3 sm:gap-4 stagger-children" role="region" aria-label="Métricas principais">
             {[
-              { icon: Bot, color: "text-primary", value: agents.length, label: "Total de agentes" },
-              { icon: Zap, color: "text-nexus-emerald", value: activeCount, label: "Em produção" },
-              { icon: DollarSign, color: "text-nexus-amber", value: usageStats?.totalCost ?? 0, label: "Custo (30d)", prefix: "$", decimals: 2, noData: !usageStats },
-              { icon: TrendingUp, color: "text-primary", value: usageStats?.totalRequests ?? 0, label: "Requests (30d)", noData: !usageStats },
+              { icon: Bot, color: "text-primary", bgColor: "bg-primary/10", value: agents.length, label: "Total de agentes", hint: `${draftCount} rascunhos` },
+              { icon: Zap, color: "text-nexus-emerald", bgColor: "bg-nexus-emerald/10", value: activeCount, label: "Em produção", hint: activeCount > 0 ? "Operando normalmente" : "Nenhum ativo" },
+              { icon: DollarSign, color: "text-nexus-amber", bgColor: "bg-nexus-amber/10", value: usageStats?.totalCost ?? 0, label: "Custo (30d)", prefix: "$", decimals: 2, noData: !usageStats, hint: usageStats ? `${usageStats.totalRequests} requests` : undefined },
+              { icon: TrendingUp, color: "text-primary", bgColor: "bg-primary/10", value: usageStats?.totalRequests ?? 0, label: "Requests (30d)", noData: !usageStats, hint: usageStats ? `~${usageStats.avgLatency}ms latência` : undefined },
             ].map((metric, i) => (
              <div
                 key={metric.label}
-                className="nexus-card nexus-metric-card text-center"
+                className="nexus-card nexus-metric-card text-center group"
               >
-                <div className="flex items-center justify-center gap-1.5 mb-1">
+                <div className={`inline-flex items-center justify-center h-8 w-8 rounded-lg ${metric.bgColor} mb-2`}>
                   <metric.icon className={`h-4 w-4 ${metric.color}`} aria-hidden="true" />
                 </div>
                 <p className={`text-xl sm:text-2xl font-heading font-bold ${i === 1 ? "text-nexus-emerald" : "text-foreground"}`}>
@@ -165,7 +196,8 @@ export default function DashboardPage() {
                     />
                   )}
                 </p>
-                <p className="text-[10px] sm:text-[11px] text-muted-foreground">{metric.label}</p>
+                <p className="text-[11px] text-muted-foreground font-medium">{metric.label}</p>
+                {metric.hint && <p className="text-[11px] text-muted-foreground/60 mt-0.5">{metric.hint}</p>}
               </div>
             ))}
           </div>
@@ -175,15 +207,15 @@ export default function DashboardPage() {
             <div className="grid grid-cols-3 gap-2 sm:gap-3 stagger-children">
               <div className="nexus-card nexus-metric-card py-2.5 sm:py-3 text-center">
                 <p className="text-xs sm:text-sm font-heading font-bold text-foreground">{usageStats.avgLatency}ms</p>
-                <p className="text-[9px] sm:text-[10px] text-muted-foreground">Latência média</p>
+                <p className="text-[11px] sm:text-[11px] text-muted-foreground">Latência média</p>
               </div>
               <div className="nexus-card nexus-metric-card py-2.5 sm:py-3 text-center">
                 <p className="text-xs sm:text-sm font-heading font-bold text-foreground">{(usageStats.totalTokens / 1000).toFixed(0)}k</p>
-                <p className="text-[9px] sm:text-[10px] text-muted-foreground">Tokens totais</p>
+                <p className="text-[11px] sm:text-[11px] text-muted-foreground">Tokens totais</p>
               </div>
               <div className="nexus-card nexus-metric-card py-2.5 sm:py-3 text-center">
                 <p className="text-xs sm:text-sm font-heading font-bold text-foreground">{draftCount}</p>
-                <p className="text-[9px] sm:text-[10px] text-muted-foreground">Rascunhos</p>
+                <p className="text-[11px] sm:text-[11px] text-muted-foreground">Rascunhos</p>
               </div>
             </div>
           )}
@@ -244,13 +276,13 @@ export default function DashboardPage() {
                         <StatusBadge status={trace.level || 'info'} />
                         <div>
                           <p className="text-xs font-medium text-foreground">{trace.event}</p>
-                          <p className="text-[10px] text-muted-foreground">
+                          <p className="text-[11px] text-muted-foreground">
                             <time dateTime={trace.created_at}>{new Date(trace.created_at).toLocaleString('pt-BR')}</time>
                           </p>
                         </div>
                       </div>
                       {trace.latency_ms && (
-                        <span className="text-[10px] text-muted-foreground flex items-center gap-1">
+                        <span className="text-[11px] text-muted-foreground flex items-center gap-1">
                           <Clock className="h-3 w-3" aria-hidden="true" />{(trace.latency_ms / 1000).toFixed(1)}s
                         </span>
                       )}
@@ -292,14 +324,14 @@ function DashboardAlerts() {
           <span className="h-2 w-2 rounded-full bg-amber-400 animate-pulse" />
           Alertas Ativos ({alerts.length})
         </h3>
-        <button onClick={() => navigate('/monitoring')} className="text-[10px] text-primary hover:underline">Ver todos</button>
+        <button onClick={() => navigate('/monitoring')} className="text-[11px] text-primary hover:underline">Ver todos</button>
       </div>
       <div className="space-y-2">
         {alerts.map(a => (
           <div key={a.id} className="flex items-center gap-2 text-xs py-1">
             <span className={`w-2 h-2 rounded-full shrink-0 ${a.severity === 'critical' ? 'bg-destructive' : 'bg-amber-400'}`} />
             <span className="text-foreground truncate">{a.title}</span>
-            <span className="text-muted-foreground ml-auto shrink-0 text-[10px]">{new Date(a.created_at || '').toLocaleDateString('pt-BR')}</span>
+            <span className="text-muted-foreground ml-auto shrink-0 text-[11px]">{new Date(a.created_at || '').toLocaleDateString('pt-BR')}</span>
           </div>
         ))}
       </div>

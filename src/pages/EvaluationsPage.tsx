@@ -19,7 +19,7 @@ export default function EvaluationsPage() {
   });
 
   return (
-    <div className="p-6 space-y-6 max-w-[1400px] mx-auto">
+    <div className="p-6 sm:p-8 lg:p-10 space-y-6 max-w-[1400px] mx-auto">
       <PageHeader
         title="Evaluations Lab"
         description="Avalie agentes com métricas de factualidade, groundedness, sucesso e segurança"
@@ -65,11 +65,11 @@ export default function EvaluationsPage() {
                     <div className="grid grid-cols-2 md:grid-cols-3 gap-3 mt-4">
                       <div className="text-center rounded-lg bg-secondary/30 p-3">
                         <p className="text-lg font-heading font-bold text-nexus-emerald">{ev.pass_rate ?? 0}%</p>
-                        <p className="text-[10px] text-muted-foreground mt-0.5">Pass rate</p>
+                        <p className="text-[11px] text-muted-foreground mt-0.5">Pass rate</p>
                       </div>
                       <div className="text-center rounded-lg bg-secondary/30 p-3">
                         <p className="text-lg font-heading font-bold text-foreground">{ev.test_cases ?? 0}</p>
-                        <p className="text-[10px] text-muted-foreground mt-0.5">Test cases</p>
+                        <p className="text-[11px] text-muted-foreground mt-0.5">Test cases</p>
                       </div>
                     </div>
                   )}

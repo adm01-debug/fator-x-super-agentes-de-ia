@@ -222,7 +222,7 @@ export function KnowledgeBaseDetail({ kbId, kbName, onBack }: KnowledgeBaseDetai
                     <ChevronRight className="h-3 w-3 text-muted-foreground" />
                   </div>
                 </div>
-                {coll.description && <p className="text-[10px] text-muted-foreground mt-1 truncate">{coll.description}</p>}
+                {coll.description && <p className="text-[11px] text-muted-foreground mt-1 truncate">{coll.description}</p>}
               </div>
             ))
           )}
@@ -271,7 +271,7 @@ export function KnowledgeBaseDetail({ kbId, kbName, onBack }: KnowledgeBaseDetai
                     <FileText className="h-4 w-4 text-primary shrink-0" />
                     <div className="min-w-0">
                       <p className="text-sm font-medium text-foreground truncate">{doc.title}</p>
-                      <p className="text-[10px] text-muted-foreground">{doc.source_type} • {doc.status}</p>
+                      <p className="text-[11px] text-muted-foreground">{doc.source_type} • {doc.status}</p>
                     </div>
                   </div>
                   <AlertDialog>
@@ -286,7 +286,7 @@ export function KnowledgeBaseDetail({ kbId, kbName, onBack }: KnowledgeBaseDetai
                     </AlertDialogContent>
                   </AlertDialog>
                 </div>
-                {doc.source_url && <p className="text-[10px] text-muted-foreground mt-1 truncate">{doc.source_url}</p>}
+                {doc.source_url && <p className="text-[11px] text-muted-foreground mt-1 truncate">{doc.source_url}</p>}
               </div>
             ))
           )}
@@ -295,7 +295,7 @@ export function KnowledgeBaseDetail({ kbId, kbName, onBack }: KnowledgeBaseDetai
         {/* Chunks panel */}
         <div className="space-y-3">
           <h3 className="text-xs font-heading font-semibold text-muted-foreground uppercase tracking-wider">
-            Chunks <Badge variant="outline" className="text-[9px] ml-1">{chunks.length}</Badge>
+            Chunks <Badge variant="outline" className="text-[11px] ml-1">{chunks.length}</Badge>
           </h3>
 
           {!selectedCollectionId ? (
@@ -312,10 +312,10 @@ export function KnowledgeBaseDetail({ kbId, kbName, onBack }: KnowledgeBaseDetai
               {chunks.map((chunk) => (
                 <div key={chunk.id} className="nexus-card p-3">
                   <div className="flex items-center justify-between mb-1.5">
-                    <Badge variant="outline" className="text-[9px]">#{chunk.chunk_index}</Badge>
+                    <Badge variant="outline" className="text-[11px]">#{chunk.chunk_index}</Badge>
                     <div className="flex items-center gap-2">
-                      <span className="text-[10px] text-muted-foreground">{chunk.token_count ?? 0} tokens</span>
-                      <Badge variant={chunk.embedding_status === 'completed' ? 'default' : 'secondary'} className="text-[9px]">
+                      <span className="text-[11px] text-muted-foreground">{chunk.token_count ?? 0} tokens</span>
+                      <Badge variant={chunk.embedding_status === 'completed' ? 'default' : 'secondary'} className="text-[11px]">
                         {chunk.embedding_status}
                       </Badge>
                     </div>

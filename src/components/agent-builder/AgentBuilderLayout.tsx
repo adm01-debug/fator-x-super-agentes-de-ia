@@ -61,12 +61,12 @@ export function AgentBuilderLayout({ children }: AgentBuilderLayoutProps) {
               {agent.avatar_emoji} {agent.name}
             </span>
           )}
-          <Badge variant={statusInfo.variant} className="text-[10px]">
+          <Badge variant={statusInfo.variant} className="text-[11px]">
             {statusInfo.label}
           </Badge>
 
           {/* Save indicator */}
-          <div className="flex items-center gap-1.5 text-[10px] text-muted-foreground min-w-[80px] justify-end">
+          <div className="flex items-center gap-1.5 text-[11px] text-muted-foreground min-w-[80px] justify-end">
             {isSaving ? (
               <>
                 <Loader2 className="h-3 w-3 animate-spin" />

@@ -51,7 +51,7 @@ export function ConsensusMatrix({ points, overallConsensus }: ConsensusMatrixPro
       {/* Summary badges */}
       <div className="flex gap-2 flex-wrap">
         {Object.entries(grouped).map(([level, pts]) => pts.length > 0 && (
-          <Badge key={level} variant="outline" className={`text-[10px] ${levelConfig[level as keyof typeof levelConfig].color}`}>
+          <Badge key={level} variant="outline" className={`text-[11px] ${levelConfig[level as keyof typeof levelConfig].color}`}>
             {levelConfig[level as keyof typeof levelConfig].icon} {pts.length} {levelConfig[level as keyof typeof levelConfig].label}
           </Badge>
         ))}
@@ -75,7 +75,7 @@ export function ConsensusMatrix({ points, overallConsensus }: ConsensusMatrixPro
                 <tr key={point.id} className={`border-b border-border/30 ${i % 2 === 0 ? 'bg-background' : 'bg-secondary/20'}`}>
                   <td className="p-2.5 text-foreground max-w-[200px]">
                     <span className="line-clamp-2">{point.claim}</span>
-                    <Badge variant="outline" className="text-[9px] mt-1 opacity-60">{point.category}</Badge>
+                    <Badge variant="outline" className="text-[11px] mt-1 opacity-60">{point.category}</Badge>
                   </td>
                   {models.map(m => {
                     const pos = point.modelPositions.find(mp => mp.model === m);

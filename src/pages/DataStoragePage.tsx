@@ -38,7 +38,7 @@ export default function DataStoragePage() {
   });
 
   return (
-    <div className="p-6 space-y-6 max-w-[1400px] mx-auto">
+    <div className="p-6 sm:p-8 lg:p-10 space-y-6 max-w-[1400px] mx-auto">
       <PageHeader title="Data & Storage" description="Arquitetura de dados: bancos vetoriais, relacionais, cache e storage" />
 
       <InfoHint title="Por que banco vetorial?">
@@ -58,7 +58,7 @@ export default function DataStoragePage() {
           ].map(s => (
             <div key={s.label} className="nexus-card text-center py-3">
               <p className="text-lg font-heading font-bold text-foreground">{s.value}</p>
-              <p className="text-[9px] text-muted-foreground">{s.label}</p>
+              <p className="text-[11px] text-muted-foreground">{s.label}</p>
             </div>
           ))}
         </div>

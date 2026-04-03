@@ -42,7 +42,7 @@ export default function DeploymentsPage() {
   });
 
   return (
-    <div className="p-6 space-y-6 max-w-[1400px] mx-auto">
+    <div className="p-6 sm:p-8 lg:p-10 space-y-6 max-w-[1400px] mx-auto">
       <PageHeader title="Deployments" description="Agentes em produção e staging" />
 
       {isLoading ? (
@@ -70,7 +70,7 @@ export default function DeploymentsPage() {
               {dep.channels.length > 0 && (
                 <div className="flex flex-wrap gap-1 mt-2">
                   {dep.channels.map((c: any) => (
-                    <span key={c.name} className={`text-[10px] px-2 py-0.5 rounded-full ${c.status === 'active' ? 'bg-emerald-500/10 text-emerald-400' : c.status === 'error' ? 'bg-destructive/10 text-destructive' : 'nexus-badge-primary'}`} title={c.error || `${c.messages} msgs`}>
+                    <span key={c.name} className={`text-[11px] px-2 py-0.5 rounded-full ${c.status === 'active' ? 'bg-emerald-500/10 text-emerald-400' : c.status === 'error' ? 'bg-destructive/10 text-destructive' : 'nexus-badge-primary'}`} title={c.error || `${c.messages} msgs`}>
                       {c.name} {c.messages > 0 ? `(${c.messages})` : ''}
                     </span>
                   ))}

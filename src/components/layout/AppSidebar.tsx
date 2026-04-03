@@ -4,7 +4,7 @@ import { NavLink } from "@/components/NavLink";
 import {
   LayoutDashboard, Bot, BookOpen, Brain, Puzzle, FileText, GitBranch,
   FlaskConical, Rocket, Activity, Database, Shield, Users, CreditCard, Settings,
-  Sparkles, PanelLeftClose, PanelLeft, LogOut, ServerCog,
+  Sparkles, PanelLeftClose, PanelLeft, LogOut, ServerCog, ChevronDown,
 } from "lucide-react";
 import {
   Sidebar, SidebarContent, SidebarGroup, SidebarGroupContent, SidebarGroupLabel,
@@ -14,12 +14,13 @@ import {
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
 import { useAuth } from "@/contexts/AuthContext";
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback } from "react";
 import { getWorkspaceInfo } from "@/lib/agentService";
 
 const navSections = [
   {
     label: "Geral",
+    key: "geral",
     items: [
       { title: "Dashboard", url: "/", icon: LayoutDashboard },
       { title: "Agents", url: "/agents", icon: Bot },
@@ -29,6 +30,7 @@ const navSections = [
   },
   {
     label: "Desenvolvimento",
+    key: "dev",
     items: [
       { title: "Knowledge / RAG", url: "/knowledge", icon: BookOpen },
       { title: "Memory", url: "/memory", icon: Brain },
@@ -39,6 +41,7 @@ const navSections = [
   },
   {
     label: "Operações",
+    key: "ops",
     items: [
       { title: "Evaluations", url: "/evaluations", icon: FlaskConical },
       { title: "Deployments", url: "/deployments", icon: Rocket },
@@ -49,6 +52,7 @@ const navSections = [
   },
   {
     label: "Administração",
+    key: "admin",
     items: [
       { title: "Security & Guardrails", url: "/security", icon: Shield },
       { title: "LGPD Compliance", url: "/lgpd", icon: Shield },
@@ -61,12 +65,49 @@ const navSections = [
   },
 ];
 
+const COLLAPSED_KEY = "nexus-sidebar-sections";
+
+function getInitialCollapsed(): Record<string, boolean> {
+  try {
+    const stored = localStorage.getItem(COLLAPSED_KEY);
+    if (stored) return JSON.parse(stored);
+  } catch {}
+  // Default: only "Geral" expanded
+  return { geral: false, dev: true, ops: true, admin: true };
+}
+
 export function AppSidebar() {
   const { state, toggleSidebar } = useSidebar();
   const collapsed = state === "collapsed";
   const location = useLocation();
   const { user, signOut } = useAuth();
   const [wsInfo, setWsInfo] = useState<{ name: string; plan: string; maxAgents: number; agentCount: number; userName: string; email: string } | null>(null);
+  const [sectionCollapsed, setSectionCollapsed] = useState<Record<string, boolean>>(getInitialCollapsed);
+
+  // Auto-expand the section containing the active route
+  useEffect(() => {
+    for (const section of navSections) {
+      const hasActive = section.items.some(item =>
+        item.url === "/" ? location.pathname === "/" : location.pathname.startsWith(item.url)
+      );
+      if (hasActive && sectionCollapsed[section.key]) {
+        setSectionCollapsed(prev => {
+          const next = { ...prev, [section.key]: false };
+          try { localStorage.setItem(COLLAPSED_KEY, JSON.stringify(next)); } catch {}
+          return next;
+        });
+        break;
+      }
+    }
+  }, [location.pathname]);
+
+  const toggleSection = useCallback((key: string) => {
+    setSectionCollapsed(prev => {
+      const next = { ...prev, [key]: !prev[key] };
+      try { localStorage.setItem(COLLAPSED_KEY, JSON.stringify(next)); } catch {}
+      return next;
+    });
+  }, []);
 
   useEffect(() => {
     if (user) {
@@ -94,42 +135,59 @@ export function AppSidebar() {
       </SidebarHeader>
 
       <SidebarContent className="px-2" role="navigation" aria-label="Menu principal">
-        {navSections.map((section, sectionIdx) => (
-          <SidebarGroup key={section.label}>
-            {!collapsed && (
-              <SidebarGroupLabel className="text-[10px] uppercase tracking-wider text-muted-foreground/70 px-2.5 mb-1">
-                {section.label}
-              </SidebarGroupLabel>
-            )}
-            {collapsed && sectionIdx > 0 && (
-              <Separator className="my-1.5 mx-auto w-6 bg-border/40" />
-            )}
-            <SidebarGroupContent>
-              <SidebarMenu>
-                {section.items.map((item) => {
-                  const isActive = item.url === "/"
-                    ? location.pathname === "/"
-                    : location.pathname.startsWith(item.url);
-                  return (
-                    <SidebarMenuItem key={item.title}>
-                      <SidebarMenuButton asChild isActive={isActive} tooltip={item.title}>
-                        <NavLink
-                          to={item.url}
-                          end={item.url === "/"}
-                          className="flex items-center gap-2.5 rounded-lg px-2.5 py-2 text-sm transition-colors text-sidebar-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground"
-                          activeClassName="bg-primary/10 text-primary font-medium"
-                        >
-                          <item.icon className="h-4 w-4 shrink-0" />
-                          {!collapsed && <span>{item.title}</span>}
-                        </NavLink>
-                      </SidebarMenuButton>
-                    </SidebarMenuItem>
-                  );
-                })}
-              </SidebarMenu>
-            </SidebarGroupContent>
-          </SidebarGroup>
-        ))}
+        {navSections.map((section, sectionIdx) => {
+          const isCollapsedSection = sectionCollapsed[section.key] && !collapsed;
+          return (
+            <SidebarGroup key={section.label}>
+              {!collapsed ? (
+                <button
+                  onClick={() => toggleSection(section.key)}
+                  className="flex items-center justify-between w-full px-2.5 mb-1 group/label hover:bg-secondary/30 rounded-md py-1 transition-colors"
+                  aria-expanded={!isCollapsedSection}
+                  aria-controls={`nav-section-${section.key}`}
+                >
+                  <SidebarGroupLabel className="text-[11px] uppercase tracking-wider text-muted-foreground/70 pointer-events-none p-0 h-auto">
+                    {section.label}
+                  </SidebarGroupLabel>
+                  <ChevronDown
+                    className={`h-3 w-3 text-muted-foreground/50 transition-transform duration-200 ${isCollapsedSection ? '-rotate-90' : ''}`}
+                    aria-hidden="true"
+                  />
+                </button>
+              ) : (
+                sectionIdx > 0 && <Separator className="my-1.5 mx-auto w-6 bg-border/40" />
+              )}
+              <SidebarGroupContent
+                id={`nav-section-${section.key}`}
+                className={`transition-all duration-200 overflow-hidden ${isCollapsedSection ? 'max-h-0 opacity-0' : 'max-h-[500px] opacity-100'}`}
+              >
+                <SidebarMenu>
+                  {section.items.map((item) => {
+                    const isActive = item.url === "/"
+                      ? location.pathname === "/"
+                      : location.pathname.startsWith(item.url);
+                    return (
+                      <SidebarMenuItem key={item.title}>
+                        <SidebarMenuButton asChild isActive={isActive} tooltip={item.title}>
+                          <NavLink
+                            to={item.url}
+                            end={item.url === "/"}
+                            className="flex items-center gap-2.5 rounded-lg px-2.5 py-2 text-sm transition-colors text-sidebar-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground"
+                            activeClassName="bg-primary/10 text-primary font-medium"
+                            aria-current={isActive ? "page" : undefined}
+                          >
+                            <item.icon className="h-4 w-4 shrink-0" />
+                            {!collapsed && <span>{item.title}</span>}
+                          </NavLink>
+                        </SidebarMenuButton>
+                      </SidebarMenuItem>
+                    );
+                  })}
+                </SidebarMenu>
+              </SidebarGroupContent>
+            </SidebarGroup>
+          );
+        })}
       </SidebarContent>
 
       <SidebarFooter className="p-3 space-y-2">
@@ -137,7 +195,7 @@ export function AppSidebar() {
           <>
             <div className="rounded-lg bg-secondary/50 p-3">
               <p className="text-[11px] font-medium text-foreground">Workspace {planLabel}</p>
-              <p className="text-[10px] text-muted-foreground mt-0.5">{agentCount} de {maxAgents} agentes usados</p>
+              <p className="text-[11px] text-muted-foreground mt-0.5">{agentCount} de {maxAgents} agentes usados</p>
               <div className="mt-2 h-1 rounded-full bg-secondary" role="progressbar" aria-valuenow={usage} aria-valuemin={0} aria-valuemax={100} aria-label="Uso de agentes">
                 <div className="h-full rounded-full nexus-gradient-bg transition-all" style={{ width: `${usage}%` }} />
               </div>
@@ -149,7 +207,7 @@ export function AppSidebar() {
                 </div>
                 <div className="flex-1 min-w-0">
                   <p className="text-[11px] font-medium text-foreground truncate">{wsInfo?.userName || 'Usuário'}</p>
-                  <p className="text-[10px] text-muted-foreground truncate">{user.email}</p>
+                  <p className="text-[11px] text-muted-foreground truncate">{user.email}</p>
                 </div>
                 <Button variant="ghost" size="icon" className="h-6 w-6 shrink-0 text-muted-foreground hover:text-destructive min-h-[44px] min-w-[44px] flex items-center justify-center" onClick={signOut} aria-label="Sair da conta">
                   <LogOut className="h-3.5 w-3.5" />

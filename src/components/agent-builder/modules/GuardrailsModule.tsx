@@ -99,7 +99,7 @@ export function GuardrailsModule() {
               <div key={cat} className="rounded-xl border border-border bg-card p-4 text-center">
                 <div className="flex justify-center mb-2 text-muted-foreground">{meta.icon}</div>
                 <p className="text-xs font-medium text-foreground">{active}/{catGuardrails.length}</p>
-                <p className="text-[10px] text-muted-foreground">{meta.label}</p>
+                <p className="text-[11px] text-muted-foreground">{meta.label}</p>
               </div>
             );
           })}

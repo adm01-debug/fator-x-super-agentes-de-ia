@@ -80,7 +80,7 @@ export default function LGPDCompliancePage() {
   ];
 
   return (
-    <div className="p-6 space-y-6 max-w-[1400px] mx-auto">
+    <div className="p-6 sm:p-8 lg:p-10 space-y-6 max-w-[1400px] mx-auto">
       <PageHeader title="LGPD Compliance" description="Gerencie consentimento, dados pessoais e solicitações de exclusão" />
 
       <Tabs defaultValue="consent" className="space-y-4">
@@ -102,7 +102,7 @@ export default function LGPDCompliancePage() {
                     <div>
                       <p className="text-sm font-medium text-foreground">{p.label}</p>
                       <p className="text-xs text-muted-foreground mt-0.5">{p.desc}</p>
-                      {consent && <p className="text-[10px] text-emerald-400 mt-1">Consentido em {new Date(consent.granted_at || consent.created_at).toLocaleDateString('pt-BR')}</p>}
+                      {consent && <p className="text-[11px] text-emerald-400 mt-1">Consentido em {new Date(consent.granted_at || consent.created_at).toLocaleDateString('pt-BR')}</p>}
                     </div>
                     <div className="flex gap-2">
                       {consent ? (
@@ -164,10 +164,10 @@ export default function LGPDCompliancePage() {
                       <span className="text-foreground font-medium">
                         {item._type === 'deletion' ? `Exclusão: ${item.scope}` : `${item.granted ? 'Consentimento' : 'Revogação'}: ${item.purpose}`}
                       </span>
-                      <p className="text-[10px] text-muted-foreground">{new Date(item.created_at || item.requested_at).toLocaleString('pt-BR')}</p>
+                      <p className="text-[11px] text-muted-foreground">{new Date(item.created_at || item.requested_at).toLocaleString('pt-BR')}</p>
                     </div>
                   </div>
-                  <Badge variant={item.status === 'completed' || item.granted ? 'default' : item.status === 'failed' ? 'destructive' : 'outline'} className="text-[9px]">
+                  <Badge variant={item.status === 'completed' || item.granted ? 'default' : item.status === 'failed' ? 'destructive' : 'outline'} className="text-[11px]">
                     {item.status || (item.granted ? 'ativo' : 'revogado')}
                   </Badge>
                 </div>

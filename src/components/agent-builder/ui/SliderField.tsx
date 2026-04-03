@@ -30,7 +30,7 @@ export function SliderField({ label, value, onChange, min = 0, max = 100, step =
         step={step}
         className="w-full"
       />
-      {description && <p className="text-[10px] text-muted-foreground">{description}</p>}
+      {description && <p className="text-[11px] text-muted-foreground">{description}</p>}
     </div>
   );
 }

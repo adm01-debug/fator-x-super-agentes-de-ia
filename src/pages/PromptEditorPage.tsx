@@ -233,8 +233,8 @@ export default function PromptEditorPage() {
               className="bg-nexus-surface-1 border-border/50 font-mono text-xs leading-relaxed resize-none"
             />
             <div className="flex items-center justify-between mt-2">
-              <span className="text-[10px] text-muted-foreground">{content.length} caracteres • {content.split(/\s+/).filter(Boolean).length} palavras</span>
-              {dirty && <Badge variant="outline" className="text-[10px] text-nexus-amber border-nexus-amber/30">não salvo</Badge>}
+              <span className="text-[11px] text-muted-foreground">{content.length} caracteres • {content.split(/\s+/).filter(Boolean).length} palavras</span>
+              {dirty && <Badge variant="outline" className="text-[11px] text-nexus-amber border-nexus-amber/30">não salvo</Badge>}
             </div>
           </div>
 
@@ -268,13 +268,13 @@ export default function PromptEditorPage() {
                     <div>
                       <div className="flex items-center gap-2">
                         <span className="text-xs font-mono font-medium text-foreground">v{v.version}</span>
-                        {v.is_active && <Badge className="bg-primary/10 text-primary text-[9px]">ativa</Badge>}
+                        {v.is_active && <Badge className="bg-primary/10 text-primary text-[11px]">ativa</Badge>}
                       </div>
-                      <p className="text-[10px] text-muted-foreground">{v.change_summary}</p>
+                      <p className="text-[11px] text-muted-foreground">{v.change_summary}</p>
                     </div>
                   </div>
                   <div className="flex items-center gap-2">
-                    <span className="text-[10px] text-muted-foreground">
+                    <span className="text-[11px] text-muted-foreground">
                       {new Date(v.created_at).toLocaleDateString("pt-BR")}
                     </span>
                     <Button variant="ghost" size="icon" className="h-7 w-7 text-muted-foreground hover:text-destructive"

@@ -139,11 +139,11 @@ export function PromptModule() {
                     <div className="flex items-center gap-2">
                       <span className="text-sm font-semibold">v{pv.version}</span>
                       {pv.is_active && (
-                        <span className="text-[10px] px-1.5 py-0.5 rounded bg-primary/20 text-primary font-medium">ATIVA</span>
+                        <span className="text-[11px] px-1.5 py-0.5 rounded bg-primary/20 text-primary font-medium">ATIVA</span>
                       )}
                     </div>
                     <p className="text-xs text-muted-foreground truncate">{pv.change_summary}</p>
-                    <p className="text-[10px] text-muted-foreground">{new Date(pv.created_at).toLocaleString('pt-BR')}</p>
+                    <p className="text-[11px] text-muted-foreground">{new Date(pv.created_at).toLocaleString('pt-BR')}</p>
                   </div>
                   <div className="flex items-center gap-1">
                     {!pv.is_active && (
