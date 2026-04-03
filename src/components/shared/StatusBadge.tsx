@@ -6,6 +6,7 @@ interface StatusBadgeProps {
 }
 
 const statusConfig: Record<string, { className: string; label: string }> = {
+  // ── Success / Production ──
   active: { className: 'nexus-badge-success', label: 'Ativo' },
   connected: { className: 'nexus-badge-success', label: 'Conectado' },
   synced: { className: 'nexus-badge-success', label: 'Sincronizado' },
@@ -13,20 +14,28 @@ const statusConfig: Record<string, { className: string; label: string }> = {
   success: { className: 'nexus-badge-success', label: 'Sucesso' },
   production: { className: 'nexus-badge-success', label: 'Produção' },
   monitoring: { className: 'nexus-badge-success', label: 'Monitorando' },
+
+  // ── In-progress / Testing (cyan) ──
+  testing: { className: 'nexus-badge-info', label: 'Testando' },
   tested: { className: 'nexus-badge-info', label: 'Testado' },
-  draft: { className: 'nexus-badge-info', label: 'Rascunho' },
   configured: { className: 'nexus-badge-info', label: 'Configurado' },
   syncing: { className: 'nexus-badge-info', label: 'Sincronizando' },
   running: { className: 'nexus-badge-info', label: 'Executando' },
   deploying: { className: 'nexus-badge-info', label: 'Deploy...' },
+  info: { className: 'nexus-badge-info', label: 'Info' },
+  debug: { className: 'nexus-badge-info', label: 'Debug' },
+
+  // ── Warning / Staging (amber) ──
   review: { className: 'nexus-badge-warning', label: 'Revisão' },
   staging: { className: 'nexus-badge-warning', label: 'Staging' },
   paused: { className: 'nexus-badge-warning', label: 'Pausado' },
   pending: { className: 'nexus-badge-warning', label: 'Pendente' },
   queued: { className: 'nexus-badge-warning', label: 'Na fila' },
-  testing: { className: 'nexus-badge-warning', label: 'Testando' },
   invited: { className: 'nexus-badge-warning', label: 'Convidado' },
   warning: { className: 'nexus-badge-warning', label: 'Aviso' },
+  planned: { className: 'nexus-badge-warning', label: 'Planejado' },
+
+  // ── Danger / Error ──
   deprecated: { className: 'nexus-badge-danger', label: 'Depreciado' },
   archived: { className: 'nexus-badge-danger', label: 'Arquivado' },
   error: { className: 'nexus-badge-danger', label: 'Erro' },
@@ -36,11 +45,11 @@ const statusConfig: Record<string, { className: string; label: string }> = {
   disconnected: { className: 'nexus-badge-danger', label: 'Desconectado' },
   disabled: { className: 'nexus-badge-danger', label: 'Desabilitado' },
   inactive: { className: 'nexus-badge-danger', label: 'Inativo' },
+
+  // ── Neutral / Draft (muted) ──
+  draft: { className: 'nexus-badge-muted', label: 'Rascunho' },
   prototype: { className: 'nexus-badge-primary', label: 'Protótipo' },
   development: { className: 'nexus-badge-primary', label: 'Dev' },
-  info: { className: 'nexus-badge-info', label: 'Info' },
-  debug: { className: 'nexus-badge-info', label: 'Debug' },
-  planned: { className: 'nexus-badge-warning', label: 'Planejado' },
 };
 
 const ACTIVE_STATUSES = new Set(['active', 'connected', 'production', 'monitoring', 'running', 'syncing']);
