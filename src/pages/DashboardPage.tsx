@@ -341,3 +341,76 @@ function DashboardAlerts() {
     </div>
   );
 }
+
+interface InsightProps {
+  agents: Array<{ status: string | null; name: string }>;
+  usageStats: { totalCost: number; totalRequests: number; avgLatency: number; totalTokens: number } | null;
+  recentTraces: Array<{ level: string | null; event: string }>;
+}
+
+function DashboardInsight({ agents, usageStats, recentTraces }: InsightProps) {
+  const insights: Array<{ icon: string; text: string; type: 'info' | 'warning' | 'success' }> = [];
+
+  // Generate contextual insights
+  const errorTraces = recentTraces.filter(t => t.level === 'error' || t.level === 'critical');
+  if (errorTraces.length > 0) {
+    insights.push({
+      icon: '⚠️',
+      text: `${errorTraces.length} erro${errorTraces.length > 1 ? 's' : ''} detectado${errorTraces.length > 1 ? 's' : ''} recentemente — verifique o Monitoring para detalhes.`,
+      type: 'warning',
+    });
+  }
+
+  if (usageStats && usageStats.avgLatency > 2000) {
+    insights.push({
+      icon: '🐢',
+      text: `Latência média de ${usageStats.avgLatency}ms está acima do ideal. Considere otimizar prompts ou trocar de modelo.`,
+      type: 'warning',
+    });
+  }
+
+  const draftAgents = agents.filter(a => a.status === 'draft');
+  if (draftAgents.length > 2) {
+    insights.push({
+      icon: '📝',
+      text: `Você tem ${draftAgents.length} agentes em rascunho. Considere finalizá-los ou arquivar os que não serão usados.`,
+      type: 'info',
+    });
+  }
+
+  const productionAgents = agents.filter(a => a.status === 'production' || a.status === 'monitoring');
+  if (productionAgents.length > 0 && errorTraces.length === 0) {
+    insights.push({
+      icon: '✅',
+      text: `${productionAgents.length} agente${productionAgents.length > 1 ? 's' : ''} em produção operando sem erros. Tudo funcionando bem!`,
+      type: 'success',
+    });
+  }
+
+  if (usageStats && usageStats.totalCost > 50) {
+    insights.push({
+      icon: '💰',
+      text: `Custo de $${usageStats.totalCost.toFixed(2)} nos últimos 30 dias. Confira o Billing para detalhes por agente.`,
+      type: 'info',
+    });
+  }
+
+  if (insights.length === 0) return null;
+
+  return (
+    <div className="nexus-card border-primary/10 bg-gradient-to-r from-card to-primary/[0.02]">
+      <div className="flex items-center gap-2 mb-3">
+        <Sparkles className="h-4 w-4 text-primary" aria-hidden="true" />
+        <h3 className="text-sm font-heading font-semibold text-foreground">Insights da IA</h3>
+      </div>
+      <div className="space-y-2">
+        {insights.slice(0, 3).map((insight, i) => (
+          <div key={i} className="flex items-start gap-2 text-xs text-muted-foreground">
+            <span className="shrink-0 mt-0.5" aria-hidden="true">{insight.icon}</span>
+            <p>{insight.text}</p>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
