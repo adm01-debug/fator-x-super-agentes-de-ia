@@ -260,7 +260,8 @@ function EnvironmentsManager() {
   });
 
   const handleCreate = async () => {
-    if (!newEnvName.trim()) return;
+    const result = environmentSchema.safeParse({ name: newEnvName });
+    if (!result.success) { toast.error(result.error.errors[0]?.message || 'Nome inválido'); return; }
     setCreating(true);
     const wsId = await getWorkspaceId();
     await fromTable('environments').insert({ workspace_id: wsId, name: newEnvName.trim() });
