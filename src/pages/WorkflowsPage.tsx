@@ -110,7 +110,7 @@ export default function WorkflowsPage() {
     if (steps.length < 2) { toast.error('Adicione pelo menos 2 etapas separadas por vírgula'); return; }
     try {
       const { data: member } = await supabase.from('workspace_members').select('workspace_id').limit(1).single();
-      const { data: wf, error } = await (supabase as any).from('workflows').insert({
+      const { data: wf, error } = await fromTable('workflows').insert({
         workspace_id: member?.workspace_id, name: newName.trim(), status: 'draft',
         config: { step_names: steps },
       }).select('id').single();
