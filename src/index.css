@@ -224,12 +224,22 @@
 
   .nexus-card {
     @apply rounded-xl border bg-card p-5;
+    box-shadow: 0 1px 3px 0 hsl(var(--foreground) / 0.04);
     transition: all 0.25s cubic-bezier(0.22, 1, 0.36, 1);
   }
 
   .nexus-card:hover {
     @apply border-primary/30;
-    box-shadow: 0 4px 30px -10px hsl(var(--nexus-glow) / 0.12);
+    box-shadow: 0 4px 20px -6px hsl(var(--nexus-glow) / 0.15);
+  }
+
+  .nexus-card-elevated {
+    @apply nexus-card;
+    box-shadow: 0 4px 16px -4px hsl(var(--foreground) / 0.08);
+  }
+
+  .nexus-card-elevated:hover {
+    box-shadow: 0 8px 30px -8px hsl(var(--nexus-glow) / 0.18);
   }
 
   .nexus-badge {
