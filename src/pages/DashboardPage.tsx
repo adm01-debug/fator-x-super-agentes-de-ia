@@ -13,7 +13,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 // ═══ Dashboard Skeleton ═══
 function DashboardLoadingSkeleton() {
   return (
-    <div className="p-4 sm:p-6 space-y-6 max-w-[1400px] mx-auto" aria-busy="true" aria-label="Carregando dashboard">
+    <div className="p-4 sm:p-8 lg:p-10 space-y-6 max-w-[1400px] mx-auto" aria-busy="true" aria-label="Carregando dashboard">
       <div className="flex items-center justify-between">
         <div className="space-y-2">
           <Skeleton className="h-7 w-40 bg-muted/50" />
@@ -99,7 +99,7 @@ export default function DashboardPage() {
   if (isLoading) return <DashboardLoadingSkeleton />;
 
   return (
-    <div className="p-4 sm:p-6 space-y-4 sm:space-y-6 max-w-[1400px] mx-auto" role="main" aria-label="Dashboard principal">
+    <div className="p-4 sm:p-8 lg:p-10 space-y-5 sm:space-y-6 max-w-[1400px] mx-auto" role="main" aria-label="Dashboard principal">
       <PageHeader
         title="Dashboard"
         description="Visão executiva da operação de agentes de IA"

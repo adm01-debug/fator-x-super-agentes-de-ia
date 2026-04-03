@@ -108,7 +108,7 @@ export default function MemoryPage() {
   };
 
   return (
-    <div className="p-6 space-y-6 max-w-[1400px] mx-auto">
+    <div className="p-6 sm:p-8 lg:p-10 space-y-6 max-w-[1400px] mx-auto">
       <PageHeader title="Memory Engine" description="Sistema de memória persistente — cada tipo com governança e ciclo de vida próprios" />
 
       <InfoHint title="MemGPT Engine ativado">

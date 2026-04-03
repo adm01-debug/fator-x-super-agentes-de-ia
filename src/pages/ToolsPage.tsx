@@ -106,7 +106,7 @@ export default function ToolsPage() {
   );
 
   return (
-    <div className="p-6 space-y-6 max-w-[1400px] mx-auto">
+    <div className="p-6 sm:p-8 lg:p-10 space-y-6 max-w-[1400px] mx-auto">
       <PageHeader
         title="Tools & Integrations"
         description="Ferramentas disponíveis e integrações configuradas"

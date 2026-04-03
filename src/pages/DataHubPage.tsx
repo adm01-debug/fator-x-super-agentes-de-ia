@@ -339,7 +339,7 @@ export default function DataHubPage() {
 
   if (browsingEntity) {
     return (
-      <div className="p-6 space-y-6 max-w-[1400px] mx-auto">
+      <div className="p-6 sm:p-8 lg:p-10 space-y-6 max-w-[1400px] mx-auto">
         <PageHeader title="DataHub" description="Explorando dados reais" />
         <DataBrowser entityId={browsingEntity} onClose={() => setBrowsingEntity(null)} />
       </div>
@@ -347,7 +347,7 @@ export default function DataHubPage() {
   }
 
   return (
-    <div className="p-6 space-y-6 max-w-[1400px] mx-auto">
+    <div className="p-6 sm:p-8 lg:p-10 space-y-6 max-w-[1400px] mx-auto">
       <PageHeader
         title="DataHub"
         description="Central de dados: explore entidades, conexões e mapeamentos cross-database"

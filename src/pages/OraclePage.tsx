@@ -41,7 +41,7 @@ export default function OraclePage() {
   };
 
   return (
-    <div className="p-6 space-y-6 max-w-[1400px] mx-auto">
+    <div className="p-6 sm:p-8 lg:p-10 space-y-6 max-w-[1400px] mx-auto">
       <PageHeader title="🔮 Oráculo v2 — Multi-LLM Council" description="5 modos de operação • Peer review • Consenso visual • Thinking expandível" />
 
       {/* ═══ INPUT AREA ═══ */}
