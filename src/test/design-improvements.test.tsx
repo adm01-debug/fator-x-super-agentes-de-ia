@@ -208,7 +208,7 @@ describe("Round 1: Foundational Design Polish", () => {
         </SidebarWrapper>
       );
       const geralBtn = screen.getByText("Geral").closest("button")!;
-      await act(async () => { fireEvent.click(geralBtn); });
+      fireEvent.click(geralBtn);
       const stored = JSON.parse(localStorage.getItem("nexus-sidebar-sections") || "{}");
       expect(stored).toHaveProperty("geral");
     });
