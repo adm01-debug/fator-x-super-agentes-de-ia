@@ -142,7 +142,7 @@ export default function AgentsPage() {
                         className={`absolute -top-0.5 -right-0.5 h-2.5 w-2.5 rounded-full border-2 border-card ${
                           agent.status === 'production' || agent.status === 'monitoring'
                             ? 'bg-nexus-emerald animate-glow-pulse'
-                            : agent.status === 'error' || agent.status === 'deprecated'
+                            : agent.status === 'deprecated' || agent.status === 'archived'
                             ? 'bg-destructive'
                             : agent.status === 'draft'
                             ? 'bg-muted-foreground/40'
