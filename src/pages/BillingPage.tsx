@@ -204,10 +204,10 @@ export default function BillingPage() {
                       <span className="text-xs text-muted-foreground">/ ${b.limit_usd.toFixed(2)}</span>
                     </div>
                     <div className="h-2 rounded-full bg-secondary overflow-hidden">
-                      <div className={`h-full rounded-full transition-all ${pct > 90 ? 'bg-destructive' : pct > 70 ? 'bg-amber-500' : 'bg-primary'}`} style={{ width: `${Math.min(pct, 100)}%` }} />
+                      <div className={`h-full rounded-full transition-all ${pct > 90 ? 'bg-destructive' : pct > 70 ? 'bg-nexus-amber' : 'bg-primary'}`} style={{ width: `${Math.min(pct, 100)}%` }} />
                     </div>
                     {overThreshold && (
-                      <div className="flex items-center gap-1 mt-2 text-amber-400">
+                      <div className="flex items-center gap-1 mt-2 text-nexus-amber">
                         <AlertTriangle className="h-3 w-3" />
                         <span className="text-[11px]">Alerta: {pct.toFixed(0)}% do limite</span>
                       </div>

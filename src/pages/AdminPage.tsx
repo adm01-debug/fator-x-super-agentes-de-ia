@@ -175,7 +175,7 @@ function AdminTable({ config }: { config: typeof TABLE_CONFIG[0] }) {
                             {formatCell(row[col.key], col.key)}
                           </Badge>
                         ) : col.key === "is_active" ? (
-                          <span className={row[col.key] ? "text-green-500" : "text-muted-foreground"}>
+                          <span className={row[col.key] ? "text-nexus-emerald" : "text-muted-foreground"}>
                             {row[col.key] ? "✓ Ativo" : "Inativo"}
                           </span>
                         ) : (

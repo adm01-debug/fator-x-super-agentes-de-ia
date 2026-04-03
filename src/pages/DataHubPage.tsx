@@ -76,7 +76,7 @@ function ConnectionCard({ conn }: { conn: ConnectionDef }) {
           </div>
         </div>
         {isHibernated ? (
-          <Badge variant="outline" className="gap-1 text-[11px] border-blue-500/30 text-blue-400">
+          <Badge variant="outline" className="gap-1 text-[11px] border-primary/30 text-primary">
             <Snowflake className="h-3 w-3" /> Hibernado
           </Badge>
         ) : (
@@ -136,7 +136,7 @@ function ConnectionCard({ conn }: { conn: ConnectionDef }) {
       )}
 
       {isHibernated && (
-        <div className="mt-3 p-2 rounded-lg bg-blue-500/10 border border-blue-500/20 flex items-center gap-2 text-[11px] text-blue-400">
+        <div className="mt-3 p-2 rounded-lg bg-primary/10 border border-primary/20 flex items-center gap-2 text-[11px] text-primary">
           <Snowflake className="h-3.5 w-3.5 shrink-0" />
           Projeto Supabase pausado. Score: 0/100.
         </div>
@@ -576,7 +576,7 @@ export default function DataHubPage() {
                     <h4 className="text-sm font-semibold text-foreground">{conn.label}</h4>
                     <Badge variant="secondary" className="text-[11px]">{allTables.size} tabelas</Badge>
                     {conn.status === "connected" && <CheckCircle2 className="h-3.5 w-3.5 text-nexus-emerald" />}
-                    {conn.status === "hibernated" && <Snowflake className="h-3.5 w-3.5 text-blue-400" />}
+                    {conn.status === "hibernated" && <Snowflake className="h-3.5 w-3.5 text-primary" />}
                   </div>
                   {allTables.size > 0 ? (
                     <div className="flex flex-wrap gap-1">

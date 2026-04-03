@@ -298,7 +298,7 @@ export default function WorkflowsPage() {
                       </div>
                     </div>
                     <div className="flex items-center gap-1">
-                      <Badge variant="outline" className={`text-[11px] ${wf.status === 'active' ? 'border-emerald-500/30 text-emerald-400' : 'border-muted-foreground/30'}`}>
+                      <Badge variant="outline" className={`text-[11px] ${wf.status === 'active' ? 'border-nexus-emerald/30 text-nexus-emerald' : 'border-muted-foreground/30'}`}>
                         {wf.status === 'active' ? 'Ativo' : 'Rascunho'}
                       </Badge>
                       <Button size="icon" variant="ghost" className="h-7 w-7 opacity-0 group-hover:opacity-100" onClick={() => handleToggleStatus(wf.id)}>

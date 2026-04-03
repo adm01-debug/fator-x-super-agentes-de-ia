@@ -153,7 +153,7 @@ export default function DashboardPage() {
           </Button>
           <div className="grid sm:grid-cols-3 gap-3 sm:gap-4 mt-8 sm:mt-10 w-full max-w-2xl stagger-children">
             {[
-              { emoji: '🧠', title: 'Super Cérebro', desc: 'Memória centralizada para toda a empresa', path: '/brain', accent: 'border-purple-500/30 hover:border-purple-500/50', iconBg: 'bg-purple-500/10' },
+              { emoji: '🧠', title: 'Super Cérebro', desc: 'Memória centralizada para toda a empresa', path: '/brain', accent: 'border-nexus-purple/30 hover:border-nexus-purple/50', iconBg: 'bg-nexus-purple/10' },
               { emoji: '🔮', title: 'Oráculo', desc: 'Conselho de múltiplas IAs para melhores respostas', path: '/oracle', accent: 'border-nexus-cyan/30 hover:border-nexus-cyan/50', iconBg: 'bg-nexus-cyan/10' },
               { emoji: '🛡️', title: 'Guardrails', desc: 'Segurança e compliance em tempo real', path: '/security', accent: 'border-nexus-emerald/30 hover:border-nexus-emerald/50', iconBg: 'bg-nexus-emerald/10' },
             ].map(card => (

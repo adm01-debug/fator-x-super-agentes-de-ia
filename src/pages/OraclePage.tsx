@@ -155,8 +155,8 @@ export default function OraclePage() {
           {/* Metrics cards */}
           <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
             {[
-              { v: `${store.results.confidence_score}%`, l: 'Confiança', c: store.results.confidence_score >= 80 ? 'text-emerald-400' : store.results.confidence_score >= 50 ? 'text-amber-400' : 'text-red-400' },
-              { v: `${store.results.consensus_degree}%`, l: 'Consenso', c: store.results.consensus_degree >= 80 ? 'text-emerald-400' : store.results.consensus_degree >= 50 ? 'text-amber-400' : 'text-red-400' },
+              { v: `${store.results.confidence_score}%`, l: 'Confiança', c: store.results.confidence_score >= 80 ? 'text-nexus-emerald' : store.results.confidence_score >= 50 ? 'text-nexus-amber' : 'text-nexus-rose' },
+              { v: `${store.results.consensus_degree}%`, l: 'Consenso', c: store.results.consensus_degree >= 80 ? 'text-nexus-emerald' : store.results.consensus_degree >= 50 ? 'text-nexus-amber' : 'text-nexus-rose' },
               { v: `$${store.results.metrics.total_cost_usd.toFixed(4)}`, l: 'Custo Total', c: 'text-foreground' },
               { v: `${(store.results.metrics.total_latency_ms / 1000).toFixed(1)}s`, l: 'Tempo Total', c: 'text-foreground' },
             ].map(m => (
@@ -216,13 +216,13 @@ export default function OraclePage() {
               ) : (
                 <div className="nexus-card grid md:grid-cols-2 gap-4">
                   <div>
-                    <p className="text-xs font-semibold text-emerald-400 mb-2">🟢 Consenso</p>
+                    <p className="text-xs font-semibold text-nexus-emerald mb-2">🟢 Consenso</p>
                     <div className="text-xs text-foreground whitespace-pre-wrap bg-secondary/30 p-3 rounded-lg">
                       {store.results.final_response.match(/## Pontos de Consenso[\s\S]*?(?=##|$)/)?.[0] || 'Veja resposta sintetizada.'}
                     </div>
                   </div>
                   <div>
-                    <p className="text-xs font-semibold text-amber-400 mb-2">🔴 Divergências</p>
+                    <p className="text-xs font-semibold text-nexus-amber mb-2">🔴 Divergências</p>
                     <div className="text-xs text-foreground whitespace-pre-wrap bg-secondary/30 p-3 rounded-lg">
                       {store.results.final_response.match(/## Divergências[\s\S]*?(?=##|$)/)?.[0] || 'Veja resposta sintetizada.'}
                     </div>

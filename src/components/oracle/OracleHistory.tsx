@@ -109,7 +109,7 @@ export function OracleHistory(_props: OracleHistoryProps) {
                       <Badge variant="outline" className="text-[11px]">{modeConf?.icon} {modeConf?.label}</Badge>
                       <Badge variant="outline" className="text-[11px] text-muted-foreground">{entry.preset_name || entry.preset_id}</Badge>
                       {entry.confidence_score != null && (
-                        <Badge variant="outline" className={`text-[11px] ${Number(entry.confidence_score) >= 80 ? 'text-emerald-400 border-emerald-500/30' : Number(entry.confidence_score) >= 50 ? 'text-amber-400 border-amber-500/30' : 'text-red-400 border-red-500/30'}`}>
+                        <Badge variant="outline" className={`text-[11px] ${Number(entry.confidence_score) >= 80 ? 'text-nexus-emerald border-nexus-emerald/30' : Number(entry.confidence_score) >= 50 ? 'text-nexus-amber border-nexus-amber/30' : 'text-nexus-rose border-nexus-rose/30'}`}>
                           {entry.confidence_score}%
                         </Badge>
                       )}

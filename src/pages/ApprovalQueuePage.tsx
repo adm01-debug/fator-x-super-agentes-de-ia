@@ -67,7 +67,7 @@ export default function ApprovalQueuePage() {
         <div className="flex justify-center py-12"><Loader2 className="h-6 w-6 animate-spin text-muted-foreground" /></div>
       ) : pendingRuns.length === 0 ? (
         <div className="flex flex-col items-center justify-center py-20 text-center">
-          <CheckCircle className="h-12 w-12 text-emerald-400 mb-4" />
+          <CheckCircle className="h-12 w-12 text-nexus-emerald mb-4" />
           <h2 className="text-lg font-semibold text-foreground mb-1">Nenhuma aprovação pendente</h2>
           <p className="text-sm text-muted-foreground">Workflows com gates HITL aparecerão aqui quando precisarem de aprovação humana.</p>
         </div>
@@ -82,9 +82,9 @@ export default function ApprovalQueuePage() {
                 <div className="flex items-start justify-between cursor-pointer" onClick={() => setSelectedRun(isSelected ? null : run.id)}>
                   <div>
                     <div className="flex items-center gap-2 mb-1">
-                      <Clock className="h-4 w-4 text-amber-400" />
+                      <Clock className="h-4 w-4 text-nexus-amber" />
                       <p className="text-sm font-semibold text-foreground">{run.workflows?.name || 'Workflow'}</p>
-                      <Badge variant="outline" className="text-[11px] text-amber-400 border-amber-400/30">Aguardando aprovação</Badge>
+                      <Badge variant="outline" className="text-[11px] text-nexus-amber border-nexus-amber/30">Aguardando aprovação</Badge>
                     </div>
                     <p className="text-xs text-muted-foreground">
                       Etapa {run.current_step}/{run.total_steps} • Nodo: {pending?.label || 'HITL Gate'}

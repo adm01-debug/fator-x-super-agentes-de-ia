@@ -629,7 +629,7 @@ function StepDeploy({ form, update }: { form: any; update: (k: string, v: unknow
               className={`nexus-card text-left transition-all ${selected ? "ring-2 ring-primary bg-primary/5" : "hover:bg-secondary/60"}`}
             >
               <div className="flex items-center gap-2 mb-1">
-                <div className={`h-2 w-2 rounded-full ${e.id === "production" ? "bg-emerald-500" : e.id === "staging" ? "bg-amber-500" : "bg-muted-foreground"}`} />
+                <div className={`h-2 w-2 rounded-full ${e.id === "production" ? "bg-nexus-emerald" : e.id === "staging" ? "bg-nexus-amber" : "bg-muted-foreground"}`} />
                 <span className="text-sm font-medium text-foreground">{e.label}</span>
               </div>
               <p className="text-xs text-muted-foreground">{e.desc}</p>
