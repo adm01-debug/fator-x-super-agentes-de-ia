@@ -234,7 +234,7 @@ function AuditLogSection() {
   const { data: logs = [], isLoading } = useQuery({
     queryKey: ['audit_log'],
     queryFn: async () => {
-      const { data, error } = await (supabase as any).from('audit_log').select('*').order('created_at', { ascending: false }).limit(50);
+      const { data, error } = await fromTable('audit_log').select('*').order('created_at', { ascending: false }).limit(50);
       if (error) return [];
       return data ?? [];
     },

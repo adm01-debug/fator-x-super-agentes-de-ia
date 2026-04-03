@@ -260,7 +260,7 @@ function PricingTable() {
   const { data: pricing = [], isLoading } = useQuery({
     queryKey: ['model_pricing'],
     queryFn: async () => {
-      const { data, error } = await (supabase as any).from('model_pricing').select('*').order('model_pattern');
+      const { data, error } = await fromTable('model_pricing').select('*').order('model_pattern');
       if (error) throw error;
       return data ?? [];
     },

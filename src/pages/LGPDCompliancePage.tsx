@@ -26,7 +26,7 @@ export default function LGPDCompliancePage() {
   const { data: deletions = [] } = useQuery({
     queryKey: ['lgpd_deletions'],
     queryFn: async () => {
-      const { data } = await (supabase as any).from('data_deletion_requests').select('*').order('requested_at', { ascending: false });
+      const { data } = await fromTable('data_deletion_requests').select('*').order('requested_at', { ascending: false });
       return data ?? [];
     },
   });

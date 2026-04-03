@@ -270,7 +270,7 @@ function EnvironmentsManager() {
   };
 
   const handleDelete = async (id: string) => {
-    await (supabase as any).from('environments').delete().eq('id', id);
+    await fromTable('environments').delete().eq('id', id);
     queryClient.invalidateQueries({ queryKey: ['environments'] });
     toast.success('Ambiente removido');
   };

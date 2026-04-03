@@ -46,7 +46,7 @@ export default function ApprovalQueuePage() {
   const handleReject = async (runId: string) => {
     setProcessing(true);
     try {
-      await (supabase as any).from('workflow_runs').update({
+      await fromTable('workflow_runs').update({
         status: 'failed', error: `Rejected by human: ${feedback || 'No reason provided'}`,
         completed_at: new Date().toISOString(),
       }).eq('id', runId);
