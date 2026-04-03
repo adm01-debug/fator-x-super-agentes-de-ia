@@ -438,7 +438,8 @@ function AlertRulesPanel() {
   });
 
   const handleCreateRule = async () => {
-    if (!ruleName.trim()) { toast.error('Nome é obrigatório'); return; }
+    const result = alertRuleSchema.safeParse({ name: ruleName, metric: ruleMetric, operator: ruleOp, threshold: parseFloat(ruleThreshold) || 0, severity: ruleSeverity });
+    if (!result.success) { toast.error(result.error.errors[0]?.message || 'Dados inválidos'); return; }
     setCreating(true);
     try {
       const { data: member } = await supabase.from('workspace_members').select('workspace_id').limit(1).single();

@@ -12,6 +12,7 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { fromTable } from "@/lib/supabaseExtended";
 import { getWorkspaceId } from "@/lib/agentService";
+import { environmentSchema } from "@/lib/validations/agentSchema";
 import { useTheme } from "next-themes";
 
 export default function SettingsPage() {
