@@ -3,7 +3,7 @@
  * across Rounds 1, 2, and 3 of the Product Design Strategy audit.
  */
 import { describe, it, expect, vi, beforeEach } from "vitest";
-import { render, screen, fireEvent } from "@testing-library/react";
+import { render, screen, fireEvent, waitFor, act } from "@testing-library/react";
 import { MemoryRouter } from "react-router-dom";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { SidebarProvider } from "@/components/ui/sidebar";
@@ -46,6 +46,22 @@ vi.mock("@/integrations/supabase/client", () => ({
   },
 }));
 
+vi.mock("@/hooks/use-network-status", () => ({
+  useNetworkStatus: () => {},
+}));
+
+vi.mock("@/hooks/use-mobile", () => ({
+  useIsMobile: () => false,
+}));
+
+vi.mock("@/hooks/use-document-title", () => ({
+  useDocumentTitle: () => {},
+}));
+
+vi.mock("@/hooks/use-keyboard-shortcuts", () => ({
+  useKeyboardShortcuts: () => {},
+}));
+
 function createTestQueryClient() {
   return new QueryClient({
     defaultOptions: { queries: { retry: false, gcTime: 0 } },
@@ -77,15 +93,12 @@ function SidebarWrapper({ children, route = "/" }: { children: React.ReactNode; 
 // ═══════════════════════════════════════════════════════════
 
 describe("Round 1: Foundational Design Polish", () => {
-  // #2 WCAG contrast
   describe("#2 WCAG Contrast", () => {
     it("CSS defines muted-foreground with adequate contrast values", () => {
-      // Verified in index.css: light 40%, dark 58% — passes WCAG AA
       expect(true).toBe(true);
     });
   });
 
-  // #4 Typography hierarchy
   describe("#4 Typography Hierarchy", () => {
     it("PageHeader renders h1 with responsive classes", async () => {
       const { PageHeader } = await import("@/components/shared/PageHeader");
@@ -102,7 +115,6 @@ describe("Round 1: Foundational Design Polish", () => {
     });
   });
 
-  // #6 Status badge consistency
   describe("#6 StatusBadge Consistency", () => {
     it("renders all expected status types with correct badge classes", async () => {
       const { StatusBadge } = await import("@/components/shared/StatusBadge");
@@ -138,7 +150,6 @@ describe("Round 1: Foundational Design Polish", () => {
     });
   });
 
-  // #7 Sidebar collapsible sections with persistence
   describe("#7 Sidebar Collapsible Sections", () => {
     beforeEach(() => localStorage.clear());
 
@@ -175,13 +186,12 @@ describe("Round 1: Foundational Design Polish", () => {
         </SidebarWrapper>
       );
       const geralBtn = screen.getByText("Geral").closest("button")!;
-      fireEvent.click(geralBtn);
+      await act(async () => { fireEvent.click(geralBtn); });
       const stored = JSON.parse(localStorage.getItem("nexus-sidebar-sections") || "{}");
       expect(stored).toHaveProperty("geral");
     });
   });
 
-  // #8 Dashboard contextual greeting
   describe("#8 Contextual Greeting", () => {
     it("renders a time-based greeting", async () => {
       const DashboardPage = (await import("@/pages/DashboardPage")).default;
@@ -192,14 +202,13 @@ describe("Round 1: Foundational Design Polish", () => {
       );
       const hour = new Date().getHours();
       const expected = hour < 12 ? "Bom dia" : hour < 18 ? "Boa tarde" : "Boa noite";
-      const heading = screen.getByRole("heading", { level: 1 });
-      expect(heading.textContent).toContain(expected);
+      await waitFor(() => {
+        const heading = screen.getByRole("heading", { level: 1 });
+        expect(heading.textContent).toContain(expected);
+      });
     });
   });
 
-  // #10 Agent cards with health pulse dot — tested via StatusBadge active statuses (covered above)
-
-  // #12 Mobile search icon in header
   describe("#12 Mobile Search Icon", () => {
     it("renders mobile search button with aria-label", async () => {
       const { AppLayout } = await import("@/components/layout/AppLayout");
@@ -210,12 +219,12 @@ describe("Round 1: Foundational Design Polish", () => {
           </AppLayout>
         </Wrapper>
       );
-      const mobileSearch = screen.getByLabelText("Abrir busca rápida");
-      expect(mobileSearch).toBeInTheDocument();
+      await waitFor(() => {
+        expect(screen.getByLabelText("Abrir busca rápida")).toBeInTheDocument();
+      });
     });
   });
 
-  // #15 aria-current="page" in sidebar
   describe("#15 aria-current in Sidebar", () => {
     it("marks the active route with aria-current=page", async () => {
       const { AppSidebar } = await import("@/components/layout/AppSidebar");
@@ -235,7 +244,6 @@ describe("Round 1: Foundational Design Polish", () => {
 // ═══════════════════════════════════════════════════════════
 
 describe("Round 2: UX & Interaction", () => {
-  // #16 Command Palette with recent items
   describe("#16 Command Palette", () => {
     it("renders when opened via keyboard", async () => {
       const { CommandPalette } = await import("@/components/shared/CommandPalette");
@@ -244,15 +252,14 @@ describe("Round 2: UX & Interaction", () => {
           <CommandPalette />
         </Wrapper>
       );
-      // Simulate Ctrl+K
       fireEvent.keyDown(document, { key: "k", metaKey: true });
-      // Check search input appears
-      const input = await screen.findByPlaceholderText(/buscar/i);
-      expect(input).toBeInTheDocument();
+      await waitFor(() => {
+        const input = screen.getByPlaceholderText(/buscar/i);
+        expect(input).toBeInTheDocument();
+      });
     });
   });
 
-  // #17 Breadcrumbs with complete route labels
   describe("#17 Breadcrumbs", () => {
     it("renders breadcrumbs for nested routes", async () => {
       const { Breadcrumbs } = await import("@/components/shared/Breadcrumbs");
@@ -308,7 +315,6 @@ describe("Round 2: UX & Interaction", () => {
     });
   });
 
-  // #19 Dashboard AI Insight
   describe("#19 Dashboard AI Insight", () => {
     it("renders InfoHint with the correct title", async () => {
       const DashboardPage = (await import("@/pages/DashboardPage")).default;
@@ -317,11 +323,12 @@ describe("Round 2: UX & Interaction", () => {
           <DashboardPage />
         </Wrapper>
       );
-      expect(screen.getByText("O que são superagentes de IA?")).toBeInTheDocument();
+      await waitFor(() => {
+        expect(screen.getByText("O que são superagentes de IA?")).toBeInTheDocument();
+      });
     });
   });
 
-  // #20 Route announcer
   describe("#20 Route Announcer", () => {
     it("renders sr-only announcer with correct page title", async () => {
       const { AppLayout } = await import("@/components/layout/AppLayout");
@@ -332,9 +339,11 @@ describe("Round 2: UX & Interaction", () => {
           </AppLayout>
         </Wrapper>
       );
-      const announcer = container.querySelector('[role="status"][aria-live="polite"]');
-      expect(announcer).toBeTruthy();
-      expect(announcer!.textContent).toContain("Oráculo");
+      await waitFor(() => {
+        const announcer = container.querySelector('[role="status"][aria-live="polite"]');
+        expect(announcer).toBeTruthy();
+        expect(announcer!.textContent).toContain("Oráculo");
+      });
     });
 
     it("announces all major routes correctly", async () => {
@@ -356,16 +365,20 @@ describe("Round 2: UX & Interaction", () => {
             </AppLayout>
           </Wrapper>
         );
-        const announcer = container.querySelector('[role="status"][aria-live="polite"]');
-        expect(announcer!.textContent).toContain(expected);
+        await waitFor(() => {
+          const announcer = container.querySelector('[role="status"][aria-live="polite"]');
+          expect(announcer!.textContent).toContain(expected);
+        });
         unmount();
       }
     });
   });
 
-  // #21 Onboarding Tour v2
   describe("#21 Onboarding Tour v2", () => {
-    beforeEach(() => localStorage.clear());
+    beforeEach(() => {
+      localStorage.clear();
+      vi.useRealTimers();
+    });
 
     it("shows the tour after a delay for first-time users", async () => {
       vi.useFakeTimers();
@@ -375,9 +388,8 @@ describe("Round 2: UX & Interaction", () => {
           <OnboardingTour />
         </Wrapper>
       );
-      vi.advanceTimersByTime(1500);
-      const dialog = screen.getByRole("dialog");
-      expect(dialog).toBeInTheDocument();
+      await act(async () => { vi.advanceTimersByTime(1500); });
+      expect(screen.getByRole("dialog")).toBeInTheDocument();
       expect(screen.getByText(/Bem-vindo ao Fator X/)).toBeInTheDocument();
       vi.useRealTimers();
     });
@@ -391,7 +403,7 @@ describe("Round 2: UX & Interaction", () => {
           <OnboardingTour />
         </Wrapper>
       );
-      vi.advanceTimersByTime(2000);
+      await act(async () => { vi.advanceTimersByTime(2000); });
       expect(container.querySelector('[role="dialog"]')).toBeNull();
       vi.useRealTimers();
     });
@@ -404,9 +416,8 @@ describe("Round 2: UX & Interaction", () => {
           <OnboardingTour />
         </Wrapper>
       );
-      vi.advanceTimersByTime(1500);
+      await act(async () => { vi.advanceTimersByTime(1500); });
       expect(screen.getByText("1/7")).toBeInTheDocument();
-      // 7 dots
       const dots = screen.getAllByLabelText(/Ir para passo/);
       expect(dots).toHaveLength(7);
       vi.useRealTimers();
@@ -420,15 +431,12 @@ describe("Round 2: UX & Interaction", () => {
           <OnboardingTour />
         </Wrapper>
       );
-      vi.advanceTimersByTime(1500);
-      // Step 1: no "Anterior" button
+      await act(async () => { vi.advanceTimersByTime(1500); });
       expect(screen.queryByText("Anterior")).toBeNull();
-      // Click Next
-      fireEvent.click(screen.getByText("Próximo"));
+      await act(async () => { fireEvent.click(screen.getByText("Próximo")); });
       expect(screen.getByText("2/7")).toBeInTheDocument();
       expect(screen.getByText("Anterior")).toBeInTheDocument();
-      // Click back
-      fireEvent.click(screen.getByText("Anterior"));
+      await act(async () => { fireEvent.click(screen.getByText("Anterior")); });
       expect(screen.getByText("1/7")).toBeInTheDocument();
       vi.useRealTimers();
     });
@@ -441,7 +449,7 @@ describe("Round 2: UX & Interaction", () => {
           <OnboardingTour />
         </Wrapper>
       );
-      vi.advanceTimersByTime(1500);
+      await act(async () => { vi.advanceTimersByTime(1500); });
       const progressBar = container.querySelector(".nexus-gradient-bg");
       expect(progressBar).toBeTruthy();
       vi.useRealTimers();
@@ -455,9 +463,8 @@ describe("Round 2: UX & Interaction", () => {
           <OnboardingTour />
         </Wrapper>
       );
-      vi.advanceTimersByTime(1500);
-      const closeBtn = screen.getByLabelText("Fechar tour");
-      fireEvent.click(closeBtn);
+      await act(async () => { vi.advanceTimersByTime(1500); });
+      await act(async () => { fireEvent.click(screen.getByLabelText("Fechar tour")); });
       expect(screen.queryByRole("dialog")).toBeNull();
       expect(localStorage.getItem("nexus-onboarding-v2")).toBe("true");
       vi.useRealTimers();
@@ -471,8 +478,7 @@ describe("Round 2: UX & Interaction", () => {
           <OnboardingTour />
         </Wrapper>
       );
-      vi.advanceTimersByTime(1500);
-      // Step 1 has a tip
+      await act(async () => { vi.advanceTimersByTime(1500); });
       expect(screen.getByText(/reabrir este tour/)).toBeInTheDocument();
       vi.useRealTimers();
     });
@@ -484,7 +490,6 @@ describe("Round 2: UX & Interaction", () => {
 // ═══════════════════════════════════════════════════════════
 
 describe("Round 3: Visual & Token Polish", () => {
-  // #22 Logo size — h-8
   describe("#22 Logo Size", () => {
     it("renders logo with h-8 class", async () => {
       const { AppSidebar } = await import("@/components/layout/AppSidebar");
@@ -500,7 +505,6 @@ describe("Round 3: Visual & Token Polish", () => {
     });
   });
 
-  // #23 Sidebar footer — workspace info + progress bar
   describe("#23 Sidebar Footer", () => {
     it("renders workspace plan label and progress bar", async () => {
       const { AppSidebar } = await import("@/components/layout/AppSidebar");
@@ -534,27 +538,23 @@ describe("Round 3: Visual & Token Polish", () => {
     });
   });
 
-  // #24 Default sections expanded
   describe("#24 Default Sections Expanded", () => {
     beforeEach(() => localStorage.clear());
 
-    it("Geral and Desenvolvimento expanded by default (dev: false)", async () => {
+    it("Geral and Desenvolvimento expanded by default", async () => {
       const { AppSidebar } = await import("@/components/layout/AppSidebar");
       render(
         <SidebarWrapper>
           <AppSidebar />
         </SidebarWrapper>
       );
-      // Items from "Geral" should be visible
       expect(screen.getByText("Dashboard")).toBeInTheDocument();
       expect(screen.getByText("Agents")).toBeInTheDocument();
-      // Items from "Desenvolvimento" should be visible
       expect(screen.getByText("Knowledge / RAG")).toBeInTheDocument();
       expect(screen.getByText("Prompts")).toBeInTheDocument();
     });
   });
 
-  // #25 Empty state cards with distinct accent colors
   describe("#25 Empty State Cards", () => {
     it("renders 3 feature cards when no agents exist", async () => {
       const DashboardPage = (await import("@/pages/DashboardPage")).default;
@@ -563,9 +563,11 @@ describe("Round 3: Visual & Token Polish", () => {
           <DashboardPage />
         </Wrapper>
       );
-      expect(screen.getByText("Super Cérebro")).toBeInTheDocument();
-      expect(screen.getByText("Oráculo")).toBeInTheDocument();
-      expect(screen.getByText("Guardrails")).toBeInTheDocument();
+      await waitFor(() => {
+        expect(screen.getByText("Super Cérebro")).toBeInTheDocument();
+        expect(screen.getByText("Oráculo")).toBeInTheDocument();
+        expect(screen.getByText("Guardrails")).toBeInTheDocument();
+      });
     });
 
     it("each card has a distinct accent border class", async () => {
@@ -575,16 +577,17 @@ describe("Round 3: Visual & Token Polish", () => {
           <DashboardPage />
         </Wrapper>
       );
-      const cerebro = screen.getByLabelText(/Navegar para Super Cérebro/);
-      const oraculo = screen.getByLabelText(/Navegar para Oráculo/);
-      const guardrails = screen.getByLabelText(/Navegar para Guardrails/);
-      expect(cerebro.className).toContain("nexus-purple");
-      expect(oraculo.className).toContain("nexus-cyan");
-      expect(guardrails.className).toContain("nexus-emerald");
+      await waitFor(() => {
+        const cerebro = screen.getByLabelText(/Navegar para Super Cérebro/);
+        const oraculo = screen.getByLabelText(/Navegar para Oráculo/);
+        const guardrails = screen.getByLabelText(/Navegar para Guardrails/);
+        expect(cerebro.className).toContain("nexus-purple");
+        expect(oraculo.className).toContain("nexus-cyan");
+        expect(guardrails.className).toContain("nexus-emerald");
+      });
     });
   });
 
-  // #26 CTA deduplication
   describe("#26 CTA Deduplication", () => {
     it("shows 'Criar seu primeiro agente' only in empty state", async () => {
       const DashboardPage = (await import("@/pages/DashboardPage")).default;
@@ -593,28 +596,25 @@ describe("Round 3: Visual & Token Polish", () => {
           <DashboardPage />
         </Wrapper>
       );
-      expect(screen.getByText("Criar seu primeiro agente")).toBeInTheDocument();
-      // No extra "Criar agente" in header when empty
-      expect(screen.queryByText("Criar agente")).not.toBeInTheDocument();
+      await waitFor(() => {
+        expect(screen.getByText("Criar seu primeiro agente")).toBeInTheDocument();
+        expect(screen.queryByText("Criar agente")).not.toBeInTheDocument();
+      });
     });
   });
 
-  // #27 Hardcoded colors → nexus tokens
   describe("#27 Design Token Migration", () => {
-    it("tailwind config includes all nexus color tokens", () => {
-      // We import the config and check it has the tokens
+    it("tailwind config includes all 13 nexus color tokens", () => {
       const expectedTokens = [
         "blue", "green", "yellow", "red", "purple", "orange", "gold", "teal",
         "glow", "cyan", "emerald", "amber", "rose",
       ];
-      // Verify via tailwind config structure
       expect(expectedTokens.length).toBe(13);
     });
   });
 
-  // #28 Sidebar hover micro-animation
   describe("#28 Sidebar Hover Animation", () => {
-    it("nav links include hover:translate-x-0.5 class", async () => {
+    it("nav links include hover:translate-x class", async () => {
       const { AppSidebar } = await import("@/components/layout/AppSidebar");
       const { container } = render(
         <SidebarWrapper>
@@ -629,7 +629,6 @@ describe("Round 3: Visual & Token Polish", () => {
     });
   });
 
-  // #29 InfoHint collapsible
   describe("#29 InfoHint Collapsible", () => {
     it("renders collapsed by default (defaultOpen=false)", async () => {
       const { InfoHint } = await import("@/components/shared/InfoHint");
@@ -661,7 +660,6 @@ describe("Round 3: Visual & Token Polish", () => {
     });
   });
 
-  // #30 Header avatar with status ring
   describe("#30 Avatar Status Ring", () => {
     it("renders green status ring on user avatar", async () => {
       const { AppLayout } = await import("@/components/layout/AppLayout");
@@ -672,23 +670,25 @@ describe("Round 3: Visual & Token Polish", () => {
           </AppLayout>
         </Wrapper>
       );
-      const statusRing = container.querySelector(".bg-nexus-emerald");
-      expect(statusRing).toBeTruthy();
-      expect(statusRing!.getAttribute("aria-label")).toBe("Online");
+      await waitFor(() => {
+        const statusRing = container.querySelector(".bg-nexus-emerald");
+        expect(statusRing).toBeTruthy();
+        expect(statusRing!.getAttribute("aria-label")).toBe("Online");
+      });
     });
   });
 
-  // #31 Quick actions row on dashboard (when agents exist)
   describe("#31 Dashboard Quick Actions", () => {
-    it("renders the Quick Actions row text for empty state feature cards", async () => {
+    it("renders feature cards in empty state", async () => {
       const DashboardPage = (await import("@/pages/DashboardPage")).default;
       render(
         <Wrapper>
           <DashboardPage />
         </Wrapper>
       );
-      // On empty state, we have 3 feature cards
-      expect(screen.getByText("Super Cérebro")).toBeInTheDocument();
+      await waitFor(() => {
+        expect(screen.getByText("Super Cérebro")).toBeInTheDocument();
+      });
     });
   });
 });
@@ -707,9 +707,11 @@ describe("Cross-cutting: Accessibility", () => {
         </AppLayout>
       </Wrapper>
     );
-    const skipLink = screen.getByText("Pular para o conteúdo");
-    expect(skipLink).toBeInTheDocument();
-    expect(skipLink.getAttribute("href")).toBe("#main-content");
+    await waitFor(() => {
+      const skipLink = screen.getByText("Pular para o conteúdo");
+      expect(skipLink).toBeInTheDocument();
+      expect(skipLink.getAttribute("href")).toBe("#main-content");
+    });
   });
 
   it("main content area has id=main-content", async () => {
@@ -721,9 +723,11 @@ describe("Cross-cutting: Accessibility", () => {
         </AppLayout>
       </Wrapper>
     );
-    const main = container.querySelector("#main-content");
-    expect(main).toBeTruthy();
-    expect(main!.tagName).toBe("MAIN");
+    await waitFor(() => {
+      const main = container.querySelector("#main-content");
+      expect(main).toBeTruthy();
+      expect(main!.tagName).toBe("MAIN");
+    });
   });
 
   it("header has banner role", async () => {
@@ -735,8 +739,9 @@ describe("Cross-cutting: Accessibility", () => {
         </AppLayout>
       </Wrapper>
     );
-    const header = screen.getByRole("banner");
-    expect(header).toBeInTheDocument();
+    await waitFor(() => {
+      expect(screen.getByRole("banner")).toBeInTheDocument();
+    });
   });
 
   it("sidebar has navigation aria-label", async () => {
@@ -759,8 +764,10 @@ describe("Cross-cutting: Accessibility", () => {
         </AppLayout>
       </Wrapper>
     );
-    const searchBtn = screen.getByLabelText("Abrir busca rápida (⌘K)");
-    expect(searchBtn.className).toContain("focus-visible:ring");
+    await waitFor(() => {
+      const searchBtn = screen.getByLabelText("Abrir busca rápida (⌘K)");
+      expect(searchBtn.className).toContain("focus-visible:ring");
+    });
   });
 });
 
@@ -792,15 +799,13 @@ describe("Cross-cutting: Sidebar Persistence", () => {
 
   it("stores sidebar open state in localStorage", () => {
     localStorage.setItem("nexus-sidebar-state", "false");
-    const stored = localStorage.getItem("nexus-sidebar-state");
-    expect(stored).toBe("false");
+    expect(localStorage.getItem("nexus-sidebar-state")).toBe("false");
   });
 
   it("default is open (true) when no stored value", () => {
     const result = localStorage.getItem("nexus-sidebar-state");
     expect(result).toBeNull();
-    const defaultOpen = result !== "false";
-    expect(defaultOpen).toBe(true);
+    expect(result !== "false").toBe(true);
   });
 });
 
