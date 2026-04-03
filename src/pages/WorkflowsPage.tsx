@@ -124,7 +124,7 @@ export default function WorkflowsPage() {
 
   const handleDelete = async (id: string) => {
     if (id.includes('-')) { // UUID = from DB
-      await (supabase as any).from('workflows').delete().eq('id', id);
+      await fromTable('workflows').delete().eq('id', id);
       queryClient.invalidateQueries({ queryKey: ['workflows_list'] });
     }
     toast.success('Workflow removido');
