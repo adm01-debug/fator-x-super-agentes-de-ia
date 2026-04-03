@@ -253,7 +253,7 @@ function EnvironmentsManager() {
     queryKey: ['environments'],
     queryFn: async () => {
       const wsId = await getWorkspaceId();
-      const { data } = await (supabase as any).from('environments').select('*').eq('workspace_id', wsId).order('created_at');
+      const { data } = await fromTable('environments').select('*').eq('workspace_id', wsId).order('created_at');
       return data ?? [];
     },
   });
