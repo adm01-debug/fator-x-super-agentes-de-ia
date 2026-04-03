@@ -312,7 +312,7 @@ export default function AuthPage() {
           <div className="lg:hidden text-center space-y-3">
             <div className="flex items-center justify-center gap-3">
               <div className="h-10 w-10 rounded-xl bg-gradient-to-br from-primary to-accent flex items-center justify-center shadow-lg shadow-primary/20">
-                <Zap className="h-5 w-5 text-primary-foreground" />
+                <FatorXLogo size={22} className="text-primary-foreground" />
               </div>
               <span className="text-xl font-heading font-bold text-foreground tracking-tight">Fator X</span>
             </div>
