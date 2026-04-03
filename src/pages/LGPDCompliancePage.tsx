@@ -17,7 +17,7 @@ export default function LGPDCompliancePage() {
   const { data: consents = [] } = useQuery({
     queryKey: ['lgpd_consents'],
     queryFn: async () => {
-      const { data } = await (supabase as any).from('consent_records').select('*').order('created_at', { ascending: false });
+      const { data } = await fromTable('consent_records').select('*').order('created_at', { ascending: false });
       return data ?? [];
     },
   });
