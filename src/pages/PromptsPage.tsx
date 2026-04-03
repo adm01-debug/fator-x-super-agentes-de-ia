@@ -63,7 +63,7 @@ export default function PromptsPage() {
           <p className="text-sm text-muted-foreground mb-4 max-w-sm">Crie seu primeiro prompt para começar a versionar e iterar com métricas.</p>
         </div>
       ) : (
-        <div className="nexus-card overflow-hidden p-0">
+        <div className="nexus-card overflow-hidden p-0 nexus-table-striped">
           <table className="w-full">
             <thead>
               <tr className="border-b border-border/50 text-[11px] text-muted-foreground uppercase tracking-wider">
