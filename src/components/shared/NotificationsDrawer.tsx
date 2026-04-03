@@ -28,7 +28,7 @@ const alertColors: Record<string, string> = {
   warning: "text-nexus-amber bg-nexus-amber/10",
   info: "text-nexus-cyan bg-nexus-cyan/10",
   debug: "text-muted-foreground bg-secondary/50",
-  success: "text-nexus-emerald bg-emerald-400/10",
+  success: "text-nexus-emerald bg-nexus-emerald/10",
   evaluation: "text-nexus-violet bg-nexus-violet/10",
 };
 

@@ -154,7 +154,7 @@ function AgentMetrics({ agentId }: { agentId: string }) {
             {traces.slice(0, 10).map(t => (
               <div key={t.created_at} className="flex items-center gap-3 text-xs py-1">
                 <span className="text-muted-foreground font-mono text-[11px] w-[70px] shrink-0">{new Date(t.created_at).toLocaleTimeString('pt-BR')}</span>
-                <span className={`w-2 h-2 rounded-full shrink-0 ${t.level === 'error' ? 'bg-destructive' : t.level === 'warning' ? 'bg-nexus-amber' : 'bg-emerald-400'}`} />
+                <span className={`w-2 h-2 rounded-full shrink-0 ${t.level === 'error' ? 'bg-destructive' : t.level === 'warning' ? 'bg-nexus-amber' : 'bg-nexus-emerald'}`} />
                 <span className="text-foreground">{t.tokens_used || 0}t</span>
                 <span className="text-muted-foreground">{t.latency_ms || 0}ms</span>
                 <span className="text-muted-foreground ml-auto">${(t.cost_usd || 0).toFixed(6)}</span>

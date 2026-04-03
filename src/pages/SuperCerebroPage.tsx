@@ -34,10 +34,10 @@ function OverviewTab() {
     { label: 'Agentes', value: stats?.agents ?? '—', icon: '🤖', color: 'text-primary' },
     { label: 'Bases de Conhecimento', value: stats?.knowledge_bases ?? '—', icon: '📚', color: 'text-nexus-emerald' },
     { label: 'Chunks RAG', value: stats?.chunks ?? '—', icon: '🧩', color: 'text-cyan-400' },
-    { label: 'Memórias', value: stats?.memories ?? '—', icon: '💾', color: 'text-purple-400' },
+    { label: 'Memórias', value: stats?.memories ?? '—', icon: '💾', color: 'text-nexus-purple' },
     { label: 'Ferramentas', value: stats?.tools ?? '—', icon: '🔧', color: 'text-nexus-amber' },
     { label: 'Workflows', value: stats?.workflows ?? '—', icon: '🔄', color: 'text-primary' },
-    { label: 'Traces (total)', value: stats?.traces ?? '—', icon: '📊', color: 'text-rose-400' },
+    { label: 'Traces (total)', value: stats?.traces ?? '—', icon: '📊', color: 'text-nexus-rose' },
     { label: 'Consultas hoje', value: stats?.today_traces ?? '—', icon: '🔍', color: 'text-teal-400' },
   ];
 
