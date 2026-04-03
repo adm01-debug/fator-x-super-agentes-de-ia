@@ -200,7 +200,7 @@ export const useAgentBuilderStore = create<AgentBuilderStore>((set, get) => ({
           agent_id: agentId,
           version: savedAgent.version || 1,
           config: row.config || {},
-          system_prompt: (row.config as any)?.system_prompt || '',
+          system_prompt: (row.config as Record<string, unknown>)?.system_prompt as string || '',
           model: savedAgent.model,
           created_by: user.id,
           change_summary: `Save at ${now}`,
