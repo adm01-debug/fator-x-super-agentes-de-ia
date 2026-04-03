@@ -3,17 +3,16 @@ import { PageHeader } from "@/components/shared/PageHeader";
 import { InfoHint } from "@/components/shared/InfoHint";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
-import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import {
   Brain, Search, Network, Loader2, Sparkles, BookOpen, MessageSquare,
-  Activity, Shield, Users, FlaskConical, AlertTriangle, CheckCircle,
-  Clock, Zap, BarChart3, Target, FileText, RefreshCw
+  Activity, Users, FlaskConical, AlertTriangle, CheckCircle,
+  Clock, Zap, Target, RefreshCw
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
-import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { useQuery } from "@tanstack/react-query";
 import { toast } from "sonner";
 
 // ═══════════════════════════════════════════════════
