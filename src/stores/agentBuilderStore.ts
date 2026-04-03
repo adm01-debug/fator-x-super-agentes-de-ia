@@ -184,7 +184,7 @@ export const useAgentBuilderStore = create<AgentBuilderStore>((set, get) => ({
       // Sync tool_policies to DB (non-blocking)
       if (agentId && savedAgent.tools?.length > 0) {
         for (const tool of savedAgent.tools) {
-          (supabase as any).from('tool_policies').upsert({
+          fromTable('tool_policies').upsert({
             agent_id: agentId,
             tool_integration_id: null,
             is_allowed: tool.enabled,
