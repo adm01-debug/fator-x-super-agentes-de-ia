@@ -53,6 +53,7 @@ function DashboardLoadingSkeleton() {
 
 export default function DashboardPage() {
   const navigate = useNavigate();
+  const { user } = useAuth();
 
   const { data: agents = [], isLoading } = useQuery({
     queryKey: ['agents'],
