@@ -266,6 +266,12 @@
     color: hsl(var(--primary));
   }
 
+  .nexus-badge-muted {
+    @apply nexus-badge;
+    background: hsl(var(--muted-foreground) / 0.10);
+    color: hsl(var(--muted-foreground));
+  }
+
   .nexus-section-title {
     font-family: var(--font-heading);
     @apply text-sm font-medium uppercase tracking-wider text-muted-foreground;
