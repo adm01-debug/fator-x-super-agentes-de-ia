@@ -108,17 +108,23 @@ export default function AgentsPage() {
         </div>
       ) : filtered.length === 0 ? (
         <div className="flex flex-col items-center justify-center py-20 text-center">
-          <Bot className="h-12 w-12 text-muted-foreground mb-4" />
-          <h2 className="text-lg font-semibold text-foreground mb-1">
-            {search || statusFilter !== "all" ? "Nenhum agente encontrado" : "Nenhum agente ainda"}
-          </h2>
-          <p className="text-sm text-muted-foreground mb-4">
-            {search || statusFilter !== "all" ? "Tente ajustar os filtros." : "Crie seu primeiro agente para começar."}
-          </p>
-          {!search && statusFilter === "all" && (
-            <Button onClick={() => navigate('/agents/new')} className="nexus-gradient-bg text-primary-foreground gap-2">
-              <Plus className="h-4 w-4" /> Criar agente
-            </Button>
+          {search || statusFilter !== "all" ? (
+            <>
+              <Search className="h-10 w-10 text-muted-foreground/50 mb-4" />
+              <h2 className="text-lg font-semibold text-foreground mb-1">Nenhum agente encontrado</h2>
+              <p className="text-sm text-muted-foreground mb-4">Tente ajustar os filtros ou o termo de busca.</p>
+            </>
+          ) : (
+            <>
+              <div className="text-5xl mb-4" aria-hidden="true">🤖</div>
+              <h2 className="text-lg font-semibold text-foreground mb-1">Nenhum agente ainda</h2>
+              <p className="text-sm text-muted-foreground mb-4 max-w-sm">
+                Crie seu primeiro agente e comece a explorar o poder dos superagentes de IA.
+              </p>
+              <Button onClick={() => navigate('/agents/new')} className="nexus-gradient-bg text-primary-foreground gap-2">
+                <Plus className="h-4 w-4" /> Criar agente
+              </Button>
+            </>
           )}
         </div>
       ) : (
