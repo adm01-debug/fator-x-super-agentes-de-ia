@@ -83,6 +83,42 @@ export const knowledgeBaseSchema = z.object({
   embedding_model: z.string().default('text-embedding-3-large'),
 });
 
+// ═══ Memory Validation ═══
+export const memorySchema = z.object({
+  content: z.string().min(1, 'Conteúdo é obrigatório').max(10000, 'Máximo 10.000 caracteres'),
+  memory_type: z.enum(['short_term', 'episodic', 'semantic', 'user_profile', 'team', 'external']),
+  source: z.string().max(200).optional(),
+});
+
+// ═══ Workflow Validation ═══
+export const workflowSchema = z.object({
+  name: z.string().min(2, 'Nome deve ter pelo menos 2 caracteres').max(100),
+  steps: z.array(z.string().min(1)).min(2, 'Precisa de pelo menos 2 etapas'),
+});
+
+// ═══ Environment Validation ═══
+export const environmentSchema = z.object({
+  name: z.string().min(1, 'Nome é obrigatório').max(50, 'Máximo 50 caracteres').regex(/^[a-zA-Z0-9_-]+$/, 'Use apenas letras, números, _ e -'),
+});
+
+// ═══ Alert Rule Validation ═══
+export const alertRuleSchema = z.object({
+  name: z.string().min(2, 'Nome deve ter pelo menos 2 caracteres').max(100),
+  metric: z.string().min(1),
+  operator: z.enum(['>', '<', '>=', '<=', '==']),
+  threshold: z.number().min(0),
+  severity: z.enum(['critical', 'warning', 'info']),
+});
+
+// ═══ LGPD Deletion Request Validation ═══
+export const deletionRequestSchema = z.object({
+  reason: z.string().min(5, 'Motivo deve ter pelo menos 5 caracteres').max(1000),
+});
+
 export type AgentIdentityInput = z.infer<typeof agentIdentitySchema>;
 export type AgentBrainInput = z.infer<typeof agentBrainSchema>;
 export type KnowledgeBaseInput = z.infer<typeof knowledgeBaseSchema>;
+export type MemoryInput = z.infer<typeof memorySchema>;
+export type WorkflowInput = z.infer<typeof workflowSchema>;
+export type EnvironmentInput = z.infer<typeof environmentSchema>;
+export type AlertRuleInput = z.infer<typeof alertRuleSchema>;

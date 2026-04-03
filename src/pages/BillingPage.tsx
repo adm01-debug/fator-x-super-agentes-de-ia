@@ -10,6 +10,7 @@ import { DollarSign, Hash, Loader2, BarChart3, Plus, Trash2, Wallet, AlertTriang
 import { useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
+import { fromTable } from "@/lib/supabaseExtended";
 import { getWorkspaceId } from "@/lib/agentService";
 import { LightBarChart } from "@/components/charts";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -89,8 +90,8 @@ export default function BillingPage() {
       setNewBudgetOpen(false);
       setBudgetName('');
       queryClient.invalidateQueries({ queryKey: ['budgets'] });
-    } catch (e: any) {
-      toast.error(e.message);
+    } catch (e: unknown) {
+      toast.error(e instanceof Error ? e.message : 'Erro inesperado');
     } finally {
       setSaving(false);
     }
@@ -260,7 +261,7 @@ function PricingTable() {
   const { data: pricing = [], isLoading } = useQuery({
     queryKey: ['model_pricing'],
     queryFn: async () => {
-      const { data, error } = await (supabase as any).from('model_pricing').select('*').order('model_pattern');
+      const { data, error } = await fromTable('model_pricing').select('*').order('model_pattern');
       if (error) throw error;
       return data ?? [];
     },

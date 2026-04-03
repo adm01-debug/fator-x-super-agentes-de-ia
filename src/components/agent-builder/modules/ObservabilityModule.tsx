@@ -6,6 +6,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { supabase } from '@/integrations/supabase/client';
+import { fromTable } from '@/lib/supabaseExtended';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
 import type { ExecutionTrace } from '@/types/agentTypes';
@@ -288,7 +289,7 @@ function AbTestPanel({ agentId }: { agentId: string; currentVersion?: number }) 
     queryKey: ['prompt_ab_tests', agentId],
     queryFn: async () => {
       if (!agentId) return [];
-      const { data } = await (supabase as any).from('prompt_ab_tests').select('*').eq('agent_id', agentId).order('created_at', { ascending: false });
+      const { data } = await fromTable('prompt_ab_tests').select('*').eq('agent_id', agentId).order('created_at', { ascending: false });
       return data ?? [];
     },
     enabled: !!agentId,
@@ -310,7 +311,7 @@ function AbTestPanel({ agentId }: { agentId: string; currentVersion?: number }) 
     if (versions.length < 2) { toast.error('Precisa de pelo menos 2 versões de prompt'); return; }
     setCreating(true);
     try {
-      await (supabase as any).from('prompt_ab_tests').insert({
+      await fromTable('prompt_ab_tests').insert({
         agent_id: agentId, name: testName.trim(),
         variant_a_prompt_id: versions[0]?.id, variant_b_prompt_id: versions[1]?.id,
         traffic_split: parseFloat(split) / 100, status: 'running',
@@ -319,18 +320,18 @@ function AbTestPanel({ agentId }: { agentId: string; currentVersion?: number }) 
       toast.success('Teste A/B criado!');
       setTestName('');
       queryClient.invalidateQueries({ queryKey: ['prompt_ab_tests'] });
-    } catch (e: any) { toast.error(e.message); }
+    } catch (e: unknown) { toast.error(e instanceof Error ? e.message : "Erro inesperado"); }
     finally { setCreating(false); }
   };
 
   const handleStop = async (id: string) => {
-    await (supabase as any).from('prompt_ab_tests').update({ status: 'completed', completed_at: new Date().toISOString() }).eq('id', id);
+    await fromTable('prompt_ab_tests').update({ status: 'completed', completed_at: new Date().toISOString() }).eq('id', id);
     queryClient.invalidateQueries({ queryKey: ['prompt_ab_tests'] });
     toast.success('Teste encerrado');
   };
 
   const handleDelete = async (id: string) => {
-    await (supabase as any).from('prompt_ab_tests').delete().eq('id', id);
+    await fromTable('prompt_ab_tests').delete().eq('id', id);
     queryClient.invalidateQueries({ queryKey: ['prompt_ab_tests'] });
     toast.success('Teste removido');
   };

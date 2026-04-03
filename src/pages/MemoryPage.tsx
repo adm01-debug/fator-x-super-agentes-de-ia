@@ -10,6 +10,8 @@ import { Brain, Clock, Globe, User, Users, Database, Plus, Trash2, Search, Loade
 import { toast } from "sonner";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
+import { fromTable } from "@/lib/supabaseExtended";
+import { memorySchema } from "@/lib/validations/agentSchema";
 
 const memoryTypes = [
   { key: 'short_term', icon: Clock, title: 'Short-term', desc: 'Memória da conversa atual', retention: 'Sessão', color: 'text-nexus-cyan' },
@@ -54,8 +56,7 @@ export default function MemoryPage() {
           // Fallback to direct query if edge function fails
         }
       }
-      const { data, error } = await (supabase as any)
-        .from('agent_memories')
+      const { data, error } = await fromTable('agent_memories')
         .select('*')
         .eq('memory_type', activeType)
         .order('created_at', { ascending: false })
@@ -66,7 +67,8 @@ export default function MemoryPage() {
   });
 
   const handleAdd = async () => {
-    if (!newContent.trim()) { toast.error('Conteúdo é obrigatório'); return; }
+    const result = memorySchema.safeParse({ content: newContent, memory_type: activeType, source: newSource || undefined });
+    if (!result.success) { toast.error(result.error.errors[0]?.message || 'Dados inválidos'); return; }
     setSaving(true);
     try {
       await invokeMemoryTool('memory_save', {
@@ -77,8 +79,8 @@ export default function MemoryPage() {
       setNewContent(''); setNewSource('');
       queryClient.invalidateQueries({ queryKey: ['agent_memories'] });
       toast.success('Memória salva via Memory Engine!');
-    } catch (e: any) {
-      toast.error(`Erro: ${e.message}`);
+    } catch (e: unknown) {
+      toast.error(e instanceof Error ? e.message : "Erro inesperado");
     } finally { setSaving(false); }
   };
 
@@ -87,8 +89,8 @@ export default function MemoryPage() {
       await invokeMemoryTool('memory_forget', { memory_id: id });
       queryClient.invalidateQueries({ queryKey: ['agent_memories'] });
       toast.success('Memória removida');
-    } catch (e: any) {
-      toast.error(`Erro: ${e.message}`);
+    } catch (e: unknown) {
+      toast.error(e instanceof Error ? e.message : "Erro inesperado");
     }
   };
 
@@ -100,8 +102,8 @@ export default function MemoryPage() {
       });
       queryClient.invalidateQueries({ queryKey: ['agent_memories'] });
       toast.success(`Compactação concluída: ${result?.compacted ?? 0} memórias consolidadas`);
-    } catch (e: any) {
-      toast.error(`Erro na compactação: ${e.message}`);
+    } catch (e: unknown) {
+      toast.error(e instanceof Error ? `Erro na compactação: ${e.message}` : "Erro na compactação");
     } finally { setCompacting(false); }
   };
 

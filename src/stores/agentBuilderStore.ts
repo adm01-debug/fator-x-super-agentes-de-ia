@@ -2,6 +2,7 @@ import { create } from 'zustand';
 import type { AgentConfig, PromptVersion } from '@/types/agentTypes';
 import { DEFAULT_AGENT, TABS } from '@/data/agentBuilderData';
 import { supabase } from '@/integrations/supabase/client';
+import { fromTable } from '@/lib/supabaseExtended';
 import type { Json } from '@/integrations/supabase/types';
 import { audit } from '@/lib/auditService';
 
@@ -183,7 +184,7 @@ export const useAgentBuilderStore = create<AgentBuilderStore>((set, get) => ({
       // Sync tool_policies to DB (non-blocking)
       if (agentId && savedAgent.tools?.length > 0) {
         for (const tool of savedAgent.tools) {
-          (supabase as any).from('tool_policies').upsert({
+          fromTable('tool_policies').upsert({
             agent_id: agentId,
             tool_integration_id: null,
             is_allowed: tool.enabled,
@@ -195,11 +196,11 @@ export const useAgentBuilderStore = create<AgentBuilderStore>((set, get) => ({
       }
       // ═══ Auto-versioning: snapshot agent config on every save ═══
       if (agentId) {
-        (supabase as any).from('agent_versions').insert({
+        fromTable('agent_versions').insert({
           agent_id: agentId,
           version: savedAgent.version || 1,
           config: row.config || {},
-          system_prompt: (row.config as any)?.system_prompt || '',
+          system_prompt: (row.config as Record<string, unknown>)?.system_prompt as string || '',
           model: savedAgent.model,
           created_by: user.id,
           change_summary: `Save at ${now}`,

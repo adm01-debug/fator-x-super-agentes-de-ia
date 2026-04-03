@@ -382,8 +382,8 @@ export const useOracleStore = create<OracleStore>((set, get) => ({
 
       // Persist to database
       saveOracleHistory(query, mode, preset.id, preset.name, chairmanModel, enableThinking, results).catch(() => {});
-    } catch (e: any) {
-      set({ error: e.message || 'Erro ao consultar o Oráculo', isRunning: false, currentStage: 0, stageLabel: '' });
+    } catch (e: unknown) {
+      set({ error: e instanceof Error ? e.message : 'Erro ao consultar o Oráculo', isRunning: false, currentStage: 0, stageLabel: '' });
     }
   },
 

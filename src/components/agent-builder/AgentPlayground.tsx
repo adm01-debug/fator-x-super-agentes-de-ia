@@ -94,8 +94,8 @@ export function AgentPlayground() {
           role: 'assistant', content: data.content || 'Sem resposta',
           metadata: { model: data.model, tokens: data.tokens, latency_ms: data.latency_ms, cost_usd: data.cost_usd, provider: data.provider },
         }]);
-      } catch (e: any) {
-        setMessages(prev => [...prev, { role: 'assistant', content: `❌ Erro: ${e.message || 'Falha na chamada'}` }]);
+      } catch (e: unknown) {
+        setMessages(prev => [...prev, { role: 'assistant', content: `❌ Erro: ${e instanceof Error ? e.message : 'Falha na chamada'}` }]);
       } finally { setLoading(false); }
     }
   };

@@ -6,6 +6,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { CheckCircle, XCircle, Clock, Loader2 } from 'lucide-react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
+import { fromTable } from '@/lib/supabaseExtended';
 import { toast } from 'sonner';
 
 export default function ApprovalQueuePage() {
@@ -18,7 +19,7 @@ export default function ApprovalQueuePage() {
   const { data: pendingRuns = [], isLoading } = useQuery({
     queryKey: ['hitl_pending'],
     queryFn: async () => {
-      const { data } = await (supabase as any).from('workflow_runs')
+      const { data } = await fromTable('workflow_runs')
         .select('id, workflow_id, status, output, started_at, current_step, total_steps, workflows(name)')
         .eq('status', 'awaiting_approval')
         .order('started_at', { ascending: false })
@@ -39,14 +40,14 @@ export default function ApprovalQueuePage() {
       setSelectedRun(null);
       setFeedback('');
       queryClient.invalidateQueries({ queryKey: ['hitl_pending'] });
-    } catch (e: any) { toast.error(e.message); }
+    } catch (e: unknown) { toast.error(e instanceof Error ? e.message : "Erro inesperado"); }
     finally { setProcessing(false); }
   };
 
   const handleReject = async (runId: string) => {
     setProcessing(true);
     try {
-      await (supabase as any).from('workflow_runs').update({
+      await fromTable('workflow_runs').update({
         status: 'failed', error: `Rejected by human: ${feedback || 'No reason provided'}`,
         completed_at: new Date().toISOString(),
       }).eq('id', runId);
@@ -54,7 +55,7 @@ export default function ApprovalQueuePage() {
       setSelectedRun(null);
       setFeedback('');
       queryClient.invalidateQueries({ queryKey: ['hitl_pending'] });
-    } catch (e: any) { toast.error(e.message); }
+    } catch (e: unknown) { toast.error(e instanceof Error ? e.message : "Erro inesperado"); }
     finally { setProcessing(false); }
   };
 

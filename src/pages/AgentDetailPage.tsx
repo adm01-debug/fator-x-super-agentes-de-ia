@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Bot, Loader2 } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
+import { fromTable } from "@/lib/supabaseExtended";
 
 export default function AgentDetailPage() {
   const { id } = useParams();
@@ -183,7 +184,7 @@ function VersionHistory({ agentId }: { agentId: string }) {
   const { data: versions = [], isLoading } = useQuery({
     queryKey: ['agent_versions', agentId],
     queryFn: async () => {
-      const { data } = await (supabase as any).from('agent_versions').select('*').eq('agent_id', agentId).order('version', { ascending: false }).limit(20);
+      const { data } = await fromTable('agent_versions').select('*').eq('agent_id', agentId).order('version', { ascending: false }).limit(20);
       return data ?? [];
     },
   });

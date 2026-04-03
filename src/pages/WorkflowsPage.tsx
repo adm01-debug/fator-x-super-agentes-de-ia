@@ -15,6 +15,8 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { WorkflowCanvas, type CanvasNode, type CanvasEdge } from "@/components/workflows/WorkflowCanvas";
 import { useWorkflowPersistence } from "@/hooks/use-workflow-persistence";
 import { supabase } from "@/integrations/supabase/client";
+import { fromTable } from "@/lib/supabaseExtended";
+import { workflowSchema } from "@/lib/validations/agentSchema";
 
 interface Workflow {
   id: string;
@@ -62,7 +64,7 @@ export default function WorkflowsPage() {
     queryFn: async () => {
       const { data: member } = await supabase.from("workspace_members").select("workspace_id").limit(1).single();
       if (!member?.workspace_id) return defaultTemplates;
-      const { data: wfs } = await (supabase as any).from("workflows").select("*, workflow_steps(id, name, step_order)").eq("workspace_id", member.workspace_id).order("created_at", { ascending: false });
+      const { data: wfs } = await fromTable("workflows").select("*, workflow_steps(id, name, step_order)").eq("workspace_id", member.workspace_id).order("created_at", { ascending: false });
       if (!wfs || wfs.length === 0) return defaultTemplates;
       return wfs.map((w: any) => ({ id: w.id, name: w.name, steps: (w.workflow_steps || []).sort((a: any, b: any) => a.step_order - b.step_order).map((s: any) => s.name), status: w.status as "draft" | "active", createdAt: w.created_at ? new Date(w.created_at).toISOString().split("T")[0] : "" }));
     },
@@ -104,26 +106,26 @@ export default function WorkflowsPage() {
   };
 
   const handleCreate = async () => {
-    if (!newName.trim()) { toast.error('Nome é obrigatório'); return; }
     const steps = newSteps.split(',').map(s => s.trim()).filter(Boolean);
-    if (steps.length < 2) { toast.error('Adicione pelo menos 2 etapas separadas por vírgula'); return; }
+    const result = workflowSchema.safeParse({ name: newName, steps });
+    if (!result.success) { toast.error(result.error.errors[0]?.message || 'Dados inválidos'); return; }
     try {
       const { data: member } = await supabase.from('workspace_members').select('workspace_id').limit(1).single();
-      const { data: wf, error } = await (supabase as any).from('workflows').insert({
+      const { data: wf, error } = await fromTable('workflows').insert({
         workspace_id: member?.workspace_id, name: newName.trim(), status: 'draft',
         config: { step_names: steps },
       }).select('id').single();
       if (error) throw error;
-      await (supabase as any).from('workflow_steps').insert(steps.map((name, i) => ({ workflow_id: wf.id, name, step_order: i, role: 'executor' })));
+      await fromTable('workflow_steps').insert(steps.map((name, i) => ({ workflow_id: wf.id, name, step_order: i, role: 'executor' })));
       toast.success('Workflow salvo no banco!');
       setDialogOpen(false); setNewName(''); setNewSteps('');
       queryClient.invalidateQueries({ queryKey: ['workflows_list'] });
-    } catch (e: any) { toast.error(e.message); }
+    } catch (e: unknown) { toast.error(e instanceof Error ? e.message : "Erro inesperado"); }
   };
 
   const handleDelete = async (id: string) => {
     if (id.includes('-')) { // UUID = from DB
-      await (supabase as any).from('workflows').delete().eq('id', id);
+      await fromTable('workflows').delete().eq('id', id);
       queryClient.invalidateQueries({ queryKey: ['workflows_list'] });
     }
     toast.success('Workflow removido');
@@ -133,7 +135,7 @@ export default function WorkflowsPage() {
     if (id.includes('-')) {
       const wf = workflows.find((w: any) => w.id === id);
       if (wf) {
-        await (supabase as any).from('workflows').update({ status: wf.status === 'active' ? 'draft' : 'active' }).eq('id', id);
+        await fromTable('workflows').update({ status: wf.status === 'active' ? 'draft' : 'active' }).eq('id', id);
         queryClient.invalidateQueries({ queryKey: ['workflows_list'] });
       }
     }
@@ -175,8 +177,8 @@ export default function WorkflowsPage() {
         results.push(`[${step}] ${previousOutput.substring(0, 100)}...`);
       }
       toast.success(`Workflow executado! ${wf.steps.length} etapas concluídas`);
-    } catch (e: any) {
-      toast.error(`Erro: ${e.message}`);
+    } catch (e: unknown) {
+      toast.error(e instanceof Error ? e.message : "Erro inesperado");
     } finally { setExecuting(null); }
   };
 
@@ -345,7 +347,7 @@ function WorkflowRunsHistory() {
   const { data: runs = [], isLoading } = useQuery({
     queryKey: ['workflow_runs'],
     queryFn: async () => {
-      const { data } = await (supabase as any).from('workflow_runs').select('*, workflows(name)').order('started_at', { ascending: false }).limit(30);
+      const { data } = await fromTable('workflow_runs').select('*, workflows(name)').order('started_at', { ascending: false }).limit(30);
       return data ?? [];
     },
   });

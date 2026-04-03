@@ -1,7 +1,7 @@
 import { useAgentBuilderStore } from '@/stores/agentBuilderStore';
 import { SectionTitle, NexusBadge, ToggleField } from '../ui';
 import { Globe, MessageSquare, Mail, Hash, Send, Radio } from 'lucide-react';
-import { supabase } from '@/integrations/supabase/client';
+import { fromTable } from '@/lib/supabaseExtended';
 import { getWorkspaceId } from '@/lib/agentService';
 import type { DeployChannelConfig, MonitoringKPI, DeployChannel } from '@/types/agentTypes';
 
@@ -57,7 +57,7 @@ export function DeployModule() {
       const ch = updated.find(c => c.id === id);
       if (ch) {
         getWorkspaceId().then(wsId => {
-          (supabase as any).from('deploy_connections').upsert({
+          fromTable('deploy_connections').upsert({
             agent_id: agent.id, workspace_id: wsId, channel: ch.channel,
             status: ch.enabled ? 'active' : 'inactive', config: ch.config,
           }, { onConflict: 'agent_id,channel' }).catch(() => {});

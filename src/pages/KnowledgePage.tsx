@@ -8,6 +8,7 @@ import { Search, BookOpen, ArrowRight, Loader2, Database, Pencil, Trash2 } from 
 import { useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
+import { fromTable } from "@/lib/supabaseExtended";
 import { CreateKnowledgeBaseDialog } from "@/components/dialogs/CreateKnowledgeBaseDialog";
 import { EditKnowledgeBaseDialog } from "@/components/dialogs/EditKnowledgeBaseDialog";
 import { KnowledgeBaseDetail } from "@/components/knowledge/KnowledgeBaseDetail";
@@ -184,7 +185,7 @@ function VectorIndexesStatus() {
   const { data: indexes = [] } = useQuery({
     queryKey: ['vector_indexes'],
     queryFn: async () => {
-      const { data } = await (supabase as any).from('vector_indexes').select('*, knowledge_bases(name)').order('created_at', { ascending: false });
+      const { data } = await fromTable('vector_indexes').select('*, knowledge_bases(name)').order('created_at', { ascending: false });
       return data ?? [];
     },
   });
@@ -226,13 +227,13 @@ function VectorIndexesStatus() {
       )}
       {indexes.length > 0 && (
         <div className="space-y-2">
-          {indexes.map((idx: any) => (
-            <div key={idx.id} className="flex items-center justify-between py-2 px-3 rounded-lg bg-secondary/30 text-xs">
+          {indexes.map((idx: Record<string, unknown>) => (
+            <div key={String(idx.id)} className="flex items-center justify-between py-2 px-3 rounded-lg bg-secondary/30 text-xs">
               <div>
-                <span className="font-medium text-foreground">{(idx as any).knowledge_bases?.name || 'KB'}</span>
-                <span className="text-muted-foreground ml-2">{idx.provider} • {idx.model} • {idx.dimensions}d</span>
+                <span className="font-medium text-foreground">{(idx.knowledge_bases as Record<string, string> | null)?.name || 'KB'}</span>
+                <span className="text-muted-foreground ml-2">{String(idx.provider)} • {String(idx.model)} • {String(idx.dimensions)}d</span>
               </div>
-              <span className={`text-[10px] ${idx.status === 'active' ? 'text-emerald-400' : 'text-amber-400'}`}>{idx.status}</span>
+              <span className={`text-[10px] ${idx.status === 'active' ? 'text-emerald-400' : 'text-amber-400'}`}>{String(idx.status)}</span>
             </div>
           ))}
         </div>

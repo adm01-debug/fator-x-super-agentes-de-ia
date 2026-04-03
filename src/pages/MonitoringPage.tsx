@@ -6,6 +6,8 @@ import { Clock, DollarSign, Wrench, Activity, Loader2, Bell, CheckCircle, Trash2
 import { useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
+import { fromTable } from "@/lib/supabaseExtended";
+import { alertRuleSchema } from "@/lib/validations/agentSchema";
 import { LightBarChart, LightPieChart } from "@/components/charts";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -49,8 +51,7 @@ export default function MonitoringPage() {
     queryFn: async () => {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) return [];
-      let query = (supabase as any)
-        .from('sessions')
+      let query = fromTable('sessions')
         .select('*')
         .eq('user_id', user.id)
         .order('started_at', { ascending: false })
@@ -72,8 +73,7 @@ export default function MonitoringPage() {
     enabled: !!expandedSessionId,
     queryFn: async () => {
       if (!expandedSessionId) return [];
-      const { data, error } = await (supabase as any)
-        .from('session_traces')
+      const { data, error } = await fromTable('session_traces')
         .select('*')
         .eq('session_id', expandedSessionId)
         .order('created_at', { ascending: true });
@@ -93,8 +93,7 @@ export default function MonitoringPage() {
     enabled: !!expandedTraceId,
     queryFn: async () => {
       if (!expandedTraceId) return [];
-      const { data, error } = await (supabase as any)
-        .from('trace_events')
+      const { data, error } = await fromTable('trace_events')
         .select('*')
         .eq('session_trace_id', expandedTraceId)
         .order('created_at', { ascending: true });
@@ -151,8 +150,8 @@ export default function MonitoringPage() {
 
   const agentName = (id: string | null) => {
     if (!id) return '—';
-    const a = agentsList.find((ag: any) => ag.id === id);
-    return a ? (a as any).name : id.substring(0, 8);
+    const a = agentsList.find((ag) => ag.id === id);
+    return a ? a.name : id.substring(0, 8);
   };
 
   return (
@@ -434,17 +433,18 @@ function AlertRulesPanel() {
     queryFn: async () => {
       const { data: member } = await supabase.from('workspace_members').select('workspace_id').limit(1).single();
       if (!member?.workspace_id) return [];
-      const { data } = await (supabase as any).from('alert_rules').select('*').eq('workspace_id', member.workspace_id).order('created_at', { ascending: false });
+      const { data } = await fromTable('alert_rules').select('*').eq('workspace_id', member.workspace_id).order('created_at', { ascending: false });
       return data ?? [];
     },
   });
 
   const handleCreateRule = async () => {
-    if (!ruleName.trim()) { toast.error('Nome é obrigatório'); return; }
+    const result = alertRuleSchema.safeParse({ name: ruleName, metric: ruleMetric, operator: ruleOp, threshold: parseFloat(ruleThreshold) || 0, severity: ruleSeverity });
+    if (!result.success) { toast.error(result.error.errors[0]?.message || 'Dados inválidos'); return; }
     setCreating(true);
     try {
       const { data: member } = await supabase.from('workspace_members').select('workspace_id').limit(1).single();
-      await (supabase as any).from('alert_rules').insert({
+      await fromTable('alert_rules').insert({
         workspace_id: member?.workspace_id, name: ruleName.trim(),
         metric: ruleMetric, operator: ruleOp,
         threshold: parseFloat(ruleThreshold) || 0, severity: ruleSeverity,
@@ -452,18 +452,18 @@ function AlertRulesPanel() {
       toast.success('Regra criada!');
       setRuleName('');
       queryClient.invalidateQueries({ queryKey: ['alert_rules'] });
-    } catch (e: any) { toast.error(e.message); }
+    } catch (e: unknown) { toast.error(e instanceof Error ? e.message : "Erro inesperado"); }
     finally { setCreating(false); }
   };
 
   const handleDeleteRule = async (id: string) => {
-    await (supabase as any).from('alert_rules').delete().eq('id', id);
+    await fromTable('alert_rules').delete().eq('id', id);
     queryClient.invalidateQueries({ queryKey: ['alert_rules'] });
     toast.success('Regra removida');
   };
 
   const handleToggleRule = async (id: string, enabled: boolean) => {
-    await (supabase as any).from('alert_rules').update({ is_enabled: enabled }).eq('id', id);
+    await fromTable('alert_rules').update({ is_enabled: enabled }).eq('id', id);
     queryClient.invalidateQueries({ queryKey: ['alert_rules'] });
   };
 

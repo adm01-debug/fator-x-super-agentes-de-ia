@@ -78,8 +78,8 @@ export function CreateEvaluationDialog({ onCreated }: CreateEvaluationDialogProp
       setName('');
       setDatasetId('');
       onCreated?.();
-    } catch (e: any) {
-      toast.error(e.message || 'Erro ao criar avaliação');
+    } catch (e: unknown) {
+      toast.error(e instanceof Error ? e.message : 'Erro ao criar avaliação');
     } finally {
       setLoading(false);
     }

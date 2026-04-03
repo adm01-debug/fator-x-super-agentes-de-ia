@@ -6,6 +6,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Shield, Trash2, Download, AlertTriangle, Loader2, FileText } from 'lucide-react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
+import { fromTable } from '@/lib/supabaseExtended';
 import { toast } from 'sonner';
 
 export default function LGPDCompliancePage() {
@@ -17,7 +18,7 @@ export default function LGPDCompliancePage() {
   const { data: consents = [] } = useQuery({
     queryKey: ['lgpd_consents'],
     queryFn: async () => {
-      const { data } = await (supabase as any).from('consent_records').select('*').order('created_at', { ascending: false });
+      const { data } = await fromTable('consent_records').select('*').order('created_at', { ascending: false });
       return data ?? [];
     },
   });
@@ -26,7 +27,7 @@ export default function LGPDCompliancePage() {
   const { data: deletions = [] } = useQuery({
     queryKey: ['lgpd_deletions'],
     queryFn: async () => {
-      const { data } = await (supabase as any).from('data_deletion_requests').select('*').order('requested_at', { ascending: false });
+      const { data } = await fromTable('data_deletion_requests').select('*').order('requested_at', { ascending: false });
       return data ?? [];
     },
   });
@@ -44,7 +45,7 @@ export default function LGPDCompliancePage() {
       const a = document.createElement('a'); a.href = url; a.download = `meus-dados-${new Date().toISOString().split('T')[0]}.json`;
       a.click(); URL.revokeObjectURL(url);
       toast.success(`Dados exportados: ${data.traces} traces, ${data.sessions} sessões, ${data.memories} memórias`);
-    } catch (e: any) { toast.error(e.message); }
+    } catch (e: unknown) { toast.error(e instanceof Error ? e.message : "Erro inesperado"); }
     finally { setExporting(false); }
   };
 
@@ -58,7 +59,7 @@ export default function LGPDCompliancePage() {
       if (error) throw error;
       toast.success(`${data.items_deleted} itens deletados (escopo: ${scope})`);
       queryClient.invalidateQueries({ queryKey: ['lgpd_deletions'] });
-    } catch (e: any) { toast.error(e.message); }
+    } catch (e: unknown) { toast.error(e instanceof Error ? e.message : "Erro inesperado"); }
     finally { setDeleting(false); }
   };
 
@@ -69,7 +70,7 @@ export default function LGPDCompliancePage() {
       });
       toast.success(grant ? 'Consentimento registrado' : 'Consentimento revogado');
       queryClient.invalidateQueries({ queryKey: ['lgpd_consents'] });
-    } catch (e: any) { toast.error(e.message); }
+    } catch (e: unknown) { toast.error(e instanceof Error ? e.message : "Erro inesperado"); }
   };
 
   const purposes = [
