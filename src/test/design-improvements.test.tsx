@@ -8,6 +8,20 @@ import { MemoryRouter } from "react-router-dom";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { SidebarProvider } from "@/components/ui/sidebar";
 
+// ═══ JSDOM polyfills ═══
+beforeEach(() => {
+  // scrollTo polyfill
+  Element.prototype.scrollTo = vi.fn();
+  // ResizeObserver polyfill
+  if (!globalThis.ResizeObserver) {
+    globalThis.ResizeObserver = class {
+      observe() {}
+      unobserve() {}
+      disconnect() {}
+    } as unknown as typeof ResizeObserver;
+  }
+});
+
 // ═══ Mocks ═══
 vi.mock("@/contexts/AuthContext", () => ({
   useAuth: () => ({
@@ -28,8 +42,16 @@ vi.mock("@/lib/agentService", () => ({
     }),
 }));
 
+const mockChannel = {
+  on: () => mockChannel,
+  subscribe: () => mockChannel,
+  unsubscribe: vi.fn(),
+};
+
 vi.mock("@/integrations/supabase/client", () => ({
   supabase: {
+    channel: () => mockChannel,
+    removeChannel: vi.fn(),
     from: () => ({
       select: () => ({
         order: () => ({
