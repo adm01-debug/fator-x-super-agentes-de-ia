@@ -96,19 +96,50 @@ export default function DashboardPage() {
   const activeCount = agents.filter(a => a.status === 'production' || a.status === 'monitoring').length;
   const draftCount = agents.filter(a => a.status === 'draft').length;
 
+  // Contextual greeting
+  const getGreeting = () => {
+    const hour = new Date().getHours();
+    if (hour < 12) return 'Bom dia';
+    if (hour < 18) return 'Boa tarde';
+    return 'Boa noite';
+  };
+
+  // Smart summary
+  const getSummary = () => {
+    if (agents.length === 0) return null;
+    const parts: string[] = [];
+    if (activeCount > 0) parts.push(`${activeCount} agente${activeCount > 1 ? 's' : ''} em produção`);
+    if (draftCount > 0) parts.push(`${draftCount} rascunho${draftCount > 1 ? 's' : ''}`);
+    if (usageStats) {
+      parts.push(`$${usageStats.totalCost.toFixed(2)} de custo nos últimos 30 dias`);
+      if (usageStats.avgLatency > 0) parts.push(`latência média de ${usageStats.avgLatency}ms`);
+    }
+    return parts.length > 0 ? parts.join(' · ') : null;
+  };
+
   if (isLoading) return <DashboardLoadingSkeleton />;
+
+  const summary = getSummary();
 
   return (
     <div className="p-4 sm:p-8 lg:p-10 space-y-5 sm:space-y-6 max-w-[1400px] mx-auto" role="main" aria-label="Dashboard principal">
-      <PageHeader
-        title="Dashboard"
-        description="Visão executiva da operação de agentes de IA"
-        actions={
-          <Button onClick={() => navigate('/agents/new')} className="nexus-gradient-bg text-primary-foreground gap-2 hover:opacity-90 min-h-[44px]">
-            <Plus className="h-4 w-4" aria-hidden="true" /> Criar agente
-          </Button>
-        }
-      />
+      <div className="space-y-1">
+        <PageHeader
+          title={`${getGreeting()} 👋`}
+          description="Visão executiva da operação de agentes de IA"
+          actions={
+            <Button onClick={() => navigate('/agents/new')} className="nexus-gradient-bg text-primary-foreground gap-2 hover:opacity-90 min-h-[44px]">
+              <Plus className="h-4 w-4" aria-hidden="true" /> Criar agente
+            </Button>
+          }
+        />
+        {summary && (
+          <div className="flex items-center gap-2 mt-2">
+            <Zap className="h-3.5 w-3.5 text-primary shrink-0" aria-hidden="true" />
+            <p className="text-xs text-muted-foreground">{summary}</p>
+          </div>
+        )}
+      </div>
 
       {agents.length === 0 ? (
         <div className="flex flex-col items-center justify-center py-12 sm:py-20 text-center px-4">
