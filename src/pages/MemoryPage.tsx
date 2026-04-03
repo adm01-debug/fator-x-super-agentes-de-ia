@@ -4,7 +4,7 @@ import { InfoHint } from "@/components/shared/InfoHint";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
-import { Badge } from "@/components/ui/badge";
+// Badge removed — unused
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
 import { Brain, Clock, Globe, User, Users, Database, Plus, Trash2, Search, Loader2, Zap, Archive } from "lucide-react";
 import { toast } from "sonner";
