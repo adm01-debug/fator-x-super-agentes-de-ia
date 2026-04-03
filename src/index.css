@@ -231,6 +231,11 @@
   .nexus-card:hover {
     @apply border-primary/30;
     box-shadow: 0 4px 20px -6px hsl(var(--nexus-glow) / 0.15);
+    background: linear-gradient(
+      135deg,
+      hsl(var(--card)) 0%,
+      hsl(var(--primary) / 0.02) 100%
+    );
   }
 
   .nexus-card-elevated {
@@ -240,6 +245,11 @@
 
   .nexus-card-elevated:hover {
     box-shadow: 0 8px 30px -8px hsl(var(--nexus-glow) / 0.18);
+    background: linear-gradient(
+      135deg,
+      hsl(var(--card)) 0%,
+      hsl(var(--primary) / 0.03) 100%
+    );
   }
 
   .nexus-badge {
