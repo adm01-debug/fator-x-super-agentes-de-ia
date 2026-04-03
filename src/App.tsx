@@ -30,6 +30,7 @@ const EvaluationsPage = lazy(() => import("./pages/EvaluationsPage"));
 const DeploymentsPage = lazy(() => import("./pages/DeploymentsPage"));
 const MonitoringPage = lazy(() => import("./pages/MonitoringPage"));
 const DataStoragePage = lazy(() => import("./pages/DataStoragePage"));
+const DataHubPage = lazy(() => import("./pages/DataHubPage"));
 const AdminPage = lazy(() => import("./pages/AdminPage"));
 const SecurityPage = lazy(() => import("./pages/SecurityPage"));
 const TeamPage = lazy(() => import("./pages/TeamPage"));
@@ -88,6 +89,7 @@ const App = () => (
                         <Route path="/deployments" element={<DeploymentsPage />} />
                         <Route path="/monitoring" element={<MonitoringPage />} />
                         <Route path="/data-storage" element={<DataStoragePage />} />
+                        <Route path="/datahub" element={<DataHubPage />} />
                         <Route path="/admin" element={<AdminPage />} />
                         <Route path="/security" element={<SecurityPage />} />
                         <Route path="/team" element={<TeamPage />} />
