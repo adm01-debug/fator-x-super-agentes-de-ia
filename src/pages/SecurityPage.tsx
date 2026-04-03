@@ -145,13 +145,13 @@ export default function SecurityPage() {
             <div key={check.title}
               className="p-3 rounded-lg bg-secondary/30 border border-border/30 flex items-start gap-3"
             >
-              <div className={`h-8 w-8 rounded-lg flex items-center justify-center shrink-0 ${check.status === 'pass' ? 'bg-emerald-500/10' : 'bg-amber-500/10'}`}>
-                <check.icon className={`h-4 w-4 ${check.status === 'pass' ? 'text-emerald-400' : 'text-amber-400'}`} />
+              <div className={`h-8 w-8 rounded-lg flex items-center justify-center shrink-0 ${check.status === 'pass' ? 'bg-nexus-emerald/10' : 'bg-nexus-amber/10'}`}>
+                <check.icon className={`h-4 w-4 ${check.status === 'pass' ? 'text-nexus-emerald' : 'text-nexus-amber'}`} />
               </div>
               <div>
                 <div className="flex items-center gap-1.5">
                   <p className="text-xs font-medium text-foreground">{check.title}</p>
-                  {check.status === 'pass' ? <CheckCircle className="h-3 w-3 text-emerald-400" /> : <AlertTriangle className="h-3 w-3 text-amber-400" />}
+                  {check.status === 'pass' ? <CheckCircle className="h-3 w-3 text-nexus-emerald" /> : <AlertTriangle className="h-3 w-3 text-nexus-amber" />}
                 </div>
                 <p className="text-[11px] text-muted-foreground mt-0.5">{check.desc}</p>
               </div>
@@ -174,7 +174,7 @@ export default function SecurityPage() {
               </div>
               <div className="flex items-center justify-between mt-2">
                 <span className="text-[11px] text-muted-foreground">{fw.coverage}%</span>
-                <Badge variant="outline" className={`text-[11px] ${fw.status === 'compliant' ? 'border-emerald-500/30 text-emerald-400' : fw.status === 'partial' ? 'border-amber-500/30 text-amber-400' : 'border-muted-foreground/30 text-muted-foreground'}`}>
+                <Badge variant="outline" className={`text-[11px] ${fw.status === 'compliant' ? 'border-nexus-emerald/30 text-nexus-emerald' : fw.status === 'partial' ? 'border-nexus-amber/30 text-nexus-amber' : 'border-muted-foreground/30 text-muted-foreground'}`}>
                   {fw.status === 'compliant' ? 'Conforme' : fw.status === 'partial' ? 'Parcial' : 'Planejado'}
                 </Badge>
               </div>
@@ -202,7 +202,7 @@ export default function SecurityPage() {
               <div key={g.id}
                 className="p-3 rounded-lg bg-secondary/20 border border-border/30 flex items-center gap-3 group"
               >
-                <ShieldCheck className={`h-5 w-5 shrink-0 ${g.is_enabled ? 'text-emerald-400' : 'text-muted-foreground'}`} />
+                <ShieldCheck className={`h-5 w-5 shrink-0 ${g.is_enabled ? 'text-nexus-emerald' : 'text-muted-foreground'}`} />
                 <div className="flex-1 min-w-0">
                   <p className="text-xs font-medium text-foreground truncate">{g.name}</p>
                   <p className="text-[11px] text-muted-foreground">{typeLabels[g.type] || g.type}</p>

@@ -7,10 +7,10 @@ interface ConsensusMatrixProps {
 }
 
 const levelConfig = {
-  strong: { color: 'bg-emerald-500/20 text-emerald-400 border-emerald-500/30', icon: '🟢', label: 'Forte' },
-  partial: { color: 'bg-amber-500/20 text-amber-400 border-amber-500/30', icon: '🟡', label: 'Parcial' },
-  disputed: { color: 'bg-red-500/20 text-red-400 border-red-500/30', icon: '🔴', label: 'Disputado' },
-  unique: { color: 'bg-blue-500/20 text-blue-400 border-blue-500/30', icon: '🔵', label: 'Único' },
+  strong: { color: 'bg-nexus-emerald/20 text-nexus-emerald border-nexus-emerald/30', icon: '🟢', label: 'Forte' },
+  partial: { color: 'bg-nexus-amber/20 text-nexus-amber border-nexus-amber/30', icon: '🟡', label: 'Parcial' },
+  disputed: { color: 'bg-nexus-rose/20 text-nexus-rose border-nexus-rose/30', icon: '🔴', label: 'Disputado' },
+  unique: { color: 'bg-primary/20 text-primary border-primary/30', icon: '🔵', label: 'Único' },
 };
 
 const positionIcon: Record<string, string> = {
@@ -42,7 +42,7 @@ export function ConsensusMatrix({ points, overallConsensus }: ConsensusMatrixPro
         </h3>
         <div className="flex items-center gap-2">
           <span className="text-xs text-muted-foreground">Consenso geral:</span>
-          <Badge variant="outline" className={`text-xs ${overallConsensus >= 80 ? 'border-emerald-500/50 text-emerald-400' : overallConsensus >= 50 ? 'border-amber-500/50 text-amber-400' : 'border-red-500/50 text-red-400'}`}>
+          <Badge variant="outline" className={`text-xs ${overallConsensus >= 80 ? 'border-nexus-emerald/50 text-nexus-emerald' : overallConsensus >= 50 ? 'border-nexus-amber/50 text-nexus-amber' : 'border-nexus-rose/50 text-nexus-rose'}`}>
             {overallConsensus}%
           </Badge>
         </div>

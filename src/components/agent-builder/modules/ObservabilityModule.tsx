@@ -61,10 +61,10 @@ const MOCK_TRACES: ExecutionTrace[] = [
 ];
 
 const STATUS_CONFIG: Record<string, { icon: React.ReactNode; label: string; className: string }> = {
-  success: { icon: <CheckCircle className="h-3.5 w-3.5" />, label: 'Sucesso', className: 'text-green-500 bg-green-500/10' },
+  success: { icon: <CheckCircle className="h-3.5 w-3.5" />, label: 'Sucesso', className: 'text-nexus-emerald bg-nexus-emerald/10' },
   error: { icon: <XCircle className="h-3.5 w-3.5" />, label: 'Erro', className: 'text-destructive bg-destructive/10' },
-  blocked: { icon: <AlertTriangle className="h-3.5 w-3.5" />, label: 'Bloqueado', className: 'text-orange-500 bg-orange-500/10' },
-  timeout: { icon: <Clock className="h-3.5 w-3.5" />, label: 'Timeout', className: 'text-yellow-500 bg-yellow-500/10' },
+  blocked: { icon: <AlertTriangle className="h-3.5 w-3.5" />, label: 'Bloqueado', className: 'text-nexus-orange bg-nexus-orange/10' },
+  timeout: { icon: <Clock className="h-3.5 w-3.5" />, label: 'Timeout', className: 'text-nexus-amber bg-nexus-amber/10' },
 };
 
 export function ObservabilityModule() {
@@ -107,9 +107,9 @@ export function ObservabilityModule() {
         <SectionTitle icon="📊" title="Métricas de Performance" subtitle="Resumo das execuções recentes." />
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
           <MetricBox icon={<Activity className="h-4 w-4 text-primary" />} label="Execuções" value={String(traces.length)} />
-          <MetricBox icon={<CheckCircle className="h-4 w-4 text-green-500" />} label="Taxa de Sucesso" value={`${successRate}%`} />
-          <MetricBox icon={<Clock className="h-4 w-4 text-blue-500" />} label="Latência Média" value={`${avgLatency}ms`} />
-          <MetricBox icon={<DollarSign className="h-4 w-4 text-orange-500" />} label="Custo Total" value={`$${totalCost.toFixed(4)}`} />
+          <MetricBox icon={<CheckCircle className="h-4 w-4 text-nexus-emerald" />} label="Taxa de Sucesso" value={`${successRate}%`} />
+          <MetricBox icon={<Clock className="h-4 w-4 text-primary" />} label="Latência Média" value={`${avgLatency}ms`} />
+          <MetricBox icon={<DollarSign className="h-4 w-4 text-nexus-orange" />} label="Custo Total" value={`$${totalCost.toFixed(4)}`} />
         </div>
       </section>
 
@@ -213,10 +213,10 @@ export function ObservabilityModule() {
               <CollapsibleCard title={`🔧 Chamadas de Ferramentas (${selected.tool_calls.length})`}>
                 <div className="space-y-2">
                   {selected.tool_calls.map((tc, i) => (
-                    <div key={i} className={`rounded-lg p-3 ${tc.success ? 'bg-green-500/5 border border-green-500/20' : 'bg-destructive/5 border border-destructive/20'}`}>
+                    <div key={i} className={`rounded-lg p-3 ${tc.success ? 'bg-nexus-emerald/5 border border-nexus-emerald/20' : 'bg-destructive/5 border border-destructive/20'}`}>
                       <div className="flex items-center justify-between text-xs mb-1">
                         <span className="font-medium text-foreground">{tc.tool}</span>
-                        <span className={tc.success ? 'text-green-500' : 'text-destructive'}>
+                        <span className={tc.success ? 'text-nexus-emerald' : 'text-destructive'}>
                           {tc.success ? '✓' : '✗'} {tc.latency_ms}ms
                         </span>
                       </div>
@@ -232,10 +232,10 @@ export function ObservabilityModule() {
               <CollapsibleCard title={`🛡️ Guardrails Acionados (${selected.guardrails_triggered.length})`}>
                 <div className="space-y-2">
                   {selected.guardrails_triggered.map((gr, i) => (
-                    <div key={i} className="rounded-lg bg-orange-500/5 border border-orange-500/20 p-3">
+                    <div key={i} className="rounded-lg bg-nexus-orange/5 border border-nexus-orange/20 p-3">
                       <div className="flex items-center justify-between text-xs">
                         <span className="font-medium text-foreground">{gr.id}</span>
-                        <span className="text-orange-500 uppercase text-[11px]">{gr.action}</span>
+                        <span className="text-nexus-orange uppercase text-[11px]">{gr.action}</span>
                       </div>
                       <p className="text-[11px] text-muted-foreground mt-1">{gr.reason}</p>
                     </div>

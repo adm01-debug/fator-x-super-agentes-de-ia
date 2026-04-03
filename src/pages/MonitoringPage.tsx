@@ -388,8 +388,8 @@ export default function MonitoringPage() {
                 <div key={alert.id}
                   className={`nexus-card flex items-start gap-3 ${alert.is_resolved ? 'opacity-60' : ''}`}
                 >
-                  <div className={`h-8 w-8 rounded-lg flex items-center justify-center shrink-0 ${alert.severity === 'critical' ? 'bg-destructive/10' : alert.severity === 'warning' ? 'bg-amber-500/10' : 'bg-primary/10'}`}>
-                    <Bell className={`h-4 w-4 ${alert.severity === 'critical' ? 'text-destructive' : alert.severity === 'warning' ? 'text-amber-400' : 'text-primary'}`} />
+                  <div className={`h-8 w-8 rounded-lg flex items-center justify-center shrink-0 ${alert.severity === 'critical' ? 'bg-destructive/10' : alert.severity === 'warning' ? 'bg-nexus-amber/10' : 'bg-primary/10'}`}>
+                    <Bell className={`h-4 w-4 ${alert.severity === 'critical' ? 'text-destructive' : alert.severity === 'warning' ? 'text-nexus-amber' : 'text-primary'}`} />
                   </div>
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-2 mb-1">

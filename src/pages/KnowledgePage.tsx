@@ -211,12 +211,12 @@ function VectorIndexesStatus() {
       </h3>
       {chunkStats && (
         <div className="grid grid-cols-3 gap-3 mb-4">
-          <div className="text-center py-2 rounded-lg bg-emerald-500/10">
-            <p className="text-lg font-bold text-emerald-400">{chunkStats.done}</p>
+          <div className="text-center py-2 rounded-lg bg-nexus-emerald/10">
+            <p className="text-lg font-bold text-nexus-emerald">{chunkStats.done}</p>
             <p className="text-[11px] text-muted-foreground">Embeddings prontos</p>
           </div>
-          <div className="text-center py-2 rounded-lg bg-amber-500/10">
-            <p className="text-lg font-bold text-amber-400">{chunkStats.pending}</p>
+          <div className="text-center py-2 rounded-lg bg-nexus-amber/10">
+            <p className="text-lg font-bold text-nexus-amber">{chunkStats.pending}</p>
             <p className="text-[11px] text-muted-foreground">Pendentes</p>
           </div>
           <div className="text-center py-2 rounded-lg bg-destructive/10">
@@ -233,7 +233,7 @@ function VectorIndexesStatus() {
                 <span className="font-medium text-foreground">{(idx.knowledge_bases as Record<string, string> | null)?.name || 'KB'}</span>
                 <span className="text-muted-foreground ml-2">{String(idx.provider)} • {String(idx.model)} • {String(idx.dimensions)}d</span>
               </div>
-              <span className={`text-[11px] ${idx.status === 'active' ? 'text-emerald-400' : 'text-amber-400'}`}>{String(idx.status)}</span>
+              <span className={`text-[11px] ${idx.status === 'active' ? 'text-nexus-emerald' : 'text-nexus-amber'}`}>{String(idx.status)}</span>
             </div>
           ))}
         </div>

@@ -63,14 +63,14 @@ export function PromptDiff({ textA, textB, labelA, labelB }: Props) {
           isRemoved
             ? 'bg-destructive/10 border-l-destructive text-destructive'
             : isAdded
-            ? 'bg-emerald-500/10 border-l-emerald-500 text-emerald-400'
+            ? 'bg-nexus-emerald/10 border-l-emerald-500 text-nexus-emerald'
             : isEmpty
             ? 'border-l-transparent opacity-30'
             : 'border-l-transparent text-foreground/80'
         }`}
       >
         {isRemoved && <span className="mr-2 text-destructive/60">−</span>}
-        {isAdded && <span className="mr-2 text-emerald-400/60">+</span>}
+        {isAdded && <span className="mr-2 text-nexus-emerald/60">+</span>}
         {line.text || '\u00A0'}
       </div>
     );
@@ -87,7 +87,7 @@ export function PromptDiff({ textA, textB, labelA, labelB }: Props) {
         </div>
       </div>
       <div className="rounded-lg border border-border overflow-hidden bg-muted/10">
-        <div className="px-3 py-2 border-b border-border bg-emerald-500/5">
+        <div className="px-3 py-2 border-b border-border bg-nexus-emerald/5">
           <p className="text-xs font-semibold text-muted-foreground">{labelB}</p>
         </div>
         <div className="max-h-64 overflow-y-auto">

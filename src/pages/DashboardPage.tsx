@@ -3,7 +3,7 @@ import { StatusBadge } from "@/components/shared/StatusBadge";
 import { InfoHint } from "@/components/shared/InfoHint";
 import { AnimatedCounter } from "@/components/shared/AnimatedCounter";
 import { Button } from "@/components/ui/button";
-import { Bot, Plus, ArrowRight, TrendingUp, DollarSign, Clock, Zap, Sparkles } from "lucide-react";
+import { Bot, Plus, ArrowRight, TrendingUp, DollarSign, Clock, Zap, Sparkles, BookOpen, Activity, GitBranch } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
@@ -127,11 +127,11 @@ export default function DashboardPage() {
         <PageHeader
           title={`${getGreeting()} 👋`}
           description="Visão executiva da operação de agentes de IA"
-          actions={
+          actions={agents.length > 0 ? (
             <Button onClick={() => navigate('/agents/new')} className="nexus-gradient-bg text-primary-foreground gap-2 hover:opacity-90 min-h-[44px]">
               <Plus className="h-4 w-4" aria-hidden="true" /> Criar agente
             </Button>
-          }
+          ) : undefined}
         />
         {summary && (
           <div className="flex items-center gap-2 mt-2">
@@ -153,17 +153,19 @@ export default function DashboardPage() {
           </Button>
           <div className="grid sm:grid-cols-3 gap-3 sm:gap-4 mt-8 sm:mt-10 w-full max-w-2xl stagger-children">
             {[
-              { emoji: '🧠', title: 'Super Cérebro', desc: 'Memória centralizada para toda a empresa', path: '/brain' },
-              { emoji: '🔮', title: 'Oráculo', desc: 'Conselho de múltiplas IAs para melhores respostas', path: '/oracle' },
-              { emoji: '🛡️', title: 'Guardrails', desc: 'Segurança e compliance em tempo real', path: '/security' },
+              { emoji: '🧠', title: 'Super Cérebro', desc: 'Memória centralizada para toda a empresa', path: '/brain', accent: 'border-nexus-purple/30 hover:border-nexus-purple/50', iconBg: 'bg-nexus-purple/10' },
+              { emoji: '🔮', title: 'Oráculo', desc: 'Conselho de múltiplas IAs para melhores respostas', path: '/oracle', accent: 'border-nexus-cyan/30 hover:border-nexus-cyan/50', iconBg: 'bg-nexus-cyan/10' },
+              { emoji: '🛡️', title: 'Guardrails', desc: 'Segurança e compliance em tempo real', path: '/security', accent: 'border-nexus-emerald/30 hover:border-nexus-emerald/50', iconBg: 'bg-nexus-emerald/10' },
             ].map(card => (
               <button
                 key={card.title}
-                className="nexus-card text-center cursor-pointer hover:border-primary/30 transition-colors min-h-[44px] w-full"
+                className={`nexus-card text-center cursor-pointer transition-all min-h-[44px] w-full ${card.accent}`}
                 onClick={() => navigate(card.path)}
                 aria-label={`Navegar para ${card.title}: ${card.desc}`}
               >
-                <div className="text-3xl mb-2" aria-hidden="true">{card.emoji}</div>
+                <div className={`inline-flex items-center justify-center h-12 w-12 rounded-xl ${card.iconBg} mb-3 mx-auto`}>
+                  <span className="text-2xl" aria-hidden="true">{card.emoji}</span>
+                </div>
                 <h3 className="text-sm font-semibold text-foreground">{card.title}</h3>
                 <p className="text-[11px] text-muted-foreground mt-1">{card.desc}</p>
               </button>
@@ -172,17 +174,37 @@ export default function DashboardPage() {
         </div>
       ) : (
         <>
+          {/* Quick Actions */}
+          <div className="flex items-center gap-2 flex-wrap">
+            {[
+              { label: 'Novo Agente', icon: Plus, path: '/agents/new' },
+              { label: 'Knowledge', icon: BookOpen, path: '/knowledge' },
+              { label: 'Monitoring', icon: Activity, path: '/monitoring' },
+              { label: 'Workflows', icon: GitBranch, path: '/workflows' },
+            ].map(action => (
+              <button
+                key={action.label}
+                onClick={() => navigate(action.path)}
+                className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-border/50 bg-card text-xs font-medium text-muted-foreground hover:text-foreground hover:border-primary/30 hover:bg-primary/5 transition-all"
+              >
+                <action.icon className="h-3.5 w-3.5" />
+                {action.label}
+              </button>
+            ))}
+          </div>
+
           {/* Metrics */}
           <div className="grid grid-cols-2 md:grid-cols-4 gap-3 sm:gap-4 stagger-children" role="region" aria-label="Métricas principais">
             {[
-              { icon: Bot, color: "text-primary", bgColor: "bg-primary/10", value: agents.length, label: "Total de agentes", hint: `${draftCount} rascunhos` },
-              { icon: Zap, color: "text-nexus-emerald", bgColor: "bg-nexus-emerald/10", value: activeCount, label: "Em produção", hint: activeCount > 0 ? "Operando normalmente" : "Nenhum ativo" },
-              { icon: DollarSign, color: "text-nexus-amber", bgColor: "bg-nexus-amber/10", value: usageStats?.totalCost ?? 0, label: "Custo (30d)", prefix: "$", decimals: 2, noData: !usageStats, hint: usageStats ? `${usageStats.totalRequests} requests` : undefined },
-              { icon: TrendingUp, color: "text-primary", bgColor: "bg-primary/10", value: usageStats?.totalRequests ?? 0, label: "Requests (30d)", noData: !usageStats, hint: usageStats ? `~${usageStats.avgLatency}ms latência` : undefined },
+              { icon: Bot, color: "text-primary", bgColor: "bg-primary/10", value: agents.length, label: "Total de agentes", hint: `${draftCount} rascunhos`, tooltip: "Número total de agentes criados no workspace" },
+              { icon: Zap, color: "text-nexus-emerald", bgColor: "bg-nexus-emerald/10", value: activeCount, label: "Em produção", hint: activeCount > 0 ? "Operando normalmente" : "Nenhum ativo", tooltip: "Agentes com status 'production' ou 'monitoring'" },
+              { icon: DollarSign, color: "text-nexus-amber", bgColor: "bg-nexus-amber/10", value: usageStats?.totalCost ?? 0, label: "Custo (30d)", prefix: "$", decimals: 2, noData: !usageStats, hint: usageStats ? `${usageStats.totalRequests} requests` : undefined, tooltip: "Custo acumulado dos últimos 30 dias" },
+              { icon: TrendingUp, color: "text-primary", bgColor: "bg-primary/10", value: usageStats?.totalRequests ?? 0, label: "Requests (30d)", noData: !usageStats, hint: usageStats ? `~${usageStats.avgLatency}ms latência` : undefined, tooltip: "Total de requisições processadas nos últimos 30 dias" },
             ].map((metric, i) => (
              <div
                 key={metric.label}
                 className="nexus-card nexus-metric-card text-center group"
+                title={metric.tooltip}
               >
                 <div className={`inline-flex items-center justify-center h-8 w-8 rounded-lg ${metric.bgColor} mb-2`}>
                   <metric.icon className={`h-4 w-4 ${metric.color}`} aria-hidden="true" />

@@ -32,12 +32,12 @@ function OverviewTab() {
 
   const metrics = [
     { label: 'Agentes', value: stats?.agents ?? '—', icon: '🤖', color: 'text-primary' },
-    { label: 'Bases de Conhecimento', value: stats?.knowledge_bases ?? '—', icon: '📚', color: 'text-emerald-400' },
+    { label: 'Bases de Conhecimento', value: stats?.knowledge_bases ?? '—', icon: '📚', color: 'text-nexus-emerald' },
     { label: 'Chunks RAG', value: stats?.chunks ?? '—', icon: '🧩', color: 'text-cyan-400' },
-    { label: 'Memórias', value: stats?.memories ?? '—', icon: '💾', color: 'text-purple-400' },
-    { label: 'Ferramentas', value: stats?.tools ?? '—', icon: '🔧', color: 'text-amber-400' },
-    { label: 'Workflows', value: stats?.workflows ?? '—', icon: '🔄', color: 'text-blue-400' },
-    { label: 'Traces (total)', value: stats?.traces ?? '—', icon: '📊', color: 'text-rose-400' },
+    { label: 'Memórias', value: stats?.memories ?? '—', icon: '💾', color: 'text-nexus-purple' },
+    { label: 'Ferramentas', value: stats?.tools ?? '—', icon: '🔧', color: 'text-nexus-amber' },
+    { label: 'Workflows', value: stats?.workflows ?? '—', icon: '🔄', color: 'text-primary' },
+    { label: 'Traces (total)', value: stats?.traces ?? '—', icon: '📊', color: 'text-nexus-rose' },
     { label: 'Consultas hoje', value: stats?.today_traces ?? '—', icon: '🔍', color: 'text-teal-400' },
   ];
 
@@ -71,7 +71,7 @@ function OverviewTab() {
                   <div className="flex items-center gap-2 mb-2">
                     <span className="text-lg">{l.icon}</span>
                     <span className="text-xs font-semibold text-foreground">{l.title}</span>
-                    <Badge variant="outline" className="text-[11px] ml-auto border-emerald-500/30 text-emerald-400">Ativo</Badge>
+                    <Badge variant="outline" className="text-[11px] ml-auto border-nexus-emerald/30 text-nexus-emerald">Ativo</Badge>
                   </div>
                   <p className="text-[11px] text-muted-foreground">{l.desc}</p>
                 </div>
@@ -192,8 +192,8 @@ function KnowledgeGraphTab() {
   const nodesByType = (type: string) => data?.nodes?.filter((n: any) => n.type === type) || [];
   const typeConfig: Record<string, { emoji: string; label: string; color: string }> = {
     agent: { emoji: '🤖', label: 'Agentes', color: 'border-primary/50 bg-primary/5' },
-    knowledge_base: { emoji: '📚', label: 'Bases de Conhecimento', color: 'border-emerald-500/50 bg-emerald-500/5' },
-    tool: { emoji: '🔧', label: 'Ferramentas', color: 'border-amber-500/50 bg-amber-500/5' },
+    knowledge_base: { emoji: '📚', label: 'Bases de Conhecimento', color: 'border-nexus-emerald/50 bg-nexus-emerald/5' },
+    tool: { emoji: '🔧', label: 'Ferramentas', color: 'border-nexus-amber/50 bg-nexus-amber/5' },
     workflow: { emoji: '🔄', label: 'Workflows', color: 'border-cyan-500/50 bg-cyan-500/5' },
   };
 
@@ -299,8 +299,8 @@ function KnowledgeHealthTab() {
   });
 
   const freshnessIcon = (f: string) => {
-    if (f === 'fresh') return <CheckCircle className="h-3.5 w-3.5 text-emerald-400" />;
-    if (f === 'aging') return <Clock className="h-3.5 w-3.5 text-amber-400" />;
+    if (f === 'fresh') return <CheckCircle className="h-3.5 w-3.5 text-nexus-emerald" />;
+    if (f === 'aging') return <Clock className="h-3.5 w-3.5 text-nexus-amber" />;
     return <AlertTriangle className="h-3.5 w-3.5 text-destructive" />;
   };
 
@@ -331,11 +331,11 @@ function KnowledgeHealthTab() {
           {/* Summary Cards */}
           <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
             <div className="nexus-card text-center py-3">
-              <p className="text-lg font-bold text-emerald-400">{data.summary?.fresh || 0}</p>
+              <p className="text-lg font-bold text-nexus-emerald">{data.summary?.fresh || 0}</p>
               <p className="text-[11px] text-muted-foreground flex items-center justify-center gap-1"><CheckCircle className="h-3 w-3" /> Atualizados</p>
             </div>
             <div className="nexus-card text-center py-3">
-              <p className="text-lg font-bold text-amber-400">{data.summary?.aging || 0}</p>
+              <p className="text-lg font-bold text-nexus-amber">{data.summary?.aging || 0}</p>
               <p className="text-[11px] text-muted-foreground flex items-center justify-center gap-1"><Clock className="h-3 w-3" /> Envelhecendo</p>
             </div>
             <div className="nexus-card text-center py-3">
@@ -347,7 +347,7 @@ function KnowledgeHealthTab() {
               <p className="text-[11px] text-muted-foreground">Chunks embeddados</p>
               {(data.chunks?.pending > 0 || data.chunks?.failed > 0) && (
                 <p className="text-[11px] text-muted-foreground mt-0.5">
-                  {data.chunks.pending > 0 && <span className="text-amber-400">{data.chunks.pending} pendentes</span>}
+                  {data.chunks.pending > 0 && <span className="text-nexus-amber">{data.chunks.pending} pendentes</span>}
                   {data.chunks.pending > 0 && data.chunks.failed > 0 && ' • '}
                   {data.chunks.failed > 0 && <span className="text-destructive">{data.chunks.failed} falhas</span>}
                 </p>
@@ -357,14 +357,14 @@ function KnowledgeHealthTab() {
 
           {/* Gaps */}
           {data.gaps?.length > 0 && (
-            <div className="nexus-card border-amber-500/30">
-              <h4 className="text-xs font-semibold text-amber-400 mb-2 flex items-center gap-1.5">
+            <div className="nexus-card border-nexus-amber/30">
+              <h4 className="text-xs font-semibold text-nexus-amber mb-2 flex items-center gap-1.5">
                 <Target className="h-3.5 w-3.5" /> Gaps Identificados ({data.gaps.length})
               </h4>
               <div className="space-y-1.5">
                 {data.gaps.map((g: string, i: number) => (
                   <div key={i} className="flex items-start gap-2 text-xs text-muted-foreground">
-                    <AlertTriangle className="h-3 w-3 text-amber-400 mt-0.5 shrink-0" />
+                    <AlertTriangle className="h-3 w-3 text-nexus-amber mt-0.5 shrink-0" />
                     <span>{g}</span>
                   </div>
                 ))}
@@ -389,8 +389,8 @@ function KnowledgeHealthTab() {
                   </div>
                   <div className="text-right">
                     <Badge variant="outline" className={`text-[11px] ${
-                      item.freshness === 'fresh' ? 'border-emerald-500/30 text-emerald-400' :
-                      item.freshness === 'aging' ? 'border-amber-500/30 text-amber-400' :
+                      item.freshness === 'fresh' ? 'border-nexus-emerald/30 text-nexus-emerald' :
+                      item.freshness === 'aging' ? 'border-nexus-amber/30 text-nexus-amber' :
                       'border-destructive/30 text-destructive'
                     }`}>{freshnessLabel(item.freshness)}</Badge>
                     <p className="text-[11px] text-muted-foreground mt-0.5">{item.daysSinceUpdate}d atrás</p>
@@ -531,8 +531,8 @@ function ExpertDiscoveryTab() {
                         ))}
                       </div>
                       <div className="flex gap-3 mt-1.5 text-[11px] text-muted-foreground">
-                        {expert.hasRAG && <span className="text-emerald-400">📚 RAG</span>}
-                        {expert.toolCount > 0 && <span className="text-amber-400">🔧 {expert.toolCount}</span>}
+                        {expert.hasRAG && <span className="text-nexus-emerald">📚 RAG</span>}
+                        {expert.toolCount > 0 && <span className="text-nexus-amber">🔧 {expert.toolCount}</span>}
                         <span className="capitalize">{expert.status}</span>
                       </div>
                     </div>

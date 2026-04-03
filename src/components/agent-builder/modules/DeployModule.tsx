@@ -150,7 +150,7 @@ export function DeployModule() {
                       </div>
                     ))}
                     <div className="flex items-center gap-1.5">
-                      <span className={`h-2 w-2 rounded-full ${ch.status === 'active' ? 'bg-green-500' : ch.status === 'error' ? 'bg-destructive' : 'bg-muted-foreground'}`} />
+                      <span className={`h-2 w-2 rounded-full ${ch.status === 'active' ? 'bg-nexus-emerald' : ch.status === 'error' ? 'bg-destructive' : 'bg-muted-foreground'}`} />
                       <span className="text-[11px] text-muted-foreground capitalize">{ch.status}</span>
                     </div>
                   </div>

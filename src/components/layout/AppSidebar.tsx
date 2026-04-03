@@ -73,7 +73,7 @@ function getInitialCollapsed(): Record<string, boolean> {
     if (stored) return JSON.parse(stored);
   } catch {}
   // Default: only "Geral" expanded
-  return { geral: false, dev: true, ops: true, admin: true };
+  return { geral: false, dev: false, ops: true, admin: true };
 }
 
 export function AppSidebar() {
@@ -122,12 +122,12 @@ export function AppSidebar() {
 
   return (
     <Sidebar collapsible="icon" className="border-r border-border/50" aria-label="Navegação principal">
-      <SidebarHeader className="p-4">
-        <div className="flex items-center gap-1.5">
-          <img src={fatorxIcon} alt="" className="h-14 w-14 shrink-0 rounded-xl" fetchPriority="high" />
+      <SidebarHeader className="p-3">
+        <div className="flex items-center gap-2">
+          <img src={fatorxIcon} alt="" className="h-8 w-8 shrink-0 rounded-lg" fetchPriority="high" />
           {!collapsed && (
-            <span className="font-heading text-lg font-extrabold tracking-tight" aria-label="Fator X">
-              <span className="text-muted-foreground">FATOR</span>
+            <span className="font-heading text-base font-extrabold tracking-tight" aria-label="Fator X">
+              <span className="text-foreground">FATOR</span>
               <span className="text-transparent bg-clip-text bg-gradient-to-r from-nexus-cyan to-nexus-teal ml-0.5">X</span>
             </span>
           )}
@@ -172,7 +172,7 @@ export function AppSidebar() {
                           <NavLink
                             to={item.url}
                             end={item.url === "/"}
-                            className="flex items-center gap-2.5 rounded-lg px-2.5 py-2 text-sm transition-colors text-sidebar-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground"
+                            className="flex items-center gap-2.5 rounded-lg px-2.5 py-2 text-sm transition-all text-sidebar-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground hover:translate-x-0.5"
                             activeClassName="bg-primary/10 text-primary font-medium"
                             aria-current={isActive ? "page" : undefined}
                           >
@@ -190,26 +190,30 @@ export function AppSidebar() {
         })}
       </SidebarContent>
 
-      <SidebarFooter className="p-3 space-y-2">
+      <SidebarFooter className="p-2 space-y-1.5">
         {!collapsed && (
           <>
-            <div className="rounded-lg bg-secondary/50 p-3">
-              <p className="text-[11px] font-medium text-foreground">Workspace {planLabel}</p>
-              <p className="text-[11px] text-muted-foreground mt-0.5">{agentCount} de {maxAgents} agentes usados</p>
-              <div className="mt-2 h-1 rounded-full bg-secondary" role="progressbar" aria-valuenow={usage} aria-valuemin={0} aria-valuemax={100} aria-label="Uso de agentes">
+            <Separator className="bg-border/30" />
+            <div className="rounded-lg bg-secondary/40 px-3 py-2.5">
+              <div className="flex items-center justify-between mb-1.5">
+                <p className="text-[11px] font-semibold text-foreground">Workspace {planLabel}</p>
+                <span className="text-[11px] text-muted-foreground">{agentCount}/{maxAgents}</span>
+              </div>
+              <div className="h-1 rounded-full bg-secondary" role="progressbar" aria-valuenow={usage} aria-valuemin={0} aria-valuemax={100} aria-label="Uso de agentes">
                 <div className="h-full rounded-full nexus-gradient-bg transition-all" style={{ width: `${usage}%` }} />
               </div>
             </div>
+            <Separator className="bg-border/30" />
             {user && (
-              <div className="rounded-lg bg-secondary/30 p-2.5 flex items-center gap-2">
-                <div className="h-7 w-7 rounded-full bg-primary/20 flex items-center justify-center text-xs font-bold text-primary shrink-0">
+              <div className="flex items-center gap-2.5 px-2 py-1.5 rounded-lg hover:bg-secondary/30 transition-colors">
+                <div className="h-7 w-7 rounded-full nexus-gradient-bg flex items-center justify-center text-xs font-bold text-primary-foreground shrink-0">
                   {(wsInfo?.userName?.[0] || user.email?.[0] || 'U').toUpperCase()}
                 </div>
                 <div className="flex-1 min-w-0">
-                  <p className="text-[11px] font-medium text-foreground truncate">{wsInfo?.userName || 'Usuário'}</p>
+                  <p className="text-xs font-medium text-foreground truncate">{wsInfo?.userName || 'Usuário'}</p>
                   <p className="text-[11px] text-muted-foreground truncate">{user.email}</p>
                 </div>
-                <Button variant="ghost" size="icon" className="h-6 w-6 shrink-0 text-muted-foreground hover:text-destructive min-h-[44px] min-w-[44px] flex items-center justify-center" onClick={signOut} aria-label="Sair da conta">
+                <Button variant="ghost" size="icon" className="h-7 w-7 shrink-0 text-muted-foreground hover:text-destructive" onClick={signOut} aria-label="Sair da conta">
                   <LogOut className="h-3.5 w-3.5" />
                 </Button>
               </div>
@@ -220,7 +224,7 @@ export function AppSidebar() {
           variant="ghost"
           size="sm"
           onClick={toggleSidebar}
-          className="w-full justify-start gap-2 text-muted-foreground hover:text-foreground text-xs"
+          className="w-full justify-start gap-2 text-muted-foreground hover:text-foreground text-xs h-8"
           aria-label={collapsed ? "Expandir sidebar" : "Recolher sidebar"}
         >
           {collapsed ? <PanelLeft className="h-4 w-4" /> : <PanelLeftClose className="h-4 w-4" />}

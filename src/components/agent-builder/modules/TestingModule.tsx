@@ -18,9 +18,9 @@ const TEST_CATEGORIES = [
 
 const STATUS_META: Record<string, { icon: React.ReactNode; label: string; color: string }> = {
   pending: { icon: <Clock className="h-3.5 w-3.5" />, label: 'Pendente', color: 'text-muted-foreground' },
-  passed: { icon: <CheckCircle2 className="h-3.5 w-3.5" />, label: 'Aprovado', color: 'text-green-500' },
-  failed: { icon: <XCircle className="h-3.5 w-3.5" />, label: 'Falhou', color: 'text-red-500' },
-  skipped: { icon: <SkipForward className="h-3.5 w-3.5" />, label: 'Pulado', color: 'text-yellow-500' },
+  passed: { icon: <CheckCircle2 className="h-3.5 w-3.5" />, label: 'Aprovado', color: 'text-nexus-emerald' },
+  failed: { icon: <XCircle className="h-3.5 w-3.5" />, label: 'Falhou', color: 'text-nexus-rose' },
+  skipped: { icon: <SkipForward className="h-3.5 w-3.5" />, label: 'Pulado', color: 'text-nexus-amber' },
 };
 
 const DEFAULT_EVAL_METRICS: EvalMetric[] = [
@@ -312,9 +312,9 @@ function TestExecutionPanel({ testCases }: { testCases: TestCase[] }) {
         <div className="space-y-2">
           <p className="text-xs font-semibold text-foreground">Resultados: {results.filter(r=>r.passed).length}/{results.length} aprovados</p>
           {results.map((r, i) => (
-            <div key={i} className={`nexus-card text-xs ${r.passed ? 'border-green-500/30' : 'border-red-500/30'}`}>
+            <div key={i} className={`nexus-card text-xs ${r.passed ? 'border-nexus-emerald/30' : 'border-nexus-rose/30'}`}>
               <div className="flex items-center gap-2 mb-1">
-                {r.passed ? <CheckCircle2 className="h-3.5 w-3.5 text-green-500" /> : <XCircle className="h-3.5 w-3.5 text-red-500" />}
+                {r.passed ? <CheckCircle2 className="h-3.5 w-3.5 text-nexus-emerald" /> : <XCircle className="h-3.5 w-3.5 text-nexus-rose" />}
                 <span className="font-mono text-muted-foreground">{r.latency_ms}ms</span>
               </div>
               <p className="text-foreground"><strong>Input:</strong> {r.input.substring(0, 100)}</p>

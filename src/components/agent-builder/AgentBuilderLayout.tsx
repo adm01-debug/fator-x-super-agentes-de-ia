@@ -74,7 +74,7 @@ export function AgentBuilderLayout({ children }: AgentBuilderLayoutProps) {
               </>
             ) : lastSaved ? (
               <>
-                <Check className="h-3 w-3 text-emerald-500" />
+                <Check className="h-3 w-3 text-nexus-emerald" />
                 <span>Salvo {lastSaved}</span>
               </>
             ) : null}
