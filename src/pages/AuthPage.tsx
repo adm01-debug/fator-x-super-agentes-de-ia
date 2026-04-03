@@ -4,6 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useAuth } from "@/contexts/AuthContext";
+import { lovable } from "@/integrations/lovable/index";
 import { toast } from "sonner";
 import { Bot, Mail, Lock, ArrowRight, Eye, EyeOff, Check, X } from "lucide-react";
 
