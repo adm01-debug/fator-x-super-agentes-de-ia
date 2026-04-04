@@ -29,7 +29,7 @@ export function useWorkflowPersistence() {
       .order('updated_at', { ascending: false });
 
     if (error) {
-      console.error('Failed to fetch workflows', error);
+      logger.error('Failed to fetch workflows', { error: error.message });
     } else {
       setWorkflows((data ?? []) as unknown as WorkflowRecord[]);
     }
