@@ -86,6 +86,6 @@ export async function deleteOracleHistory(id: string) {
     .from('oracle_history')
     .delete()
     .eq('id', id);
-  if (error) console.error('Failed to delete oracle history:', error);
+  if (error) logger.error('Failed to delete oracle history', { error: error.message });
   return !error;
 }

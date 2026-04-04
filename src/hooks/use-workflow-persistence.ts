@@ -119,7 +119,7 @@ export function useWorkflowPersistence() {
     const { error } = await supabase.from('workflows').delete().eq('id', workflowId);
     if (error) {
       toast.error('Erro ao deletar workflow');
-      console.error(error);
+      logger.error('Failed to delete workflow', { error: error.message });
       return false;
     }
     if (selectedId === workflowId) setSelectedId(null);
