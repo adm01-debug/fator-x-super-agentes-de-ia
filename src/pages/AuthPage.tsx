@@ -84,7 +84,7 @@ function MeshGradient() {
       />
       {/* Blob 2 — accent */}
       <div
-        className="absolute w-[400px] h-[400px] rounded-full opacity-15 blur-[100px]"
+        className="absolute w-[400px] h-[400px] rounded-full opacity-15"
         style={{
           background: 'hsl(var(--accent))',
           top: '50%',
