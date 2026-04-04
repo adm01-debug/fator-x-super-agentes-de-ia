@@ -81,6 +81,7 @@ const ENTITY_MAPPINGS: Record<string, any> = {
 
 /* ── Filter parser helper ────────────────────────────── */
 
+// deno-lint-ignore no-explicit-any -- Supabase query builder type is complex
 function applyStaticFilter(query: any, filterStr: string) {
   const parts = filterStr.split(' AND ').map((f: string) => f.trim());
   for (const f of parts) {
@@ -104,7 +105,8 @@ function applyStaticFilter(query: any, filterStr: string) {
 
 /* ── Dynamic filters from client ─────────────────────── */
 
-function applyDynamicFilters(query: any, filters: any[]) {
+// deno-lint-ignore no-explicit-any -- Supabase query builder type is complex
+function applyDynamicFilters(query: any, filters: Array<Record<string, unknown>>) {
   for (const f of filters) {
     if (!f.column || !f.operator) continue;
     const col = String(f.column).replace(/[^a-zA-Z0-9_]/g, '');
@@ -321,7 +323,7 @@ serve(async (req) => {
       const prim = mapping.primary;
 
       // Parse value types
-      let parsedValue: any = value;
+      let parsedValue: string | number | boolean | null = value;
       if (value === '' || value === null) parsedValue = null;
       else if (value === 'true') parsedValue = true;
       else if (value === 'false') parsedValue = false;
@@ -375,14 +377,14 @@ serve(async (req) => {
       const client = getExternalClient(mapping.primary.connection);
       const prim = mapping.primary;
 
-      let parsedValue: any = value;
+      let parsedValue: string | number | boolean | null = value;
       if (value === '' || value === null) parsedValue = null;
       else if (value === 'true') parsedValue = true;
       else if (value === 'false') parsedValue = false;
       else if (/^\d+$/.test(value)) parsedValue = parseInt(value, 10);
       else if (/^\d+\.\d+$/.test(value)) parsedValue = parseFloat(value);
 
-      const updatePayload: Record<string, any> = { [field]: parsedValue };
+      const updatePayload: Record<string, unknown> = { [field]: parsedValue };
 
       // Try with updated_at first
       const { data: updated, error: updateError } = await client

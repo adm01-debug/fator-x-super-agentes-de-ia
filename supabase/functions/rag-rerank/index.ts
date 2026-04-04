@@ -25,7 +25,7 @@ serve(async (req) => {
     const wsId = member?.workspace_id;
 
     // Try Cohere Rerank API first
-    let reranked: Array<{ chunk: any; relevance_score: number }> | null = null;
+    let reranked: Array<{ chunk: Record<string, unknown>; relevance_score: number }> | null = null;
 
     if (wsId) {
       const { data: cohereKey } = await supabase.from('workspace_secrets').select('key_value').eq('workspace_id', wsId).eq('key_name', 'cohere_api_key').single();
@@ -37,26 +37,26 @@ serve(async (req) => {
             body: JSON.stringify({
               model: 'rerank-v3.5',
               query,
-              documents: chunks.map((c: any) => c.content || c.text || c),
+              documents: chunks.map((c: Record<string, unknown>) => c.content || c.text || c),
               top_n: topK,
               return_documents: false,
             }),
           });
           if (resp.ok) {
             const data = await resp.json();
-            reranked = (data.results || []).map((r: any) => ({
-              chunk: chunks[r.index],
-              relevance_score: r.relevance_score,
+            reranked = (data.results || []).map((r: Record<string, unknown>) => ({
+              chunk: chunks[r.index as number],
+              relevance_score: r.relevance_score as number,
             }));
           }
-        } catch (e) { console.error('Cohere rerank failed:', e); }
+        } catch (e: unknown) { console.error('Cohere rerank failed:', e instanceof Error ? e.message : e); }
       }
     }
 
     // Fallback: LLM-based reranking via Gateway
     if (!reranked) {
       try {
-        const chunkList = chunks.slice(0, 20).map((c: any, i: number) => `[${i}] ${(c.content || c.text || c).substring(0, 300)}`).join('\n\n');
+        const chunkList = chunks.slice(0, 20).map((c: Record<string, unknown>, i: number) => `[${i}] ${String(c.content || c.text || c).substring(0, 300)}`).join('\n\n');
         const resp = await fetch(`${supabaseUrl}/functions/v1/llm-gateway`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json', 'Authorization': authHeader, 'apikey': supabaseKey },
@@ -81,7 +81,7 @@ serve(async (req) => {
 
     // If all reranking failed, return original top K
     if (!reranked) {
-      reranked = chunks.slice(0, topK).map((c: any, i: number) => ({
+      reranked = chunks.slice(0, topK).map((c: Record<string, unknown>, i: number) => ({
         chunk: c,
         relevance_score: 1 - (i * 0.05),
       }));

@@ -173,7 +173,7 @@ serve(async (req) => {
     });
 
     const stage1Results = await Promise.allSettled(stage1Promises);
-    const stage1 = stage1Results.map(r => r.status === 'fulfilled' ? r.value : null).filter(Boolean) as any[];
+    const stage1 = stage1Results.map(r => r.status === 'fulfilled' ? r.value : null).filter(Boolean) as Array<Record<string, unknown>>;
     const successfulResponses = stage1.filter(r => r.success);
 
     if (successfulResponses.length < 2) {
@@ -184,7 +184,7 @@ serve(async (req) => {
     const stage1Latency = Date.now() - stage1Start;
 
     // ═══ STAGE 2: Peer Review (if enabled) ═══
-    let stage2Results: any[] = [];
+    let stage2Results: Array<Record<string, unknown>> = [];
     let stage2Latency = 0;
 
     if (enable_peer_review && successfulResponses.length >= 2) {
@@ -297,13 +297,14 @@ Responda em markdown:
     const consensusMatch = finalContent.match(/Consenso:\s*(\d+)/);
 
     // Extract consensus points from stage 2
-    let consensusPoints: any[] = [];
+    let consensusPoints: Array<Record<string, unknown>> = [];
     if (stage2Results[0]?.consensus_points) {
-      consensusPoints = stage2Results[0].consensus_points.map((cp: any, i: number) => ({
+      const rawPoints = stage2Results[0].consensus_points as Array<Record<string, unknown>>;
+      consensusPoints = rawPoints.map((cp, i: number) => ({
         id: `cp-${i}`,
         claim: cp.claim,
         category: cp.category || 'opinion',
-        modelPositions: (cp.model_positions || []).map((mp: any) => ({
+        modelPositions: ((cp.model_positions || []) as Array<Record<string, unknown>>).map((mp) => ({
           model: mp.response || mp.model || `Model ${i}`,
           position: mp.position || 'not_mentioned',
           detail: mp.detail || '',
@@ -315,8 +316,8 @@ Responda em markdown:
     }
 
     const totalLatency = Date.now() - totalStartTime;
-    const totalCost = stage1.reduce((s: number, r: any) => s + (r.cost_usd || 0), 0) + (synthesisResult.cost_usd || 0);
-    const totalTokens = stage1.reduce((s: number, r: any) => s + (r.tokens?.total || 0), 0) + (synthesisResult.tokens?.total || 0);
+    const totalCost = stage1.reduce((s: number, r: Record<string, unknown>) => s + ((r.cost_usd as number) || 0), 0) + ((synthesisResult.cost_usd as number) || 0);
+    const totalTokens = stage1.reduce((s: number, r: Record<string, unknown>) => s + (((r.tokens as Record<string, unknown>)?.total as number) || 0), 0) + (((synthesisResult.tokens as Record<string, unknown>)?.total as number) || 0);
 
     return new Response(JSON.stringify({
       final_response: finalContent,

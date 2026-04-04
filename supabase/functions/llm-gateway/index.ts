@@ -1,6 +1,6 @@
 import "https://deno.land/x/xhr@0.1.0/mod.ts";
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
-import { createClient } from "https://esm.sh/@supabase/supabase-js@2.49.4";
+import { createClient, type SupabaseClient } from "https://esm.sh/@supabase/supabase-js@2.49.4";
 import { callLovable, callOpenRouter, callAnthropic, callOpenAICompatible, type LLMCallParams, type LLMResult } from "./providers.ts";
 
 const corsHeaders = {
@@ -70,12 +70,12 @@ function validateRequest(body: unknown): { valid: true; data: LLMRequest } | { v
 }
 
 // ═══ Cost Calculation from DB pricing ═══
-async function calculateCost(supabase: any, model: string, promptTokens: number, completionTokens: number): Promise<number> {
+async function calculateCost(supabase: SupabaseClient, model: string, promptTokens: number, completionTokens: number): Promise<number> {
   try {
     const { data: pricing } = await supabase.from('model_pricing').select('model_pattern, input_cost_per_1k, output_cost_per_1k');
     if (pricing) {
       // Sort by pattern length DESC so "gpt-4o-mini" matches before "gpt-4o"
-      const sorted = [...pricing].sort((a: any, b: any) => b.model_pattern.length - a.model_pattern.length);
+      const sorted = [...pricing].sort((a: Record<string, unknown>, b: Record<string, unknown>) => (b.model_pattern as string).length - (a.model_pattern as string).length);
       for (const p of sorted) {
         if (model.includes(p.model_pattern)) {
           return (promptTokens / 1000 * Number(p.input_cost_per_1k)) + (completionTokens / 1000 * Number(p.output_cost_per_1k));
@@ -127,13 +127,13 @@ function detectInjection(text: string): { detected: boolean; patterns: string[];
 }
 
 // ═══ Guardrails Check ═══
-async function checkGuardrails(supabase: any, agentId: string | undefined, userMessage: string): Promise<{ passed: boolean; triggered: Array<{ name: string; severity: string; reason: string }> }> {
+async function checkGuardrails(supabase: SupabaseClient, agentId: string | undefined, userMessage: string): Promise<{ passed: boolean; triggered: Array<{ name: string; severity: string; reason: string }> }> {
   if (!agentId) return { passed: true, triggered: [] };
   try {
     const { data: agent } = await supabase.from('agents').select('config').eq('id', agentId).single();
     if (!agent?.config) return { passed: true, triggered: [] };
-    const config = agent.config as Record<string, any>;
-    const guardrails = (config.guardrails || []) as Array<{ enabled: boolean; name: string; category: string; severity: string; config?: any }>;
+    const config = agent.config as Record<string, unknown>;
+    const guardrails = (config.guardrails || []) as Array<{ enabled: boolean; name: string; category: string; severity: string; config?: Record<string, unknown> }>;
     const blockedTopics = (config.blocked_topics || []) as string[];
     const inputMaxLength = config.input_max_length || 10000;
     const triggered: Array<{ name: string; severity: string; reason: string }> = [];
@@ -241,13 +241,13 @@ async function recordTrace(supabase: any, p: {
         }
       }
     }
-  } catch (e) { console.error('Trace failed:', e); }
+  } catch (e: unknown) { console.error('Trace failed:', e instanceof Error ? e.message : e); }
 }
 
 // ═══ API Key Resolution — Fallback Chain ═══
 interface ProviderOption { apiKey: string; provider: string; model: string; priority: number }
 
-async function resolveFallbackChain(supabase: any, workspaceId: string | undefined, requestedModel: string): Promise<ProviderOption[]> {
+async function resolveFallbackChain(supabase: SupabaseClient, workspaceId: string | undefined, requestedModel: string): Promise<ProviderOption[]> {
   const chain: ProviderOption[] = [];
 
   // 1. Direct provider mapping for requested model
