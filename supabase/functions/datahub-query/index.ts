@@ -321,7 +321,7 @@ serve(async (req) => {
       const prim = mapping.primary;
 
       // Parse value types
-      let parsedValue: any = value;
+      let parsedValue: string | number | boolean | null = value;
       if (value === '' || value === null) parsedValue = null;
       else if (value === 'true') parsedValue = true;
       else if (value === 'false') parsedValue = false;
