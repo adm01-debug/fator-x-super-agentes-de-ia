@@ -7,6 +7,62 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
+const VALID_ACTIONS = ['knowledge_graph', 'knowledge_health', 'auto_extract', 'expert_discovery', 'brain_sandbox', 'stats'] as const;
+type CerebroAction = typeof VALID_ACTIONS[number];
+
+const VALID_EXTRACT_TYPES = ['entities', 'facts', 'rules', 'contacts'] as const;
+const VALID_CONTEXT_MODES = ['facts_only', 'rag_only', 'full', 'no_context'] as const;
+
+interface KnowledgeGraphNode {
+  id: string;
+  type: string;
+  label: string;
+  [key: string]: unknown;
+}
+
+interface KnowledgeGraphEdge {
+  source: string;
+  target: string;
+  label: string;
+  type: string;
+}
+
+interface HealthItem {
+  id: string;
+  type: string;
+  name: string;
+  daysSinceUpdate: number;
+  freshness: string;
+  [key: string]: unknown;
+}
+
+function validateBody(body: unknown): { valid: true; action: CerebroAction; data: Record<string, unknown> } | { valid: false; error: string } {
+  if (!body || typeof body !== 'object') return { valid: false, error: 'Request body must be a JSON object' };
+  const b = body as Record<string, unknown>;
+  if (typeof b.action !== 'string' || !VALID_ACTIONS.includes(b.action as CerebroAction)) {
+    return { valid: false, error: `Invalid action. Valid: ${VALID_ACTIONS.join(', ')}` };
+  }
+  const action = b.action as CerebroAction;
+
+  if (action === 'auto_extract') {
+    if (typeof b.text !== 'string' || b.text.trim().length < 3) return { valid: false, error: 'text must be a string (min 3 chars)' };
+    if (b.text.length > 50000) return { valid: false, error: 'text must be <= 50000 chars' };
+    if (b.extract_type && !VALID_EXTRACT_TYPES.includes(b.extract_type as typeof VALID_EXTRACT_TYPES[number])) {
+      return { valid: false, error: `Invalid extract_type. Valid: ${VALID_EXTRACT_TYPES.join(', ')}` };
+    }
+  }
+
+  if (action === 'brain_sandbox') {
+    if (typeof b.query !== 'string' || b.query.trim().length < 2) return { valid: false, error: 'query must be a string (min 2 chars)' };
+    if (b.query.length > 10000) return { valid: false, error: 'query must be <= 10000 chars' };
+    if (b.context_mode && !VALID_CONTEXT_MODES.includes(b.context_mode as typeof VALID_CONTEXT_MODES[number])) {
+      return { valid: false, error: `Invalid context_mode. Valid: ${VALID_CONTEXT_MODES.join(', ')}` };
+    }
+  }
+
+  return { valid: true, action, data: b };
+}
+
 serve(async (req) => {
   if (req.method === 'OPTIONS') return new Response(null, { headers: corsHeaders });
 
@@ -19,42 +75,46 @@ serve(async (req) => {
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) return new Response(JSON.stringify({ error: 'Unauthorized' }), { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
 
-    const body = await req.json();
-    const { action } = body;
+    let rawBody: unknown;
+    try { rawBody = await req.json(); } catch {
+      return new Response(JSON.stringify({ error: 'Invalid JSON body' }), { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
+    }
+
+    const validation = validateBody(rawBody);
+    if (!validation.valid) {
+      return new Response(JSON.stringify({ error: validation.error }), { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
+    }
+
+    const { action, data: body } = validation;
 
     const { data: member } = await supabase.from('workspace_members').select('workspace_id').eq('user_id', user.id).limit(1).single();
-    const workspaceId = member?.workspace_id;
+    const _workspaceId = member?.workspace_id;
 
-    // ═══ ACTION: knowledge_graph — build entity relationships ═══
+    // ═══ ACTION: knowledge_graph ═══
     if (action === 'knowledge_graph') {
-      const nodes: any[] = [];
-      const edges: any[] = [];
+      const nodes: KnowledgeGraphNode[] = [];
+      const edges: KnowledgeGraphEdge[] = [];
 
-      // Agents as nodes
       const { data: agents } = await supabase.from('agents').select('id, name, avatar_emoji, model, status, tags');
       for (const a of (agents || [])) {
         nodes.push({ id: a.id, type: 'agent', label: a.name, emoji: a.avatar_emoji, status: a.status, tags: a.tags });
       }
 
-      // Knowledge bases as nodes
       const { data: kbs } = await supabase.from('knowledge_bases').select('id, name, document_count, chunk_count, status');
       for (const kb of (kbs || [])) {
         nodes.push({ id: kb.id, type: 'knowledge_base', label: kb.name, docs: kb.document_count, chunks: kb.chunk_count, status: kb.status });
       }
 
-      // Tools as nodes
       const { data: tools } = await supabase.from('tool_integrations').select('id, name, type, is_enabled');
       for (const t of (tools || [])) {
         nodes.push({ id: t.id, type: 'tool', label: t.name, toolType: t.type, enabled: t.is_enabled });
       }
 
-      // Workflows as nodes
       const { data: workflows } = await supabase.from('workflows').select('id, name, status');
       for (const w of (workflows || [])) {
         nodes.push({ id: w.id, type: 'workflow', label: w.name, status: w.status });
       }
 
-      // Edges: workflow_steps connect agents to workflows
       const { data: steps } = await supabase.from('workflow_steps').select('workflow_id, agent_id, name');
       for (const s of (steps || [])) {
         if (s.agent_id && s.workflow_id) {
@@ -62,7 +122,6 @@ serve(async (req) => {
         }
       }
 
-      // Edges: tool_policies connect agents to tools
       const { data: policies } = await supabase.from('tool_policies').select('agent_id, tool_integration_id, is_allowed');
       for (const p of (policies || [])) {
         if (p.agent_id && p.tool_integration_id) {
@@ -73,12 +132,11 @@ serve(async (req) => {
       return new Response(JSON.stringify({ nodes, edges }), { headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
     }
 
-    // ═══ ACTION: knowledge_health — decay detection + freshness ═══
+    // ═══ ACTION: knowledge_health ═══
     if (action === 'knowledge_health') {
       const now = new Date();
-      const items: any[] = [];
+      const items: HealthItem[] = [];
 
-      // Check knowledge bases freshness
       const { data: kbs } = await supabase.from('knowledge_bases').select('id, name, updated_at, document_count, chunk_count');
       for (const kb of (kbs || [])) {
         const daysSinceUpdate = Math.floor((now.getTime() - new Date(kb.updated_at).getTime()) / 86400000);
@@ -88,8 +146,6 @@ serve(async (req) => {
         items.push({ id: kb.id, type: 'knowledge_base', name: kb.name, daysSinceUpdate, freshness, docs: kb.document_count, chunks: kb.chunk_count });
       }
 
-      // Check agents without recent activity
-      const weekAgo = new Date(now.getTime() - 7 * 86400000).toISOString();
       const { data: agents } = await supabase.from('agents').select('id, name, updated_at, status');
       for (const a of (agents || [])) {
         const daysSinceUpdate = Math.floor((now.getTime() - new Date(a.updated_at).getTime()) / 86400000);
@@ -99,12 +155,10 @@ serve(async (req) => {
         items.push({ id: a.id, type: 'agent', name: a.name, daysSinceUpdate, freshness, status: a.status });
       }
 
-      // Check chunks with pending embeddings
       const { count: pendingChunks } = await supabase.from('chunks').select('id', { count: 'exact', head: true }).eq('embedding_status', 'pending');
       const { count: failedChunks } = await supabase.from('chunks').select('id', { count: 'exact', head: true }).eq('embedding_status', 'failed');
       const { count: doneChunks } = await supabase.from('chunks').select('id', { count: 'exact', head: true }).eq('embedding_status', 'done');
 
-      // Gaps: domains without knowledge
       const gaps: string[] = [];
       const { count: docCount } = await supabase.from('documents').select('id', { count: 'exact', head: true });
       if (!docCount || docCount === 0) gaps.push('Nenhum documento na base de conhecimento');
@@ -129,10 +183,10 @@ serve(async (req) => {
       }), { headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
     }
 
-    // ═══ ACTION: auto_extract — LLM-powered extraction from text ═══
+    // ═══ ACTION: auto_extract ═══
     if (action === 'auto_extract') {
-      const { text, extract_type } = body;
-      if (!text) return new Response(JSON.stringify({ error: 'text required' }), { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
+      const text = body.text as string;
+      const extract_type = (body.extract_type as string) || 'entities';
 
       const extractPrompts: Record<string, string> = {
         entities: 'Extraia todas as entidades (pessoas, empresas, produtos, locais) do texto. Retorne em formato de lista com tipo e nome.',
@@ -141,7 +195,7 @@ serve(async (req) => {
         contacts: 'Extraia todos os contatos (telefones, emails, endereços, nomes) do texto. Retorne de forma estruturada.',
       };
 
-      const prompt = extractPrompts[extract_type || 'entities'] || extractPrompts.entities;
+      const prompt = extractPrompts[extract_type] || extractPrompts.entities;
 
       const gatewayUrl = `${supabaseUrl}/functions/v1/llm-gateway`;
       const resp = await fetch(gatewayUrl, {
@@ -160,48 +214,47 @@ serve(async (req) => {
 
       return new Response(JSON.stringify({
         extracted: result.content || result.error,
-        type: extract_type || 'entities',
+        type: extract_type,
         tokens: result.tokens,
         cost_usd: result.cost_usd,
       }), { headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
     }
 
-    // ═══ ACTION: expert_discovery — find who knows what ═══
+    // ═══ ACTION: expert_discovery ═══
     if (action === 'expert_discovery') {
-      const experts: any[] = [];
+      interface Expert {
+        id: string;
+        name: string;
+        emoji: string;
+        type: string;
+        domains: string[];
+        [key: string]: unknown;
+      }
+      const experts: Expert[] = [];
 
-      // Agents as domain experts based on their config
       const { data: agents } = await supabase.from('agents').select('id, name, avatar_emoji, mission, tags, config, status');
       for (const a of (agents || [])) {
-        const config = (a.config || {}) as Record<string, any>;
+        const config = (a.config || {}) as Record<string, unknown>;
         const domains: string[] = [];
         if (a.tags?.length) domains.push(...a.tags);
-        if (config.rag_knowledge_bases?.length) domains.push('RAG');
-        if (config.tools?.length) domains.push(`${config.tools.length} ferramentas`);
-        if (config.memory_types?.length) domains.push('Memória avançada');
+        if ((config.rag_knowledge_bases as unknown[])?.length) domains.push('RAG');
+        if ((config.tools as unknown[])?.length) domains.push(`${(config.tools as unknown[]).length} ferramentas`);
+        if ((config.memory_types as unknown[])?.length) domains.push('Memória avançada');
 
         experts.push({
-          id: a.id,
-          name: a.name,
-          emoji: a.avatar_emoji,
-          type: 'agent',
-          mission: a.mission,
-          domains,
-          status: a.status,
-          toolCount: config.tools?.length || 0,
-          hasRAG: !!(config.rag_knowledge_bases?.length),
+          id: a.id, name: a.name, emoji: a.avatar_emoji, type: 'agent',
+          mission: a.mission, domains, status: a.status,
+          toolCount: (config.tools as unknown[])?.length || 0,
+          hasRAG: !!((config.rag_knowledge_bases as unknown[])?.length),
         });
       }
 
-      // Workspace members as human experts
       const { data: members } = await supabase.from('workspace_members').select('id, name, email, role');
       for (const m of (members || [])) {
         experts.push({
           id: m.id,
           name: m.name || m.email?.split('@')[0] || 'Membro',
-          emoji: '👤',
-          type: 'human',
-          role: m.role,
+          emoji: '👤', type: 'human', role: m.role,
           domains: [m.role || 'editor'],
         });
       }
@@ -209,10 +262,10 @@ serve(async (req) => {
       return new Response(JSON.stringify({ experts }), { headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
     }
 
-    // ═══ ACTION: brain_sandbox — test a query against different contexts ═══
+    // ═══ ACTION: brain_sandbox ═══
     if (action === 'brain_sandbox') {
-      const { query, context_mode } = body;
-      if (!query) return new Response(JSON.stringify({ error: 'query required' }), { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
+      const query = body.query as string;
+      const context_mode = (body.context_mode as string) || 'full';
 
       let contextParts: string[] = [];
 
@@ -225,7 +278,7 @@ serve(async (req) => {
       if (context_mode === 'rag_only' || context_mode === 'full') {
         const { data: chunks } = await supabase.from('chunks').select('content').eq('embedding_status', 'done').limit(10);
         if (chunks?.length) {
-          contextParts.push('RAG:\n' + chunks.map((c: any) => c.content).join('\n---\n').substring(0, 2000));
+          contextParts.push('RAG:\n' + chunks.map((c: { content: string }) => c.content).join('\n---\n').substring(0, 2000));
         }
       }
 
@@ -256,7 +309,7 @@ serve(async (req) => {
       }), { headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
     }
 
-    // ═══ ACTION: stats — overview statistics ═══
+    // ═══ ACTION: stats ═══
     if (action === 'stats') {
       const [agents, kbs, chunks, traces, memories, tools, workflows] = await Promise.all([
         supabase.from('agents').select('id', { count: 'exact', head: true }),
@@ -284,7 +337,7 @@ serve(async (req) => {
     }
 
     return new Response(JSON.stringify({ error: `Unknown action: ${action}` }), { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
-  } catch (error: any) {
-    return new Response(JSON.stringify({ error: error.message }), { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
+  } catch (error: unknown) {
+    return new Response(JSON.stringify({ error: error instanceof Error ? error.message : 'Internal error' }), { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
   }
 });

@@ -163,10 +163,10 @@ serve(async (req) => {
           tokens: result.tokens || { total: 0 }, cost_usd: result.cost_usd || 0,
           latency_ms: result.latency_ms || 0, success: !result.error,
         };
-      } catch (e: any) {
+      } catch (e: unknown) {
         return {
           index: idx, model: member.model, persona: member.persona || 'General',
-          content: `Error: ${e.message}`, thinking: '',
+          content: `Error: ${e instanceof Error ? e.message : 'Unknown'}`, thinking: '',
           tokens: { total: 0 }, cost_usd: 0, latency_ms: 0, success: false,
         };
       }
@@ -335,8 +335,8 @@ Responda em markdown:
         models_used: successfulResponses.length,
       },
     }), { headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
-  } catch (error: any) {
-    return new Response(JSON.stringify({ error: error.message || 'Internal error' }), {
+  } catch (error: unknown) {
+    return new Response(JSON.stringify({ error: error instanceof Error ? error.message : 'Internal error' }), {
       status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     });
   }

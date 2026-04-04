@@ -155,8 +155,8 @@ serve(async (req) => {
           const { count, error } = await client.from(testTable).select('id', { count: 'exact', head: true });
           if (error) throw new Error(error.message);
           results[connId] = { status: 'connected', count: count ?? 0 };
-        } catch (e: any) {
-          results[connId] = { status: 'error', error: e.message };
+        } catch (e: unknown) {
+          results[connId] = { status: 'error', error: e instanceof Error ? e.message : 'Unknown' };
         }
       }
       return new Response(JSON.stringify({ connections: results }), { headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
@@ -466,8 +466,8 @@ serve(async (req) => {
     }
 
     return new Response(JSON.stringify({ error: 'Invalid action' }), { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('datahub-query error:', error);
-    return new Response(JSON.stringify({ error: error.message }), { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
+    return new Response(JSON.stringify({ error: error instanceof Error ? error.message : 'Internal error' }), { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
   }
 });
