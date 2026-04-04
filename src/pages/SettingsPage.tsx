@@ -6,7 +6,7 @@ import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Palette, Globe, Bell, Key, Plus, Trash2, Save, Eye, EyeOff, Loader2 } from "lucide-react";
+import { Palette, Globe, Bell, Key, Plus, Trash2, Save, Eye, EyeOff, Loader2, RotateCw } from "lucide-react";
 import { toast } from "sonner";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
