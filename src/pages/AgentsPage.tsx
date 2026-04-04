@@ -52,7 +52,7 @@ export default function AgentsPage() {
         .order("updated_at", { ascending: false });
 
       if (statusFilter !== "all") {
-        query = query.eq("status", statusFilter as any);
+        query = query.eq("status", statusFilter as Database["public"]["Enums"]["agent_status"]);
       }
 
       const { data, error } = await query;
