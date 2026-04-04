@@ -44,7 +44,7 @@ export function KeyboardShortcutsDialog() {
   return (
     <>
       <div
-        className="fixed inset-0 z-50 bg-black/50 backdrop-blur-sm animate-fade-in"
+        className="fixed inset-0 z-50 bg-black/50 animate-fade-in"
         onClick={() => setOpen(false)}
       />
       <div

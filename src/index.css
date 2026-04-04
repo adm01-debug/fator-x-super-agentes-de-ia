@@ -211,7 +211,7 @@
   .nexus-glass {
     @apply border;
     background: hsl(var(--card));
-    border-color: hsl(var(--border) / 0.5);
+    border-color: hsl(var(--border));
   }
 
   .nexus-glow-sm {

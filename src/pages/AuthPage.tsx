@@ -45,7 +45,7 @@ function PasswordStrength({ password }: { password: string }) {
 /* ── Feature Pill ─────────────────────────────────────── */
 function FeaturePill({ icon: Icon, text }: { icon: React.ElementType; text: string }) {
   return (
-    <div className="flex items-center gap-2 rounded-full border border-border/30 bg-card/30 backdrop-blur-sm px-4 py-2 text-xs text-muted-foreground">
+    <div className="flex items-center gap-2 rounded-full border border-border bg-card px-4 py-2 text-xs text-muted-foreground">
       <Icon className="h-3.5 w-3.5 text-primary" />
       <span>{text}</span>
     </div>
@@ -74,7 +74,7 @@ function MeshGradient() {
     <div className="absolute inset-0 overflow-hidden pointer-events-none" aria-hidden="true">
       {/* Blob 1 — primary */}
       <div
-        className="absolute w-[500px] h-[500px] rounded-full opacity-20 blur-[100px]"
+        className="absolute w-[500px] h-[500px] rounded-full opacity-20"
         style={{
           background: 'hsl(var(--primary))',
           top: '10%',
@@ -84,7 +84,7 @@ function MeshGradient() {
       />
       {/* Blob 2 — accent */}
       <div
-        className="absolute w-[400px] h-[400px] rounded-full opacity-15 blur-[100px]"
+        className="absolute w-[400px] h-[400px] rounded-full opacity-15"
         style={{
           background: 'hsl(var(--accent))',
           top: '50%',
@@ -94,7 +94,7 @@ function MeshGradient() {
       />
       {/* Blob 3 — nexus-cyan */}
       <div
-        className="absolute w-[350px] h-[350px] rounded-full opacity-10 blur-[120px]"
+        className="absolute w-[350px] h-[350px] rounded-full opacity-10"
         style={{
           background: 'hsl(var(--nexus-purple))',
           top: '20%',
@@ -339,7 +339,7 @@ export default function AuthPage() {
                 type="button"
                 variant="outline"
                 disabled={loading}
-                className="w-full gap-3 min-h-[48px] bg-card/50 backdrop-blur-sm border-border/50 hover:bg-card hover:border-border hover:shadow-md transition-all duration-200 group"
+                className="w-full gap-3 min-h-[48px] bg-card border-border hover:bg-card hover:border-border hover:shadow-md transition-all duration-200 group"
                 onClick={handleGoogleLogin}
               >
                 <GoogleIcon />
@@ -360,7 +360,7 @@ export default function AuthPage() {
           {/* Form card */}
           <form
             onSubmit={isForgotPassword ? handleForgotPassword : handleSubmit}
-            className="space-y-5 rounded-2xl border border-border/30 bg-card/60 backdrop-blur-xl p-6 sm:p-8 shadow-2xl shadow-primary/[0.03]"
+            className="space-y-5 rounded-2xl border border-border bg-card p-6 sm:p-8 shadow-2xl shadow-primary/[0.03]"
             noValidate
           >
             <div className="space-y-4">
