@@ -21,6 +21,8 @@ export default function SettingsPage() {
   const [newKeyName, setNewKeyName] = useState('');
   const [newKeyValue, setNewKeyValue] = useState('');
   const [showValues, setShowValues] = useState<Record<string, boolean>>({});
+  const [editingKey, setEditingKey] = useState<string | null>(null);
+  const [editValue, setEditValue] = useState('');
   const [notifications, setNotifications] = useState({ email: true, errors: true, billing: false, weekly: true });
 
   // API Keys from workspace_secrets
