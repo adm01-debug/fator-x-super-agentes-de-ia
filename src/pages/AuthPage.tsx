@@ -94,7 +94,7 @@ function MeshGradient() {
       />
       {/* Blob 3 — nexus-cyan */}
       <div
-        className="absolute w-[350px] h-[350px] rounded-full opacity-10 blur-[120px]"
+        className="absolute w-[350px] h-[350px] rounded-full opacity-10"
         style={{
           background: 'hsl(var(--nexus-purple))',
           top: '20%',
