@@ -1,7 +1,9 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.49.4";
+import { z } from "https://esm.sh/zod@3.23.8";
 
 const corsHeaders = { 'Access-Control-Allow-Origin': '*', 'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type' };
+const jsonHeaders = { ...corsHeaders, 'Content-Type': 'application/json' };
 
 const JUDGE_RUBRIC = `You are an expert AI evaluator. Score the following AI response on these criteria (0-5 each):
 
@@ -16,6 +18,22 @@ Respond ONLY in this JSON format:
 
 Where N is a number from 0 to 5 and "overall" is a weighted average (accuracy=30%, relevance=25%, helpfulness=20%, completeness=15%, safety=10%).`;
 
+// ═══ Zod Schemas ═══
+const testCaseSchema = z.object({
+  id: z.string().optional(),
+  input: z.string().min(1),
+  expected_output: z.string().optional().nullable(),
+});
+
+const bodySchema = z.object({
+  evaluation_run_id: z.string().uuid().optional(),
+  agent_id: z.string().uuid(),
+  test_cases: z.array(testCaseSchema).optional(),
+  dataset_id: z.string().uuid().optional(),
+  judge_model: z.string().max(100).optional(),
+  mode: z.enum(['pointwise', 'pairwise', 'faithfulness']).optional().default('pointwise'),
+});
+
 serve(async (req) => {
   if (req.method === 'OPTIONS') return new Response(null, { headers: corsHeaders });
 
@@ -26,26 +44,27 @@ serve(async (req) => {
     const supabase = createClient(supabaseUrl, supabaseKey, { global: { headers: { Authorization: authHeader } } });
 
     const { data: { user } } = await supabase.auth.getUser();
-    if (!user) return new Response(JSON.stringify({ error: 'Unauthorized' }), { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
+    if (!user) return new Response(JSON.stringify({ error: 'Unauthorized' }), { status: 401, headers: jsonHeaders });
 
-    const body = await req.json();
-    const { evaluation_run_id, agent_id, test_cases, judge_model, mode } = body;
-    // mode: 'pointwise' (default) | 'pairwise' | 'faithfulness'
-
-    if (!agent_id) return new Response(JSON.stringify({ error: 'agent_id required' }), { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
+    const rawBody = await req.json();
+    const parsed = bodySchema.safeParse(rawBody);
+    if (!parsed.success) {
+      return new Response(JSON.stringify({ error: 'Invalid request', details: parsed.error.flatten().fieldErrors }), { status: 400, headers: jsonHeaders });
+    }
+    const { evaluation_run_id, agent_id, judge_model, mode } = parsed.data;
 
     // Get agent config for system prompt
     const { data: agent } = await supabase.from('agents').select('name, config, model').eq('id', agent_id).single();
-    const agentConfig = (agent?.config || {}) as Record<string, any>;
-    const systemPrompt = agentConfig.system_prompt || `You are ${agent?.name || 'an AI assistant'}.`;
+    const agentConfig = (agent?.config || {}) as Record<string, unknown>;
+    const systemPrompt = (agentConfig.system_prompt as string) || `You are ${agent?.name || 'an AI assistant'}.`;
 
     // Get test cases — from body or from dataset
-    let cases = test_cases;
-    if (!cases && body.dataset_id) {
-      const { data: tc } = await supabase.from('test_cases').select('*').eq('dataset_id', body.dataset_id).order('created_at');
-      cases = tc;
+    let cases = parsed.data.test_cases;
+    if (!cases && parsed.data.dataset_id) {
+      const { data: tc } = await supabase.from('test_cases').select('*').eq('dataset_id', parsed.data.dataset_id).order('created_at');
+      cases = tc as typeof cases;
     }
-    if (!cases || cases.length === 0) return new Response(JSON.stringify({ error: 'No test cases' }), { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
+    if (!cases || cases.length === 0) return new Response(JSON.stringify({ error: 'No test cases' }), { status: 400, headers: jsonHeaders });
 
     // Resolve API key for judge model
     const { data: member } = await supabase.from('workspace_members').select('workspace_id').eq('user_id', user.id).limit(1).single();
@@ -64,10 +83,10 @@ serve(async (req) => {
     };
 
     const { key: apiKey, provider } = await resolveKey();
-    if (!apiKey) return new Response(JSON.stringify({ error: 'No API key for judge model' }), { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
+    if (!apiKey) return new Response(JSON.stringify({ error: 'No API key for judge model' }), { status: 400, headers: jsonHeaders });
 
     const judgeModelName = judge_model || 'claude-haiku-4-5-20251001';
-    const results: any[] = [];
+    const results: Array<Record<string, unknown>> = [];
     let totalScore = 0;
 
     for (const tc of cases) {
@@ -105,19 +124,20 @@ serve(async (req) => {
           : judgeData.choices?.[0]?.message?.content || '{}';
 
         // Parse scores
-        let scores: any = {};
+        let scores: Record<string, unknown> = {};
         try {
           const clean = judgeText.replace(/```json\n?|```/g, '').trim();
           scores = JSON.parse(clean);
         } catch { scores = { overall: 0, reasoning: 'Failed to parse judge response' }; }
 
+        const overall = (scores.overall as number) || (scores.faithfulness as number) || 0;
         const caseResult = {
           test_case_id: tc.id, input: tc.input, agent_output: agentOutput.substring(0, 500),
           expected: tc.expected_output?.substring(0, 200) || null,
-          scores, overall: scores.overall || scores.faithfulness || 0,
+          scores, overall,
         };
         results.push(caseResult);
-        totalScore += caseResult.overall;
+        totalScore += overall;
       } catch (err) {
         results.push({ test_case_id: tc.id, input: tc.input, error: (err as Error).message, overall: 0 });
       }
@@ -127,22 +147,22 @@ serve(async (req) => {
 
     // Update evaluation_run if ID provided
     if (evaluation_run_id) {
-      await supabase.from('evaluation_runs').update({
+      await (supabase as unknown as { from: (t: string) => { update: (d: unknown) => { eq: (c: string, v: string) => unknown } } }).from('evaluation_runs').update({
         status: 'completed', completed_at: new Date().toISOString(),
-        pass_rate: avgScore / 5, // normalize to 0-1
+        pass_rate: avgScore / 5,
         judge_model: judgeModelName,
         judge_scores: { average: avgScore, results: results.slice(0, 50) },
       }).eq('id', evaluation_run_id);
     }
 
     return new Response(JSON.stringify({
-      judge_model: judgeModelName, mode: mode || 'pointwise',
+      judge_model: judgeModelName, mode,
       total_cases: cases.length, average_score: Math.round(avgScore * 100) / 100,
       pass_rate: Math.round((avgScore / 5) * 100) / 100,
       results,
-    }), { headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
+    }), { headers: jsonHeaders });
 
   } catch (error: unknown) {
-    return new Response(JSON.stringify({ error: error instanceof Error ? error.message : 'Internal error' }), { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
+    return new Response(JSON.stringify({ error: error instanceof Error ? error.message : 'Internal error' }), { status: 500, headers: jsonHeaders });
   }
 });
