@@ -300,7 +300,57 @@ serve(async (req) => {
       }), { headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
     }
 
-    return new Response(JSON.stringify({ error: 'Invalid action. Use: test_connections, list_entities, query_entity' }), { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
+    // ═══ ACTION: update_field ═══
+    if (action === 'update_field') {
+      const { entity, record_id: updateId, field, value } = body;
+      const mapping = ENTITY_MAPPINGS[entity];
+      if (!mapping) return new Response(JSON.stringify({ error: `Unknown entity: ${entity}` }), { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
+
+      // Block sensitive fields
+      if (mapping.sensitive_fields?.includes(field)) {
+        return new Response(JSON.stringify({ error: 'Cannot edit sensitive/LGPD-protected fields' }), { status: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
+      }
+
+      // Block id and system columns
+      const blockedCols = new Set(['id', 'created_at', 'search_vector']);
+      if (blockedCols.has(field)) {
+        return new Response(JSON.stringify({ error: `Column "${field}" cannot be edited` }), { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
+      }
+
+      const client = getExternalClient(mapping.primary.connection);
+      const prim = mapping.primary;
+
+      // Parse value types
+      let parsedValue: any = value;
+      if (value === '' || value === null) parsedValue = null;
+      else if (value === 'true') parsedValue = true;
+      else if (value === 'false') parsedValue = false;
+      else if (/^\d+$/.test(value)) parsedValue = parseInt(value, 10);
+      else if (/^\d+\.\d+$/.test(value)) parsedValue = parseFloat(value);
+
+      const { data: updated, error: updateError } = await client
+        .from(prim.table)
+        .update({ [field]: parsedValue, updated_at: new Date().toISOString() })
+        .eq(prim.id_column, updateId)
+        .select('*')
+        .single();
+
+      if (updateError) {
+        // Retry without updated_at if column doesn't exist
+        const { data: updated2, error: updateError2 } = await client
+          .from(prim.table)
+          .update({ [field]: parsedValue })
+          .eq(prim.id_column, updateId)
+          .select('*')
+          .single();
+        if (updateError2) throw new Error(updateError2.message);
+        return new Response(JSON.stringify({ success: true, record: updated2 }), { headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
+      }
+
+      return new Response(JSON.stringify({ success: true, record: updated }), { headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
+    }
+
+    return new Response(JSON.stringify({ error: 'Invalid action. Use: test_connections, list_entities, query_entity, update_field' }), { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
   } catch (error: any) {
     console.error('datahub-query error:', error);
     return new Response(JSON.stringify({ error: error.message }), { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });

@@ -1,42 +1,112 @@
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import {
   XCircle, Phone, Mail, MapPin, User, GitBranch, Link2,
   ExternalLink, Lock, Building2, MessageCircle, Loader2,
+  Pencil, Check, X as XIcon,
 } from "lucide-react";
 import { formatCNPJ, formatPhone, formatDate } from "@/config/datahub-columns";
 import { ENTITY_MAPPINGS } from "@/config/datahub-entities";
 import { supabase } from "@/integrations/supabase/client";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
+import { toast } from "sonner";
 
 interface RecordDetailProps {
   record: Record<string, any>;
   enrichedData: { enriched: Record<string, any[]>; cross_db: Record<string, any[]> } | null;
   entityId: string;
   onClose: () => void;
+  onRecordUpdate?: (updatedRecord: Record<string, any>) => void;
 }
 
 /* ── Helpers ─────────────────────────────────────────── */
 
 const SENSITIVE_MARKER = /^\*{3}$|REDACTED/;
+const NON_EDITABLE = new Set(['id', 'created_at', 'updated_at', 'search_vector', 'is_customer', 'is_supplier', 'is_carrier']);
 
 function isSensitive(value: any): boolean {
   return typeof value === 'string' && SENSITIVE_MARKER.test(value);
 }
 
-function FieldValue({ label, value, sensitive }: { label: string; value: any; sensitive?: boolean }) {
+function FieldValue({ label, value, sensitive, editable, onSave }: { 
+  label: string; value: any; sensitive?: boolean; editable?: boolean;
+  onSave?: (newValue: string) => Promise<void>;
+}) {
+  const [editing, setEditing] = useState(false);
+  const [editValue, setEditValue] = useState(String(value ?? ''));
+  const [saving, setSaving] = useState(false);
+  const inputRef = useRef<HTMLInputElement>(null);
   const isSens = sensitive || isSensitive(value);
+
+  const handleSave = async () => {
+    if (editValue === String(value ?? '')) { setEditing(false); return; }
+    setSaving(true);
+    try {
+      await onSave?.(editValue);
+      setEditing(false);
+      toast.success(`Campo "${label}" atualizado`);
+    } catch (e: any) {
+      toast.error(`Erro ao salvar: ${e.message}`);
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const handleCancel = () => {
+    setEditValue(String(value ?? ''));
+    setEditing(false);
+  };
+
+  const handleKeyDown = (e: React.KeyboardEvent) => {
+    if (e.key === 'Enter') handleSave();
+    if (e.key === 'Escape') handleCancel();
+  };
+
+  useEffect(() => {
+    if (editing) inputRef.current?.focus();
+  }, [editing]);
+
   return (
-    <div className="flex justify-between items-center py-1 border-b border-border/10 last:border-0">
-      <span className="text-muted-foreground text-[11px] min-w-[120px]">{label}</span>
+    <div className="flex justify-between items-center py-1 border-b border-border/10 last:border-0 group min-h-[28px]">
+      <span className="text-muted-foreground text-[11px] min-w-[120px] shrink-0">{label}</span>
       {isSens ? (
         <span className="flex items-center gap-1 text-[11px] text-destructive/70">
           <Lock className="h-3 w-3" /> REDACTED (LGPD)
         </span>
+      ) : editing ? (
+        <div className="flex items-center gap-1 flex-1 justify-end">
+          <Input
+            ref={inputRef}
+            value={editValue}
+            onChange={(e) => setEditValue(e.target.value)}
+            onKeyDown={handleKeyDown}
+            className="h-6 text-[11px] font-mono bg-secondary/50 border-primary/30 max-w-[250px] px-1.5"
+            disabled={saving}
+          />
+          {saving ? (
+            <Loader2 className="h-3 w-3 animate-spin text-primary" />
+          ) : (
+            <>
+              <button onClick={handleSave} className="p-0.5 rounded hover:bg-primary/10 text-primary"><Check className="h-3 w-3" /></button>
+              <button onClick={handleCancel} className="p-0.5 rounded hover:bg-destructive/10 text-muted-foreground"><XIcon className="h-3 w-3" /></button>
+            </>
+          )}
+        </div>
       ) : (
-        <span className="text-foreground text-[11px] font-mono text-right max-w-[250px] truncate">
-          {value === null || value === undefined ? '—' : String(value)}
-        </span>
+        <div className="flex items-center gap-1 max-w-[250px]">
+          <span className="text-foreground text-[11px] font-mono text-right truncate flex-1">
+            {value === null || value === undefined ? '—' : String(value)}
+          </span>
+          {editable && (
+            <button
+              onClick={() => { setEditValue(String(value ?? '')); setEditing(true); }}
+              className="opacity-0 group-hover:opacity-100 transition-opacity p-0.5 rounded hover:bg-primary/10 text-muted-foreground hover:text-primary"
+            >
+              <Pencil className="h-3 w-3" />
+            </button>
+          )}
+        </div>
       )}
     </div>
   );
@@ -293,28 +363,56 @@ const SECONDARY_LABELS: Record<string, { label: string; icon: React.ReactNode }>
 };
 
 /* ── Main Component ──────────────────────────────────── */
-export function RecordDetail({ record, enrichedData, entityId, onClose }: RecordDetailProps) {
+export function RecordDetail({ record, enrichedData, entityId, onClose, onRecordUpdate }: RecordDetailProps) {
   const mapping = ENTITY_MAPPINGS[entityId];
   const displayCol = mapping?.primary.display_column ?? 'id';
   const sensitiveFields = new Set(mapping?.sensitive_fields ?? []);
+  const [currentRecord, setCurrentRecord] = useState(record);
+
+  useEffect(() => { setCurrentRecord(record); }, [record]);
 
   // Determine primary fields to show (skip internal/boring columns)
-  const skipKeys = new Set(['id', 'created_at', 'updated_at', 'is_customer', 'is_supplier', 'is_carrier']);
-  const primaryFields = Object.entries(record).filter(([k]) => !skipKeys.has(k));
+  const skipKeys = new Set(['id', 'created_at', 'updated_at', 'is_customer', 'is_supplier', 'is_carrier', 'search_vector']);
+  const primaryFields = Object.entries(currentRecord).filter(([k]) => !skipKeys.has(k));
+
+  const handleFieldSave = async (field: string, newValue: string) => {
+    const { data: result, error } = await supabase.functions.invoke('datahub-query', {
+      body: {
+        action: 'update_field',
+        entity: entityId,
+        record_id: currentRecord.id,
+        field,
+        value: newValue,
+      },
+    });
+    if (error) throw new Error(error.message);
+    if (result?.error) throw new Error(result.error);
+    if (result?.record) {
+      setCurrentRecord(result.record);
+      onRecordUpdate?.(result.record);
+    }
+  };
+
+  const isEditable = (key: string) => !NON_EDITABLE.has(key) && !sensitiveFields.has(key);
 
   return (
     <div className="space-y-4 border-t border-border pt-4 animate-in slide-in-from-bottom-2 duration-200">
       {/* Header */}
       <div className="flex items-center justify-between">
         <h4 className="text-sm font-semibold text-foreground flex items-center gap-2">
-          📋 {record[displayCol] || 'Registro'}
-          {record.id && (
-            <span className="text-[11px] font-mono text-muted-foreground">#{String(record.id).slice(0, 8)}</span>
+          📋 {currentRecord[displayCol] || 'Registro'}
+          {currentRecord.id && (
+            <span className="text-[11px] font-mono text-muted-foreground">#{String(currentRecord.id).slice(0, 8)}</span>
           )}
         </h4>
-        <Button size="sm" variant="ghost" onClick={onClose}>
-          <XCircle className="h-4 w-4" />
-        </Button>
+        <div className="flex items-center gap-2">
+          <Badge variant="outline" className="text-[11px] gap-1 text-primary border-primary/30">
+            <Pencil className="h-3 w-3" /> Clique para editar
+          </Badge>
+          <Button size="sm" variant="ghost" onClick={onClose}>
+            <XCircle className="h-4 w-4" />
+          </Button>
+        </div>
       </div>
 
       {/* Primary fields */}
@@ -322,12 +420,19 @@ export function RecordDetail({ record, enrichedData, entityId, onClose }: Record
         <h5 className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider mb-2">Dados Primários</h5>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-x-6">
           {primaryFields.map(([key, val]) => (
-            <FieldValue key={key} label={key} value={val} sensitive={sensitiveFields.has(key)} />
+            <FieldValue
+              key={key}
+              label={key}
+              value={val}
+              sensitive={sensitiveFields.has(key)}
+              editable={isEditable(key)}
+              onSave={(newValue) => handleFieldSave(key, newValue)}
+            />
           ))}
         </div>
-        {record.created_at && (
+        {currentRecord.created_at && (
           <p className="text-[11px] text-muted-foreground mt-2 border-t border-border/10 pt-1">
-            Criado: {formatDate(record.created_at)} · Atualizado: {formatDate(record.updated_at)}
+            Criado: {formatDate(currentRecord.created_at)} · Atualizado: {formatDate(currentRecord.updated_at)}
           </p>
         )}
       </div>
