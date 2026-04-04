@@ -18,6 +18,7 @@ import {
 import { RecordDetail } from "./RecordDetail";
 import { InlineEditCell } from "./InlineEditCell";
 import { BulkEditDialog } from "./BulkEditDialog";
+import { CreateRecordDialog } from "./CreateRecordDialog";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { useDebounce } from "@/hooks/use-debounce";
