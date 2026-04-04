@@ -81,7 +81,7 @@ serve(async (req) => {
 
     // If all reranking failed, return original top K
     if (!reranked) {
-      reranked = chunks.slice(0, topK).map((c: any, i: number) => ({
+      reranked = chunks.slice(0, topK).map((c: Record<string, unknown>, i: number) => ({
         chunk: c,
         relevance_score: 1 - (i * 0.05),
       }));
