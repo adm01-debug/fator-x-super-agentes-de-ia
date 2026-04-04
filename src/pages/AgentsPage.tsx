@@ -67,6 +67,27 @@ export default function AgentsPage() {
     setFavorites(toggleFavorite(id));
   }, []);
 
+  const handleClone = useCallback(async (e: React.MouseEvent, agent: AgentRow) => {
+    e.stopPropagation();
+    setCloning(agent.id);
+    try {
+      const { id, created_at, updated_at, ...rest } = agent;
+      const { data, error } = await supabase.from('agents').insert({
+        ...rest,
+        name: `${agent.name} (cópia)`,
+        status: 'draft' as const,
+        version: 1,
+      }).select('id').single();
+      if (error) throw error;
+      toast.success('Agente clonado!');
+      queryClient.invalidateQueries({ queryKey: ['agents'] });
+    } catch (err: any) {
+      toast.error(err.message || 'Erro ao clonar');
+    } finally {
+      setCloning(null);
+    }
+  }, [queryClient]);
+
   const filtered = agents.filter(a =>
     a.name.toLowerCase().includes(search.toLowerCase()) ||
     (a.tags ?? []).some(t => t.toLowerCase().includes(search.toLowerCase()))
