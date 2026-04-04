@@ -90,3 +90,77 @@ export default function DeploymentsPage() {
     </div>
   );
 }
+
+function EndpointGeneratorButton() {
+  const [copied, setCopied] = useState<string | null>(null);
+  const projectId = import.meta.env.VITE_SUPABASE_PROJECT_ID || 'tifbqkyumdxzmxyyoqlu';
+  const baseUrl = `https://${projectId}.supabase.co/functions/v1`;
+
+  const endpoints = [
+    { name: 'LLM Gateway', path: 'llm-gateway', method: 'POST', desc: 'Envie mensagens para qualquer modelo configurado' },
+    { name: 'RAG Query', path: 'cerebro-query', method: 'POST', desc: 'Consulta com retrieval-augmented generation' },
+    { name: 'Workflow Engine', path: 'workflow-engine-v2', method: 'POST', desc: 'Execute workflows multi-agente' },
+    { name: 'Oracle Council', path: 'oracle-council', method: 'POST', desc: 'Consulta multi-modelo com consenso' },
+  ];
+
+  const handleCopy = (text: string, id: string) => {
+    navigator.clipboard.writeText(text);
+    setCopied(id);
+    toast.success('Copiado!');
+    setTimeout(() => setCopied(null), 2000);
+  };
+
+  return (
+    <Dialog>
+      <DialogTrigger asChild>
+        <Button variant="outline" className="gap-2">
+          <Link2 className="h-4 w-4" /> Endpoints API
+        </Button>
+      </DialogTrigger>
+      <DialogContent className="sm:max-w-lg">
+        <DialogHeader>
+          <DialogTitle className="flex items-center gap-2">
+            <Link2 className="h-4 w-4 text-primary" /> Endpoints de Integração
+          </DialogTitle>
+        </DialogHeader>
+        <div className="space-y-3 mt-2">
+          <div className="rounded-lg bg-secondary/30 border border-border/30 p-3">
+            <p className="text-xs font-medium text-foreground mb-1">Base URL</p>
+            <div className="flex items-center gap-2">
+              <Input value={baseUrl} readOnly className="text-xs font-mono bg-secondary/50 h-8" />
+              <Button size="icon" variant="ghost" className="h-8 w-8 shrink-0" onClick={() => handleCopy(baseUrl, 'base')}>
+                {copied === 'base' ? <CheckCircle className="h-3.5 w-3.5 text-nexus-emerald" /> : <Copy className="h-3.5 w-3.5" />}
+              </Button>
+            </div>
+          </div>
+
+          {endpoints.map(ep => {
+            const url = `${baseUrl}/${ep.path}`;
+            const curl = `curl -X ${ep.method} '${url}' \\\n  -H 'Authorization: Bearer YOUR_ANON_KEY' \\\n  -H 'Content-Type: application/json' \\\n  -d '{"model":"google/gemini-2.5-flash","messages":[{"role":"user","content":"Hello"}]}'`;
+            return (
+              <div key={ep.path} className="rounded-lg border border-border/30 p-3 space-y-1.5">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-xs font-semibold text-foreground">{ep.name}</p>
+                    <p className="text-[11px] text-muted-foreground">{ep.desc}</p>
+                  </div>
+                  <Badge variant="outline" className="text-[11px] font-mono">{ep.method}</Badge>
+                </div>
+                <div className="flex items-center gap-2">
+                  <code className="text-[11px] text-primary font-mono truncate flex-1">{url}</code>
+                  <Button size="icon" variant="ghost" className="h-6 w-6 shrink-0" onClick={() => handleCopy(curl, ep.path)}>
+                    {copied === ep.path ? <CheckCircle className="h-3 w-3 text-nexus-emerald" /> : <Copy className="h-3 w-3" />}
+                  </Button>
+                </div>
+              </div>
+            );
+          })}
+
+          <p className="text-[11px] text-muted-foreground">
+            💡 Use a anon key do projeto no header Authorization. Para produção, use service role key com cuidado.
+          </p>
+        </div>
+      </DialogContent>
+    </Dialog>
+  );
+}
