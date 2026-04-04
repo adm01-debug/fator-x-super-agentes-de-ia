@@ -221,6 +221,14 @@ export default function AgentsPage() {
                   </div>
                   <div className="flex items-center gap-1.5">
                     <button
+                      onClick={(e) => handleClone(e, agent)}
+                      className="h-7 w-7 rounded-md flex items-center justify-center text-muted-foreground/40 hover:text-muted-foreground hover:bg-secondary/50 opacity-0 group-hover:opacity-100 transition-all"
+                      aria-label="Clonar agente"
+                      disabled={cloning === agent.id}
+                    >
+                      {cloning === agent.id ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Copy className="h-3.5 w-3.5" />}
+                    </button>
+                    <button
                       onClick={(e) => handleToggleFav(e, agent.id)}
                       className={`h-7 w-7 rounded-md flex items-center justify-center transition-colors ${
                         isFav 
