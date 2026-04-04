@@ -121,7 +121,7 @@ export async function getWorkspaceInfo() {
     .select('workspace_id, role')
     .eq('user_id', user.id)
     .limit(1)
-    .single();
+    .maybeSingle();
 
   if (!member?.workspace_id) return null;
 
