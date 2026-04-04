@@ -44,7 +44,7 @@ serve(async (req) => {
           });
           if (resp.ok) {
             const data = await resp.json();
-            reranked = (data.results || []).map((r: any) => ({
+            reranked = (data.results || []).map((r: Record<string, unknown>) => ({
               chunk: chunks[r.index],
               relevance_score: r.relevance_score,
             }));
