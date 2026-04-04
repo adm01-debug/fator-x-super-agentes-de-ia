@@ -344,6 +344,7 @@ export default function DashboardPage() {
 
 function DashboardAlerts() {
   const navigate = useNavigate();
+  const queryClient = useQueryClient();
   const { data: alerts = [] } = useQuery({
     queryKey: ['dashboard_alerts'],
     queryFn: async () => {
@@ -351,6 +352,17 @@ function DashboardAlerts() {
       return data ?? [];
     },
   });
+
+  // Realtime subscription for alerts
+  useEffect(() => {
+    const channel = supabase
+      .channel('dashboard-alerts')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'alerts' }, () => {
+        queryClient.invalidateQueries({ queryKey: ['dashboard_alerts'] });
+      })
+      .subscribe();
+    return () => { supabase.removeChannel(channel); };
+  }, [queryClient]);
 
   if (alerts.length === 0) return null;
 
