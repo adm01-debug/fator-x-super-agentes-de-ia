@@ -88,6 +88,29 @@ export default function AgentsPage() {
     }
   }, [queryClient]);
 
+  const handleAutoTag = useCallback(async (e: React.MouseEvent, agent: AgentRow) => {
+    e.stopPropagation();
+    const config = agent.config as Record<string, any> | null;
+    const tags: string[] = [];
+    if (agent.model?.includes('gpt')) tags.push('OpenAI');
+    if (agent.model?.includes('gemini')) tags.push('Gemini');
+    if (agent.model?.includes('claude')) tags.push('Claude');
+    if (config?.tools?.length) tags.push('tools');
+    if (config?.rag_enabled || config?.knowledge_base) tags.push('RAG');
+    if (config?.memory_enabled) tags.push('memory');
+    if (agent.status === 'production') tags.push('prod');
+    if (agent.persona) tags.push('persona');
+    const merged = [...new Set([...(agent.tags ?? []), ...tags])];
+    if (merged.length === (agent.tags ?? []).length) {
+      toast.info('Nenhuma tag nova detectada');
+      return;
+    }
+    const { error } = await supabase.from('agents').update({ tags: merged }).eq('id', agent.id);
+    if (error) { toast.error(error.message); return; }
+    toast.success(`${merged.length - (agent.tags ?? []).length} tags adicionadas automaticamente`);
+    queryClient.invalidateQueries({ queryKey: ['agents'] });
+  }, [queryClient]);
+
   const filtered = agents.filter(a =>
     a.name.toLowerCase().includes(search.toLowerCase()) ||
     (a.tags ?? []).some(t => t.toLowerCase().includes(search.toLowerCase()))
