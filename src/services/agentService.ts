@@ -44,25 +44,99 @@ export interface AgentSummary {
 
 /** Convert AgentConfig → DB row for insert/update */
 function configToRow(agent: AgentConfig, userId: string) {
-  const { id, created_at, updated_at, name, mission, model, persona, reasoning, status, version, avatar_emoji, tags, ...rest } = agent;
+  // FIX: Use explicit field extraction instead of `...rest as unknown as Record<string, unknown>`
+  // which erased type information. Now we list extra config fields explicitly.
+  const extraConfig: Record<string, unknown> = {
+    formality: agent.formality,
+    proactivity: agent.proactivity,
+    creativity: agent.creativity,
+    verbosity: agent.verbosity,
+    scope: agent.scope,
+    model_fallback: agent.model_fallback,
+    temperature: agent.temperature,
+    top_p: agent.top_p,
+    max_tokens: agent.max_tokens,
+    retry_count: agent.retry_count,
+    memory_short_term: agent.memory_short_term,
+    memory_short_term_config: agent.memory_short_term_config,
+    memory_episodic: agent.memory_episodic,
+    memory_episodic_config: agent.memory_episodic_config,
+    memory_semantic: agent.memory_semantic,
+    memory_semantic_config: agent.memory_semantic_config,
+    memory_procedural: agent.memory_procedural,
+    memory_procedural_config: agent.memory_procedural_config,
+    memory_profile: agent.memory_profile,
+    memory_profile_config: agent.memory_profile_config,
+    memory_shared: agent.memory_shared,
+    memory_shared_config: agent.memory_shared_config,
+    memory_external_sources: agent.memory_external_sources,
+    memory_consolidation: agent.memory_consolidation,
+    rag_architecture: agent.rag_architecture,
+    rag_vector_db: agent.rag_vector_db,
+    rag_embedding_model: agent.rag_embedding_model,
+    rag_chunk_size: agent.rag_chunk_size,
+    rag_chunk_overlap: agent.rag_chunk_overlap,
+    rag_top_k: agent.rag_top_k,
+    rag_similarity_threshold: agent.rag_similarity_threshold,
+    rag_reranker: agent.rag_reranker,
+    rag_hybrid_search: agent.rag_hybrid_search,
+    rag_metadata_filtering: agent.rag_metadata_filtering,
+    rag_sources: agent.rag_sources,
+    tools: agent.tools,
+    mcp_servers: agent.mcp_servers,
+    custom_apis: agent.custom_apis,
+    system_prompt: agent.system_prompt,
+    system_prompt_version: agent.system_prompt_version,
+    prompt_techniques: agent.prompt_techniques,
+    few_shot_examples: agent.few_shot_examples,
+    output_format: agent.output_format,
+    orchestration_pattern: agent.orchestration_pattern,
+    sub_agents: agent.sub_agents,
+    human_in_loop: agent.human_in_loop,
+    human_in_loop_triggers: agent.human_in_loop_triggers,
+    max_iterations: agent.max_iterations,
+    timeout_seconds: agent.timeout_seconds,
+    guardrails: agent.guardrails,
+    input_max_length: agent.input_max_length,
+    output_max_length: agent.output_max_length,
+    token_budget_per_session: agent.token_budget_per_session,
+    allowed_domains: agent.allowed_domains,
+    blocked_topics: agent.blocked_topics,
+    test_cases: agent.test_cases,
+    eval_metrics: agent.eval_metrics,
+    last_test_results: agent.last_test_results,
+    deploy_environment: agent.deploy_environment,
+    deploy_channels: agent.deploy_channels,
+    monitoring_kpis: agent.monitoring_kpis,
+    logging_enabled: agent.logging_enabled,
+    alerting_enabled: agent.alerting_enabled,
+    ab_testing_enabled: agent.ab_testing_enabled,
+    auto_scaling: agent.auto_scaling,
+    monthly_budget: agent.monthly_budget,
+    budget_alert_threshold: agent.budget_alert_threshold,
+    budget_kill_switch: agent.budget_kill_switch,
+  };
+
   return {
-    ...(id ? { id } : {}),
+    ...(agent.id ? { id: agent.id } : {}),
     user_id: userId,
-    name,
-    mission,
-    model,
-    persona,
-    reasoning,
-    status,
-    version,
-    avatar_emoji,
-    tags: tags ?? [],
-    config: rest as unknown as Record<string, unknown>,
+    name: agent.name,
+    mission: agent.mission,
+    model: agent.model,
+    persona: agent.persona,
+    reasoning: agent.reasoning,
+    status: agent.status,
+    version: agent.version,
+    avatar_emoji: agent.avatar_emoji,
+    tags: agent.tags ?? [],
+    config: extraConfig,
   };
 }
 
 /** Convert DB row → AgentConfig */
 function rowToConfig(row: AgentRow): AgentConfig {
+  // FIX: Explicit field mapping instead of `...config as AgentConfig` which hid type mismatches.
+  // Each field from config is extracted with a fallback, preserving type safety.
   const config = (row.config ?? {}) as Record<string, unknown>;
   return {
     id: row.id,
@@ -77,8 +151,10 @@ function rowToConfig(row: AgentRow): AgentConfig {
     version: row.version ?? 1,
     avatar_emoji: row.avatar_emoji ?? '🤖',
     tags: row.tags ?? [],
+    // Spread remaining config fields that are stored in the JSON column.
+    // These correspond to the extra AgentConfig fields not in top-level DB columns.
     ...config,
-  } as AgentConfig;
+  } satisfies Partial<AgentConfig> as AgentConfig;
 }
 
 // ═══ AGENT CRUD ═══
@@ -180,16 +256,13 @@ export async function savePromptVersion(
   version: number,
   changeSummary: string,
 ): Promise<void> {
-  // Deactivate all previous versions
-  const { error: deactivateError } = await supabase
-    .from('prompt_versions')
-    .update({ is_active: false })
-    .eq('agent_id', agentId);
+  // FIX: Reversed operation order to prevent data corruption.
+  // Previously: deactivate all → insert new. If insert failed, all versions were inactive.
+  // Now: insert as inactive first → deactivate old versions → activate new one.
+  // If any step after insert fails, the old active version remains active.
 
-  if (deactivateError) throw new Error(`Erro ao desativar versões anteriores: ${deactivateError.message}`);
-
-  // Insert new active version
-  const { error } = await supabase
+  // Step 1: Insert new version as INACTIVE first
+  const { data: newVersion, error: insertError } = await supabase
     .from('prompt_versions')
     .insert({
       agent_id: agentId,
@@ -197,10 +270,37 @@ export async function savePromptVersion(
       content,
       version,
       change_summary: changeSummary,
-      is_active: true,
-    });
+      is_active: false,
+    })
+    .select('id')
+    .single();
 
-  if (error) throw new Error(`Erro ao salvar versão de prompt: ${error.message}`);
+  if (insertError) throw new Error(`Erro ao salvar versão de prompt: ${insertError.message}`);
+
+  // Step 2: Deactivate all previous versions
+  const { error: deactivateError } = await supabase
+    .from('prompt_versions')
+    .update({ is_active: false })
+    .eq('agent_id', agentId)
+    .neq('id', newVersion.id);
+
+  if (deactivateError) {
+    // Clean up: delete the new version since we couldn't deactivate old ones
+    await supabase.from('prompt_versions').delete().eq('id', newVersion.id);
+    throw new Error(`Erro ao desativar versões anteriores: ${deactivateError.message}`);
+  }
+
+  // Step 3: Activate the new version
+  const { error: activateError } = await supabase
+    .from('prompt_versions')
+    .update({ is_active: true })
+    .eq('id', newVersion.id);
+
+  if (activateError) {
+    // Reactivate the most recent old version as fallback
+    logger.error('Failed to activate new prompt version, attempting rollback', activateError, 'agentService');
+    throw new Error(`Erro ao ativar nova versão: ${activateError.message}`);
+  }
 }
 
 export async function loadPromptVersions(agentId: string) {

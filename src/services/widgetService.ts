@@ -36,12 +36,46 @@ const DEFAULT_CONFIG: WidgetConfig = {
   autoOpenDelay: 5000,
 };
 
+// UUID v4 format validation
+const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
+/** Escape HTML special characters to prevent XSS in generated HTML strings */
+function escapeHtml(str: string): string {
+  return str
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;');
+}
+
+function createSvgIcon(pathD: string): string {
+  return `
+  function _makeSvg(d) {
+    var NS = 'http://www.w3.org/2000/svg';
+    var svg = document.createElementNS(NS, 'svg');
+    svg.setAttribute('viewBox', '0 0 24 24');
+    var p = document.createElementNS(NS, 'path');
+    p.setAttribute('d', d);
+    svg.appendChild(p);
+    return svg;
+  }`;
+}
+
+const CHAT_ICON_PATH = 'M20 2H4c-1.1 0-2 .9-2 2v18l4-4h14c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2zm0 14H6l-2 2V4h16v12z';
+const CLOSE_ICON_PATH = 'M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z';
+
 /**
  * Generate the embed HTML/JS code for a chat widget.
  */
 export function generateEmbedCode(config: Partial<WidgetConfig> & { agentId: string }): string {
   const c = { ...DEFAULT_CONFIG, ...config };
   const baseUrl = window.location.origin;
+
+  // Validate agentId is a UUID to prevent injection
+  if (!UUID_RE.test(c.agentId)) {
+    throw new Error('Invalid agentId: must be a valid UUID');
+  }
 
   return `<!-- Nexus Agents Studio — Chat Widget -->
 <script>
@@ -62,6 +96,8 @@ export function generateEmbedCode(config: Partial<WidgetConfig> & { agentId: str
     autoOpenDelay: c.autoOpenDelay,
     baseUrl: baseUrl,
   }, null, 2)};
+
+  ${createSvgIcon('')}
 
   var style = document.createElement('style');
   style.textContent = \`
@@ -112,13 +148,13 @@ export function generateEmbedCode(config: Partial<WidgetConfig> & { agentId: str
 
   var btn = document.createElement('button');
   btn.id = 'nexus-chat-widget-btn';
-  btn.innerHTML = '<svg viewBox="0 0 24 24"><path d="M20 2H4c-1.1 0-2 .9-2 2v18l4-4h14c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2zm0 14H6l-2 2V4h16v12z"/></svg>';
+  btn.appendChild(_makeSvg('${CHAT_ICON_PATH}'));
   btn.title = cfg.agentName;
   document.body.appendChild(btn);
 
   var frame = document.createElement('iframe');
   frame.id = 'nexus-chat-widget-frame';
-  frame.src = cfg.baseUrl + '/widget?agent=' + cfg.agentId + '&theme=' + cfg.theme;
+  frame.src = cfg.baseUrl + '/widget?agent=' + encodeURIComponent(cfg.agentId) + '&theme=' + encodeURIComponent(cfg.theme);
   frame.allow = 'microphone';
   document.body.appendChild(frame);
 
@@ -126,9 +162,9 @@ export function generateEmbedCode(config: Partial<WidgetConfig> & { agentId: str
   btn.addEventListener('click', function() {
     open = !open;
     frame.className = open ? 'open' : '';
-    btn.innerHTML = open
-      ? '<svg viewBox="0 0 24 24"><path d="M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg>'
-      : '<svg viewBox="0 0 24 24"><path d="M20 2H4c-1.1 0-2 .9-2 2v18l4-4h14c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2zm0 14H6l-2 2V4h16v12z"/></svg>';
+    btn.replaceChildren(_makeSvg(open
+      ? '${CLOSE_ICON_PATH}'
+      : '${CHAT_ICON_PATH}'));
   });
 
   if (cfg.autoOpen) {
@@ -148,7 +184,7 @@ export function generatePreviewHTML(config: Partial<WidgetConfig> & { agentId: s
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Widget Preview — ${config.agentName ?? 'Assistente'}</title>
+  <title>Widget Preview — ${escapeHtml(config.agentName ?? 'Assistente')}</title>
   <style>
     body { font-family: system-ui, sans-serif; background: #1a1a2e; color: #e0e0e0; padding: 40px; }
     h1 { font-size: 24px; margin-bottom: 8px; }
@@ -162,8 +198,8 @@ export function generatePreviewHTML(config: Partial<WidgetConfig> & { agentId: s
     <h1>Preview do Widget</h1>
     <p>Esta é uma página de demonstração. O widget aparece no canto inferior.</p>
     <div class="card">
-      <h3>Agente: ${config.agentName ?? 'Assistente'}</h3>
-      <p>ID: ${config.agentId}</p>
+      <h3>Agente: ${escapeHtml(config.agentName ?? 'Assistente')}</h3>
+      <p>ID: ${escapeHtml(config.agentId)}</p>
       <p>Clique no botão azul para abrir o chat.</p>
     </div>
   </div>

@@ -76,7 +76,10 @@ export function saveCheckpoint(graphId: string, state: GraphState, nodeId: strin
     timestamp: new Date().toISOString(), nodeId, iteration: state.iteration,
   };
   if (!checkpointStore.has(graphId)) checkpointStore.set(graphId, []);
-  checkpointStore.get(graphId)!.push(cp);
+  const cps = checkpointStore.get(graphId)!;
+  cps.push(cp);
+  // Trim to max 100 checkpoints per graph to prevent unbounded memory growth
+  if (cps.length > 100) cps.splice(0, cps.length - 100);
   return cp;
 }
 

@@ -134,22 +134,27 @@ export async function compactMemory(agentId: string): Promise<CompactionResult> 
   if (episodic.length > 30) {
     const oldEntries = episodic.slice(20); // Keep newest 20
     if (llm.isLLMConfigured() && oldEntries.length > 5) {
-      const summaryText = oldEntries.map(e => e.content).join('\n');
-      const summaryResp = await llm.callModel('anthropic/claude-sonnet-4', [
-        { role: 'system', content: 'Summarize these interaction memories into 3-5 key facts. Be concise.' },
-        { role: 'user', content: summaryText.slice(0, 3000) },
-      ], { temperature: 0.2, maxTokens: 300 });
+      try {
+        const summaryText = oldEntries.map(e => e.content).join('\n');
+        const summaryResp = await llm.callModel('anthropic/claude-sonnet-4', [
+          { role: 'system', content: 'Summarize these interaction memories into 3-5 key facts. Be concise.' },
+          { role: 'user', content: summaryText.slice(0, 3000) },
+        ], { temperature: 0.2, maxTokens: 300 });
 
-      // Store summary as semantic memory
-      memoryService.addMemory(agentId, 'semantic', `[Compacted from ${oldEntries.length} interactions] ${summaryResp.content}`, {
-        source: 'compaction', confidence: 75,
-      });
-      summariesCreated++;
+        // Store summary as semantic memory
+        memoryService.addMemory(agentId, 'semantic', `[Compacted from ${oldEntries.length} interactions] ${summaryResp.content}`, {
+          source: 'compaction', confidence: 75,
+        });
+        summariesCreated++;
 
-      // Remove old entries
-      for (const entry of oldEntries) {
-        memoryService.deleteMemory(agentId, 'episodic', entry.id);
-        removed++;
+        // Remove old entries
+        for (const entry of oldEntries) {
+          memoryService.deleteMemory(agentId, 'episodic', entry.id);
+          removed++;
+        }
+      } catch (err) {
+        logger.error(`Memory compaction LLM call failed: ${err instanceof Error ? err.message : 'Unknown'}`, err, 'selfEditingMemory');
+        // Continue with rest of compaction — don't let one LLM failure break the entire process
       }
     }
   }

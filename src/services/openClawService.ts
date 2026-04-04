@@ -185,6 +185,7 @@ export async function sendMessage(
       method: 'POST',
       headers,
       body: JSON.stringify({ message }),
+      signal: AbortSignal.timeout(10000),
     });
 
     if (!resp.ok) {
@@ -216,7 +217,7 @@ export async function getSessionHistory(
     const headers: Record<string, string> = {};
     if (token) headers['Authorization'] = `Bearer ${token}`;
 
-    const resp = await fetch(`${url}/api/sessions/${sessionId}`, { headers });
+    const resp = await fetch(`${url}/api/sessions/${sessionId}`, { headers, signal: AbortSignal.timeout(10000) });
     if (!resp.ok) return { messages: [], error: `${resp.status}` };
 
     const data = await resp.json();

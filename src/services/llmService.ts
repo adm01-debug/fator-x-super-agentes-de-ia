@@ -50,24 +50,38 @@ export const AVAILABLE_MODELS = [
 ] as const;
 
 // ═══ API KEY MANAGEMENT ═══
+// SECURITY: API keys are kept in memory only — never persisted to localStorage.
+// Only non-sensitive config (provider, baseUrl) is stored in localStorage.
 
 let storedConfig: LLMConfig | null = null;
 
-// Auto-configure: localStorage (BYOK) → env var → null
+/** Non-sensitive fields safe to persist in localStorage */
+interface PersistedLLMConfig {
+  provider: LLMConfig['provider'];
+  baseUrl?: string;
+}
+
+// Auto-configure: localStorage (non-sensitive) + env var → null
 let envChecked = false;
 function autoConfigureFromEnv(): void {
   if (storedConfig || envChecked) return;
   envChecked = true;
 
-  // Priority 1: BYOK keys from localStorage (set via Settings page)
+  // Priority 1: Check localStorage for non-sensitive config (provider/baseUrl only)
+  // API key must be re-entered each session or come from env var
   try {
     const stored = localStorage.getItem('nexus_llm_config');
     if (stored) {
       const parsed = JSON.parse(stored);
-      if (parsed.apiKey && parsed.apiKey.length > 10) {
-        storedConfig = parsed;
-        logger.info(`LLM auto-configured from localStorage (BYOK): provider=${parsed.provider}`, 'llmService');
-        return;
+      // Migrate: if old format had apiKey in localStorage, strip it out
+      if (parsed.apiKey) {
+        const sanitized: PersistedLLMConfig = { provider: parsed.provider, baseUrl: parsed.baseUrl };
+        localStorage.setItem('nexus_llm_config', JSON.stringify(sanitized));
+        logger.info('LLM config migrated: API key stripped from localStorage', 'llmService');
+      }
+      // We have provider info but no key — config is incomplete until key is provided
+      if (parsed.provider) {
+        logger.info(`LLM provider found in localStorage: ${parsed.provider} (key must be re-entered or set via env)`, 'llmService');
       }
     }
   } catch { /* ignore parse errors */ }
@@ -80,10 +94,14 @@ function autoConfigureFromEnv(): void {
   }
 }
 
-/** Store API key for LLM calls. Persists to localStorage for BYOK across sessions. */
+/** Store API key for LLM calls. Only non-sensitive config persists to localStorage; API key stays in memory. */
 export function configureLLM(config: LLMConfig): void {
   storedConfig = config;
-  try { localStorage.setItem('nexus_llm_config', JSON.stringify(config)); } catch { /* quota */ }
+  // Persist only non-sensitive fields (provider, baseUrl) — never the API key
+  try {
+    const persisted: PersistedLLMConfig = { provider: config.provider, baseUrl: config.baseUrl };
+    localStorage.setItem('nexus_llm_config', JSON.stringify(persisted));
+  } catch { /* quota */ }
   logger.info(`LLM configured: provider=${config.provider}`, 'llmService');
 }
 

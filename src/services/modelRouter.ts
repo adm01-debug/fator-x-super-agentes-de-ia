@@ -78,10 +78,11 @@ export function getCached(messages: llm.LLMMessage[]): llm.LLMResponse | null {
 }
 
 function setCache(messages: llm.LLMMessage[], response: llm.LLMResponse): void {
-  if (cache.size >= MAX_CACHE_SIZE) {
+  while (cache.size >= MAX_CACHE_SIZE) {
     // Evict oldest entry
     const oldest = Array.from(cache.entries()).sort((a, b) => a[1].timestamp - b[1].timestamp)[0];
     if (oldest) cache.delete(oldest[0]);
+    else break;
   }
   cache.set(cacheKey(messages), { key: cacheKey(messages), response, timestamp: Date.now(), hits: 0 });
 }
@@ -205,4 +206,10 @@ export function addFallbackChain(chain: FallbackChain): void {
 }
 
 // Reset RPM counters every minute
-setInterval(() => { endpoints.forEach(e => { e.currentRpm = 0; }); }, 60000);
+// FIX: Store interval ID and export cleanup function to prevent memory leak
+const rpmResetInterval = setInterval(() => { endpoints.forEach(e => { e.currentRpm = 0; }); }, 60000);
+
+/** Clean up the RPM reset interval. Call on shutdown to prevent memory leaks. */
+export function cleanupModelRouter(): void {
+  clearInterval(rpmResetInterval);
+}

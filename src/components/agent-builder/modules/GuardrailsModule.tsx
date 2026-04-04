@@ -52,6 +52,10 @@ export function GuardrailsModule() {
   const guardrails = agent.guardrails.length > 0 ? agent.guardrails : DEFAULT_GUARDRAILS;
 
   const updateGuardrail = (id: string, partial: Partial<GuardrailConfig>) => {
+    // Confirm before disabling a guardrail
+    if ('enabled' in partial && !partial.enabled) {
+      if (!window.confirm('Desativar este guardrail pode expor o agente a riscos. Continuar?')) return;
+    }
     const updated = guardrails.map((g) => (g.id === id ? { ...g, ...partial } : g));
     updateAgent({ guardrails: updated });
   };

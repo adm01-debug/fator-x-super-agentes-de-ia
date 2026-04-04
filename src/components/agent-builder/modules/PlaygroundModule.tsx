@@ -1,4 +1,4 @@
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useRef, useEffect } from 'react';
 import { useAgentBuilderStore } from '@/stores/agentBuilderStore';
 import { SectionTitle } from '../ui';
 import { NexusBadge } from '../ui/NexusBadge';
@@ -40,6 +40,14 @@ export function PlaygroundModule() {
   const [input, setInput] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [debugMode, setDebugMode] = useState(false);
+  const abortControllerRef = useRef<AbortController | null>(null);
+
+  // Abort any in-flight LLM call on unmount
+  useEffect(() => {
+    return () => {
+      abortControllerRef.current?.abort();
+    };
+  }, []);
 
   const sendMessage = useCallback(async () => {
     if (!input.trim() || isLoading) return;
@@ -89,11 +97,25 @@ export function PlaygroundModule() {
 
     if (llm.isLLMConfigured()) {
       // ═══ REAL LLM CALL (with auto-trace) ═══
+      abortControllerRef.current?.abort();
+      const controller = new AbortController();
+      abortControllerRef.current = controller;
+
       const modelId = agent.model?.includes('/') ? agent.model : `anthropic/${agent.model || 'claude-sonnet-4'}`;
-      const response = await llm.callModel(modelId, history, {
-        temperature: (agent.temperature ?? 70) / 100,
-        maxTokens: agent.max_tokens ?? 2048,
-      });
+      let response: Awaited<ReturnType<typeof llm.callModel>>;
+      try {
+        response = await llm.callModel(modelId, history, {
+          temperature: (agent.temperature ?? 70) / 100,
+          maxTokens: agent.max_tokens ?? 2048,
+          signal: controller.signal,
+        });
+      } catch (err: unknown) {
+        if (err instanceof DOMException && err.name === 'AbortError') {
+          setIsLoading(false);
+          return;
+        }
+        throw err;
+      }
 
       // Output guardrails check
       const outputCheck = traceService.checkOutputGuardrails(response.content);

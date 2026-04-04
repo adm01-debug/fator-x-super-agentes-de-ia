@@ -115,8 +115,17 @@ export function BillingModule() {
         <InputField
           label="Budget mensal ($)"
           type="number"
+          min={0}
           value={agent.monthly_budget?.toString() ?? ''}
-          onChange={(v) => updateAgent({ monthly_budget: v ? Number(v) : undefined })}
+          onChange={(v) => {
+            if (v === '') {
+              updateAgent({ monthly_budget: undefined });
+              return;
+            }
+            const num = Number(v);
+            if (num < 0) return;
+            updateAgent({ monthly_budget: num });
+          }}
           placeholder="500"
         />
         <SliderField

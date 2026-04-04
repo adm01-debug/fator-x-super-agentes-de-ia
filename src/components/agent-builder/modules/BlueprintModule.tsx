@@ -22,9 +22,13 @@ export function BlueprintModule() {
   const markdown = exportMarkdown();
   const json = exportJSON();
 
-  const handleCopy = (text: string, label: string) => {
-    navigator.clipboard.writeText(text);
-    toast.success(`${label} copiado!`);
+  const handleCopy = async (text: string, label: string) => {
+    try {
+      await navigator.clipboard.writeText(text);
+      toast.success(`${label} copiado!`);
+    } catch {
+      toast.error(`Falha ao copiar ${label}. Verifique as permissões do navegador.`);
+    }
   };
 
   const handleDownload = (content: string, filename: string, mime: string) => {
@@ -162,10 +166,14 @@ export function BlueprintModule() {
           />
         </div>
         <button
-          onClick={() => {
+          onClick={async () => {
             const card = JSON.stringify({ name: agent.name, version: `${agent.version}.0.0`, capabilities: agent.tools.filter(t => t.enabled).map(t => t.name) });
-            navigator.clipboard.writeText(card);
-            toast.success('Agent Card copiado!');
+            try {
+              await navigator.clipboard.writeText(card);
+              toast.success('Agent Card copiado!');
+            } catch {
+              toast.error('Falha ao copiar Agent Card. Verifique as permissões do navegador.');
+            }
           }}
           className="px-4 py-2 rounded-lg bg-muted text-foreground text-sm hover:bg-muted/80 transition-all"
         >

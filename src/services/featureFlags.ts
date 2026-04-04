@@ -98,9 +98,10 @@ export function setRollout(flagKey: string, percentage: number): void {
 }
 
 /** Add a new feature flag. */
-export function addFlag(key: string, name: string, description: string): FeatureFlag {
+export function addFlag(key: string, name: string, description: string, rolloutPercentage = 0): FeatureFlag {
   const flags = loadFlags();
-  const flag: FeatureFlag = { key, name, description, enabled: false, rolloutPercentage: 0, allowedRoles: [], createdAt: new Date().toISOString().slice(0, 10), updatedAt: new Date().toISOString().slice(0, 10) };
+  const clampedPercentage = Math.max(0, Math.min(100, rolloutPercentage));
+  const flag: FeatureFlag = { key, name, description, enabled: false, rolloutPercentage: clampedPercentage, allowedRoles: [], createdAt: new Date().toISOString().slice(0, 10), updatedAt: new Date().toISOString().slice(0, 10) };
   flags.push(flag);
   saveFlags(flags);
   return flag;

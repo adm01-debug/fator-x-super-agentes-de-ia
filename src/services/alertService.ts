@@ -156,7 +156,8 @@ export function checkRules(): Alert[] {
 
 /** Start periodic alert checking. */
 export function startMonitoring(intervalMs = 60000): void {
-  if (checkInterval) return;
+  // FIX: Clear existing interval before creating new one to prevent memory leak
+  if (checkInterval) clearInterval(checkInterval);
   checkInterval = setInterval(() => checkRules(), intervalMs);
   logger.info(`Alert monitoring started (every ${intervalMs / 1000}s)`, 'alertService');
 }
@@ -167,4 +168,9 @@ export function stopMonitoring(): void {
 }
 
 // ═══ INIT ═══
-initDefaultRules();
+// FIX: Wrap module-level init in try/catch to prevent uncaught errors from crashing the module
+try {
+  initDefaultRules();
+} catch (err) {
+  logger.error('Failed to initialize default alert rules', err instanceof Error ? err : new Error(String(err)), 'alertService');
+}

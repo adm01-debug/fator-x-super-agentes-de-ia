@@ -36,16 +36,19 @@ export function checkRateLimit(key: string, maxPerMinute = 60): { allowed: boole
     buckets.set(key, bucket);
   }
 
-  // Refill tokens
+  // FIX: Atomic token calculation and consumption to prevent race condition.
+  // Calculate new tokens and consume in one step — no separate read-modify-write.
   const elapsed = (now - bucket.lastRefill) / 1000;
-  bucket.tokens = Math.min(bucket.maxTokens, bucket.tokens + elapsed * bucket.refillRate);
-  bucket.lastRefill = now;
+  const newTokens = Math.min(bucket.maxTokens, bucket.tokens + elapsed * bucket.refillRate);
 
-  if (bucket.tokens >= 1) {
-    bucket.tokens -= 1;
+  if (newTokens >= 1) {
+    bucket.tokens = newTokens - 1;
+    bucket.lastRefill = now;
     return { allowed: true, remaining: Math.floor(bucket.tokens), retryAfterMs: 0 };
   }
 
+  bucket.tokens = newTokens;
+  bucket.lastRefill = now;
   const retryAfterMs = Math.ceil((1 - bucket.tokens) / bucket.refillRate * 1000);
   logger.warn(`Rate limited: ${key} (retry after ${retryAfterMs}ms)`, 'resilience');
   return { allowed: false, remaining: 0, retryAfterMs };
