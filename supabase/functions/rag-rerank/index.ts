@@ -45,8 +45,8 @@ serve(async (req) => {
           if (resp.ok) {
             const data = await resp.json();
             reranked = (data.results || []).map((r: Record<string, unknown>) => ({
-              chunk: chunks[r.index],
-              relevance_score: r.relevance_score,
+              chunk: chunks[r.index as number],
+              relevance_score: r.relevance_score as number,
             }));
           }
         } catch (e: unknown) { console.error('Cohere rerank failed:', e instanceof Error ? e.message : e); }
