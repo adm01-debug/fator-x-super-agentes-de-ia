@@ -127,13 +127,13 @@ function detectInjection(text: string): { detected: boolean; patterns: string[];
 }
 
 // ═══ Guardrails Check ═══
-async function checkGuardrails(supabase: any, agentId: string | undefined, userMessage: string): Promise<{ passed: boolean; triggered: Array<{ name: string; severity: string; reason: string }> }> {
+async function checkGuardrails(supabase: SupabaseClient, agentId: string | undefined, userMessage: string): Promise<{ passed: boolean; triggered: Array<{ name: string; severity: string; reason: string }> }> {
   if (!agentId) return { passed: true, triggered: [] };
   try {
     const { data: agent } = await supabase.from('agents').select('config').eq('id', agentId).single();
     if (!agent?.config) return { passed: true, triggered: [] };
-    const config = agent.config as Record<string, any>;
-    const guardrails = (config.guardrails || []) as Array<{ enabled: boolean; name: string; category: string; severity: string; config?: any }>;
+    const config = agent.config as Record<string, unknown>;
+    const guardrails = (config.guardrails || []) as Array<{ enabled: boolean; name: string; category: string; severity: string; config?: Record<string, unknown> }>;
     const blockedTopics = (config.blocked_topics || []) as string[];
     const inputMaxLength = config.input_max_length || 10000;
     const triggered: Array<{ name: string; severity: string; reason: string }> = [];
