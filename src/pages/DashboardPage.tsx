@@ -12,6 +12,7 @@ import { useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { UsageCharts } from "@/components/dashboard/UsageCharts";
+import { ActivityFeed } from "@/components/dashboard/ActivityFeed";
 
 
 // ═══ Dashboard Skeleton ═══
@@ -326,6 +327,14 @@ export default function DashboardPage() {
                 </div>
               )}
             </div>
+          </div>
+
+          {/* Activity Feed */}
+          <div className="nexus-card">
+            <h3 className="text-sm font-heading font-semibold text-foreground mb-3 flex items-center gap-2">
+              <Activity className="h-4 w-4 text-primary" /> Feed de Atividades
+            </h3>
+            <ActivityFeed />
           </div>
 
           {/* AI Insight */}

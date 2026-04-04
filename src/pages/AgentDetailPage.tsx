@@ -1,11 +1,13 @@
+import { useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { PageHeader } from "@/components/shared/PageHeader";
 import { StatusBadge } from "@/components/shared/StatusBadge";
 import { Button } from "@/components/ui/button";
-import { Bot, Loader2 } from "lucide-react";
+import { Bot, Loader2, GitCompare } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { fromTable } from "@/lib/supabaseExtended";
+import { VersionDiffDialog } from "@/components/agents/VersionDiffDialog";
 
 export default function AgentDetailPage() {
   const { id } = useParams();
@@ -181,6 +183,7 @@ function AgentMetrics({ agentId }: { agentId: string }) {
 }
 
 function VersionHistory({ agentId }: { agentId: string }) {
+  const [diffOpen, setDiffOpen] = useState(false);
   const { data: versions = [], isLoading } = useQuery({
     queryKey: ['agent_versions', agentId],
     queryFn: async () => {
@@ -193,7 +196,14 @@ function VersionHistory({ agentId }: { agentId: string }) {
 
   return (
     <div className="nexus-card">
-      <h3 className="text-sm font-heading font-semibold text-foreground mb-3">Histórico de Versões</h3>
+      <div className="flex items-center justify-between mb-3">
+        <h3 className="text-sm font-heading font-semibold text-foreground">Histórico de Versões</h3>
+        {versions.length >= 2 && (
+          <Button variant="outline" size="sm" className="gap-1.5 text-xs h-7" onClick={() => setDiffOpen(true)}>
+            <GitCompare className="h-3 w-3" /> Comparar
+          </Button>
+        )}
+      </div>
       <div className="space-y-2 max-h-[250px] overflow-y-auto">
         {versions.map((v: any, i: number) => (
           <div key={v.id} className={`flex items-center justify-between py-2 px-3 rounded-lg text-xs ${i === 0 ? 'bg-primary/10 border border-primary/20' : 'bg-secondary/30'}`}>
@@ -211,6 +221,7 @@ function VersionHistory({ agentId }: { agentId: string }) {
           </div>
         ))}
       </div>
+      <VersionDiffDialog open={diffOpen} onOpenChange={setDiffOpen} versions={versions as any} />
     </div>
   );
 }

@@ -241,11 +241,57 @@ function AuditLogSection() {
     },
   });
 
+  const handleExport = (format: 'csv' | 'json') => {
+    if (logs.length === 0) return;
+    let content: string;
+    let mime: string;
+    let ext: string;
+
+    if (format === 'csv') {
+      const headers = ['Data', 'Ação', 'Tipo', 'Entity ID', 'Metadata'];
+      const rows = logs.map((l: any) => [
+        new Date(l.created_at).toISOString(),
+        l.action,
+        l.entity_type,
+        l.entity_id || '',
+        JSON.stringify(l.metadata || {}),
+      ]);
+      content = [headers.join(','), ...rows.map((r: string[]) => r.map((c: string) => `"${String(c).replace(/"/g, '""')}"`).join(','))].join('\n');
+      mime = 'text/csv';
+      ext = 'csv';
+    } else {
+      content = JSON.stringify(logs, null, 2);
+      mime = 'application/json';
+      ext = 'json';
+    }
+
+    const blob = new Blob([content], { type: mime });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `audit-log-${new Date().toISOString().split('T')[0]}.${ext}`;
+    a.click();
+    URL.revokeObjectURL(url);
+    toast.success(`Audit log exportado como ${ext.toUpperCase()}`);
+  };
+
   return (
     <div className="nexus-card">
-      <h3 className="text-sm font-heading font-semibold text-foreground mb-3 flex items-center gap-2">
-        <ShieldCheck className="h-4 w-4 text-primary" /> Audit Trail
-      </h3>
+      <div className="flex items-center justify-between mb-3">
+        <h3 className="text-sm font-heading font-semibold text-foreground flex items-center gap-2">
+          <ShieldCheck className="h-4 w-4 text-primary" /> Audit Trail
+        </h3>
+        {logs.length > 0 && (
+          <div className="flex items-center gap-1.5">
+            <Button variant="outline" size="sm" className="h-7 text-xs gap-1" onClick={() => handleExport('csv')}>
+              CSV
+            </Button>
+            <Button variant="outline" size="sm" className="h-7 text-xs gap-1" onClick={() => handleExport('json')}>
+              JSON
+            </Button>
+          </div>
+        )}
+      </div>
       {isLoading ? (
         <div className="flex justify-center py-8"><Loader2 className="h-5 w-5 animate-spin text-muted-foreground" /></div>
       ) : logs.length === 0 ? (
