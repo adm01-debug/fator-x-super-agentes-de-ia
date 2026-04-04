@@ -58,9 +58,9 @@ export function DeployModule() {
       const ch = updated.find(c => c.id === id);
       if (ch) {
         getWorkspaceId().then(wsId => {
-          void supabase.from('deploy_connections').upsert({
-            agent_id: agent.id as string, workspace_id: wsId, channel: ch.channel,
-            status: ch.enabled ? 'active' : 'inactive', config: (ch.config ?? {}) as Record<string, unknown>,
+          void fromTable('deploy_connections').upsert({
+            agent_id: agent.id, workspace_id: wsId, channel: ch.channel,
+            status: ch.enabled ? 'active' : 'inactive', config: ch.config,
           });
         }).catch(() => {});
       }
