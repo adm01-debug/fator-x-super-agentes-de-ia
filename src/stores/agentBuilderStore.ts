@@ -158,7 +158,7 @@ export const useAgentBuilderStore = create<AgentBuilderStore>((set, get) => ({
         .from('agents')
         .select('version, updated_at')
         .eq('id', agent.id as string)
-        .single();
+        .maybeSingle();
 
       if (current && current.version !== agent.version) {
         set({ isSaving: false });

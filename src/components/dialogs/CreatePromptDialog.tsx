@@ -36,7 +36,7 @@ export function CreatePromptDialog({ agents, onCreated }: CreatePromptDialogProp
         .eq('agent_id', agentId)
         .order('version', { ascending: false })
         .limit(1)
-        .single();
+        .maybeSingle();
 
       const nextVersion = (latest?.version || 0) + 1;
 
