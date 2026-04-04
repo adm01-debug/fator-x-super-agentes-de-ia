@@ -3,7 +3,9 @@ import { StatusBadge } from "@/components/shared/StatusBadge";
 import { QuickActionsBar } from "@/components/shared/QuickActionsBar";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Bot, Plus, Search, Filter, ArrowRight, Loader2, BookOpen, GitBranch, Activity, Star } from "lucide-react";
+import { Bot, Plus, Search, Filter, ArrowRight, Loader2, BookOpen, GitBranch, Activity, Star, Copy } from "lucide-react";
+import { toast } from "sonner";
+import { useQueryClient } from "@tanstack/react-query";
 import { useNavigate } from "react-router-dom";
 import { useState, useCallback } from "react";
 import { useQuery } from "@tanstack/react-query";
@@ -35,9 +37,11 @@ function toggleFavorite(id: string): string[] {
 export default function AgentsPage() {
   const navigate = useNavigate();
   const { user } = useAuth();
+  const queryClient = useQueryClient();
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState<string>("all");
   const [favorites, setFavorites] = useState<string[]>(getFavorites);
+  const [cloning, setCloning] = useState<string | null>(null);
 
   const { data: agents = [], isLoading } = useQuery({
     queryKey: ['agents', statusFilter],
@@ -62,6 +66,27 @@ export default function AgentsPage() {
     e.stopPropagation();
     setFavorites(toggleFavorite(id));
   }, []);
+
+  const handleClone = useCallback(async (e: React.MouseEvent, agent: AgentRow) => {
+    e.stopPropagation();
+    setCloning(agent.id);
+    try {
+      const { id, created_at, updated_at, ...rest } = agent;
+      const { error } = await supabase.from('agents').insert({
+        ...rest,
+        name: `${agent.name} (cópia)`,
+        status: 'draft' as const,
+        version: 1,
+      }).select('id').single();
+      if (error) throw error;
+      toast.success('Agente clonado!');
+      queryClient.invalidateQueries({ queryKey: ['agents'] });
+    } catch (err: any) {
+      toast.error(err.message || 'Erro ao clonar');
+    } finally {
+      setCloning(null);
+    }
+  }, [queryClient]);
 
   const filtered = agents.filter(a =>
     a.name.toLowerCase().includes(search.toLowerCase()) ||
@@ -195,6 +220,14 @@ export default function AgentsPage() {
                     </div>
                   </div>
                   <div className="flex items-center gap-1.5">
+                    <button
+                      onClick={(e) => handleClone(e, agent)}
+                      className="h-7 w-7 rounded-md flex items-center justify-center text-muted-foreground/40 hover:text-muted-foreground hover:bg-secondary/50 opacity-0 group-hover:opacity-100 transition-all"
+                      aria-label="Clonar agente"
+                      disabled={cloning === agent.id}
+                    >
+                      {cloning === agent.id ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Copy className="h-3.5 w-3.5" />}
+                    </button>
                     <button
                       onClick={(e) => handleToggleFav(e, agent.id)}
                       className={`h-7 w-7 rounded-md flex items-center justify-center transition-colors ${
