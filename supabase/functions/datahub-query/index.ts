@@ -81,7 +81,7 @@ const ENTITY_MAPPINGS: Record<string, any> = {
 
 /* ── Filter parser helper ────────────────────────────── */
 
-function applyStaticFilter(query: any, filterStr: string) {
+function applyStaticFilter(query: ReturnType<ReturnType<typeof createClient>['from']>['select'], filterStr: string) {
   const parts = filterStr.split(' AND ').map((f: string) => f.trim());
   for (const f of parts) {
     const eqMatch = f.match(/^(\w+)\s*=\s*(.+)$/);
