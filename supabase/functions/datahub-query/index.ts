@@ -375,7 +375,7 @@ serve(async (req) => {
       const client = getExternalClient(mapping.primary.connection);
       const prim = mapping.primary;
 
-      let parsedValue: any = value;
+      let parsedValue: string | number | boolean | null = value;
       if (value === '' || value === null) parsedValue = null;
       else if (value === 'true') parsedValue = true;
       else if (value === 'false') parsedValue = false;
