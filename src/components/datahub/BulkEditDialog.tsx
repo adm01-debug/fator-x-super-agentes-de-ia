@@ -118,8 +118,8 @@ export function BulkEditDialog({
           </div>
         ) : (
           <div className="space-y-4 py-2">
-            <div className="flex items-start gap-2 rounded-lg bg-amber-500/10 border border-amber-500/30 p-3">
-              <AlertTriangle className="h-4 w-4 text-amber-500 mt-0.5 shrink-0" />
+            <div className="flex items-start gap-2 rounded-lg bg-destructive/10 border border-destructive/30 p-3">
+              <AlertTriangle className="h-4 w-4 text-destructive mt-0.5 shrink-0" />
               <div className="text-sm">
                 <p className="font-medium text-foreground">Confirme a alteração</p>
                 <p className="text-muted-foreground mt-1">
