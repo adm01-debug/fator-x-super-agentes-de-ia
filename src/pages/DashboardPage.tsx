@@ -118,7 +118,7 @@ export default function DashboardPage() {
     if (activeCount > 0) parts.push(`${activeCount} agente${activeCount > 1 ? 's' : ''} em produção`);
     if (draftCount > 0) parts.push(`${draftCount} rascunho${draftCount > 1 ? 's' : ''}`);
     if (usageStats) {
-      parts.push(`$${usageStats.totalCost.toFixed(2)} de custo nos últimos 30 dias`);
+      parts.push(`$${usageStats.totalCost.toFixed(2)} de custo nos últimos ${days} dias`);
       if (usageStats.avgLatency > 0) parts.push(`latência média de ${usageStats.avgLatency}ms`);
     }
     return parts.length > 0 ? parts.join(' · ') : null;
