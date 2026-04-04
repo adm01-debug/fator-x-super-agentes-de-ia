@@ -6,7 +6,8 @@ import { Badge } from '@/components/ui/badge';
 import { useAgentBuilderStore } from '@/stores/agentBuilderStore';
 import { supabase } from '@/integrations/supabase/client';
 import { useStreaming } from '@/hooks/useStreaming';
-import { Send, MessageSquare, Trash2, Bug, Loader2 } from 'lucide-react';
+import { Send, MessageSquare, Trash2, Bug, Loader2, StopCircle } from 'lucide-react';
+import ReactMarkdown from 'react-markdown';
 
 interface ChatMessage {
   role: 'user' | 'assistant';
@@ -153,6 +154,11 @@ export function AgentPlayground() {
                 <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => setDebugMode(!debugMode)} title="Debug mode">
                   <Bug className={`h-3.5 w-3.5 ${debugMode ? 'text-primary' : 'text-muted-foreground'}`} />
                 </Button>
+                {streaming.isStreaming && (
+                  <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => streaming.cancel()} title="Parar geração">
+                    <StopCircle className="h-3.5 w-3.5 text-destructive" />
+                  </Button>
+                )}
                 <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => setMessages([])} title="Limpar conversa">
                   <Trash2 className="h-3.5 w-3.5 text-muted-foreground" />
                 </Button>
@@ -186,7 +192,13 @@ export function AgentPlayground() {
                   <p className="text-[11px] font-medium text-muted-foreground mb-1">
                     {msg.role === 'user' ? 'Você' : agent.name || 'Assistente'}
                   </p>
-                  <div className="whitespace-pre-wrap text-xs leading-relaxed">{msg.content}</div>
+                  {msg.role === 'user' ? (
+                    <div className="whitespace-pre-wrap text-xs leading-relaxed">{msg.content}</div>
+                  ) : (
+                    <div className="prose prose-sm prose-invert max-w-none text-xs leading-relaxed [&_p]:mb-1.5 [&_ul]:mb-1.5 [&_ol]:mb-1.5 [&_pre]:bg-background/50 [&_pre]:rounded-md [&_pre]:p-2 [&_code]:text-[11px] [&_h1]:text-sm [&_h2]:text-xs [&_h3]:text-xs [&_li]:text-xs">
+                      <ReactMarkdown>{msg.content || '...'}</ReactMarkdown>
+                    </div>
+                  )}
                 </div>
                 {msg.metadata && (
                   <div className="flex items-center gap-2 mt-1 ml-1">

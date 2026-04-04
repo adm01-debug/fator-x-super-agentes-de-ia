@@ -1,12 +1,15 @@
+import { useEffect } from "react";
 import { PageHeader } from "@/components/shared/PageHeader";
 import { StatusBadge } from "@/components/shared/StatusBadge";
 import { InfoHint } from "@/components/shared/InfoHint";
 import { AnimatedCounter } from "@/components/shared/AnimatedCounter";
+import { DateRangePicker, getDateRangeDays, type DateRange } from "@/components/dashboard/DateRangePicker";
 import { Button } from "@/components/ui/button";
 import { Bot, Plus, ArrowRight, TrendingUp, DollarSign, Clock, Zap, Sparkles, BookOpen, Activity, GitBranch } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { useNavigate } from "react-router-dom";
-import { useQuery } from "@tanstack/react-query";
+import { useState } from "react";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { UsageCharts } from "@/components/dashboard/UsageCharts";
 
@@ -54,6 +57,7 @@ function DashboardLoadingSkeleton() {
 export default function DashboardPage() {
   const navigate = useNavigate();
   const { user } = useAuth();
+  const [dateRange, setDateRange] = useState<DateRange>('30d');
 
   const { data: agents = [], isLoading } = useQuery({
     queryKey: ['agents'],
@@ -67,15 +71,17 @@ export default function DashboardPage() {
     },
   });
 
+  const days = getDateRangeDays(dateRange);
+
   const { data: usageData = [] } = useQuery({
-    queryKey: ['dashboard_usage'],
+    queryKey: ['dashboard_usage', dateRange],
     queryFn: async () => {
-      const thirtyDaysAgo = new Date();
-      thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+      const fromDate = new Date();
+      fromDate.setDate(fromDate.getDate() - days);
       const { data } = await supabase
         .from('agent_usage')
         .select('*')
-        .gte('date', thirtyDaysAgo.toISOString().split('T')[0]);
+        .gte('date', fromDate.toISOString().split('T')[0]);
       return data ?? [];
     },
   });
@@ -113,7 +119,7 @@ export default function DashboardPage() {
     if (activeCount > 0) parts.push(`${activeCount} agente${activeCount > 1 ? 's' : ''} em produção`);
     if (draftCount > 0) parts.push(`${draftCount} rascunho${draftCount > 1 ? 's' : ''}`);
     if (usageStats) {
-      parts.push(`$${usageStats.totalCost.toFixed(2)} de custo nos últimos 30 dias`);
+      parts.push(`$${usageStats.totalCost.toFixed(2)} de custo nos últimos ${days} dias`);
       if (usageStats.avgLatency > 0) parts.push(`latência média de ${usageStats.avgLatency}ms`);
     }
     return parts.length > 0 ? parts.join(' · ') : null;
@@ -129,11 +135,16 @@ export default function DashboardPage() {
         <PageHeader
           title={`${getGreeting()} 👋`}
           description="Visão executiva da operação de agentes de IA"
-          actions={agents.length > 0 ? (
-            <Button onClick={() => navigate('/agents/new')} className="nexus-gradient-bg text-primary-foreground gap-2 hover:opacity-90 min-h-[44px]">
-              <Plus className="h-4 w-4" aria-hidden="true" /> Criar agente
-            </Button>
-          ) : undefined}
+          actions={
+            <div className="flex items-center gap-3">
+              <DateRangePicker value={dateRange} onChange={setDateRange} />
+              {agents.length > 0 && (
+                <Button onClick={() => navigate('/agents/new')} className="nexus-gradient-bg text-primary-foreground gap-2 hover:opacity-90 min-h-[44px]">
+                  <Plus className="h-4 w-4" aria-hidden="true" /> Criar agente
+                </Button>
+              )}
+            </div>
+          }
         />
         {summary && (
           <div className="flex items-center gap-2 mt-2">
@@ -200,8 +211,8 @@ export default function DashboardPage() {
             {[
               { icon: Bot, color: "text-primary", bgColor: "bg-primary/10", value: agents.length, label: "Total de agentes", hint: `${draftCount} rascunhos`, tooltip: "Número total de agentes criados no workspace" },
               { icon: Zap, color: "text-nexus-emerald", bgColor: "bg-nexus-emerald/10", value: activeCount, label: "Em produção", hint: activeCount > 0 ? "Operando normalmente" : "Nenhum ativo", tooltip: "Agentes com status 'production' ou 'monitoring'" },
-              { icon: DollarSign, color: "text-nexus-amber", bgColor: "bg-nexus-amber/10", value: usageStats?.totalCost ?? 0, label: "Custo (30d)", prefix: "$", decimals: 2, noData: !usageStats, hint: usageStats ? `${usageStats.totalRequests} requests` : undefined, tooltip: "Custo acumulado dos últimos 30 dias" },
-              { icon: TrendingUp, color: "text-primary", bgColor: "bg-primary/10", value: usageStats?.totalRequests ?? 0, label: "Requests (30d)", noData: !usageStats, hint: usageStats ? `~${usageStats.avgLatency}ms latência` : undefined, tooltip: "Total de requisições processadas nos últimos 30 dias" },
+              { icon: DollarSign, color: "text-nexus-amber", bgColor: "bg-nexus-amber/10", value: usageStats?.totalCost ?? 0, label: `Custo (${dateRange})`, prefix: "$", decimals: 2, noData: !usageStats, hint: usageStats ? `${usageStats.totalRequests} requests` : undefined, tooltip: `Custo acumulado dos últimos ${days} dias` },
+              { icon: TrendingUp, color: "text-primary", bgColor: "bg-primary/10", value: usageStats?.totalRequests ?? 0, label: `Requests (${dateRange})`, noData: !usageStats, hint: usageStats ? `~${usageStats.avgLatency}ms latência` : undefined, tooltip: `Total de requisições processadas nos últimos ${days} dias` },
             ].map((metric, i) => (
              <div
                 key={metric.label}
@@ -334,6 +345,7 @@ export default function DashboardPage() {
 
 function DashboardAlerts() {
   const navigate = useNavigate();
+  const queryClient = useQueryClient();
   const { data: alerts = [] } = useQuery({
     queryKey: ['dashboard_alerts'],
     queryFn: async () => {
@@ -341,6 +353,17 @@ function DashboardAlerts() {
       return data ?? [];
     },
   });
+
+  // Realtime subscription for alerts
+  useEffect(() => {
+    const channel = supabase
+      .channel('dashboard-alerts')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'alerts' }, () => {
+        queryClient.invalidateQueries({ queryKey: ['dashboard_alerts'] });
+      })
+      .subscribe();
+    return () => { supabase.removeChannel(channel); };
+  }, [queryClient]);
 
   if (alerts.length === 0) return null;
 
