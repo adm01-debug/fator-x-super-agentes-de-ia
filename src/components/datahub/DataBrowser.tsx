@@ -8,7 +8,7 @@ import {
   Search, ChevronLeft, ChevronRight, Loader2, Eye, Database,
   ArrowUpDown, ArrowUp, ArrowDown, Download, Filter, X, Plus,
   Users, Factory, Truck, Package, UserCheck, MessageCircle, Pencil,
-  FileJson, ChevronsLeft, ChevronsRight, Keyboard,
+  FileJson, ChevronsLeft, ChevronsRight, Keyboard, Trash2,
 } from "lucide-react";
 import { ENTITY_MAPPINGS } from "@/config/datahub-entities";
 import {
