@@ -184,7 +184,7 @@ serve(async (req) => {
     const stage1Latency = Date.now() - stage1Start;
 
     // ═══ STAGE 2: Peer Review (if enabled) ═══
-    let stage2Results: any[] = [];
+    let stage2Results: Array<Record<string, unknown>> = [];
     let stage2Latency = 0;
 
     if (enable_peer_review && successfulResponses.length >= 2) {
