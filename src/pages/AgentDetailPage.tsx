@@ -221,7 +221,7 @@ function VersionHistory({ agentId }: { agentId: string }) {
           </div>
         ))}
       </div>
-      <VersionDiffDialog open={diffOpen} onOpenChange={setDiffOpen} versions={versions as any} />
+      <VersionDiffDialog open={diffOpen} onOpenChange={setDiffOpen} versions={versions as Array<{ id: string; version: number; model: string | null; persona: string | null; mission: string | null; config: Record<string, unknown>; change_summary: string | null; created_at: string }>} />
     </div>
   );
 }

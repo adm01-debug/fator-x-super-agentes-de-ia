@@ -1,5 +1,6 @@
 import { supabase } from '@/integrations/supabase/client';
 import type { OracleResult, OracleMode } from '@/stores/oracleStore';
+import { logger } from '@/lib/logger';
 
 export interface OracleHistoryEntry {
   id: string;
@@ -59,7 +60,7 @@ export async function saveOracleHistory(
     .select()
     .single();
 
-  if (error) console.error('Failed to save oracle history:', error);
+  if (error) logger.error('Failed to save oracle history', { error: error.message });
   return data;
 }
 
@@ -76,7 +77,7 @@ export async function fetchOracleHistory(filters: HistoryFilters = {}): Promise<
   if (filters.dateTo) query = query.lte('created_at', filters.dateTo);
 
   const { data, error } = await query;
-  if (error) { console.error('Failed to fetch oracle history:', error); return []; }
+  if (error) { logger.error('Failed to fetch oracle history', { error: error.message }); return []; }
   return (data || []) as unknown as OracleHistoryEntry[];
 }
 
@@ -85,6 +86,6 @@ export async function deleteOracleHistory(id: string) {
     .from('oracle_history')
     .delete()
     .eq('id', id);
-  if (error) console.error('Failed to delete oracle history:', error);
+  if (error) logger.error('Failed to delete oracle history', { error: error.message });
   return !error;
 }

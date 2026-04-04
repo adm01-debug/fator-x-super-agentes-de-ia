@@ -11,7 +11,7 @@ interface Version {
   model: string | null;
   persona: string | null;
   mission: string | null;
-  config: any;
+  config: Record<string, unknown>;
   change_summary: string | null;
   created_at: string;
 }

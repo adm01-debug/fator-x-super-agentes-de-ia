@@ -86,7 +86,7 @@ export default function SettingsPage() {
     queryKey: ['workspace_settings'],
     queryFn: async () => {
       const wsId = await getWorkspaceId();
-      const { data } = await supabase.from('workspaces').select('*').eq('id', wsId).single();
+      const { data } = await supabase.from('workspaces').select('*').eq('id', wsId).maybeSingle();
       return data;
     },
   });

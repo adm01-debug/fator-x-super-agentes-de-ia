@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { toast } from 'sonner';
+import { logger } from '@/lib/logger';
 import type { CanvasNode, CanvasEdge } from '@/components/workflows/WorkflowCanvas';
 
 interface WorkflowRecord {
@@ -28,7 +29,7 @@ export function useWorkflowPersistence() {
       .order('updated_at', { ascending: false });
 
     if (error) {
-      console.error('Failed to fetch workflows', error);
+      logger.error('Failed to fetch workflows', { error: error.message });
     } else {
       setWorkflows((data ?? []) as unknown as WorkflowRecord[]);
     }
@@ -61,7 +62,7 @@ export function useWorkflowPersistence() {
 
       if (error) {
         toast.error('Erro ao atualizar workflow');
-        console.error(error);
+        logger.error('Failed to update workflow', { error: error.message });
         setSaving(false);
         return null;
       }
@@ -94,7 +95,7 @@ export function useWorkflowPersistence() {
 
     if (error) {
       toast.error('Erro ao criar workflow');
-      console.error(error);
+      logger.error('Failed to create workflow', { error: error.message });
       setSaving(false);
       return null;
     }
@@ -118,7 +119,7 @@ export function useWorkflowPersistence() {
     const { error } = await supabase.from('workflows').delete().eq('id', workflowId);
     if (error) {
       toast.error('Erro ao deletar workflow');
-      console.error(error);
+      logger.error('Failed to delete workflow', { error: error.message });
       return false;
     }
     if (selectedId === workflowId) setSelectedId(null);
