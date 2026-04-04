@@ -329,6 +329,14 @@ export default function DashboardPage() {
             </div>
           </div>
 
+          {/* Activity Feed */}
+          <div className="nexus-card">
+            <h3 className="text-sm font-heading font-semibold text-foreground mb-3 flex items-center gap-2">
+              <Activity className="h-4 w-4 text-primary" /> Feed de Atividades
+            </h3>
+            <ActivityFeed />
+          </div>
+
           {/* AI Insight */}
           <DashboardInsight agents={agents} usageStats={usageStats} recentTraces={recentTraces} />
 
