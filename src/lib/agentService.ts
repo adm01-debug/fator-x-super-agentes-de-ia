@@ -129,7 +129,7 @@ export async function getWorkspaceInfo() {
     .from('workspaces')
     .select('name, plan, max_agents')
     .eq('id', member.workspace_id)
-    .single();
+    .maybeSingle();
 
   const { count } = await supabase
     .from('agents')
