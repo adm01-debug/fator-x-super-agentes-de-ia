@@ -18,7 +18,7 @@ export default function LGPDCompliancePage() {
   const { data: consents = [] } = useQuery({
     queryKey: ['lgpd_consents'],
     queryFn: async () => {
-      const { data } = await fromTable('consent_records').select('*').order('created_at', { ascending: false });
+      const { data } = await supabase.from('consent_records').select('*').order('created_at', { ascending: false });
       return data ?? [];
     },
   });
@@ -27,7 +27,7 @@ export default function LGPDCompliancePage() {
   const { data: deletions = [] } = useQuery({
     queryKey: ['lgpd_deletions'],
     queryFn: async () => {
-      const { data } = await fromTable('data_deletion_requests').select('*').order('requested_at', { ascending: false });
+      const { data } = await supabase.from('data_deletion_requests').select('*').order('requested_at', { ascending: false });
       return data ?? [];
     },
   });

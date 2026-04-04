@@ -191,7 +191,7 @@ function VectorIndexesStatus() {
   const { data: indexes = [] } = useQuery({
     queryKey: ['vector_indexes'],
     queryFn: async () => {
-      const { data } = await fromTable('vector_indexes').select('*, knowledge_bases(name)').order('created_at', { ascending: false });
+      const { data } = await supabase.from('vector_indexes').select('*, knowledge_bases(name)').order('created_at', { ascending: false });
       return data ?? [];
     },
   });

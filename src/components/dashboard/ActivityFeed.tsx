@@ -36,7 +36,7 @@ export function ActivityFeed() {
   const { data: logs = [], isLoading } = useQuery({
     queryKey: ['activity_feed'],
     queryFn: async () => {
-      const { data } = await fromTable('audit_log')
+      const { data } = await supabase.from('audit_log')
         .select('*')
         .order('created_at', { ascending: false })
         .limit(15);

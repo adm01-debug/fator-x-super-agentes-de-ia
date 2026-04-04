@@ -56,7 +56,7 @@ export default function MemoryPage() {
           // Fallback to direct query if edge function fails
         }
       }
-      const { data, error } = await fromTable('agent_memories')
+      const { data, error } = await supabase.from('agent_memories')
         .select('*')
         .eq('memory_type', activeType)
         .order('created_at', { ascending: false })

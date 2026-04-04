@@ -112,12 +112,12 @@ export default function WorkflowsPage() {
     if (!result.success) { toast.error(result.error.errors[0]?.message || 'Dados inválidos'); return; }
     try {
       const { data: member } = await supabase.from('workspace_members').select('workspace_id').limit(1).maybeSingle();
-      const { data: wf, error } = await fromTable('workflows').insert({
+      const { data: wf, error } = await supabase.from('workflows').insert({
         workspace_id: member?.workspace_id, name: newName.trim(), status: 'draft',
         config: { step_names: steps },
       }).select('id').single();
       if (error) throw error;
-      await fromTable('workflow_steps').insert(steps.map((name, i) => ({ workflow_id: wf.id, name, step_order: i, role: 'executor' })));
+      await supabase.from('workflow_steps').insert(steps.map((name, i) => ({ workflow_id: wf.id, name, step_order: i, role: 'executor' })));
       toast.success('Workflow salvo no banco!');
       setDialogOpen(false); setNewName(''); setNewSteps('');
       queryClient.invalidateQueries({ queryKey: ['workflows_list'] });
@@ -126,7 +126,7 @@ export default function WorkflowsPage() {
 
   const handleDelete = async (id: string) => {
     if (id.includes('-')) { // UUID = from DB
-      await fromTable('workflows').delete().eq('id', id);
+      await supabase.from('workflows').delete().eq('id', id);
       queryClient.invalidateQueries({ queryKey: ['workflows_list'] });
     }
     toast.success('Workflow removido');
@@ -136,7 +136,7 @@ export default function WorkflowsPage() {
     if (id.includes('-')) {
       const wf = workflows.find((w: any) => w.id === id);
       if (wf) {
-        await fromTable('workflows').update({ status: wf.status === 'active' ? 'draft' : 'active' }).eq('id', id);
+        await supabase.from('workflows').update({ status: wf.status === 'active' ? 'draft' : 'active' }).eq('id', id);
         queryClient.invalidateQueries({ queryKey: ['workflows_list'] });
       }
     }
@@ -353,7 +353,7 @@ function WorkflowRunsHistory() {
   const { data: runs = [], isLoading } = useQuery({
     queryKey: ['workflow_runs'],
     queryFn: async () => {
-      const { data } = await fromTable('workflow_runs').select('*, workflows(name)').order('started_at', { ascending: false }).limit(30);
+      const { data } = await supabase.from('workflow_runs').select('*, workflows(name)').order('started_at', { ascending: false }).limit(30);
       return data ?? [];
     },
   });

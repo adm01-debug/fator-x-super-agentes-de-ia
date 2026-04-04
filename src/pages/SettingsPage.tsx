@@ -301,7 +301,7 @@ function EnvironmentsManager() {
     queryKey: ['environments'],
     queryFn: async () => {
       const wsId = await getWorkspaceId();
-      const { data } = await fromTable('environments').select('*').eq('workspace_id', wsId).order('created_at');
+      const { data } = await supabase.from('environments').select('*').eq('workspace_id', wsId).order('created_at');
       return data ?? [];
     },
   });
@@ -311,7 +311,7 @@ function EnvironmentsManager() {
     if (!result.success) { toast.error(result.error.errors[0]?.message || 'Nome inválido'); return; }
     setCreating(true);
     const wsId = await getWorkspaceId();
-    await fromTable('environments').insert({ workspace_id: wsId, name: newEnvName.trim() });
+    await supabase.from('environments').insert({ workspace_id: wsId, name: newEnvName.trim() });
     setNewEnvName('');
     setCreating(false);
     queryClient.invalidateQueries({ queryKey: ['environments'] });
@@ -319,7 +319,7 @@ function EnvironmentsManager() {
   };
 
   const handleDelete = async (id: string) => {
-    await fromTable('environments').delete().eq('id', id);
+    await supabase.from('environments').delete().eq('id', id);
     queryClient.invalidateQueries({ queryKey: ['environments'] });
     toast.success('Ambiente removido');
   };

@@ -205,7 +205,7 @@ export const useAgentBuilderStore = create<AgentBuilderStore>((set, get) => ({
       // Sync tool_policies to DB (non-blocking)
       if (agentId && savedAgent.tools?.length > 0) {
         for (const tool of savedAgent.tools) {
-          fromTable('tool_policies').upsert({
+          supabase.from('tool_policies').upsert({
             agent_id: agentId,
             tool_integration_id: null,
             is_allowed: tool.enabled,
@@ -217,7 +217,7 @@ export const useAgentBuilderStore = create<AgentBuilderStore>((set, get) => ({
       }
       // ═══ Auto-versioning: snapshot agent config on every save ═══
       if (agentId) {
-        fromTable('agent_versions').insert({
+        supabase.from('agent_versions').insert({
           agent_id: agentId,
           version: savedAgent.version || 1,
           config: row.config || {},
