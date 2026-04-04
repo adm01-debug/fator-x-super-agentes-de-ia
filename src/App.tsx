@@ -48,8 +48,18 @@ const queryClient = new QueryClient({
     queries: {
       staleTime: 5 * 60 * 1000,
       gcTime: 10 * 60 * 1000,
-      retry: 2,
+      retry: (failureCount, error) => {
+        // Don't retry on 401/403
+        if (error instanceof Error && /40[13]/.test(error.message)) return false;
+        return failureCount < 2;
+      },
       refetchOnWindowFocus: false,
+    },
+    mutations: {
+      onError: (error) => {
+        const msg = error instanceof Error ? error.message : "Erro desconhecido";
+        toast.error("Operação falhou", { description: msg });
+      },
     },
   },
 });
