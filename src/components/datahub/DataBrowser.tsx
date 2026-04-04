@@ -528,6 +528,15 @@ export function DataBrowser({ entityId, onClose }: { entityId: string; onClose: 
           fetchData();
         }}
       />
+
+      {/* Create record dialog */}
+      <CreateRecordDialog
+        open={createOpen}
+        onOpenChange={setCreateOpen}
+        entityId={entityId}
+        entityName={mapping?.name ?? entityId}
+        onSuccess={fetchData}
+      />
     </div>
   );
 }
