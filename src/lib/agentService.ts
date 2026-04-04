@@ -16,7 +16,7 @@ export async function getWorkspaceId(): Promise<string> {
     .select('workspace_id')
     .eq('user_id', user.id)
     .limit(1)
-    .single();
+    .maybeSingle();
 
   if (!data?.workspace_id) throw new Error('Workspace não encontrado');
   cachedWorkspaceId = data.workspace_id;
