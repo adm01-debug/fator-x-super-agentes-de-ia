@@ -382,3 +382,108 @@ function WorkflowRunsHistory() {
     </div>
   );
 }
+
+function WorkflowScheduler({ workflows }: { workflows: any[] }) {
+  const [schedules, setSchedules] = useState<Array<{ id: string; workflowId: string; cron: string; enabled: boolean; nextRun: string }>>(() => {
+    try { return JSON.parse(localStorage.getItem('nexus-wf-schedules') || '[]'); } catch { return []; }
+  });
+  const [selWf, setSelWf] = useState('');
+  const [selCron, setSelCron] = useState('daily');
+
+  const cronLabels: Record<string, { label: string; cron: string; next: () => string }> = {
+    'every-5m': { label: 'A cada 5 min', cron: '*/5 * * * *', next: () => { const d = new Date(); d.setMinutes(d.getMinutes() + 5); return d.toLocaleString('pt-BR'); } },
+    'hourly': { label: 'A cada hora', cron: '0 * * * *', next: () => { const d = new Date(); d.setHours(d.getHours() + 1, 0); return d.toLocaleString('pt-BR'); } },
+    'daily': { label: 'Diariamente (9h)', cron: '0 9 * * *', next: () => { const d = new Date(); d.setDate(d.getDate() + 1); d.setHours(9, 0); return d.toLocaleString('pt-BR'); } },
+    'weekly': { label: 'Semanal (seg 9h)', cron: '0 9 * * 1', next: () => { const d = new Date(); d.setDate(d.getDate() + (8 - d.getDay()) % 7); d.setHours(9, 0); return d.toLocaleString('pt-BR'); } },
+  };
+
+  const handleAdd = () => {
+    if (!selWf) { toast.error('Selecione um workflow'); return; }
+    const cronInfo = cronLabels[selCron];
+    const newSchedule = { id: crypto.randomUUID(), workflowId: selWf, cron: cronInfo.cron, enabled: true, nextRun: cronInfo.next() };
+    const updated = [...schedules, newSchedule];
+    setSchedules(updated);
+    localStorage.setItem('nexus-wf-schedules', JSON.stringify(updated));
+    toast.success('Agendamento criado!');
+    setSelWf('');
+  };
+
+  const handleToggle = (id: string) => {
+    const updated = schedules.map(s => s.id === id ? { ...s, enabled: !s.enabled } : s);
+    setSchedules(updated);
+    localStorage.setItem('nexus-wf-schedules', JSON.stringify(updated));
+  };
+
+  const handleRemove = (id: string) => {
+    const updated = schedules.filter(s => s.id !== id);
+    setSchedules(updated);
+    localStorage.setItem('nexus-wf-schedules', JSON.stringify(updated));
+    toast.success('Agendamento removido');
+  };
+
+  return (
+    <div className="space-y-4">
+      <InfoHint title="Agendamento de Workflows">
+        Configure execuções automáticas de workflows em intervalos regulares. Os agendamentos são salvos localmente e serão executados quando o serviço de cron estiver ativo.
+      </InfoHint>
+
+      <div className="nexus-card">
+        <h3 className="text-sm font-heading font-semibold text-foreground mb-3 flex items-center gap-2">
+          <Clock className="h-4 w-4 text-primary" /> Novo Agendamento
+        </h3>
+        <div className="flex items-end gap-3 flex-wrap">
+          <div className="space-y-1 flex-1 min-w-[180px]">
+            <Label className="text-xs">Workflow</Label>
+            <Select value={selWf} onValueChange={setSelWf}>
+              <SelectTrigger className="bg-secondary/50"><SelectValue placeholder="Selecione..." /></SelectTrigger>
+              <SelectContent>
+                {workflows.map((wf: any) => (
+                  <SelectItem key={wf.id} value={wf.id}>{wf.name}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+          <div className="space-y-1 min-w-[160px]">
+            <Label className="text-xs">Frequência</Label>
+            <Select value={selCron} onValueChange={setSelCron}>
+              <SelectTrigger className="bg-secondary/50"><SelectValue /></SelectTrigger>
+              <SelectContent>
+                {Object.entries(cronLabels).map(([k, v]) => (
+                  <SelectItem key={k} value={k}>{v.label}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+          <Button onClick={handleAdd} className="gap-1.5 nexus-gradient-bg text-primary-foreground">
+            <Plus className="h-3.5 w-3.5" /> Agendar
+          </Button>
+        </div>
+      </div>
+
+      {schedules.length > 0 && (
+        <div className="space-y-2">
+          {schedules.map(s => {
+            const wf = workflows.find((w: any) => w.id === s.workflowId);
+            return (
+              <div key={s.id} className="nexus-card flex items-center gap-3">
+                <Calendar className={`h-4 w-4 shrink-0 ${s.enabled ? 'text-primary' : 'text-muted-foreground'}`} />
+                <div className="flex-1 min-w-0">
+                  <p className="text-sm font-medium text-foreground">{wf?.name || 'Workflow'}</p>
+                  <p className="text-[11px] text-muted-foreground font-mono">{s.cron} • Próxima: {s.nextRun}</p>
+                </div>
+                <Switch checked={s.enabled} onCheckedChange={() => handleToggle(s.id)} />
+                <Button size="icon" variant="ghost" className="h-7 w-7 text-destructive" onClick={() => handleRemove(s.id)}>
+                  <Trash2 className="h-3.5 w-3.5" />
+                </Button>
+              </div>
+            );
+          })}
+        </div>
+      )}
+
+      {schedules.length === 0 && (
+        <div className="text-center py-8 text-sm text-muted-foreground">Nenhum agendamento configurado.</div>
+      )}
+    </div>
+  );
+}
