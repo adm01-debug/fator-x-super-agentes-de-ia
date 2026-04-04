@@ -10,12 +10,13 @@ import {
   Search, Database, ArrowRight, ExternalLink, AlertTriangle,
   Users, Factory, Truck, Package, UserCheck, MessageCircle,
   Link2, Eye, RefreshCcw, Table2, GitBranch, Loader2, CheckCircle2,
-  XCircle, Snowflake,
+  XCircle, Snowflake, Clock,
 } from "lucide-react";
 import { ENTITY_MAPPINGS, ENTITY_LIST } from "@/config/datahub-entities";
 import type { EntityMapping, SecondaryMapping, CrossDbMapping } from "@/config/datahub-entities";
 import { DATAHUB_TABLE_BLACKLIST } from "@/config/datahub-blacklist";
 import { DataBrowser } from "@/components/datahub/DataBrowser";
+import { DataHubStats } from "@/components/datahub/DataHubStats";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 
@@ -29,6 +30,7 @@ interface ConnectionDef {
   icon: string;
   count?: number;
   error?: string;
+  lastTested?: Date;
 }
 
 const DEFAULT_CONNECTIONS: ConnectionDef[] = [
@@ -54,6 +56,14 @@ function getConnectionLabel(connId: string): string {
   return DEFAULT_CONNECTIONS.find(c => c.id === connId)?.label ?? connId;
 }
 
+function timeAgo(date: Date): string {
+  const seconds = Math.floor((Date.now() - date.getTime()) / 1000);
+  if (seconds < 60) return `${seconds}s atrás`;
+  const minutes = Math.floor(seconds / 60);
+  if (minutes < 60) return `${minutes}m atrás`;
+  return `${Math.floor(minutes / 60)}h atrás`;
+}
+
 /* ── Connection Card ─────────────────────────────────── */
 function ConnectionCard({ conn }: { conn: ConnectionDef }) {
   const entitiesUsing = ENTITY_LIST.filter(e => e.primary.connection === conn.id);
@@ -75,13 +85,20 @@ function ConnectionCard({ conn }: { conn: ConnectionDef }) {
             <p className="text-[11px] text-muted-foreground font-mono">{conn.id}</p>
           </div>
         </div>
-        {isHibernated ? (
-          <Badge variant="outline" className="gap-1 text-[11px] border-primary/30 text-primary">
-            <Snowflake className="h-3 w-3" /> Hibernado
-          </Badge>
-        ) : (
-          <StatusBadge status={conn.status === "connected" ? "active" : conn.status === "error" ? "error" : "planned"} />
-        )}
+        <div className="flex flex-col items-end gap-1">
+          {isHibernated ? (
+            <Badge variant="outline" className="gap-1 text-[11px] border-primary/30 text-primary">
+              <Snowflake className="h-3 w-3" /> Hibernado
+            </Badge>
+          ) : (
+            <StatusBadge status={conn.status === "connected" ? "active" : conn.status === "error" ? "error" : "planned"} />
+          )}
+          {conn.lastTested && (
+            <span className="text-[10px] text-muted-foreground flex items-center gap-1">
+              <Clock className="h-2.5 w-2.5" /> {timeAgo(conn.lastTested)}
+            </span>
+          )}
+        </div>
       </div>
 
       <p className="text-xs text-muted-foreground mb-3">{conn.desc}</p>
@@ -282,8 +299,9 @@ export default function DataHubPage() {
         body: { action: 'test_connections' },
       });
       if (error) throw error;
+      const now = new Date();
       setConnections(prev => prev.map(c => {
-        if (c.status === 'hibernated') return c; // skip hibernated
+        if (c.status === 'hibernated') return c;
         const result = data.connections?.[c.id];
         if (!result) return c;
         return {
@@ -291,6 +309,7 @@ export default function DataHubPage() {
           status: result.status === 'connected' ? 'connected' as const : 'error' as const,
           count: result.count,
           error: result.error,
+          lastTested: now,
         };
       }));
       const connected = Object.values(data.connections ?? {}).filter((r: any) => r.status === 'connected').length;
@@ -336,6 +355,9 @@ export default function DataHubPage() {
   const selectedMapping = selectedEntity ? ENTITY_MAPPINGS[selectedEntity] : null;
   const activeConnections = connections.filter(c => c.status !== "hibernated");
   const connectedCount = activeConnections.filter(c => c.status === "connected").length;
+  const totalRecords = Object.values(entityCounts).reduce((sum, v) => sum + (v >= 0 ? v : 0), 0);
+  const joinCount = ENTITY_LIST.reduce((acc, e) => acc + (e.secondary?.length ?? 0), 0);
+  const crossDbCount = ENTITY_LIST.reduce((acc, e) => acc + (e.cross_db?.length ?? 0), 0);
 
   if (browsingEntity) {
     return (
@@ -351,6 +373,16 @@ export default function DataHubPage() {
       <PageHeader
         title="DataHub"
         description="Central de dados: explore entidades, conexões e mapeamentos cross-database"
+      />
+
+      {/* Stats Bar */}
+      <DataHubStats
+        entityCount={ENTITY_LIST.length}
+        connectionCount={activeConnections.length}
+        connectedCount={connectedCount}
+        totalRecords={totalRecords}
+        joinCount={joinCount}
+        crossDbCount={crossDbCount}
       />
 
       <InfoHint title="Como funciona o DataHub?">
@@ -381,6 +413,32 @@ export default function DataHubPage() {
               {loadingCounts ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <RefreshCcw className="h-3.5 w-3.5" />}
               Atualizar Contagens
             </Button>
+          </div>
+
+          {/* Quick-browse cards */}
+          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-2">
+            {ENTITY_LIST.map(entity => {
+              const Icon = ENTITY_ICONS[entity.id] ?? Database;
+              const count = entityCounts[entity.id];
+              return (
+                <button
+                  key={entity.id}
+                  onClick={() => setBrowsingEntity(entity.id)}
+                  className="nexus-card p-3 text-center hover:border-primary/40 hover:bg-primary/5 transition-all group"
+                >
+                  <div className="h-8 w-8 rounded-lg bg-primary/10 flex items-center justify-center mx-auto mb-2 group-hover:bg-primary/20 transition-colors">
+                    <Icon className="h-4 w-4 text-primary" />
+                  </div>
+                  <p className="text-xs font-semibold text-foreground">{entity.name}</p>
+                  {count !== undefined && count >= 0 && (
+                    <p className="text-[11px] text-muted-foreground font-mono mt-0.5">{count.toLocaleString()}</p>
+                  )}
+                  {count === -1 && (
+                    <p className="text-[11px] text-destructive mt-0.5">erro</p>
+                  )}
+                </button>
+              );
+            })}
           </div>
 
           <div className="grid grid-cols-1 lg:grid-cols-[1fr_1.2fr] gap-6">
@@ -540,15 +598,11 @@ export default function DataHubPage() {
                 <p className="text-[11px] text-muted-foreground">Conexões</p>
               </div>
               <div className="rounded-lg bg-secondary/30 p-3 text-center">
-                <p className="text-2xl font-heading font-bold text-foreground">
-                  {ENTITY_LIST.reduce((acc, e) => acc + (e.secondary?.length ?? 0), 0)}
-                </p>
+                <p className="text-2xl font-heading font-bold text-foreground">{joinCount}</p>
                 <p className="text-[11px] text-muted-foreground">Joins Secundários</p>
               </div>
               <div className="rounded-lg bg-secondary/30 p-3 text-center">
-                <p className="text-2xl font-heading font-bold text-foreground">
-                  {ENTITY_LIST.reduce((acc, e) => acc + (e.cross_db?.length ?? 0), 0)}
-                </p>
+                <p className="text-2xl font-heading font-bold text-foreground">{crossDbCount}</p>
                 <p className="text-[11px] text-muted-foreground">Cross-DB Links</p>
               </div>
               <div className="rounded-lg bg-secondary/30 p-3 text-center">

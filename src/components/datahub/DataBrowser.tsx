@@ -8,22 +8,32 @@ import {
   Search, ChevronLeft, ChevronRight, Loader2, Eye, Database,
   ArrowUpDown, ArrowUp, ArrowDown, Download, Filter, X, Plus,
   Users, Factory, Truck, Package, UserCheck, MessageCircle, Pencil,
+  FileJson, ChevronsLeft, ChevronsRight, Keyboard,
 } from "lucide-react";
 import { ENTITY_MAPPINGS } from "@/config/datahub-entities";
 import {
   ENTITY_DISPLAY_COLUMNS, ENTITY_FILTER_OPTIONS,
-  exportToCSV,
+  exportToCSV, exportToJSON,
 } from "@/config/datahub-columns";
 import { RecordDetail } from "./RecordDetail";
 import { InlineEditCell } from "./InlineEditCell";
 import { BulkEditDialog } from "./BulkEditDialog";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
+import { useDebounce } from "@/hooks/use-debounce";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 
 const ENTITY_ICONS: Record<string, React.ElementType> = {
   cliente: Users, fornecedor: Factory, transportadora: Truck,
   produto: Package, colaborador: UserCheck, conversa_whatsapp: MessageCircle,
 };
+
+const PAGE_SIZE_OPTIONS = [25, 50, 100] as const;
 
 interface ActiveFilter {
   column: string;
@@ -42,7 +52,9 @@ export function DataBrowser({ entityId, onClose }: { entityId: string; onClose: 
   const [data, setData] = useState<any[]>([]);
   const [total, setTotal] = useState(0);
   const [page, setPage] = useState(0);
+  const [pageSize, setPageSize] = useState<number>(25);
   const [searchTerm, setSearchTerm] = useState("");
+  const debouncedSearch = useDebounce(searchTerm, 350);
   const [loading, setLoading] = useState(false);
   const [selectedRecord, setSelectedRecord] = useState<any>(null);
   const [enrichedData, setEnrichedData] = useState<any>(null);
@@ -57,15 +69,13 @@ export function DataBrowser({ entityId, onClose }: { entityId: string; onClose: 
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [bulkEditOpen, setBulkEditOpen] = useState(false);
 
-  const pageSize = 25;
-
   const fetchData = useCallback(async () => {
     setLoading(true);
     try {
       const body: any = {
         action: 'query_entity',
         entity: entityId,
-        search: searchTerm,
+        search: debouncedSearch,
         page,
         page_size: pageSize,
       };
@@ -89,12 +99,27 @@ export function DataBrowser({ entityId, onClose }: { entityId: string; onClose: 
     } finally {
       setLoading(false);
     }
-  }, [entityId, searchTerm, page, sortColumn, sortDirection, filters]);
+  }, [entityId, debouncedSearch, page, pageSize, sortColumn, sortDirection, filters]);
 
   useEffect(() => { fetchData(); }, [fetchData]);
 
+  // Reset page on search/filter change
+  useEffect(() => { setPage(0); }, [debouncedSearch, filters, pageSize]);
+
   // Clear selection on page/filter change
-  useEffect(() => { setSelectedIds(new Set()); }, [page, searchTerm, filters]);
+  useEffect(() => { setSelectedIds(new Set()); }, [page, debouncedSearch, filters]);
+
+  // Keyboard shortcuts
+  useEffect(() => {
+    const handler = (e: KeyboardEvent) => {
+      if (e.target instanceof HTMLInputElement || e.target instanceof HTMLTextAreaElement) return;
+      if (e.key === 'ArrowRight' && page < totalPages - 1) { e.preventDefault(); setPage(p => p + 1); }
+      if (e.key === 'ArrowLeft' && page > 0) { e.preventDefault(); setPage(p => p - 1); }
+      if (e.key === 'Escape') { e.preventDefault(); if (selectedRecord) { setSelectedRecord(null); setEnrichedData(null); } else { onClose(); } }
+    };
+    window.addEventListener('keydown', handler);
+    return () => window.removeEventListener('keydown', handler);
+  }, [page, selectedRecord, onClose]);
 
   const fetchRecord = async (recordId: string) => {
     try {
@@ -132,17 +157,20 @@ export function DataBrowser({ entityId, onClose }: { entityId: string; onClose: 
     }]);
     setNewFilterCol('');
     setNewFilterVal('');
-    setPage(0);
   };
 
   const removeFilter = (index: number) => {
     setFilters(prev => prev.filter((_, i) => i !== index));
-    setPage(0);
   };
 
-  const handleExport = () => {
+  const handleExportCSV = () => {
     exportToCSV(data, columns, entityId);
     toast.success(`${data.length} registros exportados para CSV`);
+  };
+
+  const handleExportJSON = () => {
+    exportToJSON(data, columns, entityId);
+    toast.success(`${data.length} registros exportados para JSON`);
   };
 
   // Inline edit: update row in local state
@@ -198,21 +226,56 @@ export function DataBrowser({ entityId, onClose }: { entityId: string; onClose: 
             <Filter className="h-3.5 w-3.5" />
             Filtros {filters.length > 0 && <Badge variant="default" className="text-[11px] h-4 ml-1">{filters.length}</Badge>}
           </Button>
-          <Button size="sm" variant="outline" className="gap-1.5 text-xs" onClick={handleExport} disabled={!data.length}>
-            <Download className="h-3.5 w-3.5" /> CSV
-          </Button>
+          <TooltipProvider>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button size="sm" variant="outline" className="gap-1.5 text-xs" onClick={handleExportCSV} disabled={!data.length}>
+                  <Download className="h-3.5 w-3.5" /> CSV
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent>Exportar dados visíveis como CSV</TooltipContent>
+            </Tooltip>
+          </TooltipProvider>
+          <TooltipProvider>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button size="sm" variant="outline" className="gap-1.5 text-xs" onClick={handleExportJSON} disabled={!data.length}>
+                  <FileJson className="h-3.5 w-3.5" /> JSON
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent>Exportar dados visíveis como JSON</TooltipContent>
+            </Tooltip>
+          </TooltipProvider>
         </div>
       </div>
 
       {/* Search */}
-      <div className="relative max-w-md">
-        <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-        <Input
-          placeholder={`Buscar por ${displayCol}...`}
-          value={searchTerm}
-          onChange={e => { setSearchTerm(e.target.value); setPage(0); }}
-          className="pl-10 bg-secondary/30"
-        />
+      <div className="flex items-center gap-3">
+        <div className="relative max-w-md flex-1">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+          <Input
+            placeholder={`Buscar por ${displayCol}...`}
+            value={searchTerm}
+            onChange={e => setSearchTerm(e.target.value)}
+            className="pl-10 bg-secondary/30"
+          />
+          {searchTerm && debouncedSearch !== searchTerm && (
+            <Loader2 className="absolute right-3 top-1/2 -translate-y-1/2 h-3.5 w-3.5 animate-spin text-muted-foreground" />
+          )}
+        </div>
+        <TooltipProvider>
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <div className="flex items-center gap-1.5 text-[11px] text-muted-foreground">
+                <Keyboard className="h-3.5 w-3.5" />
+                <span className="hidden sm:inline">← → navegar · Esc voltar</span>
+              </div>
+            </TooltipTrigger>
+            <TooltipContent>
+              <p>← → Páginas · Esc Fechar</p>
+            </TooltipContent>
+          </Tooltip>
+        </TooltipProvider>
       </div>
 
       {/* Advanced filters */}
@@ -277,7 +340,7 @@ export function DataBrowser({ entityId, onClose }: { entityId: string; onClose: 
                   <button onClick={() => removeFilter(i)} className="ml-1 hover:text-destructive"><X className="h-3 w-3" /></button>
                 </Badge>
               ))}
-              <Button size="sm" variant="ghost" className="h-5 text-[11px] text-destructive" onClick={() => { setFilters([]); setPage(0); }}>
+              <Button size="sm" variant="ghost" className="h-5 text-[11px] text-destructive" onClick={() => setFilters([])}>
                 Limpar tudo
               </Button>
             </div>
@@ -371,19 +434,40 @@ export function DataBrowser({ entityId, onClose }: { entityId: string; onClose: 
           </div>
 
           {/* Pagination */}
-          <div className="flex items-center justify-between">
-            <p className="text-[11px] text-muted-foreground">
-              Mostrando {data.length > 0 ? page * pageSize + 1 : 0}–{Math.min((page + 1) * pageSize, total)} de {total.toLocaleString()}
-            </p>
+          <div className="flex items-center justify-between flex-wrap gap-2">
+            <div className="flex items-center gap-3">
+              <p className="text-[11px] text-muted-foreground">
+                Mostrando {data.length > 0 ? page * pageSize + 1 : 0}–{Math.min((page + 1) * pageSize, total)} de {total.toLocaleString()}
+              </p>
+              <div className="flex items-center gap-1.5">
+                <span className="text-[11px] text-muted-foreground">Por página:</span>
+                <Select value={String(pageSize)} onValueChange={v => setPageSize(Number(v))}>
+                  <SelectTrigger className="h-7 w-[65px] text-[11px]">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {PAGE_SIZE_OPTIONS.map(size => (
+                      <SelectItem key={size} value={String(size)}>{size}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
             <div className="flex items-center gap-1">
-              <Button size="sm" variant="outline" disabled={page === 0} onClick={() => setPage(p => p - 1)}>
+              <Button size="sm" variant="outline" className="h-7 w-7 p-0" disabled={page === 0} onClick={() => setPage(0)}>
+                <ChevronsLeft className="h-3.5 w-3.5" />
+              </Button>
+              <Button size="sm" variant="outline" className="h-7 w-7 p-0" disabled={page === 0} onClick={() => setPage(p => p - 1)}>
                 <ChevronLeft className="h-3.5 w-3.5" />
               </Button>
-              <span className="text-[11px] text-muted-foreground px-2">
+              <span className="text-[11px] text-muted-foreground px-2 min-w-[60px] text-center">
                 {page + 1} / {totalPages || 1}
               </span>
-              <Button size="sm" variant="outline" disabled={page >= totalPages - 1} onClick={() => setPage(p => p + 1)}>
+              <Button size="sm" variant="outline" className="h-7 w-7 p-0" disabled={page >= totalPages - 1} onClick={() => setPage(p => p + 1)}>
                 <ChevronRight className="h-3.5 w-3.5" />
+              </Button>
+              <Button size="sm" variant="outline" className="h-7 w-7 p-0" disabled={page >= totalPages - 1} onClick={() => setPage(totalPages - 1)}>
+                <ChevronsRight className="h-3.5 w-3.5" />
               </Button>
             </div>
           </div>
