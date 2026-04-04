@@ -37,7 +37,7 @@ serve(async (req) => {
             body: JSON.stringify({
               model: 'rerank-v3.5',
               query,
-              documents: chunks.map((c: any) => c.content || c.text || c),
+              documents: chunks.map((c: Record<string, unknown>) => c.content || c.text || c),
               top_n: topK,
               return_documents: false,
             }),
