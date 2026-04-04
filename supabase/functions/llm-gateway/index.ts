@@ -241,7 +241,7 @@ async function recordTrace(supabase: any, p: {
         }
       }
     }
-  } catch (e) { console.error('Trace failed:', e); }
+  } catch (e: unknown) { console.error('Trace failed:', e instanceof Error ? e.message : e); }
 }
 
 // ═══ API Key Resolution — Fallback Chain ═══

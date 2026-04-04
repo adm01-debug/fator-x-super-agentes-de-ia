@@ -49,7 +49,7 @@ serve(async (req) => {
               relevance_score: r.relevance_score,
             }));
           }
-        } catch (e) { console.error('Cohere rerank failed:', e); }
+        } catch (e: unknown) { console.error('Cohere rerank failed:', e instanceof Error ? e.message : e); }
       }
     }
 
