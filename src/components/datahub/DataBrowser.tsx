@@ -8,7 +8,7 @@ import {
   Search, ChevronLeft, ChevronRight, Loader2, Eye, Database,
   ArrowUpDown, ArrowUp, ArrowDown, Download, Filter, X, Plus,
   Users, Factory, Truck, Package, UserCheck, MessageCircle, Pencil,
-  FileJson, ChevronsLeft, ChevronsRight, Keyboard,
+  FileJson, ChevronsLeft, ChevronsRight, Keyboard, Trash2,
 } from "lucide-react";
 import { ENTITY_MAPPINGS } from "@/config/datahub-entities";
 import {
@@ -18,6 +18,7 @@ import {
 import { RecordDetail } from "./RecordDetail";
 import { InlineEditCell } from "./InlineEditCell";
 import { BulkEditDialog } from "./BulkEditDialog";
+import { CreateRecordDialog } from "./CreateRecordDialog";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { useDebounce } from "@/hooks/use-debounce";
@@ -68,6 +69,7 @@ export function DataBrowser({ entityId, onClose }: { entityId: string; onClose: 
   // Selection state
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [bulkEditOpen, setBulkEditOpen] = useState(false);
+  const [createOpen, setCreateOpen] = useState(false);
 
   const fetchData = useCallback(async () => {
     setLoading(true);
@@ -173,6 +175,26 @@ export function DataBrowser({ entityId, onClose }: { entityId: string; onClose: 
     toast.success(`${data.length} registros exportados para JSON`);
   };
 
+  const handleBulkDelete = async () => {
+    if (!confirm(`Tem certeza que deseja excluir ${selectedIds.size} registro(s)? Esta ação não pode ser desfeita.`)) return;
+    try {
+      let deleted = 0;
+      for (const id of selectedIds) {
+        const { data: result, error } = await supabase.functions.invoke('datahub-query', {
+          body: { action: 'delete_record', entity: entityId, record_id: id },
+        });
+        if (error) throw new Error(error.message);
+        if (result?.error) throw new Error(result.error);
+        deleted++;
+      }
+      toast.success(`${deleted} registro(s) excluído(s)`);
+      setSelectedIds(new Set());
+      fetchData();
+    } catch (e: any) {
+      toast.error(`Erro ao excluir: ${e.message}`);
+    }
+  };
+
   // Inline edit: update row in local state
   const handleInlineUpdate = (rowId: string, updatedRow: any) => {
     setData(prev => prev.map(r => r.id === rowId ? updatedRow : r));
@@ -216,11 +238,20 @@ export function DataBrowser({ entityId, onClose }: { entityId: string; onClose: 
           <Badge variant="secondary" className="text-[11px]">{total.toLocaleString()} registros</Badge>
         </div>
         <div className="flex items-center gap-2">
+          <Button size="sm" className="gap-1.5 text-xs nexus-gradient-bg text-primary-foreground" onClick={() => setCreateOpen(true)}>
+            <Plus className="h-3.5 w-3.5" /> Novo {mapping?.name}
+          </Button>
           {someSelected && (
-            <Button size="sm" variant="default" className="gap-1.5 text-xs" onClick={() => setBulkEditOpen(true)}>
-              <Pencil className="h-3.5 w-3.5" />
-              Editar {selectedIds.size} selecionados
-            </Button>
+            <>
+              <Button size="sm" variant="default" className="gap-1.5 text-xs" onClick={() => setBulkEditOpen(true)}>
+                <Pencil className="h-3.5 w-3.5" />
+                Editar {selectedIds.size}
+              </Button>
+              <Button size="sm" variant="destructive" className="gap-1.5 text-xs" onClick={handleBulkDelete}>
+                <Trash2 className="h-3.5 w-3.5" />
+                Excluir {selectedIds.size}
+              </Button>
+            </>
           )}
           <Button size="sm" variant="outline" className="gap-1.5 text-xs" onClick={() => setShowFilters(v => !v)}>
             <Filter className="h-3.5 w-3.5" />
@@ -496,6 +527,15 @@ export function DataBrowser({ entityId, onClose }: { entityId: string; onClose: 
           setSelectedIds(new Set());
           fetchData();
         }}
+      />
+
+      {/* Create record dialog */}
+      <CreateRecordDialog
+        open={createOpen}
+        onOpenChange={setCreateOpen}
+        entityId={entityId}
+        entityName={mapping?.name ?? entityId}
+        onSuccess={fetchData}
       />
     </div>
   );
