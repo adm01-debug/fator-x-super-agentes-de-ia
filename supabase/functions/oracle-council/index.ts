@@ -163,10 +163,10 @@ serve(async (req) => {
           tokens: result.tokens || { total: 0 }, cost_usd: result.cost_usd || 0,
           latency_ms: result.latency_ms || 0, success: !result.error,
         };
-      } catch (e: any) {
+      } catch (e: unknown) {
         return {
           index: idx, model: member.model, persona: member.persona || 'General',
-          content: `Error: ${e.message}`, thinking: '',
+          content: `Error: ${e instanceof Error ? e.message : 'Unknown'}`, thinking: '',
           tokens: { total: 0 }, cost_usd: 0, latency_ms: 0, success: false,
         };
       }
