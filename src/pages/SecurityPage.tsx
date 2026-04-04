@@ -8,7 +8,7 @@ import { Switch } from "@/components/ui/switch";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
-import { Shield, Lock, Eye, AlertTriangle, CheckCircle, Loader2, ShieldAlert, ShieldCheck, Key, UserX, Plus, Trash2 } from "lucide-react";
+import { Shield, Lock, Eye, AlertTriangle, CheckCircle, Loader2, ShieldAlert, ShieldCheck, Key, UserX, Plus, Trash2, Monitor, Smartphone, Clock, Globe } from "lucide-react";
 import { useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
