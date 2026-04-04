@@ -1,11 +1,13 @@
+import { useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { PageHeader } from "@/components/shared/PageHeader";
 import { StatusBadge } from "@/components/shared/StatusBadge";
 import { Button } from "@/components/ui/button";
-import { Bot, Loader2 } from "lucide-react";
+import { Bot, Loader2, GitCompare } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { fromTable } from "@/lib/supabaseExtended";
+import { VersionDiffDialog } from "@/components/agents/VersionDiffDialog";
 
 export default function AgentDetailPage() {
   const { id } = useParams();
