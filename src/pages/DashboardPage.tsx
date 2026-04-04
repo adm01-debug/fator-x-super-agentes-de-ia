@@ -12,6 +12,7 @@ import { useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { UsageCharts } from "@/components/dashboard/UsageCharts";
+import { ActivityFeed } from "@/components/dashboard/ActivityFeed";
 
 
 // ═══ Dashboard Skeleton ═══
