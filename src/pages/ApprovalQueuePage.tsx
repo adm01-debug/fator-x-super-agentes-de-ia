@@ -6,7 +6,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { CheckCircle, XCircle, Clock, Loader2 } from 'lucide-react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
-import { fromTable } from '@/lib/supabaseExtended';
+
 import { toast } from 'sonner';
 
 export default function ApprovalQueuePage() {

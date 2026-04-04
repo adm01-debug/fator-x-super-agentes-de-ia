@@ -1,7 +1,7 @@
 import { useAgentBuilderStore } from '@/stores/agentBuilderStore';
 import { SectionTitle, NexusBadge, ToggleField } from '../ui';
 import { Globe, MessageSquare, Mail, Hash, Send, Radio } from 'lucide-react';
-import { fromTable } from '@/lib/supabaseExtended';
+
 import { getWorkspaceId } from '@/lib/agentService';
 import type { DeployChannelConfig, MonitoringKPI, DeployChannel } from '@/types/agentTypes';
 
