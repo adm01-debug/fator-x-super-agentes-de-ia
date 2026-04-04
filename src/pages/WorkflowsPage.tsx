@@ -339,6 +339,10 @@ export default function WorkflowsPage() {
         <TabsContent value="runs" className="space-y-4">
           <WorkflowRunsHistory />
         </TabsContent>
+
+        <TabsContent value="schedule" className="space-y-4">
+          <WorkflowScheduler workflows={workflows} />
+        </TabsContent>
       </Tabs>
     </div>
   );
