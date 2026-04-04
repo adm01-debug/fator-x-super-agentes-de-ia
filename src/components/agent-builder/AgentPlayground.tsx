@@ -6,7 +6,8 @@ import { Badge } from '@/components/ui/badge';
 import { useAgentBuilderStore } from '@/stores/agentBuilderStore';
 import { supabase } from '@/integrations/supabase/client';
 import { useStreaming } from '@/hooks/useStreaming';
-import { Send, MessageSquare, Trash2, Bug, Loader2 } from 'lucide-react';
+import { Send, MessageSquare, Trash2, Bug, Loader2, StopCircle } from 'lucide-react';
+import ReactMarkdown from 'react-markdown';
 
 interface ChatMessage {
   role: 'user' | 'assistant';
