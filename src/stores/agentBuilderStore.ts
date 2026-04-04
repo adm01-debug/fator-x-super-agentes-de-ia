@@ -226,7 +226,7 @@ export const useAgentBuilderStore = create<AgentBuilderStore>((set, get) => ({
           created_by: user.id,
           change_summary: `Save at ${now}`,
           environment: savedAgent.status === 'production' ? 'production' : savedAgent.status === 'staging' ? 'staging' : 'development',
-        }).catch(() => {}); // Ignore duplicate version errors
+        }).then(() => {}, () => {}); // Ignore duplicate version errors
       }
     }
   },

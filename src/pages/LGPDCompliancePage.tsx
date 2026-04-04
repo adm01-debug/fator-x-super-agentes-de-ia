@@ -102,7 +102,7 @@ export default function LGPDCompliancePage() {
                     <div>
                       <p className="text-sm font-medium text-foreground">{p.label}</p>
                       <p className="text-xs text-muted-foreground mt-0.5">{p.desc}</p>
-                      {consent && <p className="text-[11px] text-nexus-emerald mt-1">Consentido em {new Date(consent.granted_at || consent.created_at).toLocaleDateString('pt-BR')}</p>}
+                      {consent && <p className="text-[11px] text-nexus-emerald mt-1">Consentido em {new Date(consent.created_at).toLocaleDateString('pt-BR')}</p>}
                     </div>
                     <div className="flex gap-2">
                       {consent ? (
