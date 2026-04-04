@@ -405,6 +405,66 @@ serve(async (req) => {
       return new Response(JSON.stringify({ success: true, updated_count: updated?.length ?? 0, records: updated }), { headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
     }
 
+    // ═══ ACTION: create_record ═══
+    if (action === 'create_record') {
+      const { entity, data: recordData } = body;
+      if (!entity || !recordData || typeof recordData !== 'object') {
+        return new Response(JSON.stringify({ error: 'Missing required: entity, data' }), { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
+      }
+
+      const mapping = ENTITY_MAPPINGS[entity];
+      if (!mapping) return new Response(JSON.stringify({ error: `Unknown entity: ${entity}` }), { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
+
+      // Block sensitive fields from being set
+      if (mapping.sensitive_fields) {
+        for (const sf of mapping.sensitive_fields) {
+          delete recordData[sf];
+        }
+      }
+
+      // Remove blocked system columns
+      const blockedCols = ['id', 'created_at', 'updated_at', 'search_vector'];
+      for (const col of blockedCols) {
+        delete recordData[col];
+      }
+
+      const client = getExternalClient(mapping.primary.connection);
+      const prim = mapping.primary;
+
+      const { data: created, error: createError } = await client
+        .from(prim.table)
+        .insert(recordData)
+        .select('*')
+        .single();
+
+      if (createError) throw new Error(createError.message);
+
+      return new Response(JSON.stringify({ success: true, record: created }), { headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
+    }
+
+    // ═══ ACTION: delete_record ═══
+    if (action === 'delete_record') {
+      const { entity, record_id: deleteId } = body;
+      if (!entity || !deleteId) {
+        return new Response(JSON.stringify({ error: 'Missing required: entity, record_id' }), { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
+      }
+
+      const mapping = ENTITY_MAPPINGS[entity];
+      if (!mapping) return new Response(JSON.stringify({ error: `Unknown entity: ${entity}` }), { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
+
+      const client = getExternalClient(mapping.primary.connection);
+      const prim = mapping.primary;
+
+      const { error: deleteError } = await client
+        .from(prim.table)
+        .delete()
+        .eq(prim.id_column, deleteId);
+
+      if (deleteError) throw new Error(deleteError.message);
+
+      return new Response(JSON.stringify({ success: true }), { headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
+    }
+
     return new Response(JSON.stringify({ error: 'Invalid action' }), { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
   } catch (error: any) {
     console.error('datahub-query error:', error);
