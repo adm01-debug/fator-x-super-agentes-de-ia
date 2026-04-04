@@ -1,4 +1,4 @@
-import { supabase } from '@/integrations/supabase/client';
+import { fromTable } from '@/lib/supabaseExtended';
 import { useAgentBuilderStore } from '@/stores/agentBuilderStore';
 import { SectionTitle, NexusBadge, ToggleField } from '../ui';
 import { Globe, MessageSquare, Mail, Hash, Send, Radio } from 'lucide-react';
