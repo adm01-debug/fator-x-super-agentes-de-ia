@@ -59,9 +59,9 @@ export function DeployModule() {
       if (ch) {
         getWorkspaceId().then(wsId => {
           supabase.from('deploy_connections').upsert({
-            agent_id: agent.id, workspace_id: wsId, channel: ch.channel,
-            status: ch.enabled ? 'active' : 'inactive', config: ch.config,
-          }, { onConflict: 'agent_id,channel' }).catch(() => {});
+            agent_id: agent.id as string, workspace_id: wsId, channel: ch.channel,
+            status: ch.enabled ? 'active' : 'inactive', config: ch.config as Record<string, unknown>,
+          }, { onConflict: 'agent_id,channel' }).then(() => {}, () => {});
         }).catch(() => {});
       }
     }
