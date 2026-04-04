@@ -56,6 +56,7 @@ function DashboardLoadingSkeleton() {
 export default function DashboardPage() {
   const navigate = useNavigate();
   const { user } = useAuth();
+  const [dateRange, setDateRange] = useState<DateRange>('30d');
 
   const { data: agents = [], isLoading } = useQuery({
     queryKey: ['agents'],
@@ -69,15 +70,17 @@ export default function DashboardPage() {
     },
   });
 
+  const days = getDateRangeDays(dateRange);
+
   const { data: usageData = [] } = useQuery({
-    queryKey: ['dashboard_usage'],
+    queryKey: ['dashboard_usage', dateRange],
     queryFn: async () => {
-      const thirtyDaysAgo = new Date();
-      thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+      const fromDate = new Date();
+      fromDate.setDate(fromDate.getDate() - days);
       const { data } = await supabase
         .from('agent_usage')
         .select('*')
-        .gte('date', thirtyDaysAgo.toISOString().split('T')[0]);
+        .gte('date', fromDate.toISOString().split('T')[0]);
       return data ?? [];
     },
   });
