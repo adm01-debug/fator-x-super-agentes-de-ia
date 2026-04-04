@@ -326,7 +326,7 @@ function SessionManagement() {
     { id: '3', device: 'Firefox / Windows', ip: '201.17.xxx.xx', location: 'Rio de Janeiro, BR', lastActive: new Date(Date.now() - 86400000), current: false },
   ];
 
-  const handleRevoke = (id: string) => {
+  const handleRevoke = (_id: string) => {
     toast.success('Sessão encerrada com sucesso');
   };
 
