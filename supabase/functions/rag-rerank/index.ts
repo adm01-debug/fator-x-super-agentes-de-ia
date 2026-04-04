@@ -25,7 +25,7 @@ serve(async (req) => {
     const wsId = member?.workspace_id;
 
     // Try Cohere Rerank API first
-    let reranked: Array<{ chunk: any; relevance_score: number }> | null = null;
+    let reranked: Array<{ chunk: Record<string, unknown>; relevance_score: number }> | null = null;
 
     if (wsId) {
       const { data: cohereKey } = await supabase.from('workspace_secrets').select('key_value').eq('workspace_id', wsId).eq('key_name', 'cohere_api_key').single();
