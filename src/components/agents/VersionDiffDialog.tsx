@@ -2,8 +2,13 @@ import { useState } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import { PromptDiff } from "@/components/prompts/PromptDiff";
-import { GitCompare } from "lucide-react";
+import { GitCompare, RotateCcw, Loader2 } from "lucide-react";
+import { supabase } from "@/integrations/supabase/client";
+import { useQueryClient } from "@tanstack/react-query";
+import { toast } from "sonner";
+import type { Json } from "@/integrations/supabase/types";
 
 interface Version {
   id: string;
@@ -20,6 +25,7 @@ interface Props {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   versions: Version[];
+  agentId?: string;
 }
 
 function versionToText(v: Version): string {
@@ -40,12 +46,36 @@ function versionToText(v: Version): string {
   return lines.join('\n');
 }
 
-export function VersionDiffDialog({ open, onOpenChange, versions }: Props) {
+export function VersionDiffDialog({ open, onOpenChange, versions, agentId }: Props) {
   const [vA, setVA] = useState<string>('');
   const [vB, setVB] = useState<string>('');
+  const [restoring, setRestoring] = useState(false);
+  const queryClient = useQueryClient();
 
   const verA = versions.find(v => v.id === vA);
   const verB = versions.find(v => v.id === vB);
+
+  const handleRestore = async (version: Version) => {
+    if (!agentId) return;
+    setRestoring(true);
+    try {
+      const { error } = await supabase.from('agents').update({
+        model: version.model,
+        persona: version.persona,
+        mission: version.mission,
+        config: version.config as unknown as Json,
+      }).eq('id', agentId);
+      if (error) throw error;
+      toast.success(`Restaurado para v${version.version}`);
+      queryClient.invalidateQueries({ queryKey: ['agent', agentId] });
+      queryClient.invalidateQueries({ queryKey: ['agents'] });
+      onOpenChange(false);
+    } catch (err: unknown) {
+      toast.error(err instanceof Error ? err.message : 'Erro ao restaurar');
+    } finally {
+      setRestoring(false);
+    }
+  };
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -88,15 +118,41 @@ export function VersionDiffDialog({ open, onOpenChange, versions }: Props) {
 
         {verA && verB && vA !== vB ? (
           <div className="mt-4 space-y-3">
-            <div className="flex items-center gap-2 flex-wrap">
-              {verA.model !== verB.model && (
-                <Badge variant="outline" className="text-[11px]">Modelo: {verA.model} → {verB.model}</Badge>
-              )}
-              {verA.persona !== verB.persona && (
-                <Badge variant="outline" className="text-[11px]">Persona alterada</Badge>
-              )}
-              {verA.mission !== verB.mission && (
-                <Badge variant="outline" className="text-[11px]">Missão alterada</Badge>
+            <div className="flex items-center justify-between flex-wrap gap-2">
+              <div className="flex items-center gap-2 flex-wrap">
+                {verA.model !== verB.model && (
+                  <Badge variant="outline" className="text-[11px]">Modelo: {verA.model} → {verB.model}</Badge>
+                )}
+                {verA.persona !== verB.persona && (
+                  <Badge variant="outline" className="text-[11px]">Persona alterada</Badge>
+                )}
+                {verA.mission !== verB.mission && (
+                  <Badge variant="outline" className="text-[11px]">Missão alterada</Badge>
+                )}
+              </div>
+              {agentId && (
+                <div className="flex items-center gap-2">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="gap-1.5 text-xs h-7"
+                    disabled={restoring}
+                    onClick={() => handleRestore(verA)}
+                  >
+                    {restoring ? <Loader2 className="h-3 w-3 animate-spin" /> : <RotateCcw className="h-3 w-3" />}
+                    Restaurar v{verA.version}
+                  </Button>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="gap-1.5 text-xs h-7"
+                    disabled={restoring}
+                    onClick={() => handleRestore(verB)}
+                  >
+                    {restoring ? <Loader2 className="h-3 w-3 animate-spin" /> : <RotateCcw className="h-3 w-3" />}
+                    Restaurar v{verB.version}
+                  </Button>
+                </div>
               )}
             </div>
             <PromptDiff
