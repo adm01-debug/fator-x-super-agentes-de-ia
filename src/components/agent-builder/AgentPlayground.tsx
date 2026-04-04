@@ -192,7 +192,13 @@ export function AgentPlayground() {
                   <p className="text-[11px] font-medium text-muted-foreground mb-1">
                     {msg.role === 'user' ? 'Você' : agent.name || 'Assistente'}
                   </p>
-                  <div className="whitespace-pre-wrap text-xs leading-relaxed">{msg.content}</div>
+                  {msg.role === 'user' ? (
+                    <div className="whitespace-pre-wrap text-xs leading-relaxed">{msg.content}</div>
+                  ) : (
+                    <div className="prose prose-sm prose-invert max-w-none text-xs leading-relaxed [&_p]:mb-1.5 [&_ul]:mb-1.5 [&_ol]:mb-1.5 [&_pre]:bg-background/50 [&_pre]:rounded-md [&_pre]:p-2 [&_code]:text-[11px] [&_h1]:text-sm [&_h2]:text-xs [&_h3]:text-xs [&_li]:text-xs">
+                      <ReactMarkdown>{msg.content || '...'}</ReactMarkdown>
+                    </div>
+                  )}
                 </div>
                 {msg.metadata && (
                   <div className="flex items-center gap-2 mt-1 ml-1">
