@@ -316,8 +316,8 @@ Responda em markdown:
     }
 
     const totalLatency = Date.now() - totalStartTime;
-    const totalCost = stage1.reduce((s: number, r: any) => s + (r.cost_usd || 0), 0) + (synthesisResult.cost_usd || 0);
-    const totalTokens = stage1.reduce((s: number, r: any) => s + (r.tokens?.total || 0), 0) + (synthesisResult.tokens?.total || 0);
+    const totalCost = stage1.reduce((s: number, r: Record<string, unknown>) => s + ((r.cost_usd as number) || 0), 0) + ((synthesisResult.cost_usd as number) || 0);
+    const totalTokens = stage1.reduce((s: number, r: Record<string, unknown>) => s + (((r.tokens as Record<string, unknown>)?.total as number) || 0), 0) + (((synthesisResult.tokens as Record<string, unknown>)?.total as number) || 0);
 
     return new Response(JSON.stringify({
       final_response: finalContent,
