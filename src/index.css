@@ -26,7 +26,7 @@
     --secondary-foreground: 220 25% 15%;
 
     --muted: 220 15% 94%;
-    --muted-foreground: 220 12% 40%;
+    --muted-foreground: 220 15% 32%;
 
     --accent: 170 70% 45%;
     --accent-foreground: 0 0% 100%;
@@ -89,7 +89,7 @@
     --secondary-foreground: 210 20% 85%;
 
     --muted: 232 25% 12%;
-    --muted-foreground: 220 10% 58%;
+    --muted-foreground: 220 12% 68%;
 
     --accent: 142 50% 56%;
     --accent-foreground: 0 0% 100%;
@@ -102,7 +102,7 @@
     --ring: 214 100% 65%;
 
     --sidebar-background: 230 33% 6%;
-    --sidebar-foreground: 220 12% 60%;
+    --sidebar-foreground: 220 12% 70%;
     --sidebar-primary: 214 100% 65%;
     --sidebar-primary-foreground: 0 0% 100%;
     --sidebar-accent: 232 25% 10%;
@@ -176,8 +176,11 @@
   }
 
   body {
-    @apply bg-background text-foreground antialiased;
+    @apply bg-background text-foreground subpixel-antialiased;
     font-family: var(--font-body);
+    -webkit-font-smoothing: auto;
+    -moz-osx-font-smoothing: auto;
+    text-rendering: optimizeLegibility;
   }
 
   h1, h2, h3, h4, h5, h6 {
