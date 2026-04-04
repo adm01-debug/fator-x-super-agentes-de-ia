@@ -2,18 +2,21 @@ import { useState, useEffect, useCallback } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
+import { Checkbox } from "@/components/ui/checkbox";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import {
   Search, ChevronLeft, ChevronRight, Loader2, Eye, Database,
   ArrowUpDown, ArrowUp, ArrowDown, Download, Filter, X, Plus,
-  Users, Factory, Truck, Package, UserCheck, MessageCircle,
+  Users, Factory, Truck, Package, UserCheck, MessageCircle, Pencil,
 } from "lucide-react";
 import { ENTITY_MAPPINGS } from "@/config/datahub-entities";
 import {
   ENTITY_DISPLAY_COLUMNS, ENTITY_FILTER_OPTIONS,
-  formatCellValue, exportToCSV,
+  exportToCSV,
 } from "@/config/datahub-columns";
 import { RecordDetail } from "./RecordDetail";
+import { InlineEditCell } from "./InlineEditCell";
+import { BulkEditDialog } from "./BulkEditDialog";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 
@@ -50,6 +53,10 @@ export function DataBrowser({ entityId, onClose }: { entityId: string; onClose: 
   const [newFilterCol, setNewFilterCol] = useState<string>('');
   const [newFilterVal, setNewFilterVal] = useState<string>('');
 
+  // Selection state
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+  const [bulkEditOpen, setBulkEditOpen] = useState(false);
+
   const pageSize = 25;
 
   const fetchData = useCallback(async () => {
@@ -85,6 +92,9 @@ export function DataBrowser({ entityId, onClose }: { entityId: string; onClose: 
   }, [entityId, searchTerm, page, sortColumn, sortDirection, filters]);
 
   useEffect(() => { fetchData(); }, [fetchData]);
+
+  // Clear selection on page/filter change
+  useEffect(() => { setSelectedIds(new Set()); }, [page, searchTerm, filters]);
 
   const fetchRecord = async (recordId: string) => {
     try {
@@ -135,6 +145,34 @@ export function DataBrowser({ entityId, onClose }: { entityId: string; onClose: 
     toast.success(`${data.length} registros exportados para CSV`);
   };
 
+  // Inline edit: update row in local state
+  const handleInlineUpdate = (rowId: string, updatedRow: any) => {
+    setData(prev => prev.map(r => r.id === rowId ? updatedRow : r));
+  };
+
+  // Selection helpers
+  const allSelected = data.length > 0 && data.every(r => selectedIds.has(r.id));
+  const someSelected = selectedIds.size > 0;
+
+  const toggleSelectAll = () => {
+    if (allSelected) {
+      setSelectedIds(new Set());
+    } else {
+      setSelectedIds(new Set(data.map(r => r.id)));
+    }
+  };
+
+  const toggleSelect = (id: string) => {
+    setSelectedIds(prev => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  };
+
+  const selectedRecords = data.filter(r => selectedIds.has(r.id));
+
   const totalPages = Math.ceil(total / pageSize);
   const Icon = ENTITY_ICONS[entityId] ?? Database;
   const displayCol = mapping?.primary.display_column ?? 'id';
@@ -150,6 +188,12 @@ export function DataBrowser({ entityId, onClose }: { entityId: string; onClose: 
           <Badge variant="secondary" className="text-[11px]">{total.toLocaleString()} registros</Badge>
         </div>
         <div className="flex items-center gap-2">
+          {someSelected && (
+            <Button size="sm" variant="default" className="gap-1.5 text-xs" onClick={() => setBulkEditOpen(true)}>
+              <Pencil className="h-3.5 w-3.5" />
+              Editar {selectedIds.size} selecionados
+            </Button>
+          )}
           <Button size="sm" variant="outline" className="gap-1.5 text-xs" onClick={() => setShowFilters(v => !v)}>
             <Filter className="h-3.5 w-3.5" />
             Filtros {filters.length > 0 && <Badge variant="default" className="text-[11px] h-4 ml-1">{filters.length}</Badge>}
@@ -241,6 +285,13 @@ export function DataBrowser({ entityId, onClose }: { entityId: string; onClose: 
         </div>
       )}
 
+      {/* Hint for inline editing */}
+      {!loading && data.length > 0 && (
+        <p className="text-[10px] text-muted-foreground flex items-center gap-1">
+          <Pencil className="h-3 w-3" /> Duplo clique em uma célula para editar inline · Use checkboxes para edição em massa
+        </p>
+      )}
+
       {/* Table */}
       {loading ? (
         <div className="flex items-center justify-center py-12"><Loader2 className="h-6 w-6 animate-spin text-muted-foreground" /></div>
@@ -251,6 +302,13 @@ export function DataBrowser({ entityId, onClose }: { entityId: string; onClose: 
               <table className="w-full text-xs">
                 <thead className="bg-secondary/50 sticky top-0 z-10">
                   <tr>
+                    <th className="p-2 w-[36px]">
+                      <Checkbox
+                        checked={allSelected}
+                        onCheckedChange={toggleSelectAll}
+                        aria-label="Selecionar todos"
+                      />
+                    </th>
                     {columns.map(col => (
                       <th
                         key={col.key}
@@ -274,12 +332,27 @@ export function DataBrowser({ entityId, onClose }: { entityId: string; onClose: 
                 </thead>
                 <tbody>
                   {data.map((row, i) => (
-                    <tr key={row.id ?? i} className="border-t border-border/30 hover:bg-secondary/20 transition-colors">
+                    <tr
+                      key={row.id ?? i}
+                      className={`border-t border-border/30 hover:bg-secondary/20 transition-colors ${
+                        selectedIds.has(row.id) ? 'bg-primary/5' : ''
+                      }`}
+                    >
+                      <td className="p-2">
+                        <Checkbox
+                          checked={selectedIds.has(row.id)}
+                          onCheckedChange={() => toggleSelect(row.id)}
+                          aria-label={`Selecionar ${row[displayCol] || row.id}`}
+                        />
+                      </td>
                       {columns.map(col => (
-                        <td key={col.key} className={`p-2 ${col.width ?? ''} ${col.format === 'sensitive' && (String(row[col.key]).includes('REDACTED') || String(row[col.key]) === '***') ? 'text-destructive/60' : 'text-foreground'}`}>
-                          <span className="font-mono text-[11px] truncate block max-w-[300px]">
-                            {formatCellValue(row[col.key], col.format)}
-                          </span>
+                        <td key={col.key} className={`p-2 ${col.width ?? ''}`}>
+                          <InlineEditCell
+                            row={row}
+                            col={col}
+                            entityId={entityId}
+                            onUpdate={handleInlineUpdate}
+                          />
                         </td>
                       ))}
                       <td className="p-2">
@@ -290,7 +363,7 @@ export function DataBrowser({ entityId, onClose }: { entityId: string; onClose: 
                     </tr>
                   ))}
                   {data.length === 0 && (
-                    <tr><td colSpan={columns.length + 1} className="p-8 text-center text-muted-foreground">Nenhum registro encontrado</td></tr>
+                    <tr><td colSpan={columns.length + 2} className="p-8 text-center text-muted-foreground">Nenhum registro encontrado</td></tr>
                   )}
                 </tbody>
               </table>
@@ -326,6 +399,20 @@ export function DataBrowser({ entityId, onClose }: { entityId: string; onClose: 
           onClose={() => { setSelectedRecord(null); setEnrichedData(null); }}
         />
       )}
+
+      {/* Bulk edit dialog */}
+      <BulkEditDialog
+        open={bulkEditOpen}
+        onOpenChange={setBulkEditOpen}
+        entityId={entityId}
+        selectedRecords={selectedRecords}
+        columns={columns}
+        displayColumn={displayCol}
+        onSuccess={() => {
+          setSelectedIds(new Set());
+          fetchData();
+        }}
+      />
     </div>
   );
 }
