@@ -218,11 +218,20 @@ export function DataBrowser({ entityId, onClose }: { entityId: string; onClose: 
           <Badge variant="secondary" className="text-[11px]">{total.toLocaleString()} registros</Badge>
         </div>
         <div className="flex items-center gap-2">
+          <Button size="sm" className="gap-1.5 text-xs nexus-gradient-bg text-primary-foreground" onClick={() => setCreateOpen(true)}>
+            <Plus className="h-3.5 w-3.5" /> Novo {mapping?.name}
+          </Button>
           {someSelected && (
-            <Button size="sm" variant="default" className="gap-1.5 text-xs" onClick={() => setBulkEditOpen(true)}>
-              <Pencil className="h-3.5 w-3.5" />
-              Editar {selectedIds.size} selecionados
-            </Button>
+            <>
+              <Button size="sm" variant="default" className="gap-1.5 text-xs" onClick={() => setBulkEditOpen(true)}>
+                <Pencil className="h-3.5 w-3.5" />
+                Editar {selectedIds.size}
+              </Button>
+              <Button size="sm" variant="destructive" className="gap-1.5 text-xs" onClick={handleBulkDelete}>
+                <Trash2 className="h-3.5 w-3.5" />
+                Excluir {selectedIds.size}
+              </Button>
+            </>
           )}
           <Button size="sm" variant="outline" className="gap-1.5 text-xs" onClick={() => setShowFilters(v => !v)}>
             <Filter className="h-3.5 w-3.5" />
