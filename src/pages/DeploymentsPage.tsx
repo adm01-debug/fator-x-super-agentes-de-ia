@@ -49,7 +49,7 @@ export default function DeploymentsPage() {
 
   return (
     <div className="p-6 sm:p-8 lg:p-10 space-y-6 max-w-[1400px] mx-auto">
-      <PageHeader title="Deployments" description="Agentes em produção e staging" />
+      <PageHeader title="Deployments" description="Agentes em produção e staging" actions={<EndpointGeneratorButton />} />
 
       {isLoading ? (
         <div className="flex items-center justify-center py-20"><Loader2 className="h-6 w-6 animate-spin text-muted-foreground" /></div>
