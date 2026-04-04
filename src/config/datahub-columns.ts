@@ -68,21 +68,25 @@ export const ENTITY_FILTER_OPTIONS: Record<string, FilterOption[]> = {
     ]},
     { column: 'nome_fantasia', label: 'Nome Fantasia', type: 'text' },
     { column: 'cnpj', label: 'CNPJ', type: 'text' },
+    { column: 'grupo_economico_id', label: 'Grupo Econômico', type: 'text' },
   ],
   fornecedor: [
     { column: 'status', label: 'Status', type: 'select', options: [
       { label: 'Ativo', value: 'ativo' }, { label: 'Inativo', value: 'inativo' },
     ]},
     { column: 'cnpj', label: 'CNPJ', type: 'text' },
+    { column: 'nome_fantasia', label: 'Nome Fantasia', type: 'text' },
   ],
   transportadora: [
     { column: 'status', label: 'Status', type: 'select', options: [
       { label: 'Ativo', value: 'ativo' }, { label: 'Inativo', value: 'inativo' },
     ]},
+    { column: 'cnpj', label: 'CNPJ', type: 'text' },
   ],
   produto: [
     { column: 'is_active', label: 'Ativo', type: 'boolean' },
     { column: 'name', label: 'Nome', type: 'text' },
+    { column: 'slug', label: 'Slug', type: 'text' },
   ],
   colaborador: [
     { column: 'status', label: 'Status', type: 'select', options: [
@@ -92,6 +96,7 @@ export const ENTITY_FILTER_OPTIONS: Record<string, FilterOption[]> = {
   ],
   conversa_whatsapp: [
     { column: 'phone', label: 'Telefone', type: 'text' },
+    { column: 'name', label: 'Nome', type: 'text' },
   ],
 };
 
@@ -156,6 +161,34 @@ export function exportToCSV(data: any[], columns: ColumnDef[], entityName: strin
   const link = document.createElement('a');
   link.href = url;
   link.download = `datahub_${entityName}_${new Date().toISOString().slice(0, 10)}.csv`;
+  link.click();
+  URL.revokeObjectURL(url);
+}
+
+/* ── JSON Export ─────────────────────────────────────── */
+
+export function exportToJSON(data: any[], columns: ColumnDef[], entityName: string): void {
+  if (!data.length) return;
+
+  const sanitized = data.map(row => {
+    const obj: Record<string, any> = {};
+    for (const col of columns) {
+      const val = row[col.key];
+      if (col.format === 'sensitive' && (String(val).includes('REDACTED') || String(val) === '***')) {
+        obj[col.key] = '[REDACTED]';
+      } else {
+        obj[col.key] = val ?? null;
+      }
+    }
+    return obj;
+  });
+
+  const json = JSON.stringify(sanitized, null, 2);
+  const blob = new Blob([json], { type: 'application/json;charset=utf-8;' });
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement('a');
+  link.href = url;
+  link.download = `datahub_${entityName}_${new Date().toISOString().slice(0, 10)}.json`;
   link.click();
   URL.revokeObjectURL(url);
 }

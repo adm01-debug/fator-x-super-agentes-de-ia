@@ -1,6 +1,7 @@
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import {
   XCircle, Phone, Mail, MapPin, User, GitBranch, Link2,
   ExternalLink, Lock, Building2, MessageCircle, Loader2,
@@ -395,6 +396,14 @@ export function RecordDetail({ record, enrichedData, entityId, onClose, onRecord
 
   const isEditable = (key: string) => !NON_EDITABLE.has(key) && !sensitiveFields.has(key);
 
+  const hasEnriched = enrichedData?.enriched && Object.keys(enrichedData.enriched).length > 0;
+  const hasCrossDb = enrichedData?.cross_db && Object.entries(enrichedData.cross_db).some(([, rows]) => Array.isArray(rows) && rows.length > 0);
+  const hasGroup = !!record.grupo_economico_id && !!mapping?.group_by;
+
+  // Count enriched data tabs
+  const enrichedEntries = hasEnriched ? Object.entries(enrichedData!.enriched) : [];
+  const tabCount = (hasEnriched ? 1 : 0) + (hasCrossDb ? 1 : 0) + (hasGroup ? 1 : 0);
+
   return (
     <div className="space-y-4 border-t border-border pt-4 animate-in slide-in-from-bottom-2 duration-200">
       {/* Header */}
@@ -445,42 +454,59 @@ export function RecordDetail({ record, enrichedData, entityId, onClose, onRecord
         </div>
       )}
 
-      {/* Secondary data */}
-      {enrichedData?.enriched && Object.keys(enrichedData.enriched).length > 0 && (
-        <div className="space-y-3">
-          <h5 className="text-xs font-semibold text-foreground flex items-center gap-1.5">
-            <GitBranch className="h-3.5 w-3.5 text-nexus-cyan" /> Dados Enriquecidos
-          </h5>
-          {Object.entries(enrichedData.enriched).map(([table, rows]) => {
-            const info = SECONDARY_LABELS[table];
-            const renderer = SECONDARY_RENDERERS[table];
-            return (
-              <div key={table} className="space-y-1.5">
-                <div className="flex items-center gap-1.5 text-[11px]">
-                  {info?.icon ?? <GitBranch className="h-3 w-3 text-muted-foreground" />}
-                  <span className="font-semibold text-foreground">{info?.label ?? table}</span>
-                  <Badge variant="secondary" className="text-[11px] h-4">{Array.isArray(rows) ? rows.length : 0}</Badge>
-                </div>
-                {renderer ? renderer(rows as any[]) : <GenericSecondaryCard tableName={table} data={rows as any[]} />}
-              </div>
-            );
-          })}
-        </div>
-      )}
+      {/* Tabbed layout for enriched data */}
+      {tabCount > 0 && (
+        <Tabs defaultValue="enriched" className="space-y-3">
+          <TabsList className="bg-secondary/50">
+            {hasEnriched && (
+              <TabsTrigger value="enriched" className="gap-1.5 text-xs">
+                <GitBranch className="h-3 w-3" /> Enriquecidos
+                <Badge variant="secondary" className="text-[10px] h-4 ml-1">{enrichedEntries.length}</Badge>
+              </TabsTrigger>
+            )}
+            {hasCrossDb && (
+              <TabsTrigger value="crossdb" className="gap-1.5 text-xs">
+                <Link2 className="h-3 w-3" /> Cross-DB
+              </TabsTrigger>
+            )}
+            {hasGroup && (
+              <TabsTrigger value="group" className="gap-1.5 text-xs">
+                <Building2 className="h-3 w-3" /> Grupo
+              </TabsTrigger>
+            )}
+          </TabsList>
 
-      {/* Group members */}
-      {record.grupo_economico_id && mapping?.group_by && (
-        <GroupMembers entityId={entityId} grupoId={record.grupo_economico_id} excludeId={record.id} />
-      )}
+          {hasEnriched && (
+            <TabsContent value="enriched" className="space-y-3">
+              {enrichedEntries.map(([table, rows]) => {
+                const info = SECONDARY_LABELS[table];
+                const renderer = SECONDARY_RENDERERS[table];
+                return (
+                  <div key={table} className="space-y-1.5">
+                    <div className="flex items-center gap-1.5 text-[11px]">
+                      {info?.icon ?? <GitBranch className="h-3 w-3 text-muted-foreground" />}
+                      <span className="font-semibold text-foreground">{info?.label ?? table}</span>
+                      <Badge variant="secondary" className="text-[11px] h-4">{Array.isArray(rows) ? rows.length : 0}</Badge>
+                    </div>
+                    {renderer ? renderer(rows as any[]) : <GenericSecondaryCard tableName={table} data={rows as any[]} />}
+                  </div>
+                );
+              })}
+            </TabsContent>
+          )}
 
-      {/* Cross-DB */}
-      {enrichedData?.cross_db && Object.keys(enrichedData.cross_db).length > 0 && (
-        <div className="space-y-2">
-          <h5 className="text-xs font-semibold text-foreground flex items-center gap-1.5">
-            <Link2 className="h-3.5 w-3.5 text-nexus-emerald" /> Dados Cross-Database
-          </h5>
-          <CrossDbResults data={enrichedData.cross_db} />
-        </div>
+          {hasCrossDb && (
+            <TabsContent value="crossdb" className="space-y-2">
+              <CrossDbResults data={enrichedData!.cross_db} />
+            </TabsContent>
+          )}
+
+          {hasGroup && (
+            <TabsContent value="group">
+              <GroupMembers entityId={entityId} grupoId={record.grupo_economico_id} excludeId={record.id} />
+            </TabsContent>
+          )}
+        </Tabs>
       )}
     </div>
   );
