@@ -173,7 +173,7 @@ serve(async (req) => {
     });
 
     const stage1Results = await Promise.allSettled(stage1Promises);
-    const stage1 = stage1Results.map(r => r.status === 'fulfilled' ? r.value : null).filter(Boolean) as any[];
+    const stage1 = stage1Results.map(r => r.status === 'fulfilled' ? r.value : null).filter(Boolean) as Array<Record<string, unknown>>;
     const successfulResponses = stage1.filter(r => r.success);
 
     if (successfulResponses.length < 2) {
