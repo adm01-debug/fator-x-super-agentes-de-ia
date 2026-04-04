@@ -319,6 +319,41 @@
   .nexus-focus-ring {
     @apply focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2;
   }
+
+  /* ═══ Smooth loading bar ═══ */
+  .nexus-loading-bar {
+    position: relative;
+    overflow: hidden;
+    @apply h-1 w-full rounded-full bg-muted;
+  }
+  .nexus-loading-bar::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    border-radius: inherit;
+    background: linear-gradient(90deg, transparent, hsl(var(--primary)), transparent);
+    animation: loading-slide 1.2s ease-in-out infinite;
+  }
+
+  /* ═══ Tooltip entrance ═══ */
+  .nexus-tooltip-enter {
+    animation: tooltip-pop 0.15s cubic-bezier(0.34, 1.56, 0.64, 1) both;
+  }
+
+  /* ═══ Mobile-friendly touch targets ═══ */
+  @media (max-width: 640px) {
+    .nexus-card { @apply p-4; }
+    .nexus-card-interactive { min-height: 44px; }
+  }
+
+  /* ═══ Table responsive wrapper ═══ */
+  .nexus-table-responsive {
+    @apply overflow-x-auto -mx-4 px-4;
+    -webkit-overflow-scrolling: touch;
+  }
+  @media (min-width: 640px) {
+    .nexus-table-responsive { @apply mx-0 px-0; }
+  }
 }
 
 /* Custom scrollbar */
