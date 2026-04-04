@@ -62,7 +62,7 @@ export function useWorkflowPersistence() {
 
       if (error) {
         toast.error('Erro ao atualizar workflow');
-        console.error(error);
+        logger.error('Failed to update workflow', { error: error.message });
         setSaving(false);
         return null;
       }
