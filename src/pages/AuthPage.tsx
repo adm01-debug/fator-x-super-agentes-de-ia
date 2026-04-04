@@ -45,7 +45,7 @@ function PasswordStrength({ password }: { password: string }) {
 /* ── Feature Pill ─────────────────────────────────────── */
 function FeaturePill({ icon: Icon, text }: { icon: React.ElementType; text: string }) {
   return (
-    <div className="flex items-center gap-2 rounded-full border border-border/30 bg-card/30 backdrop-blur-sm px-4 py-2 text-xs text-muted-foreground">
+    <div className="flex items-center gap-2 rounded-full border border-border bg-card px-4 py-2 text-xs text-muted-foreground">
       <Icon className="h-3.5 w-3.5 text-primary" />
       <span>{text}</span>
     </div>
