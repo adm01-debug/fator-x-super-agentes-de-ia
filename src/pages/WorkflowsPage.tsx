@@ -65,7 +65,7 @@ export default function WorkflowsPage() {
     queryFn: async () => {
       const { data: member } = await supabase.from("workspace_members").select("workspace_id").limit(1).maybeSingle();
       if (!member?.workspace_id) return defaultTemplates;
-      const { data: wfs } = await fromTable("workflows").select("*, workflow_steps(id, name, step_order)").eq("workspace_id", member.workspace_id).order("created_at", { ascending: false });
+      const { data: wfs } = await supabase.from("workflows").select("*, workflow_steps(id, name, step_order)").eq("workspace_id", member.workspace_id).order("created_at", { ascending: false });
       if (!wfs || wfs.length === 0) return defaultTemplates;
       return wfs.map((w: any) => ({ id: w.id, name: w.name, steps: (w.workflow_steps || []).sort((a: any, b: any) => a.step_order - b.step_order).map((s: any) => s.name), status: w.status as "draft" | "active", createdAt: w.created_at ? new Date(w.created_at).toISOString().split("T")[0] : "" }));
     },

@@ -57,7 +57,7 @@ export function DeployModule() {
       const ch = updated.find(c => c.id === id);
       if (ch) {
         getWorkspaceId().then(wsId => {
-          fromTable('deploy_connections').upsert({
+          supabase.from('deploy_connections').upsert({
             agent_id: agent.id, workspace_id: wsId, channel: ch.channel,
             status: ch.enabled ? 'active' : 'inactive', config: ch.config,
           }, { onConflict: 'agent_id,channel' }).catch(() => {});
