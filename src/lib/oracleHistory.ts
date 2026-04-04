@@ -60,7 +60,7 @@ export async function saveOracleHistory(
     .select()
     .single();
 
-  if (error) console.error('Failed to save oracle history:', error);
+  if (error) logger.error('Failed to save oracle history', { error: error.message });
   return data;
 }
 
