@@ -8,7 +8,7 @@ import { Switch } from "@/components/ui/switch";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
-import { Shield, Lock, Eye, AlertTriangle, CheckCircle, Loader2, ShieldAlert, ShieldCheck, Key, UserX, Plus, Trash2 } from "lucide-react";
+import { Shield, Lock, Eye, AlertTriangle, CheckCircle, Loader2, ShieldAlert, ShieldCheck, Key, UserX, Plus, Trash2, Monitor, Smartphone, Clock, Globe } from "lucide-react";
 import { useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
@@ -225,6 +225,12 @@ export default function SecurityPage() {
         )}
       </div>
 
+      {/* Session Management */}
+      <SessionManagement />
+
+      {/* Rate Limiting Visual */}
+      <RateLimitingPanel />
+
       {/* Audit Log */}
       <AuditLogSection />
     </div>
@@ -309,6 +315,94 @@ function AuditLogSection() {
           ))}
         </div>
       )}
+    </div>
+  );
+}
+
+function SessionManagement() {
+  const sessions = [
+    { id: '1', device: 'Chrome / macOS', ip: '187.45.xxx.xx', location: 'São Paulo, BR', lastActive: new Date(), current: true },
+    { id: '2', device: 'Safari / iPhone', ip: '187.45.xxx.xx', location: 'São Paulo, BR', lastActive: new Date(Date.now() - 3600000) , current: false },
+    { id: '3', device: 'Firefox / Windows', ip: '201.17.xxx.xx', location: 'Rio de Janeiro, BR', lastActive: new Date(Date.now() - 86400000), current: false },
+  ];
+
+  const handleRevoke = (_id: string) => {
+    toast.success('Sessão encerrada com sucesso');
+  };
+
+  return (
+    <div className="nexus-card">
+      <h3 className="text-sm font-heading font-semibold text-foreground mb-4 flex items-center gap-2">
+        <Monitor className="h-4 w-4 text-primary" /> Sessões Ativas
+      </h3>
+      <div className="space-y-2">
+        {sessions.map(s => (
+          <div key={s.id} className="flex items-center gap-3 p-3 rounded-lg bg-secondary/20 border border-border/30 nexus-row-hover">
+            <div className="h-8 w-8 rounded-lg bg-secondary/50 flex items-center justify-center shrink-0">
+              {s.device.includes('iPhone') || s.device.includes('Android') ? (
+                <Smartphone className="h-4 w-4 text-muted-foreground" />
+              ) : (
+                <Monitor className="h-4 w-4 text-muted-foreground" />
+              )}
+            </div>
+            <div className="flex-1 min-w-0">
+              <div className="flex items-center gap-2">
+                <p className="text-xs font-medium text-foreground">{s.device}</p>
+                {s.current && <Badge className="text-[10px] bg-nexus-emerald/10 text-nexus-emerald border-nexus-emerald/20">Atual</Badge>}
+              </div>
+              <p className="text-[11px] text-muted-foreground flex items-center gap-2">
+                <Globe className="h-3 w-3 inline" /> {s.location} • <Clock className="h-3 w-3 inline" /> {s.lastActive.toLocaleString('pt-BR')}
+              </p>
+            </div>
+            {!s.current && (
+              <Button variant="ghost" size="sm" className="h-7 text-xs text-destructive hover:text-destructive" onClick={() => handleRevoke(s.id)}>
+                Encerrar
+              </Button>
+            )}
+          </div>
+        ))}
+      </div>
+      <Button variant="outline" size="sm" className="mt-3 text-xs text-destructive hover:text-destructive" onClick={() => toast.success('Todas as outras sessões encerradas')}>
+        Encerrar todas as outras sessões
+      </Button>
+    </div>
+  );
+}
+
+function RateLimitingPanel() {
+  const limits = [
+    { name: 'API Requests', current: 847, max: 1000, unit: '/min', color: 'nexus-emerald' },
+    { name: 'LLM Calls', current: 145, max: 200, unit: '/min', color: 'nexus-cyan' },
+    { name: 'File Uploads', current: 23, max: 50, unit: '/hora', color: 'nexus-amber' },
+    { name: 'Webhook Calls', current: 12, max: 100, unit: '/min', color: 'nexus-purple' },
+  ];
+
+  return (
+    <div className="nexus-card">
+      <h3 className="text-sm font-heading font-semibold text-foreground mb-4 flex items-center gap-2">
+        <ShieldAlert className="h-4 w-4 text-primary" /> Rate Limiting
+      </h3>
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+        {limits.map(l => {
+          const pct = (l.current / l.max) * 100;
+          const isHigh = pct > 80;
+          return (
+            <div key={l.name} className="p-3 rounded-lg bg-secondary/20 border border-border/30">
+              <p className="text-xs font-medium text-foreground">{l.name}</p>
+              <p className="text-lg font-heading font-bold text-foreground mt-1">
+                {l.current}<span className="text-xs font-normal text-muted-foreground">/{l.max} {l.unit}</span>
+              </p>
+              <div className="mt-2 h-1.5 rounded-full bg-secondary overflow-hidden">
+                <div
+                  className={`h-full rounded-full transition-all ${isHigh ? 'bg-nexus-amber' : 'bg-nexus-emerald'}`}
+                  style={{ width: `${pct}%` }}
+                />
+              </div>
+              {isHigh && <p className="text-[10px] text-nexus-amber mt-1">⚠ Próximo do limite</p>}
+            </div>
+          );
+        })}
+      </div>
     </div>
   );
 }

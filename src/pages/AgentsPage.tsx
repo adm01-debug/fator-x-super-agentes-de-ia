@@ -3,7 +3,7 @@ import { StatusBadge } from "@/components/shared/StatusBadge";
 import { QuickActionsBar } from "@/components/shared/QuickActionsBar";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Bot, Plus, Search, Filter, ArrowRight, Loader2, BookOpen, GitBranch, Activity, Star, Copy } from "lucide-react";
+import { Bot, Plus, Search, Filter, ArrowRight, Loader2, BookOpen, GitBranch, Activity, Star, Copy, Wand2 } from "lucide-react";
 import { toast } from "sonner";
 import { useQueryClient } from "@tanstack/react-query";
 import { useNavigate } from "react-router-dom";
@@ -86,6 +86,29 @@ export default function AgentsPage() {
     } finally {
       setCloning(null);
     }
+  }, [queryClient]);
+
+  const handleAutoTag = useCallback(async (e: React.MouseEvent, agent: AgentRow) => {
+    e.stopPropagation();
+    const config = agent.config as Record<string, any> | null;
+    const tags: string[] = [];
+    if (agent.model?.includes('gpt')) tags.push('OpenAI');
+    if (agent.model?.includes('gemini')) tags.push('Gemini');
+    if (agent.model?.includes('claude')) tags.push('Claude');
+    if (config?.tools?.length) tags.push('tools');
+    if (config?.rag_enabled || config?.knowledge_base) tags.push('RAG');
+    if (config?.memory_enabled) tags.push('memory');
+    if (agent.status === 'production') tags.push('prod');
+    if (agent.persona) tags.push('persona');
+    const merged = [...new Set([...(agent.tags ?? []), ...tags])];
+    if (merged.length === (agent.tags ?? []).length) {
+      toast.info('Nenhuma tag nova detectada');
+      return;
+    }
+    const { error } = await supabase.from('agents').update({ tags: merged }).eq('id', agent.id);
+    if (error) { toast.error(error.message); return; }
+    toast.success(`${merged.length - (agent.tags ?? []).length} tags adicionadas automaticamente`);
+    queryClient.invalidateQueries({ queryKey: ['agents'] });
   }, [queryClient]);
 
   const filtered = agents.filter(a =>
@@ -220,6 +243,14 @@ export default function AgentsPage() {
                     </div>
                   </div>
                   <div className="flex items-center gap-1.5">
+                    <button
+                      onClick={(e) => handleAutoTag(e, agent)}
+                      className="h-7 w-7 rounded-md flex items-center justify-center text-muted-foreground/40 hover:text-nexus-purple hover:bg-nexus-purple/10 opacity-0 group-hover:opacity-100 transition-all"
+                      aria-label="Auto-tag com IA"
+                      title="Auto-tag"
+                    >
+                      <Wand2 className="h-3.5 w-3.5" />
+                    </button>
                     <button
                       onClick={(e) => handleClone(e, agent)}
                       className="h-7 w-7 rounded-md flex items-center justify-center text-muted-foreground/40 hover:text-muted-foreground hover:bg-secondary/50 opacity-0 group-hover:opacity-100 transition-all"
