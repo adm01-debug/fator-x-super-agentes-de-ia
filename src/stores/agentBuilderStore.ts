@@ -212,7 +212,7 @@ export const useAgentBuilderStore = create<AgentBuilderStore>((set, get) => ({
             max_calls_per_run: tool.max_calls_per_session,
             requires_approval: tool.requires_approval,
             config: { name: tool.name, category: tool.category, permission_level: tool.permission_level },
-          }, { onConflict: 'agent_id,tool_integration_id' }).catch(() => {});
+          }, { onConflict: 'agent_id,tool_integration_id' }).then(() => {}, () => {});
         }
       }
       // ═══ Auto-versioning: snapshot agent config on every save ═══
