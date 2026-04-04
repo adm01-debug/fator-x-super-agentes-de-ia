@@ -70,12 +70,12 @@ function validateRequest(body: unknown): { valid: true; data: LLMRequest } | { v
 }
 
 // ═══ Cost Calculation from DB pricing ═══
-async function calculateCost(supabase: any, model: string, promptTokens: number, completionTokens: number): Promise<number> {
+async function calculateCost(supabase: SupabaseClient, model: string, promptTokens: number, completionTokens: number): Promise<number> {
   try {
     const { data: pricing } = await supabase.from('model_pricing').select('model_pattern, input_cost_per_1k, output_cost_per_1k');
     if (pricing) {
       // Sort by pattern length DESC so "gpt-4o-mini" matches before "gpt-4o"
-      const sorted = [...pricing].sort((a: any, b: any) => b.model_pattern.length - a.model_pattern.length);
+      const sorted = [...pricing].sort((a: Record<string, unknown>, b: Record<string, unknown>) => (b.model_pattern as string).length - (a.model_pattern as string).length);
       for (const p of sorted) {
         if (model.includes(p.model_pattern)) {
           return (promptTokens / 1000 * Number(p.input_cost_per_1k)) + (completionTokens / 1000 * Number(p.output_cost_per_1k));
