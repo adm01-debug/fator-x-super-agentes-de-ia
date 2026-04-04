@@ -6,7 +6,7 @@ import { Input } from "@/components/ui/input";
 import { Checkbox } from "@/components/ui/checkbox";
 import {
   Bot, Plus, Search, Filter, ArrowRight, Loader2, BookOpen, GitBranch, Activity,
-  Star, Copy, Wand2, Download, Upload, Trash2, Archive, Tag, CheckSquare, X,
+  Star, Copy, Wand2, Download, Upload, Trash2, Archive, CheckSquare, X,
 } from "lucide-react";
 import { toast } from "sonner";
 import { useQueryClient } from "@tanstack/react-query";
