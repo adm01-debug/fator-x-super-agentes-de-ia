@@ -86,19 +86,19 @@ export function AppSidebar() {
 
   // Auto-expand the section containing the active route
   useEffect(() => {
-    for (const section of navSections) {
-      const hasActive = section.items.some(item =>
-        item.url === "/" ? location.pathname === "/" : location.pathname.startsWith(item.url)
-      );
-      if (hasActive && sectionCollapsed[section.key]) {
-        setSectionCollapsed(prev => {
+    setSectionCollapsed(prev => {
+      for (const section of navSections) {
+        const hasActive = section.items.some(item =>
+          item.url === "/" ? location.pathname === "/" : location.pathname.startsWith(item.url)
+        );
+        if (hasActive && prev[section.key]) {
           const next = { ...prev, [section.key]: false };
-          try { localStorage.setItem(COLLAPSED_KEY, JSON.stringify(next)); } catch {}
+          try { localStorage.setItem(COLLAPSED_KEY, JSON.stringify(next)); } catch { /* noop */ }
           return next;
-        });
-        break;
+        }
       }
-    }
+      return prev;
+    });
   }, [location.pathname]);
 
   const toggleSection = useCallback((key: string) => {

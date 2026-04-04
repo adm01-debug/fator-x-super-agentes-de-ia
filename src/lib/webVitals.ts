@@ -29,4 +29,23 @@ export function initWebVitals() {
   onLCP(reportMetric);
   onFCP(reportMetric);
   onTTFB(reportMetric);
+
+  // Track lazy chunk load performance
+  if (typeof PerformanceObserver !== 'undefined') {
+    try {
+      const observer = new PerformanceObserver((list) => {
+        for (const entry of list.getEntries()) {
+          if (entry.entryType === 'resource' && entry.name.endsWith('.js')) {
+            const duration = entry.duration;
+            if (duration > 500 && import.meta.env.DEV) {
+              console.warn(`[ChunkLoad] Slow chunk: ${entry.name.split('/').pop()} took ${duration.toFixed(0)}ms`);
+            }
+          }
+        }
+      });
+      observer.observe({ type: 'resource', buffered: false });
+    } catch {
+      // PerformanceObserver not supported
+    }
+  }
 }
