@@ -382,7 +382,7 @@ serve(async (req) => {
       else if (/^\d+$/.test(value)) parsedValue = parseInt(value, 10);
       else if (/^\d+\.\d+$/.test(value)) parsedValue = parseFloat(value);
 
-      const updatePayload: Record<string, any> = { [field]: parsedValue };
+      const updatePayload: Record<string, unknown> = { [field]: parsedValue };
 
       // Try with updated_at first
       const { data: updated, error: updateError } = await client
