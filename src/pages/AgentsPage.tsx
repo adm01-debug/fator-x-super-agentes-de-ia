@@ -244,6 +244,14 @@ export default function AgentsPage() {
                   </div>
                   <div className="flex items-center gap-1.5">
                     <button
+                      onClick={(e) => handleAutoTag(e, agent)}
+                      className="h-7 w-7 rounded-md flex items-center justify-center text-muted-foreground/40 hover:text-nexus-purple hover:bg-nexus-purple/10 opacity-0 group-hover:opacity-100 transition-all"
+                      aria-label="Auto-tag com IA"
+                      title="Auto-tag"
+                    >
+                      <Wand2 className="h-3.5 w-3.5" />
+                    </button>
+                    <button
                       onClick={(e) => handleClone(e, agent)}
                       className="h-7 w-7 rounded-md flex items-center justify-center text-muted-foreground/40 hover:text-muted-foreground hover:bg-secondary/50 opacity-0 group-hover:opacity-100 transition-all"
                       aria-label="Clonar agente"
