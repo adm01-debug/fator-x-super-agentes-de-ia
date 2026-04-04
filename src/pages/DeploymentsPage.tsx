@@ -7,7 +7,6 @@ import { Badge } from "@/components/ui/badge";
 import { Rocket, Loader2, Link2, Copy, CheckCircle } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
-import { fromTable } from "@/lib/supabaseExtended";
 import { toast } from "sonner";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 
@@ -20,7 +19,7 @@ export default function DeploymentsPage() {
       if (!data) return [];
       // Fetch deploy_connections for all deployed agents
       const agentIds = data.map(a => a.id);
-      const { data: connections } = await fromTable('deploy_connections').select('agent_id, channel, status, message_count, last_message_at, error_message').in('agent_id', agentIds);
+      const { data: connections } = await supabase.from('deploy_connections').select('agent_id, channel, status, message_count, last_message_at, error_message').in('agent_id', agentIds);
       const connMap = new Map<string, any[]>();
       for (const c of (connections || [])) {
         if (!connMap.has(c.agent_id)) connMap.set(c.agent_id, []);

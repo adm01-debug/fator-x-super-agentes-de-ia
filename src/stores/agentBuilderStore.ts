@@ -2,7 +2,7 @@ import { create } from 'zustand';
 import type { AgentConfig, PromptVersion } from '@/types/agentTypes';
 import { DEFAULT_AGENT, TABS } from '@/data/agentBuilderData';
 import { supabase } from '@/integrations/supabase/client';
-import { fromTable } from '@/lib/supabaseExtended';
+
 import type { Json } from '@/integrations/supabase/types';
 import { audit } from '@/lib/auditService';
 
@@ -205,19 +205,19 @@ export const useAgentBuilderStore = create<AgentBuilderStore>((set, get) => ({
       // Sync tool_policies to DB (non-blocking)
       if (agentId && savedAgent.tools?.length > 0) {
         for (const tool of savedAgent.tools) {
-          fromTable('tool_policies').upsert({
+          supabase.from('tool_policies').upsert({
             agent_id: agentId,
             tool_integration_id: null,
             is_allowed: tool.enabled,
             max_calls_per_run: tool.max_calls_per_session,
             requires_approval: tool.requires_approval,
             config: { name: tool.name, category: tool.category, permission_level: tool.permission_level },
-          }, { onConflict: 'agent_id,tool_integration_id' }).catch(() => {});
+          }, { onConflict: 'agent_id,tool_integration_id' }).then(() => {}, () => {});
         }
       }
       // ═══ Auto-versioning: snapshot agent config on every save ═══
       if (agentId) {
-        fromTable('agent_versions').insert({
+        supabase.from('agent_versions').insert({
           agent_id: agentId,
           version: savedAgent.version || 1,
           config: row.config || {},
@@ -226,7 +226,7 @@ export const useAgentBuilderStore = create<AgentBuilderStore>((set, get) => ({
           created_by: user.id,
           change_summary: `Save at ${now}`,
           environment: savedAgent.status === 'production' ? 'production' : savedAgent.status === 'staging' ? 'staging' : 'development',
-        }).catch(() => {}); // Ignore duplicate version errors
+        }).then(() => {}, () => {}); // Ignore duplicate version errors
       }
     }
   },

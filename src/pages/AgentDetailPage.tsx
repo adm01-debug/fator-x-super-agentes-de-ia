@@ -6,7 +6,6 @@ import { Button } from "@/components/ui/button";
 import { Bot, Loader2, GitCompare } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
-import { fromTable } from "@/lib/supabaseExtended";
 import { VersionDiffDialog } from "@/components/agents/VersionDiffDialog";
 
 export default function AgentDetailPage() {
@@ -187,7 +186,7 @@ function VersionHistory({ agentId }: { agentId: string }) {
   const { data: versions = [], isLoading } = useQuery({
     queryKey: ['agent_versions', agentId],
     queryFn: async () => {
-      const { data } = await fromTable('agent_versions').select('*').eq('agent_id', agentId).order('version', { ascending: false }).limit(20);
+      const { data } = await supabase.from('agent_versions').select('*').eq('agent_id', agentId).order('version', { ascending: false }).limit(20);
       return data ?? [];
     },
   });

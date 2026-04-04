@@ -1,5 +1,5 @@
+import { supabase } from '@/integrations/supabase/client';
 import { useQuery } from "@tanstack/react-query";
-import { fromTable } from "@/lib/supabaseExtended";
 import { Activity, Loader2 } from "lucide-react";
 
 const ACTION_LABELS: Record<string, { label: string; color: string }> = {
@@ -36,7 +36,7 @@ export function ActivityFeed() {
   const { data: logs = [], isLoading } = useQuery({
     queryKey: ['activity_feed'],
     queryFn: async () => {
-      const { data } = await fromTable('audit_log')
+      const { data } = await supabase.from('audit_log')
         .select('*')
         .order('created_at', { ascending: false })
         .limit(15);

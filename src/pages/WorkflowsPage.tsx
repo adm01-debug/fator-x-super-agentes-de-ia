@@ -16,7 +16,6 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { WorkflowCanvas, type CanvasNode, type CanvasEdge } from "@/components/workflows/WorkflowCanvas";
 import { useWorkflowPersistence } from "@/hooks/use-workflow-persistence";
 import { supabase } from "@/integrations/supabase/client";
-import { fromTable } from "@/lib/supabaseExtended";
 import { workflowSchema } from "@/lib/validations/agentSchema";
 
 interface Workflow {
@@ -65,7 +64,7 @@ export default function WorkflowsPage() {
     queryFn: async () => {
       const { data: member } = await supabase.from("workspace_members").select("workspace_id").limit(1).maybeSingle();
       if (!member?.workspace_id) return defaultTemplates;
-      const { data: wfs } = await fromTable("workflows").select("*, workflow_steps(id, name, step_order)").eq("workspace_id", member.workspace_id).order("created_at", { ascending: false });
+      const { data: wfs } = await supabase.from("workflows").select("*, workflow_steps(id, name, step_order)").eq("workspace_id", member.workspace_id).order("created_at", { ascending: false });
       if (!wfs || wfs.length === 0) return defaultTemplates;
       return wfs.map((w: any) => ({ id: w.id, name: w.name, steps: (w.workflow_steps || []).sort((a: any, b: any) => a.step_order - b.step_order).map((s: any) => s.name), status: w.status as "draft" | "active", createdAt: w.created_at ? new Date(w.created_at).toISOString().split("T")[0] : "" }));
     },
@@ -112,12 +111,12 @@ export default function WorkflowsPage() {
     if (!result.success) { toast.error(result.error.errors[0]?.message || 'Dados inválidos'); return; }
     try {
       const { data: member } = await supabase.from('workspace_members').select('workspace_id').limit(1).maybeSingle();
-      const { data: wf, error } = await fromTable('workflows').insert({
+      const { data: wf, error } = await supabase.from('workflows').insert({
         workspace_id: member?.workspace_id, name: newName.trim(), status: 'draft',
         config: { step_names: steps },
       }).select('id').single();
       if (error) throw error;
-      await fromTable('workflow_steps').insert(steps.map((name, i) => ({ workflow_id: wf.id, name, step_order: i, role: 'executor' })));
+      await supabase.from('workflow_steps').insert(steps.map((name, i) => ({ workflow_id: wf.id, name, step_order: i, role: 'executor' })));
       toast.success('Workflow salvo no banco!');
       setDialogOpen(false); setNewName(''); setNewSteps('');
       queryClient.invalidateQueries({ queryKey: ['workflows_list'] });
@@ -126,7 +125,7 @@ export default function WorkflowsPage() {
 
   const handleDelete = async (id: string) => {
     if (id.includes('-')) { // UUID = from DB
-      await fromTable('workflows').delete().eq('id', id);
+      await supabase.from('workflows').delete().eq('id', id);
       queryClient.invalidateQueries({ queryKey: ['workflows_list'] });
     }
     toast.success('Workflow removido');
@@ -136,7 +135,7 @@ export default function WorkflowsPage() {
     if (id.includes('-')) {
       const wf = workflows.find((w: any) => w.id === id);
       if (wf) {
-        await fromTable('workflows').update({ status: wf.status === 'active' ? 'draft' : 'active' }).eq('id', id);
+        await supabase.from('workflows').update({ status: wf.status === 'active' ? 'draft' : 'active' }).eq('id', id);
         queryClient.invalidateQueries({ queryKey: ['workflows_list'] });
       }
     }
@@ -353,7 +352,7 @@ function WorkflowRunsHistory() {
   const { data: runs = [], isLoading } = useQuery({
     queryKey: ['workflow_runs'],
     queryFn: async () => {
-      const { data } = await fromTable('workflow_runs').select('*, workflows(name)').order('started_at', { ascending: false }).limit(30);
+      const { data } = await supabase.from('workflow_runs').select('*, workflows(name)').order('started_at', { ascending: false }).limit(30);
       return data ?? [];
     },
   });

@@ -51,7 +51,7 @@ export default function MonitoringPage() {
     queryFn: async () => {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) return [];
-      let query = fromTable('sessions')
+      let query = supabase.from('sessions')
         .select('*')
         .eq('user_id', user.id)
         .order('started_at', { ascending: false })
@@ -73,7 +73,7 @@ export default function MonitoringPage() {
     enabled: !!expandedSessionId,
     queryFn: async () => {
       if (!expandedSessionId) return [];
-      const { data, error } = await fromTable('session_traces')
+      const { data, error } = await supabase.from('session_traces')
         .select('*')
         .eq('session_id', expandedSessionId)
         .order('created_at', { ascending: true });
@@ -93,7 +93,7 @@ export default function MonitoringPage() {
     enabled: !!expandedTraceId,
     queryFn: async () => {
       if (!expandedTraceId) return [];
-      const { data, error } = await fromTable('trace_events')
+      const { data, error } = await supabase.from('trace_events')
         .select('*')
         .eq('session_trace_id', expandedTraceId)
         .order('created_at', { ascending: true });

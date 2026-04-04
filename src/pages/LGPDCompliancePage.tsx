@@ -6,7 +6,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Shield, Trash2, Download, AlertTriangle, Loader2, FileText } from 'lucide-react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
-import { fromTable } from '@/lib/supabaseExtended';
+
 import { toast } from 'sonner';
 
 export default function LGPDCompliancePage() {
@@ -18,7 +18,7 @@ export default function LGPDCompliancePage() {
   const { data: consents = [] } = useQuery({
     queryKey: ['lgpd_consents'],
     queryFn: async () => {
-      const { data } = await fromTable('consent_records').select('*').order('created_at', { ascending: false });
+      const { data } = await supabase.from('consent_records').select('*').order('created_at', { ascending: false });
       return data ?? [];
     },
   });
@@ -27,7 +27,7 @@ export default function LGPDCompliancePage() {
   const { data: deletions = [] } = useQuery({
     queryKey: ['lgpd_deletions'],
     queryFn: async () => {
-      const { data } = await fromTable('data_deletion_requests').select('*').order('requested_at', { ascending: false });
+      const { data } = await supabase.from('data_deletion_requests').select('*').order('requested_at', { ascending: false });
       return data ?? [];
     },
   });
@@ -102,7 +102,7 @@ export default function LGPDCompliancePage() {
                     <div>
                       <p className="text-sm font-medium text-foreground">{p.label}</p>
                       <p className="text-xs text-muted-foreground mt-0.5">{p.desc}</p>
-                      {consent && <p className="text-[11px] text-nexus-emerald mt-1">Consentido em {new Date(consent.granted_at || consent.created_at).toLocaleDateString('pt-BR')}</p>}
+                      {consent && <p className="text-[11px] text-nexus-emerald mt-1">Consentido em {new Date(consent.created_at).toLocaleDateString('pt-BR')}</p>}
                     </div>
                     <div className="flex gap-2">
                       {consent ? (

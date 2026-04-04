@@ -9,7 +9,6 @@ import { Search, BookOpen, ArrowRight, Loader2, Database, Pencil, Trash2, Bot, F
 import { useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
-import { fromTable } from "@/lib/supabaseExtended";
 import { CreateKnowledgeBaseDialog } from "@/components/dialogs/CreateKnowledgeBaseDialog";
 import { EditKnowledgeBaseDialog } from "@/components/dialogs/EditKnowledgeBaseDialog";
 import { KnowledgeBaseDetail } from "@/components/knowledge/KnowledgeBaseDetail";
@@ -191,7 +190,7 @@ function VectorIndexesStatus() {
   const { data: indexes = [] } = useQuery({
     queryKey: ['vector_indexes'],
     queryFn: async () => {
-      const { data } = await fromTable('vector_indexes').select('*, knowledge_bases(name)').order('created_at', { ascending: false });
+      const { data } = await supabase.from('vector_indexes').select('*, knowledge_bases(name)').order('created_at', { ascending: false });
       return data ?? [];
     },
   });

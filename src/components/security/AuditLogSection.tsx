@@ -1,15 +1,15 @@
+import { supabase } from '@/integrations/supabase/client';
 import { ShieldCheck, Loader2 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { useQuery } from "@tanstack/react-query";
-import { fromTable } from "@/lib/supabaseExtended";
 import { toast } from "sonner";
 
 export function AuditLogSection() {
   const { data: logs = [], isLoading } = useQuery({
     queryKey: ['audit_log'],
     queryFn: async () => {
-      const { data, error } = await fromTable('audit_log').select('*').order('created_at', { ascending: false }).limit(50);
+      const { data, error } = await supabase.from('audit_log').select('*').order('created_at', { ascending: false }).limit(50);
       if (error) return [];
       return data ?? [];
     },
