@@ -130,7 +130,7 @@ export const useAgentBuilderStore = create<AgentBuilderStore>((set, get) => ({
       .from('agents')
       .select('*')
       .eq('id', id)
-      .single();
+      .maybeSingle();
 
     if (!error && data) {
       const agent = dbRowToAgent(data);
