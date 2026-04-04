@@ -256,7 +256,7 @@ function AuditLogSection() {
         l.entity_id || '',
         JSON.stringify(l.metadata || {}),
       ]);
-      content = [headers.join(','), ...rows.map(r => r.map(c => `"${String(c).replace(/"/g, '""')}"`).join(','))].join('\n');
+      content = [headers.join(','), ...rows.map((r: string[]) => r.map((c: string) => `"${String(c).replace(/"/g, '""')}"`).join(','))].join('\n');
       mime = 'text/csv';
       ext = 'csv';
     } else {
