@@ -1,5 +1,4 @@
 import { useQuery } from "@tanstack/react-query";
-import { fromTable } from "@/lib/supabaseExtended";
 import { Activity, Loader2 } from "lucide-react";
 
 const ACTION_LABELS: Record<string, { label: string; color: string }> = {

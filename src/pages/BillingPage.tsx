@@ -10,7 +10,6 @@ import { DollarSign, Hash, Loader2, BarChart3, Plus, Trash2, Wallet, AlertTriang
 import { useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
-import { fromTable } from "@/lib/supabaseExtended";
 import { getWorkspaceId } from "@/lib/agentService";
 import { LightBarChart } from "@/components/charts";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";

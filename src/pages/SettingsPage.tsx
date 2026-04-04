@@ -10,7 +10,6 @@ import { Palette, Globe, Bell, Key, Plus, Trash2, Save, Eye, EyeOff, Loader2, Ro
 import { toast } from "sonner";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
-import { fromTable } from "@/lib/supabaseExtended";
 import { getWorkspaceId } from "@/lib/agentService";
 import { environmentSchema } from "@/lib/validations/agentSchema";
 import { useTheme } from "next-themes";

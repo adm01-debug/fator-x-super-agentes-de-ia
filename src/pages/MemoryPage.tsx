@@ -10,7 +10,6 @@ import { Brain, Clock, Globe, User, Users, Database, Plus, Trash2, Search, Loade
 import { toast } from "sonner";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
-import { fromTable } from "@/lib/supabaseExtended";
 import { memorySchema } from "@/lib/validations/agentSchema";
 
 const memoryTypes = [
