@@ -77,7 +77,7 @@ export function useWorkflowPersistence() {
       .select('workspace_id')
       .eq('user_id', user.id)
       .limit(1)
-      .single();
+      .maybeSingle();
 
     const workspaceId = memberData?.workspace_id;
     if (!workspaceId) {

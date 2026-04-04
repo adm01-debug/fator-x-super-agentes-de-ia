@@ -431,7 +431,7 @@ function AlertRulesPanel() {
   const { data: rules = [] } = useQuery({
     queryKey: ['alert_rules'],
     queryFn: async () => {
-      const { data: member } = await supabase.from('workspace_members').select('workspace_id').limit(1).single();
+      const { data: member } = await supabase.from('workspace_members').select('workspace_id').limit(1).maybeSingle();
       if (!member?.workspace_id) return [];
       const { data } = await fromTable('alert_rules').select('*').eq('workspace_id', member.workspace_id).order('created_at', { ascending: false });
       return data ?? [];
@@ -443,7 +443,7 @@ function AlertRulesPanel() {
     if (!result.success) { toast.error(result.error.errors[0]?.message || 'Dados inválidos'); return; }
     setCreating(true);
     try {
-      const { data: member } = await supabase.from('workspace_members').select('workspace_id').limit(1).single();
+      const { data: member } = await supabase.from('workspace_members').select('workspace_id').limit(1).maybeSingle();
       await fromTable('alert_rules').insert({
         workspace_id: member?.workspace_id, name: ruleName.trim(),
         metric: ruleMetric, operator: ruleOp,

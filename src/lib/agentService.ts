@@ -16,7 +16,7 @@ export async function getWorkspaceId(): Promise<string> {
     .select('workspace_id')
     .eq('user_id', user.id)
     .limit(1)
-    .single();
+    .maybeSingle();
 
   if (!data?.workspace_id) throw new Error('Workspace não encontrado');
   cachedWorkspaceId = data.workspace_id;
@@ -121,7 +121,7 @@ export async function getWorkspaceInfo() {
     .select('workspace_id, role')
     .eq('user_id', user.id)
     .limit(1)
-    .single();
+    .maybeSingle();
 
   if (!member?.workspace_id) return null;
 
@@ -129,7 +129,7 @@ export async function getWorkspaceInfo() {
     .from('workspaces')
     .select('name, plan, max_agents')
     .eq('id', member.workspace_id)
-    .single();
+    .maybeSingle();
 
   const { count } = await supabase
     .from('agents')

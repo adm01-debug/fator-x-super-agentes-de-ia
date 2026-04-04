@@ -25,7 +25,7 @@ export function CreateKnowledgeBaseDialog({ onCreated }: CreateKnowledgeBaseDial
     if (!name.trim()) { toast.error('Nome é obrigatório'); return; }
     setLoading(true);
     try {
-      const { data: member } = await supabase.from('workspace_members').select('workspace_id').limit(1).single();
+      const { data: member } = await supabase.from('workspace_members').select('workspace_id').limit(1).maybeSingle();
       const { error } = await supabase.from('knowledge_bases').insert({
         name: name.trim(),
         description: description.trim(),

@@ -36,7 +36,7 @@ export function CreateEvaluationDialog({ onCreated }: CreateEvaluationDialogProp
     if (!agentId) { toast.error('Selecione um agente'); return; }
     setLoading(true);
     try {
-      const { data: member } = await supabase.from('workspace_members').select('workspace_id').limit(1).single();
+      const { data: member } = await supabase.from('workspace_members').select('workspace_id').limit(1).maybeSingle();
       const { data: evalRun, error } = await supabase.from('evaluation_runs').insert({
         name: name.trim(),
         test_cases: parseInt(testCases) || 5,
