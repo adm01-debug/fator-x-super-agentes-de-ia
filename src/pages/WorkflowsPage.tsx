@@ -213,9 +213,10 @@ export default function WorkflowsPage() {
 
       <Tabs defaultValue="canvas" className="space-y-4">
         <TabsList>
-          <TabsTrigger value="canvas" className="gap-1.5"><Network className="h-3.5 w-3.5" /> Canvas Visual</TabsTrigger>
+         <TabsTrigger value="canvas" className="gap-1.5"><Network className="h-3.5 w-3.5" /> Canvas Visual</TabsTrigger>
           <TabsTrigger value="list" className="gap-1.5"><LayoutGrid className="h-3.5 w-3.5" /> Lista</TabsTrigger>
           <TabsTrigger value="runs" className="gap-1.5"><Play className="h-3.5 w-3.5" /> Execuções</TabsTrigger>
+          <TabsTrigger value="schedule" className="gap-1.5"><Calendar className="h-3.5 w-3.5" /> Agendamentos</TabsTrigger>
         </TabsList>
 
         <TabsContent value="canvas" className="space-y-4">
