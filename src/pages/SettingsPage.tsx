@@ -6,7 +6,7 @@ import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Palette, Globe, Bell, Key, Plus, Trash2, Save, Eye, EyeOff, Loader2 } from "lucide-react";
+import { Palette, Globe, Bell, Key, Plus, Trash2, Save, Eye, EyeOff, Loader2, RotateCw } from "lucide-react";
 import { toast } from "sonner";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
@@ -21,6 +21,8 @@ export default function SettingsPage() {
   const [newKeyName, setNewKeyName] = useState('');
   const [newKeyValue, setNewKeyValue] = useState('');
   const [showValues, setShowValues] = useState<Record<string, boolean>>({});
+  const [editingKey, setEditingKey] = useState<string | null>(null);
+  const [editValue, setEditValue] = useState('');
   const [notifications, setNotifications] = useState({ email: true, errors: true, billing: false, weekly: true });
 
   // API Keys from workspace_secrets
@@ -62,6 +64,21 @@ export default function SettingsPage() {
       toast.success('API Key removida');
       queryClient.invalidateQueries({ queryKey: ['workspace_secrets'] });
     },
+  });
+
+  const rotateKeyMutation = useMutation({
+    mutationFn: async ({ id, newValue }: { id: string; newValue: string }) => {
+      if (!newValue.trim()) throw new Error('Novo valor é obrigatório');
+      const { error } = await supabase.from('workspace_secrets').update({ key_value: newValue.trim() }).eq('id', id);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      toast.success('API Key rotacionada com sucesso!');
+      setEditingKey(null);
+      setEditValue('');
+      queryClient.invalidateQueries({ queryKey: ['workspace_secrets'] });
+    },
+    onError: (e: Error) => toast.error(e.message),
   });
 
   // Workspace info
@@ -191,10 +208,34 @@ export default function SettingsPage() {
                     <div key={s.id} className="flex items-center gap-3 p-3 rounded-lg bg-secondary/30 border border-border/30">
                       <div className="flex-1 min-w-0">
                         <p className="text-xs font-mono font-medium text-foreground">{s.key_name}</p>
-                        <p className="text-[11px] text-muted-foreground font-mono truncate">
-                          {showValues[s.id] ? s.key_value : masked}
+                        {editingKey === s.id ? (
+                          <div className="flex gap-1.5 mt-1.5">
+                            <Input
+                              type="password"
+                              value={editValue}
+                              onChange={e => setEditValue(e.target.value)}
+                              placeholder="Novo valor..."
+                              className="bg-secondary/50 text-xs font-mono h-7"
+                            />
+                            <Button size="sm" className="h-7 text-xs" onClick={() => rotateKeyMutation.mutate({ id: s.id, newValue: editValue })} disabled={rotateKeyMutation.isPending}>
+                              Salvar
+                            </Button>
+                            <Button size="sm" variant="ghost" className="h-7 text-xs" onClick={() => { setEditingKey(null); setEditValue(''); }}>
+                              Cancelar
+                            </Button>
+                          </div>
+                        ) : (
+                          <p className="text-[11px] text-muted-foreground font-mono truncate">
+                            {showValues[s.id] ? s.key_value : masked}
+                          </p>
+                        )}
+                        <p className="text-[10px] text-muted-foreground/50 mt-0.5">
+                          Atualizado: {new Date(s.updated_at ?? s.created_at ?? '').toLocaleDateString('pt-BR')}
                         </p>
                       </div>
+                      <Button size="icon" variant="ghost" className="h-7 w-7" title="Rotacionar" onClick={() => { setEditingKey(s.id); setEditValue(''); }}>
+                        <RotateCw className="h-3.5 w-3.5 text-nexus-amber" />
+                      </Button>
                       <Button size="icon" variant="ghost" className="h-7 w-7" onClick={() => setShowValues(prev => ({ ...prev, [s.id]: !prev[s.id] }))}>
                         {showValues[s.id] ? <EyeOff className="h-3.5 w-3.5" /> : <Eye className="h-3.5 w-3.5" />}
                       </Button>
