@@ -66,6 +66,21 @@ export default function SettingsPage() {
     },
   });
 
+  const rotateKeyMutation = useMutation({
+    mutationFn: async ({ id, newValue }: { id: string; newValue: string }) => {
+      if (!newValue.trim()) throw new Error('Novo valor é obrigatório');
+      const { error } = await supabase.from('workspace_secrets').update({ key_value: newValue.trim() }).eq('id', id);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      toast.success('API Key rotacionada com sucesso!');
+      setEditingKey(null);
+      setEditValue('');
+      queryClient.invalidateQueries({ queryKey: ['workspace_secrets'] });
+    },
+    onError: (e: Error) => toast.error(e.message),
+  });
+
   // Workspace info
   const { data: workspace } = useQuery({
     queryKey: ['workspace_settings'],
