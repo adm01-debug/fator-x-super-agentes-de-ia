@@ -61,10 +61,41 @@ export function CommandPalette() {
   const location = useLocation();
   const [recent, setRecent] = useState<string[]>([]);
 
+  // ═══ Fetch agents ═══
   const { data: agents = [] } = useQuery({
     queryKey: ['agents_palette'],
     queryFn: async () => {
       const { data } = await supabase.from('agents').select('id, name, model, persona, avatar_emoji, status').order('updated_at', { ascending: false }).limit(10);
+      return data ?? [];
+    },
+    enabled: open,
+  });
+
+  // ═══ Fetch knowledge bases ═══
+  const { data: knowledgeBases = [] } = useQuery({
+    queryKey: ['kb_palette'],
+    queryFn: async () => {
+      const { data } = await supabase.from('knowledge_bases').select('id, name, document_count, status').order('updated_at', { ascending: false }).limit(8);
+      return data ?? [];
+    },
+    enabled: open,
+  });
+
+  // ═══ Fetch workflows ═══
+  const { data: workflows = [] } = useQuery({
+    queryKey: ['workflows_palette'],
+    queryFn: async () => {
+      const { data } = await supabase.from('workflows').select('id, name, status').order('updated_at', { ascending: false }).limit(8);
+      return data ?? [];
+    },
+    enabled: open,
+  });
+
+  // ═══ Fetch tools ═══
+  const { data: tools = [] } = useQuery({
+    queryKey: ['tools_palette'],
+    queryFn: async () => {
+      const { data } = await supabase.from('tool_integrations').select('id, name, type, is_enabled').order('name').limit(8);
       return data ?? [];
     },
     enabled: open,
@@ -97,7 +128,6 @@ export function CommandPalette() {
     .map(href => {
       const page = pages.find(p => p.href === href);
       if (page) return { ...page, type: 'page' as const };
-      // Check if it's an agent link
       if (href.startsWith('/builder/')) {
         const agentId = href.replace('/builder/', '');
         const agent = agents.find(a => a.id === agentId);
@@ -111,11 +141,11 @@ export function CommandPalette() {
 
   return (
     <CommandDialog open={open} onOpenChange={setOpen}>
-      <CommandInput placeholder="Buscar agentes, páginas, ações..." />
+      <CommandInput placeholder="Buscar agentes, bases de conhecimento, workflows, páginas..." />
       <CommandList>
         <CommandEmpty>Nenhum resultado encontrado.</CommandEmpty>
 
-        {/* Recent — only shown when query is empty */}
+        {/* Recent */}
         {recentItems.length > 0 && (
           <>
             <CommandGroup heading="Recentes">
@@ -141,15 +171,64 @@ export function CommandPalette() {
           ))}
         </CommandGroup>
 
+        {/* Agents */}
         {agents.length > 0 && (
           <>
             <CommandSeparator />
             <CommandGroup heading="Agentes">
               {agents.map(agent => (
-                <CommandItem key={agent.id} onSelect={() => go(`/builder/${agent.id}`)} className="gap-2" keywords={[agent.persona || '', agent.model || '']}>
+                <CommandItem key={agent.id} onSelect={() => go(`/builder/${agent.id}`)} className="gap-2" keywords={[agent.persona || '', agent.model || '', agent.name]}>
                   <span className="text-sm" aria-hidden="true">{agent.avatar_emoji || '🤖'}</span>
                   <span>{agent.name}</span>
                   <span className="ml-auto text-[11px] text-muted-foreground">{agent.model}</span>
+                </CommandItem>
+              ))}
+            </CommandGroup>
+          </>
+        )}
+
+        {/* Knowledge Bases */}
+        {knowledgeBases.length > 0 && (
+          <>
+            <CommandSeparator />
+            <CommandGroup heading="Knowledge Bases">
+              {knowledgeBases.map(kb => (
+                <CommandItem key={kb.id} onSelect={() => go('/knowledge')} className="gap-2" keywords={[kb.name, 'rag', 'documento', 'knowledge']}>
+                  <BookOpen className="h-4 w-4 text-nexus-emerald" />
+                  <span>{kb.name}</span>
+                  <span className="ml-auto text-[11px] text-muted-foreground">{kb.document_count ?? 0} docs</span>
+                </CommandItem>
+              ))}
+            </CommandGroup>
+          </>
+        )}
+
+        {/* Workflows */}
+        {workflows.length > 0 && (
+          <>
+            <CommandSeparator />
+            <CommandGroup heading="Workflows">
+              {workflows.map(wf => (
+                <CommandItem key={wf.id} onSelect={() => go('/workflows')} className="gap-2" keywords={[wf.name, 'automação', 'fluxo', 'workflow']}>
+                  <GitBranch className="h-4 w-4 text-nexus-cyan" />
+                  <span>{wf.name}</span>
+                  <span className={`ml-auto text-[11px] ${wf.status === 'active' ? 'text-nexus-emerald' : 'text-muted-foreground'}`}>{wf.status}</span>
+                </CommandItem>
+              ))}
+            </CommandGroup>
+          </>
+        )}
+
+        {/* Tools */}
+        {tools.length > 0 && (
+          <>
+            <CommandSeparator />
+            <CommandGroup heading="Ferramentas">
+              {tools.map(tool => (
+                <CommandItem key={tool.id} onSelect={() => go('/tools')} className="gap-2" keywords={[tool.name, tool.type, 'ferramenta', 'integração']}>
+                  <Puzzle className="h-4 w-4 text-nexus-amber" />
+                  <span>{tool.name}</span>
+                  <span className="ml-auto text-[11px] text-muted-foreground">{tool.type}</span>
                 </CommandItem>
               ))}
             </CommandGroup>
