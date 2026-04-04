@@ -95,7 +95,7 @@ export function useWorkflowPersistence() {
 
     if (error) {
       toast.error('Erro ao criar workflow');
-      console.error(error);
+      logger.error('Failed to create workflow', { error: error.message });
       setSaving(false);
       return null;
     }
