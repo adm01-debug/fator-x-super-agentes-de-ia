@@ -74,7 +74,7 @@ function MeshGradient() {
     <div className="absolute inset-0 overflow-hidden pointer-events-none" aria-hidden="true">
       {/* Blob 1 — primary */}
       <div
-        className="absolute w-[500px] h-[500px] rounded-full opacity-20 blur-[100px]"
+        className="absolute w-[500px] h-[500px] rounded-full opacity-20"
         style={{
           background: 'hsl(var(--primary))',
           top: '10%',
