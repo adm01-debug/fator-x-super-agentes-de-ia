@@ -443,7 +443,7 @@ function AlertRulesPanel() {
     if (!result.success) { toast.error(result.error.errors[0]?.message || 'Dados inválidos'); return; }
     setCreating(true);
     try {
-      const { data: member } = await supabase.from('workspace_members').select('workspace_id').limit(1).single();
+      const { data: member } = await supabase.from('workspace_members').select('workspace_id').limit(1).maybeSingle();
       await fromTable('alert_rules').insert({
         workspace_id: member?.workspace_id, name: ruleName.trim(),
         metric: ruleMetric, operator: ruleOp,

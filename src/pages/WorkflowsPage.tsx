@@ -111,7 +111,7 @@ export default function WorkflowsPage() {
     const result = workflowSchema.safeParse({ name: newName, steps });
     if (!result.success) { toast.error(result.error.errors[0]?.message || 'Dados inválidos'); return; }
     try {
-      const { data: member } = await supabase.from('workspace_members').select('workspace_id').limit(1).single();
+      const { data: member } = await supabase.from('workspace_members').select('workspace_id').limit(1).maybeSingle();
       const { data: wf, error } = await fromTable('workflows').insert({
         workspace_id: member?.workspace_id, name: newName.trim(), status: 'draft',
         config: { step_names: steps },
