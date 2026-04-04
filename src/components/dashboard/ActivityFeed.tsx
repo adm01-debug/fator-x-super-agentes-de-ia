@@ -1,3 +1,4 @@
+import { supabase } from '@/integrations/supabase/client';
 import { useQuery } from "@tanstack/react-query";
 import { Activity, Loader2 } from "lucide-react";
 
