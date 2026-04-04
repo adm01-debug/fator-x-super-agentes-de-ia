@@ -175,6 +175,26 @@ export function DataBrowser({ entityId, onClose }: { entityId: string; onClose: 
     toast.success(`${data.length} registros exportados para JSON`);
   };
 
+  const handleBulkDelete = async () => {
+    if (!confirm(`Tem certeza que deseja excluir ${selectedIds.size} registro(s)? Esta ação não pode ser desfeita.`)) return;
+    try {
+      let deleted = 0;
+      for (const id of selectedIds) {
+        const { data: result, error } = await supabase.functions.invoke('datahub-query', {
+          body: { action: 'delete_record', entity: entityId, record_id: id },
+        });
+        if (error) throw new Error(error.message);
+        if (result?.error) throw new Error(result.error);
+        deleted++;
+      }
+      toast.success(`${deleted} registro(s) excluído(s)`);
+      setSelectedIds(new Set());
+      fetchData();
+    } catch (e: any) {
+      toast.error(`Erro ao excluir: ${e.message}`);
+    }
+  };
+
   // Inline edit: update row in local state
   const handleInlineUpdate = (rowId: string, updatedRow: any) => {
     setData(prev => prev.map(r => r.id === rowId ? updatedRow : r));
