@@ -34,7 +34,9 @@ describe("Accessibility", () => {
   describe("FullPageLoader", () => {
     it("renders with visible label", () => {
       render(<FullPageLoader label="Processando..." />);
-      expect(screen.getByText("Processando...")).toBeInTheDocument();
+      const labels = screen.getAllByText("Processando...");
+      expect(labels.length).toBeGreaterThanOrEqual(1);
+      expect(labels.some(el => !el.classList.contains("sr-only"))).toBe(true);
     });
   });
 
