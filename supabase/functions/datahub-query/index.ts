@@ -155,8 +155,8 @@ serve(async (req) => {
           const { count, error } = await client.from(testTable).select('id', { count: 'exact', head: true });
           if (error) throw new Error(error.message);
           results[connId] = { status: 'connected', count: count ?? 0 };
-        } catch (e: any) {
-          results[connId] = { status: 'error', error: e.message };
+        } catch (e: unknown) {
+          results[connId] = { status: 'error', error: e instanceof Error ? e.message : 'Unknown' };
         }
       }
       return new Response(JSON.stringify({ connections: results }), { headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
