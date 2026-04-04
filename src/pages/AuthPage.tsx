@@ -339,7 +339,7 @@ export default function AuthPage() {
                 type="button"
                 variant="outline"
                 disabled={loading}
-                className="w-full gap-3 min-h-[48px] bg-card/50 backdrop-blur-sm border-border/50 hover:bg-card hover:border-border hover:shadow-md transition-all duration-200 group"
+                className="w-full gap-3 min-h-[48px] bg-card border-border hover:bg-card hover:border-border hover:shadow-md transition-all duration-200 group"
                 onClick={handleGoogleLogin}
               >
                 <GoogleIcon />
