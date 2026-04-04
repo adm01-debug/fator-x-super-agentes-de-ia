@@ -1,16 +1,17 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import { renderHook } from "@testing-library/react";
 
-const mockToast = {
-  error: vi.fn(),
-  dismiss: vi.fn(),
-  success: vi.fn(),
-};
+vi.mock("sonner", () => {
+  return {
+    toast: {
+      error: vi.fn(),
+      dismiss: vi.fn(),
+      success: vi.fn(),
+    },
+  };
+});
 
-vi.mock("sonner", () => ({
-  toast: mockToast,
-}));
-
+import { toast } from "sonner";
 import { useNetworkStatus } from "@/hooks/use-network-status";
 
 describe("useNetworkStatus", () => {
@@ -45,7 +46,7 @@ describe("useNetworkStatus", () => {
   it("shows error toast when initially offline", () => {
     Object.defineProperty(navigator, "onLine", { value: false, writable: true, configurable: true });
     renderHook(() => useNetworkStatus());
-    expect(mockToast.error).toHaveBeenCalledWith(
+    expect(toast.error).toHaveBeenCalledWith(
       "Sem conexão com a internet",
       expect.objectContaining({ id: "network-offline" })
     );
@@ -53,14 +54,14 @@ describe("useNetworkStatus", () => {
 
   it("does not show error toast when initially online", () => {
     renderHook(() => useNetworkStatus());
-    expect(mockToast.error).not.toHaveBeenCalled();
+    expect(toast.error).not.toHaveBeenCalled();
   });
 
   it("shows error toast on offline event", () => {
     renderHook(() => useNetworkStatus());
     const offlineHandler = addListenerSpy.mock.calls.find(c => c[0] === "offline")?.[1] as EventListener;
     offlineHandler(new Event("offline"));
-    expect(mockToast.error).toHaveBeenCalledWith(
+    expect(toast.error).toHaveBeenCalledWith(
       "Sem conexão com a internet",
       expect.objectContaining({ id: "network-offline", duration: Infinity })
     );
@@ -70,8 +71,8 @@ describe("useNetworkStatus", () => {
     renderHook(() => useNetworkStatus());
     const onlineHandler = addListenerSpy.mock.calls.find(c => c[0] === "online")?.[1] as EventListener;
     onlineHandler(new Event("online"));
-    expect(mockToast.dismiss).toHaveBeenCalledWith("network-offline");
-    expect(mockToast.success).toHaveBeenCalledWith(
+    expect(toast.dismiss).toHaveBeenCalledWith("network-offline");
+    expect(toast.success).toHaveBeenCalledWith(
       "Conexão restaurada",
       expect.objectContaining({ id: "network-online" })
     );
