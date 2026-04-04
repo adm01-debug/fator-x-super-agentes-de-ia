@@ -1622,6 +1622,7 @@ export type Database = {
         Args: { p_member_id: string }
         Returns: undefined
       }
+      get_user_workspace_ids: { Args: { _user_id: string }; Returns: string[] }
       log_audit_entry: {
         Args: {
           p_action: string
