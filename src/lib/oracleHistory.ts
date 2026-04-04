@@ -77,7 +77,7 @@ export async function fetchOracleHistory(filters: HistoryFilters = {}): Promise<
   if (filters.dateTo) query = query.lte('created_at', filters.dateTo);
 
   const { data, error } = await query;
-  if (error) { console.error('Failed to fetch oracle history:', error); return []; }
+  if (error) { logger.error('Failed to fetch oracle history', { error: error.message }); return []; }
   return (data || []) as unknown as OracleHistoryEntry[];
 }
 
