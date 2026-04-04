@@ -72,7 +72,7 @@ export default function AgentsPage() {
     setCloning(agent.id);
     try {
       const { id, created_at, updated_at, ...rest } = agent;
-      const { data, error } = await supabase.from('agents').insert({
+      const { error } = await supabase.from('agents').insert({
         ...rest,
         name: `${agent.name} (cópia)`,
         status: 'draft' as const,
