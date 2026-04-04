@@ -37,9 +37,11 @@ function toggleFavorite(id: string): string[] {
 export default function AgentsPage() {
   const navigate = useNavigate();
   const { user } = useAuth();
+  const queryClient = useQueryClient();
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState<string>("all");
   const [favorites, setFavorites] = useState<string[]>(getFavorites);
+  const [cloning, setCloning] = useState<string | null>(null);
 
   const { data: agents = [], isLoading } = useQuery({
     queryKey: ['agents', statusFilter],
