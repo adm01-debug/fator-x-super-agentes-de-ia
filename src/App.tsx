@@ -7,8 +7,10 @@ import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { AppLayout } from "@/components/layout/AppLayout";
 import { PageLoading } from "@/components/shared/PageLoading";
+import { ErrorBoundary } from "@/components/shared/ErrorBoundary";
 import { AuthProvider } from "@/contexts/AuthContext";
 import { AuthGuard } from "@/components/layout/AuthGuard";
+import type { ReactNode } from "react";
 
 // Lazy-loaded pages
 const DashboardPage = lazy(() => import("./pages/DashboardPage"));
@@ -43,13 +45,24 @@ const NotFound = lazy(() => import("./pages/NotFound"));
 const queryClient = new QueryClient({
   defaultOptions: {
     queries: {
-      staleTime: 5 * 60 * 1000, // 5 min — reduces unnecessary refetches
-      gcTime: 10 * 60 * 1000, // 10 min garbage collection
+      staleTime: 5 * 60 * 1000,
+      gcTime: 10 * 60 * 1000,
       retry: 2,
       refetchOnWindowFocus: false,
     },
   },
 });
+
+/** Wraps a lazy page in Suspense + ErrorBoundary */
+function SafePage({ children }: { children: ReactNode }) {
+  return (
+    <ErrorBoundary>
+      <Suspense fallback={<PageLoading />}>
+        {children}
+      </Suspense>
+    </ErrorBoundary>
+  );
+}
 
 const App = () => (
   <QueryClientProvider client={queryClient}>
@@ -60,46 +73,40 @@ const App = () => (
           <Sonner />
           <BrowserRouter>
             <Routes>
-              <Route path="/auth" element={
-                <Suspense fallback={<PageLoading />}><AuthPage /></Suspense>
-              } />
-              <Route path="/reset-password" element={
-                <Suspense fallback={<PageLoading />}><ResetPasswordPage /></Suspense>
-              } />
+              <Route path="/auth" element={<SafePage><AuthPage /></SafePage>} />
+              <Route path="/reset-password" element={<SafePage><ResetPasswordPage /></SafePage>} />
               <Route path="*" element={
                 <AuthGuard>
                   <AppLayout>
-                    <Suspense fallback={<PageLoading />}>
-                      <Routes>
-                        <Route path="/" element={<DashboardPage />} />
-                        <Route path="/agents" element={<AgentsPage />} />
-                        <Route path="/agents/new" element={<CreateAgentPage />} />
-                        <Route path="/agents/:id" element={<AgentDetailPage />} />
-                        <Route path="/builder" element={<AgentBuilder />} />
-                        <Route path="/builder/:id" element={<AgentBuilder />} />
-                        <Route path="/brain" element={<SuperCerebroPage />} />
-                        <Route path="/oracle" element={<OraclePage />} />
-                        <Route path="/knowledge" element={<KnowledgePage />} />
-                        <Route path="/memory" element={<MemoryPage />} />
-                        <Route path="/tools" element={<ToolsPage />} />
-                        <Route path="/prompts" element={<PromptsPage />} />
-                        <Route path="/prompts/:id" element={<PromptEditorPage />} />
-                        <Route path="/workflows" element={<WorkflowsPage />} />
-                        <Route path="/evaluations" element={<EvaluationsPage />} />
-                        <Route path="/deployments" element={<DeploymentsPage />} />
-                        <Route path="/monitoring" element={<MonitoringPage />} />
-                        <Route path="/data-storage" element={<DataStoragePage />} />
-                        <Route path="/datahub" element={<DataHubPage />} />
-                        <Route path="/admin" element={<AdminPage />} />
-                        <Route path="/security" element={<SecurityPage />} />
-                        <Route path="/team" element={<TeamPage />} />
-                        <Route path="/billing" element={<BillingPage />} />
-                        <Route path="/settings" element={<SettingsPage />} />
-                        <Route path="/lgpd" element={<LGPDCompliancePage />} />
-                        <Route path="/approvals" element={<ApprovalQueuePage />} />
-                        <Route path="*" element={<NotFound />} />
-                      </Routes>
-                    </Suspense>
+                    <Routes>
+                      <Route path="/" element={<SafePage><DashboardPage /></SafePage>} />
+                      <Route path="/agents" element={<SafePage><AgentsPage /></SafePage>} />
+                      <Route path="/agents/new" element={<SafePage><CreateAgentPage /></SafePage>} />
+                      <Route path="/agents/:id" element={<SafePage><AgentDetailPage /></SafePage>} />
+                      <Route path="/builder" element={<SafePage><AgentBuilder /></SafePage>} />
+                      <Route path="/builder/:id" element={<SafePage><AgentBuilder /></SafePage>} />
+                      <Route path="/brain" element={<SafePage><SuperCerebroPage /></SafePage>} />
+                      <Route path="/oracle" element={<SafePage><OraclePage /></SafePage>} />
+                      <Route path="/knowledge" element={<SafePage><KnowledgePage /></SafePage>} />
+                      <Route path="/memory" element={<SafePage><MemoryPage /></SafePage>} />
+                      <Route path="/tools" element={<SafePage><ToolsPage /></SafePage>} />
+                      <Route path="/prompts" element={<SafePage><PromptsPage /></SafePage>} />
+                      <Route path="/prompts/:id" element={<SafePage><PromptEditorPage /></SafePage>} />
+                      <Route path="/workflows" element={<SafePage><WorkflowsPage /></SafePage>} />
+                      <Route path="/evaluations" element={<SafePage><EvaluationsPage /></SafePage>} />
+                      <Route path="/deployments" element={<SafePage><DeploymentsPage /></SafePage>} />
+                      <Route path="/monitoring" element={<SafePage><MonitoringPage /></SafePage>} />
+                      <Route path="/data-storage" element={<SafePage><DataStoragePage /></SafePage>} />
+                      <Route path="/datahub" element={<SafePage><DataHubPage /></SafePage>} />
+                      <Route path="/admin" element={<SafePage><AdminPage /></SafePage>} />
+                      <Route path="/security" element={<SafePage><SecurityPage /></SafePage>} />
+                      <Route path="/team" element={<SafePage><TeamPage /></SafePage>} />
+                      <Route path="/billing" element={<SafePage><BillingPage /></SafePage>} />
+                      <Route path="/settings" element={<SafePage><SettingsPage /></SafePage>} />
+                      <Route path="/lgpd" element={<SafePage><LGPDCompliancePage /></SafePage>} />
+                      <Route path="/approvals" element={<SafePage><ApprovalQueuePage /></SafePage>} />
+                      <Route path="*" element={<SafePage><NotFound /></SafePage>} />
+                    </Routes>
                   </AppLayout>
                 </AuthGuard>
               } />
