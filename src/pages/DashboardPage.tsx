@@ -134,11 +134,16 @@ export default function DashboardPage() {
         <PageHeader
           title={`${getGreeting()} 👋`}
           description="Visão executiva da operação de agentes de IA"
-          actions={agents.length > 0 ? (
-            <Button onClick={() => navigate('/agents/new')} className="nexus-gradient-bg text-primary-foreground gap-2 hover:opacity-90 min-h-[44px]">
-              <Plus className="h-4 w-4" aria-hidden="true" /> Criar agente
-            </Button>
-          ) : undefined}
+          actions={
+            <div className="flex items-center gap-3">
+              <DateRangePicker value={dateRange} onChange={setDateRange} />
+              {agents.length > 0 && (
+                <Button onClick={() => navigate('/agents/new')} className="nexus-gradient-bg text-primary-foreground gap-2 hover:opacity-90 min-h-[44px]">
+                  <Plus className="h-4 w-4" aria-hidden="true" /> Criar agente
+                </Button>
+              )}
+            </div>
+          }
         />
         {summary && (
           <div className="flex items-center gap-2 mt-2">
