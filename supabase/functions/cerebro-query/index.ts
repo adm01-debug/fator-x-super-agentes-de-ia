@@ -7,6 +7,15 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
+function validateBody(body: unknown): { valid: true; query: string } | { valid: false; error: string } {
+  if (!body || typeof body !== 'object') return { valid: false, error: 'Request body must be a JSON object' };
+  const b = body as Record<string, unknown>;
+  if (typeof b.query !== 'string' || b.query.trim().length < 2 || b.query.length > 10000) {
+    return { valid: false, error: 'query must be a string (2-10000 chars)' };
+  }
+  return { valid: true, query: b.query };
+}
+
 serve(async (req) => {
   if (req.method === 'OPTIONS') return new Response(null, { headers: corsHeaders });
 
@@ -19,8 +28,16 @@ serve(async (req) => {
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) return new Response(JSON.stringify({ error: 'Unauthorized' }), { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
 
-    const body = await req.json();
-    const { query } = body;
+    let rawBody: unknown;
+    try { rawBody = await req.json(); } catch {
+      return new Response(JSON.stringify({ error: 'Invalid JSON body' }), { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
+    }
+
+    const validation = validateBody(rawBody);
+    if (!validation.valid) {
+      return new Response(JSON.stringify({ error: validation.error }), { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
+    }
+    const { query } = validation;
 
     const { data: member } = await supabase.from('workspace_members').select('workspace_id').eq('user_id', user.id).limit(1).single();
 
@@ -39,8 +56,8 @@ serve(async (req) => {
 
     const { data: usage } = await supabase.from('agent_usage').select('total_cost_usd, requests').order('date', { ascending: false }).limit(7);
     if (usage && usage.length > 0) {
-      const totalCost = usage.reduce((s: number, u: any) => s + (u.total_cost_usd || 0), 0);
-      const totalReqs = usage.reduce((s: number, u: any) => s + (u.requests || 0), 0);
+      const totalCost = usage.reduce((s: number, u) => s + (Number(u.total_cost_usd) || 0), 0);
+      const totalReqs = usage.reduce((s: number, u) => s + (Number(u.requests) || 0), 0);
       facts.push(`Últimos 7 dias: ${totalReqs} requests, custo total $${totalCost.toFixed(4)}`);
     }
 
@@ -94,7 +111,6 @@ serve(async (req) => {
     try {
       const { data: chunks } = await supabase.from('chunks').select('id, content, chunk_index, metadata').eq('embedding_status', 'done').limit(20);
       if (chunks && chunks.length > 0) {
-        // Try to rerank via rag-rerank edge function
         try {
           const rerankUrl = `${supabaseUrl}/functions/v1/rag-rerank`;
           const rerankResp = await fetch(rerankUrl, {
@@ -106,20 +122,19 @@ serve(async (req) => {
             const rerankData = await rerankResp.json();
             if (rerankData.reranked && rerankData.reranked.length > 0) {
               ragContext = rerankData.reranked
-                .map((r: any) => r.chunk?.content || r.content)
+                .map((r: { chunk?: { content?: string }; content?: string }) => r.chunk?.content || r.content)
                 .filter(Boolean)
                 .join('\n---\n')
                 .substring(0, 3000);
               ragReranked = true;
             }
           } else {
-            await rerankResp.text(); // consume body
+            await rerankResp.text();
           }
         } catch { /* rerank failed, fallback to raw chunks */ }
 
-        // Fallback: use raw chunks if rerank failed
         if (!ragContext) {
-          ragContext = chunks.map((c: any) => c.content).join('\n---\n').substring(0, 3000);
+          ragContext = chunks.map((c: { content: string }) => c.content).join('\n---\n').substring(0, 3000);
         }
       }
     } catch { /* no RAG data */ }
@@ -140,7 +155,6 @@ ${ragContext ? `## Base de Conhecimento (RAG${ragReranked ? ' — Reranked' : ''
 - Se não tiver dados, diga claramente
 - Use português do Brasil`;
 
-    // Call LLM Gateway
     const gatewayUrl = `${supabaseUrl}/functions/v1/llm-gateway`;
     const resp = await fetch(gatewayUrl, {
       method: 'POST',
@@ -161,7 +175,7 @@ ${ragContext ? `## Base de Conhecimento (RAG${ragReranked ? ' — Reranked' : ''
       rag_reranked: ragReranked,
       model: result.model, tokens: result.tokens, cost_usd: result.cost_usd,
     }), { headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
-  } catch (error: any) {
-    return new Response(JSON.stringify({ error: error.message }), { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
+  } catch (error: unknown) {
+    return new Response(JSON.stringify({ error: error instanceof Error ? error.message : 'Internal error' }), { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
   }
 });

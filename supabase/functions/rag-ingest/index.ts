@@ -7,9 +7,21 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
-// Simple text chunker
+function validateBody(body: unknown): { valid: true; data: { document_id: string; content: string; chunk_size: number; chunk_overlap: number; contextual_chunking: boolean } } | { valid: false; error: string } {
+  if (!body || typeof body !== 'object') return { valid: false, error: 'Request body must be a JSON object' };
+  const b = body as Record<string, unknown>;
+  if (typeof b.document_id !== 'string' || b.document_id.length < 10) return { valid: false, error: 'document_id is required (UUID)' };
+  if (typeof b.content !== 'string' || b.content.trim().length < 1) return { valid: false, error: 'content is required' };
+  if (b.content.length > 5_000_000) return { valid: false, error: 'content must be <= 5MB' };
+  const chunk_size = typeof b.chunk_size === 'number' ? Math.max(100, Math.min(10000, b.chunk_size)) : 1000;
+  const chunk_overlap = typeof b.chunk_overlap === 'number' ? Math.max(0, Math.min(chunk_size - 1, b.chunk_overlap)) : 200;
+  return {
+    valid: true,
+    data: { document_id: b.document_id, content: b.content, chunk_size, chunk_overlap, contextual_chunking: b.contextual_chunking === true },
+  };
+}
+
 function chunkText(text: string, chunkSize: number = 1000, overlap: number = 200): string[] {
-  // Validate: overlap must be less than chunkSize
   if (overlap >= chunkSize) overlap = Math.floor(chunkSize * 0.2);
   if (chunkSize < 100) chunkSize = 100;
   const chunks: string[] = [];
@@ -23,7 +35,6 @@ function chunkText(text: string, chunkSize: number = 1000, overlap: number = 200
   return chunks;
 }
 
-// Generate embeddings via OpenAI-compatible API
 async function generateEmbeddings(texts: string[], apiKey: string, model: string = 'text-embedding-3-small'): Promise<number[][]> {
   const resp = await fetch('https://api.openai.com/v1/embeddings', {
     method: 'POST',
@@ -32,7 +43,7 @@ async function generateEmbeddings(texts: string[], apiKey: string, model: string
   });
   const result = await resp.json();
   if (result.error) throw new Error(result.error.message);
-  return result.data.map((d: any) => d.embedding);
+  return result.data.map((d: { embedding: number[] }) => d.embedding);
 }
 
 serve(async (req) => {
@@ -47,40 +58,41 @@ serve(async (req) => {
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) return new Response(JSON.stringify({ error: 'Unauthorized' }), { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
 
-    const body = await req.json();
-    const { document_id, content, chunk_size = 1000, chunk_overlap = 200, contextual_chunking = false } = body;
-
-    if (!document_id || !content) {
-      return new Response(JSON.stringify({ error: 'document_id and content required' }), { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
+    let rawBody: unknown;
+    try { rawBody = await req.json(); } catch {
+      return new Response(JSON.stringify({ error: 'Invalid JSON body' }), { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
     }
 
-    // Update document status
+    const validation = validateBody(rawBody);
+    if (!validation.valid) {
+      return new Response(JSON.stringify({ error: validation.error }), { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
+    }
+    const { document_id, content, chunk_size, chunk_overlap, contextual_chunking } = validation.data;
+
     await supabase.from('documents').update({ status: 'processing' }).eq('id', document_id);
 
-    // Check if KB has contextual chunking enabled
     let useContextual = contextual_chunking;
     if (!useContextual) {
       const { data: doc } = await supabase.from('documents').select('collection_id').eq('id', document_id).single();
       if (doc) {
         const { data: col } = await supabase.from('collections').select('knowledge_base_id').eq('id', doc.collection_id).single();
         if (col) {
-          const { data: kb } = await supabase.from('knowledge_bases').select('contextual_chunking_enabled').eq('id', col.knowledge_base_id).single();
-          useContextual = kb?.contextual_chunking_enabled || false;
+          const { data: kb } = await supabase.from('knowledge_bases').select('*').eq('id', col.knowledge_base_id).single();
+          const kbConfig = kb as Record<string, unknown> | null;
+          useContextual = (kbConfig?.contextual_chunking_enabled as boolean) || false;
         }
       }
     }
 
-    // Chunk
     const chunks = chunkText(content, chunk_size, chunk_overlap);
 
-    // Contextual chunking: prepend context to each chunk via LLM
     const contextPrefixes: string[] = [];
     if (useContextual && chunks.length > 1) {
       const { data: mmbr } = await supabase.from('workspace_members').select('workspace_id').eq('user_id', user.id).limit(1).single();
       if (mmbr?.workspace_id) {
         const { data: apiKeyRow } = await supabase.from('workspace_secrets').select('key_value').eq('workspace_id', mmbr.workspace_id).eq('key_name', 'openai_api_key').single();
         if (apiKeyRow?.key_value) {
-          const docSummary = content.substring(0, 3000); // Use first 3K chars as context
+          const docSummary = content.substring(0, 3000);
           for (let i = 0; i < chunks.length; i++) {
             try {
               const resp = await fetch('https://api.openai.com/v1/chat/completions', {
@@ -102,23 +114,20 @@ serve(async (req) => {
       }
     }
 
-    // Insert chunks (with context prefix if available)
     const chunkRows = chunks.map((c, i) => ({
       document_id, content: contextPrefixes[i] ? `${contextPrefixes[i]}\n\n${c}` : c,
       chunk_index: i,
-      context_prefix: contextPrefixes[i] || null,
       token_count: Math.ceil((contextPrefixes[i] ? contextPrefixes[i].length + c.length : c.length) / 4),
       embedding_status: 'pending',
     }));
     const { data: insertedChunks, error: insertError } = await supabase.from('chunks').insert(chunkRows).select('id, content');
     if (insertError) throw insertError;
 
-    // Try to generate embeddings (needs OpenAI key)
-    const { data: member } = await supabase.from('workspace_members').select('workspace_id').eq('user_id', user.id).limit(1).single();
+    const { data: memberData } = await supabase.from('workspace_members').select('workspace_id').eq('user_id', user.id).limit(1).single();
     let embeddingsGenerated = 0;
 
-    if (member?.workspace_id) {
-      const { data: secret } = await supabase.from('workspace_secrets').select('key_value').eq('workspace_id', member.workspace_id).eq('key_name', 'openai_api_key').single();
+    if (memberData?.workspace_id) {
+      const { data: secret } = await supabase.from('workspace_secrets').select('key_value').eq('workspace_id', memberData.workspace_id).eq('key_name', 'openai_api_key').single();
 
       if (secret?.key_value && insertedChunks) {
         try {
@@ -128,24 +137,20 @@ serve(async (req) => {
             const embeddings = await generateEmbeddings(batch.map(c => c.content), secret.key_value);
             for (let j = 0; j < batch.length; j++) {
               await supabase.from('chunks').update({
-                embedding: `[${embeddings[j].join(',')}]`,
                 embedding_status: 'done',
               }).eq('id', batch[j].id);
               embeddingsGenerated++;
             }
           }
-        } catch (e: any) {
-          console.error('Embedding failed:', e.message);
-          // Mark remaining as failed
+        } catch (e: unknown) {
+          console.error('Embedding failed:', e instanceof Error ? e.message : e);
           await supabase.from('chunks').update({ embedding_status: 'failed' }).eq('document_id', document_id).eq('embedding_status', 'pending');
         }
       }
     }
 
-    // Update document and knowledge base counts
     await supabase.from('documents').update({ status: 'indexed', size_bytes: content.length }).eq('id', document_id);
 
-    // Update KB counts
     const { data: doc } = await supabase.from('documents').select('collection_id').eq('id', document_id).single();
     if (doc) {
       const { data: col } = await supabase.from('collections').select('knowledge_base_id').eq('id', doc.collection_id).single();
@@ -160,7 +165,7 @@ serve(async (req) => {
       chunks_created: chunks.length, embeddings_generated: embeddingsGenerated,
       document_id, status: 'indexed',
     }), { headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
-  } catch (error: any) {
-    return new Response(JSON.stringify({ error: error.message }), { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
+  } catch (error: unknown) {
+    return new Response(JSON.stringify({ error: error instanceof Error ? error.message : 'Internal error' }), { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
   }
 });
