@@ -53,7 +53,38 @@ serve(async (req) => {
       }
     }
 
-    // Fallback: LLM-based reranking via Gateway
+    // Layer 2: HuggingFace BGE Reranker (free, dedicated cross-encoder)
+    const hfToken = Deno.env.get('HF_API_TOKEN');
+    if (!reranked && hfToken && Deno.env.get('ENABLE_HF_RERANKER') !== 'false') {
+      try {
+        const pairs = chunks.slice(0, 30).map((c: Record<string, unknown>) => ({
+          text: query,
+          text_pair: String(c.content || c.text || c).substring(0, 512),
+        }));
+        const controller = new AbortController();
+        const timeout = setTimeout(() => controller.abort(), 5000);
+        const resp = await fetch('https://router.huggingface.co/hf-inference/models/BAAI/bge-reranker-v2-m3', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${hfToken}` },
+          body: JSON.stringify({ inputs: pairs }),
+          signal: controller.signal,
+        });
+        clearTimeout(timeout);
+        if (resp.ok) {
+          const scores = await resp.json();
+          if (Array.isArray(scores) && scores.length > 0) {
+            const indexed = scores.map((item: any, i: number) => ({
+              chunk: chunks[i],
+              relevance_score: typeof item === 'number' ? item : (item?.[0]?.score ?? item?.score ?? 0),
+            }));
+            indexed.sort((a: any, b: any) => b.relevance_score - a.relevance_score);
+            reranked = indexed.slice(0, topK);
+          }
+        }
+      } catch (e: unknown) { console.error('HF rerank failed:', e instanceof Error ? e.message : e); }
+    }
+
+    // Layer 3 (last resort): LLM-based reranking via Gateway
     if (!reranked) {
       try {
         const chunkList = chunks.slice(0, 20).map((c: Record<string, unknown>, i: number) => `[${i}] ${String(c.content || c.text || c).substring(0, 300)}`).join('\n\n');
@@ -89,7 +120,7 @@ serve(async (req) => {
 
     return new Response(JSON.stringify({
       reranked,
-      method: reranked?.[0]?.relevance_score > 0.5 ? 'cohere' : 'llm_fallback',
+      method: reranked?.[0]?.relevance_score > 0.5 ? 'cohere' : (hfToken ? 'hf_bge_reranker' : 'llm_fallback'),
       query,
       total_input: chunks.length,
       top_k: topK,

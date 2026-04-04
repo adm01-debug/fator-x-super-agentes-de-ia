@@ -105,7 +105,41 @@ function redactPII(text: string): { redacted: string; detected: string[] } {
   return { redacted, detected };
 }
 
-// ═══ Prompt Injection Detection ═══
+// ═══ Prompt Injection Detection (ML — HuggingFace ProtectAI) ═══
+const HF_INJECTION_MODEL = 'protectai/deberta-v3-base-prompt-injection-v2';
+const HF_INJECTION_TIMEOUT_MS = 3000;
+
+async function detectInjectionML(text: string): Promise<{ detected: boolean; label: string; score: number; method: 'ml' }> {
+  const hfToken = Deno.env.get('HF_API_TOKEN');
+  if (!hfToken || Deno.env.get('ENABLE_ML_INJECTION_CHECK') === 'false') {
+    return { detected: false, label: 'skipped', score: 0, method: 'ml' };
+  }
+  try {
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), HF_INJECTION_TIMEOUT_MS);
+    const resp = await fetch(`https://router.huggingface.co/hf-inference/models/${HF_INJECTION_MODEL}`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${hfToken}` },
+      body: JSON.stringify({ inputs: text.substring(0, 512) }),
+      signal: controller.signal,
+    });
+    clearTimeout(timeout);
+    if (!resp.ok) return { detected: false, label: 'api_error', score: 0, method: 'ml' };
+    const result = await resp.json();
+    const top = Array.isArray(result?.[0]) ? result[0][0] : result?.[0];
+    if (!top?.label) return { detected: false, label: 'parse_error', score: 0, method: 'ml' };
+    return {
+      detected: top.label === 'INJECTION' && top.score > 0.85,
+      label: top.label,
+      score: top.score,
+      method: 'ml',
+    };
+  } catch {
+    return { detected: false, label: 'timeout', score: 0, method: 'ml' }; // fail-open
+  }
+}
+
+// ═══ Prompt Injection Detection (Regex Fallback) ═══
 const INJECTION_PATTERNS = [
   { name: 'ignore_previous', regex: /ignore\s+(all\s+)?(previous|above|prior)\s+(instructions?|prompts?|rules?)/i, sev: 'high' },
   { name: 'new_instructions', regex: /(?:new|override)\s+(?:system\s+)?instructions?:?\s/i, sev: 'high' },
@@ -348,10 +382,17 @@ serve(async (req) => {
     // ═══ TIMING START ═══
     const t0 = Date.now();
 
-    // ═══ PROMPT INJECTION DETECTION ═══
+    // ═══ PROMPT INJECTION DETECTION (Layer 1: ML via HuggingFace) ═══
+    const injectionML = await detectInjectionML(userMessage);
+    if (injectionML.detected) {
+      recordTrace(supabase, { workspaceId, agentId: agent_id, sessionId: session_id, userId: user.id, userInput: userMessage, assistantOutput: '[INJECTION_BLOCKED_ML]', model, provider: 'none', promptTokens: 0, completionTokens: 0, totalTokens: 0, costUsd: 0, latencyMs: 0, guardrailsTriggered: [{ name: `ml_${injectionML.label}`, severity: 'block', reason: `ML score: ${injectionML.score.toFixed(4)}` }], event: 'injection_block_ml', level: 'critical' });
+      return new Response(JSON.stringify({ error: 'Request blocked: prompt injection detected (ML)', detection: { label: injectionML.label, score: injectionML.score, method: 'ml' } }), { status: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
+    }
+
+    // ═══ PROMPT INJECTION DETECTION (Layer 2: Regex fallback) ═══
     const injection = detectInjection(userMessage);
     if (injection.detected && injection.riskLevel === 'critical') {
-      recordTrace(supabase, { workspaceId, agentId: agent_id, sessionId: session_id, userId: user.id, userInput: userMessage, assistantOutput: '[INJECTION_BLOCKED]', model, provider: 'none', promptTokens: 0, completionTokens: 0, totalTokens: 0, costUsd: 0, latencyMs: 0, guardrailsTriggered: injection.patterns.map(p => ({ name: p, severity: 'block', reason: 'prompt_injection' })), event: 'injection_block', level: 'critical' });
+      recordTrace(supabase, { workspaceId, agentId: agent_id, sessionId: session_id, userId: user.id, userInput: userMessage, assistantOutput: '[INJECTION_BLOCKED]', model, provider: 'none', promptTokens: 0, completionTokens: 0, totalTokens: 0, costUsd: 0, latencyMs: 0, guardrailsTriggered: injection.patterns.map(p => ({ name: p, severity: 'block', reason: 'prompt_injection_regex' })), event: 'injection_block', level: 'critical' });
       return new Response(JSON.stringify({ error: 'Request blocked: potential prompt injection detected', patterns: injection.patterns }), { status: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
     }
 
@@ -471,6 +512,27 @@ serve(async (req) => {
     // ═══ TRACE (non-blocking) ═══
     recordTrace(supabase, { workspaceId, agentId: agent_id, sessionId: session_id, userId: user.id, userInput: userMessage, assistantOutput: result.content, model: usedModel, provider, promptTokens: result.usage.prompt_tokens, completionTokens: result.usage.completion_tokens, totalTokens: result.usage.total_tokens, costUsd, latencyMs: totalMs, guardrailsTriggered: gr.triggered, event: 'llm_call', level: fallbackErrors.length > 0 ? 'warning' : injection.detected ? 'warning' : 'info' });
 
+    // ═══ AUTO-CLASSIFICATION (fire-and-forget via HuggingFace zero-shot) ═══
+    const hfTokenClassify = Deno.env.get('HF_API_TOKEN');
+    if (hfTokenClassify && Deno.env.get('ENABLE_AUTO_CLASSIFY') !== 'false') {
+      const CATEGORIES = ['comercial', 'suporte', 'produto', 'financeiro', 'logística', 'rh', 'técnico', 'criativo'];
+      fetch('https://router.huggingface.co/hf-inference/models/joeddav/xlm-roberta-large-xnli', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${hfTokenClassify}` },
+        body: JSON.stringify({ inputs: userMessage.substring(0, 500), parameters: { candidate_labels: CATEGORIES } }),
+      }).then(r => r.json()).then(classifyResult => {
+        if (classifyResult?.labels?.[0] && classifyResult?.scores?.[0] > 0.3) {
+          supabase.from('agent_traces')
+            .update({ metadata: { auto_category: classifyResult.labels[0], auto_category_score: Math.round(classifyResult.scores[0] * 100) / 100, auto_categories_top3: classifyResult.labels.slice(0, 3) } })
+            .eq('agent_id', agent_id || '00000000-0000-0000-0000-000000000000')
+            .eq('user_id', user.id)
+            .order('created_at', { ascending: false })
+            .limit(1)
+            .then(() => {});
+        }
+      }).catch(() => {}); // silently ignore classification errors
+    }
+
     return new Response(JSON.stringify({
       content: result.content, model: usedModel, provider,
       tokens: { prompt: result.usage.prompt_tokens, completion: result.usage.completion_tokens, total: result.usage.total_tokens },
@@ -478,7 +540,7 @@ serve(async (req) => {
       latency_breakdown: latencyBreakdown,
       finish_reason: result.finish_reason,
       pii_detected: pii.detected.length > 0 ? pii.detected : undefined,
-      injection_risk: injection.detected ? injection.riskLevel : undefined,
+      injection_risk: injection.detected ? injection.riskLevel : (injectionML.label !== 'skipped' ? `ml_scanned:${injectionML.label}` : undefined),
       fallback: attempt > 1 ? { attempt, requested_model: model, used_model: usedModel, errors: fallbackErrors } : undefined,
       guardrails_triggered: gr.triggered.length > 0 ? gr.triggered : undefined,
     }), { headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
