@@ -297,13 +297,14 @@ Responda em markdown:
     const consensusMatch = finalContent.match(/Consenso:\s*(\d+)/);
 
     // Extract consensus points from stage 2
-    let consensusPoints: any[] = [];
+    let consensusPoints: Array<Record<string, unknown>> = [];
     if (stage2Results[0]?.consensus_points) {
-      consensusPoints = stage2Results[0].consensus_points.map((cp: any, i: number) => ({
+      const rawPoints = stage2Results[0].consensus_points as Array<Record<string, unknown>>;
+      consensusPoints = rawPoints.map((cp, i: number) => ({
         id: `cp-${i}`,
         claim: cp.claim,
         category: cp.category || 'opinion',
-        modelPositions: (cp.model_positions || []).map((mp: any) => ({
+        modelPositions: ((cp.model_positions || []) as Array<Record<string, unknown>>).map((mp) => ({
           model: mp.response || mp.model || `Model ${i}`,
           position: mp.position || 'not_mentioned',
           detail: mp.detail || '',
