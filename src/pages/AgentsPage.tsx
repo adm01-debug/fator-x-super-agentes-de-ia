@@ -81,8 +81,8 @@ export default function AgentsPage() {
       if (error) throw error;
       toast.success('Agente clonado!');
       queryClient.invalidateQueries({ queryKey: ['agents'] });
-    } catch (err: any) {
-      toast.error(err.message || 'Erro ao clonar');
+    } catch (err: unknown) {
+      toast.error(err instanceof Error ? err.message : 'Erro ao clonar');
     } finally {
       setCloning(null);
     }

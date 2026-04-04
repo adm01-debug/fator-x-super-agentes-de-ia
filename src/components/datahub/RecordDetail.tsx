@@ -488,7 +488,7 @@ export function RecordDetail({ record, enrichedData, entityId, onClose, onRecord
                       <span className="font-semibold text-foreground">{info?.label ?? table}</span>
                       <Badge variant="secondary" className="text-[11px] h-4">{Array.isArray(rows) ? rows.length : 0}</Badge>
                     </div>
-                    {renderer ? renderer(rows as any[]) : <GenericSecondaryCard tableName={table} data={rows as any[]} />}
+                    {renderer ? renderer(rows as Record<string, unknown>[]) : <GenericSecondaryCard tableName={table} data={rows as Record<string, unknown>[]} />}
                   </div>
                 );
               })}
