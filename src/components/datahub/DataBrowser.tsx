@@ -69,6 +69,7 @@ export function DataBrowser({ entityId, onClose }: { entityId: string; onClose: 
   // Selection state
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [bulkEditOpen, setBulkEditOpen] = useState(false);
+  const [createOpen, setCreateOpen] = useState(false);
 
   const fetchData = useCallback(async () => {
     setLoading(true);
