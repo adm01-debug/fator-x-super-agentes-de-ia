@@ -104,7 +104,7 @@ function applyStaticFilter(query: ReturnType<ReturnType<typeof createClient>['fr
 
 /* ── Dynamic filters from client ─────────────────────── */
 
-function applyDynamicFilters(query: any, filters: any[]) {
+function applyDynamicFilters(query: ReturnType<ReturnType<typeof createClient>['from']>['select'], filters: Array<Record<string, unknown>>) {
   for (const f of filters) {
     if (!f.column || !f.operator) continue;
     const col = String(f.column).replace(/[^a-zA-Z0-9_]/g, '');
