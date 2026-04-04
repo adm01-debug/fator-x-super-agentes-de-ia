@@ -56,7 +56,7 @@ serve(async (req) => {
     // Fallback: LLM-based reranking via Gateway
     if (!reranked) {
       try {
-        const chunkList = chunks.slice(0, 20).map((c: any, i: number) => `[${i}] ${(c.content || c.text || c).substring(0, 300)}`).join('\n\n');
+        const chunkList = chunks.slice(0, 20).map((c: Record<string, unknown>, i: number) => `[${i}] ${String(c.content || c.text || c).substring(0, 300)}`).join('\n\n');
         const resp = await fetch(`${supabaseUrl}/functions/v1/llm-gateway`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json', 'Authorization': authHeader, 'apikey': supabaseKey },
