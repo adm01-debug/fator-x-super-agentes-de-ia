@@ -210,8 +210,8 @@ export default function DashboardPage() {
             {[
               { icon: Bot, color: "text-primary", bgColor: "bg-primary/10", value: agents.length, label: "Total de agentes", hint: `${draftCount} rascunhos`, tooltip: "Número total de agentes criados no workspace" },
               { icon: Zap, color: "text-nexus-emerald", bgColor: "bg-nexus-emerald/10", value: activeCount, label: "Em produção", hint: activeCount > 0 ? "Operando normalmente" : "Nenhum ativo", tooltip: "Agentes com status 'production' ou 'monitoring'" },
-              { icon: DollarSign, color: "text-nexus-amber", bgColor: "bg-nexus-amber/10", value: usageStats?.totalCost ?? 0, label: "Custo (30d)", prefix: "$", decimals: 2, noData: !usageStats, hint: usageStats ? `${usageStats.totalRequests} requests` : undefined, tooltip: "Custo acumulado dos últimos 30 dias" },
-              { icon: TrendingUp, color: "text-primary", bgColor: "bg-primary/10", value: usageStats?.totalRequests ?? 0, label: "Requests (30d)", noData: !usageStats, hint: usageStats ? `~${usageStats.avgLatency}ms latência` : undefined, tooltip: "Total de requisições processadas nos últimos 30 dias" },
+              { icon: DollarSign, color: "text-nexus-amber", bgColor: "bg-nexus-amber/10", value: usageStats?.totalCost ?? 0, label: `Custo (${dateRange})`, prefix: "$", decimals: 2, noData: !usageStats, hint: usageStats ? `${usageStats.totalRequests} requests` : undefined, tooltip: `Custo acumulado dos últimos ${days} dias` },
+              { icon: TrendingUp, color: "text-primary", bgColor: "bg-primary/10", value: usageStats?.totalRequests ?? 0, label: `Requests (${dateRange})`, noData: !usageStats, hint: usageStats ? `~${usageStats.avgLatency}ms latência` : undefined, tooltip: `Total de requisições processadas nos últimos ${days} dias` },
             ].map((metric, i) => (
              <div
                 key={metric.label}
