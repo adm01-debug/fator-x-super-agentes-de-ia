@@ -363,28 +363,56 @@ const SECONDARY_LABELS: Record<string, { label: string; icon: React.ReactNode }>
 };
 
 /* ── Main Component ──────────────────────────────────── */
-export function RecordDetail({ record, enrichedData, entityId, onClose }: RecordDetailProps) {
+export function RecordDetail({ record, enrichedData, entityId, onClose, onRecordUpdate }: RecordDetailProps) {
   const mapping = ENTITY_MAPPINGS[entityId];
   const displayCol = mapping?.primary.display_column ?? 'id';
   const sensitiveFields = new Set(mapping?.sensitive_fields ?? []);
+  const [currentRecord, setCurrentRecord] = useState(record);
+
+  useEffect(() => { setCurrentRecord(record); }, [record]);
 
   // Determine primary fields to show (skip internal/boring columns)
-  const skipKeys = new Set(['id', 'created_at', 'updated_at', 'is_customer', 'is_supplier', 'is_carrier']);
-  const primaryFields = Object.entries(record).filter(([k]) => !skipKeys.has(k));
+  const skipKeys = new Set(['id', 'created_at', 'updated_at', 'is_customer', 'is_supplier', 'is_carrier', 'search_vector']);
+  const primaryFields = Object.entries(currentRecord).filter(([k]) => !skipKeys.has(k));
+
+  const handleFieldSave = async (field: string, newValue: string) => {
+    const { data: result, error } = await supabase.functions.invoke('datahub-query', {
+      body: {
+        action: 'update_field',
+        entity: entityId,
+        record_id: currentRecord.id,
+        field,
+        value: newValue,
+      },
+    });
+    if (error) throw new Error(error.message);
+    if (result?.error) throw new Error(result.error);
+    if (result?.record) {
+      setCurrentRecord(result.record);
+      onRecordUpdate?.(result.record);
+    }
+  };
+
+  const isEditable = (key: string) => !NON_EDITABLE.has(key) && !sensitiveFields.has(key);
 
   return (
     <div className="space-y-4 border-t border-border pt-4 animate-in slide-in-from-bottom-2 duration-200">
       {/* Header */}
       <div className="flex items-center justify-between">
         <h4 className="text-sm font-semibold text-foreground flex items-center gap-2">
-          📋 {record[displayCol] || 'Registro'}
-          {record.id && (
-            <span className="text-[11px] font-mono text-muted-foreground">#{String(record.id).slice(0, 8)}</span>
+          📋 {currentRecord[displayCol] || 'Registro'}
+          {currentRecord.id && (
+            <span className="text-[11px] font-mono text-muted-foreground">#{String(currentRecord.id).slice(0, 8)}</span>
           )}
         </h4>
-        <Button size="sm" variant="ghost" onClick={onClose}>
-          <XCircle className="h-4 w-4" />
-        </Button>
+        <div className="flex items-center gap-2">
+          <Badge variant="outline" className="text-[11px] gap-1 text-primary border-primary/30">
+            <Pencil className="h-3 w-3" /> Clique para editar
+          </Badge>
+          <Button size="sm" variant="ghost" onClick={onClose}>
+            <XCircle className="h-4 w-4" />
+          </Button>
+        </div>
       </div>
 
       {/* Primary fields */}
@@ -392,12 +420,19 @@ export function RecordDetail({ record, enrichedData, entityId, onClose }: Record
         <h5 className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider mb-2">Dados Primários</h5>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-x-6">
           {primaryFields.map(([key, val]) => (
-            <FieldValue key={key} label={key} value={val} sensitive={sensitiveFields.has(key)} />
+            <FieldValue
+              key={key}
+              label={key}
+              value={val}
+              sensitive={sensitiveFields.has(key)}
+              editable={isEditable(key)}
+              onSave={(newValue) => handleFieldSave(key, newValue)}
+            />
           ))}
         </div>
-        {record.created_at && (
+        {currentRecord.created_at && (
           <p className="text-[11px] text-muted-foreground mt-2 border-t border-border/10 pt-1">
-            Criado: {formatDate(record.created_at)} · Atualizado: {formatDate(record.updated_at)}
+            Criado: {formatDate(currentRecord.created_at)} · Atualizado: {formatDate(currentRecord.updated_at)}
           </p>
         )}
       </div>
