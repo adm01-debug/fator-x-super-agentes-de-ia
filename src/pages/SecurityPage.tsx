@@ -225,6 +225,12 @@ export default function SecurityPage() {
         )}
       </div>
 
+      {/* Session Management */}
+      <SessionManagement />
+
+      {/* Rate Limiting Visual */}
+      <RateLimitingPanel />
+
       {/* Audit Log */}
       <AuditLogSection />
     </div>
