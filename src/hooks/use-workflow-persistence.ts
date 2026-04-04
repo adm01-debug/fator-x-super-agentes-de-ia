@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { toast } from 'sonner';
+import { logger } from '@/lib/logger';
 import type { CanvasNode, CanvasEdge } from '@/components/workflows/WorkflowCanvas';
 
 interface WorkflowRecord {
