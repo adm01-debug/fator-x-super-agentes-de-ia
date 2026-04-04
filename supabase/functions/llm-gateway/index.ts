@@ -247,7 +247,7 @@ async function recordTrace(supabase: any, p: {
 // ═══ API Key Resolution — Fallback Chain ═══
 interface ProviderOption { apiKey: string; provider: string; model: string; priority: number }
 
-async function resolveFallbackChain(supabase: any, workspaceId: string | undefined, requestedModel: string): Promise<ProviderOption[]> {
+async function resolveFallbackChain(supabase: SupabaseClient, workspaceId: string | undefined, requestedModel: string): Promise<ProviderOption[]> {
   const chain: ProviderOption[] = [];
 
   // 1. Direct provider mapping for requested model
