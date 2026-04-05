@@ -65,3 +65,18 @@ export * from './webhookTriggerService';
 export * from './retryEngineService';
 export * from './credentialVaultService';
 export * from './notificationEngineService';
+export {
+  type TemplateCategory,
+  type TemplateDifficulty,
+  type AutomationStep,
+  type AutomationTemplate,
+  type InstalledTemplate,
+  listTemplates as listAutomationTemplates,
+  getTemplate as getAutomationTemplate,
+  getTemplateBySlug,
+  installTemplate,
+  listInstalledTemplates,
+  uninstallTemplate,
+  getTemplateStats as getAutomationTemplateStats,
+  BUILTIN_TEMPLATES,
+} from './automationTemplateService';
