@@ -97,8 +97,6 @@ export interface VaultStats {
 const VAULT_KEY_NAME = 'nexus-vault-master-key-v1';
 
 async function getOrCreateMasterKey(): Promise<CryptoKey> {
-  // In production, this would come from a KMS or environment variable.
-  // For now, derive from a stable seed stored in Supabase vault or env.
   const encoder = new TextEncoder();
   const seed = encoder.encode(VAULT_KEY_NAME + '-promo-brindes-2026');
 
@@ -136,7 +134,6 @@ export async function encryptData(data: CredentialData): Promise<string> {
     plaintext,
   );
 
-  // Combine IV + ciphertext and base64 encode
   const combined = new Uint8Array(iv.length + new Uint8Array(ciphertext).length);
   combined.set(iv);
   combined.set(new Uint8Array(ciphertext), iv.length);
@@ -202,10 +199,7 @@ export async function createCredential(
     created_by: userId,
   };
 
-  const { data, error } = await fromTable('credential_vault')
-    .insert(record)
-    .select()
-    .single();
+  const { data, error } = await fromTable('credential_vault').insert(record).select().single();
   if (error) throw error;
 
   await logAudit(data.id, 'created', userId, 'user', {
@@ -221,15 +215,11 @@ export async function getCredential(
   requesterId?: string,
   requesterType: CredentialAuditLog['actor_type'] = 'user',
 ): Promise<CredentialData> {
-  const { data, error } = await fromTable('credential_vault')
-    .select('*')
-    .eq('id', id)
-    .single();
+  const { data, error } = await fromTable('credential_vault').select('*').eq('id', id).single();
   if (error) throw error;
 
   const entry = data as CredentialEntry;
 
-  // Check access control
   if (requesterType === 'agent' && requesterId) {
     if (entry.allowed_agents.length > 0 && !entry.allowed_agents.includes(requesterId)) {
       throw new Error('Agent not authorized to access this credential');
@@ -241,7 +231,6 @@ export async function getCredential(
     }
   }
 
-  // Check status
   if (entry.status === 'revoked') {
     throw new Error('Credential has been revoked');
   }
@@ -249,19 +238,14 @@ export async function getCredential(
     throw new Error('Credential has expired');
   }
   if (entry.expires_at && new Date(entry.expires_at) < new Date()) {
-    await fromTable('credential_vault')
-      .update({ status: 'expired' })
-      .eq('id', id);
+    await fromTable('credential_vault').update({ status: 'expired' }).eq('id', id);
     throw new Error('Credential has expired');
   }
 
-  // Update access tracking
-  await fromTable('credential_vault')
-    .update({
-      access_count: entry.access_count + 1,
-      last_accessed_at: new Date().toISOString(),
-    })
-    .eq('id', id);
+  await fromTable('credential_vault').update({
+    access_count: entry.access_count + 1,
+    last_accessed_at: new Date().toISOString(),
+  }).eq('id', id);
 
   await logAudit(id, 'accessed', requesterId ?? null, requesterType, {});
 
@@ -276,14 +260,12 @@ export async function listCredentials(
     tag?: string;
   },
 ): Promise<Omit<CredentialEntry, 'encrypted_data'>[]> {
-  let query = fromTable('credential_vault')
-    .select(
-      'id, name, description, credential_type, service_name, status, ' +
-      'expires_at, rotation_interval_days, last_rotated_at, next_rotation_at, ' +
-      'allowed_agents, allowed_workflows, access_count, last_accessed_at, ' +
-      'tags, created_by, created_at, updated_at',
-    )
-    .order('name', { ascending: true });
+  let query = fromTable('credential_vault').select(
+    'id, name, description, credential_type, service_name, status, ' +
+    'expires_at, rotation_interval_days, last_rotated_at, next_rotation_at, ' +
+    'allowed_agents, allowed_workflows, access_count, last_accessed_at, ' +
+    'tags, created_by, created_at, updated_at',
+  ).order('name', { ascending: true });
 
   if (filters?.credential_type) {
     query = query.eq('credential_type', filters.credential_type);
@@ -337,11 +319,7 @@ export async function updateCredential(
     patch.encrypted_data = await encryptData(updates.data);
   }
 
-  const { data, error } = await fromTable('credential_vault')
-    .update(patch)
-    .eq('id', id)
-    .select()
-    .single();
+  const { data, error } = await fromTable('credential_vault').update(patch).eq('id', id).select().single();
   if (error) throw error;
 
   await logAudit(id, 'updated', userId, 'user', { fields_updated: Object.keys(updates) });
@@ -359,10 +337,7 @@ export async function rotateCredential(
   const encrypted = await encryptData(newData);
   const now = new Date();
 
-  const existing = await fromTable('credential_vault')
-    .select('rotation_interval_days')
-    .eq('id', id)
-    .single();
+  const existing = await fromTable('credential_vault').select('rotation_interval_days').eq('id', id).single();
   if (existing.error) throw existing.error;
 
   let nextRotation: string | null = null;
@@ -373,17 +348,13 @@ export async function rotateCredential(
     nextRotation = d.toISOString();
   }
 
-  const { data, error } = await fromTable('credential_vault')
-    .update({
-      encrypted_data: encrypted,
-      status: 'active',
-      last_rotated_at: now.toISOString(),
-      next_rotation_at: nextRotation,
-      updated_at: now.toISOString(),
-    })
-    .eq('id', id)
-    .select()
-    .single();
+  const { data, error } = await fromTable('credential_vault').update({
+    encrypted_data: encrypted,
+    status: 'active',
+    last_rotated_at: now.toISOString(),
+    next_rotation_at: nextRotation,
+    updated_at: now.toISOString(),
+  }).eq('id', id).select().single();
   if (error) throw error;
 
   await logAudit(id, 'rotated', userId, 'user', {});
@@ -395,9 +366,7 @@ export async function revokeCredential(id: string): Promise<void> {
   const { data: userData } = await supabase.auth.getUser();
   const userId = userData?.user?.id ?? null;
 
-  const { error } = await fromTable('credential_vault')
-    .update({ status: 'revoked', updated_at: new Date().toISOString() })
-    .eq('id', id);
+  const { error } = await fromTable('credential_vault').update({ status: 'revoked', updated_at: new Date().toISOString() }).eq('id', id);
   if (error) throw error;
 
   await logAudit(id, 'revoked', userId, 'user', {});
@@ -437,11 +406,7 @@ export async function getAuditLogs(
   credentialId: string,
   limit: number = 50,
 ): Promise<CredentialAuditLog[]> {
-  const { data, error } = await fromTable('credential_audit_logs')
-    .select('*')
-    .eq('credential_id', credentialId)
-    .order('created_at', { ascending: false })
-    .limit(limit);
+  const { data, error } = await fromTable('credential_audit_logs').select('*').eq('credential_id', credentialId).order('created_at', { ascending: false }).limit(limit);
   if (error) throw error;
   return (data ?? []) as CredentialAuditLog[];
 }

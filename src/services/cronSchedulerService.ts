@@ -150,7 +150,7 @@ export function getNextCronRun(expr: string, after: Date = new Date()): Date {
   next.setSeconds(0, 0);
   next.setMinutes(next.getMinutes() + 1);
 
-  const MAX_ITERATIONS = 366 * 24 * 60; // ~1 year of minutes
+  const MAX_ITERATIONS = 366 * 24 * 60;
   for (let i = 0; i < MAX_ITERATIONS; i++) {
     if (
       cron.month.includes(next.getMonth() + 1) &&
@@ -235,10 +235,7 @@ export async function createSchedule(
     created_by: userId,
   };
 
-  const { data, error } = await fromTable('cron_schedules')
-    .insert(record)
-    .select()
-    .single();
+  const { data, error } = await fromTable('cron_schedules').insert(record).select().single();
   if (error) throw error;
   return data as CronSchedule;
 }
@@ -246,9 +243,7 @@ export async function createSchedule(
 export async function listSchedules(
   status?: ScheduleStatus,
 ): Promise<CronSchedule[]> {
-  let query = fromTable('cron_schedules')
-    .select('*')
-    .order('next_run_at', { ascending: true });
+  let query = fromTable('cron_schedules').select('*').order('next_run_at', { ascending: true });
 
   if (status) {
     query = query.eq('status', status);
@@ -260,10 +255,7 @@ export async function listSchedules(
 }
 
 export async function getSchedule(id: string): Promise<CronSchedule | null> {
-  const { data, error } = await fromTable('cron_schedules')
-    .select('*')
-    .eq('id', id)
-    .maybeSingle();
+  const { data, error } = await fromTable('cron_schedules').select('*').eq('id', id).maybeSingle();
   if (error) throw error;
   return data as CronSchedule | null;
 }
@@ -278,11 +270,7 @@ export async function updateSchedule(
     patch.next_run_at = getNextCronRun(updates.cron_expression).toISOString();
   }
 
-  const { data, error } = await fromTable('cron_schedules')
-    .update(patch)
-    .eq('id', id)
-    .select()
-    .single();
+  const { data, error } = await fromTable('cron_schedules').update(patch).eq('id', id).select().single();
   if (error) throw error;
   return data as CronSchedule;
 }
@@ -327,7 +315,6 @@ export async function recordExecution(
     .single();
   if (error) throw error;
 
-  // Update schedule counters
   if (status === 'success' || status === 'failed') {
     const schedule = await getSchedule(scheduleId);
     if (schedule) {
@@ -354,9 +341,7 @@ export async function recordExecution(
         updatePayload.next_run_at = next.toISOString();
       }
 
-      await fromTable('cron_schedules')
-        .update(updatePayload)
-        .eq('id', scheduleId);
+      await fromTable('cron_schedules').update(updatePayload).eq('id', scheduleId);
     }
   }
 
