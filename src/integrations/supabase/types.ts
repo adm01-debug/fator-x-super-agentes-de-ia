@@ -51,6 +51,13 @@ export type Database = {
             referencedRelation: "skill_registry"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "agent_installed_skills_skill_id_fkey"
+            columns: ["skill_id"]
+            isOneToOne: false
+            referencedRelation: "skill_registry_safe"
+            referencedColumns: ["id"]
+          },
         ]
       }
       agent_memories: {
@@ -1807,7 +1814,6 @@ export type Database = {
           encrypted_value: string | null
           id: string
           key_name: string
-          key_value: string
           updated_at: string | null
           workspace_id: string | null
         }
@@ -1816,7 +1822,6 @@ export type Database = {
           encrypted_value?: string | null
           id?: string
           key_name: string
-          key_value: string
           updated_at?: string | null
           workspace_id?: string | null
         }
@@ -1825,7 +1830,6 @@ export type Database = {
           encrypted_value?: string | null
           id?: string
           key_name?: string
-          key_value?: string
           updated_at?: string | null
           workspace_id?: string | null
         }
@@ -1898,6 +1902,66 @@ export type Database = {
         }
         Relationships: []
       }
+      skill_registry_safe: {
+        Row: {
+          author: string | null
+          category: string | null
+          created_at: string | null
+          created_by: string | null
+          description: string | null
+          id: string | null
+          install_count: number | null
+          is_public: boolean | null
+          is_verified: boolean | null
+          mcp_server_url: string | null
+          name: string | null
+          rating: number | null
+          skill_config: Json | null
+          slug: string | null
+          tags: string[] | null
+          updated_at: string | null
+          version: string | null
+        }
+        Insert: {
+          author?: string | null
+          category?: string | null
+          created_at?: string | null
+          created_by?: string | null
+          description?: string | null
+          id?: string | null
+          install_count?: number | null
+          is_public?: boolean | null
+          is_verified?: boolean | null
+          mcp_server_url?: never
+          name?: string | null
+          rating?: number | null
+          skill_config?: Json | null
+          slug?: string | null
+          tags?: string[] | null
+          updated_at?: string | null
+          version?: string | null
+        }
+        Update: {
+          author?: string | null
+          category?: string | null
+          created_at?: string | null
+          created_by?: string | null
+          description?: string | null
+          id?: string | null
+          install_count?: number | null
+          is_public?: boolean | null
+          is_verified?: boolean | null
+          mcp_server_url?: never
+          name?: string | null
+          rating?: number | null
+          skill_config?: Json | null
+          slug?: string | null
+          tags?: string[] | null
+          updated_at?: string | null
+          version?: string | null
+        }
+        Relationships: []
+      }
       workspace_members_safe: {
         Row: {
           accepted_at: string | null
@@ -1914,7 +1978,7 @@ export type Database = {
           email?: never
           id?: string | null
           invited_at?: string | null
-          name?: string | null
+          name?: never
           role?: string | null
           user_id?: string | null
           workspace_id?: string | null
@@ -1924,7 +1988,7 @@ export type Database = {
           email?: never
           id?: string | null
           invited_at?: string | null
-          name?: string | null
+          name?: never
           role?: string | null
           user_id?: string | null
           workspace_id?: string | null
