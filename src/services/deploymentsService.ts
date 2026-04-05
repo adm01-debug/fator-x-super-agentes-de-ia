@@ -31,14 +31,13 @@ export async function createDeployment(agentId: string, channel: DeployChannel, 
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) throw new Error('Not authenticated');
 
-  const { data, error } = await supabase
-    .from('deploy_connections')
-    .insert({
-      agent_id: agentId,
-      channel,
-      config,
-      status: 'active',
-    })
+  const insertData = {
+    agent_id: agentId,
+    channel,
+    config,
+    status: 'active',
+  };
+  const { data, error } = await (supabase.from('deploy_connections').insert as Function)(insertData)
     .select()
     .single();
 

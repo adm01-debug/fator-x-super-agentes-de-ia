@@ -95,7 +95,7 @@ class NexusTracer {
 
     // Persist to Supabase trace_events
     try {
-      await supabase.from('trace_events').insert({
+      const insertData = {
         event_type: 'trace_complete',
         data: {
           trace_id: this.currentTrace.id,
@@ -108,7 +108,8 @@ class NexusTracer {
           spans: this.currentTrace.spans,
           span_count: this.currentTrace.spans.length,
         },
-      });
+      };
+      await (supabase.from('trace_events').insert as Function)(insertData);
     } catch (err: unknown) {
       logger.error('Failed to persist trace:', { error: err instanceof Error ? err.message : String(err) });
     }
