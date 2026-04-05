@@ -103,6 +103,7 @@ const App = () => (
                       <Route path="/builder" element={<SafePage><AgentBuilder /></SafePage>} />
                       <Route path="/builder/:id" element={<SafePage><AgentBuilder /></SafePage>} />
                       <Route path="/brain" element={<SafePage><SuperCerebroPage /></SafePage>} />
+                      <Route path="/super-cerebro" element={<SafePage><SuperCerebroPage /></SafePage>} />
                       <Route path="/oracle" element={<SafePage><OraclePage /></SafePage>} />
                       <Route path="/knowledge" element={<SafePage><KnowledgePage /></SafePage>} />
                       <Route path="/memory" element={<SafePage><MemoryPage /></SafePage>} />
