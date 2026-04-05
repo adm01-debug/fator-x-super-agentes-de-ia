@@ -324,10 +324,7 @@ export default function WorkflowsPage() {
 function WorkflowRunsHistory() {
   const { data: runs = [], isLoading } = useQuery({
     queryKey: ['workflow_runs'],
-    queryFn: async () => {
-      const { data } = await supabase.from('workflow_runs').select('*, workflows(name)').order('started_at', { ascending: false }).limit(30);
-      return data ?? [];
-    },
+    queryFn: () => listWorkflowRuns(),
   });
 
   if (isLoading) return <div className="flex justify-center py-12"><Loader2 className="h-5 w-5 animate-spin text-muted-foreground" /></div>;
