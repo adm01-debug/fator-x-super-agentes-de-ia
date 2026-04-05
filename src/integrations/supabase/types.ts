@@ -1454,7 +1454,7 @@ export type Database = {
       }
       tool_policies: {
         Row: {
-          agent_id: string | null
+          agent_id: string
           config: Json | null
           created_at: string | null
           environment: string | null
@@ -1465,7 +1465,7 @@ export type Database = {
           tool_integration_id: string | null
         }
         Insert: {
-          agent_id?: string | null
+          agent_id: string
           config?: Json | null
           created_at?: string | null
           environment?: string | null
@@ -1476,7 +1476,7 @@ export type Database = {
           tool_integration_id?: string | null
         }
         Update: {
-          agent_id?: string | null
+          agent_id?: string
           config?: Json | null
           created_at?: string | null
           environment?: string | null
