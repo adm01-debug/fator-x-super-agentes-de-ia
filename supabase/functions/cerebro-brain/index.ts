@@ -188,6 +188,47 @@ serve(async (req) => {
       const text = body.text as string;
       const extract_type = (body.extract_type as string) || 'entities';
 
+      // Layer 1: Use HF NER for entity extraction (fast, free, precise)
+      const hfToken = Deno.env.get('HF_API_TOKEN');
+      if (extract_type === 'entities' && hfToken) {
+        try {
+          const nerResp = await fetch('https://router.huggingface.co/hf-inference/models/dslim/bert-base-NER', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${hfToken}` },
+            body: JSON.stringify({ inputs: text.substring(0, 5000) }),
+          });
+          if (nerResp.ok) {
+            const nerEntities = await nerResp.json();
+            if (Array.isArray(nerEntities) && nerEntities.length > 0) {
+              // Group entities by type and deduplicate
+              const grouped: Record<string, Set<string>> = {};
+              const typeLabels: Record<string, string> = { PER: 'Pessoa', ORG: 'Organização', LOC: 'Local', MISC: 'Outros' };
+              for (const e of nerEntities) {
+                const type = (e.entity_group || e.entity || '').replace('B-', '').replace('I-', '');
+                const label = typeLabels[type] || type;
+                if (!grouped[label]) grouped[label] = new Set();
+                if (e.word && e.word.length > 1 && !e.word.startsWith('##')) {
+                  grouped[label].add(e.word.replace(/^#+/, '').trim());
+                }
+              }
+              const formatted = Object.entries(grouped)
+                .map(([type, names]) => `**${type}:** ${[...names].join(', ')}`)
+                .join('\n');
+              return new Response(JSON.stringify({
+                extracted: formatted || 'Nenhuma entidade encontrada',
+                type: extract_type,
+                method: 'hf_ner',
+                model: 'dslim/bert-base-NER',
+                entities_raw: nerEntities.filter((e: any) => e.score > 0.5),
+                tokens: { total: 0 },
+                cost_usd: 0,
+              }), { headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
+            }
+          }
+        } catch (e: unknown) { console.error('HF NER failed, falling back to LLM:', e instanceof Error ? e.message : e); }
+      }
+
+      // Layer 2: LLM extraction (for facts, rules, contacts, or NER fallback)
       const extractPrompts: Record<string, string> = {
         entities: 'Extraia todas as entidades (pessoas, empresas, produtos, locais) do texto. Retorne em formato de lista com tipo e nome.',
         facts: 'Extraia todos os fatos e informações concretas do texto. Retorne como lista de afirmações objetivas.',
@@ -215,6 +256,8 @@ serve(async (req) => {
       return new Response(JSON.stringify({
         extracted: result.content || result.error,
         type: extract_type,
+        method: 'llm',
+        model: 'google/gemini-2.5-flash',
         tokens: result.tokens,
         cost_usd: result.cost_usd,
       }), { headers: { ...corsHeaders, 'Content-Type': 'application/json' } });

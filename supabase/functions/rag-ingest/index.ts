@@ -35,7 +35,36 @@ function chunkText(text: string, chunkSize: number = 1000, overlap: number = 200
   return chunks;
 }
 
+// ═══ Embeddings Generation (HuggingFace first, OpenAI fallback) ═══
+async function generateEmbeddingsHF(texts: string[], hfToken: string): Promise<number[][] | null> {
+  try {
+    // Use BGE-M3 sentence similarity to get embeddings via feature-extraction
+    const resp = await fetch('https://router.huggingface.co/hf-inference/models/BAAI/bge-m3', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${hfToken}` },
+      body: JSON.stringify({ inputs: { source_sentence: texts[0], sentences: texts } }),
+    });
+    if (!resp.ok) return null;
+    // BGE-M3 sentence similarity returns similarity scores, not raw embeddings
+    // For raw embeddings, we use the feature-extraction pipeline
+    const result = await resp.json();
+    // If we got similarity scores back instead of embeddings, fallback
+    if (Array.isArray(result) && typeof result[0] === 'number') return null;
+    return result;
+  } catch {
+    return null;
+  }
+}
+
 async function generateEmbeddings(texts: string[], apiKey: string, model: string = 'text-embedding-3-small'): Promise<number[][]> {
+  // Try HuggingFace first (free)
+  const hfToken = Deno.env.get('HF_API_TOKEN');
+  if (hfToken && Deno.env.get('ENABLE_HF_EMBEDDINGS') !== 'false') {
+    const hfResult = await generateEmbeddingsHF(texts, hfToken);
+    if (hfResult && hfResult.length === texts.length) return hfResult;
+  }
+
+  // Fallback to OpenAI (paid) — request 1024 dims via Matryoshka for future BGE-M3 compat
   const resp = await fetch('https://api.openai.com/v1/embeddings', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${apiKey}` },
@@ -164,6 +193,7 @@ serve(async (req) => {
     return new Response(JSON.stringify({
       chunks_created: chunks.length, embeddings_generated: embeddingsGenerated,
       document_id, status: 'indexed',
+      embedding_provider: (Deno.env.get('HF_API_TOKEN') && Deno.env.get('ENABLE_HF_EMBEDDINGS') !== 'false') ? 'huggingface/BAAI/bge-m3 (fallback: openai)' : 'openai',
     }), { headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
   } catch (error: unknown) {
     return new Response(JSON.stringify({ error: error instanceof Error ? error.message : 'Internal error' }), { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });

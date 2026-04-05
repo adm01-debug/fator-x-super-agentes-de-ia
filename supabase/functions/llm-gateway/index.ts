@@ -1,7 +1,7 @@
 import "https://deno.land/x/xhr@0.1.0/mod.ts";
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient, type SupabaseClient } from "https://esm.sh/@supabase/supabase-js@2.49.4";
-import { callLovable, callOpenRouter, callAnthropic, callOpenAICompatible, type LLMCallParams, type LLMResult } from "./providers.ts";
+import { callLovable, callOpenRouter, callAnthropic, callOpenAICompatible, callHuggingFace, type LLMCallParams, type LLMResult } from "./providers.ts";
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -286,6 +286,7 @@ async function resolveFallbackChain(supabase: SupabaseClient, workspaceId: strin
 
   // 1. Direct provider mapping for requested model
   const providerMap: Array<{ match: string; keyName: string; provider: string }> = [
+    { match: 'huggingface/', keyName: 'huggingface_api_key', provider: 'huggingface' },
     { match: 'claude', keyName: 'anthropic_api_key', provider: 'anthropic' },
     { match: 'gpt', keyName: 'openai_api_key', provider: 'openai' },
     { match: 'gemini', keyName: 'google_ai_api_key', provider: 'google' },
@@ -299,6 +300,11 @@ async function resolveFallbackChain(supabase: SupabaseClient, workspaceId: strin
         if (k?.key_value) chain.push({ apiKey: k.key_value, provider: pm.provider, model: requestedModel, priority: 1 });
         break;
       }
+    }
+    // Also check HF token from env as fallback for huggingface/ models
+    if (requestedModel.startsWith('huggingface/') && !chain.some(c => c.provider === 'huggingface')) {
+      const hfEnvToken = Deno.env.get('HF_API_TOKEN');
+      if (hfEnvToken) chain.push({ apiKey: hfEnvToken, provider: 'huggingface', model: requestedModel, priority: 1 });
     }
     // Secondary: OpenRouter as universal fallback (supports all models)
     const { data: orKey } = await supabase.from('workspace_secrets').select('key_value').eq('workspace_id', workspaceId).eq('key_name', 'openrouter_api_key').single();
@@ -335,7 +341,8 @@ async function callWithFallback(
     const opt = chain[i];
     try {
       const params = { ...callParams, model: opt.model };
-      const result = opt.provider === 'lovable' ? await callLovable(params, opt.apiKey)
+      const result = opt.provider === 'huggingface' ? await callHuggingFace(params, opt.apiKey)
+        : opt.provider === 'lovable' ? await callLovable(params, opt.apiKey)
         : opt.provider === 'openrouter' ? await callOpenRouter(params, opt.apiKey, supabaseUrl)
         : opt.provider === 'anthropic' ? await callAnthropic(params, opt.apiKey)
         : await callOpenAICompatible(params, opt.apiKey, opt.provider);
