@@ -1,9 +1,12 @@
 /**
  * RAG Pipeline Service — Document ingestion, chunking, embedding, retrieval
  * Connects KnowledgePage UI to actual document processing.
+ * Persists chunks to Supabase knowledge_base_chunks with pgvector embeddings.
  */
 import { logger } from '@/lib/logger';
 import * as llm from './llmService';
+import { supabase } from '@/integrations/supabase/client';
+import { generateEmbedding, cosineSimilarity } from './vectorSearch';
 
 // ═══ TYPES ═══
 
@@ -171,10 +174,38 @@ export async function ingestDocument(
     c.metadata = { knowledgeBaseId, filename: file.name };
   });
 
-  // Stage 4: Store chunks
+  // Stage 4: Store chunks (in-memory + Supabase persistence)
   onProgress?.(`💾 Storing ${docChunks.length} chunks...`);
   chunks.push(...docChunks);
   if (chunks.length > MAX_CHUNKS) chunks.splice(0, chunks.length - MAX_CHUNKS);
+
+  // Stage 5: Persist to Supabase with embeddings (best-effort, non-blocking)
+  onProgress?.(`🔢 Generating embeddings for ${docChunks.length} chunks...`);
+  const persistErrors: string[] = [];
+  for (const chunk of docChunks) {
+    try {
+      const { embedding } = await generateEmbedding(chunk.content);
+      const { error } = await supabase
+        .from('knowledge_base_chunks')
+        .insert({
+          kb_id: knowledgeBaseId,
+          content: chunk.content,
+          embedding: `[${embedding.join(',')}]`,
+          metadata: { filename: file.name, chunkIndex: String(chunk.index), documentId: doc.id },
+        });
+      if (error) {
+        persistErrors.push(error.message);
+      }
+    } catch (err) {
+      persistErrors.push(err instanceof Error ? err.message : 'Unknown');
+    }
+  }
+
+  if (persistErrors.length > 0) {
+    logger.warn(`RAG persist: ${persistErrors.length}/${docChunks.length} chunks failed (table may not exist yet): ${persistErrors[0]}`, 'ragPipeline');
+  } else {
+    logger.info(`RAG persist: ${docChunks.length} chunks saved to Supabase`, 'ragPipeline');
+  }
 
   const duration = Date.now() - startTime;
   logger.info(`RAG ingest: ${file.name} → ${docChunks.length} chunks (${duration}ms)`, 'ragPipeline');

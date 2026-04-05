@@ -162,19 +162,107 @@ export function autoExtractFromConversation(agentId: string, userMessage: string
   }
 }
 
-// ═══ SUPABASE PERSISTENCE (async) ═══
+// ═══ LAYER → COLLECTION ID MAP ═══
+
+const LAYER_COLLECTION_MAP: Record<MemoryEntry['layer'], string> = {
+  short_term: 'col_short_term',
+  episodic: 'col_episodic',
+  semantic: 'col_semantic',
+  procedural: 'col_procedural',
+  profile: 'col_profile',
+  shared: 'col_shared',
+};
+
+function layerToCollectionId(layer: MemoryEntry['layer']): string {
+  return LAYER_COLLECTION_MAP[layer] ?? layer;
+}
+
+// ═══ WORKSPACE HELPER ═══
+
+async function getWorkspaceId(): Promise<string | null> {
+  try {
+    const { data: { session } } = await supabase.auth.getSession();
+    const userId = session?.user?.id;
+    if (!userId) return null;
+    const { data } = await supabase
+      .from('workspace_members')
+      .select('workspace_id')
+      .eq('user_id', userId)
+      .limit(1)
+      .single();
+    return data?.workspace_id ?? null;
+  } catch {
+    return null;
+  }
+}
+
+// ═══ SUPABASE PERSISTENCE (async, fire-and-forget) ═══
 
 async function persistToSupabase(entry: MemoryEntry): Promise<void> {
   try {
+    const workspaceId = await getWorkspaceId();
     await supabase.from('brain_facts').insert({
+      collection_id: layerToCollectionId(entry.layer),
       content: entry.content,
-      domain: entry.layer,
-      confidence: entry.confidence ?? 80,
-      source_type: entry.source ?? 'memory',
+      fact_type: entry.layer,
+      confidence: entry.confidence ?? 0.5,
+      source: 'agent_memory',
+      ...(workspaceId ? { workspace_id: workspaceId } : {}),
     });
-  } catch {
-    // Table might not exist — silently fail
+  } catch (err) {
+    logger.warn(`persistToSupabase failed: ${err instanceof Error ? err.message : 'unknown'}`, 'memoryService');
   }
+}
+
+// ═══ SUPABASE LOAD (with localStorage fallback) ═══
+
+async function loadMemoriesFromSupabase(agentId: string, layer: MemoryEntry['layer']): Promise<MemoryEntry[] | null> {
+  try {
+    const workspaceId = await getWorkspaceId();
+    let query = supabase
+      .from('brain_facts')
+      .select('*')
+      .eq('fact_type', layer)
+      .eq('source', 'agent_memory')
+      .order('created_at', { ascending: false })
+      .limit(layer === 'short_term' ? 20 : layer === 'episodic' ? 200 : 500);
+
+    if (workspaceId) {
+      query = query.eq('workspace_id', workspaceId);
+    }
+
+    const { data, error } = await query;
+    if (error || !data) return null;
+
+    return data.map((row: Record<string, unknown>) => ({
+      id: String(row.id ?? crypto.randomUUID()),
+      layer,
+      agentId,
+      content: String(row.content ?? ''),
+      confidence: typeof row.confidence === 'number' ? row.confidence : 80,
+      source: String(row.source ?? 'agent_memory'),
+      createdAt: String(row.created_at ?? new Date().toISOString()),
+    }));
+  } catch {
+    return null;
+  }
+}
+
+/** Load memories: try Supabase first, fall back to localStorage cache. */
+export async function loadMemories(agentId: string, layer: MemoryEntry['layer']): Promise<MemoryEntry[]> {
+  // Try Supabase first
+  const supabaseEntries = await loadMemoriesFromSupabase(agentId, layer);
+  if (supabaseEntries && supabaseEntries.length > 0) {
+    // Update localStorage cache
+    const all = loadAll();
+    const key = `${agentId}:${layer}`;
+    all[key] = supabaseEntries;
+    saveAll(all);
+    return supabaseEntries;
+  }
+
+  // Fall back to localStorage
+  return getMemories(agentId, layer);
 }
 
 // ═══ FORGETTING POLICIES ═══

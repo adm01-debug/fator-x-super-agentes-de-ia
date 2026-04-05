@@ -1,4 +1,5 @@
 // Barrel export for all agent-builder UI components
+export { FieldWrapper } from './FieldWrapper';
 export { SectionTitle } from './SectionTitle';
 export { ConfigCard } from './ConfigCard';
 export { NexusBadge } from './NexusBadge';

@@ -120,6 +120,12 @@ export function getLLMConfig(): { provider: string; hasKey: boolean } {
   };
 }
 
+/** Get the API key (for embedding calls). Returns empty string if not configured. */
+export function getApiKey(): string {
+  autoConfigureFromEnv();
+  return storedConfig?.apiKey ?? '';
+}
+
 // ═══ SINGLE MODEL CALL ═══
 
 /**

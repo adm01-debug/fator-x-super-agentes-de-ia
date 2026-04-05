@@ -6,6 +6,39 @@
 import { supabase } from '@/integrations/supabase/client';
 import { logger } from '@/lib/logger';
 
+// ═══ WORKSPACE CONTEXT ═══
+
+/** Get the active workspace ID for the current authenticated user. */
+export async function getActiveWorkspaceId(): Promise<string | null> {
+  try {
+    const { data: { session } } = await supabase.auth.getSession();
+    const userId = session?.user?.id;
+    if (!userId) return null;
+    const { data } = await supabase
+      .from('workspace_members')
+      .select('workspace_id')
+      .eq('user_id', userId)
+      .limit(1)
+      .single();
+    return data?.workspace_id ?? null;
+  } catch {
+    return null;
+  }
+}
+
+// Cached workspace ID to avoid repeated lookups within a short period
+let _cachedWorkspaceId: string | null = null;
+let _cachedAt = 0;
+const CACHE_TTL_MS = 30_000; // 30 seconds
+
+async function getCachedWorkspaceId(): Promise<string | null> {
+  const now = Date.now();
+  if (_cachedWorkspaceId && now - _cachedAt < CACHE_TTL_MS) return _cachedWorkspaceId;
+  _cachedWorkspaceId = await getActiveWorkspaceId();
+  _cachedAt = now;
+  return _cachedWorkspaceId;
+}
+
 // ═══ GENERIC CRUD HELPERS ═══
 
 async function selectFrom(table: string, filters?: Record<string, unknown>, limit = 100): Promise<unknown[]> {
@@ -56,6 +89,28 @@ async function upsertInto(table: string, row: Record<string, unknown>, onConflic
 }
 
 // ═══ AGENT TABLES ═══
+
+export const agents = {
+  list: async () => {
+    const wsId = await getCachedWorkspaceId();
+    return selectFrom('agents', wsId ? { workspace_id: wsId } : undefined);
+  },
+  getById: (id: string) => selectFrom('agents', { id }, 1).then(r => r[0] ?? null),
+  create: (row: Record<string, unknown>) => insertInto('agents', row),
+  update: (id: string, updates: Record<string, unknown>) => updateIn('agents', id, updates),
+  delete: (id: string) => deleteFrom('agents', id),
+};
+
+export const agentTraces = {
+  list: async (agentId?: string, limit = 100) => {
+    const wsId = await getCachedWorkspaceId();
+    const filters: Record<string, unknown> = {};
+    if (agentId) filters.agent_id = agentId;
+    if (wsId) filters.workspace_id = wsId;
+    return selectFrom('agent_traces', Object.keys(filters).length > 0 ? filters : undefined, limit);
+  },
+  create: (row: Record<string, unknown>) => insertInto('agent_traces', row),
+};
 
 export const agentTemplates = {
   list: () => selectFrom('agent_templates', { is_public: true }),
@@ -111,7 +166,10 @@ export const workspaceSecrets = {
 // ═══ DATAHUB TABLES ═══
 
 export const datahubConnections = {
-  list: () => selectFrom('datahub_connections'),
+  list: async () => {
+    const wsId = await getCachedWorkspaceId();
+    return selectFrom('datahub_connections', wsId ? { workspace_id: wsId } : undefined);
+  },
   create: (row: Record<string, unknown>) => insertInto('datahub_connections', row),
   update: (id: string, updates: Record<string, unknown>) => updateIn('datahub_connections', id, updates),
   delete: (id: string) => deleteFrom('datahub_connections', id),
@@ -169,6 +227,16 @@ export const brainCollections = {
   delete: (id: string) => deleteFrom('brain_collections', id),
 };
 
+export const brainFacts = {
+  list: async (limit = 100) => {
+    const wsId = await getCachedWorkspaceId();
+    return selectFrom('brain_facts', wsId ? { workspace_id: wsId } : undefined, limit);
+  },
+  create: (row: Record<string, unknown>) => insertInto('brain_facts', row),
+  update: (id: string, updates: Record<string, unknown>) => updateIn('brain_facts', id, updates),
+  delete: (id: string) => deleteFrom('brain_facts', id),
+};
+
 export const brainEntities = {
   list: (limit = 100) => selectFrom('brain_entities', undefined, limit),
   create: (row: Record<string, unknown>) => insertInto('brain_entities', row),
@@ -205,7 +273,10 @@ export const oraclePresets = {
 };
 
 export const oracleQueries = {
-  list: (limit = 50) => selectFrom('oracle_queries', undefined, limit),
+  list: async (limit = 50) => {
+    const wsId = await getCachedWorkspaceId();
+    return selectFrom('oracle_queries', wsId ? { workspace_id: wsId } : undefined, limit);
+  },
   create: (row: Record<string, unknown>) => insertInto('oracle_queries', row),
 };
 
@@ -217,7 +288,10 @@ export const oracleMemberResponses = {
 // ═══ KNOWLEDGE & EVALUATION TABLES ═══
 
 export const knowledgeBases = {
-  list: () => selectFrom('knowledge_bases'),
+  list: async () => {
+    const wsId = await getCachedWorkspaceId();
+    return selectFrom('knowledge_bases', wsId ? { workspace_id: wsId } : undefined);
+  },
   create: (row: Record<string, unknown>) => insertInto('knowledge_bases', row),
   update: (id: string, updates: Record<string, unknown>) => updateIn('knowledge_bases', id, updates),
   delete: (id: string) => deleteFrom('knowledge_bases', id),
