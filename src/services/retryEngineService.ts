@@ -307,7 +307,11 @@ export function getCircuitBreaker(
   config: CircuitBreakerConfig = DEFAULT_CIRCUIT_CONFIG,
 ): CircuitBreakerState {
   const existing = circuitBreakers.get(serviceName);
-  if (existing) return existing;
+  if (existing) {
+    // Update config if changed (allows runtime reconfiguration)
+    existing.config = config;
+    return existing;
+  }
 
   const state: CircuitBreakerState = {
     id: crypto.randomUUID(),

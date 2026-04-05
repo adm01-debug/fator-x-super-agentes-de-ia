@@ -505,4 +505,16 @@ export const CREDENTIAL_TEMPLATES: Record<
     fields: ['api_token', 'vps_id', 'ssh_host', 'ssh_user'],
     service: 'hostinger',
   },
+  slack: {
+    label: 'Slack Bot',
+    type: 'bearer_token',
+    fields: ['bot_token', 'signing_secret', 'app_id'],
+    service: 'slack',
+  },
+  google_sheets: {
+    label: 'Google Sheets',
+    type: 'oauth2',
+    fields: ['client_id', 'client_secret', 'refresh_token'],
+    service: 'google-sheets',
+  },
 };

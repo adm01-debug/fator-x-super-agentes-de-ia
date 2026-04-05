@@ -773,8 +773,8 @@ describe('ExecutionHistoryService', () => {
 
 describe('ConnectorRegistryService', () => {
   describe('BUILTIN_CONNECTORS', () => {
-    it('deve ter pelo menos 5 connectors', () => {
-      expect(BUILTIN_CONNECTORS.length).toBeGreaterThanOrEqual(5);
+    it('deve ter pelo menos 7 connectors', () => {
+      expect(BUILTIN_CONNECTORS.length).toBeGreaterThanOrEqual(7);
     });
 
     it('cada connector deve ter estrutura válida', () => {
@@ -1005,8 +1005,8 @@ describe('Completude do Ecosystem', () => {
     expect(Object.keys(RETRY_PRESETS).length).toBe(6);
   });
 
-  it('deve ter 8 templates de credential', () => {
-    expect(Object.keys(CREDENTIAL_TEMPLATES).length).toBe(8);
+  it('deve ter 10 templates de credential', () => {
+    expect(Object.keys(CREDENTIAL_TEMPLATES).length).toBe(10);
   });
 
   it('deve ter 8 presets de notification', () => {
@@ -1017,8 +1017,8 @@ describe('Completude do Ecosystem', () => {
     expect(BUILTIN_TEMPLATES.length).toBe(6);
   });
 
-  it('deve ter 5 connectors built-in', () => {
-    expect(BUILTIN_CONNECTORS.length).toBe(5);
+  it('deve ter 7 connectors built-in', () => {
+    expect(BUILTIN_CONNECTORS.length).toBe(7);
   });
 
   it('deve ter 4 queue presets', () => {
