@@ -110,7 +110,11 @@ export async function invokeEvalJudge(body: Record<string, unknown>) {
 }
 
 export async function listAgentsForSelect() {
-  const { data } = await supabase.from('agents').select('id, name').order('name');
+  const { data, error } = await supabase.from('agents').select('id, name').order('name');
+  if (error) {
+    logger.error('Failed to list agents for select', { error: error.message });
+    throw error;
+  }
   return data ?? [];
 }
 
