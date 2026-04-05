@@ -21,6 +21,14 @@ export function SearchTab() {
   const [rerankResults, setRerankResults] = useState<RerankResult[] | null>(null);
   const [rerankMethod, setRerankMethod] = useState<string | null>(null);
 
+  // KB filter
+  const [knowledgeBases, setKnowledgeBases] = useState<{ id: string; name: string }[]>([]);
+  const [selectedKbId, setSelectedKbId] = useState<string>('all');
+
+  useEffect(() => {
+    listKnowledgeBases().then(kbs => setKnowledgeBases(kbs.map(kb => ({ id: kb.id, name: kb.name })))).catch(() => {});
+  }, []);
+
   const handleSearch = async () => {
     if (!query.trim()) return;
     setIsSearching(true);
