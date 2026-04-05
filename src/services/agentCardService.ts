@@ -11,6 +11,8 @@
 
 import { supabase } from '@/integrations/supabase/client';
 
+type DynFrom = (table: string) => ReturnType<typeof supabase.from>;
+
 // ──────── A2A Agent Card Types (following official spec) ────────
 
 export interface AgentSkill {
@@ -220,15 +222,14 @@ export async function saveAgentCard(
   agentId: string,
   card: AgentCard
 ): Promise<void> {
-  const { error } = await supabase
-    .from('agent_configs')
+  const { error } = await (supabase.from as DynFrom)('agent_configs')
     .update({
       metadata: {
         agent_card: card,
         agent_card_updated_at: new Date().toISOString(),
       },
     })
-    .eq('id', agentId);
+    .eq('id' as never, agentId);
 
   if (error) throw new Error(`Failed to save agent card: ${error.message}`);
 }
@@ -237,10 +238,9 @@ export async function saveAgentCard(
  * Get a cached agent card from the database
  */
 export async function getAgentCard(agentId: string): Promise<AgentCard | null> {
-  const { data, error } = await supabase
-    .from('agent_configs')
+  const { data, error } = await (supabase.from as DynFrom)('agent_configs')
     .select('metadata')
-    .eq('id', agentId)
+    .eq('id' as never, agentId)
     .single();
 
   if (error) return null;
@@ -256,10 +256,9 @@ export async function generateAndSaveAgentCard(
   agentId: string,
   options?: Parameters<typeof generateAgentCard>[1]
 ): Promise<AgentCard> {
-  const { data, error } = await supabase
-    .from('agent_configs')
+  const { data, error } = await (supabase.from as DynFrom)('agent_configs')
     .select('*')
-    .eq('id', agentId)
+    .eq('id' as never, agentId)
     .single();
 
   if (error) throw new Error(`Agent not found: ${error.message}`);
@@ -276,10 +275,9 @@ export async function generateAndSaveAgentCard(
  * List all agent cards in the workspace (for registry/marketplace)
  */
 export async function listAgentCards(): Promise<AgentCard[]> {
-  const { data, error } = await supabase
-    .from('agent_configs')
+  const { data, error } = await (supabase.from as DynFrom)('agent_configs')
     .select('id, name, description, metadata, model, provider, tools, status, updated_at')
-    .eq('status', 'active');
+    .eq('status' as never, 'active');
 
   if (error) throw new Error(`Failed to list agents: ${error.message}`);
 

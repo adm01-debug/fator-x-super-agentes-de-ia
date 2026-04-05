@@ -12,6 +12,8 @@
 
 import { supabase } from '@/integrations/supabase/client';
 
+type DynFrom = (table: string) => ReturnType<typeof supabase.from>;
+
 // ──────── Types ────────
 
 export type HandoffReason =
@@ -144,8 +146,7 @@ export async function initiateHandoff(request: HandoffRequest): Promise<HandoffR
   };
 
   // Store in workflow_handoffs table
-  const { data, error } = await supabase
-    .from('workflow_handoffs')
+  const { data, error } = await (supabase.from as DynFrom)('workflow_handoffs')
     .insert(record)
     .select()
     .single();
@@ -158,12 +159,11 @@ export async function initiateHandoff(request: HandoffRequest): Promise<HandoffR
  * Accept a pending handoff
  */
 export async function acceptHandoff(handoffId: string): Promise<HandoffRecord> {
-  const { data, error } = await supabase
-    .from('workflow_handoffs')
+  const { data, error } = await (supabase.from as DynFrom)('workflow_handoffs')
     .update({
       status: 'accepted' as const,
     })
-    .eq('id', handoffId)
+    .eq('id' as never, handoffId)
     .select()
     .single();
 
@@ -178,13 +178,12 @@ export async function completeHandoff(
   handoffId: string,
   response: Record<string, unknown>
 ): Promise<HandoffRecord> {
-  const { data, error } = await supabase
-    .from('workflow_handoffs')
+  const { data, error } = await (supabase.from as DynFrom)('workflow_handoffs')
     .update({
       status: 'completed' as const,
       context: response,
     })
-    .eq('id', handoffId)
+    .eq('id' as never, handoffId)
     .select()
     .single();
 
@@ -199,13 +198,12 @@ export async function rejectHandoff(
   handoffId: string,
   reason: string
 ): Promise<HandoffRecord> {
-  const { data, error } = await supabase
-    .from('workflow_handoffs')
+  const { data, error } = await (supabase.from as DynFrom)('workflow_handoffs')
     .update({
       status: 'rejected' as const,
       reason: reason,
     })
-    .eq('id', handoffId)
+    .eq('id' as never, handoffId)
     .select()
     .single();
 
@@ -220,13 +218,12 @@ export async function failHandoff(
   handoffId: string,
   errorMsg: string
 ): Promise<HandoffRecord> {
-  const { data, error } = await supabase
-    .from('workflow_handoffs')
+  const { data, error } = await (supabase.from as DynFrom)('workflow_handoffs')
     .update({
       status: 'failed' as const,
       reason: errorMsg,
     })
-    .eq('id', handoffId)
+    .eq('id' as never, handoffId)
     .select()
     .single();
 
@@ -240,12 +237,11 @@ export async function failHandoff(
  * Get pending handoffs for an agent (inbox)
  */
 export async function getPendingHandoffs(targetAgentId: string): Promise<HandoffRecord[]> {
-  const { data, error } = await supabase
-    .from('workflow_handoffs')
+  const { data, error } = await (supabase.from as DynFrom)('workflow_handoffs')
     .select('*')
-    .eq('target_agent_id', targetAgentId)
-    .eq('status', 'pending')
-    .order('created_at', { ascending: false });
+    .eq('target_agent_id' as never, targetAgentId)
+    .eq('status' as never, 'pending')
+    .order('created_at' as never, { ascending: false });
 
   if (error) throw new Error(`Failed to get pending handoffs: ${error.message}`);
   return (data ?? []) as unknown as HandoffRecord[];
@@ -258,11 +254,10 @@ export async function getHandoffHistory(
   agentId: string,
   limit = 50
 ): Promise<HandoffRecord[]> {
-  const { data, error } = await supabase
-    .from('workflow_handoffs')
+  const { data, error } = await (supabase.from as DynFrom)('workflow_handoffs')
     .select('*')
     .or(`source_agent_id.eq.${agentId},target_agent_id.eq.${agentId}`)
-    .order('created_at', { ascending: false })
+    .order('created_at' as never, { ascending: false })
     .limit(limit);
 
   if (error) throw new Error(`Failed to get handoff history: ${error.message}`);
@@ -273,11 +268,10 @@ export async function getHandoffHistory(
  * Get handoffs for a workflow execution
  */
 export async function getExecutionHandoffs(executionId: string): Promise<HandoffRecord[]> {
-  const { data, error } = await supabase
-    .from('workflow_handoffs')
+  const { data, error } = await (supabase.from as DynFrom)('workflow_handoffs')
     .select('*')
-    .eq('execution_id', executionId)
-    .order('created_at', { ascending: true });
+    .eq('execution_id' as never, executionId)
+    .order('created_at' as never, { ascending: true });
 
   if (error) throw new Error(`Failed to get execution handoffs: ${error.message}`);
   return (data ?? []) as unknown as HandoffRecord[];

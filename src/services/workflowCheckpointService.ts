@@ -10,6 +10,8 @@
 
 import { supabase } from '@/integrations/supabase/client';
 
+type DynFrom = (table: string) => ReturnType<typeof supabase.from>;
+
 // ──────── Types ────────
 
 export interface WorkflowExecution {
@@ -73,8 +75,7 @@ export async function startExecution(
   workflowId: string,
   input: Record<string, unknown> = {}
 ): Promise<WorkflowExecution> {
-  const { data, error } = await supabase
-    .from('workflow_executions')
+  const { data, error } = await (supabase.from as DynFrom)('workflow_executions')
     .insert({
       workflow_id: workflowId,
       input,
@@ -93,10 +94,9 @@ export async function updateExecution(
   executionId: string,
   updates: Partial<Pick<WorkflowExecution, 'status' | 'output' | 'error' | 'total_cost_usd' | 'total_tokens' | 'total_duration_ms' | 'completed_at'>>
 ): Promise<WorkflowExecution> {
-  const { data, error } = await supabase
-    .from('workflow_executions')
+  const { data, error } = await (supabase.from as DynFrom)('workflow_executions')
     .update(updates)
-    .eq('id', executionId)
+    .eq('id' as never, executionId)
     .select()
     .single();
 
@@ -110,10 +110,9 @@ export async function completeExecution(
   output: Record<string, unknown>
 ): Promise<WorkflowExecution> {
   // Aggregate totals from all checkpoints
-  const { data: checkpoints } = await supabase
-    .from('workflow_checkpoints')
+  const { data: checkpoints } = await (supabase.from as DynFrom)('workflow_checkpoints')
     .select('cost_usd, tokens_used, duration_ms')
-    .eq('execution_id', executionId);
+    .eq('execution_id' as never, executionId);
 
   const totals = (checkpoints ?? []).reduce(
     (acc, cp) => ({
@@ -165,11 +164,10 @@ export async function listExecutions(
   workflowId: string,
   limit = 20
 ): Promise<WorkflowExecution[]> {
-  const { data, error } = await supabase
-    .from('workflow_executions')
+  const { data, error } = await (supabase.from as DynFrom)('workflow_executions')
     .select('*')
-    .eq('workflow_id', workflowId)
-    .order('created_at', { ascending: false })
+    .eq('workflow_id' as never, workflowId)
+    .order('created_at' as never, { ascending: false })
     .limit(limit);
 
   if (error) throw new Error(`Failed to list executions: ${error.message}`);
@@ -178,10 +176,9 @@ export async function listExecutions(
 
 /** Get a single execution with its checkpoints */
 export async function getExecution(executionId: string): Promise<WorkflowExecution> {
-  const { data, error } = await supabase
-    .from('workflow_executions')
+  const { data, error } = await (supabase.from as DynFrom)('workflow_executions')
     .select('*')
-    .eq('id', executionId)
+    .eq('id' as never, executionId)
     .single();
 
   if (error) throw new Error(`Failed to get execution: ${error.message}`);
@@ -192,8 +189,7 @@ export async function getExecution(executionId: string): Promise<WorkflowExecuti
 
 /** Save a checkpoint after node execution */
 export async function saveCheckpoint(input: CheckpointCreateInput): Promise<WorkflowCheckpoint> {
-  const { data, error } = await supabase
-    .from('workflow_checkpoints')
+  const { data, error } = await (supabase.from as DynFrom)('workflow_checkpoints')
     .insert({
       execution_id: input.execution_id,
       node_id: input.node_id,
@@ -217,11 +213,10 @@ export async function saveCheckpoint(input: CheckpointCreateInput): Promise<Work
 
 /** Get all checkpoints for an execution (ordered by step) */
 export async function getCheckpoints(executionId: string): Promise<WorkflowCheckpoint[]> {
-  const { data, error } = await supabase
-    .from('workflow_checkpoints')
+  const { data, error } = await (supabase.from as DynFrom)('workflow_checkpoints')
     .select('*')
-    .eq('execution_id', executionId)
-    .order('step_index', { ascending: true });
+    .eq('execution_id' as never, executionId)
+    .order('step_index' as never, { ascending: true });
 
   if (error) throw new Error(`Failed to get checkpoints: ${error.message}`);
   return (data ?? []) as unknown as WorkflowCheckpoint[];
@@ -229,12 +224,11 @@ export async function getCheckpoints(executionId: string): Promise<WorkflowCheck
 
 /** Get the last checkpoint for an execution (for crash recovery) */
 export async function getLastCheckpoint(executionId: string): Promise<WorkflowCheckpoint | null> {
-  const { data, error } = await supabase
-    .from('workflow_checkpoints')
+  const { data, error } = await (supabase.from as DynFrom)('workflow_checkpoints')
     .select('*')
-    .eq('execution_id', executionId)
-    .eq('status', 'completed')
-    .order('step_index', { ascending: false })
+    .eq('execution_id' as never, executionId)
+    .eq('status' as never, 'completed')
+    .order('step_index' as never, { ascending: false })
     .limit(1)
     .maybeSingle();
 
@@ -244,10 +238,9 @@ export async function getLastCheckpoint(executionId: string): Promise<WorkflowCh
 
 /** Get a specific checkpoint by ID */
 export async function getCheckpoint(checkpointId: string): Promise<WorkflowCheckpoint> {
-  const { data, error } = await supabase
-    .from('workflow_checkpoints')
+  const { data, error } = await (supabase.from as DynFrom)('workflow_checkpoints')
     .select('*')
-    .eq('id', checkpointId)
+    .eq('id' as never, checkpointId)
     .single();
 
   if (error) throw new Error(`Failed to get checkpoint: ${error.message}`);
@@ -360,13 +353,12 @@ export async function findRecoverableExecutions(
     Date.now() - staleAfterMinutes * 60 * 1000
   ).toISOString();
 
-  const { data, error } = await supabase
-    .from('workflow_executions')
+  const { data, error } = await (supabase.from as DynFrom)('workflow_executions')
     .select('*')
-    .eq('workflow_id', workflowId)
-    .eq('status', 'running')
-    .lt('started_at', staleThreshold)
-    .order('started_at', { ascending: false });
+    .eq('workflow_id' as never, workflowId)
+    .eq('status' as never, 'running')
+    .lt('started_at' as never, staleThreshold)
+    .order('started_at' as never, { ascending: false });
 
   if (error) throw new Error(`Failed to find recoverable executions: ${error.message}`);
   return (data ?? []) as unknown as WorkflowExecution[];

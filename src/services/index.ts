@@ -17,13 +17,33 @@ export * from './memoryService';
 export * from './evaluationsService';
 export * from './contextTiersService';
 export * from './agentEvolutionService';
-export * from './skillsRegistryService';
+export {
+  type AgentSkillDefinition,
+  getSkillRegistry,
+  getInstalledSkills,
+  publishSkill,
+  installSkill,
+  uninstallSkill,
+} from './skillsRegistryService';
 export * from './llmGatewayService';
 export * from './lgpdService';
 export * from './approvalService';
 export * from './workflowCheckpointService';
 export * from './agentCardService';
 export * from './agentHandoffService';
-export * from './costCalculatorService';
+export {
+  type ModelPricing as CostModelPricing,
+  type CostEstimate,
+  type CostBreakdown,
+  type BudgetConfig,
+  estimateCost,
+  calculateActualCost,
+  getBudget as getCostBudget,
+  setBudget as setCostBudget,
+  getModelPricing as getCostModelPricing,
+  checkBudget,
+  formatCostUSD,
+  formatCostBRL,
+} from './costCalculatorService';
 export * from './middlewarePipelineService';
 export * from './progressiveSkillLoader';
