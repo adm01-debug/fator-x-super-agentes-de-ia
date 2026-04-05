@@ -15,9 +15,8 @@ import { toast } from "sonner";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { WorkflowCanvas, type CanvasNode, type CanvasEdge } from "@/components/workflows/WorkflowCanvas";
 import { useWorkflowPersistence } from "@/hooks/use-workflow-persistence";
-import { supabase } from "@/integrations/supabase/client";
 import { workflowSchema } from "@/lib/validations/agentSchema";
-import { listWorkflows as listWorkflowsService, saveWorkflow as saveWorkflowService, deleteWorkflow as deleteWorkflowService } from "@/services/workflowsService";
+import { listWorkflows as listWorkflowsService, saveWorkflow as saveWorkflowService, deleteWorkflow as deleteWorkflowService, toggleWorkflowStatus, executeWorkflow } from "@/services/workflowsService";
 
 interface Workflow {
   id: string;
@@ -139,7 +138,7 @@ export default function WorkflowsPage() {
     if (id.includes('-')) {
       const wf = workflows.find((w) => w.id === id);
       if (wf) {
-        await supabase.from('workflows').update({ status: wf.status === 'active' ? 'draft' : 'active' }).eq('id', id);
+        await toggleWorkflowStatus(id, wf.status);
         queryClient.invalidateQueries({ queryKey: ['workflows_list'] });
       }
     }
@@ -149,38 +148,8 @@ export default function WorkflowsPage() {
   const handleExecute = async (wf: Workflow) => {
     setExecuting(wf.id);
     try {
-      // Try workflow-engine for DB workflows (UUID format), fallback to Gateway
-      if (wf.id.includes('-')) {
-        try {
-          const { data, error } = await supabase.functions.invoke('workflow-engine-v2', {
-            body: { workflow_id: wf.id, input: `Execute o workflow "${wf.name}"` },
-          });
-          if (!error && data?.status === 'completed') {
-            toast.success(`Engine: ${data.steps_executed} etapas • $${data.total_cost_usd?.toFixed(4) || '0'}`);
-            setExecuting(null);
-            return;
-          }
-        } catch (err) { console.error("Operation failed:", err); /* fallback below */ }
-      }
-      // Fallback: execute step-by-step via Gateway
-      let previousOutput = `Workflow: "${wf.name}". Etapas: ${wf.steps.join(' → ')}`;
-      const results: string[] = [];
-      for (const step of wf.steps) {
-        const { data, error } = await supabase.functions.invoke('llm-gateway', {
-          body: {
-            model: 'claude-sonnet-4.6',
-            messages: [
-              { role: 'system', content: `Você é o agente "${step}" em um workflow multi-agente. Execute sua função.` },
-              { role: 'user', content: `Contexto anterior:\n${previousOutput}\n\nExecute seu papel como "${step}".` },
-            ],
-            temperature: 0.7, max_tokens: 2000,
-          },
-        });
-        if (error) throw error;
-        previousOutput = data?.content || '';
-        results.push(`[${step}] ${previousOutput.substring(0, 100)}...`);
-      }
-      toast.success(`Workflow executado! ${wf.steps.length} etapas concluídas`);
+      const result = await executeWorkflow(wf.id, wf.name, wf.steps);
+      toast.success(`Workflow executado! ${result.stepsExecuted} etapas • $${result.cost.toFixed(4)}`);
     } catch (e: unknown) {
       toast.error(e instanceof Error ? e.message : "Erro inesperado");
     } finally { setExecuting(null); }
