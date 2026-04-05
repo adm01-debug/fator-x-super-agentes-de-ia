@@ -7,7 +7,7 @@
  * Reference: Sim Studio (11 templates), Dify, n8n
  */
 
-export interface AgentTemplate {
+export interface AgentTemplateRaw {
   id: string;
   name: string;
   description: string;
@@ -23,7 +23,9 @@ export interface AgentTemplate {
     guardrails: string[];
     memory_types: string[];
   };
-  /** Convenience accessors used by CreateAgentWizard */
+}
+
+export interface AgentTemplate extends AgentTemplateRaw {
   emoji: string;
   type: string;
   model: string;
@@ -32,7 +34,19 @@ export interface AgentTemplate {
   memory: string[];
 }
 
-export const AGENT_TEMPLATES: AgentTemplate[] = [
+function enrichTemplate(t: AgentTemplateRaw): AgentTemplate {
+  return {
+    ...t,
+    emoji: t.icon,
+    type: t.config.persona,
+    model: t.config.model,
+    prompt: t.config.system_prompt,
+    tools: t.config.tools,
+    memory: t.config.memory_types,
+  };
+}
+
+const RAW_TEMPLATES: AgentTemplateRaw[] = [
   {
     id: 'customer_support',
     name: 'Atendimento ao Cliente',
