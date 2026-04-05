@@ -89,10 +89,11 @@ export function EvaluationDatasetsPanel() {
   };
 
   const handleDeleteDataset = async (id: string) => {
-    // Delete test cases first
-    await supabase.from('test_cases').delete().eq('dataset_id', id);
-    const { error } = await supabase.from('evaluation_datasets').delete().eq('id', id);
-    if (error) { toast.error(error.message); return; }
+    try {
+      const { supabase } = await import('@/integrations/supabase/client');
+      await supabase.from('test_cases').delete().eq('dataset_id', id);
+      await supabase.from('evaluation_datasets').delete().eq('id', id);
+    } catch (e: unknown) { toast.error(e instanceof Error ? e.message : 'Erro'); return; }
     if (selectedDatasetId === id) setSelectedDatasetId(null);
     toast.success('Dataset removido');
     queryClient.invalidateQueries({ queryKey: ['evaluation_datasets'] });
