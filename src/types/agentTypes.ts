@@ -4,7 +4,7 @@ export type AgentLifecycleStage =
   | 'review' | 'production' | 'monitoring' | 'deprecated' | 'archived';
 
 export type AgentPersona = 'assistant' | 'specialist' | 'coordinator' | 'analyst' | 'creative' | 'autonomous';
-export type LLMModel = 'claude-opus-4.6' | 'claude-sonnet-4.6' | 'claude-haiku-4.5' | 'gpt-4o' | 'gemini-2.5-pro' | 'llama-4' | 'custom';
+export type LLMModel = 'claude-opus-4.6' | 'claude-sonnet-4.6' | 'claude-haiku-4.5' | 'gpt-4o' | 'gemini-2.5-pro' | 'llama-4' | 'huggingface/meta-llama/Llama-4-Scout-17B-16E-Instruct' | 'huggingface/Qwen/Qwen3-30B-A3B' | 'huggingface/mistralai/Mistral-Small-24B-Instruct-2501' | 'custom';
 export type ReasoningPattern = 'react' | 'cot' | 'tot' | 'reflection' | 'plan_execute';
 export type ConsolidationStrategy = 'hot_path' | 'background' | 'hybrid';
 export type RAGArchitecture = 'naive' | 'advanced' | 'modular' | 'agentic' | 'graph_rag';
@@ -228,7 +228,7 @@ export interface DeployChannelConfig {
   status: 'active' | 'inactive' | 'error';
 }
 
-export type DeployChannel = 'api' | 'whatsapp' | 'web_chat' | 'slack' | 'email' | 'bitrix24' | 'telegram' | 'discord';
+export type DeployChannel = 'api' | 'whatsapp' | 'web_chat' | 'slack' | 'email' | 'bitrix24' | 'telegram' | 'discord' | 'huggingface_space';
 
 export interface MonitoringKPI {
   id: string;

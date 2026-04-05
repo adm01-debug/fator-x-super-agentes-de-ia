@@ -12,6 +12,9 @@ const MODELS = [
   { id: 'gpt-4o', icon: '🔴', title: 'GPT-4o', description: 'OpenAI · 128K ctx · $2.50/$10 por 1M', badge: <NexusBadge color="red">Premium</NexusBadge>, accentColor: 'hsl(var(--nexus-red))' },
   { id: 'gemini-2.5-pro', icon: '🟡', title: 'Gemini 2.5 Pro', description: 'Google · 1M ctx · $1.25/$5 por 1M', badge: <NexusBadge color="yellow">Premium</NexusBadge>, accentColor: 'hsl(var(--nexus-yellow))' },
   { id: 'llama-4', icon: '🟣', title: 'Llama 4', description: 'Meta (Open) · 128K ctx · Custo infra', badge: <NexusBadge color="purple">Open Source</NexusBadge>, accentColor: 'hsl(var(--nexus-purple))' },
+  { id: 'huggingface/Qwen/Qwen3-30B-A3B', icon: '🤗', title: 'Qwen3 30B', description: 'HuggingFace · MoE · $0.15/$0.30 por 1M', badge: <NexusBadge color="yellow">HF Free</NexusBadge>, accentColor: 'hsl(45, 90%, 55%)' },
+  { id: 'huggingface/mistralai/Mistral-Small-24B-Instruct-2501', icon: '🤗', title: 'Mistral Small 24B', description: 'HuggingFace · 24B · $0.10/$0.30 por 1M', badge: <NexusBadge color="yellow">HF Free</NexusBadge>, accentColor: 'hsl(45, 90%, 55%)' },
+  { id: 'huggingface/meta-llama/Llama-4-Scout-17B-16E-Instruct', icon: '🤗', title: 'Llama 4 Scout', description: 'HuggingFace · 17B MoE · $0.17/$0.40 por 1M', badge: <NexusBadge color="yellow">HF Free</NexusBadge>, accentColor: 'hsl(45, 90%, 55%)' },
 ];
 
 const REASONING_OPTIONS: { id: ReasoningPattern; name: string; description: string; recommended?: boolean }[] = [

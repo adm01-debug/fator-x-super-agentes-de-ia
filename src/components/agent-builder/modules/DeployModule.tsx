@@ -1,7 +1,7 @@
 import { fromTable } from '@/lib/supabaseExtended';
 import { useAgentBuilderStore } from '@/stores/agentBuilderStore';
 import { SectionTitle, NexusBadge, ToggleField } from '../ui';
-import { Globe, MessageSquare, Mail, Hash, Send, Radio } from 'lucide-react';
+import { Globe, MessageSquare, Mail, Hash, Send, Radio, Sparkles } from 'lucide-react';
 
 import { getWorkspaceId } from '@/lib/agentService';
 import type { DeployChannelConfig, MonitoringKPI, DeployChannel } from '@/types/agentTypes';
@@ -21,6 +21,7 @@ const CHANNEL_META: Record<DeployChannel, { icon: React.ReactNode; label: string
   bitrix24: { icon: <Radio className="h-4 w-4" />, label: 'Bitrix24' },
   telegram: { icon: <Send className="h-4 w-4" />, label: 'Telegram' },
   discord: { icon: <Hash className="h-4 w-4" />, label: 'Discord' },
+  huggingface_space: { icon: <Sparkles className="h-4 w-4" />, label: 'HF Space' },
 };
 
 const DEFAULT_CHANNELS: DeployChannelConfig[] = [
@@ -32,6 +33,7 @@ const DEFAULT_CHANNELS: DeployChannelConfig[] = [
   { id: 'ch-email', channel: 'email', enabled: false, config: { address: '' }, status: 'inactive' },
   { id: 'ch-discord', channel: 'discord', enabled: false, config: { server_id: '' }, status: 'inactive' },
   { id: 'ch-bitrix', channel: 'bitrix24', enabled: false, config: { webhook_url: '' }, status: 'inactive' },
+  { id: 'ch-hfspace', channel: 'huggingface_space', enabled: false, config: { repo_id: '', visibility: 'public' }, status: 'inactive' },
 ];
 
 const DEFAULT_KPIS: MonitoringKPI[] = [

@@ -250,7 +250,45 @@ serve(async (req) => {
           }
         }
 
-        return new Response(JSON.stringify({ record, enriched, cross_db: crossData }), { headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
+        // ─── Sentiment Analysis for WhatsApp conversations (HuggingFace, fire-and-forget enrichment) ───
+        let sentiment: Record<string, unknown> | null = null;
+        const hfToken = Deno.env.get('HF_API_TOKEN');
+        if (entity === 'conversa_whatsapp' && hfToken && enriched['messages']?.length > 0) {
+          try {
+            const recentMessages = enriched['messages']
+              .slice(0, 10)
+              .map((m: Record<string, unknown>) => String(m.body || '').substring(0, 200))
+              .filter((t: string) => t.length > 3)
+              .join('. ');
+            if (recentMessages.length > 10) {
+              const sentResp = await fetch('https://router.huggingface.co/hf-inference/models/cardiffnlp/twitter-roberta-base-sentiment-latest', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${hfToken}` },
+                body: JSON.stringify({ inputs: recentMessages.substring(0, 512) }),
+              });
+              if (sentResp.ok) {
+                const sentResult = await sentResp.json();
+                const labels = Array.isArray(sentResult?.[0]) ? sentResult[0] : sentResult;
+                if (Array.isArray(labels)) {
+                  const sorted = [...labels].sort((a: Record<string, unknown>, b: Record<string, unknown>) => (b.score as number) - (a.score as number));
+                  const labelMap: Record<string, string> = { positive: 'positivo', negative: 'negativo', neutral: 'neutro' };
+                  sentiment = {
+                    dominant: labelMap[sorted[0]?.label as string] || sorted[0]?.label,
+                    score: Math.round((sorted[0]?.score as number) * 100) / 100,
+                    breakdown: sorted.map((s: Record<string, unknown>) => ({
+                      label: labelMap[s.label as string] || s.label,
+                      score: Math.round((s.score as number) * 100) / 100,
+                    })),
+                    messages_analyzed: Math.min(10, enriched['messages'].length),
+                    model: 'cardiffnlp/twitter-roberta-base-sentiment-latest',
+                  };
+                }
+              }
+            }
+          } catch { /* sentiment is optional, ignore errors */ }
+        }
+
+        return new Response(JSON.stringify({ record, enriched, cross_db: crossData, ...(sentiment ? { sentiment } : {}) }), { headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
       }
 
       // ─── List query ───

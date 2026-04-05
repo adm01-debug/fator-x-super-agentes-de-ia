@@ -71,6 +71,15 @@ serve(async (req) => {
     const wsId = member?.workspace_id;
 
     const resolveKey = async (): Promise<{ key: string; provider: string }> => {
+      // If judge_model starts with huggingface/, use HF token (free)
+      if (judge_model?.startsWith('huggingface/')) {
+        const hfToken = Deno.env.get('HF_API_TOKEN');
+        if (hfToken) return { key: hfToken, provider: 'huggingface' };
+        if (wsId) {
+          const { data: hf } = await supabase.from('workspace_secrets').select('key_value').eq('workspace_id', wsId).eq('key_name', 'huggingface_api_key').single();
+          if (hf?.key_value) return { key: hf.key_value, provider: 'huggingface' };
+        }
+      }
       if (wsId) {
         const { data: or } = await supabase.from('workspace_secrets').select('key_value').eq('workspace_id', wsId).eq('key_name', 'openrouter_api_key').single();
         if (or?.key_value) return { key: or.key_value, provider: 'openrouter' };
@@ -79,13 +88,16 @@ serve(async (req) => {
         const { data: oa } = await supabase.from('workspace_secrets').select('key_value').eq('workspace_id', wsId).eq('key_name', 'openai_api_key').single();
         if (oa?.key_value) return { key: oa.key_value, provider: 'openai' };
       }
+      // Last fallback: use HF env token with a default free model
+      const hfEnv = Deno.env.get('HF_API_TOKEN');
+      if (hfEnv) return { key: hfEnv, provider: 'huggingface' };
       return { key: '', provider: '' };
     };
 
     const { key: apiKey, provider } = await resolveKey();
     if (!apiKey) return new Response(JSON.stringify({ error: 'No API key for judge model' }), { status: 400, headers: jsonHeaders });
 
-    const judgeModelName = judge_model || 'claude-haiku-4-5-20251001';
+    const judgeModelName = judge_model || (provider === 'huggingface' ? 'huggingface/mistralai/Mistral-Small-24B-Instruct-2501' : 'claude-haiku-4-5-20251001');
     const results: Array<Record<string, unknown>> = [];
     let totalScore = 0;
 
@@ -105,7 +117,8 @@ serve(async (req) => {
           ? `Evaluate if this response is faithful to the provided context.\n\nContext: ${tc.expected_output || '[none]'}\nResponse: ${agentOutput}\n\nScore faithfulness (0-5) and list unsupported claims.\nRespond ONLY in JSON: {"faithfulness": N, "unsupported_claims": ["claim1", ...], "reasoning": "..."}`
           : `User question: ${tc.input}\n${tc.expected_output ? `Expected/reference: ${tc.expected_output}\n` : ''}AI response: ${agentOutput}`;
 
-        const judgeUrl = provider === 'anthropic' ? 'https://api.anthropic.com/v1/messages'
+        const judgeUrl = provider === 'huggingface' ? 'https://router.huggingface.co/v1/chat/completions'
+          : provider === 'anthropic' ? 'https://api.anthropic.com/v1/messages'
           : provider === 'openrouter' ? 'https://openrouter.ai/api/v1/chat/completions'
           : 'https://api.openai.com/v1/chat/completions';
 
@@ -113,15 +126,16 @@ serve(async (req) => {
         if (provider === 'anthropic') { judgeHeaders['x-api-key'] = apiKey; judgeHeaders['anthropic-version'] = '2023-06-01'; }
         else judgeHeaders['Authorization'] = `Bearer ${apiKey}`;
 
+        const hfModel = judgeModelName.replace('huggingface/', '');
         const judgeBody = provider === 'anthropic'
           ? JSON.stringify({ model: judgeModelName, max_tokens: 500, system: mode === 'faithfulness' ? 'You are a faithfulness evaluator.' : JUDGE_RUBRIC, messages: [{ role: 'user', content: judgePrompt }] })
-          : JSON.stringify({ model: judgeModelName, max_tokens: 500, messages: [{ role: 'system', content: mode === 'faithfulness' ? 'You are a faithfulness evaluator.' : JUDGE_RUBRIC }, { role: 'user', content: judgePrompt }] });
+          : JSON.stringify({ model: provider === 'huggingface' ? hfModel : judgeModelName, max_tokens: 500, messages: [{ role: 'system', content: mode === 'faithfulness' ? 'You are a faithfulness evaluator.' : JUDGE_RUBRIC }, { role: 'user', content: judgePrompt }] });
 
         const judgeResp = await fetch(judgeUrl, { method: 'POST', headers: judgeHeaders, body: judgeBody });
         const judgeData = await judgeResp.json();
         const judgeText = provider === 'anthropic'
           ? judgeData.content?.[0]?.text || '{}'
-          : judgeData.choices?.[0]?.message?.content || '{}';
+          : judgeData.choices?.[0]?.message?.content || '{}'; // HF and OpenRouter use OpenAI format
 
         // Parse scores
         let scores: Record<string, unknown> = {};
