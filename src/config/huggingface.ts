@@ -103,13 +103,13 @@ export const TEI_DOCKER_COMMANDS = {
 } as const;
 
 export function getEmbeddingsUrl(hfToken: string): { url: string; headers: Record<string, string> } {
-  const teiEndpoint = typeof Deno !== 'undefined' ? Deno.env.get('HF_TEI_ENDPOINT') : null;
+  const teiEndpoint = typeof globalThis !== 'undefined' && 'Deno' in globalThis ? (globalThis as any).Deno.env.get('HF_TEI_ENDPOINT') : null;
   if (teiEndpoint) return { url: `${teiEndpoint}/embed`, headers: { 'Content-Type': 'application/json' } };
   return { url: `${HF_INFERENCE_URL}/${HF_MODELS_RAG.embeddings.id}`, headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${hfToken}` } };
 }
 
 export function getRerankerUrl(hfToken: string): { url: string; headers: Record<string, string> } {
-  const teiEndpoint = typeof Deno !== 'undefined' ? Deno.env.get('HF_TEI_RERANK_ENDPOINT') : null;
+  const teiEndpoint = typeof globalThis !== 'undefined' && 'Deno' in globalThis ? (globalThis as any).Deno.env.get('HF_TEI_RERANK_ENDPOINT') : null;
   if (teiEndpoint) return { url: `${teiEndpoint}/rerank`, headers: { 'Content-Type': 'application/json' } };
   return { url: `${HF_INFERENCE_URL}/${HF_MODELS_RAG.reranker.id}`, headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${hfToken}` } };
 }
