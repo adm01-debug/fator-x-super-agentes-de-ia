@@ -22,3 +22,4 @@ export * from './llmGatewayService';
 export * from './lgpdService';
 export * from './approvalService';
 export * from './workflowCheckpointService';
+export * from './agentCardService';
