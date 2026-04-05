@@ -1,9 +1,11 @@
 /**
  * Nexus Agents Studio — Billing Service
- * Budget management, cost tracking, kill switch.
+ * Budget management, cost tracking, pricing.
  */
 import { fromTable } from '@/lib/supabaseExtended';
 import { supabase } from '@/integrations/supabase/client';
+
+// ═══ Usage ═══
 
 export async function getUsageSummary(period: 'day' | 'week' | 'month' = 'week') {
   const now = new Date();
@@ -30,14 +32,61 @@ export async function getUsageSummary(period: 'day' | 'week' | 'month' = 'week')
   return { totalCost, totalTokens, byType, recordCount: records.length, period, since };
 }
 
+export async function getAgentUsage(days = 30) {
+  const since = new Date();
+  since.setDate(since.getDate() - days);
+  const { data, error } = await supabase
+    .from('agent_usage')
+    .select('*')
+    .gte('date', since.toISOString().split('T')[0])
+    .order('date', { ascending: true });
+  if (error) throw error;
+  return data ?? [];
+}
+
+export async function getUsageRecords(limit = 50) {
+  const { data, error } = await supabase
+    .from('usage_records')
+    .select('*')
+    .order('created_at', { ascending: false })
+    .limit(limit);
+  if (error) throw error;
+  return data ?? [];
+}
+
+// ═══ Budgets ═══
+
+export async function listBudgets() {
+  const { data, error } = await supabase
+    .from('budgets')
+    .select('*')
+    .order('created_at', { ascending: false });
+  if (error) throw error;
+  return data ?? [];
+}
+
 export async function getBudget(workspaceId: string) {
   const { data } = await supabase
     .from('budgets')
     .select('*')
     .eq('workspace_id', workspaceId)
     .maybeSingle();
-
   return data;
+}
+
+export async function createBudget(workspaceId: string, name: string, limitUsd: number) {
+  const { data, error } = await supabase
+    .from('budgets')
+    .insert({ name, limit_usd: limitUsd, workspace_id: workspaceId })
+    .select()
+    .single();
+  if (error) throw error;
+  return data;
+}
+
+export async function deleteBudget(id: string) {
+  const { error } = await supabase.from('budgets').delete().eq('id', id);
+  if (error) throw error;
 }
 
 export async function setBudget(workspaceId: string, monthlyLimit: number) {
@@ -46,7 +95,6 @@ export async function setBudget(workspaceId: string, monthlyLimit: number) {
     .upsert({ workspace_id: workspaceId, limit_usd: monthlyLimit, alert_threshold: 0.8 })
     .select()
     .single();
-
   if (error) throw error;
   return data;
 }
@@ -65,4 +113,15 @@ export async function checkBudgetStatus(workspaceId: string) {
     limit,
     percentage: Math.round(percentage),
   };
+}
+
+// ═══ Pricing ═══
+
+export async function getModelPricing() {
+  const { data, error } = await supabase
+    .from('model_pricing')
+    .select('*')
+    .order('model_pattern');
+  if (error) throw error;
+  return data ?? [];
 }
