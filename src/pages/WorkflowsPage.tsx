@@ -63,11 +63,13 @@ export default function WorkflowsPage() {
   const { data: workflows = defaultTemplates } = useQuery({
     queryKey: ["workflows_list"],
     queryFn: async () => {
-      const { data: member } = await supabase.from("workspace_members").select("workspace_id").limit(1).maybeSingle();
-      if (!member?.workspace_id) return defaultTemplates;
-      const { data: wfs } = await supabase.from("workflows").select("*, workflow_steps(id, name, step_order)").eq("workspace_id", member.workspace_id).order("created_at", { ascending: false });
-      if (!wfs || wfs.length === 0) return defaultTemplates;
-      return wfs.map((w) => ({ id: w.id, name: w.name, steps: (Array.isArray(w.workflow_steps) ? w.workflow_steps : []).sort((a: { step_order: number }, b: { step_order: number }) => a.step_order - b.step_order).map((s: { name: string }) => s.name), status: (w.status as "draft" | "active") ?? "draft", createdAt: w.created_at ? new Date(w.created_at).toISOString().split("T")[0] : "" }));
+      try {
+        const wfs = await listWorkflowsService();
+        if (wfs.length === 0) return defaultTemplates;
+        return wfs.map((w) => ({ id: w.id, name: w.name, steps: w.nodes.map(n => String(n.data?.label || n.type)), status: (w.status as "draft" | "active") ?? "draft", createdAt: w.created_at ? new Date(w.created_at).toISOString().split("T")[0] : "" }));
+      } catch {
+        return defaultTemplates;
+      }
     },
   });
   const [dialogOpen, setDialogOpen] = useState(false);
@@ -111,13 +113,12 @@ export default function WorkflowsPage() {
     const result = workflowSchema.safeParse({ name: newName, steps });
     if (!result.success) { toast.error(result.error.errors[0]?.message || 'Dados inválidos'); return; }
     try {
-      const { data: member } = await supabase.from('workspace_members').select('workspace_id').limit(1).maybeSingle();
-      const { data: wf, error } = await supabase.from('workflows').insert({
-        workspace_id: member?.workspace_id, name: newName.trim(), status: 'draft',
-        config: { step_names: steps },
-      }).select('id').single();
-      if (error) throw error;
-      await supabase.from('workflow_steps').insert(steps.map((name, i) => ({ workflow_id: wf.id, name, step_order: i, role: 'executor' })));
+      await saveWorkflowService({
+        name: newName.trim(),
+        status: 'draft',
+        nodes: steps.map((name, i) => ({ id: `step_${i}`, type: 'executor', position: { x: i * 200, y: 100 }, data: { label: name } })),
+        edges: steps.slice(1).map((_, i) => ({ id: `e_${i}`, source: `step_${i}`, target: `step_${i + 1}` })),
+      });
       toast.success('Workflow salvo no banco!');
       setDialogOpen(false); setNewName(''); setNewSteps('');
       queryClient.invalidateQueries({ queryKey: ['workflows_list'] });
@@ -125,8 +126,10 @@ export default function WorkflowsPage() {
   };
 
   const handleDelete = async (id: string) => {
-    if (id.includes('-')) { // UUID = from DB
-      await supabase.from('workflows').delete().eq('id', id);
+    if (id.includes('-')) {
+      try {
+        await deleteWorkflowService(id);
+      } catch { /* template, not in DB */ }
       queryClient.invalidateQueries({ queryKey: ['workflows_list'] });
     }
     toast.success('Workflow removido');
