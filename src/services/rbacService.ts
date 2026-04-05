@@ -3,10 +3,9 @@
  * Nexus Agents Studio — RBAC Service
  * ═══════════════════════════════════════════════════════════════
  * Data access layer for roles, permissions, and user role management.
- * Pattern: Dify workspace RBAC + n8n enterprise permissions
  */
 
-import { supabase } from '@/integrations/supabase/client';
+import { fromTable } from '@/lib/supabaseExtended';
 
 // ═══ Types ═══
 
@@ -60,72 +59,77 @@ export type RoleKey = 'workspace_admin' | 'agent_editor' | 'agent_viewer' | 'ope
 // ═══ Roles ═══
 
 export async function listRoles(): Promise<Role[]> {
-  const { data, error } = await supabase
-    .from('roles')
+  const { data, error } = await fromTable('roles')
     .select('*')
     .eq('is_active', true)
     .order('level', { ascending: false });
 
   if (error) throw error;
-  return (data ?? []) as Role[];
+  return (data ?? []) as unknown as Role[];
 }
 
 // ═══ Permissions ═══
 
 export async function listPermissions(): Promise<Permission[]> {
-  const { data, error } = await supabase
-    .from('permissions')
+  const { data, error } = await fromTable('permissions')
     .select('*')
     .order('module', { ascending: true });
 
   if (error) throw error;
-  return (data ?? []) as Permission[];
+  return (data ?? []) as unknown as Permission[];
 }
 
 export async function getPermissionsForRole(roleKey: string): Promise<Permission[]> {
-  const { data, error } = await supabase
-    .from('role_permissions')
-    .select(`
-      permission_id,
-      permissions:permission_id (*)
-    `)
-    .eq('role_id', (await supabase.from('roles').select('id').eq('key', roleKey).single()).data?.id ?? '');
+  const roleResult = await fromTable('roles').select('id').eq('key', roleKey).single();
+  const roleId = (roleResult.data as Record<string, unknown> | null)?.id ?? '';
+
+  const { data, error } = await fromTable('role_permissions')
+    .select('permission_id')
+    .eq('role_id', roleId);
 
   if (error) throw error;
-  return (data ?? []).map((rp: Record<string, unknown>) => rp.permissions) as Permission[];
+
+  // Fetch permissions by IDs
+  const permIds = (data ?? []).map((rp: Record<string, unknown>) => String(rp.permission_id));
+  if (permIds.length === 0) return [];
+
+  const { data: perms } = await fromTable('permissions').select('*').in('id', permIds);
+  return (perms ?? []) as unknown as Permission[];
 }
 
 // ═══ User Roles ═══
 
 export async function getUserRole(userId: string, workspaceId: string): Promise<UserRole | null> {
-  const { data, error } = await supabase
-    .from('user_roles')
+  const { data, error } = await fromTable('user_roles')
     .select('*')
     .eq('user_id', userId)
     .eq('workspace_id', workspaceId)
     .maybeSingle();
 
   if (error) throw error;
-  return data as UserRole | null;
+  return data as unknown as UserRole | null;
 }
 
 export async function getUserPermissions(userId: string, workspaceId: string): Promise<Set<PermissionKey>> {
   const userRole = await getUserRole(userId, workspaceId);
   if (!userRole) return new Set();
 
-  const { data, error } = await supabase
-    .from('role_permissions')
-    .select(`
-      permissions:permission_id (key)
-    `)
-    .eq('role_id', (await supabase.from('roles').select('id').eq('key', userRole.role_key).single()).data?.id ?? '');
+  const roleResult = await fromTable('roles').select('id').eq('key', userRole.role_key).single();
+  const roleId = (roleResult.data as Record<string, unknown> | null)?.id ?? '';
+
+  const { data, error } = await fromTable('role_permissions')
+    .select('permission_id')
+    .eq('role_id', roleId);
 
   if (error) throw error;
 
+  const permIds = (data ?? []).map((rp: Record<string, unknown>) => String(rp.permission_id));
+  if (permIds.length === 0) return new Set();
+
+  const { data: perms } = await fromTable('permissions').select('key').in('id', permIds);
   const permissions = new Set<PermissionKey>();
-  (data ?? []).forEach((rp: Record<string, unknown>) => {
-    const perm = rp.permissions as { key: string } | null;
-    if (perm?.key) permissions.add(perm.key as PermissionKey);
+  ((perms ?? []) as Array<Record<string, unknown>>).forEach(p => {
+    if (p.key) permissions.add(String(p.key) as PermissionKey);
   });
 
   return permissions;
@@ -137,8 +141,7 @@ export async function assignRole(
   workspaceId: string,
   assignedBy: string
 ): Promise<UserRole> {
-  const { data, error } = await supabase
-    .from('user_roles')
+  const { data, error } = await fromTable('user_roles')
     .upsert({
       user_id: userId,
       role_key: roleKey,
@@ -149,12 +152,11 @@ export async function assignRole(
     .single();
 
   if (error) throw error;
-  return data as UserRole;
+  return data as unknown as UserRole;
 }
 
 export async function removeRole(userId: string, workspaceId: string): Promise<void> {
-  const { error } = await supabase
-    .from('user_roles')
+  const { error } = await fromTable('user_roles')
     .delete()
     .eq('user_id', userId)
     .eq('workspace_id', workspaceId);
@@ -163,9 +165,8 @@ export async function removeRole(userId: string, workspaceId: string): Promise<v
 }
 
 export async function listWorkspaceMembers(workspaceId: string) {
-  const { data, error } = await supabase
-    .from('user_roles')
-    .select('*, roles:role_key(*)')
+  const { data, error } = await fromTable('user_roles')
+    .select('*')
     .eq('workspace_id', workspaceId)
     .order('created_at', { ascending: true });
 
