@@ -9,6 +9,7 @@ import { useQuery } from "@tanstack/react-query";
 import { listDeployedAgents } from "@/services/deploymentsService";
 import { toast } from "sonner";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { A2APanel } from '@/components/integrations/A2APanel';
 
 export default function DeploymentsPage() {
   const { data: deployments = [], isLoading } = useQuery({
@@ -56,6 +57,9 @@ export default function DeploymentsPage() {
           ))}
         </div>
       )}
+
+      {/* A2A Protocol */}
+      <A2APanel />
     </div>
   );
 }
