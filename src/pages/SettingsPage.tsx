@@ -24,14 +24,14 @@ export default function SettingsPage() {
   const [editValue, setEditValue] = useState('');
   const [notifications, setNotifications] = useState({ email: true, errors: true, billing: false, weekly: true });
 
-  // API Keys from workspace_secrets
+  // API Keys from workspace_secrets (masked via RPC)
   const { data: secrets = [], isLoading: loadingSecrets } = useQuery({
     queryKey: ['workspace_secrets'],
     queryFn: async () => {
       const wsId = await getWorkspaceId();
-      const { data, error } = await supabase.from('workspace_secrets').select('*').eq('workspace_id', wsId).order('created_at');
+      const { data, error } = await supabase.rpc('get_masked_secrets', { p_workspace_id: wsId });
       if (error) throw error;
-      return data ?? [];
+      return (data ?? []) as Array<{ id: string; key_name: string; masked_value: string; created_at: string | null; updated_at: string | null }>;
     },
   });
 
@@ -200,49 +200,42 @@ export default function SettingsPage() {
               <p className="text-xs text-muted-foreground text-center py-6">Nenhuma API key configurada</p>
             ) : (
               <div className="space-y-2">
-                {secrets.map(s => {
-                  const masked = s.key_value
-                    ? s.key_value.substring(0, 4) + '••••••••' + s.key_value.substring(s.key_value.length - 4)
-                    : '••••••••••••••••••';
-                  return (
-                    <div key={s.id} className="flex items-center gap-3 p-3 rounded-lg bg-secondary/30 border border-border/30">
-                      <div className="flex-1 min-w-0">
-                        <p className="text-xs font-mono font-medium text-foreground">{s.key_name}</p>
-                        {editingKey === s.id ? (
-                          <div className="flex gap-1.5 mt-1.5">
-                            <Input
-                              type="password"
-                              value={editValue}
-                              onChange={e => setEditValue(e.target.value)}
-                              placeholder="Novo valor..."
-                              className="bg-secondary/50 text-xs font-mono h-7"
-                            />
-                            <Button size="sm" className="h-7 text-xs" onClick={() => rotateKeyMutation.mutate({ id: s.id, newValue: editValue })} disabled={rotateKeyMutation.isPending}>
-                              Salvar
-                            </Button>
-                            <Button size="sm" variant="ghost" className="h-7 text-xs" onClick={() => { setEditingKey(null); setEditValue(''); }}>
-                              Cancelar
-                            </Button>
-                          </div>
-                        ) : (
-                          <p className="text-[11px] text-muted-foreground font-mono truncate">
-                            {showValues[s.id] ? s.key_value : masked}
-                          </p>
-                        )}
-                        <p className="text-[10px] text-muted-foreground/50 mt-0.5">
-                          Atualizado: {new Date(s.updated_at ?? s.created_at ?? '').toLocaleDateString('pt-BR')}
-                        </p>
-                      </div>
-                      <Button size="icon" variant="ghost" className="h-7 w-7" title="Rotacionar" onClick={() => { setEditingKey(s.id); setEditValue(''); }}>
-                        <RotateCw className="h-3.5 w-3.5 text-nexus-amber" />
-                      </Button>
-                      <Button size="icon" variant="ghost" className="h-7 w-7" onClick={() => setShowValues(prev => ({ ...prev, [s.id]: !prev[s.id] }))}>
-                        {showValues[s.id] ? <EyeOff className="h-3.5 w-3.5" /> : <Eye className="h-3.5 w-3.5" />}
-                      </Button>
-                      <Button size="icon" variant="ghost" className="h-7 w-7 text-destructive" onClick={() => deleteKeyMutation.mutate(s.id)}>
-                        <Trash2 className="h-3.5 w-3.5" />
-                      </Button>
-                    </div>
+                {secrets.map(s => (
+                     <div key={s.id} className="flex items-center gap-3 p-3 rounded-lg bg-secondary/30 border border-border/30">
+                       <div className="flex-1 min-w-0">
+                         <p className="text-xs font-mono font-medium text-foreground">{s.key_name}</p>
+                         {editingKey === s.id ? (
+                           <div className="flex gap-1.5 mt-1.5">
+                             <Input
+                               type="password"
+                               value={editValue}
+                               onChange={e => setEditValue(e.target.value)}
+                               placeholder="Novo valor..."
+                               className="bg-secondary/50 text-xs font-mono h-7"
+                             />
+                             <Button size="sm" className="h-7 text-xs" onClick={() => rotateKeyMutation.mutate({ id: s.id, newValue: editValue })} disabled={rotateKeyMutation.isPending}>
+                               Salvar
+                             </Button>
+                             <Button size="sm" variant="ghost" className="h-7 text-xs" onClick={() => { setEditingKey(null); setEditValue(''); }}>
+                               Cancelar
+                             </Button>
+                           </div>
+                         ) : (
+                           <p className="text-[11px] text-muted-foreground font-mono truncate">
+                             {s.masked_value}
+                           </p>
+                         )}
+                         <p className="text-[10px] text-muted-foreground/50 mt-0.5">
+                           Atualizado: {new Date(s.updated_at ?? s.created_at ?? '').toLocaleDateString('pt-BR')}
+                         </p>
+                       </div>
+                       <Button size="icon" variant="ghost" className="h-7 w-7" title="Rotacionar" onClick={() => { setEditingKey(s.id); setEditValue(''); }}>
+                         <RotateCw className="h-3.5 w-3.5 text-nexus-amber" />
+                       </Button>
+                       <Button size="icon" variant="ghost" className="h-7 w-7 text-destructive" onClick={() => deleteKeyMutation.mutate(s.id)}>
+                         <Trash2 className="h-3.5 w-3.5" />
+                       </Button>
+                     </div>
                   );
                 })}
               </div>

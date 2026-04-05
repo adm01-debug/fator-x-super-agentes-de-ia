@@ -34,13 +34,10 @@ export function SettingsModule() {
   async function loadKeys() {
     try {
       const wsId = await getWorkspaceId();
-      const { data } = await supabase
-        .from('workspace_secrets')
-        .select('key_name, key_value')
-        .eq('workspace_id', wsId);
+      const { data } = await supabase.rpc('get_masked_secrets', { p_workspace_id: wsId });
       const map: Record<string, { value: string; saved: boolean }> = {};
-      for (const row of data || []) {
-        map[row.key_name] = { value: row.key_value, saved: true };
+      for (const row of (data || []) as Array<{ key_name: string; masked_value: string }>) {
+        map[row.key_name] = { value: row.masked_value, saved: true };
       }
       setKeys(map);
     } catch {
