@@ -8,7 +8,7 @@ import { useToast } from '@/hooks/use-toast';
 export function ConnectorRegistryPanel() {
   const [connectors, setConnectors] = useState<ConnectorDefinition[]>([]);
   const [instances, setInstances] = useState<ConnectorInstance[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [, setLoading] = useState(true);
   const { toast } = useToast();
 
   useEffect(() => {
