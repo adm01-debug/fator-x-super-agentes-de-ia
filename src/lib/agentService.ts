@@ -1,5 +1,6 @@
 import { logger } from '@/lib/logger';
 import { supabase } from '@/integrations/supabase/client';
+import type { Tables, Database } from '@/integrations/supabase/types';
 import type { AgentConfig } from '@/types/agentTypes';
 import { DEFAULT_AGENT } from '@/data/agentBuilderData';
 import type { Json } from '@/integrations/supabase/types';
