@@ -11,7 +11,7 @@ function jsonResponse(data: unknown, status = 200) {
 
 // ═══ Zod Schemas ═══
 const ActionSchema = z.object({
-  action: z.enum(['prepare_dataset', 'start_training', 'check_status', 'list_models', 'export_traces']),
+  action: z.enum(['prepare_dataset', 'start_training', 'check_status', 'list_models', 'export_traces', 'prepare_dpo_dataset', 'generate_trl_config']),
   agent_id: z.string().uuid().optional(),
   dataset_config: z.object({
     source: z.enum(['traces', 'test_cases', 'custom']).optional(),
@@ -269,6 +269,113 @@ serve(async (req) => {
         last_modified: repoData.lastModified,
         downloads: repoData.downloads,
         gateway_model_id: hasModelFiles ? `huggingface/${job_id}` : null,
+      });
+    }
+
+    // ═══ ACTION: prepare_dpo_dataset — Prepare DPO preference dataset from user feedback (#55) ═══
+    if (action === 'prepare_dpo_dataset') {
+      if (!agent_id) return jsonResponse({ error: 'agent_id required' }, 400);
+
+      // Get traces with user feedback (thumbs up/down from chat interface)
+      const { data: posTraces } = await supabase
+        .from('agent_traces')
+        .select('input, output, metadata')
+        .eq('agent_id', agent_id)
+        .eq('level', 'info')
+        .not('metadata->user_feedback', 'is', null)
+        .order('created_at', { ascending: false })
+        .limit(dataset_config?.max_samples || 500);
+
+      // Build DPO pairs: chosen (positive feedback) vs rejected (negative or regenerated)
+      const dpoPairs: Array<Record<string, string>> = [];
+      const traces = posTraces || [];
+
+      for (const trace of traces) {
+        const input = trace.input as Record<string, unknown> | null;
+        const output = trace.output as Record<string, unknown> | null;
+        const meta = trace.metadata as Record<string, unknown> | null;
+
+        if (!input?.user_message || !output?.content) continue;
+
+        const feedback = meta?.user_feedback as string;
+        if (feedback === 'positive') {
+          dpoPairs.push({
+            prompt: String(input.user_message),
+            chosen: String(output.content),
+            rejected: '', // Will be filled by regeneration or paired with negative examples
+          });
+        } else if (feedback === 'negative') {
+          // Find a positive response for the same type of question
+          dpoPairs.push({
+            prompt: String(input.user_message),
+            chosen: '', // Needs positive pair
+            rejected: String(output.content),
+          });
+        }
+      }
+
+      // Filter complete pairs (both chosen and rejected present)
+      const completePairs = dpoPairs.filter(p => p.chosen && p.rejected);
+      // Partial pairs can be completed by generating alternatives via LLM
+      const partialPairs = dpoPairs.filter(p => !p.chosen || !p.rejected);
+
+      return jsonResponse({
+        status: completePairs.length >= 10 ? 'ready' : 'insufficient',
+        complete_pairs: completePairs.length,
+        partial_pairs: partialPairs.length,
+        total_feedback_traces: traces.length,
+        format: 'dpo',
+        dataset: completePairs,
+        partial: partialPairs.slice(0, 5),
+        note: completePairs.length < 10
+          ? 'Need at least 10 complete preference pairs. Collect more user feedback (thumbs up/down) or use LLM to generate rejected alternatives.'
+          : 'Dataset ready for DPO training via TRL v1.0',
+        trl_command: completePairs.length >= 10
+          ? `trl dpo --model_name ./sft --dataset_name ./dpo_dataset --output_dir ./dpo_aligned`
+          : undefined,
+      });
+    }
+
+    // ═══ ACTION: generate_trl_config — Generate TRL v1.0 training config (#55) ═══
+    if (action === 'generate_trl_config') {
+      const baseModel = training_config?.base_model || 'mistralai/Mistral-7B-Instruct-v0.3';
+      const task = training_config?.task || 'text-generation';
+      const epochs = training_config?.epochs || 3;
+      const lr = training_config?.learning_rate || 0.00002;
+
+      const trlConfig = {
+        sft: {
+          command: `trl sft --model_name ${baseModel} --dataset_name ./dataset --output_dir ./sft --num_train_epochs ${epochs} --learning_rate ${lr} --per_device_train_batch_size 4 --gradient_accumulation_steps 4 --logging_steps 10`,
+          description: 'Supervised Fine-Tuning with agent traces',
+        },
+        dpo: {
+          command: `trl dpo --model_name ./sft --dataset_name ./dpo_dataset --output_dir ./dpo --beta 0.1 --learning_rate ${lr / 10} --num_train_epochs 1`,
+          description: 'Direct Preference Optimization with user feedback',
+        },
+        grpo: {
+          command: `trl grpo --model_name ./sft --dataset_name ./grpo_dataset --output_dir ./grpo --num_train_epochs 1`,
+          description: 'Group Relative Policy Optimization (DeepSeek R1 method)',
+        },
+        reward: {
+          command: `trl reward --model_name ${baseModel} --dataset_name ./reward_dataset --output_dir ./reward_model`,
+          description: 'Train reward model for quality scoring',
+        },
+      };
+
+      return jsonResponse({
+        trl_version: '1.0',
+        base_model: baseModel,
+        task,
+        configs: trlConfig,
+        pipeline: [
+          '1. export_traces → coleta dados do agente',
+          '2. prepare_dataset → formata para SFT',
+          '3. SFT → treina modelo base com traces',
+          '4. prepare_dpo_dataset → coleta feedback dos usuários',
+          '5. DPO → alinha com preferências humanas',
+          '6. Deploy → usa modelo alinhado no LLM Gateway como huggingface/user/model',
+        ],
+        requirements: 'pip install trl>=1.0.0 transformers>=5.0.0 peft accelerate',
       });
     }
 

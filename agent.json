@@ -1,0 +1,54 @@
+{
+  "$schema": "https://huggingface.co/schemas/agent.json",
+  "name": "Fator X Commercial Agent",
+  "description": "Agente comercial da Promo Brindes com acesso a CRM, catálogo e inteligência de mercado",
+  "model": "Qwen/Qwen3-30B-A3B",
+  "provider": "hf-inference",
+  "systemPrompt": "Você é o assistente comercial da Promo Brindes, especialista em brindes corporativos e produtos promocionais. Responda em português, seja objetivo e profissional.",
+  "servers": [
+    {
+      "type": "url",
+      "url": "https://bitrix24-mcp-server.adm01.workers.dev/mcp",
+      "name": "bitrix24",
+      "description": "CRM Bitrix24 — empresas, contatos, deals, tarefas"
+    },
+    {
+      "type": "url",
+      "url": "https://n8n-admin-mcp-server.adm01.workers.dev/mcp",
+      "name": "n8n",
+      "description": "Automação N8N — workflows, execuções, variáveis"
+    },
+    {
+      "type": "url",
+      "url": "https://chrome-browser-mcp-server.adm01.workers.dev/mcp",
+      "name": "chrome",
+      "description": "Browser — scraping, screenshots, extração de dados"
+    }
+  ],
+  "tools": [
+    {
+      "type": "web_search",
+      "name": "web_search",
+      "description": "Busca na web para informações atualizadas"
+    }
+  ],
+  "skills": [
+    "gradio",
+    "huggingface-gradio"
+  ],
+  "metadata": {
+    "version": "1.0.0",
+    "author": "Promo Brindes",
+    "tags": ["commercial", "crm", "promotional-products", "portuguese"],
+    "fator_x_integration": {
+      "supabase_project": "pending",
+      "edge_functions": [
+        "llm-gateway",
+        "datahub-query",
+        "product-mockup",
+        "audio-transcribe",
+        "text-to-speech"
+      ]
+    }
+  }
+}

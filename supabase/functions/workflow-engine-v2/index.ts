@@ -41,6 +41,7 @@ interface WorkflowState {
 
 const MAX_ITERATIONS = 10;
 const STEP_TIMEOUT_MS = 30000;
+const SPACE_TIMEOUT = 60000; // Gradio Spaces may take longer
 
 function jsonResponse(data: unknown, status = 200) {
   return new Response(JSON.stringify(data), { status, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
@@ -351,6 +352,46 @@ serve(async (req) => {
             state[`${node.id}_output`] = state._output;
             totalTokens += gramResult.tokens?.total || 0;
             totalCost += gramResult.cost_usd || 0;
+          } else if (toolType === 'video_generation') {
+            // #57 — Text-to-Video via Gradio Space
+            const videoPrompt = (node.config.prompt as string) || (state._output as string) || state.input || '';
+            const spaceId = (node.config.space_id as string) || 'Wan-AI/Wan2.2-T2V-1.3B';
+            const spaceUrl = `https://${spaceId.replace('/', '-').toLowerCase()}.hf.space/api/predict`;
+            try {
+              const resp = await fetch(spaceUrl, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ data: [videoPrompt.substring(0, 200)] }),
+                signal: AbortSignal.timeout(120000), // 2min for video gen
+              });
+              if (resp.ok) {
+                const result = await resp.json();
+                state._output = JSON.stringify({ video_url: result.data?.[0]?.url || result.data?.[0], space: spaceId });
+                state[`${node.id}_output`] = state._output;
+              } else {
+                state._output = `Video generation via ${spaceId} failed: ${resp.status}. Try a smaller model or check Space availability.`;
+              }
+            } catch (e) {
+              state._output = `Video generation timeout: ${(e as Error).message}`;
+            }
+          } else if (toolType === 'product_mockup') {
+            // #51 — Product mockup via product-mockup Edge Function
+            const mockupAction = (node.config.mockup_action as string) || 'generate_mockup';
+            const resp = await fetch(`${supabaseUrl}/functions/v1/product-mockup`, {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json', 'Authorization': authHeader, 'apikey': supabaseKey },
+              body: JSON.stringify({
+                action: mockupAction,
+                product_image_base64: node.config.product_image_base64 || state[`${node.id}_image_base64`],
+                logo_base64: node.config.logo_base64,
+                background_prompt: (state._output as string) || node.config.background_prompt,
+                product_name: node.config.product_name,
+              }),
+              signal: AbortSignal.timeout(SPACE_TIMEOUT),
+            });
+            const mockupResult = await resp.json();
+            state._output = JSON.stringify(mockupResult);
+            state[`${node.id}_output`] = state._output;
           }
 
         } else if (node.type === 'parallel') {
