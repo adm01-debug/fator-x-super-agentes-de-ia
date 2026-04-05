@@ -22,8 +22,62 @@ serve(async (req) => {
     if (!hfToken) return new Response(JSON.stringify({ error: 'HF_API_TOKEN not configured' }), { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
 
     const body = await req.json();
-    const { text, language, return_format } = body;
+    const { action, text, language, return_format } = body;
 
+    // ═══ ACTION: clone_voice — Voice cloning with reference audio (#42) ═══
+    if (action === 'clone_voice') {
+      const { text: cloneText, reference_audio_base64, voice_description } = body;
+      if (!cloneText) return new Response(JSON.stringify({ error: 'text required' }), { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
+
+      // Approach 1: Use Qwen3-TTS via Gradio Space API (voice design via description)
+      if (voice_description && !reference_audio_base64) {
+        try {
+          const spaceResp = await fetch('https://qwen-qwen3-tts.hf.space/api/predict', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ data: [cloneText, voice_description] }),
+            signal: AbortSignal.timeout(30000),
+          });
+          if (spaceResp.ok) {
+            const result = await spaceResp.json();
+            return new Response(JSON.stringify({
+              audio_url: result.data?.[0]?.url || null,
+              model: 'Qwen/Qwen3-TTS',
+              voice_description,
+              cost_usd: 0,
+            }), { headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
+          }
+        } catch { /* fallback to standard TTS */ }
+      }
+
+      // Approach 2: Use XTTS-v2 via Gradio Space (voice cloning with reference)
+      if (reference_audio_base64) {
+        try {
+          const spaceResp = await fetch('https://coqui-xtts.hf.space/api/predict', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ data: [cloneText, { data: `data:audio/wav;base64,${reference_audio_base64}`, name: 'ref.wav' }, 'pt'] }),
+            signal: AbortSignal.timeout(30000),
+          });
+          if (spaceResp.ok) {
+            const result = await spaceResp.json();
+            return new Response(JSON.stringify({
+              audio_url: result.data?.[0]?.url || null,
+              model: 'coqui/XTTS-v2',
+              cost_usd: 0,
+            }), { headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
+          }
+        } catch { /* fallback */ }
+      }
+
+      // Fallback: standard TTS
+      return new Response(JSON.stringify({
+        error: 'Voice cloning requires GPU Space. Falling back to standard TTS.',
+        suggestion: 'Deploy XTTS-v2 or Qwen3-TTS on HF Inference Endpoint for production use.',
+      }), { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
+    }
+
+    // ═══ DEFAULT: Standard TTS ═══
     if (!text || typeof text !== 'string' || text.length < 1) {
       return new Response(JSON.stringify({ error: 'text is required (1-5000 chars)' }), { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
     }

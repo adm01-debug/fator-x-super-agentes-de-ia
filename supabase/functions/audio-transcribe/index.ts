@@ -171,6 +171,84 @@ serve(async (req) => {
       });
     }
 
+    // ═══ ACTION: detect_emotion — Emotion detection from speech audio (#44) ═══
+    if (action === 'detect_emotion') {
+      const { audio_base64: eAudio, audio_url: eUrl } = body;
+      let audioBytes: Uint8Array;
+      if (eAudio) {
+        const raw = eAudio.replace(/^data:audio\/\w+;base64,/, '');
+        audioBytes = Uint8Array.from(atob(raw), c => c.charCodeAt(0));
+      } else if (eUrl) {
+        const resp = await fetch(eUrl);
+        audioBytes = new Uint8Array(await resp.arrayBuffer());
+      } else {
+        return jsonResponse({ error: 'audio_base64 or audio_url required' }, 400);
+      }
+
+      const emotionResp = await fetch('https://router.huggingface.co/hf-inference/models/ehcalabres/wav2vec2-lg-xlsr-en-speech-emotion-recognition', {
+        method: 'POST',
+        headers: { 'Authorization': `Bearer ${hfToken}` },
+        body: audioBytes,
+      });
+
+      if (!emotionResp.ok) {
+        return jsonResponse({ error: `Emotion detection failed: ${emotionResp.status}` }, 502);
+      }
+
+      const emotions = await emotionResp.json();
+      const sorted = Array.isArray(emotions) ? [...emotions].sort((a: Record<string, unknown>, b: Record<string, unknown>) => (b.score as number) - (a.score as number)) : [];
+
+      return jsonResponse({
+        dominant_emotion: sorted[0]?.label || 'unknown',
+        confidence: sorted[0]?.score ? Math.round((sorted[0].score as number) * 100) / 100 : 0,
+        all_emotions: sorted.map((e: Record<string, unknown>) => ({
+          label: e.label,
+          score: Math.round((e.score as number) * 100) / 100,
+        })),
+        model: 'ehcalabres/wav2vec2-lg-xlsr-en-speech-emotion-recognition',
+        cost_usd: 0,
+      });
+    }
+
+    // ═══ ACTION: classify_audio — Audio classification (speech/music/noise) (#50) ═══
+    if (action === 'classify_audio') {
+      const { audio_base64: cAudio, audio_url: cUrl } = body;
+      let audioBytes: Uint8Array;
+      if (cAudio) {
+        const raw = cAudio.replace(/^data:audio\/\w+;base64,/, '');
+        audioBytes = Uint8Array.from(atob(raw), c => c.charCodeAt(0));
+      } else if (cUrl) {
+        const resp = await fetch(cUrl);
+        audioBytes = new Uint8Array(await resp.arrayBuffer());
+      } else {
+        return jsonResponse({ error: 'audio_base64 or audio_url required' }, 400);
+      }
+
+      const classResp = await fetch('https://router.huggingface.co/hf-inference/models/MIT/ast-finetuned-audioset-10-10-0.4593', {
+        method: 'POST',
+        headers: { 'Authorization': `Bearer ${hfToken}` },
+        body: audioBytes,
+      });
+
+      if (!classResp.ok) {
+        return jsonResponse({ error: `Audio classification failed: ${classResp.status}` }, 502);
+      }
+
+      const categories = await classResp.json();
+      const top5 = Array.isArray(categories) ? categories.slice(0, 5).map((c: Record<string, unknown>) => ({
+        label: c.label, score: Math.round((c.score as number) * 1000) / 1000,
+      })) : [];
+      const isSpeech = top5.some((c: Record<string, string>) => c.label?.toLowerCase().includes('speech') || c.label?.toLowerCase().includes('talk'));
+
+      return jsonResponse({
+        categories: top5,
+        is_speech: isSpeech,
+        should_transcribe: isSpeech,
+        model: 'MIT/ast-finetuned-audioset-10-10-0.4593',
+        cost_usd: 0,
+      });
+    }
+
     return jsonResponse({ error: `Unknown action: ${action}` }, 400);
 
   } catch (error: unknown) {

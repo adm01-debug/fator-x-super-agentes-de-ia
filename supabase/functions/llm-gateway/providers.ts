@@ -5,6 +5,7 @@ export interface LLMCallParams {
   messages: Array<{ role: string; content: string }>;
   temperature: number;
   max_tokens: number;
+  response_format?: { type: string; json_schema?: Record<string, unknown> }; // #41 Structured Output
 }
 
 export interface LLMResult {
@@ -15,6 +16,16 @@ export interface LLMResult {
 
 export async function callHuggingFace(params: LLMCallParams, apiKey: string): Promise<LLMResult> {
   const model = params.model.replace('huggingface/', '');
+  const body: Record<string, unknown> = {
+    model,
+    messages: params.messages,
+    temperature: params.temperature,
+    max_tokens: params.max_tokens,
+  };
+  // #41 — Structured Output: pass response_format if provided
+  if (params.response_format) {
+    body.response_format = params.response_format;
+  }
   const response = await fetch('https://router.huggingface.co/v1/chat/completions', {
     method: 'POST',
     headers: {
@@ -22,12 +33,7 @@ export async function callHuggingFace(params: LLMCallParams, apiKey: string): Pr
       'Authorization': `Bearer ${apiKey}`,
       'X-Title': 'Fator X',
     },
-    body: JSON.stringify({
-      model,
-      messages: params.messages,
-      temperature: params.temperature,
-      max_tokens: params.max_tokens,
-    }),
+    body: JSON.stringify(body),
   });
   const result = await response.json();
   if (result.error) {

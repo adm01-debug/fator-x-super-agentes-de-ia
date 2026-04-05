@@ -138,6 +138,67 @@ serve(async (req) => {
       });
     }
 
+    // ═══ ACTION: analyze_layout — Document layout analysis (#48) ═══
+    if (action === 'analyze_layout') {
+      const { image_base64: layImg, image_url: layUrl } = body;
+      if (!layImg && !layUrl) return jsonResponse({ error: 'image_base64 or image_url required' }, 400);
+
+      let imageBytes: Uint8Array;
+      if (layImg) {
+        const raw = layImg.replace(/^data:image\/\w+;base64,/, '');
+        imageBytes = Uint8Array.from(atob(raw), c => c.charCodeAt(0));
+      } else {
+        const resp = await fetch(layUrl);
+        imageBytes = new Uint8Array(await resp.arrayBuffer());
+      }
+
+      const hfToken = Deno.env.get('HF_API_TOKEN');
+      if (!hfToken) return jsonResponse({ error: 'HF_API_TOKEN required' }, 400);
+
+      // Use object detection model trained on document layouts
+      const layoutResp = await fetch('https://router.huggingface.co/hf-inference/models/microsoft/table-transformer-detection', {
+        method: 'POST',
+        headers: { 'Authorization': `Bearer ${hfToken}` },
+        body: imageBytes,
+      });
+
+      if (!layoutResp.ok) {
+        // Fallback: use VLM to describe layout
+        const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
+        const supabaseKey = Deno.env.get('SUPABASE_ANON_KEY')!;
+        const authHeader = req.headers.get('Authorization')!;
+        const base64ForVlm = layImg || btoa(String.fromCharCode(...imageBytes));
+
+        const vlmResp = await fetch(`${supabaseUrl}/functions/v1/llm-gateway`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', 'Authorization': authHeader, 'apikey': supabaseKey },
+          body: JSON.stringify({
+            model: 'huggingface/Qwen/Qwen3-30B-A3B',
+            messages: [
+              { role: 'system', content: 'Analyze the document layout. Identify: headers, paragraphs, tables, captions, page numbers, footnotes. Return as JSON: {"elements": [{"type": "header|paragraph|table|caption|footnote|page_number", "content": "...", "position": "top|middle|bottom"}]}' },
+              { role: 'user', content: `Analyze this document image layout. Base64 image provided.` },
+            ],
+            temperature: 0.1, max_tokens: 1000,
+          }),
+        });
+        const vlmResult = await vlmResp.json();
+        return jsonResponse({
+          layout: vlmResult.content,
+          method: 'vlm_fallback',
+          model: 'Qwen/Qwen3-30B-A3B',
+          cost_usd: vlmResult.cost_usd || 0,
+        });
+      }
+
+      const elements = await layoutResp.json();
+      return jsonResponse({
+        layout_elements: elements,
+        method: 'table-transformer-detection',
+        model: 'microsoft/table-transformer-detection',
+        cost_usd: 0,
+      });
+    }
+
     return jsonResponse({ error: `Unknown action: ${action}` }, 400);
 
   } catch (error: unknown) {

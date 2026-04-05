@@ -31,7 +31,7 @@ const bodySchema = z.object({
   test_cases: z.array(testCaseSchema).optional(),
   dataset_id: z.string().uuid().optional(),
   judge_model: z.string().max(100).optional(),
-  mode: z.enum(['pointwise', 'pairwise', 'faithfulness']).optional().default('pointwise'),
+  mode: z.enum(['pointwise', 'pairwise', 'faithfulness', 'reward']).optional().default('pointwise'),
 });
 
 serve(async (req) => {
@@ -111,6 +111,32 @@ serve(async (req) => {
         });
         const agentData = await agentResp.json();
         const agentOutput = agentData.content || '[no response]';
+
+        // #49 — Reward mode: use sentence similarity instead of LLM judge (fast + free)
+        if (mode === 'reward' && tc.expected_output) {
+          const hfRewardToken = Deno.env.get('HF_API_TOKEN') || apiKey;
+          try {
+            const simResp = await fetch('https://router.huggingface.co/hf-inference/models/sentence-transformers/paraphrase-multilingual-MiniLM-L12-v2', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${hfRewardToken}` },
+              body: JSON.stringify({ inputs: { source_sentence: tc.expected_output.substring(0, 500), sentences: [agentOutput.substring(0, 500)] } }),
+            });
+            if (simResp.ok) {
+              const simScores = await simResp.json();
+              const similarity = Array.isArray(simScores) ? simScores[0] : 0;
+              const rewardScore = Math.round(similarity * 5 * 100) / 100; // Scale 0-1 to 0-5
+              results.push({
+                test_case_id: tc.id, input: tc.input,
+                agent_output: agentOutput.substring(0, 500),
+                expected: tc.expected_output?.substring(0, 200),
+                scores: { reward: rewardScore, similarity: Math.round(similarity * 100) / 100 },
+                overall: rewardScore,
+              });
+              totalScore += rewardScore;
+              continue; // Skip LLM judge
+            }
+          } catch { /* fall through to LLM judge */ }
+        }
 
         // 2. Judge the response
         const judgePrompt = mode === 'faithfulness'

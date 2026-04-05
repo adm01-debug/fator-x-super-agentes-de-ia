@@ -452,9 +452,61 @@ serve(async (req) => {
 
     // ═══ PII REDACTION (input) ═══
     const pii = redactPII(userMessage);
+
+    // #46 — PII Detection ML (Piiranha, 98.27% recall, 17 PII types)
+    const hfPiiToken = Deno.env.get('HF_API_TOKEN');
+    if (hfPiiToken && Deno.env.get('ENABLE_PII_ML') !== 'false' && pii.detected.length === 0) {
+      // Only run ML if regex didn't catch anything (avoid double-processing)
+      try {
+        const piiResp = await fetch('https://router.huggingface.co/hf-inference/models/iiiorg/piiranha-v1-detect-personal-information', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${hfPiiToken}` },
+          body: JSON.stringify({ inputs: userMessage.substring(0, 512) }),
+          signal: AbortSignal.timeout(3000),
+        });
+        if (piiResp.ok) {
+          const piiEntities = await piiResp.json();
+          if (Array.isArray(piiEntities) && piiEntities.length > 0) {
+            const mlPii = piiEntities
+              .filter((e: Record<string, unknown>) => (e.score as number) > 0.85 && e.entity_group !== 'O')
+              .map((e: Record<string, unknown>) => `${e.entity_group}: ${String(e.word || '').substring(0, 20)}***`);
+            if (mlPii.length > 0) {
+              pii.detected.push(...mlPii.map((p: string) => `ML:${p}`));
+            }
+          }
+        }
+      } catch { /* ML PII is optional, timeout ok */ }
+    }
+
     const safeMessages = pii.detected.length > 0
       ? messages.map(m => m.role === 'user' && m.content === userMessage ? { ...m, content: pii.redacted } : m)
       : messages;
+
+    // ═══ AGENTIC GUARDRAIL (#43) — Multi-turn jailbreak + tool manipulation detection ═══
+    let agenticRisk: string | null = null;
+    const hfAgenticToken = Deno.env.get('HF_API_TOKEN');
+    if (hfAgenticToken && Deno.env.get('ENABLE_AGENTIC_GUARDRAIL') !== 'false' && messages.length > 2) {
+      // Only check multi-turn conversations (single-turn already covered by injection ML)
+      try {
+        const conversationContext = messages.slice(-4).map((m: { role: string; content: string }) => `${m.role}: ${m.content.substring(0, 200)}`).join('\n');
+        const agResp = await fetch('https://router.huggingface.co/hf-inference/models/joeddav/xlm-roberta-large-xnli', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${hfAgenticToken}` },
+          body: JSON.stringify({
+            inputs: conversationContext.substring(0, 800),
+            parameters: { candidate_labels: ['normal_conversation', 'jailbreak_attempt', 'tool_manipulation', 'data_extraction', 'role_override'] },
+          }),
+          signal: AbortSignal.timeout(3000),
+        });
+        if (agResp.ok) {
+          const agResult = await agResp.json();
+          if (agResult?.labels?.[0] !== 'normal_conversation' && agResult?.scores?.[0] > 0.7) {
+            agenticRisk = `${agResult.labels[0]}:${Math.round(agResult.scores[0] * 100)}%`;
+            // Log but don't block — let the standard guardrails handle blocking
+          }
+        }
+      } catch { /* non-blocking */ }
+    }
 
     // ═══ GUARDRAILS ═══
     const gr = await checkGuardrails(supabase, agent_id, userMessage);
@@ -633,6 +685,53 @@ serve(async (req) => {
       }).catch(() => {}); // silently ignore classification errors
     }
 
+    // ═══ EMOTION DETECTION in text (#45, fire-and-forget) ═══
+    if (hfTokenClassify && Deno.env.get('ENABLE_EMOTION_DETECTION') !== 'false') {
+      fetch('https://router.huggingface.co/hf-inference/models/j-hartmann/emotion-english-distilroberta-base', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${hfTokenClassify}` },
+        body: JSON.stringify({ inputs: userMessage.substring(0, 512) }),
+      }).then(r => r.json()).then(emotionResult => {
+        const emotions = Array.isArray(emotionResult?.[0]) ? emotionResult[0] : emotionResult;
+        if (Array.isArray(emotions) && emotions.length > 0) {
+          const sorted = [...emotions].sort((a: Record<string, unknown>, b: Record<string, unknown>) => (b.score as number) - (a.score as number));
+          // Update trace metadata with emotion (non-blocking)
+          supabase.from('agent_traces')
+            .update({ metadata: { emotion: sorted[0]?.label, emotion_score: Math.round((sorted[0]?.score as number) * 100) / 100 } })
+            .eq('agent_id', agent_id || '00000000-0000-0000-0000-000000000000')
+            .eq('user_id', user.id)
+            .order('created_at', { ascending: false })
+            .limit(1)
+            .then(() => {});
+        }
+      }).catch(() => {});
+    }
+
+    // ═══ KEYPHRASE EXTRACTION (#47, fire-and-forget) ═══
+    if (hfTokenClassify && Deno.env.get('ENABLE_KEYPHRASE_EXTRACTION') !== 'false' && userMessage.length > 30) {
+      fetch('https://router.huggingface.co/hf-inference/models/ml6team/keyphrase-extraction-kbir-inspec', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${hfTokenClassify}` },
+        body: JSON.stringify({ inputs: userMessage.substring(0, 500) }),
+      }).then(r => r.json()).then(kpResult => {
+        if (Array.isArray(kpResult) && kpResult.length > 0) {
+          const keyphrases = kpResult
+            .filter((k: Record<string, unknown>) => (k.score as number) > 0.5)
+            .map((k: Record<string, unknown>) => k.word)
+            .slice(0, 5);
+          if (keyphrases.length > 0) {
+            supabase.from('agent_traces')
+              .update({ metadata: { keyphrases } })
+              .eq('agent_id', agent_id || '00000000-0000-0000-0000-000000000000')
+              .eq('user_id', user.id)
+              .order('created_at', { ascending: false })
+              .limit(1)
+              .then(() => {});
+          }
+        }
+      }).catch(() => {});
+    }
+
     return new Response(JSON.stringify({
       content: result.content, model: usedModel, provider,
       tokens: { prompt: result.usage.prompt_tokens, completion: result.usage.completion_tokens, total: result.usage.total_tokens },
@@ -647,6 +746,7 @@ serve(async (req) => {
       guardrails_triggered: gr.triggered.length > 0 ? gr.triggered : undefined,
       output_toxicity: outputToxicityScore > 0.1 ? Math.round(outputToxicityScore * 1000) / 1000 : undefined,
       hallucination_risk: hallucinationScore !== null && hallucinationScore > 0.3 ? hallucinationScore : undefined,
+      agentic_risk: agenticRisk || undefined,
     }), { headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
   } catch (error: unknown) {
     return new Response(JSON.stringify({ error: error instanceof Error ? error.message : 'Internal error' }), { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
