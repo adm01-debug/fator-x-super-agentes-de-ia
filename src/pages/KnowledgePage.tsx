@@ -8,7 +8,7 @@ import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, 
 import { Search, BookOpen, ArrowRight, Loader2, Database, Pencil, Trash2, Bot, FileText } from "lucide-react";
 import { useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { supabase } from "@/integrations/supabase/client";
+import { listKnowledgeBases, deleteKnowledgeBase, listVectorIndexes, getChunkEmbeddingStats } from "@/services/knowledgeService";
 import { CreateKnowledgeBaseDialog } from "@/components/dialogs/CreateKnowledgeBaseDialog";
 import { EditKnowledgeBaseDialog } from "@/components/dialogs/EditKnowledgeBaseDialog";
 import { KnowledgeBaseDetail } from "@/components/knowledge/KnowledgeBaseDetail";
@@ -18,17 +18,13 @@ const pipeline = ['Parsing', 'Chunking', 'Metadata', 'Embeddings', 'Indexing'];
 
 export default function KnowledgePage() {
   const [search, setSearch] = useState("");
-  const [editKb, setEditKb] = useState<any>(null);
+  const [editKb, setEditKb] = useState<Record<string, unknown> | null>(null);
   const [selectedKb, setSelectedKb] = useState<{ id: string; name: string } | null>(null);
   const queryClient = useQueryClient();
 
   const { data: knowledgeBases = [], isLoading, refetch } = useQuery({
     queryKey: ['knowledge_bases'],
-    queryFn: async () => {
-      const { data, error } = await supabase.from('knowledge_bases').select('*').order('created_at', { ascending: false });
-      if (error) throw error;
-      return data ?? [];
-    },
+    queryFn: listKnowledgeBases,
   });
 
   const filtered = knowledgeBases.filter(kb =>
@@ -36,17 +32,16 @@ export default function KnowledgePage() {
   );
 
   const handleDelete = async (id: string) => {
-    const { error } = await supabase.from('knowledge_bases').delete().eq('id', id);
-    if (error) {
-      toast.error(`Erro ao deletar: ${error.message}`);
-    } else {
+    try {
+      await deleteKnowledgeBase(id);
       toast.success("Base removida com sucesso");
       refetch();
       queryClient.invalidateQueries({ queryKey: ['admin', 'knowledge_bases'] });
+    } catch (err) {
+      toast.error(`Erro ao deletar: ${err instanceof Error ? err.message : 'Erro desconhecido'}`);
     }
   };
 
-  // Detail view
   if (selectedKb) {
     return (
       <div className="p-6 sm:p-8 lg:p-10 space-y-6 max-w-[1400px] mx-auto">
@@ -119,9 +114,7 @@ export default function KnowledgePage() {
                     <p className="text-[11px] text-muted-foreground">{kb.vector_db} • {kb.embedding_model?.split('-').slice(-1)}</p>
                   </div>
                 </div>
-                <div className="flex items-center gap-1">
-                  <StatusBadge status={kb.status || 'active'} />
-                </div>
+                <StatusBadge status={kb.status || 'active'} />
               </div>
               <p className="text-xs text-muted-foreground mb-4">{kb.description || 'Sem descrição'}</p>
               <div className="grid grid-cols-2 gap-2 text-center border-t border-border/50 pt-3">
@@ -135,12 +128,7 @@ export default function KnowledgePage() {
                 </div>
               </div>
               <div className="flex items-center gap-2 mt-3 pt-3 border-t border-border/50" onClick={e => e.stopPropagation()}>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  className="flex-1 gap-1.5 text-xs"
-                  onClick={() => setEditKb(kb)}
-                >
+                <Button variant="outline" size="sm" className="flex-1 gap-1.5 text-xs" onClick={() => setEditKb(kb as unknown as Record<string, unknown>)}>
                   <Pencil className="h-3 w-3" /> Editar
                 </Button>
                 <AlertDialog>
@@ -173,7 +161,6 @@ export default function KnowledgePage() {
         </div>
       )}
 
-      {/* Vector Indexes Status */}
       <VectorIndexesStatus />
 
       <EditKnowledgeBaseDialog
@@ -189,22 +176,12 @@ export default function KnowledgePage() {
 function VectorIndexesStatus() {
   const { data: indexes = [] } = useQuery({
     queryKey: ['vector_indexes'],
-    queryFn: async () => {
-      const { data } = await supabase.from('vector_indexes').select('*, knowledge_bases(name)').order('created_at', { ascending: false });
-      return data ?? [];
-    },
+    queryFn: listVectorIndexes,
   });
 
   const { data: chunkStats } = useQuery({
     queryKey: ['chunk_embedding_stats'],
-    queryFn: async () => {
-      const [done, pending, failed] = await Promise.all([
-        supabase.from('chunks').select('id', { count: 'exact', head: true }).eq('embedding_status', 'done'),
-        supabase.from('chunks').select('id', { count: 'exact', head: true }).eq('embedding_status', 'pending'),
-        supabase.from('chunks').select('id', { count: 'exact', head: true }).eq('embedding_status', 'failed'),
-      ]);
-      return { done: done.count ?? 0, pending: pending.count ?? 0, failed: failed.count ?? 0 };
-    },
+    queryFn: getChunkEmbeddingStats,
   });
 
   if (!chunkStats && indexes.length === 0) return null;
