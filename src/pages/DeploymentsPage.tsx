@@ -74,7 +74,7 @@ export default function DeploymentsPage() {
               </div>
               {dep.channels.length > 0 && (
                 <div className="flex flex-wrap gap-1 mt-2">
-                  {dep.channels.map((c: Record<string, unknown>) => (
+                  {dep.channels.map((c: { name: string; status: string; messages: number; lastMsg?: string; error?: string }) => (
                     <span key={c.name} className={`text-[11px] px-2 py-0.5 rounded-full ${c.status === 'active' ? 'bg-nexus-emerald/10 text-nexus-emerald' : c.status === 'error' ? 'bg-destructive/10 text-destructive' : 'nexus-badge-primary'}`} title={c.error || `${c.messages} msgs`}>
                       {c.name} {c.messages > 0 ? `(${c.messages})` : ''}
                     </span>

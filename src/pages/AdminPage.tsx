@@ -79,7 +79,7 @@ const TABLE_CONFIG: { key: TableName; label: string; icon: React.ElementType; co
 function formatCell(value: unknown, key: string): string {
   if (value === null || value === undefined) return "—";
   if (key.includes("_at") || key === "created_at" || key === "updated_at") {
-    try { return format(new Date(value), "dd/MM/yy HH:mm"); } catch (err) { console.error("Operation failed:", err); return String(value); }
+    try { return format(new Date(String(value)), "dd/MM/yy HH:mm"); } catch (err) { console.error("Operation failed:", err); return String(value); }
   }
   if (typeof value === "boolean") return value ? "✓" : "✗";
   if (typeof value === "object") return JSON.stringify(value).slice(0, 60);
@@ -167,7 +167,7 @@ function AdminTable({ config }: { config: typeof TABLE_CONFIG[0] }) {
               </TableHeader>
               <TableBody>
                 {filtered.map((row: Record<string, unknown>) => (
-                  <TableRow key={row.id} className="hover:bg-secondary/20">
+                  <TableRow key={String(row.id)} className="hover:bg-secondary/20">
                     {config.columns.map((col) => (
                       <TableCell key={col.key} className="text-xs py-2.5 max-w-[200px] truncate">
                         {col.key === "status" || col.key === "level" ? (
@@ -200,7 +200,7 @@ function AdminTable({ config }: { config: typeof TABLE_CONFIG[0] }) {
                           <AlertDialogFooter>
                             <AlertDialogCancel>Cancelar</AlertDialogCancel>
                             <AlertDialogAction
-                              onClick={() => handleDelete(row.id)}
+                              onClick={() => handleDelete(String(row.id))}
                               className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
                             >
                               Excluir

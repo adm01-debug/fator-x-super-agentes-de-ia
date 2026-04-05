@@ -73,9 +73,11 @@ export default function ApprovalQueuePage() {
         </div>
       ) : (
         <div className="space-y-4">
-          {pendingRuns.map((run: Record<string, unknown>) => {
-            const pending = run.output?.pending_approval;
+          {pendingRuns.map((run) => {
+            const output = run.output as Record<string, any> | null;
+            const pending = output?.pending_approval as Record<string, any> | undefined;
             const isSelected = selectedRun === run.id;
+            const workflows = run.workflows as { name?: string } | null;
             return (
               <div key={run.id}
                 className={`nexus-card ${isSelected ? 'border-primary/30' : ''}`}>
@@ -83,13 +85,13 @@ export default function ApprovalQueuePage() {
                   <div>
                     <div className="flex items-center gap-2 mb-1">
                       <Clock className="h-4 w-4 text-nexus-amber" />
-                      <p className="text-sm font-semibold text-foreground">{run.workflows?.name || 'Workflow'}</p>
+                      <p className="text-sm font-semibold text-foreground">{workflows?.name || 'Workflow'}</p>
                       <Badge variant="outline" className="text-[11px] text-nexus-amber border-nexus-amber/30">Aguardando aprovação</Badge>
                     </div>
                     <p className="text-xs text-muted-foreground">
                       Etapa {run.current_step}/{run.total_steps} • Nodo: {pending?.label || 'HITL Gate'}
                     </p>
-                    {pending?.context && <p className="text-xs text-foreground/80 mt-1 max-w-xl">{pending.context}</p>}
+                    {pending?.context && <p className="text-xs text-foreground/80 mt-1 max-w-xl">{String(pending.context)}</p>}
                   </div>
                   <span className="text-[11px] text-muted-foreground">{run.started_at ? new Date(run.started_at).toLocaleString('pt-BR') : ''}</span>
                 </div>
@@ -99,10 +101,10 @@ export default function ApprovalQueuePage() {
                     <Textarea value={feedback} onChange={e => setFeedback(e.target.value)} placeholder="Feedback ou modificações (opcional)"
                       className="bg-secondary/50 text-xs min-h-[60px]" />
                     <div className="flex gap-2">
-                      <Button onClick={() => handleApprove(run.id)} disabled={processing} className="nexus-gradient-bg text-primary-foreground gap-1.5 text-xs">
+                      <Button onClick={() => handleApprove(String(run.id))} disabled={processing} className="nexus-gradient-bg text-primary-foreground gap-1.5 text-xs">
                         {processing ? <Loader2 className="h-3 w-3 animate-spin" /> : <CheckCircle className="h-3 w-3" />} Aprovar e Continuar
                       </Button>
-                      <Button variant="destructive" onClick={() => handleReject(run.id)} disabled={processing} className="gap-1.5 text-xs">
+                      <Button variant="destructive" onClick={() => handleReject(String(run.id))} disabled={processing} className="gap-1.5 text-xs">
                         {processing ? <Loader2 className="h-3 w-3 animate-spin" /> : <XCircle className="h-3 w-3" />} Rejeitar
                       </Button>
                     </div>
