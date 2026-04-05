@@ -189,7 +189,7 @@ export function SearchTab() {
                             Chunk #{String(chunk.chunk_index)}
                           </Badge>
                         )}
-                        {chunk.token_count && (
+                        {chunk.token_count != null && (
                           <span className="text-[11px] text-muted-foreground">{String(chunk.token_count)} tokens</span>
                         )}
                       </div>
