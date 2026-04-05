@@ -1615,7 +1615,36 @@ export type Database = {
       }
     }
     Views: {
-      [_ in never]: never
+      audit_log_safe: {
+        Row: {
+          action: string | null
+          created_at: string | null
+          entity_id: string | null
+          entity_type: string | null
+          id: string | null
+          metadata: Json | null
+          user_id: string | null
+        }
+        Insert: {
+          action?: string | null
+          created_at?: string | null
+          entity_id?: string | null
+          entity_type?: string | null
+          id?: string | null
+          metadata?: Json | null
+          user_id?: string | null
+        }
+        Update: {
+          action?: string | null
+          created_at?: string | null
+          entity_id?: string | null
+          entity_type?: string | null
+          id?: string | null
+          metadata?: Json | null
+          user_id?: string | null
+        }
+        Relationships: []
+      }
     }
     Functions: {
       accept_workspace_invitation: {
