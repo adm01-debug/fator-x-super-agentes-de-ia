@@ -16,7 +16,7 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { WorkflowCanvas, type CanvasNode, type CanvasEdge } from "@/components/workflows/WorkflowCanvas";
 import { useWorkflowPersistence } from "@/hooks/use-workflow-persistence";
 import { workflowSchema } from "@/lib/validations/agentSchema";
-import { listWorkflows as listWorkflowsService, saveWorkflow as saveWorkflowService, deleteWorkflow as deleteWorkflowService, toggleWorkflowStatus, executeWorkflow } from "@/services/workflowsService";
+import { listWorkflows as listWorkflowsService, saveWorkflow as saveWorkflowService, deleteWorkflow as deleteWorkflowService, toggleWorkflowStatus, executeWorkflow, listWorkflowRuns } from "@/services/workflowsService";
 
 interface Workflow {
   id: string;
