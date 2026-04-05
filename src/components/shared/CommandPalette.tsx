@@ -1,3 +1,4 @@
+import { logger } from '@/lib/logger';
 import { useEffect, useState, useCallback } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import {
@@ -44,7 +45,7 @@ const MAX_RECENT = 5;
 function getRecent(): string[] {
   try {
     return JSON.parse(localStorage.getItem(RECENT_KEY) || "[]");
-  } catch (err) { console.error("Operation failed:", err); return []; }
+  } catch (err) { logger.error("Operation failed:", err); return []; }
 }
 
 function addRecent(href: string) {
@@ -52,7 +53,7 @@ function addRecent(href: string) {
     const prev = getRecent().filter(h => h !== href);
     const next = [href, ...prev].slice(0, MAX_RECENT);
     localStorage.setItem(RECENT_KEY, JSON.stringify(next));
-  } catch (err) { console.error("Operation failed:", err);}
+  } catch (err) { logger.error("Operation failed:", err);}
 }
 
 export function CommandPalette() {

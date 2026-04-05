@@ -1,3 +1,4 @@
+import { logger } from '@/lib/logger';
 /**
  * HuggingFace Integration Configuration — Fator X
  * Central config for all 26 HF integrations.
@@ -107,7 +108,7 @@ const getDenoEnv = (key: string): string | null => {
     if (typeof globalThis !== 'undefined' && 'Deno' in globalThis) {
       return (globalThis as unknown as { Deno: { env: { get: (k: string) => string | undefined } } }).Deno.env.get(key) ?? null;
     }
-  } catch (err) { console.error("Operation failed:", err); /* browser environment */ }
+  } catch (err) { logger.error("Operation failed:", err); /* browser environment */ }
   return null;
 };
 

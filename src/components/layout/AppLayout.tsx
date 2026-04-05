@@ -1,3 +1,4 @@
+import { logger } from '@/lib/logger';
 import { useState, useMemo } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import { SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
@@ -35,7 +36,7 @@ function getDefaultOpen() {
   try {
     const stored = localStorage.getItem(SIDEBAR_KEY);
     return stored !== "false";
-  } catch (err) { console.error("Operation failed:", err);
+  } catch (err) { logger.error("Operation failed:", err);
     return true;
   }
 }
@@ -109,7 +110,7 @@ export function AppLayout({ children }: AppLayoutProps) {
       <SidebarProvider
         defaultOpen={defaultOpen}
         onOpenChange={(open) => {
-          try { localStorage.setItem(SIDEBAR_KEY, String(open)); } catch (err) { console.error("Operation failed:", err);}
+          try { localStorage.setItem(SIDEBAR_KEY, String(open)); } catch (err) { logger.error("Operation failed:", err);}
         }}
       >
         {/* Skip to content link — accessibility */}

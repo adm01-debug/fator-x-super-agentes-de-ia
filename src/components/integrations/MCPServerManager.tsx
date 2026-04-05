@@ -2,6 +2,7 @@
  * MCP Server Manager — Registrar, conectar e testar MCP servers.
  * Uses fromTable() since mcp_servers is not in generated types.
  */
+import { logger } from '@/lib/logger';
 import { useState, useEffect } from 'react';
 import { fromTable } from '@/lib/supabaseExtended';
 import { Button } from '@/components/ui/button';
@@ -44,7 +45,7 @@ export function MCPServerManager() {
       setNewUrl('');
       await loadServers();
     } catch (err) {
-      console.error('Failed to add MCP server:', err);
+      logger.error('Failed to add MCP server:', err);
     }
     setAdding(false);
   }

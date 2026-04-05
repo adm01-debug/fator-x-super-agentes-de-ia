@@ -1,3 +1,4 @@
+import { logger } from '@/lib/logger';
 import { useState, useCallback, useRef } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 
@@ -80,7 +81,7 @@ export function useStreaming() {
             if (parsed.error) {
               setState(prev => ({ ...prev, isStreaming: false, error: parsed.error }));
             }
-          } catch (err) { console.error("Operation failed:", err); /* skip */ }
+          } catch (err) { logger.error("Operation failed:", err); /* skip */ }
         }
       }
 

@@ -1,3 +1,4 @@
+import { logger } from '@/lib/logger';
 import { useState, useEffect, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import { X, ArrowRight, Bot, Sparkles, Keyboard, Rocket, Brain, Shield, GitBranch } from "lucide-react";
@@ -71,12 +72,12 @@ export function OnboardingTour() {
         const t = setTimeout(() => setVisible(true), 1200);
         return () => clearTimeout(t);
       }
-    } catch (err) { console.error("Operation failed:", err);}
+    } catch (err) { logger.error("Operation failed:", err);}
   }, []);
 
   const dismiss = useCallback(() => {
     setVisible(false);
-    try { localStorage.setItem(TOUR_KEY, "true"); } catch (err) { console.error("Operation failed:", err);}
+    try { localStorage.setItem(TOUR_KEY, "true"); } catch (err) { logger.error("Operation failed:", err);}
   }, []);
 
   const next = () => {

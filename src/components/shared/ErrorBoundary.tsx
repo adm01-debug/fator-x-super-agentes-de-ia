@@ -1,3 +1,4 @@
+import { logger } from '@/lib/logger';
 import { Component, type ReactNode } from "react";
 import { AlertTriangle, RefreshCw } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -31,7 +32,7 @@ export class ErrorBoundary extends Component<Props, State> {
     this.setState({ errorInfo });
 
     // Structured error logging
-    console.error("[ErrorBoundary] Uncaught error:", {
+    logger.error("[ErrorBoundary] Uncaught error:", {
       name: error.name,
       message: error.message,
       stack: error.stack?.split('\n').slice(0, 5).join('\n'),

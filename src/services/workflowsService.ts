@@ -3,6 +3,7 @@
  * CRUD + execution for workflows with normalized workflow_steps.
  */
 
+import { logger } from '@/lib/logger';
 import { supabase } from '@/integrations/supabase/client';
 import type { Json } from '@/integrations/supabase/types';
 
@@ -233,7 +234,7 @@ async function syncWorkflowSteps(workflowId: string, nodes: WorkflowNode[]): Pro
 
   const { error } = await supabase.from('workflow_steps').insert(stepsToInsert);
   if (error) {
-    console.error('Failed to sync workflow_steps:', error.message);
+    logger.error('Failed to sync workflow_steps:', error.message);
   }
 }
 

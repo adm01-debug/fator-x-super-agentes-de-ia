@@ -1,3 +1,4 @@
+import { logger } from '@/lib/logger';
 import { useState } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -40,7 +41,7 @@ function versionToText(v: Version): string {
   try {
     const cfg = typeof v.config === 'string' ? JSON.parse(v.config) : v.config;
     lines.push(JSON.stringify(cfg, null, 2));
-  } catch (err) { console.error("Operation failed:", err);
+  } catch (err) { logger.error("Operation failed:", err);
     lines.push(String(v.config));
   }
   return lines.join('\n');

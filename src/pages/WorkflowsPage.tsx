@@ -1,3 +1,4 @@
+import { logger } from '@/lib/logger';
 import { useState } from "react";
 import { PageHeader } from "@/components/shared/PageHeader";
 import { InfoHint } from "@/components/shared/InfoHint";
@@ -358,7 +359,7 @@ function WorkflowRunsHistory() {
 
 function WorkflowScheduler({ workflows }: { workflows: Array<Record<string, unknown>> }) {
   const [schedules, setSchedules] = useState<Array<{ id: string; workflowId: string; cron: string; enabled: boolean; nextRun: string }>>(() => {
-    try { return JSON.parse(localStorage.getItem('nexus-wf-schedules') || '[]'); } catch (err) { console.error("Operation failed:", err); return []; }
+    try { return JSON.parse(localStorage.getItem('nexus-wf-schedules') || '[]'); } catch (err) { logger.error("Operation failed:", err); return []; }
   });
   const [selWf, setSelWf] = useState('');
   const [selCron, setSelCron] = useState('daily');
