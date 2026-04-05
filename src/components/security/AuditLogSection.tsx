@@ -1,4 +1,4 @@
-import { supabase } from '@/integrations/supabase/client';
+import { getAuditLog } from '@/services/securityService';
 import { ShieldCheck, Loader2 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -8,11 +8,7 @@ import { toast } from "sonner";
 export function AuditLogSection() {
   const { data: logs = [], isLoading } = useQuery({
     queryKey: ['audit_log'],
-    queryFn: async () => {
-      const { data, error } = await supabase.from('audit_log_safe').select('*').order('created_at', { ascending: false }).limit(50);
-      if (error) return [];
-      return data ?? [];
-    },
+    queryFn: () => getAuditLog({ limit: 50 }),
   });
 
   const handleExport = (format: 'csv' | 'json') => {

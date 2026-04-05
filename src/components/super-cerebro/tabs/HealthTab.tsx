@@ -4,7 +4,7 @@
  */
 
 import { useState, useEffect } from 'react';
-import { supabase } from '@/integrations/supabase/client';
+import { getKBHealthStats } from '@/services/knowledgeService';
 import { logger } from '@/lib/logger';
 
 interface HealthMetric {
@@ -25,9 +25,7 @@ export function HealthTab() {
     async function loadHealth() {
       try {
         // Fetch collection stats
-        const { count: docCount } = await supabase.from('documents').select('*', { count: 'exact', head: true });
-        const { count: chunkCount } = await supabase.from('chunks').select('*', { count: 'exact', head: true });
-        const { count: collCount } = await supabase.from('collections').select('*', { count: 'exact', head: true });
+        const { docCount, chunkCount, collCount } = await getKBHealthStats();
 
         // Calculate health metrics
         setMetrics([

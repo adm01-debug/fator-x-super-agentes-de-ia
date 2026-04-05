@@ -4,7 +4,7 @@
  */
 
 import { useState, useCallback } from 'react';
-import { supabase } from '@/integrations/supabase/client';
+import { invokeCerebroQuery } from '@/services/cerebroService';
 
 interface TestResult {
   question: string;
@@ -36,18 +36,8 @@ export function SandboxTab() {
       const start = Date.now();
 
       try {
-        const { data: { session } } = await supabase.auth.getSession();
-        const resp = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/cerebro-query`, {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${session?.access_token}`,
-            'apikey': import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY,
-          },
-          body: JSON.stringify({ query: question, top_k: 5 }),
-        });
-
-        const data = await resp.json();
+        const start = Date.now();
+        const data = await invokeCerebroQuery({ query: question, top_k: 5 });
         const latencyMs = Date.now() - start;
 
         testResults.push({

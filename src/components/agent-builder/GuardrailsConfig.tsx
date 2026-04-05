@@ -3,7 +3,7 @@
  * ao guardrails-engine Edge Function.
  */
 import { useState } from 'react';
-import { supabase } from '@/integrations/supabase/client';
+import { invokeGuardrailsEngine } from '@/services/llmGatewayService';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Shield, Play, Loader2 } from 'lucide-react';
@@ -26,21 +26,8 @@ export function GuardrailsConfig() {
     setResults(null);
 
     try {
-      const { data: { session } } = await supabase.auth.getSession();
-      if (!session) return;
-
-      const resp = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/guardrails-engine`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${session.access_token}`,
-          'apikey': import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY,
-        },
-        body: JSON.stringify({ action: 'check_full', text: testText }),
-      });
-
-      const data = await resp.json() as Record<string, unknown>;
-      setResults(data.results as typeof results);
+      const data = await invokeGuardrailsEngine({ action: 'check_full', text: testText });
+      setResults((data as Record<string, unknown>).results as typeof results);
     } catch (err) {
       console.error('Guardrails test failed:', err);
     } finally {

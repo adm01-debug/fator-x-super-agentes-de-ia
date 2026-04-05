@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { SectionTitle } from '../ui';
 import { useAgentBuilderStore } from '@/stores/agentBuilderStore';
 import { toast } from 'sonner';
-import { supabase } from '@/integrations/supabase/client';
+import { getMaskedSecrets, saveWorkspaceSecret } from '@/services/llmGatewayService';
 import { getWorkspaceId } from '@/lib/agentService';
 import { Button } from '@/components/ui/button';
 import { Check, AlertTriangle, Loader2 } from 'lucide-react';
@@ -34,7 +34,7 @@ export function SettingsModule() {
   async function loadKeys() {
     try {
       const wsId = await getWorkspaceId();
-      const { data } = await supabase.rpc('get_masked_secrets', { p_workspace_id: wsId });
+      const data = await getMaskedSecrets(wsId);
       const map: Record<string, { value: string; saved: boolean }> = {};
       for (const row of (data || []) as Array<{ key_name: string; masked_value: string }>) {
         map[row.key_name] = { value: row.masked_value, saved: true };
@@ -52,12 +52,7 @@ export function SettingsModule() {
     try {
       const wsId = await getWorkspaceId();
       const existing = keys[keyName];
-      if (existing?.saved) {
-        await supabase.from('workspace_secrets').update({ key_value: editValue, updated_at: new Date().toISOString() })
-          .eq('workspace_id', wsId).eq('key_name', keyName);
-      } else {
-        await supabase.from('workspace_secrets').insert({ workspace_id: wsId, key_name: keyName, key_value: editValue });
-      }
+      await saveWorkspaceSecret(wsId, keyName, editValue, !!existing?.saved);
       setKeys(prev => ({ ...prev, [keyName]: { value: editValue, saved: true } }));
       setEditingKey(null);
       setEditValue('');
