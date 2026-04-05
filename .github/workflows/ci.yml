@@ -29,6 +29,9 @@ jobs:
       - name: Unit tests
         run: npx vitest run
 
+      - name: Security audit
+        run: npm audit --audit-level=high || true
+
       - name: Production build
         run: npx vite build
 
@@ -39,3 +42,17 @@ jobs:
           if [ "$MAIN_SIZE" -gt 300000 ]; then
             echo "::warning::Main bundle exceeds 300KB ($MAIN_SIZE bytes)"
           fi
+
+  security:
+    name: CodeQL Security Scanning
+    runs-on: ubuntu-latest
+    permissions:
+      security-events: write
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: github/codeql-action/init@v3
+        with:
+          languages: javascript-typescript
+
+      - uses: github/codeql-action/analyze@v3
