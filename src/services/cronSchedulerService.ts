@@ -379,7 +379,7 @@ export async function getScheduleStats(): Promise<ScheduleStats> {
   const successCount = execs.filter((e: any) => e.status === 'success').length;
   const durations = execs
     .map((e: any) => e.duration_ms)
-    .filter((d): d is number => d !== null);
+    .filter((d: any): d is number => d !== null);
 
   const upcoming = active
     .filter((s: any) => s.next_run_at !== null)

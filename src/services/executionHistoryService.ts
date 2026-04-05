@@ -377,7 +377,7 @@ export async function getExecutionStats(
   const success = items.filter((i: any) => i.status === 'success');
   const failed = items.filter((i: any) => i.status === 'failed');
   const running = items.filter((i: any) => i.status === 'running');
-  const durations = items.map((i: any) => i.duration_ms).filter((d): d is number => d !== null);
+  const durations = items.map((i: any) => i.duration_ms).filter((d: any): d is number => d !== null);
   const byType = {} as Record<ExecutionType, number>;
 
   for (const item of items) {
