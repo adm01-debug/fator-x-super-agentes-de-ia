@@ -377,7 +377,7 @@ export async function deleteCredential(id: string): Promise<void> {
 
   await logAudit(id, 'deleted', userId, 'user', {});
 
-  const { error } = await supabase.from('credential_vault').delete().eq('id', id);
+  const { error } = await fromTable('credential_vault').delete().eq('id', id);
   if (error) throw error;
 }
 
@@ -392,7 +392,7 @@ async function logAudit(
   actorType: CredentialAuditLog['actor_type'],
   details: Record<string, unknown>,
 ): Promise<void> {
-  await supabase.from('credential_audit_logs').insert({
+  await fromTable('credential_audit_logs').insert({
     credential_id: credentialId,
     action,
     actor_id: actorId,
