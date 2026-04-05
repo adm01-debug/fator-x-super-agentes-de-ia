@@ -27,19 +27,12 @@ import {
   getNextCronRun,
   describeCronExpression,
   CRON_PRESETS,
-  type CronSchedule,
-  type ScheduleFrequency,
-  type CreateScheduleInput,
 } from '@/services/cronSchedulerService';
 
 import {
   verifyHmacSignature,
   applyTransform,
   WEBHOOK_TEMPLATES,
-  type WebhookEndpoint,
-  type WebhookMethod,
-  type WebhookAuthType,
-  type CreateWebhookInput,
 } from '@/services/webhookTriggerService';
 
 import {
@@ -52,71 +45,44 @@ import {
   recordCircuitFailure,
   canExecute,
   resetCircuitBreaker,
-  getAllCircuitBreakers,
   executeWithRetry,
   type RetryPolicy,
-  type CircuitBreakerConfig,
-  type BackoffStrategy,
-  type RetryResult,
 } from '@/services/retryEngineService';
 
 import {
   encryptData,
   decryptData,
   CREDENTIAL_TEMPLATES,
-  type CredentialType,
   type CredentialData,
-  type CredentialEntry,
 } from '@/services/credentialVaultService';
 
 import {
   renderTemplate,
   NOTIFICATION_PRESETS,
-  type NotificationChannel,
-  type NotificationPriority,
-  type SendNotificationInput,
 } from '@/services/notificationEngineService';
 
 import {
   BUILTIN_TEMPLATES,
-  type AutomationTemplate,
-  type AutomationStep,
-  type TemplateCategory,
 } from '@/services/automationTemplateService';
 
 import {
   type ExecutionRecord,
-  type ExecutionType,
-  type ExecutionStatus,
-  type ExecutionFilter,
   compareExecutions,
 } from '@/services/executionHistoryService';
 
 import {
   BUILTIN_CONNECTORS,
-  type ConnectorDefinition,
-  type ConnectorCategory,
-  type ConnectorOperation,
 } from '@/services/connectorRegistryService';
 
 import {
   QUEUE_PRESETS,
-  type QueueDefinition,
-  type QueueStrategy,
-  type QueueItem,
 } from '@/services/queueManagerService';
 
 import {
-  type BatchJob,
   type BatchStatus,
   type BatchErrorPolicy,
   type BatchProgress,
-  type BatchItemResult,
 } from '@/services/batchProcessorService';
-
-// Serviços existentes (verificação de importação)
-import type { AgentCard } from '@/services/agentCardService';
-import type { CostEstimate } from '@/services/costCalculatorService';
 
 /* ================================================================== */
 /*  TESTE 1: Cron Scheduler Engine                                     */
