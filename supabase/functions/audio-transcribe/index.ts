@@ -137,7 +137,7 @@ serve(async (req) => {
 
       // Step 1: Transcribe with Whisper (timestamps)
       const startTime = Date.now();
-      const whisperResp = await fetch(HF_INFERENCE_URL, {
+      const whisperResp = await fetch(`https://router.huggingface.co/hf-inference/models/${WHISPER_MODEL}`, {
         method: 'POST',
         headers: { 'Authorization': `Bearer ${hfToken}`, 'Content-Type': 'audio/flac' },
         body: audioBytes,
@@ -164,7 +164,7 @@ serve(async (req) => {
         speakers: speakers || [],
         diarization_available: speakers !== null,
         latency_ms: Date.now() - startTime,
-        model_stt: HF_MODEL_STT,
+        model_stt: WHISPER_MODEL,
         model_diarization: 'pyannote/speaker-diarization-3.1',
         note: speakers === null ? 'Speaker diarization unavailable. Accept pyannote terms at huggingface.co/pyannote/speaker-diarization-3.1' : undefined,
         cost_usd: 0,
@@ -238,7 +238,7 @@ serve(async (req) => {
       const top5 = Array.isArray(categories) ? categories.slice(0, 5).map((c: Record<string, unknown>) => ({
         label: c.label, score: Math.round((c.score as number) * 1000) / 1000,
       })) : [];
-      const isSpeech = top5.some((c: Record<string, string>) => c.label?.toLowerCase().includes('speech') || c.label?.toLowerCase().includes('talk'));
+      const isSpeech = top5.some((c: { label: unknown; score: number }) => (c.label as string)?.toLowerCase().includes('speech') || (c.label as string)?.toLowerCase().includes('talk'));
 
       return jsonResponse({
         categories: top5,
