@@ -505,6 +505,65 @@ serve(async (req) => {
       return new Response(JSON.stringify({ success: true }), { headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
     }
 
+    // ═══ ACTION: summarize_conversation — Summarize WhatsApp conversation ═══
+    if (action === 'summarize_conversation') {
+      const { entity, record_id: sumId } = body;
+      if (!entity || !sumId) return new Response(JSON.stringify({ error: 'entity and record_id required' }), { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
+
+      const mapping = ENTITY_MAPPINGS[entity];
+      if (!mapping) return new Response(JSON.stringify({ error: `Unknown entity: ${entity}` }), { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
+
+      const client = getExternalClient(mapping.primary.connection);
+
+      // Get messages for the conversation
+      let messages: Array<Record<string, unknown>> = [];
+      if (mapping.secondary) {
+        for (const sec of mapping.secondary) {
+          if (sec.table === 'messages' || sec.table.includes('message')) {
+            const { data } = await client.from(sec.table).select('body, from_me, timestamp').eq(sec.join_col, sumId).order('timestamp', { ascending: true }).limit(50);
+            messages = data || [];
+            break;
+          }
+        }
+      }
+
+      if (messages.length === 0) {
+        return new Response(JSON.stringify({ summary: 'Nenhuma mensagem encontrada.', message_count: 0 }), { headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
+      }
+
+      // Build conversation text
+      const convoText = messages
+        .map((m: Record<string, unknown>) => `${m.from_me ? 'Agente' : 'Cliente'}: ${String(m.body || '').substring(0, 300)}`)
+        .join('\n');
+
+      // Summarize using HF LLM via Gateway
+      const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
+      const supabaseKey = Deno.env.get('SUPABASE_ANON_KEY')!;
+      const gatewayUrl = `${supabaseUrl}/functions/v1/llm-gateway`;
+      const sumResp = await fetch(gatewayUrl, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'Authorization': authHeader, 'apikey': supabaseKey },
+        body: JSON.stringify({
+          model: 'huggingface/mistralai/Mistral-Small-24B-Instruct-2501',
+          messages: [
+            { role: 'system', content: 'Resuma esta conversa em 3-5 frases em português. Destaque: assunto principal, decisões tomadas, próximos passos, e tom geral (positivo/negativo/neutro).' },
+            { role: 'user', content: convoText.substring(0, 4000) },
+          ],
+          temperature: 0.3,
+          max_tokens: 500,
+        }),
+      });
+      const sumResult = await sumResp.json();
+
+      return new Response(JSON.stringify({
+        summary: sumResult.content || 'Não foi possível gerar resumo.',
+        message_count: messages.length,
+        model: 'mistralai/Mistral-Small-24B-Instruct-2501',
+        tokens: sumResult.tokens,
+        cost_usd: sumResult.cost_usd || 0,
+      }), { headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
+    }
+
     return new Response(JSON.stringify({ error: 'Invalid action' }), { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
   } catch (error: unknown) {
     console.error('datahub-query error:', error);

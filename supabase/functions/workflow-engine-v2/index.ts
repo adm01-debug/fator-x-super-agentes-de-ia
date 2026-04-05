@@ -191,6 +191,63 @@ serve(async (req) => {
               state._output = typeof result === 'string' ? result : JSON.stringify(result);
               state[`${node.id}_output`] = state._output;
             }
+          } else if (toolType === 'edge_function') {
+            // Call any Fator X Edge Function as a tool
+            const fnName = (node.config.function_name as string) || '';
+            const fnAction = (node.config.function_action as string) || '';
+            if (fnName) {
+              const controller = new AbortController();
+              const timeout = setTimeout(() => controller.abort(), STEP_TIMEOUT_MS);
+              const resp = await fetch(`${supabaseUrl}/functions/v1/${fnName}`, {
+                method: 'POST', signal: controller.signal,
+                headers: { 'Content-Type': 'application/json', 'Authorization': authHeader, 'apikey': supabaseKey },
+                body: JSON.stringify({ action: fnAction, text: (state._output as string) || state.input || '', ...((node.config.extra_params as Record<string, unknown>) || {}) }),
+              });
+              clearTimeout(timeout);
+              const result = await resp.json();
+              state._output = typeof result === 'string' ? result : JSON.stringify(result);
+              state[`${node.id}_output`] = state._output;
+            }
+          } else if (toolType === 'translation' && hfToken) {
+            const inputText = (state._output as string) || state.input || '';
+            const srcLang = (node.config.source_lang as string) || 'por_Latn';
+            const tgtLang = (node.config.target_lang as string) || 'eng_Latn';
+            const resp = await fetch('https://router.huggingface.co/hf-inference/models/facebook/nllb-200-distilled-600M', {
+              method: 'POST', headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${hfToken}` },
+              body: JSON.stringify({ inputs: inputText.substring(0, 2000), parameters: { src_lang: srcLang, tgt_lang: tgtLang } }),
+              signal: AbortSignal.timeout(STEP_TIMEOUT_MS),
+            });
+            const result = await resp.json();
+            state._output = Array.isArray(result) ? result[0]?.translation_text || JSON.stringify(result) : JSON.stringify(result);
+            state[`${node.id}_output`] = state._output;
+          } else if (toolType === 'qa_extractive' && hfToken) {
+            const question = (node.config.question as string) || (state._output as string) || '';
+            const context = (node.config.context as string) || state.input || '';
+            const resp = await fetch('https://router.huggingface.co/hf-inference/models/deepset/roberta-base-squad2', {
+              method: 'POST', headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${hfToken}` },
+              body: JSON.stringify({ inputs: { question, context: context.substring(0, 3000) } }),
+              signal: AbortSignal.timeout(STEP_TIMEOUT_MS),
+            });
+            const result = await resp.json();
+            state._output = result.answer || JSON.stringify(result);
+            state[`${node.id}_output`] = state._output;
+            state[`${node.id}_score`] = result.score;
+          } else if (toolType === 'image_generation' && hfToken) {
+            const prompt = (node.config.prompt as string) || (state._output as string) || state.input || '';
+            const resp = await fetch('https://router.huggingface.co/hf-inference/models/stabilityai/stable-diffusion-xl-base-1.0', {
+              method: 'POST', headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${hfToken}` },
+              body: JSON.stringify({ inputs: prompt.substring(0, 500) }),
+              signal: AbortSignal.timeout(60000),
+            });
+            if (resp.ok) {
+              const imgBuffer = await resp.arrayBuffer();
+              const base64 = btoa(String.fromCharCode(...new Uint8Array(imgBuffer)));
+              state._output = `[Generated image: ${imgBuffer.byteLength} bytes]`;
+              state[`${node.id}_output`] = state._output;
+              state[`${node.id}_image_base64`] = base64;
+            } else {
+              state._output = `Image generation failed: ${resp.status}`;
+            }
           }
 
         } else if (node.type === 'parallel') {

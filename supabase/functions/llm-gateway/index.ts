@@ -403,6 +403,53 @@ serve(async (req) => {
       return new Response(JSON.stringify({ error: 'Request blocked: potential prompt injection detected', patterns: injection.patterns }), { status: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
     }
 
+    // ═══ TOXICITY DETECTION (Layer 3: ML via HuggingFace) ═══
+    const hfTokenTox = Deno.env.get('HF_API_TOKEN');
+    let detectedLanguage: string | null = null;
+    let toxicityScore = 0;
+    if (hfTokenTox && Deno.env.get('ENABLE_TOXICITY_CHECK') !== 'false') {
+      try {
+        const toxResp = await fetch('https://router.huggingface.co/hf-inference/models/unitary/toxic-bert', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${hfTokenTox}` },
+          body: JSON.stringify({ inputs: userMessage.substring(0, 512) }),
+          signal: AbortSignal.timeout(3000),
+        });
+        if (toxResp.ok) {
+          const toxResult = await toxResp.json();
+          const labels = Array.isArray(toxResult?.[0]) ? toxResult[0] : toxResult;
+          if (Array.isArray(labels)) {
+            const toxic = labels.find((l: any) => l.label === 'toxic');
+            toxicityScore = toxic?.score || 0;
+            if (toxicityScore > 0.85) {
+              recordTrace(supabase, { workspaceId, agentId: agent_id, sessionId: session_id, userId: user.id, userInput: userMessage, assistantOutput: '[TOXICITY_BLOCKED]', model, provider: 'none', promptTokens: 0, completionTokens: 0, totalTokens: 0, costUsd: 0, latencyMs: 0, guardrailsTriggered: [{ name: 'toxicity', severity: 'block', reason: `toxic score: ${toxicityScore.toFixed(4)}` }], event: 'toxicity_block', level: 'warning' });
+              return new Response(JSON.stringify({ error: 'Request blocked: toxic content detected', score: toxicityScore }), { status: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
+            }
+          }
+        }
+      } catch { /* toxicity check is optional, ignore errors */ }
+    }
+
+    // ═══ LANGUAGE DETECTION (fire-and-forget metadata enrichment) ═══
+    if (hfTokenTox && Deno.env.get('ENABLE_LANGUAGE_DETECTION') !== 'false') {
+      try {
+        const langResp = await fetch('https://router.huggingface.co/hf-inference/models/papluca/xlm-roberta-base-language-detection', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${hfTokenTox}` },
+          body: JSON.stringify({ inputs: userMessage.substring(0, 200) }),
+          signal: AbortSignal.timeout(2000),
+        });
+        if (langResp.ok) {
+          const langResult = await langResp.json();
+          const labels = Array.isArray(langResult?.[0]) ? langResult[0] : langResult;
+          if (Array.isArray(labels) && labels.length > 0) {
+            const sorted = [...labels].sort((a: any, b: any) => b.score - a.score);
+            detectedLanguage = sorted[0]?.label || null;
+          }
+        }
+      } catch { /* language detection is optional */ }
+    }
+
     // ═══ PII REDACTION (input) ═══
     const pii = redactPII(userMessage);
     const safeMessages = pii.detected.length > 0
@@ -530,7 +577,7 @@ serve(async (req) => {
       }).then(r => r.json()).then(classifyResult => {
         if (classifyResult?.labels?.[0] && classifyResult?.scores?.[0] > 0.3) {
           supabase.from('agent_traces')
-            .update({ metadata: { auto_category: classifyResult.labels[0], auto_category_score: Math.round(classifyResult.scores[0] * 100) / 100, auto_categories_top3: classifyResult.labels.slice(0, 3) } })
+            .update({ metadata: { auto_category: classifyResult.labels[0], auto_category_score: Math.round(classifyResult.scores[0] * 100) / 100, auto_categories_top3: classifyResult.labels.slice(0, 3), detected_language: detectedLanguage, toxicity_score: toxicityScore > 0.1 ? Math.round(toxicityScore * 1000) / 1000 : undefined } })
             .eq('agent_id', agent_id || '00000000-0000-0000-0000-000000000000')
             .eq('user_id', user.id)
             .order('created_at', { ascending: false })
@@ -548,6 +595,8 @@ serve(async (req) => {
       finish_reason: result.finish_reason,
       pii_detected: pii.detected.length > 0 ? pii.detected : undefined,
       injection_risk: injection.detected ? injection.riskLevel : (injectionML.label !== 'skipped' ? `ml_scanned:${injectionML.label}` : undefined),
+      detected_language: detectedLanguage || undefined,
+      toxicity_score: toxicityScore > 0.1 ? Math.round(toxicityScore * 1000) / 1000 : undefined,
       fallback: attempt > 1 ? { attempt, requested_model: model, used_model: usedModel, errors: fallbackErrors } : undefined,
       guardrails_triggered: gr.triggered.length > 0 ? gr.triggered : undefined,
     }), { headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
