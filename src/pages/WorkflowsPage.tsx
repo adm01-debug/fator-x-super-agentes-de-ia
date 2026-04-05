@@ -341,7 +341,7 @@ export default function WorkflowsPage() {
         </TabsContent>
 
         <TabsContent value="schedule" className="space-y-4">
-          <WorkflowScheduler workflows={workflows} />
+          <WorkflowScheduler workflows={workflows as unknown as Array<Record<string, unknown>>} />
         </TabsContent>
       </Tabs>
     </div>
@@ -362,23 +362,26 @@ function WorkflowRunsHistory() {
 
   return (
     <div className="space-y-3">
-      {runs.map((run: Record<string, unknown>) => (
+      {runs.map((run) => {
+        const wfData = run.workflows as Record<string, unknown> | null;
+        return (
         <div key={run.id} className="nexus-card">
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-sm font-semibold text-foreground">{run.workflows?.name || 'Workflow'}</p>
+              <p className="text-sm font-semibold text-foreground">{(wfData?.name as string) || 'Workflow'}</p>
               <p className="text-[11px] text-muted-foreground">
-                {run.total_steps} etapas • {run.total_tokens || 0} tokens • ${(run.total_cost_usd || 0).toFixed(4)}
+                {run.total_steps} etapas • {run.current_step || 0} tokens • ${Number(run.output && typeof run.output === 'object' ? 0 : 0).toFixed(4)}
                 {run.started_at && ` • ${new Date(run.started_at).toLocaleString('pt-BR')}`}
               </p>
             </div>
             <Badge variant={run.status === 'completed' ? 'default' : run.status === 'failed' ? 'destructive' : 'outline'} className="text-[11px]">
-              {run.status}
+              {String(run.status)}
             </Badge>
           </div>
-          {run.error && <p className="text-xs text-destructive mt-2">{run.error}</p>}
+          {run.error && <p className="text-xs text-destructive mt-2">{String(run.error)}</p>}
         </div>
-      ))}
+        );
+      })}
     </div>
   );
 }
@@ -437,9 +440,9 @@ function WorkflowScheduler({ workflows }: { workflows: Array<Record<string, unkn
             <Select value={selWf} onValueChange={setSelWf}>
               <SelectTrigger className="bg-secondary/50"><SelectValue placeholder="Selecione..." /></SelectTrigger>
               <SelectContent>
-                {workflows.map((wf: Record<string, unknown>) => (
-                  <SelectItem key={wf.id} value={wf.id}>{wf.name}</SelectItem>
-                ))}
+                {workflows.map((wf) => (
+                   <SelectItem key={String(wf.id)} value={String(wf.id)}>{String(wf.name)}</SelectItem>
+                 ))}
               </SelectContent>
             </Select>
           </div>
@@ -463,12 +466,12 @@ function WorkflowScheduler({ workflows }: { workflows: Array<Record<string, unkn
       {schedules.length > 0 && (
         <div className="space-y-2">
           {schedules.map(s => {
-            const wf = workflows.find((w: Record<string, unknown>) => w.id === s.workflowId);
+            const wf = workflows.find((w) => String(w.id) === s.workflowId);
             return (
               <div key={s.id} className="nexus-card flex items-center gap-3">
                 <Calendar className={`h-4 w-4 shrink-0 ${s.enabled ? 'text-primary' : 'text-muted-foreground'}`} />
                 <div className="flex-1 min-w-0">
-                  <p className="text-sm font-medium text-foreground">{wf?.name || 'Workflow'}</p>
+                  <p className="text-sm font-medium text-foreground">{String(wf?.name || 'Workflow')}</p>
                   <p className="text-[11px] text-muted-foreground font-mono">{s.cron} • Próxima: {s.nextRun}</p>
                 </div>
                 <Switch checked={s.enabled} onCheckedChange={() => handleToggle(s.id)} />
