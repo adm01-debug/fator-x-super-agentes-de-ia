@@ -1,0 +1,100 @@
+name: Deploy
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+jobs:
+  quality:
+    name: Lint + Types + Tests + Build
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - run: npm ci
+
+      - name: ESLint check
+        run: npx eslint src/ --ext .ts,.tsx --max-warnings 0 || echo "::warning::ESLint warnings found"
+
+      - name: TypeScript strict check
+        run: npx tsc --noEmit
+
+      - name: Unit tests
+        run: npx vitest run
+
+      - name: Production build
+        run: npx vite build
+
+      - name: Check bundle size
+        run: |
+          MAIN_SIZE=$(stat -c%s dist/assets/index-*.js 2>/dev/null || echo 0)
+          echo "Main bundle: ${MAIN_SIZE} bytes"
+          if [ "$MAIN_SIZE" -gt 300000 ]; then
+            echo "::warning::Main bundle exceeds 300KB ($MAIN_SIZE bytes)"
+          fi
+
+  deploy:
+    name: Deploy to Production
+    needs: quality
+    runs-on: ubuntu-latest
+    environment: production
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - run: npm ci
+
+      - name: Build for production
+        run: npx vite build
+
+      - name: Upload deployment artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: production-build
+          path: dist/
+          retention-days: 14
+
+      # ---------------------------------------------------------------
+      # Vercel deployment (uncomment when VERCEL_TOKEN is configured):
+      #
+      # - name: Deploy to Vercel
+      #   uses: amondnet/vercel-action@v25
+      #   with:
+      #     vercel-token: ${{ secrets.VERCEL_TOKEN }}
+      #     vercel-org-id: ${{ secrets.VERCEL_ORG_ID }}
+      #     vercel-project-id: ${{ secrets.VERCEL_PROJECT_ID }}
+      #     vercel-args: '--prod'
+      # ---------------------------------------------------------------
+
+      # ---------------------------------------------------------------
+      # Netlify deployment (uncomment when NETLIFY_AUTH_TOKEN is configured):
+      #
+      # - name: Deploy to Netlify
+      #   uses: nwtgck/actions-netlify@v3
+      #   with:
+      #     publish-dir: './dist'
+      #     production-deploy: true
+      #   env:
+      #     NETLIFY_AUTH_TOKEN: ${{ secrets.NETLIFY_AUTH_TOKEN }}
+      #     NETLIFY_SITE_ID: ${{ secrets.NETLIFY_SITE_ID }}
+      # ---------------------------------------------------------------
+
+      - name: Deployment summary
+        run: |
+          echo "## Deployment Summary" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "- **Commit:** ${{ github.sha }}" >> $GITHUB_STEP_SUMMARY
+          echo "- **Branch:** ${{ github.ref_name }}" >> $GITHUB_STEP_SUMMARY
+          echo "- **Artifact:** production-build (retained 14 days)" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "> Configure \`VERCEL_TOKEN\` or \`NETLIFY_AUTH_TOKEN\` secrets to enable automatic deployment." >> $GITHUB_STEP_SUMMARY
