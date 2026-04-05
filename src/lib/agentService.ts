@@ -34,18 +34,18 @@ export async function listAgents(statusFilter?: string) {
     .select('*')
     .order('updated_at', { ascending: false });
   if (statusFilter && statusFilter !== 'all') {
-    query = query.eq('status', statusFilter);
+    query = query.eq('status', statusFilter as Database["public"]["Enums"]["agent_status"]);
   }
   const { data, error } = await query;
   if (error) throw error;
   return data ?? [];
 }
 
-export async function cloneAgent(agent: { id: string; name: string; [key: string]: unknown }) {
-  const { id, created_at, updated_at, ...rest } = agent;
+export async function cloneAgent(agentRow: Tables<"agents">) {
+  const { id: _id, created_at: _ca, updated_at: _ua, ...rest } = agentRow;
   const { data, error } = await supabase.from('agents').insert({
     ...rest,
-    name: `${agent.name} (cópia)`,
+    name: `${agentRow.name} (cópia)`,
     status: 'draft' as const,
     version: 1,
   }).select('id').single();
