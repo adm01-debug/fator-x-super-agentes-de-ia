@@ -6,7 +6,7 @@ import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Loader2, Link2, Unlink, ExternalLink } from 'lucide-react';
+import { Unlink, ExternalLink } from 'lucide-react';
 
 export function Bitrix24Connect() {
   const [connected, setConnected] = useState(false);
