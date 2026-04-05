@@ -97,7 +97,7 @@ export function DataBrowser({ entityId, onClose }: { entityId: string; onClose: 
       setData(result.data ?? []);
       setTotal(result.total ?? 0);
     } catch (e: unknown) {
-      toast.error(`Erro ao buscar dados: ${e.message}`);
+      toast.error(`Erro ao buscar dados: ${e instanceof Error ? e.message : String(e)}`);
     } finally {
       setLoading(false);
     }
@@ -132,7 +132,7 @@ export function DataBrowser({ entityId, onClose }: { entityId: string; onClose: 
       setSelectedRecord(result.record);
       setEnrichedData({ enriched: result.enriched, cross_db: result.cross_db });
     } catch (e: unknown) {
-      toast.error(`Erro: ${e.message}`);
+      toast.error(`Erro: ${e instanceof Error ? e.message : String(e)}`);
     }
   };
 
@@ -191,7 +191,7 @@ export function DataBrowser({ entityId, onClose }: { entityId: string; onClose: 
       setSelectedIds(new Set());
       fetchData();
     } catch (e: unknown) {
-      toast.error(`Erro ao excluir: ${e.message}`);
+      toast.error(`Erro ao excluir: ${e instanceof Error ? e.message : String(e)}`);
     }
   };
 

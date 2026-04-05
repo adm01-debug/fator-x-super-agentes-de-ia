@@ -33,15 +33,15 @@ export function InlineEditCell({ row, col, entityId, onUpdate }: InlineEditCellP
     setSaving(true);
     try {
       const { data: result, error } = await supabase.functions.invoke('datahub-query', {
-        body: { action: 'update_field', entity: entityId, record_id: row.id, field: col.key, value },
+        body: { action: 'update_field', entity: entityId, record_id: String(row.id), field: col.key, value },
       });
       if (error) throw new Error(error.message);
       if (result?.error) throw new Error(result.error);
-      if (result?.record) onUpdate(row.id, result.record);
+      if (result?.record) onUpdate(String(row.id), result.record);
       setEditing(false);
       toast.success(`"${col.label}" atualizado`);
     } catch (e: unknown) {
-      toast.error(`Erro: ${e.message}`);
+      toast.error(`Erro: ${e instanceof Error ? e.message : String(e)}`);
     } finally {
       setSaving(false);
     }

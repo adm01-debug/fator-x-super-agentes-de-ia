@@ -53,7 +53,7 @@ export function BulkEditDialog({
       handleClose();
       onSuccess();
     } catch (e: unknown) {
-      toast.error(`Erro: ${e.message}`);
+      toast.error(`Erro: ${e instanceof Error ? e.message : String(e)}`);
     } finally {
       setSaving(false);
     }
@@ -143,8 +143,8 @@ export function BulkEditDialog({
                 </thead>
                 <tbody>
                   {selectedRecords.map((r, i) => (
-                    <tr key={r.id ?? i} className="border-t border-border/30">
-                      <td className="p-2 font-mono text-foreground truncate max-w-[180px]">{r[displayColumn] || r.id}</td>
+                    <tr key={String(r.id ?? i)} className="border-t border-border/30">
+                      <td className="p-2 font-mono text-foreground truncate max-w-[180px]">{String(r[displayColumn] ?? r.id ?? '')}</td>
                       <td className="p-2 font-mono text-muted-foreground">{r[field] === null || r[field] === undefined ? '—' : String(r[field])}</td>
                       <td className="p-2 font-mono text-primary font-semibold">{value === '' ? '(vazio)' : value}</td>
                     </tr>

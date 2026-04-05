@@ -48,7 +48,7 @@ function FieldValue({ label, value, sensitive, editable, onSave }: {
       setEditing(false);
       toast.success(`Campo "${label}" atualizado`);
     } catch (e: unknown) {
-      toast.error(`Erro ao salvar: ${e.message}`);
+      toast.error(`Erro ao salvar: ${e instanceof Error ? e.message : String(e)}`);
     } finally {
       setSaving(false);
     }
