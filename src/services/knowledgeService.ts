@@ -161,3 +161,26 @@ export async function rerankChunks(
 
   return resp.json();
 }
+
+/** Fetch chunks, optionally filtered by knowledge base */
+export async function fetchChunksForRerank(kbId?: string, limit = 50) {
+  let query = supabase
+    .from('chunks')
+    .select('id, content, chunk_index, token_count, document_id, metadata')
+    .limit(limit)
+    .order('created_at', { ascending: false });
+
+  if (kbId) {
+    const { data: docs } = await supabase
+      .from('documents')
+      .select('id, collection_id, collections!inner(knowledge_base_id)')
+      .eq('collections.knowledge_base_id', kbId);
+    const docIds = (docs || []).map((d: { id: string }) => d.id);
+    if (docIds.length === 0) return [];
+    query = query.in('document_id', docIds);
+  }
+
+  const { data, error } = await query;
+  if (error) throw error;
+  return data ?? [];
+}
