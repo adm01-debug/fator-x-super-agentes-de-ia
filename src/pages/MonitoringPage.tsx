@@ -355,10 +355,10 @@ export default function MonitoringPage() {
                             {expandedTraceId === st.id && (
                               <div className="mt-2 space-y-2">
                                 {st.input && (
-                                  <div><p className="text-[11px] font-semibold text-foreground">Input</p><pre className="text-[11px] text-muted-foreground bg-secondary/30 p-2 rounded max-h-[120px] overflow-auto">{typeof st.input === 'string' ? st.input : JSON.stringify(st.input, null, 2)}</pre></div>
+                                  <div><p className="text-[11px] font-semibold text-foreground">Input</p><pre className="text-[11px] text-muted-foreground bg-secondary/30 p-2 rounded max-h-[120px] overflow-auto">{String(typeof st.input === 'string' ? st.input : JSON.stringify(st.input, null, 2))}</pre></div>
                                 )}
                                 {st.output && (
-                                  <div><p className="text-[11px] font-semibold text-foreground">Output</p><pre className="text-[11px] text-muted-foreground bg-secondary/30 p-2 rounded max-h-[120px] overflow-auto">{typeof st.output === 'string' ? st.output : JSON.stringify(st.output, null, 2)}</pre></div>
+                                  <div><p className="text-[11px] font-semibold text-foreground">Output</p><pre className="text-[11px] text-muted-foreground bg-secondary/30 p-2 rounded max-h-[120px] overflow-auto">{String(typeof st.output === 'string' ? st.output : JSON.stringify(st.output, null, 2))}</pre></div>
                                 )}
                               </div>
                             )}

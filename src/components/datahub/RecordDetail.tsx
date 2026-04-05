@@ -152,9 +152,9 @@ function AddressCard({ addresses }: { addresses: Array<Record<string, unknown>> 
       <MapPin className="h-3.5 w-3.5 text-primary mt-0.5 shrink-0" />
       <div>
         <p className="text-foreground font-medium">
-          {[addr.cidade, addr.estado].filter(Boolean).join(', ') || '—'}
+          {[addr.cidade, addr.estado].filter(Boolean).map(String).join(', ') || '—'}
         </p>
-        {addr.cep && <p className="text-muted-foreground font-mono">CEP: {addr.cep}</p>}
+        {addr.cep && <p className="text-muted-foreground font-mono">CEP: {String(addr.cep)}</p>}
       </div>
     </div>
   );
@@ -168,8 +168,8 @@ function VendorCard({ data }: { data: Array<Record<string, unknown>> }) {
     <div className="flex items-center gap-2 px-3 py-2.5 rounded-lg bg-primary/5 border border-primary/20 text-[11px]">
       <User className="h-3.5 w-3.5 text-primary shrink-0" />
       <div>
-        <p className="text-foreground font-medium">{vendor.vendedor_nome || 'Sem vendedor'}</p>
-        {vendor.vendedor_id && <p className="text-muted-foreground font-mono text-[11px]">ID: {vendor.vendedor_id}</p>}
+        <p className="text-foreground font-medium">{String(vendor.vendedor_nome || 'Sem vendedor')}</p>
+        {vendor.vendedor_id && <p className="text-muted-foreground font-mono text-[11px]">ID: {String(vendor.vendedor_id)}</p>}
       </div>
     </div>
   );
@@ -192,10 +192,10 @@ function SupplierScoreCard({ data }: { data: Array<Record<string, unknown>> }) {
           )}
         </div>
         {s.score_geral !== undefined && (
-          <p className="text-muted-foreground">Score: <span className="text-foreground font-mono">{s.score_geral}</span></p>
+          <p className="text-muted-foreground">Score: <span className="text-foreground font-mono">{String(s.score_geral)}</span></p>
         )}
         {s.data_homologacao && (
-          <p className="text-muted-foreground">Homologado em: {formatDate(s.data_homologacao)}</p>
+          <p className="text-muted-foreground">Homologado em: {formatDate(s.data_homologacao as string)}</p>
         )}
       </div>
     </div>
@@ -211,8 +211,8 @@ function MessagesTimeline({ messages }: { messages: Array<Record<string, unknown
         <div key={i} className="flex gap-2 px-2.5 py-1.5 rounded-lg bg-secondary/20 border border-border/10 text-[11px]">
           <MessageCircle className="h-3 w-3 text-primary mt-0.5 shrink-0" />
           <div className="flex-1 min-w-0">
-            <p className="text-foreground truncate">{msg.body || '[sem conteúdo]'}</p>
-            <p className="text-muted-foreground">{msg.type} · {formatDate(msg.timestamp)}</p>
+            <p className="text-foreground truncate">{String(msg.body || '[sem conteúdo]')}</p>
+            <p className="text-muted-foreground">{String(msg.type)} · {formatDate(msg.timestamp as string | null)}</p>
           </div>
         </div>
       ))}
