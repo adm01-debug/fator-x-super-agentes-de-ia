@@ -5,7 +5,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { UserPlus, Loader2 } from 'lucide-react';
-import { supabase } from '@/integrations/supabase/client';
+import { insertWorkspaceMember } from '@/services/teamsService';
 import { getWorkspaceId } from '@/lib/agentService';
 import { toast } from 'sonner';
 
@@ -25,14 +25,12 @@ export function InviteMemberDialog({ onInvited }: InviteMemberDialogProps) {
     setLoading(true);
     try {
       const wsId = await getWorkspaceId();
-      const { error } = await supabase.from('workspace_members').insert({
+      await insertWorkspaceMember({
         workspace_id: wsId,
         email: email.trim(),
-        name: name.trim() || null,
+        name: name.trim() || undefined,
         role,
-        invited_at: new Date().toISOString(),
       });
-      if (error) throw error;
       toast.success(`Convite enviado para ${email}!`);
       setOpen(false);
       setEmail(''); setName('');

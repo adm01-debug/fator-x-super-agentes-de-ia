@@ -6,7 +6,7 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Loader2 } from 'lucide-react';
-import { supabase } from '@/integrations/supabase/client';
+import { updateKnowledgeBase } from '@/services/knowledgeService';
 import { toast } from 'sonner';
 
 interface KnowledgeBase {
@@ -47,14 +47,11 @@ export function EditKnowledgeBaseDialog({ kb, open, onOpenChange, onUpdated }: E
     if (!kb || !name.trim()) { toast.error('Nome é obrigatório'); return; }
     setLoading(true);
     try {
-      const { error } = await supabase.from('knowledge_bases').update({
+      await updateKnowledgeBase(kb.id, {
         name: name.trim(),
         description: description.trim(),
-        vector_db: vectorDb,
         embedding_model: embeddingModel,
-        status,
-      }).eq('id', kb.id);
-      if (error) throw error;
+      });
       toast.success('Base atualizada!');
       onOpenChange(false);
       onUpdated?.();

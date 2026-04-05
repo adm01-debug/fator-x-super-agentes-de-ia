@@ -6,6 +6,7 @@ import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Plus, Loader2 } from 'lucide-react';
+import { createPromptVersion, listPromptVersions } from '@/services/knowledgeService';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 
@@ -29,26 +30,15 @@ export function CreatePromptDialog({ agents, onCreated }: CreatePromptDialogProp
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) throw new Error('Não autenticado');
 
-      // Get latest version for this agent
-      const { data: latest } = await supabase
-        .from('prompt_versions')
-        .select('version')
-        .eq('agent_id', agentId)
-        .order('version', { ascending: false })
-        .limit(1)
-        .maybeSingle();
+      const versions = await listPromptVersions(agentId);
+      const nextVersion = (versions[0]?.version || 0) + 1;
 
-      const nextVersion = (latest?.version || 0) + 1;
-
-      const { error } = await supabase.from('prompt_versions').insert({
+      await createPromptVersion({
         agent_id: agentId,
         user_id: user.id,
         content: content.trim(),
         change_summary: summary.trim() || `Versão ${nextVersion}`,
-        version: nextVersion,
-        is_active: true,
       });
-      if (error) throw error;
 
       toast.success('Prompt criado!');
       setOpen(false);

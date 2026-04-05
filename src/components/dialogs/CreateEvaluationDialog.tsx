@@ -5,7 +5,8 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Plus, Loader2 } from 'lucide-react';
-import { supabase } from '@/integrations/supabase/client';
+import { listAgentsForSelect, listEvaluationDatasets, createEvaluationRun, updateEvaluationRun, invokeEvalJudge } from '@/services/evaluationsService';
+import { invokeTestRunner } from '@/services/llmGatewayService';
 import { toast } from 'sonner';
 
 interface CreateEvaluationDialogProps {
@@ -25,10 +26,10 @@ export function CreateEvaluationDialog({ onCreated }: CreateEvaluationDialogProp
   const [datasets, setDatasets] = useState<Array<{ id: string; name: string; case_count: number | null }>>([]);
 
   const loadAgents = async () => {
-    const { data } = await supabase.from('agents').select('id, name').order('name');
-    if (data) setAgents(data);
-    const { data: ds } = await supabase.from('evaluation_datasets').select('id, name, case_count').order('name');
-    if (ds) setDatasets(ds);
+    const agents = await listAgentsForSelect();
+    setAgents(agents);
+    const ds = await listEvaluationDatasets();
+    setDatasets(ds);
   };
 
   const handleCreate = async () => {
@@ -36,15 +37,14 @@ export function CreateEvaluationDialog({ onCreated }: CreateEvaluationDialogProp
     if (!agentId) { toast.error('Selecione um agente'); return; }
     setLoading(true);
     try {
-      const { data: member } = await supabase.from('workspace_members').select('workspace_id').limit(1).maybeSingle();
-      const { data: evalRun, error } = await supabase.from('evaluation_runs').insert({
+      const { data: member } = await import('@/integrations/supabase/client').then(m => m.supabase.from('workspace_members').select('workspace_id').limit(1).maybeSingle());
+      const evalRun = await createEvaluationRun({
         name: name.trim(),
         test_cases: parseInt(testCases) || 5,
         agent_id: agentId,
-        workspace_id: member?.workspace_id,
+        workspace_id: member?.data?.workspace_id,
         status: 'running',
-      }).select('id').single();
-      if (error || !evalRun) throw error || new Error('Failed to create');
+      });
 
       // If a dataset is selected, call evaluation
       if (datasetId) {

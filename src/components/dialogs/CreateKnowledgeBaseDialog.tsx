@@ -6,7 +6,7 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Plus, Loader2 } from 'lucide-react';
-import { supabase } from '@/integrations/supabase/client';
+import { createKnowledgeBaseWithWorkspace } from '@/services/knowledgeService';
 import { toast } from 'sonner';
 
 interface CreateKnowledgeBaseDialogProps {
@@ -25,15 +25,11 @@ export function CreateKnowledgeBaseDialog({ onCreated }: CreateKnowledgeBaseDial
     if (!name.trim()) { toast.error('Nome é obrigatório'); return; }
     setLoading(true);
     try {
-      const { data: member } = await supabase.from('workspace_members').select('workspace_id').limit(1).maybeSingle();
-      const { error } = await supabase.from('knowledge_bases').insert({
+      await createKnowledgeBaseWithWorkspace({
         name: name.trim(),
         description: description.trim(),
-        vector_db: vectorDb,
         embedding_model: embeddingModel,
-        workspace_id: member?.workspace_id,
       });
-      if (error) throw error;
       toast.success('Base de conhecimento criada!');
       setOpen(false);
       setName(''); setDescription('');
