@@ -86,8 +86,8 @@ export default function WorkflowsPage() {
     if (id) persistence.setSelectedId(id);
   };
 
-  const handleLoad = (workflowId: string) => {
-    const data = persistence.loadCanvas(workflowId);
+  const handleLoad = async (workflowId: string) => {
+    const data = await persistence.loadCanvas(workflowId);
     if (data) {
       setCanvasNodes(data.nodes);
       setCanvasEdges(data.edges);
