@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Badge } from '@/components/ui/badge';
+
 import { Clock, Webhook, Bell, LayoutTemplate, History, Plug, ListOrdered, Lock, Layers } from 'lucide-react';
 import { CronSchedulerPanel } from '@/components/automation/CronSchedulerPanel';
 import { WebhookManagerPanel } from '@/components/automation/WebhookManagerPanel';

@@ -1,8 +1,7 @@
 import { useState, useEffect } from 'react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { ListOrdered, Pause, Play } from 'lucide-react';
-import { Button } from '@/components/ui/button';
+import { ListOrdered } from 'lucide-react';
 import { listQueues, QUEUE_PRESETS, type QueueDefinition } from '@/services/queueManagerService';
 import { useToast } from '@/hooks/use-toast';
 

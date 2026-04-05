@@ -35,7 +35,7 @@ export function useAutomationDashboard(refreshIntervalMs: number = 30000) {
   });
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const { toast } = useToast();
+  useToast();
   const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
   const refresh = useCallback(async () => {

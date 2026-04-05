@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { History, RotateCcw, Search, Filter } from 'lucide-react';
+import { History, Search } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { listExecutions, getExecutionStats, type ExecutionRecord } from '@/services/executionHistoryService';
 import { useToast } from '@/hooks/use-toast';

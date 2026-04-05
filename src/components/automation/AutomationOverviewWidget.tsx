@@ -7,10 +7,9 @@
  * Melhoria 7/10 — automation improvements
  */
 
-import { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { Zap, Clock, Webhook, Bell, Activity, Shield, AlertTriangle } from 'lucide-react';
+import { Zap, Clock, Bell, Activity, Shield, AlertTriangle } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { useAutomationDashboard } from '@/hooks/useAutomation';
 
