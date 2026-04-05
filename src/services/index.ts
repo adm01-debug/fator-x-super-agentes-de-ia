@@ -90,7 +90,6 @@ export {
   getExecutionStats,
   type ExecutionRecord,
   type ExecutionStatus,
-  type ExecutionStats,
 } from './executionHistoryService';
 export * from './connectorRegistryService';
 export * from './queueManagerService';
