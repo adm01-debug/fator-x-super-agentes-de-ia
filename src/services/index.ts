@@ -24,3 +24,4 @@ export * from './approvalService';
 export * from './workflowCheckpointService';
 export * from './agentCardService';
 export * from './agentHandoffService';
+export * from './costCalculatorService';
