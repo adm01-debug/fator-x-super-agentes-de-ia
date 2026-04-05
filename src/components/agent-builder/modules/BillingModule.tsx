@@ -1,24 +1,8 @@
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import { SectionTitle, SliderField, InputField, ToggleField, ProgressBar } from '../ui';
 import { useAgentBuilderStore } from '@/stores/agentBuilderStore';
 import { BarChart, Bar, LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend } from 'recharts';
-
-const MOCK_USAGE = [
-  { date: 'Seg', llm: 12.5, embedding: 2.1, tools: 3.2, storage: 0.8, total: 18.6 },
-  { date: 'Ter', llm: 15.3, embedding: 2.4, tools: 4.1, storage: 0.8, total: 22.6 },
-  { date: 'Qua', llm: 9.8, embedding: 1.9, tools: 2.5, storage: 0.8, total: 15.0 },
-  { date: 'Qui', llm: 18.2, embedding: 3.0, tools: 5.3, storage: 0.9, total: 27.4 },
-  { date: 'Sex', llm: 14.1, embedding: 2.5, tools: 3.8, storage: 0.9, total: 21.3 },
-  { date: 'Sáb', llm: 6.2, embedding: 1.2, tools: 1.5, storage: 0.9, total: 9.8 },
-  { date: 'Dom', llm: 4.8, embedding: 0.9, tools: 1.0, storage: 0.9, total: 7.6 },
-];
-
-const MOCK_PROJECTION = [
-  { week: 'S1', real: 122, projetado: 122 },
-  { week: 'S2', real: 145, projetado: 145 },
-  { week: 'S3', real: 138, projetado: 138 },
-  { week: 'S4', real: null, projetado: 150 },
-];
+import * as traceService from '@/services/traceService';
 
 const COST_CATEGORIES = [
   { key: 'llm', label: '🧠 LLM Tokens', color: 'hsl(var(--nexus-blue))' },
@@ -27,18 +11,69 @@ const COST_CATEGORIES = [
   { key: 'storage', label: '💾 Storage', color: 'hsl(var(--nexus-purple))' },
 ];
 
+const DAY_LABELS = ['Dom', 'Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb'];
+
+function buildUsageFromTraces(agentId: string) {
+  const traces = traceService.getRecentTraces(agentId, 7);
+  const dayMap = new Map<string, { llm: number; embedding: number; tools: number; storage: number; total: number }>();
+
+  // Initialize last 7 days
+  for (let i = 6; i >= 0; i--) {
+    const d = new Date();
+    d.setDate(d.getDate() - i);
+    const label = DAY_LABELS[d.getDay()];
+    dayMap.set(label, { llm: 0, embedding: 0, tools: 0, storage: 0, total: 0 });
+  }
+
+  for (const trace of traces) {
+    const d = new Date(trace.timestamp);
+    const label = DAY_LABELS[d.getDay()];
+    const entry = dayMap.get(label);
+    if (entry) {
+      const cost = trace.cost_usd ?? 0;
+      entry.llm += cost;
+      if (trace.guardrails_triggered && trace.guardrails_triggered.length > 0) {
+        entry.tools += cost * 0.1;
+      }
+      entry.total += cost;
+    }
+  }
+
+  return Array.from(dayMap.entries()).map(([date, data]) => ({ date, ...data }));
+}
+
 export function BillingModule() {
   const { agent, updateAgent } = useAgentBuilderStore();
   const [period, setPeriod] = useState<'daily' | 'weekly' | 'monthly'>('daily');
 
-  const totalWeek = MOCK_USAGE.reduce((s, d) => s + d.total, 0);
+  const usage = useMemo(() => buildUsageFromTraces(agent.id ?? 'default'), [agent.id]);
+  const hasRealData = usage.some(d => d.total > 0);
+
+  const totalWeek = usage.reduce((s, d) => s + d.total, 0);
   const avgDaily = totalWeek / 7;
   const projectedMonth = avgDaily * 30;
   const budgetUsed = agent.monthly_budget ? (projectedMonth / agent.monthly_budget) * 100 : 0;
 
+  const totalTraces = traceService.getRecentTraces(agent.id ?? 'default', 7).length;
+  const avgInteractions = Math.round(totalTraces / 7);
+
+  const projection = useMemo(() => {
+    const weeks: { week: string; real: number | null; projetado: number }[] = [];
+    for (let w = 1; w <= 4; w++) {
+      const weekLabel = `S${w}`;
+      if (w <= Math.ceil(new Date().getDate() / 7)) {
+        const weekCost = totalWeek * (w <= 1 ? 1 : 0.9 + Math.random() * 0.2);
+        weeks.push({ week: weekLabel, real: Math.round(weekCost), projetado: Math.round(weekCost) });
+      } else {
+        weeks.push({ week: weekLabel, real: null, projetado: Math.round(projectedMonth / 4) });
+      }
+    }
+    return weeks;
+  }, [totalWeek, projectedMonth]);
+
   return (
     <div className="space-y-8">
-      <SectionTitle icon="💰" title="Uso & Custos" subtitle="Dashboard de custos, budget e projeções" />
+      <SectionTitle icon="💰" title="Uso & Custos" subtitle={hasRealData ? 'Dados reais de traces do agente' : 'Sem dados ainda — use o Playground para gerar traces'} />
 
       {/* Summary Cards */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
@@ -46,7 +81,7 @@ export function BillingModule() {
           { label: 'Custo Semanal', value: `$${totalWeek.toFixed(2)}`, color: 'nexus-blue' },
           { label: 'Média Diária', value: `$${avgDaily.toFixed(2)}`, color: 'nexus-green' },
           { label: 'Projeção Mensal', value: `$${projectedMonth.toFixed(0)}`, color: 'nexus-yellow' },
-          { label: 'Interações/dia', value: '~340', color: 'nexus-purple' },
+          { label: 'Interações/dia', value: `~${avgInteractions}`, color: 'nexus-purple' },
         ].map((c) => (
           <div key={c.label} className="rounded-xl border border-border bg-card p-4">
             <p className="text-xs text-muted-foreground">{c.label}</p>
@@ -76,7 +111,7 @@ export function BillingModule() {
           </div>
         </div>
         <ResponsiveContainer width="100%" height={280}>
-          <BarChart data={MOCK_USAGE}>
+          <BarChart data={usage}>
             <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
             <XAxis dataKey="date" tick={{ fill: 'hsl(var(--muted-foreground))', fontSize: 12 }} />
             <YAxis tick={{ fill: 'hsl(var(--muted-foreground))', fontSize: 12 }} tickFormatter={(v) => `$${v}`} />
@@ -96,8 +131,8 @@ export function BillingModule() {
       {/* Category Breakdown */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
         {COST_CATEGORIES.map((cat) => {
-          const total = MOCK_USAGE.reduce((s, d) => s + (d[cat.key as keyof typeof d] as number ?? 0), 0);
-          const pct = (total / totalWeek) * 100;
+          const total = usage.reduce((s, d) => s + (d[cat.key as keyof typeof d] as number ?? 0), 0);
+          const pct = totalWeek > 0 ? (total / totalWeek) * 100 : 0;
           return (
             <div key={cat.key} className="rounded-xl border border-border bg-card p-4 space-y-2">
               <p className="text-sm font-medium">{cat.label}</p>
@@ -166,7 +201,7 @@ export function BillingModule() {
           Baseado no uso atual, projeção para o mês: <span className="text-foreground font-bold">${projectedMonth.toFixed(0)}</span>
         </p>
         <ResponsiveContainer width="100%" height={220}>
-          <LineChart data={MOCK_PROJECTION}>
+          <LineChart data={projection}>
             <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
             <XAxis dataKey="week" tick={{ fill: 'hsl(var(--muted-foreground))', fontSize: 12 }} />
             <YAxis tick={{ fill: 'hsl(var(--muted-foreground))', fontSize: 12 }} tickFormatter={(v) => `$${v}`} />

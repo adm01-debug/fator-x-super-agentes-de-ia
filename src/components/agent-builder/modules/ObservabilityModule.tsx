@@ -4,55 +4,34 @@ import { CollapsibleCard } from '../ui/CollapsibleCard';
 import { Activity, Clock, DollarSign, AlertTriangle, CheckCircle, XCircle, Filter } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import type { ExecutionTrace } from '@/types/agentTypes';
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
+import * as traceService from '@/services/traceService';
 
-const MOCK_TRACES: ExecutionTrace[] = [
-  {
-    id: 'trace-001', session_id: 'sess-abc', user_input: 'Qual o status do meu pedido #12345?',
-    context_retrieved: [{ source: 'orders_db', chunk: 'Pedido #12345 - Status: Enviado', score: 0.95 }],
-    memories_used: [{ type: 'profile', content: 'Cliente VIP, preferência por respostas diretas' }],
-    prompt_assembled: 'System: Você é um assistente de atendimento...\nUser: Qual o status do meu pedido #12345?',
-    llm_response: 'Seu pedido #12345 foi enviado e está a caminho.',
-    tool_calls: [{ tool: 'order_lookup', input: { id: '12345' }, output: { status: 'shipped' }, latency_ms: 120, success: true }],
-    guardrails_triggered: [], final_output: 'Seu pedido #12345 foi enviado e está a caminho! 📦',
-    total_tokens: 450, total_cost: 0.0023, latency_ms: 1200, status: 'success', created_at: '2026-03-30T10:15:00Z',
-  },
-  {
-    id: 'trace-002', session_id: 'sess-def', user_input: 'Me dê dicas de investimento em cripto',
-    context_retrieved: [], memories_used: [],
-    prompt_assembled: 'System: Você é um assistente...\nUser: Me dê dicas de investimento em cripto',
-    llm_response: '', tool_calls: [],
-    guardrails_triggered: [{ id: 'blocked_topic', action: 'block', reason: 'Tópico bloqueado: investimentos financeiros' }],
-    final_output: 'Desculpe, não posso fornecer orientações sobre investimentos.',
-    total_tokens: 80, total_cost: 0.0004, latency_ms: 350, status: 'blocked', created_at: '2026-03-30T10:18:00Z',
-  },
-  {
-    id: 'trace-003', session_id: 'sess-ghi', user_input: 'Gere um relatório completo de vendas Q1',
-    context_retrieved: [
-      { source: 'sales_db', chunk: 'Vendas Q1: R$ 2.5M total', score: 0.92 },
-      { source: 'analytics', chunk: 'Crescimento 15% YoY', score: 0.88 },
-    ],
-    memories_used: [{ type: 'procedural', content: 'Template: incluir gráficos e comparativo YoY' }],
-    prompt_assembled: 'System: Você é um analista de dados...',
-    llm_response: 'Relatório de Vendas Q1 2026...',
-    tool_calls: [
-      { tool: 'sql_query', input: { query: 'SELECT...' }, output: { rows: 150 }, latency_ms: 800, success: true },
-      { tool: 'chart_gen', input: { type: 'bar' }, output: { url: '/chart.png' }, latency_ms: 2100, success: true },
-    ],
-    guardrails_triggered: [], final_output: 'Relatório de Vendas Q1 2026\n\nTotal: R$ 2.5M...',
-    total_tokens: 3200, total_cost: 0.016, latency_ms: 4500, status: 'success', created_at: '2026-03-30T09:45:00Z',
-  },
-  {
-    id: 'trace-004', session_id: 'sess-jkl', user_input: 'Atualize o CRM com os dados do cliente',
-    context_retrieved: [], memories_used: [],
-    prompt_assembled: 'System: ...',
-    llm_response: 'Tentando atualizar...',
-    tool_calls: [{ tool: 'crm_update', input: { id: 'c-99' }, output: { error: 'timeout' }, latency_ms: 30000, success: false }],
-    guardrails_triggered: [], final_output: 'Não foi possível atualizar o CRM. Tente novamente.',
-    total_tokens: 200, total_cost: 0.001, latency_ms: 32000, status: 'error', error_details: 'CRM API timeout after 30s',
-    created_at: '2026-03-30T09:30:00Z',
-  },
-];
+/** Convert real traceService traces to the UI ExecutionTrace format. */
+function convertServiceTraces(agentId: string): ExecutionTrace[] {
+  const raw = traceService.getTraces(100, agentId);
+  return raw.map(t => ({
+    id: t.id,
+    session_id: t.session_id,
+    user_input: t.input,
+    context_retrieved: [],
+    memories_used: [],
+    prompt_assembled: '',
+    llm_response: t.output,
+    tool_calls: t.tools_used.map(tool => ({
+      tool, input: {}, output: {}, latency_ms: 0, success: true,
+    })),
+    guardrails_triggered: t.guardrails_triggered.map(g => ({
+      id: g, action: 'warn' as const, reason: g,
+    })),
+    final_output: t.output,
+    total_tokens: t.tokens_in + t.tokens_out,
+    total_cost: t.cost_usd,
+    latency_ms: t.latency_ms,
+    status: t.status as ExecutionTrace['status'],
+    created_at: t.timestamp,
+  }));
+}
 
 const STATUS_CONFIG: Record<string, { icon: React.ReactNode; label: string; className: string }> = {
   success: { icon: <CheckCircle className="h-3.5 w-3.5" />, label: 'Sucesso', className: 'text-green-500 bg-green-500/10' },
@@ -67,7 +46,7 @@ export function ObservabilityModule() {
   const [selectedTrace, setSelectedTrace] = useState<string | null>(null);
   const [statusFilter, setStatusFilter] = useState<string>('all');
 
-  const traces = MOCK_TRACES;
+  const traces = useMemo(() => convertServiceTraces(agent.id ?? 'default'), [agent.id]);
   const filtered = statusFilter === 'all' ? traces : traces.filter((t) => t.status === statusFilter);
   const selected = traces.find((t) => t.id === selectedTrace);
 
@@ -264,7 +243,7 @@ export function ObservabilityModule() {
             onChange={(e) => {
               const query = e.target.value.toLowerCase().trim();
               if (query.length > 10) {
-                const match = MOCK_TRACES.find(t =>
+                const match = traces.find(t =>
                   t.final_output.toLowerCase().includes(query.slice(0, 30))
                 );
                 if (match) setSelectedTrace(match.id);

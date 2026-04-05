@@ -134,6 +134,25 @@ export function PlaygroundModule() {
         },
       };
       setMessages(prev => [...prev, assistantMsg]);
+
+      // Record trace for observability
+      traceService.recordTrace({
+        agent_id: agent.id ?? 'default',
+        agent_name: agent.name || 'Agente',
+        session_id: 'playground',
+        input: input.trim(),
+        output: response.content,
+        model: response.model,
+        tokens_in: response.tokens.input,
+        tokens_out: response.tokens.output,
+        cost_usd: response.cost ?? 0,
+        latency_ms: response.latencyMs,
+        guardrails_triggered: guardrailsTriggered,
+        tools_used: [],
+        events: [],
+        status: response.error ? 'error' : 'success',
+      });
+
       // Auto-extract memory from conversation
       memoryService.autoExtractFromConversation(agent.id ?? 'default', input.trim(), response.content);
     } else {
@@ -168,7 +187,7 @@ export function PlaygroundModule() {
         icon="🎮"
         title="Playground"
         subtitle="Teste seu agente ao vivo com a configuração atual"
-        badge={<NexusBadge color="green">Simulação</NexusBadge>}
+        badge={<NexusBadge color={llm.isLLMConfigured() ? 'blue' : 'green'}>{llm.isLLMConfigured() ? 'LLM Real' : 'Simulação'}</NexusBadge>}
       />
 
       {/* Controls */}

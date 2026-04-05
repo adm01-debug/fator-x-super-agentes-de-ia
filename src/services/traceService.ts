@@ -111,6 +111,15 @@ export function getTraces(limit = 50, agentId?: string): ExecutionTrace[] {
   return result.slice(0, limit);
 }
 
+/** Get traces from the last N days for a specific agent. */
+export function getRecentTraces(agentId: string, days = 7): ExecutionTrace[] {
+  const cutoff = new Date();
+  cutoff.setDate(cutoff.getDate() - days);
+  return traces.filter(t =>
+    t.agent_id === agentId && new Date(t.timestamp) >= cutoff
+  );
+}
+
 /** Get usage records for a time period. */
 export function getUsage(days = 30, agentId?: string): UsageRecord[] {
   const cutoff = new Date();
