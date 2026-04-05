@@ -96,14 +96,14 @@ function AudioTranscribeTab() {
           {loading && <div className="flex items-center justify-center h-32"><Loader2 className="h-6 w-6 animate-spin text-muted-foreground" /></div>}
           {data && !loading && (
             <div className="space-y-2">
-              {(data as Record<string, unknown>).text && (
+              {data.text && (
                 <div className="p-3 rounded bg-background border text-sm whitespace-pre-wrap">
-                  {String((data as Record<string, unknown>).text)}
+                  {String(data.text)}
                 </div>
               )}
-              {(data as Record<string, unknown>).categories && (
+              {data.categories && (
                 <div className="space-y-1">
-                  {((data as Record<string, unknown>).categories as Array<{ label: string; score: number }>)?.map((c, i) => (
+                  {(data.categories as Array<{ label: string; score: number }>)?.map((c, i) => (
                     <div key={i} className="flex items-center justify-between text-sm">
                       <span>{c.label}</span>
                       <Badge variant="outline">{(c.score * 100).toFixed(1)}%</Badge>
@@ -111,8 +111,8 @@ function AudioTranscribeTab() {
                   ))}
                 </div>
               )}
-              {(data as Record<string, unknown>).latency_ms && (
-                <p className="text-xs text-muted-foreground">Latência: {String((data as Record<string, unknown>).latency_ms)}ms</p>
+              {data.latency_ms && (
+                <p className="text-xs text-muted-foreground">Latência: {String(data.latency_ms)}ms</p>
               )}
             </div>
           )}
