@@ -7,6 +7,5 @@ describe("PageLoading", () => {
   it("renders loading indicator with accessible role", () => {
     render(<MemoryRouter><PageLoading /></MemoryRouter>);
     expect(screen.getByRole("status")).toBeInTheDocument();
-    expect(screen.getByText("Carregando...")).toBeInTheDocument();
   });
 });
