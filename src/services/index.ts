@@ -80,3 +80,4 @@ export {
   getTemplateStats as getAutomationTemplateStats,
   BUILTIN_TEMPLATES,
 } from './automationTemplateService';
+export * from './executionHistoryService';
