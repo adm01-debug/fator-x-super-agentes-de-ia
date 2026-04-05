@@ -113,3 +113,51 @@ export async function getChunkEmbeddingStats() {
   ]);
   return { done: done.count ?? 0, pending: pending.count ?? 0, failed: failed.count ?? 0 };
 }
+
+export interface RerankResult {
+  chunk: Record<string, unknown>;
+  relevance_score: number;
+}
+
+export interface RerankResponse {
+  reranked: RerankResult[];
+  method: string;
+  query: string;
+  total_input: number;
+  top_k: number;
+}
+
+/**
+ * Rerank chunks using the rag-rerank edge function.
+ * Supports Cohere, HuggingFace BGE, and LLM fallback layers.
+ */
+export async function rerankChunks(
+  query: string,
+  chunks: Record<string, unknown>[],
+  options?: { topK?: number; knowledgeBaseId?: string }
+): Promise<RerankResponse> {
+  const { data: { session } } = await supabase.auth.getSession();
+  if (!session) throw new Error('Not authenticated');
+
+  const resp = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/rag-rerank`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'Authorization': `Bearer ${session.access_token}`,
+      'apikey': import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY,
+    },
+    body: JSON.stringify({
+      query,
+      chunks,
+      top_k: options?.topK || 5,
+      knowledge_base_id: options?.knowledgeBaseId,
+    }),
+  });
+
+  if (!resp.ok) {
+    const err = await resp.json().catch(() => ({}));
+    throw new Error((err as Record<string, string>).error || `Rerank failed (${resp.status})`);
+  }
+
+  return resp.json();
+}
