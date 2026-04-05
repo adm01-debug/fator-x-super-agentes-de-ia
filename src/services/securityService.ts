@@ -27,7 +27,7 @@ export async function revokeApiKey(_id: string) {
 export async function getSecurityEvents(_options?: { severity?: string; limit?: number }) {
   // Use audit_log as proxy for security events
   const { data, error } = await supabase
-    .from('audit_log')
+    .from('audit_log_safe')
     .select('*')
     .order('created_at', { ascending: false })
     .limit(_options?.limit || 50);
@@ -42,7 +42,7 @@ export async function getSecurityEvents(_options?: { severity?: string; limit?: 
 
 export async function getAuditLog(options?: { userId?: string; limit?: number }) {
   let query = supabase
-    .from('audit_log')
+    .from('audit_log_safe')
     .select('*')
     .order('created_at', { ascending: false })
     .limit(options?.limit || 100);
