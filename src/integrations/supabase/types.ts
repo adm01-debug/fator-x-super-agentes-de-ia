@@ -1695,6 +1695,47 @@ export type Database = {
         }
         Relationships: []
       }
+      workspace_members_safe: {
+        Row: {
+          accepted_at: string | null
+          email: string | null
+          id: string | null
+          invited_at: string | null
+          name: string | null
+          role: string | null
+          user_id: string | null
+          workspace_id: string | null
+        }
+        Insert: {
+          accepted_at?: string | null
+          email?: never
+          id?: string | null
+          invited_at?: string | null
+          name?: string | null
+          role?: string | null
+          user_id?: string | null
+          workspace_id?: string | null
+        }
+        Update: {
+          accepted_at?: string | null
+          email?: never
+          id?: string | null
+          invited_at?: string | null
+          name?: string | null
+          role?: string | null
+          user_id?: string | null
+          workspace_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "workspace_members_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Functions: {
       accept_workspace_invitation: {
