@@ -222,6 +222,7 @@ export function getStreamingConfig(useCase: 'chat' | 'council' | 'workflow' | 'b
     case 'batch': return { ...DEFAULT_STREAMING_CONFIG, enabled: false };
     default: {
       const _exhaustive: never = useCase;
-      throw new Error(`Unhandled streaming use case: ${_exhaustive}`);
+      logger.error(`Unknown streaming use case: ${_exhaustive}`, new Error(`Unhandled streaming use case: ${_exhaustive}`), 'contextManager');
+      return { ...DEFAULT_STREAMING_CONFIG };
     }
 }

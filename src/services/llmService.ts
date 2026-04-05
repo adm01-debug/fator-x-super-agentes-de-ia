@@ -200,6 +200,7 @@ export async function callModel(
       method: 'POST',
       headers,
       body: JSON.stringify(body),
+      signal: AbortSignal.timeout(30000),
     });
 
     const latencyMs = Date.now() - startTime;
