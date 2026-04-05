@@ -46,17 +46,17 @@ serve(async (req) => {
     let usedMethod = 'original_order';
 
     // Layer 1: Cohere Rerank API
-    if (wsId) {
-      const { data: secrets } = await supabase
-        .from('workspace_secrets')
-        .select('key_value')
-        .eq('workspace_id', wsId)
-        .eq('key_name', 'cohere_api_key')
-        .limit(1);
-      const cohereKeyValue = secrets?.[0]?.key_value;
+    try {
+      if (wsId) {
+        const { data: secrets } = await supabase
+          .from('workspace_secrets')
+          .select('key_value')
+          .eq('workspace_id', wsId)
+          .eq('key_name', 'cohere_api_key')
+          .limit(1);
+        const cohereKeyValue = secrets?.[0]?.key_value;
 
-      if (cohereKeyValue) {
-        try {
+        if (cohereKeyValue) {
           const resp = await fetch('https://api.cohere.ai/v1/rerank', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${cohereKeyValue}` },
@@ -76,10 +76,10 @@ serve(async (req) => {
             }));
             if (reranked.length > 0) usedMethod = 'cohere';
           }
-        } catch (e: unknown) {
-          console.error('Cohere rerank failed:', e instanceof Error ? e.message : e);
         }
       }
+    } catch (e: unknown) {
+      console.error('Cohere layer failed:', e instanceof Error ? e.message : e);
     }
 
     // Layer 2: HuggingFace BGE Reranker (free cross-encoder)
