@@ -58,3 +58,8 @@ export async function updateMemberRole(workspaceId: string, userId: string, newR
 
   if (error) throw error;
 }
+
+export async function insertWorkspaceMember(member: { workspace_id: string; email: string; role: string; name?: string }) {
+  const { error } = await supabase.from('workspace_members').insert(member);
+  if (error) throw error;
+}
