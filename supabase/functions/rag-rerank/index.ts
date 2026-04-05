@@ -167,7 +167,7 @@ serve(async (req) => {
 
     return jsonResponse(req, {
       reranked,
-      method,
+      method: usedMethod,
       query,
       total_input: chunks.length,
       top_k: topK,
