@@ -9,7 +9,7 @@
  * This enables automatic discovery and interoperability between agents.
  */
 
-import { supabase } from '@/integrations/supabase/client';
+// supabase import removed — this service uses fromTable for untyped tables
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 import { fromTable } from '@/lib/supabaseExtended';

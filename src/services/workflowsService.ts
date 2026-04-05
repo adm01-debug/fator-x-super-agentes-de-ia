@@ -5,6 +5,7 @@
 
 import { logger } from '@/lib/logger';
 import { supabase } from '@/integrations/supabase/client';
+import { fromTable } from '@/lib/supabaseExtended';
 import type { Json } from '@/integrations/supabase/types';
 
 export interface WorkflowNode {
@@ -81,8 +82,8 @@ export async function listWorkflows(): Promise<Workflow[]> {
 /* ── Get single ── */
 export async function getWorkflow(id: string): Promise<Workflow> {
   const [workflowRes, stepsRes] = await Promise.all([
-    supabase.from('workflows').select('*').eq('id', id).single(),
-    supabase.from('workflow_steps').select('*').eq('workflow_id', id).order('step_order', { ascending: true }),
+    fromTable('workflows').select('*').eq('id', id).single(),
+    fromTable('workflow_steps').select('*').eq('workflow_id', id).order('step_order', { ascending: true }),
   ]);
 
   if (workflowRes.error) throw workflowRes.error;
@@ -130,8 +131,8 @@ export async function saveWorkflow(workflow: Partial<Workflow> & { name: string 
 
 /* ── Delete ── */
 export async function deleteWorkflow(id: string): Promise<void> {
-  await supabase.from('workflow_steps').delete().eq('workflow_id', id);
-  const { error } = await supabase.from('workflows').delete().eq('id', id);
+  await fromTable('workflow_steps').delete().eq('workflow_id', id);
+  const { error } = await fromTable('workflows').delete().eq('id', id);
   if (error) throw error;
 }
 
@@ -213,7 +214,7 @@ export async function getWorkflowSteps(workflowId: string): Promise<WorkflowStep
 /* ── Sync steps from canvas nodes ── */
 async function syncWorkflowSteps(workflowId: string, nodes: WorkflowNode[]): Promise<void> {
   // Delete existing steps
-  await supabase.from('workflow_steps').delete().eq('workflow_id', workflowId);
+  await fromTable('workflow_steps').delete().eq('workflow_id', workflowId);
 
   if (nodes.length === 0) return;
 
@@ -232,7 +233,7 @@ async function syncWorkflowSteps(workflowId: string, nodes: WorkflowNode[]): Pro
     } as unknown as Json,
   }));
 
-  const { error } = await supabase.from('workflow_steps').insert(stepsToInsert);
+  const { error } = await fromTable('workflow_steps').insert(stepsToInsert);
   if (error) {
     logger.error('Failed to sync workflow_steps:', error.message);
   }

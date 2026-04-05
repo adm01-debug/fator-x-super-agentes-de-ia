@@ -11,7 +11,9 @@
  * Gap 6/10 — automation topic analysis
  */
 
+import { fromTable } from '@/lib/supabaseExtended';
 import { supabase } from '@/integrations/supabase/client';
+
 
 /* ------------------------------------------------------------------ */
 /*  Types                                                              */
@@ -90,7 +92,7 @@ export async function listTemplates(
     search?: string;
   },
 ): Promise<AutomationTemplate[]> {
-  let query = supabase.from('automation_templates')
+  let query = fromTable('automation_templates')
     .select('*')
     .eq('is_active', true)
     .order('installs', { ascending: false });
@@ -107,7 +109,7 @@ export async function listTemplates(
 }
 
 export async function getTemplate(id: string): Promise<AutomationTemplate | null> {
-  const { data, error } = await supabase.from('automation_templates')
+  const { data, error } = await fromTable('automation_templates')
     .select('*')
     .eq('id', id)
     .maybeSingle();
@@ -116,7 +118,7 @@ export async function getTemplate(id: string): Promise<AutomationTemplate | null
 }
 
 export async function getTemplateBySlug(slug: string): Promise<AutomationTemplate | null> {
-  const { data, error } = await supabase.from('automation_templates')
+  const { data, error } = await fromTable('automation_templates')
     .select('*')
     .eq('slug', slug)
     .maybeSingle();
@@ -131,7 +133,7 @@ export async function installTemplate(
   const { data: userData } = await supabase.auth.getUser();
   const userId = userData?.user?.id ?? null;
 
-  const { data, error } = await supabase.from('installed_templates')
+  const { data, error } = await fromTable('installed_templates')
     .insert({
       template_id: templateId,
       config_overrides: configOverrides ?? {},
@@ -149,7 +151,7 @@ export async function installTemplate(
 }
 
 export async function listInstalledTemplates(): Promise<InstalledTemplate[]> {
-  const { data, error } = await supabase.from('installed_templates')
+  const { data, error } = await fromTable('installed_templates')
     .select('*')
     .order('installed_at', { ascending: false });
   if (error) throw error;
@@ -157,7 +159,7 @@ export async function listInstalledTemplates(): Promise<InstalledTemplate[]> {
 }
 
 export async function uninstallTemplate(installId: string): Promise<void> {
-  const { error } = await supabase.from('installed_templates').delete().eq('id', installId);
+  const { error } = await fromTable('installed_templates').delete().eq('id', installId);
   if (error) throw error;
 }
 
