@@ -154,7 +154,7 @@ function AddressCard({ addresses }: { addresses: Array<Record<string, unknown>> 
         <p className="text-foreground font-medium">
           {[addr.cidade, addr.estado].filter(Boolean).map(String).join(', ') || '—'}
         </p>
-        {addr.cep && <p className="text-muted-foreground font-mono">CEP: {String(addr.cep)}</p>}
+        {addr.cep ? <p className="text-muted-foreground font-mono">CEP: {String(addr.cep)}</p> : null}
       </div>
     </div>
   );
@@ -169,7 +169,7 @@ function VendorCard({ data }: { data: Array<Record<string, unknown>> }) {
       <User className="h-3.5 w-3.5 text-primary shrink-0" />
       <div>
         <p className="text-foreground font-medium">{String(vendor.vendedor_nome || 'Sem vendedor')}</p>
-        {vendor.vendedor_id && <p className="text-muted-foreground font-mono text-[11px]">ID: {String(vendor.vendedor_id)}</p>}
+        {vendor.vendedor_id ? <p className="text-muted-foreground font-mono text-[11px]">ID: {String(vendor.vendedor_id)}</p> : null}
       </div>
     </div>
   );
@@ -194,7 +194,7 @@ function SupplierScoreCard({ data }: { data: Array<Record<string, unknown>> }) {
         {s.score_geral !== undefined && (
           <p className="text-muted-foreground">Score: <span className="text-foreground font-mono">{String(s.score_geral)}</span></p>
         )}
-        {s.data_homologacao && (
+        {s.data_homologacao ? (
           <p className="text-muted-foreground">Homologado em: {formatDate(s.data_homologacao as string)}</p>
         )}
       </div>
