@@ -120,43 +120,8 @@ serve(async (req) => {
       }
     }
 
-    // Layer 3 (fallback): LLM-based reranking via Lovable AI
-    if (!reranked) {
-      try {
-        const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
-        const supabaseKey = Deno.env.get('SUPABASE_ANON_KEY')!;
-        const authHeader = req.headers.get('Authorization')!;
-        const chunkList = chunks.slice(0, 20).map((c: Record<string, unknown>, i: number) =>
-          `[${i}] ${String(c.content || c.text || c).substring(0, 300)}`
-        ).join('\n\n');
-
-        const resp = await fetch(`${supabaseUrl}/functions/v1/llm-gateway`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json', 'Authorization': authHeader, 'apikey': supabaseKey },
-          body: JSON.stringify({
-            model: 'gemini-2.5-flash',
-            messages: [
-              { role: 'system', content: 'You are a relevance ranker. Given a query and numbered passages, return ONLY a JSON array of the most relevant passage indices, ordered by relevance. Example: [3, 7, 1, 5]' },
-              { role: 'user', content: `Query: "${query}"\n\nPassages:\n${chunkList}\n\nReturn the top ${topK} most relevant indices as a JSON array.` },
-            ],
-            temperature: 0,
-            max_tokens: 200,
-          }),
-        });
-        if (!resp.ok) throw new Error(`LLM gateway returned ${resp.status}`);
-        const data = await resp.json();
-        const content = ((data as Record<string, string>).content || '').replace(/```json\n?|```/g, '').trim();
-        const indices: number[] = JSON.parse(content);
-        reranked = indices.filter(i => i >= 0 && i < chunks.length).slice(0, topK).map((idx, rank) => ({
-          chunk: chunks[idx],
-          relevance_score: 1 - (rank * 0.1),
-        }));
-        if (reranked.length > 0) usedMethod = 'llm_fallback';
-        else reranked = null;
-      } catch (e) {
-        console.error('LLM rerank fallback failed:', e instanceof Error ? e.message : e);
-      }
-    }
+    // Layer 3: Skip LLM self-call (causes edge function timeout)
+    // Fall through to ultimate fallback
 
     // Ultimate fallback: original order
     if (!reranked) {
