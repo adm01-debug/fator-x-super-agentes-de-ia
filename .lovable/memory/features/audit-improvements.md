@@ -101,10 +101,26 @@ type: feature
 - SettingsModule updated to use masked RPC
 - Eye/EyeOff toggle removed (values always masked server-side)
 - Zero `as any` in frontend (huggingface.ts refactored with getDenoEnv helper)
-- Remaining warnings: HIBP (manual), at-rest encryption (infra), member emails (intentional), tool_integrations owner-only (intentional)
 
-## Score: 10/10 ✅ (Sprint 13 complete)
+## Completed — Sprint 14 (Service Layer & Security)
+- audit_log_safe VIEW created (SECURITY INVOKER) — excludes ip_address from user queries
+- AuditLogSection + securityService migrated to audit_log_safe view
+- api_keys TABLE created with RLS — SHA-256 hashed storage, prefix-only display
+- securityService fully wired to api_keys table (create/list/revoke)
+- deploymentsService: listDeployedAgents() with channel status
+- evaluationsService: listEvaluationRuns(), listEvaluationDatasets(), listTestCases()
+- knowledgeService: listKnowledgeBases(), deleteKnowledgeBase(), listVectorIndexes(), getChunkEmbeddingStats()
+- All pages migrated to service layer (DeploymentsPage, EvaluationsPage, KnowledgePage, SecurityPage)
+- useI18n language selector integrated in sidebar footer
+- Bitrix24Connect + MCPServerManager refactored with semantic tokens
+- 19 new service layer tests (all passing)
+- fromTable() helper hardened with proper type isolation
+- Security scan: 0 ERRORS, 4 WARNINGS (all known/intentional)
+
+## Score: 10/10 ✅ (Sprint 14 complete)
 
 ## Note
 - HIBP (leaked password protection) — requires manual activation in Cloud UI (operational, not code)
 - Vault encryption at rest — requires pgsodium extension at infrastructure level
+- Member emails visible in workspace — intentional for collaboration features
+- tool_integrations owner-only — intentional for credential protection
