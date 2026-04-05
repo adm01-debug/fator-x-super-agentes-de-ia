@@ -28,14 +28,49 @@ export function clearWorkspaceCache() {
   cachedWorkspaceId = null;
 }
 
-export async function listAgents() {
-  const { data, error } = await supabase
+export async function listAgents(statusFilter?: string) {
+  let query = supabase
     .from('agents')
-    .select('id, name, mission, persona, model, avatar_emoji, reasoning, status, version, tags, updated_at, created_at')
+    .select('*')
     .order('updated_at', { ascending: false });
-
+  if (statusFilter && statusFilter !== 'all') {
+    query = query.eq('status', statusFilter);
+  }
+  const { data, error } = await query;
   if (error) throw error;
   return data ?? [];
+}
+
+export async function cloneAgent(agent: { id: string; name: string; [key: string]: unknown }) {
+  const { id, created_at, updated_at, ...rest } = agent;
+  const { data, error } = await supabase.from('agents').insert({
+    ...rest,
+    name: `${agent.name} (cópia)`,
+    status: 'draft' as const,
+    version: 1,
+  }).select('id').single();
+  if (error) throw error;
+  return data;
+}
+
+export async function autoTagAgent(agent: { id: string; model: string | null; config: unknown; status: string | null; persona: string | null; tags: string[] | null }) {
+  const config = agent.config as Record<string, unknown> | null;
+  const tags: string[] = [];
+  if (agent.model?.includes('gpt')) tags.push('OpenAI');
+  if (agent.model?.includes('gemini')) tags.push('Gemini');
+  if (agent.model?.includes('claude')) tags.push('Claude');
+  if (config?.tools && Array.isArray(config.tools) && config.tools.length) tags.push('tools');
+  if (config?.rag_enabled || config?.knowledge_base) tags.push('RAG');
+  if (config?.memory_enabled) tags.push('memory');
+  if (agent.status === 'production') tags.push('prod');
+  if (agent.persona) tags.push('persona');
+  const merged = [...new Set([...(agent.tags ?? []), ...tags])];
+  if (merged.length === (agent.tags ?? []).length) {
+    return { added: 0 };
+  }
+  const { error } = await supabase.from('agents').update({ tags: merged }).eq('id', agent.id);
+  if (error) throw error;
+  return { added: merged.length - (agent.tags ?? []).length };
 }
 
 export async function getAgent(id: string): Promise<AgentConfig> {
