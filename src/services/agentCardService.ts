@@ -11,6 +11,8 @@
 
 import { supabase } from '@/integrations/supabase/client';
 
+type DynFrom = (table: string) => ReturnType<typeof supabase.from>;
+
 // ──────── A2A Agent Card Types (following official spec) ────────
 
 export interface AgentSkill {

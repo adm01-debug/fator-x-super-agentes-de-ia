@@ -12,6 +12,8 @@
 
 import { supabase } from '@/integrations/supabase/client';
 
+type DynFrom = (table: string) => ReturnType<typeof supabase.from>;
+
 // ──────── Types ────────
 
 export type HandoffReason =
