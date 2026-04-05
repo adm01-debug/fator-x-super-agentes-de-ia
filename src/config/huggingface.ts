@@ -101,15 +101,24 @@ export const TEI_DOCKER_COMMANDS = {
   embeddings: `docker run --gpus all -p 8080:80 ghcr.io/huggingface/text-embeddings-inference:cuda-1.9 --model-id BAAI/bge-m3`,
   reranker: `docker run --gpus all -p 8081:80 ghcr.io/huggingface/text-embeddings-inference:cuda-1.9 --model-id BAAI/bge-reranker-v2-m3`,
 } as const;
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+const getDenoEnv = (key: string): string | null => {
+  try {
+    if (typeof globalThis !== 'undefined' && 'Deno' in globalThis) {
+      return (globalThis as unknown as { Deno: { env: { get: (k: string) => string | undefined } } }).Deno.env.get(key) ?? null;
+    }
+  } catch { /* browser environment */ }
+  return null;
+};
 
 export function getEmbeddingsUrl(hfToken: string): { url: string; headers: Record<string, string> } {
-  const teiEndpoint = typeof globalThis !== 'undefined' && 'Deno' in globalThis ? (globalThis as any).Deno.env.get('HF_TEI_ENDPOINT') : null;
+  const teiEndpoint = getDenoEnv('HF_TEI_ENDPOINT');
   if (teiEndpoint) return { url: `${teiEndpoint}/embed`, headers: { 'Content-Type': 'application/json' } };
   return { url: `${HF_INFERENCE_URL}/${HF_MODELS_RAG.embeddings.id}`, headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${hfToken}` } };
 }
 
 export function getRerankerUrl(hfToken: string): { url: string; headers: Record<string, string> } {
-  const teiEndpoint = typeof globalThis !== 'undefined' && 'Deno' in globalThis ? (globalThis as any).Deno.env.get('HF_TEI_RERANK_ENDPOINT') : null;
+  const teiEndpoint = getDenoEnv('HF_TEI_RERANK_ENDPOINT');
   if (teiEndpoint) return { url: `${teiEndpoint}/rerank`, headers: { 'Content-Type': 'application/json' } };
   return { url: `${HF_INFERENCE_URL}/${HF_MODELS_RAG.reranker.id}`, headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${hfToken}` } };
 }
