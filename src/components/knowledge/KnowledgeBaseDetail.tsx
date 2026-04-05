@@ -1,6 +1,17 @@
 import { useState } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
-import { supabase } from '@/integrations/supabase/client';
+import {
+  listCollectionsForKB,
+  listDocuments,
+  listChunksForDocuments,
+  createCollectionForKB,
+  deleteCollection,
+  deleteDocument,
+  createDocumentWithIngest,
+  getDocumentCount,
+  getChunkCountForCollection,
+  updateKBCounts,
+} from '@/services/knowledgeService';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
@@ -29,136 +40,87 @@ export function KnowledgeBaseDetail({ kbId, kbName, onBack }: KnowledgeBaseDetai
   const [docSourceUrl, setDocSourceUrl] = useState('');
   const [saving, setSaving] = useState(false);
 
-  // Collections
   const { data: collections = [], isLoading: loadingColls } = useQuery({
     queryKey: ['collections', kbId],
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from('collections')
-        .select('*')
-        .eq('knowledge_base_id', kbId)
-        .order('created_at', { ascending: false });
-      if (error) throw error;
-      return data ?? [];
-    },
+    queryFn: () => listCollectionsForKB(kbId),
   });
 
-  // Documents for selected collection
   const { data: documents = [], isLoading: loadingDocs } = useQuery({
     queryKey: ['documents', selectedCollectionId],
-    queryFn: async () => {
-      if (!selectedCollectionId) return [];
-      const { data, error } = await supabase
-        .from('documents')
-        .select('*')
-        .eq('collection_id', selectedCollectionId)
-        .order('created_at', { ascending: false });
-      if (error) throw error;
-      return data ?? [];
-    },
+    queryFn: () => selectedCollectionId ? listDocuments(selectedCollectionId) : Promise.resolve([]),
     enabled: !!selectedCollectionId,
   });
 
-  // Chunks for selected collection documents
   const selectedDocIds = documents.map(d => d.id);
   const { data: chunks = [], isLoading: loadingChunks } = useQuery({
     queryKey: ['chunks', selectedDocIds],
-    queryFn: async () => {
-      if (selectedDocIds.length === 0) return [];
-      const { data, error } = await supabase
-        .from('chunks')
-        .select('*')
-        .in('document_id', selectedDocIds)
-        .order('chunk_index', { ascending: true })
-        .limit(100);
-      if (error) throw error;
-      return data ?? [];
-    },
+    queryFn: () => listChunksForDocuments(selectedDocIds),
     enabled: selectedDocIds.length > 0,
   });
 
   const handleCreateCollection = async () => {
     if (!collName.trim()) { toast.error('Nome é obrigatório'); return; }
     setSaving(true);
-    const { error } = await supabase.from('collections').insert({
-      name: collName.trim(),
-      description: collDesc.trim(),
-      knowledge_base_id: kbId,
-    });
-    setSaving(false);
-    if (error) { toast.error(error.message); return; }
-    toast.success('Collection criada!');
-    setNewCollOpen(false);
-    setCollName(''); setCollDesc('');
-    queryClient.invalidateQueries({ queryKey: ['collections', kbId] });
+    try {
+      await createCollectionForKB(kbId, collName.trim(), collDesc.trim());
+      toast.success('Collection criada!');
+      setNewCollOpen(false);
+      setCollName(''); setCollDesc('');
+      queryClient.invalidateQueries({ queryKey: ['collections', kbId] });
+    } catch (e: unknown) {
+      toast.error(e instanceof Error ? e.message : 'Erro');
+    } finally { setSaving(false); }
   };
 
   const handleCreateDocument = async () => {
     if (!docTitle.trim() || !selectedCollectionId) { toast.error('Título é obrigatório'); return; }
     setSaving(true);
-    const { data: doc, error } = await supabase.from('documents').insert({
-      title: docTitle.trim(),
-      collection_id: selectedCollectionId,
-      source_url: docSourceUrl.trim() || null,
-      source_type: docSourceUrl.trim() ? 'url' : 'manual',
-      status: 'pending',
-    }).select('id').single();
-
-    if (error || !doc) { toast.error(error?.message || 'Erro'); setSaving(false); return; }
-
-    // If manual content provided, call rag-ingest for chunking + embeddings
-    if (docContent.trim()) {
-      toast.info('Gerando embeddings...');
-      const { data: ingestResult, error: ingestError } = await supabase.functions.invoke('rag-ingest', {
-        body: { document_id: doc.id, content: docContent.trim(), chunk_size: 1000, chunk_overlap: 200 },
-      });
-      if (ingestError) {
-        toast.warning(`Documento salvo mas embeddings falharam: ${ingestError.message}`);
-      } else {
-        toast.success(`${ingestResult?.chunks_created || 0} chunks criados, ${ingestResult?.embeddings_generated || 0} embeddings gerados`);
+    try {
+      const { ingestResult } = await createDocumentWithIngest(
+        { title: docTitle.trim(), collection_id: selectedCollectionId, source_url: docSourceUrl.trim() || null, source_type: docSourceUrl.trim() ? 'url' : 'manual' },
+        docContent,
+      );
+      if (ingestResult) {
+        toast.success(`${(ingestResult as Record<string, number>)?.chunks_created || 0} chunks criados`);
       }
-    }
 
-    // Update KB counts
-    const { count: docCount } = await supabase.from('documents').select('id', { count: 'exact', head: true }).eq('collection_id', selectedCollectionId);
-    const collDocIds = documents.map(d => d.id).concat(doc.id);
-    const { count: chunkCount } = await supabase.from('chunks').select('id', { count: 'exact', head: true }).in('document_id', collDocIds);
+      const docCount = await getDocumentCount(selectedCollectionId);
+      const allDocIds = [...documents.map(d => d.id)];
+      const chunkCount = await getChunkCountForCollection(allDocIds);
+      await updateKBCounts(kbId, docCount, chunkCount);
 
-    await supabase.from('knowledge_bases').update({
-      document_count: docCount ?? 0,
-      chunk_count: chunkCount ?? 0,
-    }).eq('id', kbId);
-
-    setSaving(false);
-    toast.success('Documento adicionado!');
-    setNewDocOpen(false);
-    setDocTitle(''); setDocContent(''); setDocSourceUrl('');
-    queryClient.invalidateQueries({ queryKey: ['documents', selectedCollectionId] });
-    queryClient.invalidateQueries({ queryKey: ['chunks'] });
+      toast.success('Documento adicionado!');
+      setNewDocOpen(false);
+      setDocTitle(''); setDocContent(''); setDocSourceUrl('');
+      queryClient.invalidateQueries({ queryKey: ['documents', selectedCollectionId] });
+      queryClient.invalidateQueries({ queryKey: ['chunks'] });
+    } catch (e: unknown) {
+      toast.error(e instanceof Error ? e.message : 'Erro');
+    } finally { setSaving(false); }
   };
 
   const handleDeleteCollection = async (id: string) => {
-    const { error } = await supabase.from('collections').delete().eq('id', id);
-    if (error) { toast.error(error.message); return; }
-    if (selectedCollectionId === id) setSelectedCollectionId(null);
-    toast.success('Collection removida');
-    queryClient.invalidateQueries({ queryKey: ['collections', kbId] });
+    try {
+      await deleteCollection(id);
+      if (selectedCollectionId === id) setSelectedCollectionId(null);
+      toast.success('Collection removida');
+      queryClient.invalidateQueries({ queryKey: ['collections', kbId] });
+    } catch (e: unknown) { toast.error(e instanceof Error ? e.message : 'Erro'); }
   };
 
   const handleDeleteDocument = async (id: string) => {
-    await supabase.from('chunks').delete().eq('document_id', id);
-    const { error } = await supabase.from('documents').delete().eq('id', id);
-    if (error) { toast.error(error.message); return; }
-    toast.success('Documento removido');
-    queryClient.invalidateQueries({ queryKey: ['documents', selectedCollectionId] });
-    queryClient.invalidateQueries({ queryKey: ['chunks'] });
+    try {
+      await deleteDocument(id);
+      toast.success('Documento removido');
+      queryClient.invalidateQueries({ queryKey: ['documents', selectedCollectionId] });
+      queryClient.invalidateQueries({ queryKey: ['chunks'] });
+    } catch (e: unknown) { toast.error(e instanceof Error ? e.message : 'Erro'); }
   };
 
   const selectedCollection = collections.find(c => c.id === selectedCollectionId);
 
   return (
     <div className="space-y-4">
-      {/* Header */}
       <div className="flex items-center gap-3">
         <Button variant="ghost" size="sm" onClick={onBack} className="gap-1.5">
           <ArrowLeft className="h-4 w-4" /> Voltar

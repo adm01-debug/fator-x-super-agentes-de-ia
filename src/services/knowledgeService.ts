@@ -249,3 +249,52 @@ export async function listPromptVersions(agentId: string) {
   const { data } = await supabase.from('prompt_versions').select('id, version, change_summary, is_active').eq('agent_id', agentId).order('version', { ascending: false });
   return data ?? [];
 }
+
+export async function listCollectionsForKB(kbId: string) {
+  const { data, error } = await supabase.from('collections').select('*').eq('knowledge_base_id', kbId).order('created_at', { ascending: false });
+  if (error) throw error;
+  return data ?? [];
+}
+
+export async function listChunksForDocuments(docIds: string[], limit = 100) {
+  if (docIds.length === 0) return [];
+  const { data, error } = await supabase.from('chunks').select('*').in('document_id', docIds).order('chunk_index', { ascending: true }).limit(limit);
+  if (error) throw error;
+  return data ?? [];
+}
+
+export async function createCollectionForKB(kbId: string, name: string, description?: string) {
+  const { error } = await supabase.from('collections').insert({ name, description, knowledge_base_id: kbId });
+  if (error) throw error;
+}
+
+export async function deleteDocument(docId: string) {
+  await supabase.from('chunks').delete().eq('document_id', docId);
+  const { error } = await supabase.from('documents').delete().eq('id', docId);
+  if (error) throw error;
+}
+
+export async function createDocumentWithIngest(doc: { title: string; collection_id: string; source_url?: string | null; source_type?: string }, content?: string) {
+  const { data, error } = await supabase.from('documents').insert({
+    title: doc.title,
+    collection_id: doc.collection_id,
+    source_url: doc.source_url || null,
+    source_type: doc.source_type || 'manual',
+    status: 'pending',
+  }).select('id').single();
+  if (error || !data) throw error || new Error('Failed to create document');
+
+  let ingestResult = null;
+  if (content?.trim()) {
+    const { data: ir, error: ie } = await supabase.functions.invoke('rag-ingest', {
+      body: { document_id: data.id, content: content.trim(), chunk_size: 1000, chunk_overlap: 200 },
+    });
+    if (ie) throw ie;
+    ingestResult = ir;
+  }
+  return { docId: data.id, ingestResult };
+}
+
+export async function updateKBCounts(kbId: string, docCount: number, chunkCount: number) {
+  await supabase.from('knowledge_bases').update({ document_count: docCount, chunk_count: chunkCount }).eq('id', kbId);
+}

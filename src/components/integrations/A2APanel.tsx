@@ -3,7 +3,8 @@
  * Mostra cards publicados, permite configurar skills e testar comunicação.
  */
 import { useState, useEffect, useCallback } from 'react';
-import { supabase } from '@/integrations/supabase/client';
+import { invokeA2AServer } from '@/services/llmGatewayService';
+import { getAuthSession } from '@/services/securityService';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
@@ -28,7 +29,7 @@ export function A2APanel() {
 
   const loadCard = useCallback(async () => {
     try {
-      const { data: { session } } = await supabase.auth.getSession();
+      const session = await getAuthSession();
       if (!session) return;
 
       const resp = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/a2a-server`, {
@@ -52,21 +53,9 @@ export function A2APanel() {
     setTesting(true);
     setTestResult(null);
     try {
-      const { data: { session } } = await supabase.auth.getSession();
-      if (!session) return;
-
-      const resp = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/a2a-server`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${session.access_token}`,
-          'apikey': import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY,
-        },
-        body: JSON.stringify({
-          message: { parts: [{ type: 'text', text: testQuery }] },
-        }),
-      });
-      const data = await resp.json() as Record<string, unknown>;
+      const data = await invokeA2AServer({
+        message: { parts: [{ type: 'text', text: testQuery }] },
+      }) as Record<string, unknown>;
       const result = data.result as Record<string, unknown>;
       const artifact = (result?.artifacts as Array<Record<string, unknown>>)?.[0];
       const text = (artifact?.parts as Array<Record<string, string>>)?.[0]?.text || JSON.stringify(data, null, 2);
@@ -80,48 +69,45 @@ export function A2APanel() {
 
   const cardUrl = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/a2a-server`;
 
-  if (loading) return <div className="animate-pulse bg-[#111122] rounded-xl h-40 border border-[#222244]" />;
+  if (loading) return <div className="animate-pulse bg-card rounded-xl h-40 border border-border" />;
 
   return (
-    <div className="bg-[#111122] rounded-xl border border-[#222244] p-6 space-y-5">
+    <div className="bg-card rounded-xl border border-border p-6 space-y-5">
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-2">
-          <Globe className="w-5 h-5 text-[#9B59B6]" />
-          <h3 className="text-sm font-bold text-white">A2A — Agent-to-Agent Protocol</h3>
-          <Badge variant="outline" className="text-[10px] border-[#9B59B6] text-[#9B59B6]">Google A2A v0.3</Badge>
+          <Globe className="w-5 h-5 text-primary" />
+          <h3 className="text-sm font-bold text-foreground">A2A — Agent-to-Agent Protocol</h3>
+          <Badge variant="outline" className="text-[10px] border-primary text-primary">Google A2A v0.3</Badge>
         </div>
         <Button variant="ghost" size="sm" aria-label="Atualizar" onClick={loadCard}><RefreshCw className="w-3 h-3" /></Button>
       </div>
 
-      {/* Agent Card Info */}
       {card && (
-        <div className="bg-[#0a0a1a] rounded-lg p-4 space-y-3">
+        <div className="bg-background rounded-lg p-4 space-y-3">
           <div className="flex items-center justify-between">
             <div>
-              <h4 className="text-sm font-bold text-white">{card.name}</h4>
-              <p className="text-xs text-[#888888] mt-1">{card.description}</p>
+              <h4 className="text-sm font-bold text-foreground">{card.name}</h4>
+              <p className="text-xs text-muted-foreground mt-1">{card.description}</p>
             </div>
-            <Badge className="bg-[#6BCB77]/20 text-[#6BCB77] border-[#6BCB77]">v{card.version}</Badge>
+            <Badge className="bg-nexus-emerald/20 text-nexus-emerald border-nexus-emerald">v{card.version}</Badge>
           </div>
 
-          {/* Capabilities */}
           <div className="flex gap-2">
             {card.capabilities.streaming && <Badge variant="outline" className="text-[10px]">⚡ Streaming</Badge>}
             {card.capabilities.stateTransitionHistory && <Badge variant="outline" className="text-[10px]">📋 History</Badge>}
           </div>
 
-          {/* Skills */}
           <div>
-            <p className="text-xs text-[#888888] mb-2">
+            <p className="text-xs text-muted-foreground mb-2">
               <Users className="w-3 h-3 inline mr-1" />
               {card.skills.length} agent(s) publicado(s)
             </p>
             <div className="space-y-1">
               {card.skills.slice(0, 5).map(skill => (
-                <div key={skill.id} className="flex items-center justify-between bg-[#111122] rounded px-3 py-1.5">
+                <div key={skill.id} className="flex items-center justify-between bg-card rounded px-3 py-1.5">
                   <div>
-                    <span className="text-xs font-medium text-white">{skill.name}</span>
-                    <span className="text-[10px] text-[#888888] ml-2">{skill.description?.substring(0, 60)}</span>
+                    <span className="text-xs font-medium text-foreground">{skill.name}</span>
+                    <span className="text-[10px] text-muted-foreground ml-2">{skill.description?.substring(0, 60)}</span>
                   </div>
                   <div className="flex gap-1">
                     {skill.tags?.slice(0, 2).map(tag => (
@@ -131,14 +117,13 @@ export function A2APanel() {
                 </div>
               ))}
               {card.skills.length > 5 && (
-                <p className="text-[10px] text-[#888888] text-center">+{card.skills.length - 5} mais</p>
+                <p className="text-[10px] text-muted-foreground text-center">+{card.skills.length - 5} mais</p>
               )}
             </div>
           </div>
 
-          {/* Endpoint URL */}
-          <div className="flex items-center gap-2 bg-[#111122] rounded px-3 py-2">
-            <code className="text-[10px] text-[#4D96FF] font-mono flex-1 truncate">{cardUrl}</code>
+          <div className="flex items-center gap-2 bg-card rounded px-3 py-2">
+            <code className="text-[10px] text-primary font-mono flex-1 truncate">{cardUrl}</code>
             <Button variant="ghost" size="sm" className="h-6 w-6 p-0" onClick={() => { navigator.clipboard.writeText(cardUrl); toast.success('URL copiada!'); }}>
               <Copy className="w-3 h-3" />
             </Button>
@@ -146,11 +131,10 @@ export function A2APanel() {
         </div>
       )}
 
-      {/* Test A2A Communication */}
       <div className="space-y-3">
         <div className="flex items-center gap-2">
-          <Zap className="w-4 h-4 text-[#FFD93D]" />
-          <span className="text-xs font-bold text-white">Testar Comunicação A2A</span>
+          <Zap className="w-4 h-4 text-nexus-amber" />
+          <span className="text-xs font-bold text-foreground">Testar Comunicação A2A</span>
         </div>
 
         <div className="flex gap-2">
@@ -158,17 +142,17 @@ export function A2APanel() {
             value={testQuery}
             onChange={(e) => setTestQuery(e.target.value)}
             placeholder="Envie uma task para testar (ex: 'Liste os agentes disponíveis')"
-            className="bg-[#0a0a1a] border-[#222244] text-xs h-9"
+            className="bg-background border-border text-xs h-9"
             onKeyDown={(e) => e.key === 'Enter' && sendTestTask()}
           />
-          <Button onClick={sendTestTask} disabled={testing || !testQuery.trim()} size="sm" className="h-9 bg-[#9B59B6] hover:bg-[#8E44AD]">
+          <Button onClick={sendTestTask} disabled={testing || !testQuery.trim()} size="sm" className="h-9 nexus-gradient-bg">
             {testing ? <Loader2 className="w-3 h-3 animate-spin" /> : <Zap className="w-3 h-3" />}
           </Button>
         </div>
 
         {testResult && (
-          <div className="bg-[#0a0a1a] rounded-lg p-3 max-h-48 overflow-y-auto">
-            <pre className="text-xs text-[#E0E0E0] whitespace-pre-wrap">{testResult}</pre>
+          <div className="bg-background rounded-lg p-3 max-h-48 overflow-y-auto">
+            <pre className="text-xs text-foreground whitespace-pre-wrap">{testResult}</pre>
           </div>
         )}
       </div>
