@@ -26,3 +26,4 @@ export * from './agentCardService';
 export * from './agentHandoffService';
 export * from './costCalculatorService';
 export * from './middlewarePipelineService';
+export * from './progressiveSkillLoader';
