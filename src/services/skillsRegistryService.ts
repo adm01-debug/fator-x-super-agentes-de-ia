@@ -91,7 +91,7 @@ export async function publishSkill(skill: Omit<AgentSkillDefinition, 'id' | 'ins
       author: skill.author,
       category: skill.category,
       tags: skill.tags,
-      skill_config: skill.skill_config,
+      skill_config: skill.skill_config as Record<string, unknown> & { [key: string]: string | number | boolean | null },
       mcp_server_url: skill.mcp_server_url ?? null,
       is_verified: false,
       is_public: skill.is_public,
