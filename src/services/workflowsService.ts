@@ -5,6 +5,7 @@
 
 import { logger } from '@/lib/logger';
 import { supabase } from '@/integrations/supabase/client';
+import { fromTable } from '@/lib/supabaseExtended';
 import type { Json } from '@/integrations/supabase/types';
 
 export interface WorkflowNode {
