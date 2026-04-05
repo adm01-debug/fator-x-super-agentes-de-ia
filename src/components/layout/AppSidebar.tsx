@@ -27,6 +27,7 @@ const navSections = [
       { title: "Super Cérebro", url: "/brain", icon: Brain },
       { title: "Oráculo", url: "/oracle", icon: Sparkles },
       { title: "AI Studio", url: "/ai-studio", icon: Palette },
+    ],
   },
   {
     label: "Desenvolvimento",
@@ -39,6 +40,7 @@ const navSections = [
       { title: "Workflows", url: "/workflows", icon: GitBranch },
       { title: "Fine-tuning", url: "/fine-tuning", icon: Dna },
       { title: "Smolagent", url: "/smolagent", icon: Workflow },
+    ],
   },
   {
     label: "Operações",
