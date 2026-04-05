@@ -111,6 +111,7 @@ serve(async (req) => {
             });
             indexed.sort((a, b) => b.relevance_score - a.relevance_score);
             reranked = indexed.slice(0, topK);
+            if (reranked.length > 0) usedMethod = 'hf_bge_reranker';
           }
         }
       } catch (e: unknown) {
@@ -149,7 +150,8 @@ serve(async (req) => {
           chunk: chunks[idx],
           relevance_score: 1 - (rank * 0.1),
         }));
-        if (reranked.length === 0) reranked = null;
+        if (reranked.length > 0) usedMethod = 'llm_fallback';
+        else reranked = null;
       } catch (e) {
         console.error('LLM rerank fallback failed:', e instanceof Error ? e.message : e);
       }
@@ -162,10 +164,6 @@ serve(async (req) => {
         relevance_score: 1 - (i * 0.05),
       }));
     }
-
-    const method = reranked[0]?.relevance_score > 0.5
-      ? 'cohere'
-      : hfToken ? 'hf_bge_reranker' : 'llm_fallback';
 
     return jsonResponse(req, {
       reranked,
