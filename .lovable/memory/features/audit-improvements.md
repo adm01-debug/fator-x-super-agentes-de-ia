@@ -87,7 +87,24 @@ type: feature
 - Lazy chunk load performance monitoring via PerformanceObserver
 - webVitals.ts enhanced with slow chunk warnings
 
-## Score: 10/10 ✅ (+ bonus sprint)
+## Completed — Sprint 12 (Full Edge Function Coverage)
+- AIStudioPage: unified UI for audio-transcribe, text-to-speech, doc-ocr, image-analysis, product-mockup
+- FineTuningPage: dataset prep, training config, job status for hf-autotrain
+- SmolagentPage: ReAct agent playground with step-by-step visualization
+- All 3 pages wired into sidebar + routes with lazy loading
+- 8 edge function TS build errors fixed + 6 functions redeployed
+
+## Completed — Sprint 13 (Security Hardening v2)
+- workspace_secrets: SELECT blocked (USING false) — no client can read plaintext values
+- get_masked_secrets RPC: SECURITY DEFINER function returns masked values (••••••••xxxx)
+- SettingsPage updated to use RPC instead of direct table query
+- SettingsModule updated to use masked RPC
+- Eye/EyeOff toggle removed (values always masked server-side)
+- Zero `as any` in frontend (huggingface.ts refactored with getDenoEnv helper)
+- Remaining warnings: HIBP (manual), at-rest encryption (infra), member emails (intentional), tool_integrations owner-only (intentional)
+
+## Score: 10/10 ✅ (Sprint 13 complete)
 
 ## Note
 - HIBP (leaked password protection) — requires manual activation in Cloud UI (operational, not code)
+- Vault encryption at rest — requires pgsodium extension at infrastructure level
