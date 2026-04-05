@@ -23,6 +23,7 @@ const REASONING_OPTIONS: { id: ReasoningPattern; name: string; description: stri
   { id: 'tot', name: 'Tree-of-Thought', description: 'Múltiplos caminhos de raciocínio em paralelo.' },
   { id: 'reflection', name: 'Reflection', description: 'Revisa e critica a própria resposta antes de entregar.' },
   { id: 'plan_execute', name: 'Plan & Execute', description: 'Cria plano completo, depois executa etapa por etapa.' },
+  { id: 'smolagent', name: '🤗 SmolagentRT', description: 'Agente autônomo com 13 ferramentas HF (busca, imagem, áudio, banco, etc). Executa ações reais.' },
 ];
 
 const FALLBACK_OPTIONS = MODELS.map((m) => ({ value: m.id, label: m.title }));

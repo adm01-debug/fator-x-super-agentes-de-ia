@@ -12,7 +12,7 @@ const RequestSchema = z.object({
 
 interface GraphNode {
   id: string;
-  type: 'llm_call' | 'tool_call' | 'conditional' | 'parallel' | 'hitl_gate' | 'code_execution' | 'end';
+  type: 'llm_call' | 'tool_call' | 'conditional' | 'parallel' | 'hitl_gate' | 'code_execution' | 'smolagent_runtime' | 'end';
   label: string;
   config: Record<string, unknown>;
 }
@@ -438,6 +438,36 @@ serve(async (req) => {
           stepsExecuted++;
           await supabase.from('workflow_runs').update({ current_step: stepsExecuted, output: { state: { ...state, _history: state._history.slice(-20) } } as unknown as Record<string, unknown> }).eq('id', runId);
           continue;
+
+        } else if (node.type === 'smolagent_runtime') {
+          // ═══ SMOLAGENT RUNTIME — Delegates to smolagent-runtime Edge Function ═══
+          const agentTask = (node.config.task as string) || (state._output as string) || state.input || '';
+          const agentModel = (node.config.model as string) || 'huggingface/Qwen/Qwen3-30B-A3B';
+          const agentTools = (node.config.tool_names as string[]) || undefined;
+          const agentMaxSteps = (node.config.max_steps as number) || 8;
+
+          const resp = await fetch(`${supabaseUrl}/functions/v1/smolagent-runtime`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', 'Authorization': authHeader, 'apikey': supabaseKey },
+            body: JSON.stringify({
+              action: agentTools ? 'run_with_tools' : 'run',
+              task: agentTask,
+              model: agentModel,
+              max_steps: agentMaxSteps,
+              tool_names: agentTools,
+            }),
+            signal: AbortSignal.timeout(120000), // 2min for multi-step agent
+          });
+
+          const agentResult = await resp.json();
+          state._output = agentResult.answer || JSON.stringify(agentResult);
+          state[`${node.id}_output`] = state._output;
+          state[`${node.id}_steps`] = agentResult.steps;
+          state[`${node.id}_tools_used`] = agentResult.steps
+            ?.map((s: Record<string, string>) => s.action)
+            .filter((a: string) => a !== 'final_answer' && a !== 'none');
+          totalTokens += agentResult.total_tokens || 0;
+          totalCost += agentResult.total_cost_usd || 0;
 
         } else if (node.type === 'code_execution') {
           // ═══ CODE EXECUTION — LLM generates + validates code (smolagents pattern) ═══
