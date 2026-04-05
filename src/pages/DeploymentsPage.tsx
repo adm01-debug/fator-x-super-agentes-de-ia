@@ -92,7 +92,7 @@ export default function DeploymentsPage() {
 
 function EndpointGeneratorButton() {
   const [copied, setCopied] = useState<string | null>(null);
-  const projectId = import.meta.env.VITE_SUPABASE_PROJECT_ID || '${import.meta.env.VITE_SUPABASE_PROJECT_ID || 'tifbqkyumdxzmxyyoqlu'}';
+  const projectId = import.meta.env.VITE_SUPABASE_PROJECT_ID || 'tifbqkyumdxzmxyyoqlu';
   const baseUrl = `https://${projectId}.supabase.co/functions/v1`;
 
   const endpoints = [
