@@ -46,6 +46,7 @@ interface AgentBuilderStore {
 }
 
 export const useAgentBuilderStore = create<AgentBuilderStore>((set, get) => ({
+  // ═══ STATE ═══
   agent: { ...DEFAULT_AGENT },
   activeTab: TABS[0].id,
   isDirty: false,
@@ -55,6 +56,7 @@ export const useAgentBuilderStore = create<AgentBuilderStore>((set, get) => ({
   promptVersions: [],
   currentUserId: undefined,
 
+  // ═══ TAB NAVIGATION ═══
   setActiveTab: (tab) => set({ activeTab: tab }),
 
   nextTab: () => {
@@ -69,6 +71,7 @@ export const useAgentBuilderStore = create<AgentBuilderStore>((set, get) => ({
     if (idx > 0) set({ activeTab: TABS[idx - 1].id });
   },
 
+  // ═══ AGENT CRUD ═══
   updateAgent: (partial) =>
     set((s) => ({ agent: { ...s.agent, ...partial }, isDirty: true })),
 
@@ -152,6 +155,7 @@ export const useAgentBuilderStore = create<AgentBuilderStore>((set, get) => ({
     });
   },
 
+  // ═══ PROMPT VERSIONING ═══
   savePromptVersion: async (summary: string) => {
     const { agent, promptVersions, currentUserId } = get();
     const newVersion: PromptVersion = {
@@ -220,6 +224,7 @@ export const useAgentBuilderStore = create<AgentBuilderStore>((set, get) => ({
     });
   },
 
+  // ═══ EXPORT ═══
   exportJSON: () => JSON.stringify(get().agent, null, 2),
 
   exportMarkdown: () => {
@@ -271,6 +276,7 @@ export const useAgentBuilderStore = create<AgentBuilderStore>((set, get) => ({
     ].join('\n');
   },
 
+  // ═══ COMPUTED GETTERS (readiness delegated to readinessService) ═══
   getEstimatedMonthlyCost: () => {
     const a = get().agent;
     const modelCosts: Record<string, number> = {
