@@ -81,3 +81,4 @@ export {
   BUILTIN_TEMPLATES,
 } from './automationTemplateService';
 export * from './executionHistoryService';
+export * from './connectorRegistryService';
