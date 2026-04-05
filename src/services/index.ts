@@ -23,3 +23,4 @@ export * from './lgpdService';
 export * from './approvalService';
 export * from './workflowCheckpointService';
 export * from './agentCardService';
+export * from './agentHandoffService';
