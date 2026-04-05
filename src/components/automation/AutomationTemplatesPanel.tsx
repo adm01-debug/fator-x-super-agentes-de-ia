@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { LayoutTemplate, ArrowRight } from 'lucide-react';
-import { Button } from '@/components/ui/button';
+
 import { BUILTIN_TEMPLATES, type AutomationTemplate } from '@/services/automationTemplateService';
 import { listAutomationTemplates } from '@/services';
 
