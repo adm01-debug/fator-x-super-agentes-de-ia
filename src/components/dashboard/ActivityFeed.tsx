@@ -71,7 +71,7 @@ export function ActivityFeed() {
               <span className={`font-medium ${info.color}`}>{info.label}</span>
               {detail && <span className="text-muted-foreground ml-1.5 truncate">— {detail}</span>}
             </div>
-            <span className="text-[11px] text-muted-foreground shrink-0">{getRelativeTime(log.created_at)}</span>
+            <span className="text-[11px] text-muted-foreground shrink-0">{getRelativeTime(log.created_at ?? '')}</span>
           </div>
         );
       })}
