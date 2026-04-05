@@ -1,80 +1,68 @@
 /**
  * Nexus Agents Studio — Memory Service
- * Persistent memory management (Mem0-style).
+ * Persistent memory management (MemGPT/Letta-style via memory-tools edge function).
  */
 import { supabase } from '@/integrations/supabase/client';
 
-export type MemoryType = 'episodic' | 'semantic' | 'procedural';
+export type MemoryType = 'episodic' | 'semantic' | 'procedural' | 'short_term' | 'user_profile' | 'team' | 'external';
 export type MemoryScope = 'session' | 'user' | 'agent' | 'org';
 
-export async function addMemory(content: string, type: MemoryType = 'episodic', scope: MemoryScope = 'user') {
-  const { data: { session } } = await supabase.auth.getSession();
-  if (!session) throw new Error('Not authenticated');
-
-  const resp = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/memory-manager`, {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      'Authorization': `Bearer ${session.access_token}`,
-      'apikey': import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY,
-    },
-    body: JSON.stringify({ action: 'add', content, memory_type: type, scope }),
-  });
-
-  if (!resp.ok) throw new Error('Memory add failed');
-  return resp.json();
+export interface MemoryEntry {
+  id: string;
+  content: string;
+  source: string;
+  created_at: string;
+  relevance_score: number | null;
+  memory_type?: string;
 }
 
-export async function searchMemory(query: string, type?: MemoryType, limit = 10) {
-  const { data: { session } } = await supabase.auth.getSession();
-  if (!session) throw new Error('Not authenticated');
-
-  const resp = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/memory-manager`, {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      'Authorization': `Bearer ${session.access_token}`,
-      'apikey': import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY,
-    },
-    body: JSON.stringify({ action: 'search', query, memory_type: type, limit }),
+/** Invoke memory-tools edge function */
+async function invokeMemoryTool(tool: string, params: Record<string, unknown>) {
+  const { data, error } = await supabase.functions.invoke('memory-tools', {
+    body: { tool, params },
   });
-
-  if (!resp.ok) throw new Error('Memory search failed');
-  return resp.json();
+  if (error) throw new Error(error.message || 'Erro ao chamar memory-tools');
+  if (data?.error) throw new Error(data.error);
+  return data;
 }
 
+/** Add a memory via memory-tools edge function */
+export async function addMemory(content: string, type: string = 'semantic', source: string = 'Manual') {
+  return invokeMemoryTool('memory_save', {
+    content,
+    memory_type: type,
+    source,
+  });
+}
+
+/** Search memories via memory-tools edge function */
+export async function searchMemory(query: string, type?: string, limit = 50): Promise<MemoryEntry[]> {
+  const result = await invokeMemoryTool('memory_search', {
+    query,
+    memory_type: type,
+    limit,
+  });
+  return (result?.memories ?? []) as MemoryEntry[];
+}
+
+/** Forget (delete) a memory */
 export async function forgetMemory(memoryId: string) {
-  const { data: { session } } = await supabase.auth.getSession();
-  if (!session) throw new Error('Not authenticated');
-
-  const resp = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/memory-manager`, {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      'Authorization': `Bearer ${session.access_token}`,
-      'apikey': import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY,
-    },
-    body: JSON.stringify({ action: 'forget', memory_id: memoryId }),
-  });
-
-  if (!resp.ok) throw new Error('Memory forget failed');
-  return resp.json();
+  return invokeMemoryTool('memory_forget', { memory_id: memoryId });
 }
 
-export async function listMemories(type?: MemoryType, limit = 50) {
-  const { data: { session } } = await supabase.auth.getSession();
-  if (!session) throw new Error('Not authenticated');
+/** Compact memories of a given type */
+export async function compactMemories(memoryType: string) {
+  return invokeMemoryTool('memory_compact', { memory_type: memoryType });
+}
 
-  const resp = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/memory-manager`, {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      'Authorization': `Bearer ${session.access_token}`,
-      'apikey': import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY,
-    },
-    body: JSON.stringify({ action: 'list', memory_type: type, limit }),
-  });
-
-  if (!resp.ok) throw new Error('Memory list failed');
-  return resp.json();
+/** List memories directly from the database (fallback) */
+export async function listMemories(type: string, limit = 100): Promise<MemoryEntry[]> {
+  const { data, error } = await supabase
+    .from('agent_memories')
+    .select('*')
+    .eq('memory_type', type)
+    .order('created_at', { ascending: false })
+    .limit(limit);
+  if (error) throw error;
+  return (data ?? []) as MemoryEntry[];
 }
