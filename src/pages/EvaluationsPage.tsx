@@ -6,7 +6,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { FlaskConical, Loader2, ChevronDown, ChevronUp, CheckCircle2, XCircle } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
-import { supabase } from "@/integrations/supabase/client";
+import { listEvaluationRuns } from "@/services/evaluationsService";
 import { CreateEvaluationDialog } from "@/components/dialogs/CreateEvaluationDialog";
 import { EvaluationDatasetsPanel } from "@/components/evaluations/EvaluationDatasetsPanel";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -14,11 +14,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 export default function EvaluationsPage() {
   const { data: evaluations = [], isLoading, refetch } = useQuery({
     queryKey: ['evaluation_runs'],
-    queryFn: async () => {
-      const { data, error } = await supabase.from('evaluation_runs').select('*').order('created_at', { ascending: false });
-      if (error) throw error;
-      return data ?? [];
-    },
+    queryFn: listEvaluationRuns,
   });
 
   return (
@@ -69,8 +65,8 @@ export default function EvaluationsPage() {
 
 function EvalCard({ ev }: { ev: Record<string, unknown> }) {
   const [expanded, setExpanded] = useState(false);
-  const results = ev.results as Record<string, any> | null;
-  const cases = results?.cases as Array<{ input: string; expected: string; actual: string; passed: boolean; score?: number }> | undefined;
+  const results = ev.results as Record<string, unknown> | null;
+  const cases = (results?.cases as Array<{ input: string; expected: string; actual: string; passed: boolean; score?: number }>) ?? undefined;
   const passRate = Number(ev.pass_rate ?? 0);
   const evName = String(ev.name ?? '');
   const testCases = Number(ev.test_cases ?? 0);
