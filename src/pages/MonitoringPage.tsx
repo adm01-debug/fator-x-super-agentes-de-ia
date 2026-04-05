@@ -25,46 +25,18 @@ export default function MonitoringPage() {
   // Load agents for filter
   const { data: agentsList = [] } = useQuery({
     queryKey: ['agents_list_monitoring'],
-    queryFn: async () => {
-      const { data } = await supabase.from('agents').select('id, name').order('name');
-      return data ?? [];
-    },
+    queryFn: getAgentsForFilter,
   });
 
   const { data: traces = [], isLoading } = useQuery({
     queryKey: ['agent_traces', agentFilter],
-    queryFn: async () => {
-      let query = supabase
-        .from('agent_traces')
-        .select('*')
-        .order('created_at', { ascending: false })
-        .limit(50);
-      if (agentFilter !== 'all') query = query.eq('agent_id', agentFilter);
-      const { data, error } = await query;
-      if (error) throw error;
-      return data ?? [];
-    },
+    queryFn: () => getAgentTraces({ agentId: agentFilter !== 'all' ? agentFilter : undefined }),
   });
 
   // ═══ Real sessions from sessions table ═══
   const { data: sessions = [], isLoading: loadingSessions } = useQuery({
     queryKey: ['sessions_real', agentFilter],
-    queryFn: async () => {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) return [];
-      let query = supabase.from('sessions')
-        .select('*')
-        .eq('user_id', user.id)
-        .order('started_at', { ascending: false })
-        .limit(50);
-      if (agentFilter !== 'all') query = query.eq('agent_id', agentFilter);
-      const { data, error } = await query;
-      if (error) throw error;
-      return (data ?? []) as Array<{
-        id: string; agent_id: string | null; status: string;
-        started_at: string; ended_at: string | null; metadata: Record<string, unknown>;
-      }>;
-    },
+    queryFn: () => getSessions({ agentId: agentFilter !== 'all' ? agentFilter : undefined }),
   });
 
   // ═══ Session traces for expanded session ═══
@@ -72,19 +44,7 @@ export default function MonitoringPage() {
   const { data: sessionTraces = [] } = useQuery({
     queryKey: ['session_traces', expandedSessionId],
     enabled: !!expandedSessionId,
-    queryFn: async () => {
-      if (!expandedSessionId) return [];
-      const { data, error } = await supabase.from('session_traces')
-        .select('*')
-        .eq('session_id', expandedSessionId)
-        .order('created_at', { ascending: true });
-      if (error) throw error;
-      return (data ?? []) as Array<{
-        id: string; trace_type: string; input: unknown; output: unknown;
-        latency_ms: number | null; tokens_used: number | null;
-        cost_usd: number | null; created_at: string; metadata: Record<string, unknown>;
-      }>;
-    },
+    queryFn: () => expandedSessionId ? getSessionTraces(expandedSessionId) : Promise.resolve([]),
   });
 
   // ═══ Trace events for expanded session trace ═══
@@ -92,31 +52,13 @@ export default function MonitoringPage() {
   const { data: traceEvents = [] } = useQuery({
     queryKey: ['trace_events', expandedTraceId],
     enabled: !!expandedTraceId,
-    queryFn: async () => {
-      if (!expandedTraceId) return [];
-      const { data, error } = await supabase.from('trace_events')
-        .select('*')
-        .eq('session_trace_id', expandedTraceId)
-        .order('created_at', { ascending: true });
-      if (error) throw error;
-      return (data ?? []) as Array<{
-        id: string; event_type: string; data: Record<string, unknown>; created_at: string;
-      }>;
-    },
+    queryFn: () => expandedTraceId ? getTraceEvents(expandedTraceId) : Promise.resolve([]),
   });
 
   // Alerts
   const { data: alerts = [], isLoading: loadingAlerts } = useQuery({
     queryKey: ['alerts'],
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from('alerts')
-        .select('*')
-        .order('created_at', { ascending: false })
-        .limit(50);
-      if (error) throw error;
-      return data ?? [];
-    },
+    queryFn: () => getAlerts({}),
   });
 
   const selected = traces.find(t => t.id === selectedId) || traces[0];
