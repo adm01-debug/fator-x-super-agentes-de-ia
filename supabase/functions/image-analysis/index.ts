@@ -12,6 +12,9 @@ function jsonResponse(data: unknown, status = 200) {
 const MODELS = {
   classification: 'google/vit-base-patch16-224',
   nsfw: 'Falconsai/nsfw_image_detection',
+  object_detection: 'facebook/detr-resnet-50',
+  bg_removal: 'briaai/RMBG-2.0',
+  clip: 'openai/clip-vit-base-patch32',
 };
 const TIMEOUT_MS = 15000;
 
@@ -206,6 +209,90 @@ serve(async (req) => {
         models: { classification: MODELS.classification, nsfw: MODELS.nsfw },
         cost_usd: 0,
       });
+    }
+
+    // ═══ ACTION: remove_background — Remove fundo de foto de produto (#27) ═══
+    if (action === 'remove_background') {
+      const imgBytes = await getImageBytes();
+      const controller = new AbortController();
+      const timeout = setTimeout(() => controller.abort(), 30000); // 30s for heavy model
+      const resp = await fetch(`https://router.huggingface.co/hf-inference/models/${MODELS.bg_removal}`, {
+        method: 'POST', signal: controller.signal,
+        headers: { 'Authorization': `Bearer ${hfToken}` },
+        body: imgBytes,
+      });
+      clearTimeout(timeout);
+      if (!resp.ok) {
+        // Fallback: try via Gradio Space API
+        return jsonResponse({ error: `Background removal failed: ${resp.status}. Model may require GPU endpoint.`, suggestion: 'Use HF Space briaai/RMBG-2.0 via Gradio API or deploy on Inference Endpoint' }, 502);
+      }
+      const resultBlob = await resp.arrayBuffer();
+      const resultBase64 = btoa(String.fromCharCode(...new Uint8Array(resultBlob)));
+      return jsonResponse({
+        image_base64: resultBase64,
+        format: 'png',
+        model: MODELS.bg_removal,
+        cost_usd: 0,
+      });
+    }
+
+    // ═══ ACTION: detect_objects — Detectar objetos em foto de produto (#31) ═══
+    if (action === 'detect_objects') {
+      const imgBytes = await getImageBytes();
+      const controller = new AbortController();
+      const timeout = setTimeout(() => controller.abort(), TIMEOUT_MS);
+      const resp = await fetch(`https://router.huggingface.co/hf-inference/models/${MODELS.object_detection}`, {
+        method: 'POST', signal: controller.signal,
+        headers: { 'Authorization': `Bearer ${hfToken}` },
+        body: imgBytes,
+      });
+      clearTimeout(timeout);
+      if (!resp.ok) return jsonResponse({ error: `Object detection failed: ${resp.status}` }, 502);
+      const detections = await resp.json();
+      const minScore = body.min_score || 0.7;
+      const filtered = (detections || [])
+        .filter((d: Record<string, unknown>) => (d.score as number) >= minScore)
+        .map((d: Record<string, unknown>) => ({
+          label: d.label,
+          score: Math.round((d.score as number) * 1000) / 1000,
+          box: d.box,
+        }));
+      return jsonResponse({
+        objects: filtered,
+        total_detected: filtered.length,
+        model: MODELS.object_detection,
+        cost_usd: 0,
+      });
+    }
+
+    // ═══ ACTION: visual_search — Gerar CLIP embedding para busca visual (#40) ═══
+    if (action === 'visual_search') {
+      const { query_text, query_image_base64 } = body;
+      // CLIP pode gerar embeddings de texto ou imagem no mesmo espaço vetorial
+      if (query_text) {
+        // Text embedding via CLIP (para buscar imagens por texto)
+        const resp = await fetch(`https://router.huggingface.co/hf-inference/models/${MODELS.clip}`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${hfToken}` },
+          body: JSON.stringify({ inputs: query_text }),
+        });
+        if (!resp.ok) return jsonResponse({ error: `CLIP text embedding failed: ${resp.status}` }, 502);
+        const embedding = await resp.json();
+        return jsonResponse({ embedding, type: 'text', model: MODELS.clip, cost_usd: 0 });
+      }
+      if (query_image_base64 || image_base64) {
+        // Image embedding via CLIP (para buscar produtos similares)
+        const imgBytes = await getImageBytes();
+        const resp = await fetch(`https://router.huggingface.co/hf-inference/models/${MODELS.clip}`, {
+          method: 'POST',
+          headers: { 'Authorization': `Bearer ${hfToken}` },
+          body: imgBytes,
+        });
+        if (!resp.ok) return jsonResponse({ error: `CLIP image embedding failed: ${resp.status}` }, 502);
+        const embedding = await resp.json();
+        return jsonResponse({ embedding, type: 'image', model: MODELS.clip, cost_usd: 0 });
+      }
+      return jsonResponse({ error: 'query_text or query_image_base64/image_base64 required' }, 400);
     }
 
     return jsonResponse({ error: `Unknown action: ${action}` }, 400);

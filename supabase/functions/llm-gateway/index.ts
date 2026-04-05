@@ -566,6 +566,52 @@ serve(async (req) => {
     // ═══ TRACE (non-blocking) ═══
     recordTrace(supabase, { workspaceId, agentId: agent_id, sessionId: session_id, userId: user.id, userInput: userMessage, assistantOutput: result.content, model: usedModel, provider, promptTokens: result.usage.prompt_tokens, completionTokens: result.usage.completion_tokens, totalTokens: result.usage.total_tokens, costUsd, latencyMs: totalMs, guardrailsTriggered: gr.triggered, event: 'llm_call', level: fallbackErrors.length > 0 ? 'warning' : injection.detected ? 'warning' : 'info' });
 
+    // ═══ OUTPUT GUARDRAILS (fire-and-forget) ═══
+    const hfOutputToken = Deno.env.get('HF_API_TOKEN');
+    let outputToxicityScore = 0;
+    let hallucinationScore: number | null = null;
+
+    // #33 — Output Toxicity Check (toxic-bert on LLM response)
+    if (hfOutputToken && Deno.env.get('ENABLE_OUTPUT_TOXICITY') !== 'false' && result.content) {
+      try {
+        const otResp = await fetch('https://router.huggingface.co/hf-inference/models/unitary/toxic-bert', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${hfOutputToken}` },
+          body: JSON.stringify({ inputs: result.content.substring(0, 512) }),
+        });
+        if (otResp.ok) {
+          const otResult = await otResp.json();
+          const toxicLabel = Array.isArray(otResult?.[0]) ? otResult[0].find((l: Record<string, unknown>) => l.label === 'toxic') : null;
+          outputToxicityScore = toxicLabel?.score || 0;
+          // If output is highly toxic, flag but don't block (user asked the question)
+        }
+      } catch { /* non-blocking */ }
+    }
+
+    // #29 — Hallucination Detection (NLI check: is response grounded in context?)
+    if (hfOutputToken && Deno.env.get('ENABLE_HALLUCINATION_CHECK') !== 'false' && result.content) {
+      try {
+        // Only check if there was RAG context in the messages
+        const systemMsg = (messages || []).find((m: Record<string, string>) => m.role === 'system')?.content || '';
+        const hasContext = systemMsg.length > 200; // Likely has RAG context if system prompt is long
+        if (hasContext) {
+          const nliResp = await fetch('https://router.huggingface.co/hf-inference/models/facebook/bart-large-mnli', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${hfOutputToken}` },
+            body: JSON.stringify({
+              inputs: `${systemMsg.substring(0, 800)}. ${result.content.substring(0, 300)}`,
+              parameters: { candidate_labels: ['grounded', 'hallucinated'] },
+            }),
+          });
+          if (nliResp.ok) {
+            const nliResult = await nliResp.json();
+            const hallIdx = nliResult?.labels?.indexOf('hallucinated');
+            hallucinationScore = hallIdx >= 0 ? Math.round(nliResult.scores[hallIdx] * 100) / 100 : null;
+          }
+        }
+      } catch { /* non-blocking */ }
+    }
+
     // ═══ AUTO-CLASSIFICATION (fire-and-forget via HuggingFace zero-shot) ═══
     const hfTokenClassify = Deno.env.get('HF_API_TOKEN');
     if (hfTokenClassify && Deno.env.get('ENABLE_AUTO_CLASSIFY') !== 'false') {
@@ -599,6 +645,8 @@ serve(async (req) => {
       toxicity_score: toxicityScore > 0.1 ? Math.round(toxicityScore * 1000) / 1000 : undefined,
       fallback: attempt > 1 ? { attempt, requested_model: model, used_model: usedModel, errors: fallbackErrors } : undefined,
       guardrails_triggered: gr.triggered.length > 0 ? gr.triggered : undefined,
+      output_toxicity: outputToxicityScore > 0.1 ? Math.round(outputToxicityScore * 1000) / 1000 : undefined,
+      hallucination_risk: hallucinationScore !== null && hallucinationScore > 0.3 ? hallucinationScore : undefined,
     }), { headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
   } catch (error: unknown) {
     return new Response(JSON.stringify({ error: error instanceof Error ? error.message : 'Internal error' }), { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });

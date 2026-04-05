@@ -248,6 +248,109 @@ serve(async (req) => {
             } else {
               state._output = `Image generation failed: ${resp.status}`;
             }
+          } else if (toolType === 'flux_generation' && hfToken) {
+            // #36 — FLUX image generation (superior to SDXL)
+            const prompt = (node.config.prompt as string) || (state._output as string) || state.input || '';
+            const resp = await fetch('https://router.huggingface.co/hf-inference/models/black-forest-labs/FLUX.1-schnell', {
+              method: 'POST', headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${hfToken}` },
+              body: JSON.stringify({ inputs: prompt.substring(0, 500) }),
+              signal: AbortSignal.timeout(60000),
+            });
+            if (resp.ok) {
+              const imgBuffer = await resp.arrayBuffer();
+              const base64 = btoa(String.fromCharCode(...new Uint8Array(imgBuffer)));
+              state._output = `[FLUX image: ${imgBuffer.byteLength} bytes]`;
+              state[`${node.id}_output`] = state._output;
+              state[`${node.id}_image_base64`] = base64;
+            } else {
+              state._output = `FLUX generation failed: ${resp.status}`;
+            }
+          } else if (toolType === 'gradio_space') {
+            // #34 — Call any HF Gradio Space as a tool via API
+            const spaceId = (node.config.space_id as string) || '';
+            const apiEndpoint = (node.config.api_endpoint as string) || '/predict';
+            if (spaceId) {
+              const spaceUrl = `https://${spaceId.replace('/', '-')}.hf.space/api${apiEndpoint}`;
+              const resp = await fetch(spaceUrl, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ data: [(state._output as string) || state.input || ''] }),
+                signal: AbortSignal.timeout(30000),
+              });
+              if (resp.ok) {
+                const result = await resp.json();
+                state._output = JSON.stringify(result.data || result);
+                state[`${node.id}_output`] = state._output;
+              } else {
+                state._output = `Space ${spaceId} call failed: ${resp.status}`;
+              }
+            }
+          } else if (toolType === 'smolagent') {
+            // #30 — smolagents-style code generation + execution via LLM
+            // Enhanced version of code_execution with structured tool descriptions
+            const task = (node.config.task as string) || (state._output as string) || state.input || '';
+            const tools = (node.config.available_tools as string[]) || [];
+            const agentModel = (node.config.model as string) || 'huggingface/Qwen/Qwen3-30B-A3B';
+            const toolDescriptions = tools.length > 0
+              ? `\nAvailable tools: ${tools.join(', ')}\nCall tools with: result = tool_name(args)`
+              : '';
+
+            const resp = await fetch(gatewayUrl, {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json', 'Authorization': authHeader, 'apikey': supabaseKey },
+              body: JSON.stringify({
+                model: agentModel,
+                messages: [
+                  { role: 'system', content: `You are a smolagent — a code-first AI agent. Given a task, write Python code to solve it.\nYou can use: print(), len(), sorted(), json, math, datetime, re.${toolDescriptions}\nAssign the final result to a variable called 'result'.\nRespond with:\n1. Code block\n2. "RESULT:" followed by the expected output` },
+                  { role: 'user', content: `Task: ${task}` },
+                ],
+                temperature: 0.2, max_tokens: 2000,
+              }),
+              signal: AbortSignal.timeout(STEP_TIMEOUT_MS),
+            });
+            const smolResult = await resp.json();
+            const smolOutput = smolResult.content || '';
+            const resultMatch = smolOutput.match(/RESULT:\s*([\s\S]*?)$/i);
+            state._output = resultMatch ? resultMatch[1].trim() : smolOutput;
+            state[`${node.id}_output`] = state._output;
+            state[`${node.id}_code`] = smolOutput;
+            totalTokens += smolResult.tokens?.total || 0;
+            totalCost += smolResult.cost_usd || 0;
+          } else if (toolType === 'paraphrase_detection' && hfToken) {
+            // #39 — Detect duplicate/similar content
+            const text1 = (node.config.text1 as string) || (state._output as string) || '';
+            const text2 = (node.config.text2 as string) || state.input || '';
+            const resp = await fetch('https://router.huggingface.co/hf-inference/models/sentence-transformers/paraphrase-multilingual-MiniLM-L12-v2', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${hfToken}` },
+              body: JSON.stringify({ inputs: { source_sentence: text1.substring(0, 500), sentences: [text2.substring(0, 500)] } }),
+              signal: AbortSignal.timeout(STEP_TIMEOUT_MS),
+            });
+            const simResult = await resp.json();
+            const similarity = Array.isArray(simResult) ? simResult[0] : 0;
+            state._output = JSON.stringify({ similarity: Math.round(similarity * 1000) / 1000, is_duplicate: similarity > 0.8 });
+            state[`${node.id}_output`] = state._output;
+          } else if (toolType === 'grammar_correction') {
+            // #38 — Grammar/spelling correction via LLM
+            const textToCorrect = (state._output as string) || state.input || '';
+            const resp = await fetch(gatewayUrl, {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json', 'Authorization': authHeader, 'apikey': supabaseKey },
+              body: JSON.stringify({
+                model: 'huggingface/Qwen/Qwen3-30B-A3B',
+                messages: [
+                  { role: 'system', content: 'Corrija a gramática e ortografia do texto. Retorne APENAS o texto corrigido, sem explicações.' },
+                  { role: 'user', content: textToCorrect.substring(0, 3000) },
+                ],
+                temperature: 0.1, max_tokens: 3000,
+              }),
+              signal: AbortSignal.timeout(STEP_TIMEOUT_MS),
+            });
+            const gramResult = await resp.json();
+            state._output = gramResult.content || textToCorrect;
+            state[`${node.id}_output`] = state._output;
+            totalTokens += gramResult.tokens?.total || 0;
+            totalCost += gramResult.cost_usd || 0;
           }
 
         } else if (node.type === 'parallel') {

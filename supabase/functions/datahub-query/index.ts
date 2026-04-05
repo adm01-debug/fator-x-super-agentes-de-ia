@@ -564,6 +564,127 @@ serve(async (req) => {
       }), { headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
     }
 
+    // ═══ ACTION: natural_language_query — Text-to-SQL (#28) ═══
+    if (action === 'natural_language_query') {
+      const { question, connection_id, max_rows } = body;
+      if (!question) return new Response(JSON.stringify({ error: 'question required' }), { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
+
+      const connId = connection_id || 'bancodadosclientes';
+      const client = getExternalClient(connId);
+
+      // Get table list for schema context
+      const schemaHints: string[] = [];
+      for (const [entityName, mapping] of Object.entries(ENTITY_MAPPINGS)) {
+        if (mapping.primary.connection === connId) {
+          const cols = mapping.primary.display_column ? [mapping.primary.id_column, mapping.primary.display_column] : [mapping.primary.id_column];
+          schemaHints.push(`${mapping.primary.table} (${cols.join(', ')})`);
+        }
+      }
+
+      const schemaContext = schemaHints.length > 0
+        ? `Tabelas disponíveis: ${schemaHints.join('; ')}`
+        : `Conexão: ${connId} (PostgreSQL)`;
+
+      // Generate SQL via LLM
+      const supabaseUrl2 = Deno.env.get('SUPABASE_URL')!;
+      const supabaseKey2 = Deno.env.get('SUPABASE_ANON_KEY')!;
+      const authHeader2 = req.headers.get('Authorization')!;
+
+      const sqlResp = await fetch(`${supabaseUrl2}/functions/v1/llm-gateway`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'Authorization': authHeader2, 'apikey': supabaseKey2 },
+        body: JSON.stringify({
+          model: 'huggingface/Qwen/Qwen3-30B-A3B',
+          messages: [
+            { role: 'system', content: `Você é um especialista em PostgreSQL. Gere APENAS o SQL (sem explicação, sem markdown, sem backticks) para responder a pergunta do usuário.\n\n${schemaContext}\n\nRegras:\n- SELECT apenas, nunca INSERT/UPDATE/DELETE\n- LIMIT ${max_rows || 25} sempre\n- Use ILIKE para buscas de texto\n- Retorne apenas o SQL puro` },
+            { role: 'user', content: question },
+          ],
+          temperature: 0.1, max_tokens: 500,
+        }),
+      });
+      const sqlResult = await sqlResp.json();
+      const generatedSql = (sqlResult.content || '').replace(/```sql\n?|```/g, '').trim();
+
+      // Validate: must be SELECT
+      if (!generatedSql.toUpperCase().startsWith('SELECT')) {
+        return new Response(JSON.stringify({ error: 'Generated query is not a SELECT statement', sql: generatedSql }), { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
+      }
+
+      // Execute the query
+      try {
+        const { data: queryData, error: queryError } = await client.rpc('', {}).catch(() => ({ data: null, error: { message: 'RPC not available' } }));
+        // Fallback: use a simple select approach
+        // Note: direct SQL execution requires service role or RPC function
+        return new Response(JSON.stringify({
+          sql: generatedSql,
+          question,
+          connection: connId,
+          schema_context: schemaContext,
+          status: 'sql_generated',
+          note: 'Execute this SQL via Supabase dashboard or RPC function. Direct SQL execution requires service_role key.',
+          model: 'Qwen/Qwen3-30B-A3B',
+          cost_usd: sqlResult.cost_usd || 0,
+        }), { headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
+      } catch {
+        return new Response(JSON.stringify({ sql: generatedSql, status: 'sql_generated' }), { headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
+      }
+    }
+
+    // ═══ ACTION: table_qa — Perguntas sobre tabelas (#37) ═══
+    if (action === 'table_qa') {
+      const { question: tqQuestion, entity: tqEntity, record_id: tqRecordId } = body;
+      if (!tqQuestion || !tqEntity) return new Response(JSON.stringify({ error: 'question and entity required' }), { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
+
+      const mapping = ENTITY_MAPPINGS[tqEntity];
+      if (!mapping) return new Response(JSON.stringify({ error: `Unknown entity: ${tqEntity}` }), { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
+
+      const client2 = getExternalClient(mapping.primary.connection);
+
+      // Fetch sample data for context
+      let query2 = client2.from(mapping.primary.table).select('*').limit(20);
+      if (mapping.primary.filter) query2 = applyStaticFilter(query2, mapping.primary.filter);
+      const { data: sampleData } = await query2;
+
+      if (!sampleData || sampleData.length === 0) {
+        return new Response(JSON.stringify({ answer: 'Nenhum dado encontrado para esta entidade.' }), { headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
+      }
+
+      // Build table context as CSV-like for the LLM
+      const columns = Object.keys(sampleData[0]);
+      const tableContext = [
+        columns.join(' | '),
+        ...sampleData.map((row: Record<string, unknown>) => columns.map(c => String(row[c] ?? '')).join(' | ')),
+      ].join('\n');
+
+      // Ask LLM to answer based on table
+      const supabaseUrl3 = Deno.env.get('SUPABASE_URL')!;
+      const supabaseKey3 = Deno.env.get('SUPABASE_ANON_KEY')!;
+      const authHeader3 = req.headers.get('Authorization')!;
+
+      const tqResp = await fetch(`${supabaseUrl3}/functions/v1/llm-gateway`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'Authorization': authHeader3, 'apikey': supabaseKey3 },
+        body: JSON.stringify({
+          model: 'huggingface/Qwen/Qwen3-30B-A3B',
+          messages: [
+            { role: 'system', content: 'Você responde perguntas baseado APENAS nos dados da tabela fornecida. Responda em português, de forma concisa e precisa. Se a resposta não está nos dados, diga isso.' },
+            { role: 'user', content: `Tabela (${mapping.primary.table}, ${sampleData.length} registros):\n${tableContext}\n\nPergunta: ${tqQuestion}` },
+          ],
+          temperature: 0.1, max_tokens: 500,
+        }),
+      });
+      const tqResult = await tqResp.json();
+
+      return new Response(JSON.stringify({
+        answer: tqResult.content || 'Não foi possível responder.',
+        question: tqQuestion,
+        entity: tqEntity,
+        rows_analyzed: sampleData.length,
+        model: 'Qwen/Qwen3-30B-A3B',
+        cost_usd: tqResult.cost_usd || 0,
+      }), { headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
+    }
+
     return new Response(JSON.stringify({ error: 'Invalid action' }), { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
   } catch (error: unknown) {
     console.error('datahub-query error:', error);

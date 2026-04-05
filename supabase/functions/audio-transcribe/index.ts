@@ -120,6 +120,57 @@ serve(async (req) => {
       });
     }
 
+    // ═══ ACTION: transcribe_with_speakers — Transcription + Speaker Diarization (#32) ═══
+    if (action === 'transcribe_with_speakers') {
+      const { audio_base64: dAudio, audio_url: dUrl } = body;
+      let audioBytes: Uint8Array;
+      if (dAudio) {
+        const raw = dAudio.replace(/^data:audio\/\w+;base64,/, '');
+        audioBytes = Uint8Array.from(atob(raw), c => c.charCodeAt(0));
+      } else if (dUrl) {
+        const resp = await fetch(dUrl);
+        if (!resp.ok) return jsonResponse({ error: `Failed to fetch audio: ${resp.status}` }, 400);
+        audioBytes = new Uint8Array(await resp.arrayBuffer());
+      } else {
+        return jsonResponse({ error: 'audio_base64 or audio_url required' }, 400);
+      }
+
+      // Step 1: Transcribe with Whisper (timestamps)
+      const startTime = Date.now();
+      const whisperResp = await fetch(HF_INFERENCE_URL, {
+        method: 'POST',
+        headers: { 'Authorization': `Bearer ${hfToken}`, 'Content-Type': 'audio/flac' },
+        body: audioBytes,
+      });
+      const transcription = whisperResp.ok ? await whisperResp.json() : { text: '' };
+
+      // Step 2: Speaker diarization via pyannote (requires HF token with pyannote agreement)
+      // Note: pyannote/speaker-diarization-3.1 requires accepting terms on HF Hub
+      // Fallback: return transcription without speakers if diarization unavailable
+      let speakers: Array<Record<string, unknown>> | null = null;
+      try {
+        const diarResp = await fetch('https://router.huggingface.co/hf-inference/models/pyannote/speaker-diarization-3.1', {
+          method: 'POST',
+          headers: { 'Authorization': `Bearer ${hfToken}`, 'Content-Type': 'audio/flac' },
+          body: audioBytes,
+        });
+        if (diarResp.ok) {
+          speakers = await diarResp.json();
+        }
+      } catch { /* diarization optional */ }
+
+      return jsonResponse({
+        text: transcription.text || '',
+        speakers: speakers || [],
+        diarization_available: speakers !== null,
+        latency_ms: Date.now() - startTime,
+        model_stt: HF_MODEL_STT,
+        model_diarization: 'pyannote/speaker-diarization-3.1',
+        note: speakers === null ? 'Speaker diarization unavailable. Accept pyannote terms at huggingface.co/pyannote/speaker-diarization-3.1' : undefined,
+        cost_usd: 0,
+      });
+    }
+
     return jsonResponse({ error: `Unknown action: ${action}` }, 400);
 
   } catch (error: unknown) {
