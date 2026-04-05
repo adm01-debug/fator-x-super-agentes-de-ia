@@ -140,8 +140,6 @@ export function applyTransform(
   payload: Record<string, unknown>,
   script: string,
 ): Record<string, unknown> {
-  // Simple JSONPath-like field mapping
-  // Format: "target_field = source.nested.path"
   const result: Record<string, unknown> = {};
   const lines = script.split('\n').filter((l) => l.trim() && !l.trim().startsWith('#'));
 
@@ -198,10 +196,7 @@ export async function createWebhook(
     created_by: userId,
   };
 
-  const { data, error } = await fromTable('webhook_endpoints')
-    .insert(record)
-    .select()
-    .single();
+  const { data, error } = await fromTable('webhook_endpoints').insert(record).select().single();
   if (error) throw error;
   return data as WebhookEndpoint;
 }
@@ -209,9 +204,7 @@ export async function createWebhook(
 export async function listWebhooks(
   status?: WebhookStatus,
 ): Promise<WebhookEndpoint[]> {
-  let query = fromTable('webhook_endpoints')
-    .select('*')
-    .order('created_at', { ascending: false });
+  let query = fromTable('webhook_endpoints').select('*').order('created_at', { ascending: false });
 
   if (status) {
     query = query.eq('status', status);
@@ -223,10 +216,7 @@ export async function listWebhooks(
 }
 
 export async function getWebhook(id: string): Promise<WebhookEndpoint | null> {
-  const { data, error } = await fromTable('webhook_endpoints')
-    .select('*')
-    .eq('id', id)
-    .maybeSingle();
+  const { data, error } = await fromTable('webhook_endpoints').select('*').eq('id', id).maybeSingle();
   if (error) throw error;
   return data as WebhookEndpoint | null;
 }
@@ -235,11 +225,7 @@ export async function updateWebhook(
   id: string,
   updates: Partial<CreateWebhookInput> & { status?: WebhookStatus },
 ): Promise<WebhookEndpoint> {
-  const { data, error } = await fromTable('webhook_endpoints')
-    .update({ ...updates, updated_at: new Date().toISOString() })
-    .eq('id', id)
-    .select()
-    .single();
+  const { data, error } = await fromTable('webhook_endpoints').update({ ...updates, updated_at: new Date().toISOString() }).eq('id', id).select().single();
   if (error) throw error;
   return data as WebhookEndpoint;
 }
@@ -249,14 +235,10 @@ export async function revokeWebhook(id: string): Promise<WebhookEndpoint> {
 }
 
 export async function regenerateSecret(id: string): Promise<WebhookEndpoint> {
-  const { data, error } = await fromTable('webhook_endpoints')
-    .update({
-      secret: generateWebhookSecret(),
-      updated_at: new Date().toISOString(),
-    })
-    .eq('id', id)
-    .select()
-    .single();
+  const { data, error } = await fromTable('webhook_endpoints').update({
+    secret: generateWebhookSecret(),
+    updated_at: new Date().toISOString(),
+  }).eq('id', id).select().single();
   if (error) throw error;
   return data as WebhookEndpoint;
 }
@@ -281,7 +263,7 @@ export async function logWebhookEvent(
     .single();
   if (error) throw error;
 
-  // Update counter
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   await (supabase as any).rpc('increment_webhook_counter', { webhook_uuid: webhookId });
 
   return data as WebhookEvent;
