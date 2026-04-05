@@ -18,7 +18,7 @@ const TOUR_STEPS: TourStep[] = [
     title: "Bem-vindo ao Fator X! 🚀",
     description: "Sua plataforma completa para criar, configurar, avaliar e operar agentes de IA com governança total.",
     icon: Rocket,
-    tip: "Você pode reabrir este tour a qualquer momento em Settings.",
+    tip: "Você pode reabrir este tour a qualquer momento em Configurações.",
   },
   {
     title: "Crie seus Agentes",
