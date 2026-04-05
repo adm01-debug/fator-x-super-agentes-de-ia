@@ -30,7 +30,7 @@ type AgentRow = Tables<"agents">;
 
 const FAV_KEY = "nexus-fav-agents";
 function getFavorites(): string[] {
-  try { return JSON.parse(localStorage.getItem(FAV_KEY) || "[]"); } catch { return []; }
+  try { return JSON.parse(localStorage.getItem(FAV_KEY) || "[]"); } catch (err) { console.error("Operation failed:", err); return []; }
 }
 function toggleFavorite(id: string): string[] {
   const prev = getFavorites();

@@ -64,7 +64,7 @@ export function ActivityFeed() {
 
   return (
     <div className="space-y-1 max-h-[320px] overflow-y-auto">
-      {logs.map((log: any) => {
+      {logs.map((log: Record<string, unknown>) => {
         const info = ACTION_LABELS[log.action] || { label: log.action, color: 'text-muted-foreground' };
         const meta = log.metadata as Record<string, any> | null;
         const detail = meta?.name || meta?.email || meta?.keyName || '';

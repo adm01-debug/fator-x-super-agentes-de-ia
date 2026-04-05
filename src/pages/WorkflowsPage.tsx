@@ -66,7 +66,7 @@ export default function WorkflowsPage() {
       if (!member?.workspace_id) return defaultTemplates;
       const { data: wfs } = await supabase.from("workflows").select("*, workflow_steps(id, name, step_order)").eq("workspace_id", member.workspace_id).order("created_at", { ascending: false });
       if (!wfs || wfs.length === 0) return defaultTemplates;
-      return wfs.map((w: any) => ({ id: w.id, name: w.name, steps: (w.workflow_steps || []).sort((a: any, b: any) => a.step_order - b.step_order).map((s: any) => s.name), status: w.status as "draft" | "active", createdAt: w.created_at ? new Date(w.created_at).toISOString().split("T")[0] : "" }));
+      return wfs.map((w: Record<string, unknown>) => ({ id: w.id, name: w.name, steps: (w.workflow_steps || []).sort((a: Record<string, unknown>, b: Record<string, unknown>) => (a.step_order as number) - b.step_order).map((s: Record<string, unknown>) => s.name), status: w.status as "draft" | "active", createdAt: w.created_at ? new Date(w.created_at).toISOString().split("T")[0] : "" }));
     },
   });
   const [dialogOpen, setDialogOpen] = useState(false);
@@ -133,7 +133,7 @@ export default function WorkflowsPage() {
 
   const handleToggleStatus = async (id: string) => {
     if (id.includes('-')) {
-      const wf = workflows.find((w: any) => w.id === id);
+      const wf = workflows.find((w: Record<string, unknown>) => w.id === id);
       if (wf) {
         await supabase.from('workflows').update({ status: wf.status === 'active' ? 'draft' : 'active' }).eq('id', id);
         queryClient.invalidateQueries({ queryKey: ['workflows_list'] });
@@ -156,7 +156,7 @@ export default function WorkflowsPage() {
             setExecuting(null);
             return;
           }
-        } catch { /* fallback below */ }
+        } catch (err) { console.error("Operation failed:", err); /* fallback below */ }
       }
       // Fallback: execute step-by-step via Gateway
       let previousOutput = `Workflow: "${wf.name}". Etapas: ${wf.steps.join(' → ')}`;
@@ -286,7 +286,7 @@ export default function WorkflowsPage() {
           </InfoHint>
 
           <div className="grid gap-4 md:grid-cols-2">
-            {workflows.map((wf: any) => (
+            {workflows.map((wf: Record<string, unknown>) => (
                 <div key={wf.id} className="nexus-card group">
                   <div className="flex items-center justify-between mb-4">
                     <div className="flex items-center gap-2.5">
@@ -315,7 +315,7 @@ export default function WorkflowsPage() {
                   </div>
 
                   <div className="flex items-center gap-1.5 overflow-x-auto pb-2">
-                    {wf.steps.map((step: any, j: number) => {
+                    {wf.steps.map((step: Record<string, unknown>, j: number) => {
                       const Icon = stepIcons[step] || Brain;
                       return (
                         <div key={j} className="flex items-center gap-1.5 shrink-0">
@@ -362,7 +362,7 @@ function WorkflowRunsHistory() {
 
   return (
     <div className="space-y-3">
-      {runs.map((run: any) => (
+      {runs.map((run: Record<string, unknown>) => (
         <div key={run.id} className="nexus-card">
           <div className="flex items-center justify-between">
             <div>
@@ -383,9 +383,9 @@ function WorkflowRunsHistory() {
   );
 }
 
-function WorkflowScheduler({ workflows }: { workflows: any[] }) {
+function WorkflowScheduler({ workflows }: { workflows: Array<Record<string, unknown>> }) {
   const [schedules, setSchedules] = useState<Array<{ id: string; workflowId: string; cron: string; enabled: boolean; nextRun: string }>>(() => {
-    try { return JSON.parse(localStorage.getItem('nexus-wf-schedules') || '[]'); } catch { return []; }
+    try { return JSON.parse(localStorage.getItem('nexus-wf-schedules') || '[]'); } catch (err) { console.error("Operation failed:", err); return []; }
   });
   const [selWf, setSelWf] = useState('');
   const [selCron, setSelCron] = useState('daily');
@@ -437,7 +437,7 @@ function WorkflowScheduler({ workflows }: { workflows: any[] }) {
             <Select value={selWf} onValueChange={setSelWf}>
               <SelectTrigger className="bg-secondary/50"><SelectValue placeholder="Selecione..." /></SelectTrigger>
               <SelectContent>
-                {workflows.map((wf: any) => (
+                {workflows.map((wf: Record<string, unknown>) => (
                   <SelectItem key={wf.id} value={wf.id}>{wf.name}</SelectItem>
                 ))}
               </SelectContent>
@@ -463,7 +463,7 @@ function WorkflowScheduler({ workflows }: { workflows: any[] }) {
       {schedules.length > 0 && (
         <div className="space-y-2">
           {schedules.map(s => {
-            const wf = workflows.find((w: any) => w.id === s.workflowId);
+            const wf = workflows.find((w: Record<string, unknown>) => w.id === s.workflowId);
             return (
               <div key={s.id} className="nexus-card flex items-center gap-3">
                 <Calendar className={`h-4 w-4 shrink-0 ${s.enabled ? 'text-primary' : 'text-muted-foreground'}`} />

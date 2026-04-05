@@ -67,7 +67,7 @@ export default function EvaluationsPage() {
   );
 }
 
-function EvalCard({ ev }: { ev: any }) {
+function EvalCard({ ev }: { ev: Record<string, unknown> }) {
   const [expanded, setExpanded] = useState(false);
   const results = ev.results as Record<string, any> | null;
   const cases = results?.cases as Array<{ input: string; expected: string; actual: string; passed: boolean; score?: number }> | undefined;

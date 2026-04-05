@@ -26,12 +26,12 @@ interface RecordDetailProps {
 const SENSITIVE_MARKER = /^\*{3}$|REDACTED/;
 const NON_EDITABLE = new Set(['id', 'created_at', 'updated_at', 'search_vector', 'is_customer', 'is_supplier', 'is_carrier']);
 
-function isSensitive(value: any): boolean {
+function isSensitive(value: unknown): boolean {
   return typeof value === 'string' && SENSITIVE_MARKER.test(value);
 }
 
 function FieldValue({ label, value, sensitive, editable, onSave }: { 
-  label: string; value: any; sensitive?: boolean; editable?: boolean;
+  label: string; value: unknown; sensitive?: boolean; editable?: boolean;
   onSave?: (newValue: string) => Promise<void>;
 }) {
   const [editing, setEditing] = useState(false);
@@ -47,7 +47,7 @@ function FieldValue({ label, value, sensitive, editable, onSave }: {
       await onSave?.(editValue);
       setEditing(false);
       toast.success(`Campo "${label}" atualizado`);
-    } catch (e: any) {
+    } catch (e: unknown) {
       toast.error(`Erro ao salvar: ${e.message}`);
     } finally {
       setSaving(false);
@@ -114,7 +114,7 @@ function FieldValue({ label, value, sensitive, editable, onSave }: {
 }
 
 /* ── Phone list ─────────────────────────────────────── */
-function PhoneList({ phones }: { phones: any[] }) {
+function PhoneList({ phones }: { phones: Array<Record<string, unknown>> }) {
   if (!phones?.length) return <EmptySecondary label="Nenhum telefone" />;
   return (
     <div className="flex flex-wrap gap-2">
@@ -129,7 +129,7 @@ function PhoneList({ phones }: { phones: any[] }) {
 }
 
 /* ── Email list ─────────────────────────────────────── */
-function EmailList({ emails }: { emails: any[] }) {
+function EmailList({ emails }: { emails: Array<Record<string, unknown>> }) {
   if (!emails?.length) return <EmptySecondary label="Nenhum email" />;
   return (
     <div className="flex flex-wrap gap-2">
@@ -144,7 +144,7 @@ function EmailList({ emails }: { emails: any[] }) {
 }
 
 /* ── Address card ───────────────────────────────────── */
-function AddressCard({ addresses }: { addresses: any[] }) {
+function AddressCard({ addresses }: { addresses: Array<Record<string, unknown>> }) {
   if (!addresses?.length) return <EmptySecondary label="Nenhum endereço" />;
   const addr = addresses[0];
   return (
@@ -161,7 +161,7 @@ function AddressCard({ addresses }: { addresses: any[] }) {
 }
 
 /* ── Vendor info card ───────────────────────────────── */
-function VendorCard({ data }: { data: any[] }) {
+function VendorCard({ data }: { data: Array<Record<string, unknown>> }) {
   if (!data?.length) return null;
   const vendor = data[0];
   return (
@@ -176,7 +176,7 @@ function VendorCard({ data }: { data: any[] }) {
 }
 
 /* ── Supplier score card ────────────────────────────── */
-function SupplierScoreCard({ data }: { data: any[] }) {
+function SupplierScoreCard({ data }: { data: Array<Record<string, unknown>> }) {
   if (!data?.length) return null;
   const s = data[0];
   return (
@@ -203,7 +203,7 @@ function SupplierScoreCard({ data }: { data: any[] }) {
 }
 
 /* ── Messages timeline ──────────────────────────────── */
-function MessagesTimeline({ messages }: { messages: any[] }) {
+function MessagesTimeline({ messages }: { messages: Array<Record<string, unknown>> }) {
   if (!messages?.length) return <EmptySecondary label="Nenhuma mensagem" />;
   return (
     <div className="space-y-1.5 max-h-[200px] overflow-y-auto">
@@ -224,7 +224,7 @@ function MessagesTimeline({ messages }: { messages: any[] }) {
 }
 
 /* ── Generic secondary data ─────────────────────────── */
-function GenericSecondaryCard({ tableName, data }: { tableName: string; data: any[] }) {
+function GenericSecondaryCard({ tableName, data }: { tableName: string; data: Array<Record<string, unknown>> }) {
   if (!data?.length) return null;
   return (
     <div className="rounded-lg bg-secondary/20 border border-border/20 p-3 text-[11px]">
@@ -306,8 +306,8 @@ function GroupMembers({ entityId, grupoId, excludeId }: { entityId: string; grup
             page_size: 10,
           },
         });
-        setMembers((data?.data ?? []).filter((r: any) => r.id !== excludeId));
-      } catch { /* ignore */ }
+        setMembers((data?.data ?? []).filter((r: Record<string, unknown>) => r.id !== excludeId));
+      } catch (err) { console.error("Operation failed:", err); /* ignore */ }
       finally { setLoading(false); }
     })();
   }, [entityId, grupoId, excludeId]);
@@ -337,7 +337,7 @@ function GroupMembers({ entityId, grupoId, excludeId }: { entityId: string; grup
 }
 
 /* ── KNOWN SECONDARY TABLE RENDERERS ─────────────────── */
-const SECONDARY_RENDERERS: Record<string, (data: any[]) => React.ReactNode> = {
+const SECONDARY_RENDERERS: Record<string, (data: Array<Record<string, unknown>>) => React.ReactNode> = {
   company_phones: (data) => <PhoneList phones={data} />,
   company_emails: (data) => <EmailList emails={data} />,
   company_addresses: (data) => <AddressCard addresses={data} />,

@@ -33,7 +33,7 @@ export default function ApprovalQueuePage() {
     setProcessing(true);
     try {
       const { data, error } = await supabase.functions.invoke('workflow-engine-v2', {
-        body: { workflow_id: pendingRuns.find((r: any) => r.id === runId)?.workflow_id, resume_run_id: runId, input: feedback || 'Approved' },
+        body: { workflow_id: pendingRuns.find((r: Record<string, unknown>) => r.id === runId)?.workflow_id, resume_run_id: runId, input: feedback || 'Approved' },
       });
       if (error) throw error;
       toast.success(`Workflow aprovado e retomado! Status: ${data.status}`);
@@ -73,7 +73,7 @@ export default function ApprovalQueuePage() {
         </div>
       ) : (
         <div className="space-y-4">
-          {pendingRuns.map((run: any) => {
+          {pendingRuns.map((run: Record<string, unknown>) => {
             const pending = run.output?.pending_approval;
             const isSelected = selectedRun === run.id;
             return (

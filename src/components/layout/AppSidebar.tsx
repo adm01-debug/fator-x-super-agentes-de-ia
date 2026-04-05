@@ -74,7 +74,7 @@ function getInitialCollapsed(): Record<string, boolean> {
   try {
     const stored = localStorage.getItem(COLLAPSED_KEY);
     if (stored) return JSON.parse(stored);
-  } catch {}
+  } catch (err) { console.error("Operation failed:", err);}
   // Default: only "Geral" expanded
   return { geral: false, dev: false, ops: true, admin: true };
 }
@@ -96,7 +96,7 @@ export function AppSidebar() {
         );
         if (hasActive && prev[section.key]) {
           const next = { ...prev, [section.key]: false };
-          try { localStorage.setItem(COLLAPSED_KEY, JSON.stringify(next)); } catch { /* noop */ }
+          try { localStorage.setItem(COLLAPSED_KEY, JSON.stringify(next)); } catch (err) { console.error("Operation failed:", err); /* noop */ }
           return next;
         }
       }
@@ -107,7 +107,7 @@ export function AppSidebar() {
   const toggleSection = useCallback((key: string) => {
     setSectionCollapsed(prev => {
       const next = { ...prev, [key]: !prev[key] };
-      try { localStorage.setItem(COLLAPSED_KEY, JSON.stringify(next)); } catch {}
+      try { localStorage.setItem(COLLAPSED_KEY, JSON.stringify(next)); } catch (err) { console.error("Operation failed:", err);}
       return next;
     });
   }, []);

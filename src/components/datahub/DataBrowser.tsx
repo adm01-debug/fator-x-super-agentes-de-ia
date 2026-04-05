@@ -74,7 +74,7 @@ export function DataBrowser({ entityId, onClose }: { entityId: string; onClose: 
   const fetchData = useCallback(async () => {
     setLoading(true);
     try {
-      const body: any = {
+      const body: Record<string, unknown> = {
         action: 'query_entity',
         entity: entityId,
         search: debouncedSearch,
@@ -96,7 +96,7 @@ export function DataBrowser({ entityId, onClose }: { entityId: string; onClose: 
       if (error) throw error;
       setData(result.data ?? []);
       setTotal(result.total ?? 0);
-    } catch (e: any) {
+    } catch (e: unknown) {
       toast.error(`Erro ao buscar dados: ${e.message}`);
     } finally {
       setLoading(false);
@@ -131,7 +131,7 @@ export function DataBrowser({ entityId, onClose }: { entityId: string; onClose: 
       if (error) throw error;
       setSelectedRecord(result.record);
       setEnrichedData({ enriched: result.enriched, cross_db: result.cross_db });
-    } catch (e: any) {
+    } catch (e: unknown) {
       toast.error(`Erro: ${e.message}`);
     }
   };
@@ -190,13 +190,13 @@ export function DataBrowser({ entityId, onClose }: { entityId: string; onClose: 
       toast.success(`${deleted} registro(s) excluído(s)`);
       setSelectedIds(new Set());
       fetchData();
-    } catch (e: any) {
+    } catch (e: unknown) {
       toast.error(`Erro ao excluir: ${e.message}`);
     }
   };
 
   // Inline edit: update row in local state
-  const handleInlineUpdate = (rowId: string, updatedRow: any) => {
+  const handleInlineUpdate = (rowId: string, updatedRow: Record<string, unknown>) => {
     setData(prev => prev.map(r => r.id === rowId ? updatedRow : r));
   };
 

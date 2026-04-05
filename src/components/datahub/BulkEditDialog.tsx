@@ -15,7 +15,7 @@ interface BulkEditDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   entityId: string;
-  selectedRecords: any[];
+  selectedRecords: Array<Record<string, unknown>>;
   columns: ColumnDef[];
   displayColumn: string;
   onSuccess: () => void;
@@ -52,7 +52,7 @@ export function BulkEditDialog({
       toast.success(`${result?.updated_count ?? selectedRecords.length} registros atualizados`);
       handleClose();
       onSuccess();
-    } catch (e: any) {
+    } catch (e: unknown) {
       toast.error(`Erro: ${e.message}`);
     } finally {
       setSaving(false);

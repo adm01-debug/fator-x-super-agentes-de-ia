@@ -61,7 +61,7 @@ export default function MonitoringPage() {
       if (error) throw error;
       return (data ?? []) as Array<{
         id: string; agent_id: string | null; status: string;
-        started_at: string; ended_at: string | null; metadata: any;
+        started_at: string; ended_at: string | null; metadata: Record<string, unknown>;
       }>;
     },
   });
@@ -79,9 +79,9 @@ export default function MonitoringPage() {
         .order('created_at', { ascending: true });
       if (error) throw error;
       return (data ?? []) as Array<{
-        id: string; trace_type: string; input: any; output: any;
+        id: string; trace_type: string; input: unknown; output: unknown;
         latency_ms: number | null; tokens_used: number | null;
-        cost_usd: number | null; created_at: string; metadata: any;
+        cost_usd: number | null; created_at: string; metadata: Record<string, unknown>;
       }>;
     },
   });
@@ -99,7 +99,7 @@ export default function MonitoringPage() {
         .order('created_at', { ascending: true });
       if (error) throw error;
       return (data ?? []) as Array<{
-        id: string; event_type: string; data: any; created_at: string;
+        id: string; event_type: string; data: Record<string, unknown>; created_at: string;
       }>;
     },
   });
@@ -164,7 +164,7 @@ export default function MonitoringPage() {
           <SelectTrigger className="w-[220px] bg-secondary/50 text-xs"><SelectValue placeholder="Filtrar por agente" /></SelectTrigger>
           <SelectContent>
             <SelectItem value="all">Todos os agentes</SelectItem>
-            {agentsList.map((a: any) => <SelectItem key={a.id} value={a.id}>{a.name}</SelectItem>)}
+            {agentsList.map((a: Record<string, unknown>) => <SelectItem key={a.id} value={a.id}>{a.name}</SelectItem>)}
           </SelectContent>
         </Select>
         {agentFilter !== 'all' && <Badge variant="outline" className="text-[11px]">Filtrado</Badge>}
@@ -498,7 +498,7 @@ function AlertRulesPanel() {
         <p className="text-xs text-muted-foreground text-center py-4">Nenhuma regra criada. Alertas de budget são automáticos via trigger.</p>
       ) : (
         <div className="space-y-2">
-          {rules.map((rule: any) => (
+          {rules.map((rule: Record<string, unknown>) => (
             <div key={rule.id} className="flex items-center justify-between py-2 px-3 rounded-lg bg-secondary/30 text-xs">
               <div className="flex items-center gap-3">
                 <input type="checkbox" checked={rule.is_enabled} onChange={e => handleToggleRule(rule.id, e.target.checked)} className="rounded" />

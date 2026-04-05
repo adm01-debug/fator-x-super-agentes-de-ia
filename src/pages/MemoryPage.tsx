@@ -51,7 +51,7 @@ export default function MemoryPage() {
             limit: 50,
           });
           return (result?.memories ?? []) as Array<{ id: string; content: string; source: string; created_at: string; relevance_score: number | null }>;
-        } catch {
+        } catch (err) { console.error("Operation failed:", err);
           // Fallback to direct query if edge function fails
         }
       }

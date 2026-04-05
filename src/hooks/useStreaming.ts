@@ -80,7 +80,7 @@ export function useStreaming() {
             if (parsed.error) {
               setState(prev => ({ ...prev, isStreaming: false, error: parsed.error }));
             }
-          } catch { /* skip */ }
+          } catch (err) { console.error("Operation failed:", err); /* skip */ }
         }
       }
 

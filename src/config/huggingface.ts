@@ -107,7 +107,7 @@ const getDenoEnv = (key: string): string | null => {
     if (typeof globalThis !== 'undefined' && 'Deno' in globalThis) {
       return (globalThis as unknown as { Deno: { env: { get: (k: string) => string | undefined } } }).Deno.env.get(key) ?? null;
     }
-  } catch { /* browser environment */ }
+  } catch (err) { console.error("Operation failed:", err); /* browser environment */ }
   return null;
 };
 

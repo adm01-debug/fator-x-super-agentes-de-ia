@@ -96,7 +96,7 @@ export default function LGPDCompliancePage() {
             <h3 className="text-sm font-heading font-semibold text-foreground mb-4">Bases Legais para Processamento</h3>
             <div className="space-y-4">
               {purposes.map(p => {
-                const consent = consents.find((c: any) => c.purpose === p.key && c.granted);
+                const consent = consents.find((c: Record<string, unknown>) => c.purpose === p.key && c.granted);
                 return (
                   <div key={p.key} className="flex items-start justify-between py-3 border-b border-border/30 last:border-0">
                     <div>
@@ -152,10 +152,10 @@ export default function LGPDCompliancePage() {
             <div className="text-center py-12 text-sm text-muted-foreground">Nenhum registro de consentimento ou exclusão.</div>
           ) : (
             <div className="space-y-2">
-              {[...deletions.map((d: any) => ({ ...d, _type: 'deletion' })), ...consents.map((c: any) => ({ ...c, _type: 'consent' }))]
-                .sort((a: any, b: any) => new Date(b.created_at || b.requested_at).getTime() - new Date(a.created_at || a.requested_at).getTime())
+              {[...deletions.map((d: Record<string, unknown>) => ({ ...d, _type: 'deletion' })), ...consents.map((c: Record<string, unknown>) => ({ ...c, _type: 'consent' }))]
+                .sort((a: Record<string, unknown>, b: Record<string, unknown>) => new Date(b.created_at || b.requested_at).getTime() - new Date(a.created_at || a.requested_at).getTime())
                 .slice(0, 30)
-                .map((item: any) => (
+                .map((item: Record<string, unknown>) => (
                 <div key={item.id}
                   className="nexus-card flex items-center justify-between text-xs">
                   <div className="flex items-center gap-3">

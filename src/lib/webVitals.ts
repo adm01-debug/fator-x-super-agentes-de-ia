@@ -44,7 +44,7 @@ export function initWebVitals() {
         }
       });
       observer.observe({ type: 'resource', buffered: false });
-    } catch {
+    } catch (err) { console.error("Operation failed:", err);
       // PerformanceObserver not supported
     }
   }

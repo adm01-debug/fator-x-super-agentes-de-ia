@@ -36,7 +36,7 @@ export default function DeploymentsPage() {
           status: a.status,
           version: `v${a.version}`,
           channels: configChannels.filter(c => c.enabled).map(c => {
-            const live = liveConns.find((lc: any) => lc.channel === c.channel);
+            const live = liveConns.find((lc: Record<string, unknown>) => lc.channel === c.channel);
             return { name: c.name || c.channel, status: live?.status || 'inactive', messages: live?.message_count || 0, lastMsg: live?.last_message_at, error: live?.error_message };
           }),
           environment: config?.deploy_environment || 'production',
@@ -74,7 +74,7 @@ export default function DeploymentsPage() {
               </div>
               {dep.channels.length > 0 && (
                 <div className="flex flex-wrap gap-1 mt-2">
-                  {dep.channels.map((c: any) => (
+                  {dep.channels.map((c: Record<string, unknown>) => (
                     <span key={c.name} className={`text-[11px] px-2 py-0.5 rounded-full ${c.status === 'active' ? 'bg-nexus-emerald/10 text-nexus-emerald' : c.status === 'error' ? 'bg-destructive/10 text-destructive' : 'nexus-badge-primary'}`} title={c.error || `${c.messages} msgs`}>
                       {c.name} {c.messages > 0 ? `(${c.messages})` : ''}
                     </span>
@@ -92,7 +92,7 @@ export default function DeploymentsPage() {
 
 function EndpointGeneratorButton() {
   const [copied, setCopied] = useState<string | null>(null);
-  const projectId = import.meta.env.VITE_SUPABASE_PROJECT_ID || 'tifbqkyumdxzmxyyoqlu';
+  const projectId = import.meta.env.VITE_SUPABASE_PROJECT_ID || '${import.meta.env.VITE_SUPABASE_PROJECT_ID || 'tifbqkyumdxzmxyyoqlu'}';
   const baseUrl = `https://${projectId}.supabase.co/functions/v1`;
 
   const endpoints = [

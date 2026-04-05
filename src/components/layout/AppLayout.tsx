@@ -35,7 +35,7 @@ function getDefaultOpen() {
   try {
     const stored = localStorage.getItem(SIDEBAR_KEY);
     return stored !== "false";
-  } catch {
+  } catch (err) { console.error("Operation failed:", err);
     return true;
   }
 }
@@ -109,7 +109,7 @@ export function AppLayout({ children }: AppLayoutProps) {
       <SidebarProvider
         defaultOpen={defaultOpen}
         onOpenChange={(open) => {
-          try { localStorage.setItem(SIDEBAR_KEY, String(open)); } catch {}
+          try { localStorage.setItem(SIDEBAR_KEY, String(open)); } catch (err) { console.error("Operation failed:", err);}
         }}
       >
         {/* Skip to content link — accessibility */}

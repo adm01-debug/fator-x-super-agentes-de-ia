@@ -204,7 +204,7 @@ function VersionHistory({ agentId }: { agentId: string }) {
         )}
       </div>
       <div className="space-y-2 max-h-[250px] overflow-y-auto">
-        {versions.map((v: any, i: number) => (
+        {versions.map((v: Record<string, unknown>, i: number) => (
           <div key={v.id} className={`flex items-center justify-between py-2 px-3 rounded-lg text-xs ${i === 0 ? 'bg-primary/10 border border-primary/20' : 'bg-secondary/30'}`}>
             <div className="flex items-center gap-3">
               <span className="font-mono font-bold text-foreground">v{v.version}</span>

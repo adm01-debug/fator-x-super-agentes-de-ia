@@ -422,7 +422,7 @@ function EnvironmentsManager() {
       </div>
       {isLoading ? <p className="text-xs text-muted-foreground">Carregando...</p> : (
         <div className="space-y-2">
-          {environments.map((env: any) => (
+          {environments.map((env: Record<string, unknown>) => (
             <div key={env.id} className="flex items-center justify-between py-2 px-3 rounded-lg bg-secondary/30">
               <div>
                 <p className="text-sm font-medium text-foreground">{env.name}</p>

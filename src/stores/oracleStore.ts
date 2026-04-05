@@ -60,7 +60,7 @@ export interface OracleResult {
   confidence_score: number;
   consensus_degree: number;
   stage1_results: ModelResponse[];
-  stage2_results: any[];
+  stage2_results: Array<Record<string, unknown>>;
   consensus_points?: ConsensusPoint[];
   citations?: Citation[];
   metrics: {

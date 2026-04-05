@@ -71,12 +71,12 @@ export function OnboardingTour() {
         const t = setTimeout(() => setVisible(true), 1200);
         return () => clearTimeout(t);
       }
-    } catch {}
+    } catch (err) { console.error("Operation failed:", err);}
   }, []);
 
   const dismiss = useCallback(() => {
     setVisible(false);
-    try { localStorage.setItem(TOUR_KEY, "true"); } catch {}
+    try { localStorage.setItem(TOUR_KEY, "true"); } catch (err) { console.error("Operation failed:", err);}
   }, []);
 
   const next = () => {

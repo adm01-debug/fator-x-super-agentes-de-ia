@@ -58,7 +58,7 @@ export function SandboxTab() {
           latencyMs,
           status: resp.ok ? 'success' : 'error',
         });
-      } catch {
+      } catch (err) { console.error("Operation failed:", err);
         testResults.push({
           question,
           answer: 'Erro ao consultar o cérebro',

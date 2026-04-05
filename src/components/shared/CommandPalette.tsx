@@ -44,7 +44,7 @@ const MAX_RECENT = 5;
 function getRecent(): string[] {
   try {
     return JSON.parse(localStorage.getItem(RECENT_KEY) || "[]");
-  } catch { return []; }
+  } catch (err) { console.error("Operation failed:", err); return []; }
 }
 
 function addRecent(href: string) {
@@ -52,7 +52,7 @@ function addRecent(href: string) {
     const prev = getRecent().filter(h => h !== href);
     const next = [href, ...prev].slice(0, MAX_RECENT);
     localStorage.setItem(RECENT_KEY, JSON.stringify(next));
-  } catch {}
+  } catch (err) { console.error("Operation failed:", err);}
 }
 
 export function CommandPalette() {

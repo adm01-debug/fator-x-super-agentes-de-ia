@@ -81,7 +81,7 @@ export class NexusMCPClient {
     try {
       const toolsResponse = await this.sendRequest('tools/list', {});
       this.tools = (toolsResponse.tools || []) as MCPTool[];
-    } catch {
+    } catch (err) { console.error("Operation failed:", err);
       this.tools = [];
     }
 
@@ -89,7 +89,7 @@ export class NexusMCPClient {
     try {
       const resourcesResponse = await this.sendRequest('resources/list', {});
       this.resources = (resourcesResponse.resources || []) as MCPResource[];
-    } catch {
+    } catch (err) { console.error("Operation failed:", err);
       this.resources = [];
     }
 

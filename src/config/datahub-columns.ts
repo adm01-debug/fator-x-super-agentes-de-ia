@@ -121,10 +121,10 @@ export function formatDate(value: string | null): string {
   if (!value) return '—';
   try {
     return new Date(value).toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit', year: '2-digit' });
-  } catch { return value; }
+  } catch (err) { console.error("Operation failed:", err); return value; }
 }
 
-export function formatCellValue(value: any, format?: ColumnDef['format']): string {
+export function formatCellValue(value: unknown, format?: ColumnDef['format']): string {
   if (value === null || value === undefined) return '—';
   if (format === 'cnpj') return formatCNPJ(String(value));
   if (format === 'phone') return formatPhone(String(value));
@@ -138,7 +138,7 @@ export function formatCellValue(value: any, format?: ColumnDef['format']): strin
 
 /* ── CSV Export ──────────────────────────────────────── */
 
-export function exportToCSV(data: any[], columns: ColumnDef[], entityName: string): void {
+export function exportToCSV(data: unknown[], columns: ColumnDef[], entityName: string): void {
   if (!data.length) return;
 
   const headers = columns.map(c => c.label);
@@ -167,7 +167,7 @@ export function exportToCSV(data: any[], columns: ColumnDef[], entityName: strin
 
 /* ── JSON Export ─────────────────────────────────────── */
 
-export function exportToJSON(data: any[], columns: ColumnDef[], entityName: string): void {
+export function exportToJSON(data: unknown[], columns: ColumnDef[], entityName: string): void {
   if (!data.length) return;
 
   const sanitized = data.map(row => {

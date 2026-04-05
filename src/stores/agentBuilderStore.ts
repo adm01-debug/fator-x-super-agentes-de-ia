@@ -62,7 +62,7 @@ function agentToDbRow(agent: AgentConfig, userId: string) {
   };
 }
 
-function dbRowToAgent(row: any): AgentConfig {
+function dbRowToAgent(row: Record<string, unknown>): AgentConfig {
   const config = (row.config || {}) as Record<string, any>;
   return {
     ...DEFAULT_AGENT,

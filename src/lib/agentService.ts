@@ -71,7 +71,7 @@ export async function saveAgent(agent: AgentConfig): Promise<AgentConfig> {
   if (!user) throw new Error('Não autenticado');
 
   let workspaceId: string | null = null;
-  try { workspaceId = await getWorkspaceId(); } catch {}
+  try { workspaceId = await getWorkspaceId(); } catch (err) { console.error("Operation failed:", err);}
 
   const { id, created_at: _ca, updated_at: _ua, ...configData } = agent;
   const row = {

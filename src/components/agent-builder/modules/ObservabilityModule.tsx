@@ -320,7 +320,7 @@ function AbTestPanel({ agentId }: { agentId: string; currentVersion?: number }) 
       {/* Existing tests */}
       {isLoading ? <Loader2 className="h-4 w-4 animate-spin mx-auto" /> : tests.length > 0 && (
         <div className="space-y-2 pt-2 border-t border-border/30">
-          {tests.map((t: any) => (
+          {tests.map((t: Record<string, unknown>) => (
             <div key={t.id} className="flex items-center justify-between text-xs py-1">
               <div>
                 <span className="font-medium text-foreground">{t.name}</span>

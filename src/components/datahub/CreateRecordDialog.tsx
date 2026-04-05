@@ -124,7 +124,7 @@ export function CreateRecordDialog({ open, onOpenChange, entityId, entityName, o
       toast.success(`${entityName} criado com sucesso!`);
       handleClose();
       onSuccess();
-    } catch (e: any) {
+    } catch (e: unknown) {
       toast.error(`Erro ao criar: ${e.message}`);
     } finally {
       setSaving(false);

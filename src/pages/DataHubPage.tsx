@@ -312,9 +312,9 @@ export default function DataHubPage() {
           lastTested: now,
         };
       }));
-      const connected = Object.values(data.connections ?? {}).filter((r: any) => r.status === 'connected').length;
+      const connected = Object.values(data.connections ?? {}).filter((r: Record<string, unknown>) => r.status === 'connected').length;
       toast.success(`${connected} de 4 conexões ativas!`);
-    } catch (e: any) {
+    } catch (e: unknown) {
       toast.error(`Erro ao testar conexões: ${e.message}`);
     } finally {
       setTestingConnections(false);
@@ -329,7 +329,7 @@ export default function DataHubPage() {
       });
       if (error) throw error;
       setEntityCounts(data.entities ?? {});
-    } catch (e: any) {
+    } catch (e: unknown) {
       toast.error(`Erro ao carregar contagens: ${e.message}`);
     } finally {
       setLoadingCounts(false);

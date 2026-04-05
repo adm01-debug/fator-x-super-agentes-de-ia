@@ -76,10 +76,10 @@ const TABLE_CONFIG: { key: TableName; label: string; icon: React.ElementType; co
   },
 ];
 
-function formatCell(value: any, key: string): string {
+function formatCell(value: unknown, key: string): string {
   if (value === null || value === undefined) return "—";
   if (key.includes("_at") || key === "created_at" || key === "updated_at") {
-    try { return format(new Date(value), "dd/MM/yy HH:mm"); } catch { return String(value); }
+    try { return format(new Date(value), "dd/MM/yy HH:mm"); } catch (err) { console.error("Operation failed:", err); return String(value); }
   }
   if (typeof value === "boolean") return value ? "✓" : "✗";
   if (typeof value === "object") return JSON.stringify(value).slice(0, 60);
@@ -104,7 +104,7 @@ function AdminTable({ config }: { config: typeof TABLE_CONFIG[0] }) {
     },
   });
 
-  const filtered = rows.filter((row: any) =>
+  const filtered = rows.filter((row: Record<string, unknown>) =>
     config.columns.some(col => {
       const val = row[col.key];
       return val && String(val).toLowerCase().includes(search.toLowerCase());
@@ -166,7 +166,7 @@ function AdminTable({ config }: { config: typeof TABLE_CONFIG[0] }) {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {filtered.map((row: any) => (
+                {filtered.map((row: Record<string, unknown>) => (
                   <TableRow key={row.id} className="hover:bg-secondary/20">
                     {config.columns.map((col) => (
                       <TableCell key={col.key} className="text-xs py-2.5 max-w-[200px] truncate">

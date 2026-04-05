@@ -40,7 +40,7 @@ function versionToText(v: Version): string {
   try {
     const cfg = typeof v.config === 'string' ? JSON.parse(v.config) : v.config;
     lines.push(JSON.stringify(cfg, null, 2));
-  } catch {
+  } catch (err) { console.error("Operation failed:", err);
     lines.push(String(v.config));
   }
   return lines.join('\n');

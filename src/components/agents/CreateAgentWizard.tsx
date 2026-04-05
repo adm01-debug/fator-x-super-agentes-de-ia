@@ -428,7 +428,7 @@ export function CreateAgentWizard() {
 
 /* ─── Step Components (scratch mode) ─── */
 
-function StepIdentity({ form, update }: { form: any; update: (k: string, v: unknown) => void }) {
+function StepIdentity({ form, update }: { form: Record<string, unknown>; update: (k: string, v: unknown) => void }) {
   return (
     <div className="nexus-card space-y-5">
       <h2 className="text-lg font-heading font-semibold text-foreground">Identidade do agente</h2>
@@ -453,7 +453,7 @@ function StepIdentity({ form, update }: { form: any; update: (k: string, v: unkn
   );
 }
 
-function StepType({ form, update }: { form: any; update: (k: string, v: unknown) => void }) {
+function StepType({ form, update }: { form: Record<string, unknown>; update: (k: string, v: unknown) => void }) {
   return (
     <div className="space-y-4">
       <h2 className="text-lg font-heading font-semibold text-foreground">Tipo do agente</h2>
@@ -481,7 +481,7 @@ function StepType({ form, update }: { form: any; update: (k: string, v: unknown)
   );
 }
 
-function StepModel({ form, update }: { form: any; update: (k: string, v: unknown) => void }) {
+function StepModel({ form, update }: { form: Record<string, unknown>; update: (k: string, v: unknown) => void }) {
   return (
     <div className="space-y-4">
       <h2 className="text-lg font-heading font-semibold text-foreground">Modelo base</h2>
@@ -510,7 +510,7 @@ function StepModel({ form, update }: { form: any; update: (k: string, v: unknown
   );
 }
 
-function StepPrompt({ form, update }: { form: any; update: (k: string, v: unknown) => void }) {
+function StepPrompt({ form, update }: { form: Record<string, unknown>; update: (k: string, v: unknown) => void }) {
   return (
     <div className="space-y-4">
       <h2 className="text-lg font-heading font-semibold text-foreground">System Prompt</h2>
@@ -523,7 +523,7 @@ function StepPrompt({ form, update }: { form: any; update: (k: string, v: unknow
   );
 }
 
-function StepTools({ form, toggle }: { form: any; toggle: (id: string) => void }) {
+function StepTools({ form, toggle }: { form: Record<string, unknown>; toggle: (id: string) => void }) {
   return (
     <div className="space-y-4">
       <h2 className="text-lg font-heading font-semibold text-foreground">Ferramentas</h2>
@@ -554,7 +554,7 @@ function StepTools({ form, toggle }: { form: any; toggle: (id: string) => void }
   );
 }
 
-function StepMemory({ form, toggle }: { form: any; toggle: (id: string) => void }) {
+function StepMemory({ form, toggle }: { form: Record<string, unknown>; toggle: (id: string) => void }) {
   return (
     <div className="space-y-4">
       <h2 className="text-lg font-heading font-semibold text-foreground">Memória</h2>
@@ -577,7 +577,7 @@ function StepMemory({ form, toggle }: { form: any; toggle: (id: string) => void 
   );
 }
 
-function StepKnowledge({ form, toggle }: { form: any; toggle: (id: string) => void }) {
+function StepKnowledge({ form, toggle }: { form: Record<string, unknown>; toggle: (id: string) => void }) {
   const kbs = [
     { id: "kb-docs", name: "Documentação Técnica", docs: 342, status: "synced" },
     { id: "kb-faq", name: "FAQ & Suporte", docs: 89, status: "synced" },
@@ -612,7 +612,7 @@ function StepKnowledge({ form, toggle }: { form: any; toggle: (id: string) => vo
   );
 }
 
-function StepDeploy({ form, update }: { form: any; update: (k: string, v: unknown) => void }) {
+function StepDeploy({ form, update }: { form: Record<string, unknown>; update: (k: string, v: unknown) => void }) {
   const envs = [
     { id: "development", label: "Development", desc: "Testes internos" },
     { id: "staging", label: "Staging", desc: "Validação pré-produção" },

@@ -9,10 +9,10 @@ import type { ColumnDef } from "@/config/datahub-columns";
 const NON_EDITABLE = new Set(['id', 'created_at', 'updated_at', 'search_vector', 'is_customer', 'is_supplier', 'is_carrier']);
 
 interface InlineEditCellProps {
-  row: any;
+  row: Record<string, unknown>;
   col: ColumnDef;
   entityId: string;
-  onUpdate: (rowId: string, updatedRow: any) => void;
+  onUpdate: (rowId: string, updatedRow: Record<string, unknown>) => void;
 }
 
 export function InlineEditCell({ row, col, entityId, onUpdate }: InlineEditCellProps) {
@@ -40,7 +40,7 @@ export function InlineEditCell({ row, col, entityId, onUpdate }: InlineEditCellP
       if (result?.record) onUpdate(row.id, result.record);
       setEditing(false);
       toast.success(`"${col.label}" atualizado`);
-    } catch (e: any) {
+    } catch (e: unknown) {
       toast.error(`Erro: ${e.message}`);
     } finally {
       setSaving(false);

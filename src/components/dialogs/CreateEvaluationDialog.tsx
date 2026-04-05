@@ -130,7 +130,7 @@ export function CreateEvaluationDialog({ onCreated }: CreateEvaluationDialogProp
           {useJudge && (
             <div className="space-y-1.5">
               <Label className="text-xs">Modo do Judge</Label>
-              <Select value={judgeMode} onValueChange={(v: any) => setJudgeMode(v)}>
+              <Select value={judgeMode} onValueChange={(v: string) => setJudgeMode(v)}>
                 <SelectTrigger className="bg-secondary/50"><SelectValue /></SelectTrigger>
                 <SelectContent>
                   <SelectItem value="pointwise">Pointwise (score 0-5 em 5 critérios)</SelectItem>

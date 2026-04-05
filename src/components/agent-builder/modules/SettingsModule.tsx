@@ -40,7 +40,7 @@ export function SettingsModule() {
         map[row.key_name] = { value: row.masked_value, saved: true };
       }
       setKeys(map);
-    } catch {
+    } catch (err) { console.error("Operation failed:", err);
       // No workspace yet
     } finally {
       setLoading(false);
