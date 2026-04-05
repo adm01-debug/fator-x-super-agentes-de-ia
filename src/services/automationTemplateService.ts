@@ -148,7 +148,7 @@ export async function installTemplate(
   if (error) throw error;
 
   // Increment install count
-  await supabase.rpc('increment_template_installs', { template_uuid: templateId });
+  await fromTable('automation_templates').rpc('increment_template_installs', { template_uuid: templateId });
 
   return data as InstalledTemplate;
 }
@@ -163,7 +163,7 @@ export async function listInstalledTemplates(): Promise<InstalledTemplate[]> {
 }
 
 export async function uninstallTemplate(installId: string): Promise<void> {
-  const { error } = await supabase.from('installed_templates').delete().eq('id', installId);
+  const { error } = await fromTable('installed_templates').delete().eq('id', installId);
   if (error) throw error;
 }
 
