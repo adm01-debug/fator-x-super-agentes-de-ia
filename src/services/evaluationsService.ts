@@ -9,6 +9,38 @@
 
 import { supabase } from '@/integrations/supabase/client';
 
+// ═══ CRUD ═══
+
+export async function listEvaluationRuns() {
+  const { data, error } = await supabase
+    .from('evaluation_runs')
+    .select('*')
+    .order('created_at', { ascending: false });
+  if (error) throw error;
+  return data ?? [];
+}
+
+export async function listEvaluationDatasets() {
+  const { data, error } = await supabase
+    .from('evaluation_datasets')
+    .select('*')
+    .order('created_at', { ascending: false });
+  if (error) throw error;
+  return data ?? [];
+}
+
+export async function listTestCases(datasetId: string) {
+  const { data, error } = await supabase
+    .from('test_cases')
+    .select('*')
+    .eq('dataset_id', datasetId)
+    .order('created_at', { ascending: false });
+  if (error) throw error;
+  return data ?? [];
+}
+
+// ═══ Types ═══
+
 export interface TestCase {
   id: string;
   input: string;
