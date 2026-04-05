@@ -165,6 +165,12 @@ export function calculateCost(
   inputTokens: number,
   outputTokens: number
 ): ActualCost {
+  if (inputTokens < 0 || outputTokens < 0) {
+    throw new Error('Token counts must be non-negative');
+  }
+  if (!provider || !model) {
+    throw new Error('Provider and model are required');
+  }
   const pricing = getModelPricing(provider, model);
   const inputRate = pricing?.inputPricePerMToken ?? 3.0;  // default to Sonnet-range
   const outputRate = pricing?.outputPricePerMToken ?? 15.0;

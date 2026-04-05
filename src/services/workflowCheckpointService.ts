@@ -11,7 +11,7 @@
 import { supabase } from '@/integrations/supabase/client';
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
-const db = supabase as any;
+import { fromTable } from '@/lib/supabaseExtended';
 
 // ──────── Types ────────
 
@@ -76,7 +76,7 @@ export async function startExecution(
   workflowId: string,
   input: Record<string, unknown> = {}
 ): Promise<WorkflowExecution> {
-  const { data, error } = await db.from('workflow_executions')
+  const { data, error } = await fromTable('workflow_executions')
     .insert({
       workflow_id: workflowId,
       input,
@@ -95,7 +95,7 @@ export async function updateExecution(
   executionId: string,
   updates: Partial<Pick<WorkflowExecution, 'status' | 'output' | 'error' | 'total_cost_usd' | 'total_tokens' | 'total_duration_ms' | 'completed_at'>>
 ): Promise<WorkflowExecution> {
-  const { data, error } = await db.from('workflow_executions')
+  const { data, error } = await fromTable('workflow_executions')
     .update(updates)
     .eq('id' as never, executionId)
     .select()
@@ -111,7 +111,7 @@ export async function completeExecution(
   output: Record<string, unknown>
 ): Promise<WorkflowExecution> {
   // Aggregate totals from all checkpoints
-  const { data: checkpoints } = await db.from('workflow_checkpoints')
+  const { data: checkpoints } = await fromTable('workflow_checkpoints')
     .select('cost_usd, tokens_used, duration_ms')
     .eq('execution_id' as never, executionId);
 
@@ -165,7 +165,7 @@ export async function listExecutions(
   workflowId: string,
   limit = 20
 ): Promise<WorkflowExecution[]> {
-  const { data, error } = await db.from('workflow_executions')
+  const { data, error } = await fromTable('workflow_executions')
     .select('*')
     .eq('workflow_id' as never, workflowId)
     .order('created_at' as never, { ascending: false })
@@ -177,7 +177,7 @@ export async function listExecutions(
 
 /** Get a single execution with its checkpoints */
 export async function getExecution(executionId: string): Promise<WorkflowExecution> {
-  const { data, error } = await db.from('workflow_executions')
+  const { data, error } = await fromTable('workflow_executions')
     .select('*')
     .eq('id' as never, executionId)
     .single();
@@ -190,7 +190,7 @@ export async function getExecution(executionId: string): Promise<WorkflowExecuti
 
 /** Save a checkpoint after node execution */
 export async function saveCheckpoint(input: CheckpointCreateInput): Promise<WorkflowCheckpoint> {
-  const { data, error } = await db.from('workflow_checkpoints')
+  const { data, error } = await fromTable('workflow_checkpoints')
     .insert({
       execution_id: input.execution_id,
       node_id: input.node_id,
@@ -214,7 +214,7 @@ export async function saveCheckpoint(input: CheckpointCreateInput): Promise<Work
 
 /** Get all checkpoints for an execution (ordered by step) */
 export async function getCheckpoints(executionId: string): Promise<WorkflowCheckpoint[]> {
-  const { data, error } = await db.from('workflow_checkpoints')
+  const { data, error } = await fromTable('workflow_checkpoints')
     .select('*')
     .eq('execution_id' as never, executionId)
     .order('step_index' as never, { ascending: true });
@@ -225,7 +225,7 @@ export async function getCheckpoints(executionId: string): Promise<WorkflowCheck
 
 /** Get the last checkpoint for an execution (for crash recovery) */
 export async function getLastCheckpoint(executionId: string): Promise<WorkflowCheckpoint | null> {
-  const { data, error } = await db.from('workflow_checkpoints')
+  const { data, error } = await fromTable('workflow_checkpoints')
     .select('*')
     .eq('execution_id' as never, executionId)
     .eq('status' as never, 'completed')
@@ -239,7 +239,7 @@ export async function getLastCheckpoint(executionId: string): Promise<WorkflowCh
 
 /** Get a specific checkpoint by ID */
 export async function getCheckpoint(checkpointId: string): Promise<WorkflowCheckpoint> {
-  const { data, error } = await db.from('workflow_checkpoints')
+  const { data, error } = await fromTable('workflow_checkpoints')
     .select('*')
     .eq('id' as never, checkpointId)
     .single();
@@ -354,7 +354,7 @@ export async function findRecoverableExecutions(
     Date.now() - staleAfterMinutes * 60 * 1000
   ).toISOString();
 
-  const { data, error } = await db.from('workflow_executions')
+  const { data, error } = await fromTable('workflow_executions')
     .select('*')
     .eq('workflow_id' as never, workflowId)
     .eq('status' as never, 'running')

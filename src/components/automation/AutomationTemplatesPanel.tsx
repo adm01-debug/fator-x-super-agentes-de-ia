@@ -1,20 +1,43 @@
+import { useState, useEffect } from 'react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { LayoutTemplate, ArrowRight } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { BUILTIN_TEMPLATES } from '@/services/automationTemplateService';
+import { BUILTIN_TEMPLATES, type AutomationTemplate } from '@/services/automationTemplateService';
+import { listAutomationTemplates } from '@/services';
 
 const DIFFICULTY_COLORS: Record<string, string> = { beginner: 'bg-green-500/20 text-green-400', intermediate: 'bg-yellow-500/20 text-yellow-400', advanced: 'bg-red-500/20 text-red-400' };
 
 export function AutomationTemplatesPanel() {
+  const [dbTemplates, setDbTemplates] = useState<AutomationTemplate[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    listAutomationTemplates()
+      .then(setDbTemplates)
+      .catch(() => { /* fallback to builtins */ })
+      .finally(() => setLoading(false));
+  }, []);
+
+  const templates = dbTemplates.length > 0 ? dbTemplates : BUILTIN_TEMPLATES;
+
+  if (loading) {
+    return (
+      <div className="text-center py-12 text-gray-400">
+        <LayoutTemplate size={48} className="mx-auto mb-4 animate-pulse opacity-30" />
+        <p>Carregando templates...</p>
+      </div>
+    );
+  }
+
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <h3 className="text-lg font-semibold">Templates de Automação — Promo Brindes</h3>
-        <Badge variant="outline" className="border-[#222244]">{BUILTIN_TEMPLATES.length} disponíveis</Badge>
+        <Badge variant="outline" className="border-[#222244]">{templates.length} disponíveis</Badge>
       </div>
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-        {BUILTIN_TEMPLATES.map((tpl) => (
+        {templates.map((tpl) => (
           <Card key={tpl.slug} className="bg-[#111122] border-[#222244] hover:border-[#4D96FF]/50 transition-colors">
             <CardContent className="p-5">
               <div className="flex items-center gap-3 mb-3">
