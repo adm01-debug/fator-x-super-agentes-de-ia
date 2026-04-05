@@ -1622,6 +1622,16 @@ export type Database = {
         Args: { p_member_id: string }
         Returns: undefined
       }
+      get_masked_secrets: {
+        Args: { p_workspace_id: string }
+        Returns: {
+          created_at: string
+          id: string
+          key_name: string
+          masked_value: string
+          updated_at: string
+        }[]
+      }
       get_user_workspace_ids: { Args: { _user_id: string }; Returns: string[] }
       log_audit_entry: {
         Args: {
