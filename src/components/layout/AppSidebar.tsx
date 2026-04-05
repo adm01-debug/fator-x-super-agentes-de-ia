@@ -4,7 +4,7 @@ import { NavLink } from "@/components/NavLink";
 import {
   LayoutDashboard, Bot, BookOpen, Brain, Puzzle, FileText, GitBranch,
   FlaskConical, Rocket, Activity, Database, Shield, Users, CreditCard, Settings,
-  Sparkles, PanelLeftClose, PanelLeft, LogOut, ServerCog, ChevronDown, Palette,
+  Sparkles, PanelLeftClose, PanelLeft, LogOut, ServerCog, ChevronDown, Palette, Dna, Workflow,
 } from "lucide-react";
 import {
   Sidebar, SidebarContent, SidebarGroup, SidebarGroupContent, SidebarGroupLabel,
@@ -38,6 +38,8 @@ const navSections = [
       { title: "Tools & Integrations", url: "/tools", icon: Puzzle },
       { title: "Prompts", url: "/prompts", icon: FileText },
       { title: "Workflows", url: "/workflows", icon: GitBranch },
+      { title: "Fine-tuning", url: "/fine-tuning", icon: Dna },
+      { title: "Smolagent", url: "/smolagent", icon: Workflow },
     ],
   },
   {
