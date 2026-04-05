@@ -12,6 +12,7 @@ import { LightBarChart, LightPieChart } from "@/components/charts";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { toast } from "sonner";
+import { getAgentTraces, getSessions, getSessionTraces, getTraceEvents, getAlerts, resolveAlert, getAgentsForFilter } from "@/services/monitoringService";
 
 const PIE_COLORS = ['hsl(var(--primary))', 'hsl(var(--nexus-emerald, 142 71% 45%))', 'hsl(var(--nexus-amber, 38 92% 50%))', 'hsl(var(--nexus-cyan, 190 90% 50%))', 'hsl(var(--destructive))'];
 const PIE_COLOR_ARRAY = PIE_COLORS;
