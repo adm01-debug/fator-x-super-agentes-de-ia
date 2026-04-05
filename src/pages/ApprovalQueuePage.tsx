@@ -5,7 +5,7 @@ import { Badge } from '@/components/ui/badge';
 import { Textarea } from '@/components/ui/textarea';
 import { CheckCircle, XCircle, Clock, Loader2 } from 'lucide-react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
-import { supabase } from '@/integrations/supabase/client';
+import { listPendingApprovals, approveWorkflowRun, rejectWorkflowRun } from '@/services/approvalService';
 
 import { toast } from 'sonner';
 
@@ -18,24 +18,15 @@ export default function ApprovalQueuePage() {
   // Load pending approval runs
   const { data: pendingRuns = [], isLoading } = useQuery({
     queryKey: ['hitl_pending'],
-    queryFn: async () => {
-      const { data } = await supabase.from('workflow_runs')
-        .select('id, workflow_id, status, output, started_at, current_step, total_steps, workflows(name)')
-        .eq('status', 'awaiting_approval')
-        .order('started_at', { ascending: false })
-        .limit(20);
-      return data ?? [];
-    },
-    refetchInterval: 10000, // Poll every 10s
+    queryFn: listPendingApprovals,
+    refetchInterval: 10000,
   });
 
   const handleApprove = async (runId: string) => {
     setProcessing(true);
     try {
-      const { data, error } = await supabase.functions.invoke('workflow-engine-v2', {
-        body: { workflow_id: pendingRuns.find((r: Record<string, unknown>) => r.id === runId)?.workflow_id, resume_run_id: runId, input: feedback || 'Approved' },
-      });
-      if (error) throw error;
+      const run = pendingRuns.find((r: Record<string, unknown>) => r.id === runId);
+      const data = await approveWorkflowRun(runId, String(run?.workflow_id), feedback);
       toast.success(`Workflow aprovado e retomado! Status: ${data.status}`);
       setSelectedRun(null);
       setFeedback('');
@@ -47,10 +38,7 @@ export default function ApprovalQueuePage() {
   const handleReject = async (runId: string) => {
     setProcessing(true);
     try {
-      await supabase.from('workflow_runs').update({
-        status: 'failed', error: `Rejected by human: ${feedback || 'No reason provided'}`,
-        completed_at: new Date().toISOString(),
-      }).eq('id', runId);
+      await rejectWorkflowRun(runId, feedback);
       toast.success('Workflow rejeitado');
       setSelectedRun(null);
       setFeedback('');
