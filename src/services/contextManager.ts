@@ -225,4 +225,5 @@ export function getStreamingConfig(useCase: 'chat' | 'council' | 'workflow' | 'b
       logger.error(`Unknown streaming use case: ${_exhaustive}`, new Error(`Unhandled streaming use case: ${_exhaustive}`), 'contextManager');
       return { ...DEFAULT_STREAMING_CONFIG };
     }
+  }
 }

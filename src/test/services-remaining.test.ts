@@ -170,14 +170,14 @@ describe('vectorSearch', () => {
   it('generateEmbedding returns fallback hash for text', async () => {
     const result = await generateEmbedding('hello world test');
     expect(result.model).toBe('fallback-hash');
-    expect(result.embedding.length).toBe(384);
+    expect(result.embedding.length).toBe(1536);
     expect(result.tokens).toBeGreaterThan(0);
   });
 
   it('generateEmbedding handles empty text', async () => {
     const result = await generateEmbedding('');
     expect(result.model).toBe('fallback-empty');
-    expect(result.embedding.length).toBe(384);
+    expect(result.embedding.length).toBe(1536);
   });
 
   it('generateEmbedding produces normalized vector', async () => {

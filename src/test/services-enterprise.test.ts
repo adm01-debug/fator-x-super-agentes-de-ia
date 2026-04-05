@@ -75,25 +75,29 @@ describe('ragPipeline', () => {
 // ═══ 2. widgetService ═══
 
 describe('widgetService', () => {
+  const TEST_UUID = '00000000-0000-0000-0000-000000000001';
+  const TEST_UUID_2 = '00000000-0000-0000-0000-000000000002';
+  const TEST_UUID_3 = '00000000-0000-0000-0000-000000000003';
+
   it('generateEmbedCode includes agentId', async () => {
     const { generateEmbedCode } = await import('@/services/widgetService');
-    const code = generateEmbedCode({ agentId: 'test-agent-123', agentName: 'Test' });
-    expect(code).toContain('test-agent-123');
+    const code = generateEmbedCode({ agentId: TEST_UUID, agentName: 'Test' });
+    expect(code).toContain(TEST_UUID);
   });
 
   it('generateEmbedCode includes position config', async () => {
     const { generateEmbedCode } = await import('@/services/widgetService');
-    const codeRight = generateEmbedCode({ agentId: 'a1', position: 'bottom-right' });
+    const codeRight = generateEmbedCode({ agentId: TEST_UUID_2, position: 'bottom-right' });
     expect(codeRight).toContain('bottom-right');
-    const codeLeft = generateEmbedCode({ agentId: 'a2', position: 'bottom-left' });
+    const codeLeft = generateEmbedCode({ agentId: TEST_UUID_3, position: 'bottom-left' });
     expect(codeLeft).toContain('bottom-left');
   });
 
   it('generatePreviewHTML includes widget script', async () => {
     const { generatePreviewHTML } = await import('@/services/widgetService');
-    const html = generatePreviewHTML({ agentId: 'preview-agent', agentName: 'Preview' });
+    const html = generatePreviewHTML({ agentId: TEST_UUID, agentName: 'Preview' });
     expect(html).toContain('<script>');
-    expect(html).toContain('preview-agent');
+    expect(html).toContain(TEST_UUID);
     expect(html).toContain('Preview');
   });
 });
