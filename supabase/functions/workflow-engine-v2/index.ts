@@ -12,7 +12,7 @@ const RequestSchema = z.object({
 
 interface GraphNode {
   id: string;
-  type: 'llm_call' | 'tool_call' | 'conditional' | 'parallel' | 'hitl_gate' | 'end';
+  type: 'llm_call' | 'tool_call' | 'conditional' | 'parallel' | 'hitl_gate' | 'code_execution' | 'end';
   label: string;
   config: Record<string, unknown>;
 }
@@ -149,6 +149,50 @@ serve(async (req) => {
           totalTokens += result.tokens?.total || 0;
           totalCost += result.cost_usd || 0;
 
+        } else if (node.type === 'tool_call') {
+          // ═══ TOOL CALL — Direct HF Inference API or custom API ═══
+          const toolType = (node.config.tool_type as string) || 'hf_inference';
+          const hfToken = Deno.env.get('HF_API_TOKEN');
+
+          if (toolType === 'hf_inference' && hfToken) {
+            const hfModel = (node.config.hf_model as string) || 'dslim/bert-base-NER';
+            const hfTask = (node.config.hf_task as string) || 'token-classification';
+            const inputText = (state._output as string) || state.input || '';
+
+            const controller = new AbortController();
+            const timeout = setTimeout(() => controller.abort(), STEP_TIMEOUT_MS);
+            const resp = await fetch(`https://router.huggingface.co/hf-inference/models/${hfModel}`, {
+              method: 'POST', signal: controller.signal,
+              headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${hfToken}` },
+              body: JSON.stringify(
+                hfTask === 'zero-shot-classification'
+                  ? { inputs: inputText.substring(0, 1000), parameters: { candidate_labels: (node.config.labels as string[]) || ['positive', 'negative', 'neutral'] } }
+                  : { inputs: inputText.substring(0, 2000) }
+              ),
+            });
+            clearTimeout(timeout);
+
+            const result = await resp.json();
+            state._output = JSON.stringify(result, null, 2);
+            state[`${node.id}_output`] = state._output;
+            // HF inference is free, no token/cost tracking
+          } else if (toolType === 'webhook') {
+            const webhookUrl = node.config.webhook_url as string;
+            if (webhookUrl) {
+              const controller = new AbortController();
+              const timeout = setTimeout(() => controller.abort(), STEP_TIMEOUT_MS);
+              const resp = await fetch(webhookUrl, {
+                method: 'POST', signal: controller.signal,
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ input: state._output || state.input, node_id: node.id, run_id: runId }),
+              });
+              clearTimeout(timeout);
+              const result = await resp.json();
+              state._output = typeof result === 'string' ? result : JSON.stringify(result);
+              state[`${node.id}_output`] = state._output;
+            }
+          }
+
         } else if (node.type === 'parallel') {
           const outEdges = graph.edges.filter(e => e.from === node.id);
           const parallelNodes = outEdges.map(e => graph.nodes.find(n => n.id === e.to)).filter(Boolean) as GraphNode[];
@@ -193,6 +237,42 @@ serve(async (req) => {
           stepsExecuted++;
           await supabase.from('workflow_runs').update({ current_step: stepsExecuted, output: { state: { ...state, _history: state._history.slice(-20) } } as unknown as Record<string, unknown> }).eq('id', runId);
           continue;
+
+        } else if (node.type === 'code_execution') {
+          // ═══ CODE EXECUTION — LLM generates + validates code (smolagents pattern) ═══
+          const codeTask = (node.config.task as string) || 'Process the input data';
+          const codeModel = (node.config.model as string) || 'huggingface/Qwen/Qwen3-30B-A3B';
+          const codeSystemPrompt = `You are a code execution agent (smolagents pattern). Given a task, write Python code to solve it.
+The input data is available as a variable called \`input_data\`.
+After processing, assign the final result to a variable called \`result\`.
+Respond ONLY with the code block, no explanation.
+Then on a new line after the code, write "RESULT:" followed by what the code would output.`;
+
+          const controller = new AbortController();
+          const timeout = setTimeout(() => controller.abort(), STEP_TIMEOUT_MS);
+          const resp = await fetch(gatewayUrl, {
+            method: 'POST', signal: controller.signal,
+            headers: { 'Content-Type': 'application/json', 'Authorization': authHeader, 'apikey': supabaseKey },
+            body: JSON.stringify({
+              model: codeModel,
+              messages: [
+                { role: 'system', content: codeSystemPrompt },
+                { role: 'user', content: `Task: ${codeTask}\n\ninput_data = """${(state._output as string || state.input || '').substring(0, 3000)}"""` },
+              ],
+              temperature: 0.2, max_tokens: 2000,
+            }),
+          });
+          clearTimeout(timeout);
+
+          const result = await resp.json();
+          const codeOutput = result.content || '';
+          // Extract RESULT: section if present
+          const resultMatch = codeOutput.match(/RESULT:\s*([\s\S]*?)$/i);
+          state._output = resultMatch ? resultMatch[1].trim() : codeOutput;
+          state[`${node.id}_output`] = state._output;
+          state[`${node.id}_code`] = codeOutput;
+          totalTokens += result.tokens?.total || 0;
+          totalCost += result.cost_usd || 0;
 
         } else if (node.type === 'hitl_gate') {
           await supabase.from('workflow_runs').update({

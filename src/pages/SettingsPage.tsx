@@ -6,7 +6,7 @@ import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Palette, Globe, Bell, Key, Plus, Trash2, Save, Eye, EyeOff, Loader2, RotateCw } from "lucide-react";
+import { Palette, Globe, Bell, Key, Plus, Trash2, Save, Eye, EyeOff, Loader2, RotateCw, Sparkles } from "lucide-react";
 import { toast } from "sonner";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
@@ -101,6 +101,7 @@ export default function SettingsPage() {
           <TabsTrigger value="apikeys" className="text-xs gap-1.5"><Key className="h-3.5 w-3.5" /> API Keys</TabsTrigger>
           <TabsTrigger value="notifications" className="text-xs gap-1.5"><Bell className="h-3.5 w-3.5" /> Notificações</TabsTrigger>
           <TabsTrigger value="environments" className="text-xs gap-1.5"><Globe className="h-3.5 w-3.5" /> Ambientes</TabsTrigger>
+          <TabsTrigger value="huggingface" className="text-xs gap-1.5"><Sparkles className="h-3.5 w-3.5" /> HuggingFace</TabsTrigger>
         </TabsList>
 
         {/* General */}
@@ -285,6 +286,101 @@ export default function SettingsPage() {
 
         <TabsContent value="environments" className="space-y-4 mt-4">
           <EnvironmentsManager />
+        </TabsContent>
+
+        <TabsContent value="huggingface" className="space-y-4 mt-4">
+          <div className="rounded-lg border bg-card p-4 space-y-4">
+            <div className="flex items-center gap-2">
+              <Sparkles className="h-5 w-5 text-yellow-500" />
+              <h3 className="font-semibold">HuggingFace Integration</h3>
+            </div>
+            <p className="text-sm text-muted-foreground">
+              Modelos open-source gratuitos para guardrails, RAG, classificação e inferência.
+              Configure o token HF na aba API Keys com o nome <code className="text-xs bg-muted px-1 py-0.5 rounded">huggingface_api_key</code>.
+            </p>
+
+            <div className="space-y-3 pt-2">
+              <h4 className="text-sm font-medium">Funcionalidades Ativas</h4>
+
+              <div className="grid gap-3">
+                <div className="flex items-center justify-between p-3 rounded-md bg-muted/50">
+                  <div>
+                    <p className="text-sm font-medium">Injection Detection ML</p>
+                    <p className="text-xs text-muted-foreground">ProtectAI deberta-v3 · Detecta prompt injection com 99.9% precisão</p>
+                  </div>
+                  <span className="text-xs bg-green-500/20 text-green-400 px-2 py-0.5 rounded">Ativo</span>
+                </div>
+
+                <div className="flex items-center justify-between p-3 rounded-md bg-muted/50">
+                  <div>
+                    <p className="text-sm font-medium">RAG Reranker</p>
+                    <p className="text-xs text-muted-foreground">BAAI/bge-reranker-v2-m3 · Cross-encoder multilingual gratuito</p>
+                  </div>
+                  <span className="text-xs bg-green-500/20 text-green-400 px-2 py-0.5 rounded">Ativo</span>
+                </div>
+
+                <div className="flex items-center justify-between p-3 rounded-md bg-muted/50">
+                  <div>
+                    <p className="text-sm font-medium">Auto-Classificação de Traces</p>
+                    <p className="text-xs text-muted-foreground">xlm-roberta-large-xnli · 8 categorias zero-shot em PT</p>
+                  </div>
+                  <span className="text-xs bg-green-500/20 text-green-400 px-2 py-0.5 rounded">Ativo</span>
+                </div>
+
+                <div className="flex items-center justify-between p-3 rounded-md bg-muted/50">
+                  <div>
+                    <p className="text-sm font-medium">NER no Super Cérebro</p>
+                    <p className="text-xs text-muted-foreground">bert-base-NER · Extração de entidades 10x mais rápida</p>
+                  </div>
+                  <span className="text-xs bg-green-500/20 text-green-400 px-2 py-0.5 rounded">Ativo</span>
+                </div>
+
+                <div className="flex items-center justify-between p-3 rounded-md bg-muted/50">
+                  <div>
+                    <p className="text-sm font-medium">Sentiment Analysis (WhatsApp)</p>
+                    <p className="text-xs text-muted-foreground">twitter-roberta-base-sentiment · Análise de sentimento no DataHub</p>
+                  </div>
+                  <span className="text-xs bg-green-500/20 text-green-400 px-2 py-0.5 rounded">Ativo</span>
+                </div>
+
+                <div className="flex items-center justify-between p-3 rounded-md bg-muted/50">
+                  <div>
+                    <p className="text-sm font-medium">LLM Provider (Inference API)</p>
+                    <p className="text-xs text-muted-foreground">Qwen3, Mistral Small, Llama 4 Scout · Modelos gratuitos no Agent Builder</p>
+                  </div>
+                  <span className="text-xs bg-green-500/20 text-green-400 px-2 py-0.5 rounded">Ativo</span>
+                </div>
+
+                <div className="flex items-center justify-between p-3 rounded-md bg-muted/50">
+                  <div>
+                    <p className="text-sm font-medium">Fine-tuning (AutoTrain)</p>
+                    <p className="text-xs text-muted-foreground">Treine modelos custom com dados dos seus agentes</p>
+                  </div>
+                  <span className="text-xs bg-blue-500/20 text-blue-400 px-2 py-0.5 rounded">Disponível</span>
+                </div>
+              </div>
+            </div>
+
+            <div className="pt-3 border-t space-y-2">
+              <h4 className="text-sm font-medium">Self-Hosted (TEI)</h4>
+              <p className="text-xs text-muted-foreground">
+                Para alto volume, deploy TEI localmente com GPU. Configure os endpoints nas env vars
+                <code className="bg-muted px-1 py-0.5 rounded ml-1">HF_TEI_ENDPOINT</code> e
+                <code className="bg-muted px-1 py-0.5 rounded ml-1">HF_TEI_RERANK_ENDPOINT</code>.
+              </p>
+              <div className="bg-muted/30 p-3 rounded text-xs font-mono text-muted-foreground whitespace-pre-wrap">
+{`# Embeddings (BGE-M3)
+docker run --gpus all -p 8080:80 -v tei-data:/data \\
+  ghcr.io/huggingface/text-embeddings-inference:cuda-1.9 \\
+  --model-id BAAI/bge-m3
+
+# Reranker (BGE-reranker-v2-m3)
+docker run --gpus all -p 8081:80 -v tei-data:/data \\
+  ghcr.io/huggingface/text-embeddings-inference:cuda-1.9 \\
+  --model-id BAAI/bge-reranker-v2-m3`}
+              </div>
+            </div>
+          </div>
         </TabsContent>
       </Tabs>
     </div>
