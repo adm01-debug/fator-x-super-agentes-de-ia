@@ -191,7 +191,7 @@ export function CommandPalette() {
         {knowledgeBases.length > 0 && (
           <>
             <CommandSeparator />
-            <CommandGroup heading="Knowledge Bases">
+            <CommandGroup heading="Bases de Conhecimento">
               {knowledgeBases.map(kb => (
                 <CommandItem key={kb.id} onSelect={() => go('/knowledge')} className="gap-2" keywords={[kb.name, 'rag', 'documento', 'knowledge']}>
                   <BookOpen className="h-4 w-4 text-nexus-emerald" />
