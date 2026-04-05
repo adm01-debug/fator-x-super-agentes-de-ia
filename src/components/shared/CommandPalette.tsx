@@ -13,23 +13,23 @@ import { supabase } from "@/integrations/supabase/client";
 
 const pages = [
   { name: "Dashboard", href: "/", icon: LayoutDashboard, keywords: "home início" },
-  { name: "Agents", href: "/agents", icon: Bot, keywords: "agentes bots" },
+  { name: "Agentes", href: "/agents", icon: Bot, keywords: "agents bots" },
   { name: "Super Cérebro", href: "/brain", icon: Brain, keywords: "knowledge brain" },
   { name: "Oráculo", href: "/oracle", icon: Sparkles, keywords: "oracle conselho" },
-  { name: "Knowledge / RAG", href: "/knowledge", icon: BookOpen, keywords: "documentos rag" },
-  { name: "Memory", href: "/memory", icon: Brain, keywords: "memória contexto" },
-  { name: "Tools & Integrations", href: "/tools", icon: Puzzle, keywords: "ferramentas api" },
+  { name: "Conhecimento / RAG", href: "/knowledge", icon: BookOpen, keywords: "documentos rag knowledge" },
+  { name: "Memória", href: "/memory", icon: Brain, keywords: "memory contexto" },
+  { name: "Ferramentas", href: "/tools", icon: Puzzle, keywords: "tools api integrations" },
   { name: "Prompts", href: "/prompts", icon: FileText, keywords: "templates prompt" },
   { name: "Workflows", href: "/workflows", icon: GitBranch, keywords: "automação fluxo" },
-  { name: "Evaluations", href: "/evaluations", icon: FlaskConical, keywords: "testes avaliação" },
-  { name: "Deployments", href: "/deployments", icon: Rocket, keywords: "deploy produção" },
-  { name: "Monitoring", href: "/monitoring", icon: Activity, keywords: "monitoramento logs" },
-  { name: "Data & Storage", href: "/data-storage", icon: Database, keywords: "dados arquivos" },
+  { name: "Avaliações", href: "/evaluations", icon: FlaskConical, keywords: "testes avaliação evaluations" },
+  { name: "Implantações", href: "/deployments", icon: Rocket, keywords: "deploy produção deployments" },
+  { name: "Monitoramento", href: "/monitoring", icon: Activity, keywords: "monitoring logs" },
+  { name: "Dados & Storage", href: "/data-storage", icon: Database, keywords: "dados arquivos" },
   { name: "DataHub", href: "/datahub", icon: ServerCog, keywords: "hub dados externo" },
-  { name: "Security & Guardrails", href: "/security", icon: Shield, keywords: "segurança regras" },
-  { name: "Team & Roles", href: "/team", icon: Users, keywords: "time equipe" },
-  { name: "Billing / Usage", href: "/billing", icon: CreditCard, keywords: "custos uso" },
-  { name: "Settings", href: "/settings", icon: Settings, keywords: "configurações" },
+  { name: "Segurança", href: "/security", icon: Shield, keywords: "security guardrails regras" },
+  { name: "Equipe", href: "/team", icon: Users, keywords: "time team roles" },
+  { name: "Faturamento", href: "/billing", icon: CreditCard, keywords: "custos uso billing" },
+  { name: "Configurações", href: "/settings", icon: Settings, keywords: "settings" },
 ];
 
 const quickActions = [
@@ -191,7 +191,7 @@ export function CommandPalette() {
         {knowledgeBases.length > 0 && (
           <>
             <CommandSeparator />
-            <CommandGroup heading="Knowledge Bases">
+            <CommandGroup heading="Bases de Conhecimento">
               {knowledgeBases.map(kb => (
                 <CommandItem key={kb.id} onSelect={() => go('/knowledge')} className="gap-2" keywords={[kb.name, 'rag', 'documento', 'knowledge']}>
                   <BookOpen className="h-4 w-4 text-nexus-emerald" />

@@ -192,8 +192,8 @@ export default function DashboardPage() {
           <div className="flex items-center gap-2 flex-wrap">
             {[
               { label: 'Novo Agente', icon: Plus, path: '/agents/new' },
-              { label: 'Knowledge', icon: BookOpen, path: '/knowledge' },
-              { label: 'Monitoring', icon: Activity, path: '/monitoring' },
+              { label: 'Conhecimento', icon: BookOpen, path: '/knowledge' },
+              { label: 'Monitoramento', icon: Activity, path: '/monitoring' },
               { label: 'Workflows', icon: GitBranch, path: '/workflows' },
             ].map(action => (
               <button
@@ -412,7 +412,7 @@ function DashboardInsight({ agents, usageStats, recentTraces }: InsightProps) {
   if (errorTraces.length > 0) {
     insights.push({
       icon: '⚠️',
-      text: `${errorTraces.length} erro${errorTraces.length > 1 ? 's' : ''} detectado${errorTraces.length > 1 ? 's' : ''} recentemente — verifique o Monitoring para detalhes.`,
+      text: `${errorTraces.length} erro${errorTraces.length > 1 ? 's' : ''} detectado${errorTraces.length > 1 ? 's' : ''} recentemente — verifique o Monitoramento para detalhes.`,
       type: 'warning',
     });
   }
@@ -446,7 +446,7 @@ function DashboardInsight({ agents, usageStats, recentTraces }: InsightProps) {
   if (usageStats && usageStats.totalCost > 50) {
     insights.push({
       icon: '💰',
-      text: `Custo de $${usageStats.totalCost.toFixed(2)} nos últimos 30 dias. Confira o Billing para detalhes por agente.`,
+      text: `Custo de $${usageStats.totalCost.toFixed(2)} nos últimos 30 dias. Confira o Faturamento para detalhes por agente.`,
       type: 'info',
     });
   }

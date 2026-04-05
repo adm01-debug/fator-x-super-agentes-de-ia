@@ -57,10 +57,10 @@ export function AppLayout({ children }: AppLayoutProps) {
 
   // Global keyboard shortcuts
   const shortcuts = useMemo(() => [
-    { key: 'g', description: 'Go to Dashboard', handler: () => navigate('/') },
-    { key: 'a', description: 'Go to Agents', handler: () => navigate('/agents') },
-    { key: 'n', shift: true, description: 'New Agent', handler: () => navigate('/agents/new') },
-    { key: 'Backspace', alt: true, description: 'Go Back', handler: () => {
+    { key: 'g', description: 'Ir para Dashboard', handler: () => navigate('/') },
+    { key: 'a', description: 'Ir para Agentes', handler: () => navigate('/agents') },
+    { key: 'n', shift: true, description: 'Novo Agente', handler: () => navigate('/agents/new') },
+    { key: 'Backspace', alt: true, description: 'Voltar', handler: () => {
       if (window.history.length > 2) navigate(-1);
       else navigate('/');
     }},

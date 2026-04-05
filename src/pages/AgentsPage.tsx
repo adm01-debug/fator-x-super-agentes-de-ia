@@ -238,9 +238,9 @@ export default function AgentsPage() {
       />
 
       <QuickActionsBar actions={[
-        { label: 'Knowledge', icon: BookOpen, path: '/knowledge' },
+        { label: 'Conhecimento', icon: BookOpen, path: '/knowledge' },
         { label: 'Workflows', icon: GitBranch, path: '/workflows' },
-        { label: 'Monitoring', icon: Activity, path: '/monitoring' },
+        { label: 'Monitoramento', icon: Activity, path: '/monitoring' },
       ]} />
 
       {/* Bulk Actions Bar */}
