@@ -9,8 +9,8 @@ import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, 
 import { DollarSign, Hash, Loader2, BarChart3, Plus, Trash2, Wallet, AlertTriangle } from "lucide-react";
 import { useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { supabase } from "@/integrations/supabase/client";
 import { getWorkspaceId } from "@/lib/agentService";
+import { getAgentUsage, listBudgets, createBudget, deleteBudget, getUsageRecords, getModelPricing } from "@/services/billingService";
 import { LightBarChart } from "@/components/charts";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { toast } from "sonner";
@@ -24,41 +24,17 @@ export default function BillingPage() {
 
   const { data: usage = [], isLoading } = useQuery({
     queryKey: ['agent_usage'],
-    queryFn: async () => {
-      const thirtyDaysAgo = new Date();
-      thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
-      const { data, error } = await supabase
-        .from('agent_usage')
-        .select('*')
-        .gte('date', thirtyDaysAgo.toISOString().split('T')[0])
-        .order('date', { ascending: true });
-      if (error) throw error;
-      return data ?? [];
-    },
+    queryFn: () => getAgentUsage(30),
   });
 
-  // Budgets
   const { data: budgets = [], isLoading: loadingBudgets } = useQuery({
     queryKey: ['budgets'],
-    queryFn: async () => {
-      const { data, error } = await supabase.from('budgets').select('*').order('created_at', { ascending: false });
-      if (error) throw error;
-      return data ?? [];
-    },
+    queryFn: listBudgets,
   });
 
-  // Usage records
   const { data: usageRecords = [] } = useQuery({
     queryKey: ['usage_records'],
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from('usage_records')
-        .select('*')
-        .order('created_at', { ascending: false })
-        .limit(50);
-      if (error) throw error;
-      return data ?? [];
-    },
+    queryFn: () => getUsageRecords(50),
   });
 
   const totals = usage.reduce((acc, u) => ({
@@ -79,12 +55,7 @@ export default function BillingPage() {
     setSaving(true);
     try {
       const wsId = await getWorkspaceId();
-      const { error } = await supabase.from('budgets').insert({
-        name: budgetName.trim(),
-        limit_usd: parseFloat(budgetLimit) || 100,
-        workspace_id: wsId,
-      });
-      if (error) throw error;
+      await createBudget(wsId, budgetName.trim(), parseFloat(budgetLimit) || 100);
       toast.success('Orçamento criado!');
       setNewBudgetOpen(false);
       setBudgetName('');
@@ -97,10 +68,13 @@ export default function BillingPage() {
   };
 
   const handleDeleteBudget = async (id: string) => {
-    const { error } = await supabase.from('budgets').delete().eq('id', id);
-    if (error) { toast.error(error.message); return; }
-    toast.success('Orçamento removido');
-    queryClient.invalidateQueries({ queryKey: ['budgets'] });
+    try {
+      await deleteBudget(id);
+      toast.success('Orçamento removido');
+      queryClient.invalidateQueries({ queryKey: ['budgets'] });
+    } catch (e: unknown) {
+      toast.error(e instanceof Error ? e.message : 'Erro inesperado');
+    }
   };
 
   return (
@@ -259,11 +233,7 @@ export default function BillingPage() {
 function PricingTable() {
   const { data: pricing = [], isLoading } = useQuery({
     queryKey: ['model_pricing'],
-    queryFn: async () => {
-      const { data, error } = await supabase.from('model_pricing').select('*').order('model_pattern');
-      if (error) throw error;
-      return data ?? [];
-    },
+    queryFn: getModelPricing,
   });
 
   if (isLoading) return <div className="flex justify-center py-12"><Loader2 className="h-5 w-5 animate-spin text-muted-foreground" /></div>;
