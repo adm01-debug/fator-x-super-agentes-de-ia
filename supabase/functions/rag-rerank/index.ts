@@ -116,7 +116,7 @@ serve(async (req) => {
       }
     }
 
-    // Layer 3 (fallback): LLM-based reranking
+    // Layer 3 (fallback): LLM-based reranking via Lovable AI
     if (!reranked) {
       try {
         const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
@@ -130,7 +130,7 @@ serve(async (req) => {
           method: 'POST',
           headers: { 'Content-Type': 'application/json', 'Authorization': authHeader, 'apikey': supabaseKey },
           body: JSON.stringify({
-            model: 'claude-haiku-4-5-20251001',
+            model: 'gemini-2.5-flash',
             messages: [
               { role: 'system', content: 'You are a relevance ranker. Given a query and numbered passages, return ONLY a JSON array of the most relevant passage indices, ordered by relevance. Example: [3, 7, 1, 5]' },
               { role: 'user', content: `Query: "${query}"\n\nPassages:\n${chunkList}\n\nReturn the top ${topK} most relevant indices as a JSON array.` },
@@ -139,15 +139,17 @@ serve(async (req) => {
             max_tokens: 200,
           }),
         });
+        if (!resp.ok) throw new Error(`LLM gateway returned ${resp.status}`);
         const data = await resp.json();
         const content = ((data as Record<string, string>).content || '').replace(/```json\n?|```/g, '').trim();
         const indices: number[] = JSON.parse(content);
-        reranked = indices.slice(0, topK).map((idx, rank) => ({
-          chunk: chunks[idx] || chunks[0],
+        reranked = indices.filter(i => i >= 0 && i < chunks.length).slice(0, topK).map((idx, rank) => ({
+          chunk: chunks[idx],
           relevance_score: 1 - (rank * 0.1),
         }));
-      } catch {
-        console.error('LLM rerank fallback failed, returning original order');
+        if (reranked.length === 0) reranked = null;
+      } catch (e) {
+        console.error('LLM rerank fallback failed:', e instanceof Error ? e.message : e);
       }
     }
 
