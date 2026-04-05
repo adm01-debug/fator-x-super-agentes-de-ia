@@ -59,3 +59,17 @@ export async function getMemories(options?: { type?: string; limit?: number }) {
   if (error) throw error;
   return data ?? [];
 }
+
+/** Invoke cerebro-brain edge function */
+export async function invokeCerebroBrain(body: Record<string, unknown>) {
+  const { data, error } = await supabase.functions.invoke('cerebro-brain', { body });
+  if (error) throw error;
+  return data;
+}
+
+/** Invoke cerebro-query edge function */
+export async function invokeCerebroQuery(body: Record<string, unknown>) {
+  const { data, error } = await supabase.functions.invoke('cerebro-query', { body });
+  if (error) throw error;
+  return data;
+}
