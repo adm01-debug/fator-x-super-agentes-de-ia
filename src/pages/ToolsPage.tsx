@@ -15,6 +15,8 @@ import { supabase } from "@/integrations/supabase/client";
 import { getWorkspaceId } from "@/lib/agentService";
 
 import { toast } from "sonner";
+import { MCPServerManager } from '@/components/integrations/MCPServerManager';
+import { Bitrix24Connect } from '@/components/integrations/Bitrix24Connect';
 
 const builtInTools = [
   { name: 'Web Search', category: 'Pesquisa', icon: Globe, desc: 'Busca na web em tempo real', color: 'text-nexus-blue', bg: 'bg-nexus-blue/10' },
@@ -199,6 +201,17 @@ export default function ToolsPage() {
           ))}
         </div>
       )}
+
+      {/* Integrações */}
+      <div className="nexus-card p-6 space-y-4">
+        <h3 className="text-sm font-bold text-white">Integrações Externas</h3>
+        <Bitrix24Connect />
+      </div>
+
+      {/* MCP Servers */}
+      <div className="nexus-card p-6">
+        <MCPServerManager />
+      </div>
     </div>
   );
 }

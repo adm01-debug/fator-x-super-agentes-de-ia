@@ -16,6 +16,7 @@ import { ModelCard } from '@/components/oracle/ModelCard';
 import { OracleHistory } from '@/components/oracle/OracleHistory';
 import { exportToMarkdown, downloadText } from '@/lib/oracleExport';
 import { toast } from 'sonner';
+import { DeepResearchPanel } from '@/components/oracle/DeepResearchPanel';
 
 const CHAIRMAN_MODELS = [
   { value: 'google/gemini-2.5-pro', label: 'Gemini 2.5 Pro' },
@@ -278,6 +279,9 @@ export default function OraclePage() {
           )}
         
       </div>
+
+      {/* Deep Research */}
+      <DeepResearchPanel />
     </div>
   );
 }
