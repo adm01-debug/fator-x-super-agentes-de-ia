@@ -10,7 +10,7 @@
  * Gap 4/10 — automation topic analysis
  */
 
-import { supabase } from '@/integrations/supabase/client';
+import { fromTable } from '@/lib/supabaseExtended';
 
 /* ------------------------------------------------------------------ */
 /*  Types                                                              */
