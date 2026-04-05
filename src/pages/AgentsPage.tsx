@@ -1,4 +1,5 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useMemo } from "react";
+import { debounce } from "@/services/resilience";
 import { PageHeader } from "@/components/shared/PageHeader";
 import { StatusBadge } from "@/components/shared/StatusBadge";
 import { Button } from "@/components/ui/button";
@@ -16,6 +17,9 @@ export default function AgentsPage() {
   const { user } = useAuth();
   const { savedAgents, loadSavedAgents, deleteAgent, setCurrentUserId } = useAgentBuilderStore();
   const [search, setSearch] = useState("");
+  const [debouncedSearch, setDebouncedSearch] = useState("");
+  const applySearch = useMemo(() => debounce((v: unknown) => setDebouncedSearch(v as string), 300), []);
+  const handleSearch = (v: string) => { setSearch(v); applySearch(v); };
   const [statusFilter, setStatusFilter] = useState<string>("all");
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
 
@@ -71,7 +75,7 @@ export default function AgentsPage() {
       }));
 
   const filtered = displayAgents.filter(a => {
-    const matchesSearch = !search || a.name.toLowerCase().includes(search.toLowerCase()) || a.tags.some(t => t.toLowerCase().includes(search.toLowerCase()));
+    const matchesSearch = !debouncedSearch || a.name.toLowerCase().includes(debouncedSearch.toLowerCase()) || a.tags.some(t => t.toLowerCase().includes(debouncedSearch.toLowerCase()));
     const matchesStatus = statusFilter === 'all' || a.status === statusFilter;
     return matchesSearch && matchesStatus;
   });
@@ -124,7 +128,7 @@ export default function AgentsPage() {
       <div className="flex items-center gap-3">
         <div className="relative flex-1 max-w-sm">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-          <Input placeholder="Buscar agentes..." value={search} onChange={(e) => setSearch(e.target.value)} className="pl-9 bg-secondary/50 border-border/50" />
+          <Input placeholder="Buscar agentes..." value={search} onChange={(e) => handleSearch(e.target.value)} className="pl-9 bg-secondary/50 border-border/50" />
         </div>
         <select
           value={statusFilter}
