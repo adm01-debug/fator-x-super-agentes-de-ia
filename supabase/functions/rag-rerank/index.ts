@@ -34,31 +34,32 @@ serve(async (req) => {
     const { query, chunks, top_k: topK } = parsed.data;
 
     // ═══ Workspace lookup ═══
-    const { data: member } = await supabase
+    const { data: members } = await supabase
       .from('workspace_members')
       .select('workspace_id')
       .eq('user_id', user.id)
-      .limit(1)
-      .single();
-    const wsId = member?.workspace_id;
+      .limit(1);
+    const wsId = members?.[0]?.workspace_id;
 
     // ═══ Reranking Pipeline (3 layers) ═══
     let reranked: Array<{ chunk: Record<string, unknown>; relevance_score: number }> | null = null;
+    let usedMethod = 'original_order';
 
     // Layer 1: Cohere Rerank API
-    if (wsId) {
-      const { data: cohereKey } = await supabase
-        .from('workspace_secrets')
-        .select('key_value')
-        .eq('workspace_id', wsId)
-        .eq('key_name', 'cohere_api_key')
-        .single();
+    try {
+      if (wsId) {
+        const { data: secrets } = await supabase
+          .from('workspace_secrets')
+          .select('key_value')
+          .eq('workspace_id', wsId)
+          .eq('key_name', 'cohere_api_key')
+          .limit(1);
+        const cohereKeyValue = secrets?.[0]?.key_value;
 
-      if (cohereKey?.key_value) {
-        try {
+        if (cohereKeyValue) {
           const resp = await fetch('https://api.cohere.ai/v1/rerank', {
             method: 'POST',
-            headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${cohereKey.key_value}` },
+            headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${cohereKeyValue}` },
             body: JSON.stringify({
               model: 'rerank-v3.5',
               query,
@@ -73,11 +74,12 @@ serve(async (req) => {
               chunk: chunks[r.index as number],
               relevance_score: r.relevance_score as number,
             }));
+            if (reranked.length > 0) usedMethod = 'cohere';
           }
-        } catch (e: unknown) {
-          console.error('Cohere rerank failed:', e instanceof Error ? e.message : e);
         }
       }
+    } catch (e: unknown) {
+      console.error('Cohere layer failed:', e instanceof Error ? e.message : e);
     }
 
     // Layer 2: HuggingFace BGE Reranker (free cross-encoder)
@@ -110,6 +112,7 @@ serve(async (req) => {
             });
             indexed.sort((a, b) => b.relevance_score - a.relevance_score);
             reranked = indexed.slice(0, topK);
+            if (reranked.length > 0) usedMethod = 'hf_bge_reranker';
           }
         }
       } catch (e: unknown) {
@@ -117,40 +120,8 @@ serve(async (req) => {
       }
     }
 
-    // Layer 3 (fallback): LLM-based reranking
-    if (!reranked) {
-      try {
-        const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
-        const supabaseKey = Deno.env.get('SUPABASE_ANON_KEY')!;
-        const authHeader = req.headers.get('Authorization')!;
-        const chunkList = chunks.slice(0, 20).map((c: Record<string, unknown>, i: number) =>
-          `[${i}] ${String(c.content || c.text || c).substring(0, 300)}`
-        ).join('\n\n');
-
-        const resp = await fetch(`${supabaseUrl}/functions/v1/llm-gateway`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json', 'Authorization': authHeader, 'apikey': supabaseKey },
-          body: JSON.stringify({
-            model: 'claude-haiku-4-5-20251001',
-            messages: [
-              { role: 'system', content: 'You are a relevance ranker. Given a query and numbered passages, return ONLY a JSON array of the most relevant passage indices, ordered by relevance. Example: [3, 7, 1, 5]' },
-              { role: 'user', content: `Query: "${query}"\n\nPassages:\n${chunkList}\n\nReturn the top ${topK} most relevant indices as a JSON array.` },
-            ],
-            temperature: 0,
-            max_tokens: 200,
-          }),
-        });
-        const data = await resp.json();
-        const content = ((data as Record<string, string>).content || '').replace(/```json\n?|```/g, '').trim();
-        const indices: number[] = JSON.parse(content);
-        reranked = indices.slice(0, topK).map((idx, rank) => ({
-          chunk: chunks[idx] || chunks[0],
-          relevance_score: 1 - (rank * 0.1),
-        }));
-      } catch {
-        console.error('LLM rerank fallback failed, returning original order');
-      }
-    }
+    // Layer 3: Skip LLM self-call (causes edge function timeout)
+    // Fall through to ultimate fallback
 
     // Ultimate fallback: original order
     if (!reranked) {
@@ -160,13 +131,9 @@ serve(async (req) => {
       }));
     }
 
-    const method = reranked[0]?.relevance_score > 0.5
-      ? 'cohere'
-      : hfToken ? 'hf_bge_reranker' : 'llm_fallback';
-
     return jsonResponse(req, {
       reranked,
-      method,
+      method: usedMethod,
       query,
       total_input: chunks.length,
       top_k: topK,
