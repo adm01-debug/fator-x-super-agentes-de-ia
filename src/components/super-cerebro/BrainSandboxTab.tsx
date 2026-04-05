@@ -4,7 +4,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Loader2, FlaskConical } from "lucide-react";
-import { supabase } from "@/integrations/supabase/client";
+import { invokeCerebroBrain } from "@/services/cerebroService";
 import { toast } from "sonner";
 
 interface SandboxResult {
@@ -31,10 +31,7 @@ export function BrainSandboxTab() {
     if (!query.trim()) return;
     setIsTesting(true);
     try {
-      const { data, error } = await supabase.functions.invoke('cerebro-brain', {
-        body: { action: 'brain_sandbox', query, context_mode: contextMode },
-      });
-      if (error) throw error;
+      const data = await invokeCerebroBrain({ action: 'brain_sandbox', query, context_mode: contextMode });
       setResults(prev => [...prev, {
         mode: contextMode,
         response: data?.response || 'Sem resposta',

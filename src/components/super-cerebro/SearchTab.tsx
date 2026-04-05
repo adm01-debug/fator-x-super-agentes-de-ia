@@ -5,7 +5,7 @@ import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Loader2, MessageSquare, Sparkles, ArrowUpDown, Search } from "lucide-react";
-import { supabase } from "@/integrations/supabase/client";
+import { invokeCerebroQuery } from "@/services/cerebroService";
 import { toast } from "sonner";
 import { rerankChunks, listKnowledgeBases, type RerankResult } from "@/services/knowledgeService";
 
@@ -34,10 +34,7 @@ export function SearchTab() {
     setIsSearching(true);
     setSearchResults(null);
     try {
-      const { data, error } = await supabase.functions.invoke('cerebro-query', {
-        body: { query, mode: 'chat' },
-      });
-      if (error) throw error;
+      const data = await invokeCerebroQuery({ query, mode: 'chat' });
       const meta: string[] = [];
       if (data?.facts_loaded > 0) meta.push(`${data.facts_loaded} fatos`);
       if (data?.rag_chunks_used) meta.push(data.rag_reranked ? 'RAG reranked' : 'RAG ativo');

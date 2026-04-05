@@ -3,7 +3,7 @@ import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Loader2, Zap } from "lucide-react";
-import { supabase } from "@/integrations/supabase/client";
+import { invokeCerebroBrain } from "@/services/cerebroService";
 import { toast } from "sonner";
 
 export function AutoExtractionTab() {
@@ -17,10 +17,7 @@ export function AutoExtractionTab() {
     setIsExtracting(true);
     setResult(null);
     try {
-      const { data, error } = await supabase.functions.invoke('cerebro-brain', {
-        body: { action: 'auto_extract', text, extract_type: extractType },
-      });
-      if (error) throw error;
+      const data = await invokeCerebroBrain({ action: 'auto_extract', text, extract_type: extractType });
       const meta = data?.cost_usd ? `\n\n---\n_Custo: $${data.cost_usd.toFixed(6)}_` : '';
       setResult((data?.extracted || 'Nenhuma extração') + meta);
     } catch (e: unknown) {

@@ -1,16 +1,13 @@
 import { Loader2, Network } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
-import { supabase } from "@/integrations/supabase/client";
+import { invokeCerebroBrain } from "@/services/cerebroService";
 import { useQuery } from "@tanstack/react-query";
 
 export function OverviewTab() {
   const { data: stats, isLoading } = useQuery({
     queryKey: ['cerebro_stats'],
     queryFn: async () => {
-      const { data, error } = await supabase.functions.invoke('cerebro-brain', {
-        body: { action: 'stats' },
-      });
-      if (error) throw error;
+      const data = await invokeCerebroBrain({ action: 'stats' });
       return data;
     },
   });

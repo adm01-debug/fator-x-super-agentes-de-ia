@@ -1,6 +1,6 @@
 import { Loader2, Network, RefreshCw } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { supabase } from "@/integrations/supabase/client";
+import { invokeCerebroBrain } from "@/services/cerebroService";
 import { useQuery } from "@tanstack/react-query";
 
 interface GraphNode {
@@ -25,10 +25,7 @@ export function KnowledgeGraphTab() {
   const { data, isLoading, refetch } = useQuery({
     queryKey: ['cerebro_graph'],
     queryFn: async () => {
-      const { data, error } = await supabase.functions.invoke('cerebro-brain', {
-        body: { action: 'knowledge_graph' },
-      });
-      if (error) throw error;
+      const data = await invokeCerebroBrain({ action: 'knowledge_graph' });
       return data as { nodes: GraphNode[]; edges: GraphEdge[] };
     },
   });

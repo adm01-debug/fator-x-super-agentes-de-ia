@@ -1,7 +1,7 @@
 import { Loader2, Activity, CheckCircle, Clock, AlertTriangle, Target, RefreshCw } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { supabase } from "@/integrations/supabase/client";
+import { invokeCerebroBrain } from "@/services/cerebroService";
 import { useQuery } from "@tanstack/react-query";
 
 interface HealthItem {
@@ -25,10 +25,7 @@ export function KnowledgeHealthTab() {
   const { data, isLoading, refetch } = useQuery({
     queryKey: ['cerebro_health'],
     queryFn: async () => {
-      const { data, error } = await supabase.functions.invoke('cerebro-brain', {
-        body: { action: 'knowledge_health' },
-      });
-      if (error) throw error;
+      const data = await invokeCerebroBrain({ action: 'knowledge_health' });
       return data as HealthData;
     },
   });

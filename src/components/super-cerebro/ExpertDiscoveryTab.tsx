@@ -1,6 +1,6 @@
 import { Loader2, Users } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
-import { supabase } from "@/integrations/supabase/client";
+import { invokeCerebroBrain } from "@/services/cerebroService";
 import { useQuery } from "@tanstack/react-query";
 
 interface Expert {
@@ -19,10 +19,8 @@ export function ExpertDiscoveryTab() {
   const { data, isLoading } = useQuery({
     queryKey: ['cerebro_experts'],
     queryFn: async () => {
-      const { data, error } = await supabase.functions.invoke('cerebro-brain', {
-        body: { action: 'expert_discovery' },
-      });
-      if (error) throw error;
+      const data = await invokeCerebroBrain({ action: 'expert_discovery' });
+      return (data?.experts || []) as Expert[];
       return (data?.experts || []) as Expert[];
     },
   });
