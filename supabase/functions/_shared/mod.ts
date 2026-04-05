@@ -50,3 +50,9 @@ export {
   z,
   type ParseResult,
 } from "./validation.ts";
+
+export {
+  withTracing,
+  createSpan,
+  type TraceContext,
+} from "./tracing.ts";
