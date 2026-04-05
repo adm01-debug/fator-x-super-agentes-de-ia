@@ -25,3 +25,4 @@ export * from './workflowCheckpointService';
 export * from './agentCardService';
 export * from './agentHandoffService';
 export * from './costCalculatorService';
+export * from './middlewarePipelineService';
