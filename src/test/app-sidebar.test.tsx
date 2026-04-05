@@ -47,8 +47,8 @@ describe("AppSidebar", () => {
   it("renders navigation items", () => {
     renderSidebar();
     expect(screen.getByText("Dashboard")).toBeInTheDocument();
-    expect(screen.getByText("Agents")).toBeInTheDocument();
-    expect(screen.getByText("Settings")).toBeInTheDocument();
+    expect(screen.getByText("Agentes")).toBeInTheDocument();
+    expect(screen.getByText("Configurações")).toBeInTheDocument();
   });
 
   it("renders the brand name", () => {
