@@ -121,7 +121,7 @@ function PhoneList({ phones }: { phones: Array<Record<string, unknown>> }) {
       {phones.map((p, i) => (
         <div key={i} className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg bg-secondary/30 border border-border/20 text-[11px]">
           <Phone className="h-3 w-3 text-primary" />
-          <span className="font-mono text-foreground">{formatPhone(p.phone)}</span>
+          <span className="font-mono text-foreground">{formatPhone(p.phone as string | null)}</span>
         </div>
       ))}
     </div>
@@ -136,7 +136,7 @@ function EmailList({ emails }: { emails: Array<Record<string, unknown>> }) {
       {emails.map((e, i) => (
         <div key={i} className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg bg-secondary/30 border border-border/20 text-[11px]">
           <Mail className="h-3 w-3 text-primary" />
-          <span className="font-mono text-foreground">{e.email}</span>
+          <span className="font-mono text-foreground">{String(e.email || '')}</span>
         </div>
       ))}
     </div>

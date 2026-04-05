@@ -1,5 +1,5 @@
 import { create } from 'zustand';
-import type { AgentConfig, PromptVersion } from '@/types/agentTypes';
+import type { AgentConfig, PromptVersion, AgentPersona, LLMModel, ReasoningPattern, AgentLifecycleStage } from '@/types/agentTypes';
 import { DEFAULT_AGENT, TABS } from '@/data/agentBuilderData';
 import { supabase } from '@/integrations/supabase/client';
 
