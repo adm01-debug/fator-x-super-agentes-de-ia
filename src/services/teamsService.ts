@@ -7,7 +7,7 @@ import type { RoleKey } from './rbacService';
 
 export async function listMembers(workspaceId: string) {
   const { data, error } = await supabase
-    .from('workspace_members')
+    .from('workspace_members_safe')
     .select('*')
     .eq('workspace_id', workspaceId)
     .order('invited_at', { ascending: true });

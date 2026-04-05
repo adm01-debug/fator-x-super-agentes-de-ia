@@ -68,7 +68,7 @@ export default function SettingsPage() {
   const rotateKeyMutation = useMutation({
     mutationFn: async ({ id, newValue }: { id: string; newValue: string }) => {
       if (!newValue.trim()) throw new Error('Novo valor é obrigatório');
-      const { error } = await supabase.from('workspace_secrets').update({ key_value: newValue.trim() }).eq('id', id);
+      const { error } = await supabase.from('workspace_secrets').update({ encrypted_value: new TextEncoder().encode(newValue.trim()) } as Record<string, unknown>).eq('id', id);
       if (error) throw error;
     },
     onSuccess: () => {
