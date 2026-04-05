@@ -14,6 +14,45 @@ export type Database = {
   }
   public: {
     Tables: {
+      agent_installed_skills: {
+        Row: {
+          agent_id: string
+          config_overrides: Json | null
+          id: string
+          installed_at: string
+          skill_id: string
+        }
+        Insert: {
+          agent_id: string
+          config_overrides?: Json | null
+          id?: string
+          installed_at?: string
+          skill_id: string
+        }
+        Update: {
+          agent_id?: string
+          config_overrides?: Json | null
+          id?: string
+          installed_at?: string
+          skill_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "agent_installed_skills_agent_id_fkey"
+            columns: ["agent_id"]
+            isOneToOne: false
+            referencedRelation: "agents"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "agent_installed_skills_skill_id_fkey"
+            columns: ["skill_id"]
+            isOneToOne: false
+            referencedRelation: "skill_registry"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       agent_memories: {
         Row: {
           content: string
@@ -51,6 +90,56 @@ export type Database = {
             columns: ["workspace_id"]
             isOneToOne: false
             referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      agent_skills: {
+        Row: {
+          agent_id: string
+          confidence: number
+          created_at: string
+          description: string
+          failure_count: number
+          id: string
+          pattern: string
+          skill_name: string
+          source_trace_id: string | null
+          success_count: number
+          updated_at: string
+        }
+        Insert: {
+          agent_id: string
+          confidence?: number
+          created_at?: string
+          description?: string
+          failure_count?: number
+          id?: string
+          pattern?: string
+          skill_name: string
+          source_trace_id?: string | null
+          success_count?: number
+          updated_at?: string
+        }
+        Update: {
+          agent_id?: string
+          confidence?: number
+          created_at?: string
+          description?: string
+          failure_count?: number
+          id?: string
+          pattern?: string
+          skill_name?: string
+          source_trace_id?: string | null
+          success_count?: number
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "agent_skills_agent_id_fkey"
+            columns: ["agent_id"]
+            isOneToOne: false
+            referencedRelation: "agents"
             referencedColumns: ["id"]
           },
         ]
@@ -872,6 +961,57 @@ export type Database = {
           },
         ]
       }
+      forensic_snapshots: {
+        Row: {
+          agent_id: string
+          chain_hash: string
+          created_at: string
+          decision_rationale: string
+          decision_type: string
+          execution_id: string
+          id: string
+          input_hash: string
+          metadata: Json | null
+          output_hash: string
+          previous_hash: string
+          state_after: Json
+          state_before: Json
+          step_index: number
+        }
+        Insert: {
+          agent_id: string
+          chain_hash: string
+          created_at?: string
+          decision_rationale?: string
+          decision_type?: string
+          execution_id: string
+          id?: string
+          input_hash: string
+          metadata?: Json | null
+          output_hash: string
+          previous_hash?: string
+          state_after?: Json
+          state_before?: Json
+          step_index?: number
+        }
+        Update: {
+          agent_id?: string
+          chain_hash?: string
+          created_at?: string
+          decision_rationale?: string
+          decision_type?: string
+          execution_id?: string
+          id?: string
+          input_hash?: string
+          metadata?: Json | null
+          output_hash?: string
+          previous_hash?: string
+          state_after?: Json
+          state_before?: Json
+          step_index?: number
+        }
+        Relationships: []
+      }
       guardrail_policies: {
         Row: {
           config: Json | null
@@ -1169,6 +1309,66 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      skill_registry: {
+        Row: {
+          author: string
+          category: string
+          created_at: string
+          created_by: string | null
+          description: string
+          id: string
+          install_count: number
+          is_public: boolean
+          is_verified: boolean
+          mcp_server_url: string | null
+          name: string
+          rating: number
+          skill_config: Json
+          slug: string
+          tags: string[] | null
+          updated_at: string
+          version: string
+        }
+        Insert: {
+          author?: string
+          category?: string
+          created_at?: string
+          created_by?: string | null
+          description?: string
+          id?: string
+          install_count?: number
+          is_public?: boolean
+          is_verified?: boolean
+          mcp_server_url?: string | null
+          name: string
+          rating?: number
+          skill_config?: Json
+          slug: string
+          tags?: string[] | null
+          updated_at?: string
+          version?: string
+        }
+        Update: {
+          author?: string
+          category?: string
+          created_at?: string
+          created_by?: string | null
+          description?: string
+          id?: string
+          install_count?: number
+          is_public?: boolean
+          is_verified?: boolean
+          mcp_server_url?: string | null
+          name?: string
+          rating?: number
+          skill_config?: Json
+          slug?: string
+          tags?: string[] | null
+          updated_at?: string
+          version?: string
+        }
+        Relationships: []
       }
       test_cases: {
         Row: {
@@ -1753,6 +1953,10 @@ export type Database = {
         }[]
       }
       get_user_workspace_ids: { Args: { _user_id: string }; Returns: string[] }
+      increment_skill_installs: {
+        Args: { p_skill_id: string }
+        Returns: undefined
+      }
       log_audit_entry: {
         Args: {
           p_action: string
