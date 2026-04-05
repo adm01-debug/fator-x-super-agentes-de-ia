@@ -231,7 +231,17 @@ export function AppSidebar() {
                 </Button>
               </div>
             )}
-            <p className="text-[10px] text-muted-foreground/50 text-center px-2 select-none">Fator X v1.0 • Nexus Platform</p>
+            <div className="flex items-center justify-between px-2">
+              <p className="text-[10px] text-muted-foreground/50 select-none">Fator X v1.0</p>
+              <button
+                onClick={() => setLocale(locale === 'pt-BR' ? 'en' : 'pt-BR')}
+                className="flex items-center gap-1 text-[10px] text-muted-foreground hover:text-foreground transition-colors rounded px-1.5 py-0.5 hover:bg-secondary/50"
+                title="Alternar idioma"
+              >
+                <Globe className="h-3 w-3" />
+                {locale === 'pt-BR' ? 'PT' : 'EN'}
+              </button>
+            </div>
           </>
         )}
         <Button
