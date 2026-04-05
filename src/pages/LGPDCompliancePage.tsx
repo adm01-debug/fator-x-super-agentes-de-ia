@@ -152,9 +152,8 @@ export default function LGPDCompliancePage() {
             <div className="text-center py-12 text-sm text-muted-foreground">Nenhum registro de consentimento ou exclusão.</div>
           ) : (
             <div className="space-y-2">
-              {[...deletions.map((d) => ({ ...d, _type: 'deletion' as const })), ...consents.map((c) => ({ ...c, _type: 'consent' as const }))]
-                .sort((a, b) => new Date(String(a.created_at ?? a.requested_at ?? '')).getTime() - new Date(String(b.created_at ?? b.requested_at ?? '')).getTime())
-                .reverse()
+              {[...deletions.map((d) => ({ id: d.id, _type: 'deletion' as const, _date: d.requested_at, label: `Exclusão: ${d.reason ?? ''}`, status: d.status, granted: false })), ...consents.map((c) => ({ id: c.id, _type: 'consent' as const, _date: c.created_at, label: `${c.granted ? 'Consentimento' : 'Revogação'}: ${c.consent_type}`, status: c.granted ? 'ativo' : 'revogado', granted: c.granted }))]
+                .sort((a, b) => new Date(b._date).getTime() - new Date(a._date).getTime())
                 .slice(0, 30)
                 .map((item) => (
                 <div key={item.id}
@@ -162,14 +161,12 @@ export default function LGPDCompliancePage() {
                   <div className="flex items-center gap-3">
                     {item._type === 'deletion' ? <Trash2 className="h-3.5 w-3.5 text-destructive" /> : <Shield className="h-3.5 w-3.5 text-primary" />}
                     <div>
-                      <span className="text-foreground font-medium">
-                        {item._type === 'deletion' ? `Exclusão: ${String((item as Record<string, unknown>).scope ?? '')}` : `${'granted' in item && item.granted ? 'Consentimento' : 'Revogação'}: ${String((item as Record<string, unknown>).purpose ?? (item as Record<string, unknown>).consent_type ?? '')}`}
-                      </span>
-                      <p className="text-[11px] text-muted-foreground">{new Date(String(item.created_at ?? item.requested_at ?? '')).toLocaleString('pt-BR')}</p>
+                      <span className="text-foreground font-medium">{item.label}</span>
+                      <p className="text-[11px] text-muted-foreground">{new Date(item._date).toLocaleString('pt-BR')}</p>
                     </div>
                   </div>
-                  <Badge variant={item.status === 'completed' || ('granted' in item && item.granted) ? 'default' : item.status === 'failed' ? 'destructive' : 'outline'} className="text-[11px]">
-                    {String(item.status ?? ('granted' in item && item.granted ? 'ativo' : 'revogado'))}
+                  <Badge variant={item.status === 'completed' || item.granted ? 'default' : item.status === 'failed' ? 'destructive' : 'outline'} className="text-[11px]">
+                    {item.status}
                   </Badge>
                 </div>
               ))}

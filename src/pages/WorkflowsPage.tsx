@@ -66,7 +66,7 @@ export default function WorkflowsPage() {
       if (!member?.workspace_id) return defaultTemplates;
       const { data: wfs } = await supabase.from("workflows").select("*, workflow_steps(id, name, step_order)").eq("workspace_id", member.workspace_id).order("created_at", { ascending: false });
       if (!wfs || wfs.length === 0) return defaultTemplates;
-      return wfs.map((w: Record<string, unknown>) => ({ id: w.id, name: w.name, steps: (w.workflow_steps || []).sort((a: Record<string, unknown>, b: Record<string, unknown>) => (a.step_order as number) - b.step_order).map((s: Record<string, unknown>) => s.name), status: w.status as "draft" | "active", createdAt: w.created_at ? new Date(w.created_at).toISOString().split("T")[0] : "" }));
+      return wfs.map((w) => ({ id: w.id, name: w.name, steps: (Array.isArray(w.workflow_steps) ? w.workflow_steps : []).sort((a: { step_order: number }, b: { step_order: number }) => a.step_order - b.step_order).map((s: { name: string }) => s.name), status: (w.status as "draft" | "active") ?? "draft", createdAt: w.created_at ? new Date(w.created_at).toISOString().split("T")[0] : "" }));
     },
   });
   const [dialogOpen, setDialogOpen] = useState(false);

@@ -428,7 +428,7 @@ export function CreateAgentWizard() {
 
 /* ─── Step Components (scratch mode) ─── */
 
-function StepIdentity({ form, update }: { form: Record<string, unknown>; update: (k: string, v: unknown) => void }) {
+function StepIdentity({ form, update }: { form: Record<string, string | string[]>; update: (k: string, v: unknown) => void }) {
   return (
     <div className="nexus-card space-y-5">
       <h2 className="text-lg font-heading font-semibold text-foreground">Identidade do agente</h2>
@@ -453,7 +453,7 @@ function StepIdentity({ form, update }: { form: Record<string, unknown>; update:
   );
 }
 
-function StepType({ form, update }: { form: Record<string, unknown>; update: (k: string, v: unknown) => void }) {
+function StepType({ form, update }: { form: Record<string, string | string[]>; update: (k: string, v: unknown) => void }) {
   return (
     <div className="space-y-4">
       <h2 className="text-lg font-heading font-semibold text-foreground">Tipo do agente</h2>
@@ -481,7 +481,7 @@ function StepType({ form, update }: { form: Record<string, unknown>; update: (k:
   );
 }
 
-function StepModel({ form, update }: { form: Record<string, unknown>; update: (k: string, v: unknown) => void }) {
+function StepModel({ form, update }: { form: Record<string, string | string[]>; update: (k: string, v: unknown) => void }) {
   return (
     <div className="space-y-4">
       <h2 className="text-lg font-heading font-semibold text-foreground">Modelo base</h2>
@@ -510,7 +510,7 @@ function StepModel({ form, update }: { form: Record<string, unknown>; update: (k
   );
 }
 
-function StepPrompt({ form, update }: { form: Record<string, unknown>; update: (k: string, v: unknown) => void }) {
+function StepPrompt({ form, update }: { form: Record<string, string | string[]>; update: (k: string, v: unknown) => void }) {
   return (
     <div className="space-y-4">
       <h2 className="text-lg font-heading font-semibold text-foreground">System Prompt</h2>
@@ -523,7 +523,7 @@ function StepPrompt({ form, update }: { form: Record<string, unknown>; update: (
   );
 }
 
-function StepTools({ form, toggle }: { form: Record<string, unknown>; toggle: (id: string) => void }) {
+function StepTools({ form, toggle }: { form: Record<string, string | string[]>; toggle: (id: string) => void }) {
   return (
     <div className="space-y-4">
       <h2 className="text-lg font-heading font-semibold text-foreground">Ferramentas</h2>
@@ -531,7 +531,7 @@ function StepTools({ form, toggle }: { form: Record<string, unknown>; toggle: (i
       <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
         {TOOLS.map(t => {
           const Icon = t.icon;
-          const selected = form.tools.includes(t.id);
+          const selected = (form.tools as string[]).includes(t.id);
           return (
             <button key={t.id} onClick={() => toggle(t.id)}
               className={`nexus-card text-left transition-all relative ${selected ? "ring-2 ring-primary bg-primary/5" : "hover:bg-secondary/60"}`}
@@ -554,14 +554,14 @@ function StepTools({ form, toggle }: { form: Record<string, unknown>; toggle: (i
   );
 }
 
-function StepMemory({ form, toggle }: { form: Record<string, unknown>; toggle: (id: string) => void }) {
+function StepMemory({ form, toggle }: { form: Record<string, string | string[]>; toggle: (id: string) => void }) {
   return (
     <div className="space-y-4">
       <h2 className="text-lg font-heading font-semibold text-foreground">Memória</h2>
       <p className="text-sm text-muted-foreground">Configure as camadas de memória do agente.</p>
       <div className="space-y-3">
         {MEMORY_OPTIONS.map(m => {
-          const enabled = form.memory.includes(m.id);
+          const enabled = (form.memory as string[]).includes(m.id);
           return (
             <div key={m.id} className="nexus-card flex items-center justify-between">
               <div>
@@ -577,7 +577,7 @@ function StepMemory({ form, toggle }: { form: Record<string, unknown>; toggle: (
   );
 }
 
-function StepKnowledge({ form, toggle }: { form: Record<string, unknown>; toggle: (id: string) => void }) {
+function StepKnowledge({ form, toggle }: { form: Record<string, string | string[]>; toggle: (id: string) => void }) {
   const kbs = [
     { id: "kb-docs", name: "Documentação Técnica", docs: 342, status: "synced" },
     { id: "kb-faq", name: "FAQ & Suporte", docs: 89, status: "synced" },
@@ -589,7 +589,7 @@ function StepKnowledge({ form, toggle }: { form: Record<string, unknown>; toggle
       <p className="text-sm text-muted-foreground">Vincule bases de conhecimento para RAG.</p>
       <div className="space-y-3">
         {kbs.map(kb => {
-          const selected = form.knowledgeBases.includes(kb.id);
+          const selected = (form.knowledgeBases as string[]).includes(kb.id);
           return (
             <button key={kb.id} onClick={() => toggle(kb.id)}
               className={`nexus-card w-full text-left flex items-center justify-between transition-all ${selected ? "ring-2 ring-primary bg-primary/5" : "hover:bg-secondary/60"}`}
@@ -612,7 +612,7 @@ function StepKnowledge({ form, toggle }: { form: Record<string, unknown>; toggle
   );
 }
 
-function StepDeploy({ form, update }: { form: Record<string, unknown>; update: (k: string, v: unknown) => void }) {
+function StepDeploy({ form, update }: { form: Record<string, string | string[]>; update: (k: string, v: unknown) => void }) {
   const envs = [
     { id: "development", label: "Development", desc: "Testes internos" },
     { id: "staging", label: "Staging", desc: "Validação pré-produção" },
@@ -627,12 +627,12 @@ function StepDeploy({ form, update }: { form: Record<string, unknown>; update: (
       <div className="nexus-card space-y-3">
         <h3 className="text-sm font-semibold text-foreground">Resumo</h3>
         <div className="grid grid-cols-2 gap-3 text-xs">
-          <div><span className="text-muted-foreground">Nome:</span> <strong className="text-foreground ml-1">{form.name || "—"}</strong></div>
+          <div><span className="text-muted-foreground">Nome:</span> <strong className="text-foreground ml-1">{String(form.name || "—")}</strong></div>
           <div><span className="text-muted-foreground">Tipo:</span> <strong className="text-foreground ml-1">{selectedType?.label || "—"}</strong></div>
           <div><span className="text-muted-foreground">Modelo:</span> <strong className="text-foreground ml-1">{selectedModel?.name || "—"}</strong></div>
-          <div><span className="text-muted-foreground">Ferramentas:</span> <strong className="text-foreground ml-1">{form.tools.length} selecionadas</strong></div>
-          <div><span className="text-muted-foreground">Memória:</span> <strong className="text-foreground ml-1">{form.memory.length} camadas</strong></div>
-          <div><span className="text-muted-foreground">Knowledge:</span> <strong className="text-foreground ml-1">{form.knowledgeBases.length} bases</strong></div>
+          <div><span className="text-muted-foreground">Ferramentas:</span> <strong className="text-foreground ml-1">{(form.tools as string[]).length} selecionadas</strong></div>
+          <div><span className="text-muted-foreground">Memória:</span> <strong className="text-foreground ml-1">{(form.memory as string[]).length} camadas</strong></div>
+          <div><span className="text-muted-foreground">Knowledge:</span> <strong className="text-foreground ml-1">{(form.knowledgeBases as string[]).length} bases</strong></div>
         </div>
       </div>
       <div className="grid gap-3 sm:grid-cols-3">

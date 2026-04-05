@@ -422,13 +422,13 @@ function EnvironmentsManager() {
       </div>
       {isLoading ? <p className="text-xs text-muted-foreground">Carregando...</p> : (
         <div className="space-y-2">
-          {environments.map((env: Record<string, unknown>) => (
+          {environments.map((env) => (
             <div key={env.id} className="flex items-center justify-between py-2 px-3 rounded-lg bg-secondary/30">
               <div>
                 <p className="text-sm font-medium text-foreground">{env.name}</p>
-                <p className="text-[11px] text-muted-foreground">{new Date(env.created_at).toLocaleDateString('pt-BR')}</p>
+                <p className="text-[11px] text-muted-foreground">{new Date(String(env.created_at)).toLocaleDateString('pt-BR')}</p>
               </div>
-              <Button variant="ghost" size="icon" className="h-7 w-7 text-destructive" onClick={() => handleDelete(env.id)}>
+              <Button variant="ghost" size="icon" className="h-7 w-7 text-destructive" onClick={() => handleDelete(String(env.id))}>
                 <Trash2 className="h-3.5 w-3.5" />
               </Button>
             </div>

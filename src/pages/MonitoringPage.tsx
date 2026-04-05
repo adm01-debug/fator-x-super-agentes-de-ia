@@ -499,16 +499,16 @@ function AlertRulesPanel() {
       ) : (
         <div className="space-y-2">
           {rules.map((rule: Record<string, unknown>) => (
-            <div key={rule.id} className="flex items-center justify-between py-2 px-3 rounded-lg bg-secondary/30 text-xs">
+            <div key={String(rule.id)} className="flex items-center justify-between py-2 px-3 rounded-lg bg-secondary/30 text-xs">
               <div className="flex items-center gap-3">
-                <input type="checkbox" checked={rule.is_enabled} onChange={e => handleToggleRule(rule.id, e.target.checked)} className="rounded" />
+                <input type="checkbox" checked={Boolean(rule.is_enabled)} onChange={e => handleToggleRule(String(rule.id), e.target.checked)} className="rounded" />
                 <div>
-                  <span className="font-medium text-foreground">{rule.name}</span>
-                  <span className="text-muted-foreground ml-2">{rule.metric} {rule.operator} {rule.threshold}</span>
+                  <span className="font-medium text-foreground">{String(rule.name)}</span>
+                  <span className="text-muted-foreground ml-2">{String(rule.metric)} {String(rule.operator)} {String(rule.threshold)}</span>
                 </div>
-                <Badge variant={rule.severity === 'critical' ? 'destructive' : 'outline'} className="text-[11px]">{rule.severity}</Badge>
+                <Badge variant={rule.severity === 'critical' ? 'destructive' : 'outline'} className="text-[11px]">{String(rule.severity)}</Badge>
               </div>
-              <Button variant="ghost" size="icon" className="h-6 w-6 text-destructive" onClick={() => handleDeleteRule(rule.id)}>
+              <Button variant="ghost" size="icon" className="h-6 w-6 text-destructive" onClick={() => handleDeleteRule(String(rule.id))}>
                 <Trash2 className="h-3 w-3" />
               </Button>
             </div>
