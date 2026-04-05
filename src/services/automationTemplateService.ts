@@ -144,7 +144,7 @@ export async function installTemplate(
   if (error) throw error;
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  await (supabase as any).rpc('increment_template_installs', { template_uuid: templateId });
+  await supabase.rpc('increment_template_installs', { template_uuid: templateId });
 
   return data as InstalledTemplate;
 }

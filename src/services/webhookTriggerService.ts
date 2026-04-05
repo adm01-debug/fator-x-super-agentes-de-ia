@@ -263,7 +263,7 @@ export async function logWebhookEvent(
   if (error) throw error;
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  await (supabase as any).rpc('increment_webhook_counter', { webhook_uuid: webhookId });
+  await supabase.rpc('increment_webhook_counter', { webhook_uuid: webhookId });
 
   return data as WebhookEvent;
 }
