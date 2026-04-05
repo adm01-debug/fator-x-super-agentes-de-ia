@@ -1,0 +1,92 @@
+{
+  "meta": {
+    "lastTouchedVersion": "2026.3.8",
+    "note": "TEMPLATE - substituir valores CHANGE_ME antes de usar"
+  },
+  "models": {
+    "mode": "merge",
+    "providers": {
+      "anthropic": {
+        "apiKey": "CHANGE_ME_ANTHROPIC_API_KEY",
+        "baseUrl": "https://api.anthropic.com",
+        "models": []
+      }
+    }
+  },
+  "agents": {
+    "defaults": {
+      "model": {
+        "primary": "anthropic/claude-sonnet-4-6"
+      },
+      "models": {
+        "anthropic/claude-opus-4-6": { "alias": "Claude Opus 4.6" },
+        "anthropic/claude-sonnet-4-6": { "alias": "Claude Sonnet 4.6" },
+        "anthropic/claude-haiku-4-5": { "alias": "Claude Haiku 4.5" }
+      }
+    },
+    "list": [
+      {
+        "id": "main",
+        "name": "Nexus",
+        "model": "anthropic/claude-sonnet-4-6",
+        "tools": {
+          "profile": "coding",
+          "alsoAllow": [
+            "web_search", "web_fetch", "canvas", "message",
+            "gateway", "nodes", "agents_list", "tts",
+            "browser", "read", "write", "exec", "edit",
+            "process", "cron", "image", "subagents", "sessions_spawn"
+          ]
+        }
+      }
+    ]
+  },
+  "gateway": {
+    "mode": "local",
+    "controlUi": {},
+    "auth": {
+      "mode": "token",
+      "token": "CHANGE_ME_GATEWAY_TOKEN",
+      "rateLimit": {
+        "maxAttempts": 5,
+        "windowMs": 60000,
+        "lockoutMs": 600000
+      }
+    },
+    "remote": {
+      "token": "CHANGE_ME_GATEWAY_TOKEN"
+    }
+  },
+  "hooks": {
+    "token": "CHANGE_ME_HOOKS_TOKEN",
+    "allowedAgentIds": ["main"],
+    "allowRequestSessionKey": true,
+    "allowedSessionKeyPrefixes": [
+      "hook:bitrix24", "hook:oraculo", "hook:datahub",
+      "hook:nexus", "hook:financeiro", "hook:gestao"
+    ]
+  },
+  "channels": {
+    "whatsapp": {
+      "enabled": true,
+      "dmPolicy": "pairing"
+    }
+  },
+  "plugins": {
+    "allow": ["whatsapp"],
+    "entries": {
+      "whatsapp": { "enabled": true }
+    }
+  },
+  "browser": {
+    "headless": true,
+    "noSandbox": true,
+    "defaultProfile": "openclaw"
+  },
+  "commands": {
+    "native": "auto",
+    "nativeSkills": "auto",
+    "bash": true,
+    "restart": true
+  }
+}

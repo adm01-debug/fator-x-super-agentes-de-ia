@@ -1,0 +1,7 @@
+# Nunca commitar credenciais
+openclaw.json
+.env
+*.key
+*.pem
+# Backups locais
+backups/
