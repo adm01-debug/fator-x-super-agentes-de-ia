@@ -34,13 +34,13 @@ serve(async (req) => {
     const { query, chunks, top_k: topK } = parsed.data;
 
     // ═══ Workspace lookup ═══
-    const { data: member } = await supabase
+    const { data: members } = await supabase
       .from('workspace_members')
       .select('workspace_id')
       .eq('user_id', user.id)
       .limit(1)
-      .single();
-    const wsId = member?.workspace_id;
+      .maybeSingle();
+    const wsId = members?.workspace_id;
 
     // ═══ Reranking Pipeline (3 layers) ═══
     let reranked: Array<{ chunk: Record<string, unknown>; relevance_score: number }> | null = null;
