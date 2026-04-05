@@ -91,14 +91,28 @@ export function CreateAgentWizard() {
       if (data && data.length > 0) {
         const dbTemplates: AgentTemplate[] = data.map((t) => {
           const cfg = t.config as Record<string, unknown> | null;
-          const tools = cfg?.tools as Array<{ name: string }> | undefined;
+          const toolsArr = cfg?.tools as Array<{ name: string }> | undefined;
+          const toolNames = toolsArr?.map((tool) => tool.name) || [];
+          const memoryTypes = (cfg?.memory_types as string[]) || (cfg?.memory as string[]) || [];
           return {
-            id: t.id, name: t.name, emoji: t.icon || '🤖', category: t.category || 'general',
-            description: t.description || '', type: t.category || 'assistant',
+            id: t.id, name: t.name, icon: t.icon || '🤖', category: t.category || 'general',
+            description: t.description || '',
+            tags: [],
+            config: {
+              persona: (cfg?.persona as string) || 'assistant',
+              model: (cfg?.model as string) || 'gpt-4o',
+              temperature: (cfg?.temperature as number) || 0.3,
+              system_prompt: (cfg?.system_prompt as string) || '',
+              tools: toolNames,
+              guardrails: (cfg?.guardrails as string[]) || [],
+              memory_types: memoryTypes,
+            },
+            emoji: t.icon || '🤖',
+            type: (cfg?.persona as string) || 'assistant',
             model: (cfg?.model as string) || 'gpt-4o',
             prompt: (cfg?.system_prompt as string) || '',
-            tools: tools?.map((tool) => tool.name) || [],
-            memory: (cfg?.memory as string[]) || [],
+            tools: toolNames,
+            memory: memoryTypes,
           };
         });
         // DB templates first, then static that aren't duplicated
