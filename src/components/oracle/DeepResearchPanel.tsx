@@ -4,7 +4,7 @@
  */
 
 import { useState, useCallback } from 'react';
-import { invokeOracleResearch } from '@/services/securityService';
+import { invokeOracleResearch } from '@/services/llmGatewayService';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Loader2, Search, FileText, ChevronDown, ChevronUp } from 'lucide-react';

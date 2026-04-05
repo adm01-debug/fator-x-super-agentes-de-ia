@@ -85,11 +85,6 @@ export async function invokeGuardrailsCheck(text: string) {
   return data;
 }
 
-export async function invokeOracleResearch(body: Record<string, unknown>) {
-  const { data, error } = await supabase.functions.invoke('oracle-research', { body });
-  if (error) throw error;
-  return data;
-}
 
 export async function getAuthSession() {
   const { data: { session } } = await supabase.auth.getSession();
