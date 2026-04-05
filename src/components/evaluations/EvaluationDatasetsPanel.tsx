@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
-import { supabase } from '@/integrations/supabase/client';
+import { listEvaluationDatasets, listTestCases, createEvaluationDataset, createTestCase, deleteTestCase, updateDatasetCaseCount } from '@/services/evaluationsService';
 import { getWorkspaceId } from '@/lib/agentService';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -27,28 +27,12 @@ export function EvaluationDatasetsPanel() {
 
   const { data: datasets = [], isLoading } = useQuery({
     queryKey: ['evaluation_datasets'],
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from('evaluation_datasets')
-        .select('*')
-        .order('created_at', { ascending: false });
-      if (error) throw error;
-      return data ?? [];
-    },
+    queryFn: listEvaluationDatasets,
   });
 
   const { data: testCases = [], isLoading: loadingCases } = useQuery({
     queryKey: ['test_cases', selectedDatasetId],
-    queryFn: async () => {
-      if (!selectedDatasetId) return [];
-      const { data, error } = await supabase
-        .from('test_cases')
-        .select('*')
-        .eq('dataset_id', selectedDatasetId)
-        .order('created_at', { ascending: false });
-      if (error) throw error;
-      return data ?? [];
-    },
+    queryFn: () => selectedDatasetId ? listTestCases(selectedDatasetId) : Promise.resolve([]),
     enabled: !!selectedDatasetId,
   });
 
@@ -57,12 +41,11 @@ export function EvaluationDatasetsPanel() {
     setSaving(true);
     try {
       const wsId = await getWorkspaceId();
-      const { error } = await supabase.from('evaluation_datasets').insert({
+      await createEvaluationDataset({
         name: dsName.trim(),
         description: dsDesc.trim(),
         workspace_id: wsId,
       });
-      if (error) throw error;
       toast.success('Dataset criado!');
       setNewDsOpen(false);
       setDsName(''); setDsDesc('');
@@ -77,17 +60,17 @@ export function EvaluationDatasetsPanel() {
   const handleCreateTestCase = async () => {
     if (!caseInput.trim() || !selectedDatasetId) { toast.error('Input é obrigatório'); return; }
     setSaving(true);
-    const { error } = await supabase.from('test_cases').insert({
-      dataset_id: selectedDatasetId,
-      input: caseInput.trim(),
-      expected_output: caseExpected.trim() || null,
-      tags: caseTags.trim() ? caseTags.split(',').map(t => t.trim()) : [],
-    });
-    if (error) { toast.error(error.message); setSaving(false); return; }
-
-    // Update case_count
-    const { count } = await supabase.from('test_cases').select('id', { count: 'exact', head: true }).eq('dataset_id', selectedDatasetId);
-    await supabase.from('evaluation_datasets').update({ case_count: count ?? 0 }).eq('id', selectedDatasetId);
+    try {
+      await createTestCase({
+        dataset_id: selectedDatasetId,
+        input: caseInput.trim(),
+        expected_output: caseExpected.trim() || undefined,
+        tags: caseTags.trim() ? caseTags.split(',').map(t => t.trim()) : [],
+      });
+      await updateDatasetCaseCount(selectedDatasetId);
+    } catch (e: unknown) {
+      toast.error(e instanceof Error ? e.message : 'Erro'); setSaving(false); return;
+    }
 
     toast.success('Test case adicionado!');
     setNewCaseOpen(false);
@@ -98,10 +81,11 @@ export function EvaluationDatasetsPanel() {
   };
 
   const handleDeleteTestCase = async (id: string) => {
-    const { error } = await supabase.from('test_cases').delete().eq('id', id);
-    if (error) { toast.error(error.message); return; }
-    toast.success('Test case removido');
-    queryClient.invalidateQueries({ queryKey: ['test_cases', selectedDatasetId] });
+    try {
+      await deleteTestCase(id);
+      toast.success('Test case removido');
+      queryClient.invalidateQueries({ queryKey: ['test_cases', selectedDatasetId] });
+    } catch (e: unknown) { toast.error(e instanceof Error ? e.message : 'Erro'); }
   };
 
   const handleDeleteDataset = async (id: string) => {
