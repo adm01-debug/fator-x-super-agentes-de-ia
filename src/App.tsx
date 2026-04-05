@@ -41,6 +41,9 @@ const BillingPage = lazy(() => import("./pages/BillingPage"));
 const SettingsPage = lazy(() => import("./pages/SettingsPage"));
 const LGPDCompliancePage = lazy(() => import("./pages/LGPDCompliancePage"));
 const ApprovalQueuePage = lazy(() => import("./pages/ApprovalQueuePage"));
+const AIStudioPage = lazy(() => import("./pages/AIStudioPage"));
+const FineTuningPage = lazy(() => import("./pages/FineTuningPage"));
+const SmolagentPage = lazy(() => import("./pages/SmolagentPage"));
 const NotFound = lazy(() => import("./pages/NotFound"));
 
 const queryClient = new QueryClient({
@@ -116,6 +119,9 @@ const App = () => (
                       <Route path="/settings" element={<SafePage><SettingsPage /></SafePage>} />
                       <Route path="/lgpd" element={<SafePage><LGPDCompliancePage /></SafePage>} />
                       <Route path="/approvals" element={<SafePage><ApprovalQueuePage /></SafePage>} />
+                      <Route path="/ai-studio" element={<SafePage><AIStudioPage /></SafePage>} />
+                      <Route path="/fine-tuning" element={<SafePage><FineTuningPage /></SafePage>} />
+                      <Route path="/smolagent" element={<SafePage><SmolagentPage /></SafePage>} />
                       <Route path="*" element={<SafePage><NotFound /></SafePage>} />
                     </Routes>
                   </AppLayout>
