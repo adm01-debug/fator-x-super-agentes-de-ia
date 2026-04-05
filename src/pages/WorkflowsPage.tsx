@@ -277,7 +277,7 @@ export default function WorkflowsPage() {
             )}
           </div>
 
-          <WorkflowCanvas nodes={canvasNodes} edges={canvasEdges} onNodesChange={setCanvasNodes} onEdgesChange={setCanvasEdges} />
+          <WorkflowCanvas />
         </TabsContent>
 
         <TabsContent value="list" className="space-y-4">

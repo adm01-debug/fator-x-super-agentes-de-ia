@@ -61,7 +61,7 @@ export function useBillingData(agentId?: string): BillingData {
         // Fetch usage records from last 7 days
         let query = supabase
           .from('usage_records')
-          .select('cost_usd, usage_type, created_at')
+          .select('cost_usd, record_type, created_at')
           .gte('created_at', weekAgo.toISOString())
           .order('created_at', { ascending: true });
 
@@ -84,14 +84,14 @@ export function useBillingData(agentId?: string): BillingData {
         }
 
         // Accumulate real costs
-        (records ?? []).forEach((r: Record<string, unknown>) => {
+        (records ?? []).forEach((r) => {
           const d = new Date(r.created_at as string);
           const key = DAY_NAMES[d.getDay()];
           const entry = dayMap.get(key);
           if (!entry) return;
 
           const cost = Number(r.cost_usd) || 0;
-          const type = String(r.usage_type || 'llm');
+          const type = String(r.record_type || 'llm');
 
           if (type.includes('llm') || type.includes('chat')) entry.llm += cost;
           else if (type.includes('embed')) entry.embedding += cost;
@@ -119,7 +119,6 @@ export function useBillingData(agentId?: string): BillingData {
         const projection: WeeklyProjection[] = [];
         for (let w = 0; w < 4; w++) {
           const weekStart = new Date(monthAgo.getTime() + w * 7 * 24 * 60 * 60 * 1000);
-          const weekEnd = new Date(weekStart.getTime() + 7 * 24 * 60 * 60 * 1000);
           const isFuture = weekStart > now;
 
           if (isFuture) {

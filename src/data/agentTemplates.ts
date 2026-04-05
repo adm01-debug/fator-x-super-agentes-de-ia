@@ -7,7 +7,7 @@
  * Reference: Sim Studio (11 templates), Dify, n8n
  */
 
-export interface AgentTemplate {
+export interface AgentTemplateRaw {
   id: string;
   name: string;
   description: string;
@@ -25,7 +25,28 @@ export interface AgentTemplate {
   };
 }
 
-export const AGENT_TEMPLATES: AgentTemplate[] = [
+export interface AgentTemplate extends AgentTemplateRaw {
+  emoji: string;
+  type: string;
+  model: string;
+  prompt: string;
+  tools: string[];
+  memory: string[];
+}
+
+function enrichTemplate(t: AgentTemplateRaw): AgentTemplate {
+  return {
+    ...t,
+    emoji: t.icon,
+    type: t.config.persona,
+    model: t.config.model,
+    prompt: t.config.system_prompt,
+    tools: t.config.tools,
+    memory: t.config.memory_types,
+  };
+}
+
+const RAW_TEMPLATES: AgentTemplateRaw[] = [
   {
     id: 'customer_support',
     name: 'Atendimento ao Cliente',
@@ -237,6 +258,8 @@ export const AGENT_TEMPLATES: AgentTemplate[] = [
     },
   },
 ];
+
+export const AGENT_TEMPLATES: AgentTemplate[] = RAW_TEMPLATES.map(enrichTemplate);
 
 export const TEMPLATE_CATEGORIES = [
   { id: 'vendas', label: 'Vendas & Atendimento', icon: '💼' },

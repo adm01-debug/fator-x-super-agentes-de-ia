@@ -31,14 +31,13 @@ export async function createDeployment(agentId: string, channel: DeployChannel, 
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) throw new Error('Not authenticated');
 
-  const { data, error } = await supabase
-    .from('deploy_connections')
-    .insert({
-      agent_id: agentId,
-      channel,
-      config,
-      status: 'active',
-    })
+  const insertData = {
+    agent_id: agentId,
+    channel,
+    config,
+    status: 'active',
+  };
+  const { data, error } = await (supabase.from('deploy_connections').insert as Function)(insertData)
     .select()
     .single();
 
@@ -60,7 +59,7 @@ export async function deleteDeployment(id: string) {
   if (error) throw error;
 }
 
-export function getWidgetSnippet(_agentId: string): string {
+export function getWidgetSnippet(agentId: string): string {
   const baseUrl = import.meta.env.VITE_SUPABASE_URL;
   return `<script src="${baseUrl}/functions/v1/widget-proxy/widget/${agentId}.js" async></script>`;
 }

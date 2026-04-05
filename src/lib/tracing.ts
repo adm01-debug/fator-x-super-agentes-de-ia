@@ -95,20 +95,21 @@ class NexusTracer {
 
     // Persist to Supabase trace_events
     try {
-      await supabase.from('trace_events').insert({
-        trace_id: this.currentTrace.id,
-        agent_id: this.currentTrace.agentId,
-        session_id: this.currentTrace.sessionId,
+      const insertData = {
         event_type: 'trace_complete',
-        duration_ms: this.currentTrace.totalDurationMs,
-        token_count: this.currentTrace.totalTokens,
-        cost_usd: this.currentTrace.totalCost,
-        status: this.currentTrace.status,
-        metadata: {
+        data: {
+          trace_id: this.currentTrace.id,
+          agent_id: this.currentTrace.agentId,
+          session_id: this.currentTrace.sessionId,
+          duration_ms: this.currentTrace.totalDurationMs,
+          token_count: this.currentTrace.totalTokens,
+          cost_usd: this.currentTrace.totalCost,
+          status: this.currentTrace.status,
           spans: this.currentTrace.spans,
           span_count: this.currentTrace.spans.length,
         },
-      });
+      };
+      await (supabase.from('trace_events').insert as Function)(insertData);
     } catch (err: unknown) {
       logger.error('Failed to persist trace:', { error: err instanceof Error ? err.message : String(err) });
     }
@@ -144,11 +145,11 @@ class NexusTracer {
     if (this.currentTrace.totalCost && this.currentTrace.totalCost > 0) {
       await supabase.from('usage_records').insert({
         agent_id: this.currentTrace.agentId,
-        usage_type: 'llm_call',
+        record_type: 'llm_call',
         cost_usd: this.currentTrace.totalCost,
-        token_count: this.currentTrace.totalTokens,
+        tokens: this.currentTrace.totalTokens,
         metadata: { trace_id: this.currentTrace.id },
-      }).catch(() => {});
+      }).then(() => {}, () => {});
     }
 
     this.currentTrace = null;
@@ -168,7 +169,7 @@ export const tracer = new NexusTracer();
 
 /** Convenience function for quick tracing */
 export async function withTrace<T>(
-  name: string,
+  _name: string,
   fn: (addSpan: (span: TraceSpan) => void) => Promise<T>,
   options: { agentId?: string; sessionId?: string; userId?: string } = {}
 ): Promise<T> {

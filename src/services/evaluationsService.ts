@@ -87,7 +87,7 @@ function scoreStatistical(expected: string, actual: string): number {
 }
 
 export async function runEvaluation(
-  agentId: string,
+  _agentId: string,
   testCases: TestCase[],
   model: string = 'claude-haiku-4-5-20251001'
 ): Promise<{ results: EvalResult[]; clear: CLEARScore }> {

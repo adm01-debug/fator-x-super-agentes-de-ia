@@ -1,4 +1,4 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { describe, it, expect } from 'vitest';
 import { hasPermission, type PermissionKey } from '@/services/rbacService';
 
 describe('RBAC hasPermission', () => {
