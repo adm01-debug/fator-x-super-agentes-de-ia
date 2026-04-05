@@ -3,10 +3,6 @@
  * Inspired by ACE (kayba-ai) and OpenViking self-evolution
  *
  * Loop: Agent → Environment → Trace → Reflector → SkillManager → Skillbook → Agent
- *
- * NOTE: Tables agent_skills are planned for future migration.
- * Until then, all DB calls use `as never` to satisfy TypeScript
- * while keeping the service interface stable.
  */
 
 import { supabase } from '@/integrations/supabase/client';
@@ -25,8 +21,10 @@ export interface AgentSkill {
   updated_at: string;
 }
 
-export interface ReflectionResult {
-  lessons_learned: string[];
+export interface EvolutionReport {
+  agent_id: string;
+  total_skills: number;
+  avg_confidence: number;
   skills_discovered: AgentSkill[];
   improvements_suggested: string[];
   failure_patterns: string[];
@@ -34,13 +32,13 @@ export interface ReflectionResult {
 
 // Get agent's learned skills (Skillbook)
 export async function getSkillbook(agentId: string): Promise<AgentSkill[]> {
-  const { data, error } = await (supabase
-    .from as (table: string) => ReturnType<typeof supabase.from>)('agent_skills')
+  const { data, error } = await supabase
+    .from('agent_skills')
     .select('*')
-    .eq('agent_id' as never, agentId)
+    .eq('agent_id', agentId)
     .order('confidence', { ascending: false });
   if (error) throw error;
-  return (data ?? []) as unknown as AgentSkill[];
+  return (data ?? []) as AgentSkill[];
 }
 
 // Record a skill learned from experience
@@ -51,8 +49,8 @@ export async function learnSkill(
   pattern: string,
   _traceId?: string
 ): Promise<AgentSkill> {
-  const { data, error } = await (supabase
-    .from as (table: string) => ReturnType<typeof supabase.from>)('agent_skills')
+  const { data, error } = await supabase
+    .from('agent_skills')
     .upsert({
       agent_id: agentId,
       skill_name: skillName,
@@ -61,13 +59,12 @@ export async function learnSkill(
       success_count: 1,
       failure_count: 0,
       confidence: 0.6,
-      source_trace_id: _traceId,
-      updated_at: new Date().toISOString(),
-    } as never, { onConflict: 'agent_id,skill_name' })
+      source_trace_id: _traceId ?? null,
+    }, { onConflict: 'agent_id,skill_name' })
     .select()
     .single();
   if (error) throw error;
-  return data as unknown as AgentSkill;
+  return data as AgentSkill;
 }
 
 // Update skill confidence after execution
@@ -75,88 +72,76 @@ export async function updateSkillOutcome(
   skillId: string,
   success: boolean
 ): Promise<void> {
-  const column = success ? 'success_count' : 'failure_count';
-  try {
-    await (supabase.rpc as (fn: string, params: Record<string, unknown>) => ReturnType<typeof supabase.rpc>)(
-      'increment_skill_counter', { p_skill_id: skillId, p_column: column }
-    );
-  } catch {
-    // Fallback: direct update
-    const { data: skill } = await (supabase
-      .from as (table: string) => ReturnType<typeof supabase.from>)('agent_skills')
-      .select('*').eq('id' as never, skillId).single();
-    if (skill) {
-      const s = skill as unknown as AgentSkill;
-      const newSuccess = s.success_count + (success ? 1 : 0);
-      const newFailure = s.failure_count + (success ? 0 : 1);
-      const confidence = newSuccess / (newSuccess + newFailure);
-      await (supabase
-        .from as (table: string) => ReturnType<typeof supabase.from>)('agent_skills')
-        .update({
-          success_count: newSuccess,
-          failure_count: newFailure,
-          confidence,
-          updated_at: new Date().toISOString(),
-        } as never).eq('id' as never, skillId);
-    }
+  const { data: skill } = await supabase
+    .from('agent_skills')
+    .select('*')
+    .eq('id', skillId)
+    .single();
+
+  if (skill) {
+    const newSuccess = skill.success_count + (success ? 1 : 0);
+    const newFailure = skill.failure_count + (success ? 0 : 1);
+    const confidence = newSuccess / (newSuccess + newFailure);
+    await supabase
+      .from('agent_skills')
+      .update({
+        success_count: newSuccess,
+        failure_count: newFailure,
+        confidence,
+      })
+      .eq('id', skillId);
   }
 }
 
-// Reflect on traces and extract skills (Reflector)
-export async function reflectOnTraces(
-  _agentId: string,
-  recentTraces: Array<{ input: string; output: string; success: boolean; tools_used: string[] }>
-): Promise<ReflectionResult> {
-  const successes = recentTraces.filter(t => t.success);
-  const failures = recentTraces.filter(t => !t.success);
+// Self-reflection: analyze traces and generate evolution report
+export async function reflectAndEvolve(agentId: string, windowHours = 24): Promise<EvolutionReport> {
+  const since = new Date(Date.now() - windowHours * 3600_000).toISOString();
 
-  const lessons: string[] = [];
-  const skills: AgentSkill[] = [];
-  const improvements: string[] = [];
+  const { data: traces } = await supabase
+    .from('agent_traces')
+    .select('*')
+    .eq('agent_id', agentId)
+    .gte('created_at', since)
+    .order('created_at', { ascending: false });
+
+  const skills = await getSkillbook(agentId);
+
   const failurePatterns: string[] = [];
+  const improvements: string[] = [];
 
-  if (successes.length > 0) {
-    const toolFrequency = new Map<string, number>();
-    successes.forEach(t => t.tools_used.forEach(tool => {
-      toolFrequency.set(tool, (toolFrequency.get(tool) || 0) + 1);
-    }));
-
-    for (const [tool, count] of toolFrequency) {
-      if (count >= 2) {
-        lessons.push(`Tool "${tool}" foi eficaz em ${count} de ${successes.length} casos de sucesso`);
-      }
+  for (const t of traces ?? []) {
+    if (t.level === 'error') {
+      const event = typeof t.event === 'string' ? t.event : '';
+      failurePatterns.push(`Error in ${event}: check logs`);
     }
   }
 
-  if (failures.length > 0) {
-    const errorPatterns = new Map<string, number>();
-    failures.forEach(t => {
-      const pattern = t.output.substring(0, 100);
-      errorPatterns.set(pattern, (errorPatterns.get(pattern) || 0) + 1);
-    });
-
-    for (const [pattern, count] of errorPatterns) {
-      if (count >= 2) {
-        failurePatterns.push(`Padrão de falha recorrente (${count}x): "${pattern.substring(0, 80)}..."`);
-        improvements.push(`Considerar estratégia alternativa para evitar: "${pattern.substring(0, 50)}..."`);
-      }
-    }
+  if (skills.length === 0) {
+    improvements.push('No skills learned yet — enable more detailed tracing');
+  }
+  const lowConf = skills.filter(s => s.confidence < 0.5);
+  if (lowConf.length > 0) {
+    improvements.push(`${lowConf.length} skills with low confidence — review training data`);
   }
 
-  return { lessons_learned: lessons, skills_discovered: skills, improvements_suggested: improvements, failure_patterns: failurePatterns };
+  return {
+    agent_id: agentId,
+    total_skills: skills.length,
+    avg_confidence: skills.length ? skills.reduce((s, sk) => s + sk.confidence, 0) / skills.length : 0,
+    skills_discovered: skills,
+    improvements_suggested: improvements,
+    failure_patterns: failurePatterns,
+  };
 }
 
-// Generate system prompt injection with learned skills
-export function buildSkillbookPrompt(skills: AgentSkill[]): string {
-  if (skills.length === 0) return '';
-
-  const highConfidence = skills.filter(s => s.confidence >= 0.7);
-  if (highConfidence.length === 0) return '';
-
-  const skillsList = highConfidence
-    .slice(0, 10)
-    .map(s => `- ${s.skill_name} (confiança: ${Math.round(s.confidence * 100)}%): ${s.pattern}`)
-    .join('\n');
-
-  return `\n\n<learned_skills>\nEstratégias aprendidas com experiências anteriores:\n${skillsList}\nUse estas estratégias quando relevante para a tarefa atual.\n</learned_skills>`;
+// Prune skills that have very low confidence
+export async function pruneWeakSkills(agentId: string, minConfidence = 0.2): Promise<number> {
+  const { data, error } = await supabase
+    .from('agent_skills')
+    .delete()
+    .eq('agent_id', agentId)
+    .lt('confidence', minConfidence)
+    .select('id');
+  if (error) throw error;
+  return data?.length ?? 0;
 }
