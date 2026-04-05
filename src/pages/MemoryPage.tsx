@@ -34,26 +34,12 @@ export default function MemoryPage() {
   const { data: memories = [], isLoading } = useQuery({
     queryKey: ['agent_memories', activeType, search],
     queryFn: async () => {
-      // Use memory_search when there's a search query, otherwise list all
       if (search.trim()) {
         try {
-          const result = await invokeMemoryTool('memory_search', {
-            query: search.trim(),
-            memory_type: activeType,
-            limit: 50,
-          });
-          return (result?.memories ?? []) as Array<{ id: string; content: string; source: string; created_at: string; relevance_score: number | null }>;
-        } catch (err) { console.error("Operation failed:", err);
-          // Fallback to direct query if edge function fails
-        }
+          return await searchMemory(search.trim(), activeType, 50);
+        } catch (err) { console.error("Search fallback:", err); }
       }
-      const { data, error } = await supabase.from('agent_memories')
-        .select('*')
-        .eq('memory_type', activeType)
-        .order('created_at', { ascending: false })
-        .limit(100);
-      if (error) throw error;
-      return (data ?? []) as Array<{ id: string; content: string; source: string; created_at: string; relevance_score: number | null }>;
+      return listMemories(activeType, 100);
     },
   });
 
@@ -62,11 +48,7 @@ export default function MemoryPage() {
     if (!result.success) { toast.error(result.error.errors[0]?.message || 'Dados inválidos'); return; }
     setSaving(true);
     try {
-      await invokeMemoryTool('memory_save', {
-        content: newContent.trim(),
-        memory_type: activeType,
-        source: newSource.trim() || 'Manual',
-      });
+      await addMemory(newContent.trim(), activeType, newSource.trim() || 'Manual');
       setNewContent(''); setNewSource('');
       queryClient.invalidateQueries({ queryKey: ['agent_memories'] });
       toast.success('Memória salva via Memory Engine!');
@@ -77,7 +59,7 @@ export default function MemoryPage() {
 
   const handleDelete = async (id: string) => {
     try {
-      await invokeMemoryTool('memory_forget', { memory_id: id });
+      await forgetMemory(id);
       queryClient.invalidateQueries({ queryKey: ['agent_memories'] });
       toast.success('Memória removida');
     } catch (e: unknown) {
@@ -88,9 +70,7 @@ export default function MemoryPage() {
   const handleCompact = async () => {
     setCompacting(true);
     try {
-      const result = await invokeMemoryTool('memory_compact', {
-        memory_type: activeType,
-      });
+      const result = await compactMemories(activeType);
       queryClient.invalidateQueries({ queryKey: ['agent_memories'] });
       toast.success(`Compactação concluída: ${result?.compacted ?? 0} memórias consolidadas`);
     } catch (e: unknown) {
