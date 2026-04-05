@@ -57,18 +57,7 @@ export default function AgentsPage() {
 
   const { data: agents = [], isLoading } = useQuery({
     queryKey: ['agents', statusFilter],
-    queryFn: async () => {
-      let query = supabase
-        .from("agents")
-        .select("*")
-        .order("updated_at", { ascending: false });
-      if (statusFilter !== "all") {
-        query = query.eq("status", statusFilter as Database["public"]["Enums"]["agent_status"]);
-      }
-      const { data, error } = await query;
-      if (error) throw error;
-      return data ?? [];
-    },
+    queryFn: () => listAgents(statusFilter),
     enabled: !!user,
   });
 
