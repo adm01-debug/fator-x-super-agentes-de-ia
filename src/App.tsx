@@ -11,6 +11,7 @@ import { PageLoading } from "@/components/shared/PageLoading";
 import { ErrorBoundary } from "@/components/shared/ErrorBoundary";
 import { AuthProvider } from "@/contexts/AuthContext";
 import { AuthGuard } from "@/components/layout/AuthGuard";
+import { ProtectedRoute } from "@/components/rbac/ProtectedRoute";
 import type { ReactNode } from "react";
 
 // Lazy-loaded pages
@@ -112,13 +113,13 @@ const App = () => (
                       <Route path="/monitoring" element={<SafePage><MonitoringPage /></SafePage>} />
                       <Route path="/data-storage" element={<SafePage><DataStoragePage /></SafePage>} />
                       <Route path="/datahub" element={<SafePage><DataHubPage /></SafePage>} />
-                      <Route path="/admin" element={<SafePage><AdminPage /></SafePage>} />
-                      <Route path="/security" element={<SafePage><SecurityPage /></SafePage>} />
-                      <Route path="/team" element={<SafePage><TeamPage /></SafePage>} />
-                      <Route path="/billing" element={<SafePage><BillingPage /></SafePage>} />
-                      <Route path="/settings" element={<SafePage><SettingsPage /></SafePage>} />
-                      <Route path="/lgpd" element={<SafePage><LGPDCompliancePage /></SafePage>} />
-                      <Route path="/approvals" element={<SafePage><ApprovalQueuePage /></SafePage>} />
+                      <Route path="/admin" element={<SafePage><ProtectedRoute permission="team.roles"><AdminPage /></ProtectedRoute></SafePage>} />
+                      <Route path="/security" element={<SafePage><ProtectedRoute permission="settings.api_keys"><SecurityPage /></ProtectedRoute></SafePage>} />
+                      <Route path="/team" element={<SafePage><ProtectedRoute permission="team.read"><TeamPage /></ProtectedRoute></SafePage>} />
+                      <Route path="/billing" element={<SafePage><ProtectedRoute permission="settings.billing"><BillingPage /></ProtectedRoute></SafePage>} />
+                      <Route path="/settings" element={<SafePage><ProtectedRoute permission="settings.read"><SettingsPage /></ProtectedRoute></SafePage>} />
+                      <Route path="/lgpd" element={<SafePage><ProtectedRoute permission="settings.api_keys"><LGPDCompliancePage /></ProtectedRoute></SafePage>} />
+                      <Route path="/approvals" element={<SafePage><ProtectedRoute permission="agents.deploy"><ApprovalQueuePage /></ProtectedRoute></SafePage>} />
                       <Route path="/ai-studio" element={<SafePage><AIStudioPage /></SafePage>} />
                       <Route path="/fine-tuning" element={<SafePage><FineTuningPage /></SafePage>} />
                       <Route path="/smolagent" element={<SafePage><SmolagentPage /></SafePage>} />

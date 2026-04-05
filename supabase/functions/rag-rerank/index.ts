@@ -1,34 +1,59 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
-import { createClient } from "https://esm.sh/@supabase/supabase-js@2.49.4";
+import {
+  handleCorsPreflight, jsonResponse, errorResponse,
+  authenticateRequest,
+  checkRateLimit, createRateLimitResponse, getRateLimitIdentifier, RATE_LIMITS,
+  parseBody, z,
+} from "../_shared/mod.ts";
 
-const corsHeaders = { 'Access-Control-Allow-Origin': '*', 'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type' };
+// ═══ Input Schema (Zod) ═══
+const RerankInput = z.object({
+  query: z.string().min(1).max(2000),
+  chunks: z.array(z.record(z.unknown())).min(1).max(200),
+  top_k: z.number().int().min(1).max(50).default(5),
+  knowledge_base_id: z.string().uuid().optional(),
+});
 
 serve(async (req) => {
-  if (req.method === 'OPTIONS') return new Response(null, { headers: corsHeaders });
+  if (req.method === 'OPTIONS') return handleCorsPreflight(req);
 
   try {
-    const authHeader = req.headers.get('Authorization')!;
-    const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
-    const supabaseKey = Deno.env.get('SUPABASE_ANON_KEY')!;
-    const supabase = createClient(supabaseUrl, supabaseKey, { global: { headers: { Authorization: authHeader } } });
+    // ═══ Auth ═══
+    const auth = await authenticateRequest(req);
+    if (auth.error) return auth.error;
+    const { user, supabase } = auth;
 
-    const { data: { user } } = await supabase.auth.getUser();
-    if (!user) return new Response(JSON.stringify({ error: 'Unauthorized' }), { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
+    // ═══ Rate Limiting ═══
+    const identifier = getRateLimitIdentifier(req, user.id);
+    const rateCheck = checkRateLimit(identifier, RATE_LIMITS.standard);
+    if (!rateCheck.allowed) return createRateLimitResponse(rateCheck);
 
-    const { query, chunks, top_k, knowledge_base_id } = await req.json();
-    if (!query || !chunks || !Array.isArray(chunks)) {
-      return new Response(JSON.stringify({ error: 'query and chunks[] required' }), { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
-    }
+    // ═══ Validate Input ═══
+    const parsed = await parseBody(req, RerankInput);
+    if (parsed.error) return parsed.error;
+    const { query, chunks, top_k: topK } = parsed.data;
 
-    const topK = top_k || 5;
-    const { data: member } = await supabase.from('workspace_members').select('workspace_id').eq('user_id', user.id).limit(1).single();
+    // ═══ Workspace lookup ═══
+    const { data: member } = await supabase
+      .from('workspace_members')
+      .select('workspace_id')
+      .eq('user_id', user.id)
+      .limit(1)
+      .single();
     const wsId = member?.workspace_id;
 
-    // Try Cohere Rerank API first
+    // ═══ Reranking Pipeline (3 layers) ═══
     let reranked: Array<{ chunk: Record<string, unknown>; relevance_score: number }> | null = null;
 
+    // Layer 1: Cohere Rerank API
     if (wsId) {
-      const { data: cohereKey } = await supabase.from('workspace_secrets').select('key_value').eq('workspace_id', wsId).eq('key_name', 'cohere_api_key').single();
+      const { data: cohereKey } = await supabase
+        .from('workspace_secrets')
+        .select('key_value')
+        .eq('workspace_id', wsId)
+        .eq('key_name', 'cohere_api_key')
+        .single();
+
       if (cohereKey?.key_value) {
         try {
           const resp = await fetch('https://api.cohere.ai/v1/rerank', {
@@ -49,11 +74,13 @@ serve(async (req) => {
               relevance_score: r.relevance_score as number,
             }));
           }
-        } catch (e: unknown) { console.error('Cohere rerank failed:', e instanceof Error ? e.message : e); }
+        } catch (e: unknown) {
+          console.error('Cohere rerank failed:', e instanceof Error ? e.message : e);
+        }
       }
     }
 
-    // Layer 2: HuggingFace BGE Reranker (free, dedicated cross-encoder)
+    // Layer 2: HuggingFace BGE Reranker (free cross-encoder)
     const hfToken = Deno.env.get('HF_API_TOKEN');
     if (!reranked && hfToken && Deno.env.get('ENABLE_HF_RERANKER') !== 'false') {
       try {
@@ -71,23 +98,35 @@ serve(async (req) => {
         });
         clearTimeout(timeout);
         if (resp.ok) {
-          const scores = await resp.json();
+          const scores: unknown = await resp.json();
           if (Array.isArray(scores) && scores.length > 0) {
-            const indexed = scores.map((item: any, i: number) => ({
-              chunk: chunks[i],
-              relevance_score: typeof item === 'number' ? item : (item?.[0]?.score ?? item?.score ?? 0),
-            }));
-            indexed.sort((a: any, b: any) => b.relevance_score - a.relevance_score);
+            const indexed = scores.map((item: unknown, i: number) => {
+              const score = typeof item === 'number'
+                ? item
+                : ((item as Record<string, unknown>)?.[0] as Record<string, number>)?.score
+                  ?? (item as Record<string, number>)?.score
+                  ?? 0;
+              return { chunk: chunks[i], relevance_score: score };
+            });
+            indexed.sort((a, b) => b.relevance_score - a.relevance_score);
             reranked = indexed.slice(0, topK);
           }
         }
-      } catch (e: unknown) { console.error('HF rerank failed:', e instanceof Error ? e.message : e); }
+      } catch (e: unknown) {
+        console.error('HF rerank failed:', e instanceof Error ? e.message : e);
+      }
     }
 
-    // Layer 3 (last resort): LLM-based reranking via Gateway
+    // Layer 3 (fallback): LLM-based reranking
     if (!reranked) {
       try {
-        const chunkList = chunks.slice(0, 20).map((c: Record<string, unknown>, i: number) => `[${i}] ${String(c.content || c.text || c).substring(0, 300)}`).join('\n\n');
+        const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
+        const supabaseKey = Deno.env.get('SUPABASE_ANON_KEY')!;
+        const authHeader = req.headers.get('Authorization')!;
+        const chunkList = chunks.slice(0, 20).map((c: Record<string, unknown>, i: number) =>
+          `[${i}] ${String(c.content || c.text || c).substring(0, 300)}`
+        ).join('\n\n');
+
         const resp = await fetch(`${supabaseUrl}/functions/v1/llm-gateway`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json', 'Authorization': authHeader, 'apikey': supabaseKey },
@@ -97,20 +136,23 @@ serve(async (req) => {
               { role: 'system', content: 'You are a relevance ranker. Given a query and numbered passages, return ONLY a JSON array of the most relevant passage indices, ordered by relevance. Example: [3, 7, 1, 5]' },
               { role: 'user', content: `Query: "${query}"\n\nPassages:\n${chunkList}\n\nReturn the top ${topK} most relevant indices as a JSON array.` },
             ],
-            temperature: 0, max_tokens: 200,
+            temperature: 0,
+            max_tokens: 200,
           }),
         });
         const data = await resp.json();
-        const content = (data.content || '').replace(/```json\n?|```/g, '').trim();
+        const content = ((data as Record<string, string>).content || '').replace(/```json\n?|```/g, '').trim();
         const indices: number[] = JSON.parse(content);
         reranked = indices.slice(0, topK).map((idx, rank) => ({
           chunk: chunks[idx] || chunks[0],
-          relevance_score: 1 - (rank * 0.1), // synthetic score
+          relevance_score: 1 - (rank * 0.1),
         }));
-      } catch { /* last resort: return original order */ }
+      } catch {
+        console.error('LLM rerank fallback failed, returning original order');
+      }
     }
 
-    // If all reranking failed, return original top K
+    // Ultimate fallback: original order
     if (!reranked) {
       reranked = chunks.slice(0, topK).map((c: Record<string, unknown>, i: number) => ({
         chunk: c,
@@ -118,15 +160,19 @@ serve(async (req) => {
       }));
     }
 
-    return new Response(JSON.stringify({
+    const method = reranked[0]?.relevance_score > 0.5
+      ? 'cohere'
+      : hfToken ? 'hf_bge_reranker' : 'llm_fallback';
+
+    return jsonResponse(req, {
       reranked,
-      method: reranked?.[0]?.relevance_score > 0.5 ? 'cohere' : (hfToken ? 'hf_bge_reranker' : 'llm_fallback'),
+      method,
       query,
       total_input: chunks.length,
       top_k: topK,
-    }), { headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
+    });
 
   } catch (error: unknown) {
-    return new Response(JSON.stringify({ error: error instanceof Error ? error.message : 'Internal error' }), { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
+    return errorResponse(req, error instanceof Error ? error.message : 'Internal error', 500);
   }
 });

@@ -1,11 +1,9 @@
 import "https://deno.land/x/xhr@0.1.0/mod.ts";
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.49.4";
+import { getCorsHeaders, handleCorsPreflight, jsonResponse, errorResponse, checkRateLimit, getRateLimitIdentifier, createRateLimitResponse, RATE_LIMITS } from "../_shared/mod.ts";
 
-const corsHeaders = {
-  'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
-};
+// CORS handled by _shared/cors.ts — dynamic origin whitelist
 
 const VALID_ACTIONS = ['knowledge_graph', 'knowledge_health', 'auto_extract', 'expert_discovery', 'brain_sandbox', 'stats'] as const;
 type CerebroAction = typeof VALID_ACTIONS[number];
@@ -64,7 +62,7 @@ function validateBody(body: unknown): { valid: true; action: CerebroAction; data
 }
 
 serve(async (req) => {
-  if (req.method === 'OPTIONS') return new Response(null, { headers: corsHeaders });
+  if (req.method === 'OPTIONS') return handleCorsPreflight(req);
 
   try {
     const authHeader = req.headers.get('Authorization')!;
@@ -73,16 +71,16 @@ serve(async (req) => {
     const supabase = createClient(supabaseUrl, supabaseKey, { global: { headers: { Authorization: authHeader } } });
 
     const { data: { user } } = await supabase.auth.getUser();
-    if (!user) return new Response(JSON.stringify({ error: 'Unauthorized' }), { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
+    if (!user) return new Response(JSON.stringify({ error: 'Unauthorized' }), { status: 401, headers: { ...getCorsHeaders(req), 'Content-Type': 'application/json' } });
 
     let rawBody: unknown;
     try { rawBody = await req.json(); } catch {
-      return new Response(JSON.stringify({ error: 'Invalid JSON body' }), { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
+      return new Response(JSON.stringify({ error: 'Invalid JSON body' }), { status: 400, headers: { ...getCorsHeaders(req), 'Content-Type': 'application/json' } });
     }
 
     const validation = validateBody(rawBody);
     if (!validation.valid) {
-      return new Response(JSON.stringify({ error: validation.error }), { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
+      return new Response(JSON.stringify({ error: validation.error }), { status: 400, headers: { ...getCorsHeaders(req), 'Content-Type': 'application/json' } });
     }
 
     const { action, data: body } = validation;
@@ -129,7 +127,7 @@ serve(async (req) => {
         }
       }
 
-      return new Response(JSON.stringify({ nodes, edges }), { headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
+      return new Response(JSON.stringify({ nodes, edges }), { headers: { ...getCorsHeaders(req), 'Content-Type': 'application/json' } });
     }
 
     // ═══ ACTION: knowledge_health ═══
@@ -180,7 +178,7 @@ serve(async (req) => {
           aging: items.filter(i => i.freshness === 'aging').length,
           stale: items.filter(i => i.freshness === 'stale').length,
         }
-      }), { headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
+      }), { headers: { ...getCorsHeaders(req), 'Content-Type': 'application/json' } });
     }
 
     // ═══ ACTION: auto_extract ═══
@@ -222,7 +220,7 @@ serve(async (req) => {
                 entities_raw: nerEntities.filter((e: any) => e.score > 0.5),
                 tokens: { total: 0 },
                 cost_usd: 0,
-              }), { headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
+              }), { headers: { ...getCorsHeaders(req), 'Content-Type': 'application/json' } });
             }
           }
         } catch (e: unknown) { console.error('HF NER failed, falling back to LLM:', e instanceof Error ? e.message : e); }
@@ -260,7 +258,7 @@ serve(async (req) => {
         model: 'google/gemini-2.5-flash',
         tokens: result.tokens,
         cost_usd: result.cost_usd,
-      }), { headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
+      }), { headers: { ...getCorsHeaders(req), 'Content-Type': 'application/json' } });
     }
 
     // ═══ ACTION: expert_discovery ═══
@@ -302,7 +300,7 @@ serve(async (req) => {
         });
       }
 
-      return new Response(JSON.stringify({ experts }), { headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
+      return new Response(JSON.stringify({ experts }), { headers: { ...getCorsHeaders(req), 'Content-Type': 'application/json' } });
     }
 
     // ═══ ACTION: brain_sandbox ═══
@@ -349,7 +347,7 @@ serve(async (req) => {
         context_size: contextParts.join('').length,
         tokens: result.tokens,
         cost_usd: result.cost_usd,
-      }), { headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
+      }), { headers: { ...getCorsHeaders(req), 'Content-Type': 'application/json' } });
     }
 
     // ═══ ACTION: stats ═══
@@ -376,11 +374,11 @@ serve(async (req) => {
         tools: tools.count || 0,
         workflows: workflows.count || 0,
         today_traces: todayTraces || 0,
-      }), { headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
+      }), { headers: { ...getCorsHeaders(req), 'Content-Type': 'application/json' } });
     }
 
-    return new Response(JSON.stringify({ error: `Unknown action: ${action}` }), { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
+    return new Response(JSON.stringify({ error: `Unknown action: ${action}` }), { status: 400, headers: { ...getCorsHeaders(req), 'Content-Type': 'application/json' } });
   } catch (error: unknown) {
-    return new Response(JSON.stringify({ error: error instanceof Error ? error.message : 'Internal error' }), { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
+    return new Response(JSON.stringify({ error: error instanceof Error ? error.message : 'Internal error' }), { status: 500, headers: { ...getCorsHeaders(req), 'Content-Type': 'application/json' } });
   }
 });

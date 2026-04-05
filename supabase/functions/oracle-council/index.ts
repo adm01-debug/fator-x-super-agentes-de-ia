@@ -1,11 +1,9 @@
 import "https://deno.land/x/xhr@0.1.0/mod.ts";
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.49.4";
+import { getCorsHeaders, handleCorsPreflight, jsonResponse, errorResponse, checkRateLimit, getRateLimitIdentifier, createRateLimitResponse, RATE_LIMITS } from "../_shared/mod.ts";
 
-const corsHeaders = {
-  'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version',
-};
+// CORS handled by _shared/cors.ts — dynamic origin whitelist
 
 // ═══ Rate Limiting ═══
 const rateLimitMap = new Map<string, number[]>();
@@ -71,13 +69,13 @@ interface OracleRequest {
 
 serve(async (req) => {
   if (req.method === 'OPTIONS') {
-    return new Response(null, { headers: corsHeaders });
+    return new Response(null, { headers: getCorsHeaders(req) });
   }
 
   try {
     const authHeader = req.headers.get('Authorization');
     if (!authHeader) {
-      return new Response(JSON.stringify({ error: 'Missing authorization' }), { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
+      return new Response(JSON.stringify({ error: 'Missing authorization' }), { status: 401, headers: { ...getCorsHeaders(req), 'Content-Type': 'application/json' } });
     }
 
     const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
@@ -88,23 +86,23 @@ serve(async (req) => {
 
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) {
-      return new Response(JSON.stringify({ error: 'Unauthorized' }), { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
+      return new Response(JSON.stringify({ error: 'Unauthorized' }), { status: 401, headers: { ...getCorsHeaders(req), 'Content-Type': 'application/json' } });
     }
 
     // Rate limit
     if (!checkRateLimit(user.id)) {
-      return new Response(JSON.stringify({ error: 'Rate limit exceeded. Max 10 Oracle requests per minute.' }), { status: 429, headers: { ...corsHeaders, 'Content-Type': 'application/json', 'Retry-After': '60' } });
+      return new Response(JSON.stringify({ error: 'Rate limit exceeded. Max 10 Oracle requests per minute.' }), { status: 429, headers: { ...getCorsHeaders(req), 'Content-Type': 'application/json', 'Retry-After': '60' } });
     }
 
     // Validate input
     let rawBody: unknown;
     try { rawBody = await req.json(); } catch {
-      return new Response(JSON.stringify({ error: 'Invalid JSON body' }), { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
+      return new Response(JSON.stringify({ error: 'Invalid JSON body' }), { status: 400, headers: { ...getCorsHeaders(req), 'Content-Type': 'application/json' } });
     }
 
     const validation = validateRequest(rawBody);
     if (!validation.valid) {
-      return new Response(JSON.stringify({ error: validation.error }), { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
+      return new Response(JSON.stringify({ error: validation.error }), { status: 400, headers: { ...getCorsHeaders(req), 'Content-Type': 'application/json' } });
     }
 
     const { query, mode, members, chairman_model, enable_peer_review = true, enable_thinking = false } = validation.data;
@@ -178,7 +176,7 @@ serve(async (req) => {
 
     if (successfulResponses.length < 2) {
       return new Response(JSON.stringify({ error: 'Insufficient responses', stage1_results: stage1 }), {
-        status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        status: 500, headers: { ...getCorsHeaders(req), 'Content-Type': 'application/json' },
       });
     }
     const stage1Latency = Date.now() - stage1Start;
@@ -335,10 +333,10 @@ Responda em markdown:
         total_tokens: totalTokens,
         models_used: successfulResponses.length,
       },
-    }), { headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
+    }), { headers: { ...getCorsHeaders(req), 'Content-Type': 'application/json' } });
   } catch (error: unknown) {
     return new Response(JSON.stringify({ error: error instanceof Error ? error.message : 'Internal error' }), {
-      status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      status: 500, headers: { ...getCorsHeaders(req), 'Content-Type': 'application/json' },
     });
   }
 });

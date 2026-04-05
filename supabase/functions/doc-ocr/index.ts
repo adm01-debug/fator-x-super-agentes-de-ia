@@ -1,207 +1,118 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
-import { createClient } from "https://esm.sh/@supabase/supabase-js@2.49.4";
+import {
+  handleCorsPreflight, jsonResponse, errorResponse,
+  authenticateRequest,
+  checkRateLimit, createRateLimitResponse, getRateLimitIdentifier, RATE_LIMITS,
+  parseBody, z,
+} from "../_shared/mod.ts";
 
-const corsHeaders = { 'Access-Control-Allow-Origin': '*', 'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type' };
-const jsonHeaders = { ...corsHeaders, 'Content-Type': 'application/json' };
+const OCR_MODEL = 'ibm-granite/granite-vision-3.3-2b';
+const OCR_TIMEOUT_MS = 30000;
 
-function jsonResponse(data: unknown, status = 200) {
-  return new Response(JSON.stringify(data), { status, headers: jsonHeaders });
-}
-
-// OCR via Vision Language Model (understands tables, layouts, diagrams)
-const VLM_MODEL = 'google/gemma-3-12b-it';
-const OCR_TIMEOUT_MS = 60000;
+const OcrInput = z.object({
+  action: z.enum(['ocr', 'describe', 'extract_table', 'extract_fields']).default('ocr'),
+  image_base64: z.string().min(100).optional(),
+  image_url: z.string().url().optional(),
+  prompt: z.string().max(2000).optional(),
+  fields: z.array(z.string()).optional(),
+}).refine(d => d.image_base64 || d.image_url, {
+  message: 'Either image_base64 or image_url is required',
+});
 
 serve(async (req) => {
-  if (req.method === 'OPTIONS') return new Response(null, { headers: corsHeaders });
+  if (req.method === 'OPTIONS') return handleCorsPreflight(req);
 
   try {
-    const authHeader = req.headers.get('Authorization')!;
-    const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
-    const supabaseKey = Deno.env.get('SUPABASE_ANON_KEY')!;
-    const supabase = createClient(supabaseUrl, supabaseKey, { global: { headers: { Authorization: authHeader } } });
+    const auth = await authenticateRequest(req);
+    if (auth.error) return auth.error;
+    const { user } = auth;
 
-    const { data: { user } } = await supabase.auth.getUser();
-    if (!user) return jsonResponse({ error: 'Unauthorized' }, 401);
+    const identifier = getRateLimitIdentifier(req, user.id);
+    const rateCheck = checkRateLimit(identifier, RATE_LIMITS.heavy);
+    if (!rateCheck.allowed) return createRateLimitResponse(rateCheck);
+
+    const parsed = await parseBody(req, OcrInput);
+    if (parsed.error) return parsed.error;
+    const { action, image_base64, image_url, prompt, fields } = parsed.data;
 
     const hfToken = Deno.env.get('HF_API_TOKEN');
-    if (!hfToken) return jsonResponse({ error: 'HF_API_TOKEN not configured' }, 400);
+    if (!hfToken) return errorResponse(req, 'HF_API_TOKEN not configured', 503);
 
-    const body = await req.json();
-    const { action, image_base64, image_url, output_format, document_id } = body;
+    // Build prompt based on action
+    let systemPrompt: string;
+    switch (action) {
+      case 'ocr':
+        systemPrompt = 'Extract ALL text from this document image. Preserve the original layout and formatting.';
+        break;
+      case 'describe':
+        systemPrompt = prompt || 'Describe this image in detail.';
+        break;
+      case 'extract_table':
+        systemPrompt = 'Extract all tables from this document image. Return as markdown tables.';
+        break;
+      case 'extract_fields':
+        systemPrompt = `Extract these specific fields from the document: ${(fields || []).join(', ')}. Return as JSON.`;
+        break;
+    }
 
-    // ═══ ACTION: extract_text — OCR from image/PDF page ═══
-    if (action === 'extract_text' || !action) {
-      if (!image_base64 && !image_url) {
-        return jsonResponse({ error: 'image_base64 or image_url required' }, 400);
-      }
+    // Prepare image content
+    let imageContent: string;
+    if (image_base64) {
+      imageContent = image_base64;
+    } else if (image_url) {
+      const resp = await fetch(image_url);
+      if (!resp.ok) return errorResponse(req, `Failed to fetch image: ${resp.status}`, 400);
+      const buffer = await resp.arrayBuffer();
+      imageContent = btoa(String.fromCharCode(...new Uint8Array(buffer)));
+    } else {
+      return errorResponse(req, 'No image provided', 400);
+    }
 
-      const format = output_format || 'markdown';
-      const prompt = format === 'json'
-        ? 'Extract all text from this document image. Return as structured JSON with sections, tables, and paragraphs. Preserve the document structure.'
-        : 'Extract all text from this document image. Return as clean Markdown. Preserve headings, tables (as Markdown tables), lists, and paragraph structure. Do not add commentary.';
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), OCR_TIMEOUT_MS);
 
-      // Use LLM Gateway to call a VLM with the image
-      const gatewayUrl = `${supabaseUrl}/functions/v1/llm-gateway`;
-      const controller = new AbortController();
-      const timeout = setTimeout(() => controller.abort(), OCR_TIMEOUT_MS);
-
-      // For VLM, we send image as base64 in the message
-      const imageContent = image_base64
-        ? `[Image attached as base64 - ${image_base64.substring(0, 50)}...]`
-        : `[Image URL: ${image_url}]`;
-
-      const resp = await fetch(gatewayUrl, {
-        method: 'POST', signal: controller.signal,
-        headers: { 'Content-Type': 'application/json', 'Authorization': authHeader, 'apikey': supabaseKey },
+    try {
+      const resp = await fetch(`https://router.huggingface.co/v1/chat/completions`, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${hfToken}`,
+          'Content-Type': 'application/json',
+        },
         body: JSON.stringify({
-          model: 'google/gemini-2.5-flash', // Use Gemini Flash for vision (supports image input natively)
-          messages: [
-            { role: 'system', content: 'You are a document OCR specialist. Extract text accurately preserving structure.' },
-            { role: 'user', content: `${prompt}\n\n${imageContent}` },
-          ],
+          model: OCR_MODEL,
+          messages: [{
+            role: 'user',
+            content: [
+              { type: 'text', text: systemPrompt },
+              { type: 'image_url', image_url: { url: `data:image/jpeg;base64,${imageContent}` } },
+            ],
+          }],
+          max_tokens: 4096,
           temperature: 0.1,
-          max_tokens: 4000,
         }),
+        signal: controller.signal,
       });
       clearTimeout(timeout);
 
+      if (!resp.ok) {
+        const errText = await resp.text();
+        return errorResponse(req, `OCR API error: ${errText}`, resp.status);
+      }
+
       const result = await resp.json();
-      const extractedText = result.content || '';
+      const text = (result as Record<string, unknown[]>).choices?.[0] &&
+        ((result as Record<string, Array<Record<string, Record<string, string>>>>).choices[0].message?.content || '');
 
-      // Optionally feed into rag-ingest
-      if (document_id && extractedText.length > 10) {
-        const ingestResp = await fetch(`${supabaseUrl}/functions/v1/rag-ingest`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json', 'Authorization': authHeader, 'apikey': supabaseKey },
-          body: JSON.stringify({
-            document_id,
-            content: extractedText,
-            chunk_size: 1000,
-            chunk_overlap: 200,
-          }),
-        });
-        const ingestResult = await ingestResp.json();
-
-        return jsonResponse({
-          text: extractedText,
-          format: format,
-          characters: extractedText.length,
-          ingested: true,
-          chunks_created: ingestResult.chunks_created,
-          embeddings_generated: ingestResult.embeddings_generated,
-          tokens: result.tokens,
-          cost_usd: result.cost_usd,
-        });
-      }
-
-      return jsonResponse({
-        text: extractedText,
-        format: format,
-        characters: extractedText.length,
-        ingested: false,
-        tokens: result.tokens,
-        cost_usd: result.cost_usd,
+      return jsonResponse(req, {
+        text,
+        action,
+        model: OCR_MODEL,
       });
+    } finally {
+      clearTimeout(timeout);
     }
-
-    // ═══ ACTION: extract_table — Extract tables specifically ═══
-    if (action === 'extract_table') {
-      const gatewayUrl = `${supabaseUrl}/functions/v1/llm-gateway`;
-      const resp = await fetch(gatewayUrl, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json', 'Authorization': authHeader, 'apikey': supabaseKey },
-        body: JSON.stringify({
-          model: 'google/gemini-2.5-flash',
-          messages: [
-            { role: 'system', content: 'You are a table extraction specialist. Extract ALL tables from the document image as JSON arrays of objects. Each object represents a row with column names as keys.' },
-            { role: 'user', content: `Extract all tables from this document.\n\n${image_base64 ? '[Image attached]' : `[Image URL: ${image_url}]`}` },
-          ],
-          temperature: 0,
-          max_tokens: 4000,
-        }),
-      });
-      const result = await resp.json();
-
-      // Try to parse tables from response
-      let tables: unknown[] = [];
-      try {
-        const jsonMatch = (result.content || '').match(/\[[\s\S]*\]/);
-        if (jsonMatch) tables = JSON.parse(jsonMatch[0]);
-      } catch { tables = [{ raw: result.content }]; }
-
-      return jsonResponse({
-        tables,
-        table_count: tables.length,
-        tokens: result.tokens,
-        cost_usd: result.cost_usd,
-      });
-    }
-
-    // ═══ ACTION: analyze_layout — Document layout analysis (#48) ═══
-    if (action === 'analyze_layout') {
-      const { image_base64: layImg, image_url: layUrl } = body;
-      if (!layImg && !layUrl) return jsonResponse({ error: 'image_base64 or image_url required' }, 400);
-
-      let imageBytes: Uint8Array;
-      if (layImg) {
-        const raw = layImg.replace(/^data:image\/\w+;base64,/, '');
-        imageBytes = Uint8Array.from(atob(raw), c => c.charCodeAt(0));
-      } else {
-        const resp = await fetch(layUrl);
-        imageBytes = new Uint8Array(await resp.arrayBuffer());
-      }
-
-      const hfToken = Deno.env.get('HF_API_TOKEN');
-      if (!hfToken) return jsonResponse({ error: 'HF_API_TOKEN required' }, 400);
-
-      // Use object detection model trained on document layouts
-      const layoutResp = await fetch('https://router.huggingface.co/hf-inference/models/microsoft/table-transformer-detection', {
-        method: 'POST',
-        headers: { 'Authorization': `Bearer ${hfToken}` },
-        body: imageBytes,
-      });
-
-      if (!layoutResp.ok) {
-        // Fallback: use VLM to describe layout
-        const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
-        const supabaseKey = Deno.env.get('SUPABASE_ANON_KEY')!;
-        const authHeader = req.headers.get('Authorization')!;
-        const base64ForVlm = layImg || btoa(String.fromCharCode(...imageBytes));
-
-        const vlmResp = await fetch(`${supabaseUrl}/functions/v1/llm-gateway`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json', 'Authorization': authHeader, 'apikey': supabaseKey },
-          body: JSON.stringify({
-            model: 'huggingface/Qwen/Qwen3-30B-A3B',
-            messages: [
-              { role: 'system', content: 'Analyze the document layout. Identify: headers, paragraphs, tables, captions, page numbers, footnotes. Return as JSON: {"elements": [{"type": "header|paragraph|table|caption|footnote|page_number", "content": "...", "position": "top|middle|bottom"}]}' },
-              { role: 'user', content: `Analyze this document image layout. Base64 image provided.` },
-            ],
-            temperature: 0.1, max_tokens: 1000,
-          }),
-        });
-        const vlmResult = await vlmResp.json();
-        return jsonResponse({
-          layout: vlmResult.content,
-          method: 'vlm_fallback',
-          model: 'Qwen/Qwen3-30B-A3B',
-          cost_usd: vlmResult.cost_usd || 0,
-        });
-      }
-
-      const elements = await layoutResp.json();
-      return jsonResponse({
-        layout_elements: elements,
-        method: 'table-transformer-detection',
-        model: 'microsoft/table-transformer-detection',
-        cost_usd: 0,
-      });
-    }
-
-    return jsonResponse({ error: `Unknown action: ${action}` }, 400);
 
   } catch (error: unknown) {
-    return jsonResponse({ error: error instanceof Error ? error.message : 'Internal error' }, 500);
+    return errorResponse(req, error instanceof Error ? error.message : 'Internal error', 500);
   }
 });

@@ -1,10 +1,8 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.49.4";
+import { getCorsHeaders, handleCorsPreflight, jsonResponse, errorResponse, checkRateLimit, getRateLimitIdentifier, createRateLimitResponse, RATE_LIMITS } from "../_shared/mod.ts";
 
-const corsHeaders = {
-  'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
-};
+// CORS handled by _shared/cors.ts — dynamic origin whitelist
 
 /* ── Connection registry ─────────────────────────────── */
 
@@ -131,7 +129,7 @@ function applyDynamicFilters(query: any, filters: Array<Record<string, unknown>>
 /* ── Main handler ────────────────────────────────────── */
 
 serve(async (req) => {
-  if (req.method === 'OPTIONS') return new Response(null, { headers: corsHeaders });
+  if (req.method === 'OPTIONS') return handleCorsPreflight(req);
 
   try {
     const authHeader = req.headers.get('Authorization')!;
@@ -139,7 +137,7 @@ serve(async (req) => {
     const supabaseKey = Deno.env.get('SUPABASE_ANON_KEY')!;
     const supabase = createClient(supabaseUrl, supabaseKey, { global: { headers: { Authorization: authHeader } } });
     const { data: { user } } = await supabase.auth.getUser();
-    if (!user) return new Response(JSON.stringify({ error: 'Unauthorized' }), { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
+    if (!user) return new Response(JSON.stringify({ error: 'Unauthorized' }), { status: 401, headers: { ...getCorsHeaders(req), 'Content-Type': 'application/json' } });
 
     const body = await req.json();
     const { action } = body;
@@ -161,7 +159,7 @@ serve(async (req) => {
           results[connId] = { status: 'error', error: e instanceof Error ? e.message : 'Unknown' };
         }
       }
-      return new Response(JSON.stringify({ connections: results }), { headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
+      return new Response(JSON.stringify({ connections: results }), { headers: { ...getCorsHeaders(req), 'Content-Type': 'application/json' } });
     }
 
     // ═══ ACTION: list_entities ═══
@@ -178,7 +176,7 @@ serve(async (req) => {
           counts[entityId] = -1;
         }
       }
-      return new Response(JSON.stringify({ entities: counts }), { headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
+      return new Response(JSON.stringify({ entities: counts }), { headers: { ...getCorsHeaders(req), 'Content-Type': 'application/json' } });
     }
 
     // ═══ ACTION: query_entity ═══
@@ -196,7 +194,7 @@ serve(async (req) => {
       } = body;
 
       const mapping = ENTITY_MAPPINGS[entity];
-      if (!mapping) return new Response(JSON.stringify({ error: `Unknown entity: ${entity}` }), { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
+      if (!mapping) return new Response(JSON.stringify({ error: `Unknown entity: ${entity}` }), { status: 400, headers: { ...getCorsHeaders(req), 'Content-Type': 'application/json' } });
 
       const client = getExternalClient(mapping.primary.connection);
       const prim = mapping.primary;
@@ -288,7 +286,7 @@ serve(async (req) => {
           } catch { /* sentiment is optional, ignore errors */ }
         }
 
-        return new Response(JSON.stringify({ record, enriched, cross_db: crossData, ...(sentiment ? { sentiment } : {}) }), { headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
+        return new Response(JSON.stringify({ record, enriched, cross_db: crossData, ...(sentiment ? { sentiment } : {}) }), { headers: { ...getCorsHeaders(req), 'Content-Type': 'application/json' } });
       }
 
       // ─── List query ───
@@ -337,24 +335,24 @@ serve(async (req) => {
         page,
         page_size,
         total_pages: Math.ceil((count ?? 0) / page_size),
-      }), { headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
+      }), { headers: { ...getCorsHeaders(req), 'Content-Type': 'application/json' } });
     }
 
     // ═══ ACTION: update_field ═══
     if (action === 'update_field') {
       const { entity, record_id: updateId, field, value } = body;
       const mapping = ENTITY_MAPPINGS[entity];
-      if (!mapping) return new Response(JSON.stringify({ error: `Unknown entity: ${entity}` }), { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
+      if (!mapping) return new Response(JSON.stringify({ error: `Unknown entity: ${entity}` }), { status: 400, headers: { ...getCorsHeaders(req), 'Content-Type': 'application/json' } });
 
       // Block sensitive fields
       if (mapping.sensitive_fields?.includes(field)) {
-        return new Response(JSON.stringify({ error: 'Cannot edit sensitive/LGPD-protected fields' }), { status: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
+        return new Response(JSON.stringify({ error: 'Cannot edit sensitive/LGPD-protected fields' }), { status: 403, headers: { ...getCorsHeaders(req), 'Content-Type': 'application/json' } });
       }
 
       // Block id and system columns
       const blockedCols = new Set(['id', 'created_at', 'search_vector']);
       if (blockedCols.has(field)) {
-        return new Response(JSON.stringify({ error: `Column "${field}" cannot be edited` }), { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
+        return new Response(JSON.stringify({ error: `Column "${field}" cannot be edited` }), { status: 400, headers: { ...getCorsHeaders(req), 'Content-Type': 'application/json' } });
       }
 
       const client = getExternalClient(mapping.primary.connection);
@@ -384,32 +382,32 @@ serve(async (req) => {
           .select('*')
           .single();
         if (updateError2) throw new Error(updateError2.message);
-        return new Response(JSON.stringify({ success: true, record: updated2 }), { headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
+        return new Response(JSON.stringify({ success: true, record: updated2 }), { headers: { ...getCorsHeaders(req), 'Content-Type': 'application/json' } });
       }
 
-      return new Response(JSON.stringify({ success: true, record: updated }), { headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
+      return new Response(JSON.stringify({ success: true, record: updated }), { headers: { ...getCorsHeaders(req), 'Content-Type': 'application/json' } });
     }
 
     // ═══ ACTION: batch_update ═══
     if (action === 'batch_update') {
       const { entity, record_ids, field, value } = body;
       if (!entity || !Array.isArray(record_ids) || !record_ids.length || !field) {
-        return new Response(JSON.stringify({ error: 'Missing required: entity, record_ids[], field, value' }), { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
+        return new Response(JSON.stringify({ error: 'Missing required: entity, record_ids[], field, value' }), { status: 400, headers: { ...getCorsHeaders(req), 'Content-Type': 'application/json' } });
       }
       if (record_ids.length > 100) {
-        return new Response(JSON.stringify({ error: 'Max 100 records per batch' }), { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
+        return new Response(JSON.stringify({ error: 'Max 100 records per batch' }), { status: 400, headers: { ...getCorsHeaders(req), 'Content-Type': 'application/json' } });
       }
 
       const mapping = ENTITY_MAPPINGS[entity];
-      if (!mapping) return new Response(JSON.stringify({ error: `Unknown entity: ${entity}` }), { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
+      if (!mapping) return new Response(JSON.stringify({ error: `Unknown entity: ${entity}` }), { status: 400, headers: { ...getCorsHeaders(req), 'Content-Type': 'application/json' } });
 
       if (mapping.sensitive_fields?.includes(field)) {
-        return new Response(JSON.stringify({ error: 'Cannot edit sensitive/LGPD-protected fields' }), { status: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
+        return new Response(JSON.stringify({ error: 'Cannot edit sensitive/LGPD-protected fields' }), { status: 403, headers: { ...getCorsHeaders(req), 'Content-Type': 'application/json' } });
       }
 
       const blockedCols = new Set(['id', 'created_at', 'search_vector']);
       if (blockedCols.has(field)) {
-        return new Response(JSON.stringify({ error: `Column "${field}" cannot be edited` }), { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
+        return new Response(JSON.stringify({ error: `Column "${field}" cannot be edited` }), { status: 400, headers: { ...getCorsHeaders(req), 'Content-Type': 'application/json' } });
       }
 
       const client = getExternalClient(mapping.primary.connection);
@@ -439,21 +437,21 @@ serve(async (req) => {
           .in(prim.id_column, record_ids)
           .select('*');
         if (updateError2) throw new Error(updateError2.message);
-        return new Response(JSON.stringify({ success: true, updated_count: updated2?.length ?? 0, records: updated2 }), { headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
+        return new Response(JSON.stringify({ success: true, updated_count: updated2?.length ?? 0, records: updated2 }), { headers: { ...getCorsHeaders(req), 'Content-Type': 'application/json' } });
       }
 
-      return new Response(JSON.stringify({ success: true, updated_count: updated?.length ?? 0, records: updated }), { headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
+      return new Response(JSON.stringify({ success: true, updated_count: updated?.length ?? 0, records: updated }), { headers: { ...getCorsHeaders(req), 'Content-Type': 'application/json' } });
     }
 
     // ═══ ACTION: create_record ═══
     if (action === 'create_record') {
       const { entity, data: recordData } = body;
       if (!entity || !recordData || typeof recordData !== 'object') {
-        return new Response(JSON.stringify({ error: 'Missing required: entity, data' }), { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
+        return new Response(JSON.stringify({ error: 'Missing required: entity, data' }), { status: 400, headers: { ...getCorsHeaders(req), 'Content-Type': 'application/json' } });
       }
 
       const mapping = ENTITY_MAPPINGS[entity];
-      if (!mapping) return new Response(JSON.stringify({ error: `Unknown entity: ${entity}` }), { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
+      if (!mapping) return new Response(JSON.stringify({ error: `Unknown entity: ${entity}` }), { status: 400, headers: { ...getCorsHeaders(req), 'Content-Type': 'application/json' } });
 
       // Block sensitive fields from being set
       if (mapping.sensitive_fields) {
@@ -479,18 +477,18 @@ serve(async (req) => {
 
       if (createError) throw new Error(createError.message);
 
-      return new Response(JSON.stringify({ success: true, record: created }), { headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
+      return new Response(JSON.stringify({ success: true, record: created }), { headers: { ...getCorsHeaders(req), 'Content-Type': 'application/json' } });
     }
 
     // ═══ ACTION: delete_record ═══
     if (action === 'delete_record') {
       const { entity, record_id: deleteId } = body;
       if (!entity || !deleteId) {
-        return new Response(JSON.stringify({ error: 'Missing required: entity, record_id' }), { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
+        return new Response(JSON.stringify({ error: 'Missing required: entity, record_id' }), { status: 400, headers: { ...getCorsHeaders(req), 'Content-Type': 'application/json' } });
       }
 
       const mapping = ENTITY_MAPPINGS[entity];
-      if (!mapping) return new Response(JSON.stringify({ error: `Unknown entity: ${entity}` }), { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
+      if (!mapping) return new Response(JSON.stringify({ error: `Unknown entity: ${entity}` }), { status: 400, headers: { ...getCorsHeaders(req), 'Content-Type': 'application/json' } });
 
       const client = getExternalClient(mapping.primary.connection);
       const prim = mapping.primary;
@@ -502,16 +500,16 @@ serve(async (req) => {
 
       if (deleteError) throw new Error(deleteError.message);
 
-      return new Response(JSON.stringify({ success: true }), { headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
+      return new Response(JSON.stringify({ success: true }), { headers: { ...getCorsHeaders(req), 'Content-Type': 'application/json' } });
     }
 
     // ═══ ACTION: summarize_conversation — Summarize WhatsApp conversation ═══
     if (action === 'summarize_conversation') {
       const { entity, record_id: sumId } = body;
-      if (!entity || !sumId) return new Response(JSON.stringify({ error: 'entity and record_id required' }), { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
+      if (!entity || !sumId) return new Response(JSON.stringify({ error: 'entity and record_id required' }), { status: 400, headers: { ...getCorsHeaders(req), 'Content-Type': 'application/json' } });
 
       const mapping = ENTITY_MAPPINGS[entity];
-      if (!mapping) return new Response(JSON.stringify({ error: `Unknown entity: ${entity}` }), { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
+      if (!mapping) return new Response(JSON.stringify({ error: `Unknown entity: ${entity}` }), { status: 400, headers: { ...getCorsHeaders(req), 'Content-Type': 'application/json' } });
 
       const client = getExternalClient(mapping.primary.connection);
 
@@ -528,7 +526,7 @@ serve(async (req) => {
       }
 
       if (messages.length === 0) {
-        return new Response(JSON.stringify({ summary: 'Nenhuma mensagem encontrada.', message_count: 0 }), { headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
+        return new Response(JSON.stringify({ summary: 'Nenhuma mensagem encontrada.', message_count: 0 }), { headers: { ...getCorsHeaders(req), 'Content-Type': 'application/json' } });
       }
 
       // Build conversation text
@@ -561,13 +559,13 @@ serve(async (req) => {
         model: 'mistralai/Mistral-Small-24B-Instruct-2501',
         tokens: sumResult.tokens,
         cost_usd: sumResult.cost_usd || 0,
-      }), { headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
+      }), { headers: { ...getCorsHeaders(req), 'Content-Type': 'application/json' } });
     }
 
     // ═══ ACTION: natural_language_query — Text-to-SQL (#28) ═══
     if (action === 'natural_language_query') {
       const { question, connection_id, max_rows } = body;
-      if (!question) return new Response(JSON.stringify({ error: 'question required' }), { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
+      if (!question) return new Response(JSON.stringify({ error: 'question required' }), { status: 400, headers: { ...getCorsHeaders(req), 'Content-Type': 'application/json' } });
 
       const connId = connection_id || 'bancodadosclientes';
       const client = getExternalClient(connId);
@@ -609,16 +607,16 @@ serve(async (req) => {
       const sqlUpper = generatedSql.toUpperCase();
       // Must start with SELECT
       if (!sqlUpper.startsWith('SELECT')) {
-        return new Response(JSON.stringify({ error: 'Generated query is not a SELECT statement', sql: generatedSql }), { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
+        return new Response(JSON.stringify({ error: 'Generated query is not a SELECT statement', sql: generatedSql }), { status: 400, headers: { ...getCorsHeaders(req), 'Content-Type': 'application/json' } });
       }
       // Block dangerous statements (even if preceded by SELECT)
       const SQL_BLOCKLIST = /\b(DROP|DELETE|UPDATE|INSERT|ALTER|CREATE|GRANT|REVOKE|TRUNCATE|EXEC|EXECUTE|COPY|LOAD|INTO\s+OUTFILE|pg_shadow|pg_authid|pg_roles|information_schema\.role|pg_catalog\.pg_shadow|pg_user|current_setting|set_config)\b/i;
       if (SQL_BLOCKLIST.test(generatedSql)) {
-        return new Response(JSON.stringify({ error: 'Generated SQL contains blocked keywords', sql: generatedSql }), { status: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
+        return new Response(JSON.stringify({ error: 'Generated SQL contains blocked keywords', sql: generatedSql }), { status: 403, headers: { ...getCorsHeaders(req), 'Content-Type': 'application/json' } });
       }
       // Block multiple statements (semicolon followed by non-whitespace)
       if (/;[\s]*\S/.test(generatedSql)) {
-        return new Response(JSON.stringify({ error: 'Multiple SQL statements not allowed', sql: generatedSql }), { status: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
+        return new Response(JSON.stringify({ error: 'Multiple SQL statements not allowed', sql: generatedSql }), { status: 403, headers: { ...getCorsHeaders(req), 'Content-Type': 'application/json' } });
       }
 
       // Return SQL for manual execution (NEVER execute directly)
@@ -631,16 +629,16 @@ serve(async (req) => {
         note: 'SQL gerado para revisão. Execute via Supabase dashboard com read-only role.',
         model: 'Qwen/Qwen3-30B-A3B',
         cost_usd: sqlResult.cost_usd || 0,
-      }), { headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
+      }), { headers: { ...getCorsHeaders(req), 'Content-Type': 'application/json' } });
     }
 
     // ═══ ACTION: table_qa — Perguntas sobre tabelas (#37) ═══
     if (action === 'table_qa') {
       const { question: tqQuestion, entity: tqEntity, record_id: tqRecordId } = body;
-      if (!tqQuestion || !tqEntity) return new Response(JSON.stringify({ error: 'question and entity required' }), { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
+      if (!tqQuestion || !tqEntity) return new Response(JSON.stringify({ error: 'question and entity required' }), { status: 400, headers: { ...getCorsHeaders(req), 'Content-Type': 'application/json' } });
 
       const mapping = ENTITY_MAPPINGS[tqEntity];
-      if (!mapping) return new Response(JSON.stringify({ error: `Unknown entity: ${tqEntity}` }), { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
+      if (!mapping) return new Response(JSON.stringify({ error: `Unknown entity: ${tqEntity}` }), { status: 400, headers: { ...getCorsHeaders(req), 'Content-Type': 'application/json' } });
 
       const client2 = getExternalClient(mapping.primary.connection);
 
@@ -650,7 +648,7 @@ serve(async (req) => {
       const { data: sampleData } = await query2;
 
       if (!sampleData || sampleData.length === 0) {
-        return new Response(JSON.stringify({ answer: 'Nenhum dado encontrado para esta entidade.' }), { headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
+        return new Response(JSON.stringify({ answer: 'Nenhum dado encontrado para esta entidade.' }), { headers: { ...getCorsHeaders(req), 'Content-Type': 'application/json' } });
       }
 
       // Build table context as CSV-like for the LLM
@@ -686,12 +684,12 @@ serve(async (req) => {
         rows_analyzed: sampleData.length,
         model: 'Qwen/Qwen3-30B-A3B',
         cost_usd: tqResult.cost_usd || 0,
-      }), { headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
+      }), { headers: { ...getCorsHeaders(req), 'Content-Type': 'application/json' } });
     }
 
-    return new Response(JSON.stringify({ error: 'Invalid action' }), { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
+    return new Response(JSON.stringify({ error: 'Invalid action' }), { status: 400, headers: { ...getCorsHeaders(req), 'Content-Type': 'application/json' } });
   } catch (error: unknown) {
     console.error('datahub-query error:', error);
-    return new Response(JSON.stringify({ error: error instanceof Error ? error.message : 'Internal error' }), { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
+    return new Response(JSON.stringify({ error: error instanceof Error ? error.message : 'Internal error' }), { status: 500, headers: { ...getCorsHeaders(req), 'Content-Type': 'application/json' } });
   }
 });

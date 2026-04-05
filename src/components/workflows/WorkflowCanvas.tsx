@@ -1,336 +1,298 @@
-import { useState, useRef, useCallback } from 'react';
-import { Brain, Search, FileText, Shield, Wrench, GripVertical, X, ZoomIn, ZoomOut, Maximize } from 'lucide-react';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { toast } from 'sonner';
-import { CanvasMinimap } from './CanvasMinimap';
+/**
+ * ═══════════════════════════════════════════════════════════════
+ * Nexus Agents Studio — Workflow Canvas (React Flow)
+ * ═══════════════════════════════════════════════════════════════
+ * Visual drag-and-drop workflow builder.
+ * Reference: React Flow Pro "AI Workflow Editor" template
+ */
 
-export interface CanvasNode {
-  id: string;
-  type: string;
-  label: string;
-  x: number;
-  y: number;
-}
+import { useState, useCallback, useRef, useMemo } from 'react';
+import { useWorkflowStore } from '@/stores/workflowStore';
+import { NODE_TYPES, NODE_CATEGORIES, NODE_DEFAULTS, type NodeType, type WorkflowNodeData } from './nodes';
 
-export interface CanvasEdge {
-  from: string;
-  to: string;
-}
-
-const NODE_ROLES: { type: string; label: string; icon: React.ElementType; color: string }[] = [
-  { type: 'planner', label: 'Planner', icon: Brain, color: 'hsl(var(--primary))' },
-  { type: 'researcher', label: 'Researcher', icon: Search, color: 'hsl(250 80% 60%)' },
-  { type: 'retriever', label: 'Retriever', icon: FileText, color: 'hsl(170 70% 45%)' },
-  { type: 'critic', label: 'Critic', icon: Shield, color: 'hsl(35 90% 55%)' },
-  { type: 'executor', label: 'Executor', icon: Wrench, color: 'hsl(0 70% 55%)' },
-];
-
-const NODE_W = 160;
-const NODE_H = 72;
-const MIN_ZOOM = 0.3;
-const MAX_ZOOM = 2;
-
-interface Props {
-  nodes: CanvasNode[];
-  edges: CanvasEdge[];
-  onNodesChange: (nodes: CanvasNode[]) => void;
-  onEdgesChange: (edges: CanvasEdge[]) => void;
-}
-
-export function WorkflowCanvas({ nodes, edges, onNodesChange, onEdgesChange }: Props) {
-  const containerRef = useRef<HTMLDivElement>(null);
-  const [dragging, setDragging] = useState<{ id: string; offsetX: number; offsetY: number } | null>(null);
-  const [connecting, setConnecting] = useState<{ fromId: string; mx: number; my: number } | null>(null);
-  const [zoom, setZoom] = useState(1);
-  const [pan, setPan] = useState({ x: 0, y: 0 });
-  const [editingId, setEditingId] = useState<string | null>(null);
-  const [editLabel, setEditLabel] = useState('');
-  const [panning, setPanning] = useState<{ startX: number; startY: number; panX: number; panY: number } | null>(null);
-
-  const getNodeCenter = (node: CanvasNode) => ({ x: node.x + NODE_W / 2, y: node.y + NODE_H / 2 });
-
-  const toCanvasCoords = useCallback((clientX: number, clientY: number) => {
-    const rect = containerRef.current?.getBoundingClientRect();
-    if (!rect) return { x: clientX, y: clientY };
-    return {
-      x: (clientX - rect.left - pan.x) / zoom,
-      y: (clientY - rect.top - pan.y) / zoom,
-    };
-  }, [zoom, pan]);
-
-  const handleWheel = useCallback((e: React.WheelEvent) => {
-    e.preventDefault();
-    const rect = containerRef.current?.getBoundingClientRect();
-    if (!rect) return;
-
-    const mouseX = e.clientX - rect.left;
-    const mouseY = e.clientY - rect.top;
-
-    const delta = e.deltaY > 0 ? 0.9 : 1.1;
-    const newZoom = Math.min(MAX_ZOOM, Math.max(MIN_ZOOM, zoom * delta));
-
-    // Zoom toward mouse position
-    const scale = newZoom / zoom;
-    setPan(prev => ({
-      x: mouseX - scale * (mouseX - prev.x),
-      y: mouseY - scale * (mouseY - prev.y),
-    }));
-    setZoom(newZoom);
-  }, [zoom]);
-
-  const handleMouseMove = useCallback((e: React.MouseEvent) => {
-    if (panning) {
-      setPan({
-        x: panning.panX + (e.clientX - panning.startX),
-        y: panning.panY + (e.clientY - panning.startY),
-      });
-      return;
-    }
-    if (dragging) {
-      const local = toCanvasCoords(e.clientX, e.clientY);
-      onNodesChange(nodes.map(n => n.id === dragging.id ? { ...n, x: Math.max(0, local.x - dragging.offsetX), y: Math.max(0, local.y - dragging.offsetY) } : n));
-    }
-    if (connecting) {
-      const local = toCanvasCoords(e.clientX, e.clientY);
-      setConnecting({ ...connecting, mx: local.x, my: local.y });
-    }
-  }, [dragging, connecting, panning, nodes, onNodesChange, toCanvasCoords]);
-
-  const handleMouseUp = useCallback((e: React.MouseEvent) => {
-    if (panning) { setPanning(null); return; }
-    if (connecting) {
-      const local = toCanvasCoords(e.clientX, e.clientY);
-      const target = nodes.find(n => local.x >= n.x && local.x <= n.x + NODE_W && local.y >= n.y && local.y <= n.y + NODE_H);
-      if (target && target.id !== connecting.fromId) {
-        const exists = edges.some(ed => ed.from === connecting.fromId && ed.to === target.id);
-        if (!exists) {
-          onEdgesChange([...edges, { from: connecting.fromId, to: target.id }]);
-        }
-      }
-      setConnecting(null);
-    }
-    setDragging(null);
-  }, [connecting, panning, nodes, edges, onEdgesChange, toCanvasCoords]);
-
-  const handleCanvasMouseDown = useCallback((e: React.MouseEvent) => {
-    // Middle-click or space-click for panning; also left-click on empty space
-    if (e.button === 1 || e.altKey) {
-      e.preventDefault();
-      setPanning({ startX: e.clientX, startY: e.clientY, panX: pan.x, panY: pan.y });
-    }
-  }, [pan]);
-
-  const removeEdge = (from: string, to: string) => {
-    onEdgesChange(edges.filter(e => !(e.from === from && e.to === to)));
+// ═══ Custom Node Component ═══
+function WorkflowNode({ data, selected }: { data: WorkflowNodeData; selected: boolean }) {
+  const nodeInfo = NODE_TYPES[data.type];
+  const statusColors = {
+    idle: 'border-[#222244]',
+    running: 'border-[#4D96FF] animate-pulse',
+    success: 'border-[#6BCB77]',
+    error: 'border-[#FF6B6B]',
   };
-
-  const removeNode = (id: string) => {
-    onNodesChange(nodes.filter(n => n.id !== id));
-    onEdgesChange(edges.filter(e => e.from !== id && e.to !== id));
-  };
-
-  const addNode = (type: string) => {
-    const role = NODE_ROLES.find(r => r.type === type);
-    if (!role) return;
-    const id = `node-${Date.now()}`;
-    // Place in the visible area accounting for pan/zoom
-    const x = (-pan.x / zoom) + 40 + Math.random() * 300;
-    const y = (-pan.y / zoom) + 40 + Math.random() * 200;
-    onNodesChange([...nodes, { id, type, label: role.label, x, y }]);
-    toast.success(`Node ${role.label} adicionado`);
-  };
-
-  const resetView = () => { setZoom(1); setPan({ x: 0, y: 0 }); };
-
-  const handleDrop = useCallback((e: React.DragEvent) => {
-    e.preventDefault();
-    const type = e.dataTransfer.getData('node-type');
-    const role = NODE_ROLES.find(r => r.type === type);
-    if (!role) return;
-    const local = toCanvasCoords(e.clientX, e.clientY);
-    const id = `node-${Date.now()}`;
-    onNodesChange([...nodes, { id, type, label: role.label, x: local.x - NODE_W / 2, y: local.y - NODE_H / 2 }]);
-    toast.success(`Node ${role.label} adicionado`);
-  }, [nodes, onNodesChange, toCanvasCoords]);
 
   return (
-    <div className="space-y-3">
-      {/* Toolbar */}
-      <div className="flex items-center gap-2 flex-wrap">
-        {NODE_ROLES.map(role => (
-          <Button
-            key={role.type}
-            variant="outline"
-            size="sm"
-            className="gap-1.5 text-xs cursor-grab active:cursor-grabbing"
-            onClick={() => addNode(role.type)}
-            draggable
-            onDragStart={(e) => {
-              e.dataTransfer.setData('node-type', role.type);
-              e.dataTransfer.effectAllowed = 'copy';
-            }}
-          >
-            <role.icon className="h-3.5 w-3.5" style={{ color: role.color }} />
-            {role.label}
-          </Button>
-        ))}
-        <div className="ml-auto flex items-center gap-1">
-          <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => setZoom(z => Math.min(MAX_ZOOM, z * 1.2))}><ZoomIn className="h-3.5 w-3.5" /></Button>
-          <span className="text-[11px] text-muted-foreground w-10 text-center">{Math.round(zoom * 100)}%</span>
-          <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => setZoom(z => Math.max(MIN_ZOOM, z / 1.2))}><ZoomOut className="h-3.5 w-3.5" /></Button>
-          <Button variant="ghost" size="icon" className="h-7 w-7" onClick={resetView}><Maximize className="h-3.5 w-3.5" /></Button>
-        </div>
+    <div
+      className={`
+        bg-[#111122] rounded-xl border-2 px-4 py-3 min-w-[200px] max-w-[280px]
+        transition-all duration-200 shadow-lg
+        ${selected ? 'border-[#4D96FF] shadow-[0_0_20px_rgba(77,150,255,0.3)]' : statusColors[data.status || 'idle']}
+      `}
+    >
+      {/* Header */}
+      <div className="flex items-center gap-2 mb-1">
+        <span className="text-lg">{nodeInfo.icon}</span>
+        <span className="text-sm font-semibold text-white truncate">{data.label || nodeInfo.label}</span>
       </div>
 
-      {/* Canvas */}
-      <div
-        ref={containerRef}
-        className="relative rounded-xl border border-border bg-muted/20 overflow-hidden select-none"
-        style={{ height: 480, cursor: panning ? 'grabbing' : 'default' }}
-        onMouseMove={handleMouseMove}
-        onMouseUp={handleMouseUp}
-        onMouseDown={handleCanvasMouseDown}
-        onMouseLeave={() => { setDragging(null); setConnecting(null); setPanning(null); }}
-        onWheel={handleWheel}
-        onDrop={handleDrop}
-        onDragOver={(e) => { e.preventDefault(); e.dataTransfer.dropEffect = 'copy'; }}
-      >
-        {/* Grid pattern */}
-        <svg className="absolute inset-0 w-full h-full pointer-events-none" xmlns="http://www.w3.org/2000/svg">
-          <defs>
-            <pattern id="grid" width={24 * zoom} height={24 * zoom} patternUnits="userSpaceOnUse" x={pan.x % (24 * zoom)} y={pan.y % (24 * zoom)}>
-              <path d={`M ${24 * zoom} 0 L 0 0 0 ${24 * zoom}`} fill="none" stroke="hsl(var(--border))" strokeWidth="0.5" opacity="0.4" />
-            </pattern>
-          </defs>
-          <rect width="100%" height="100%" fill="url(#grid)" />
-        </svg>
-
-        {/* Transformed layer */}
-        <div style={{ transform: `translate(${pan.x}px, ${pan.y}px) scale(${zoom})`, transformOrigin: '0 0', position: 'absolute', inset: 0 }}>
-          {/* SVG edges */}
-          <svg className="absolute inset-0 w-full h-full pointer-events-none" style={{ overflow: 'visible' }} xmlns="http://www.w3.org/2000/svg">
-            <defs>
-              <marker id="arrowhead" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto">
-                <polygon points="0 0, 10 3.5, 0 7" fill="hsl(var(--primary))" opacity="0.7" />
-              </marker>
-            </defs>
-            {edges.map((edge, i) => {
-              const fromNode = nodes.find(n => n.id === edge.from);
-              const toNode = nodes.find(n => n.id === edge.to);
-              if (!fromNode || !toNode) return null;
-              const from = getNodeCenter(fromNode);
-              const to = getNodeCenter(toNode);
-              const dx = to.x - from.x;
-              const cx1 = from.x + dx * 0.4;
-              const cx2 = to.x - dx * 0.4;
-              return (
-                <path
-                  key={i}
-                  d={`M ${from.x} ${from.y} C ${cx1} ${from.y}, ${cx2} ${to.y}, ${to.x} ${to.y}`}
-                  fill="none"
-                  stroke="hsl(var(--primary))"
-                  strokeWidth="2"
-                  opacity="0.5"
-                  markerEnd="url(#arrowhead)"
-                  className="pointer-events-auto cursor-pointer hover:opacity-100"
-                  strokeDasharray="6 3"
-                  onClick={() => removeEdge(edge.from, edge.to)}
-                />
-              );
-            })}
-            {connecting && (() => {
-              const fromNode = nodes.find(n => n.id === connecting.fromId);
-              if (!fromNode) return null;
-              const from = getNodeCenter(fromNode);
-              return <line x1={from.x} y1={from.y} x2={connecting.mx} y2={connecting.my} stroke="hsl(var(--primary))" strokeWidth="2" strokeDasharray="4 4" opacity="0.6" />;
-            })()}
-          </svg>
-
-          {/* Nodes */}
-          {nodes.map(node => {
-            const role = NODE_ROLES.find(r => r.type === node.type);
-            const Icon = role?.icon || Brain;
-            const color = role?.color || 'hsl(var(--primary))';
-            return (
-              <div
-                key={node.id}
-                className="absolute rounded-xl border border-border bg-card shadow-lg cursor-grab active:cursor-grabbing transition-shadow hover:shadow-xl hover:border-primary/40 group"
-                style={{ left: node.x, top: node.y, width: NODE_W, height: NODE_H }}
-                onMouseDown={(e) => {
-                  if (editingId === node.id) return;
-                  e.stopPropagation();
-                  const local = toCanvasCoords(e.clientX, e.clientY);
-                  setDragging({ id: node.id, offsetX: local.x - node.x, offsetY: local.y - node.y });
-                }}
-                onDoubleClick={(e) => {
-                  e.stopPropagation();
-                  setEditingId(node.id);
-                  setEditLabel(node.label);
-                }}
-              >
-                <div className="flex items-center gap-2 px-3 py-2 h-full">
-                  <GripVertical className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
-                  <div className="h-8 w-8 rounded-lg flex items-center justify-center shrink-0" style={{ backgroundColor: `${color}20` }}>
-                    <Icon className="h-4 w-4" style={{ color }} />
-                  </div>
-                  <div className="min-w-0 flex-1">
-                    {editingId === node.id ? (
-                      <Input
-                        autoFocus
-                        value={editLabel}
-                        onChange={e => setEditLabel(e.target.value)}
-                        onBlur={() => {
-                          if (editLabel.trim()) {
-                            onNodesChange(nodes.map(n => n.id === node.id ? { ...n, label: editLabel.trim() } : n));
-                          }
-                          setEditingId(null);
-                        }}
-                        onKeyDown={e => {
-                          if (e.key === 'Enter') (e.target as HTMLInputElement).blur();
-                          if (e.key === 'Escape') setEditingId(null);
-                        }}
-                        onMouseDown={e => e.stopPropagation()}
-                        className="h-5 text-xs px-1 py-0 bg-secondary/50"
-                      />
-                    ) : (
-                      <p className="text-xs font-semibold text-foreground truncate">{node.label}</p>
-                    )}
-                    <p className="text-[11px] text-muted-foreground">{node.type}</p>
-                  </div>
-                  {/* Connect handle */}
-                  <div
-                    className="absolute -right-2 top-1/2 -translate-y-1/2 h-4 w-4 rounded-full bg-primary border-2 border-background cursor-crosshair hover:scale-125 transition-transform z-10"
-                    onMouseDown={(e) => {
-                      e.stopPropagation();
-                      const local = toCanvasCoords(e.clientX, e.clientY);
-                      setConnecting({ fromId: node.id, mx: local.x, my: local.y });
-                    }}
-                  />
-                  {/* Delete */}
-                  <button
-                    className="absolute -top-2 -right-2 h-5 w-5 rounded-full bg-destructive text-destructive-foreground flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity z-10"
-                    onMouseDown={(e) => { e.stopPropagation(); removeNode(node.id); }}
-                  >
-                    <X className="h-3 w-3" />
-                  </button>
-                </div>
-              </div>
-            );
-          })}
-        </div>
-
-        {nodes.length === 0 && (
-          <div className="absolute inset-0 flex items-center justify-center text-muted-foreground text-sm">
-            Clique nos botões acima para adicionar nodes ao canvas
-          </div>
+      {/* Type badge */}
+      <div className="flex items-center gap-2">
+        <span
+          className="text-[10px] px-2 py-0.5 rounded-full font-medium"
+          style={{ backgroundColor: `${nodeInfo.color}22`, color: nodeInfo.color }}
+        >
+          {nodeInfo.label}
+        </span>
+        {data.status === 'running' && (
+          <span className="text-[10px] text-[#4D96FF] animate-pulse">Executando...</span>
         )}
-
-        <CanvasMinimap nodes={nodes} edges={edges} zoom={zoom} pan={pan} containerWidth={containerRef.current?.clientWidth ?? 800} containerHeight={480} />
+        {data.status === 'success' && (
+          <span className="text-[10px] text-[#6BCB77]">✓ Concluído</span>
+        )}
+        {data.status === 'error' && (
+          <span className="text-[10px] text-[#FF6B6B]">✗ Erro</span>
+        )}
       </div>
-      <p className="text-[11px] text-muted-foreground">
-        Arraste nodes para posicionar • Ponto azul para conectar • Clique na linha para remover • Scroll para zoom • Alt+arraste para pan • Duplo-clique para renomear • Arraste da toolbar para o canvas
-      </p>
+
+      {/* Input handle (top) */}
+      {data.type !== 'start' && (
+        <div className="absolute -top-2 left-1/2 -translate-x-1/2 w-4 h-4 bg-[#222244] border-2 border-[#4D96FF] rounded-full cursor-pointer hover:bg-[#4D96FF] transition-colors" />
+      )}
+
+      {/* Output handle(s) (bottom) */}
+      {data.type === 'condition' ? (
+        <>
+          <div className="absolute -bottom-2 left-1/3 -translate-x-1/2 w-4 h-4 bg-[#222244] border-2 border-[#6BCB77] rounded-full cursor-pointer hover:bg-[#6BCB77] transition-colors" title="Sim" />
+          <div className="absolute -bottom-2 left-2/3 -translate-x-1/2 w-4 h-4 bg-[#222244] border-2 border-[#FF6B6B] rounded-full cursor-pointer hover:bg-[#FF6B6B] transition-colors" title="Não" />
+        </>
+      ) : data.type !== 'output' ? (
+        <div className="absolute -bottom-2 left-1/2 -translate-x-1/2 w-4 h-4 bg-[#222244] border-2 border-[#6BCB77] rounded-full cursor-pointer hover:bg-[#6BCB77] transition-colors" />
+      ) : null}
     </div>
   );
 }
+
+// ═══ Node Palette (Sidebar) ═══
+function NodePalette({ onAddNode }: { onAddNode: (type: NodeType) => void }) {
+  return (
+    <div className="w-64 bg-[#0a0a1a] border-r border-[#222244] p-4 overflow-y-auto">
+      <h3 className="text-sm font-bold text-white mb-4">Blocos Disponíveis</h3>
+      {NODE_CATEGORIES.map(cat => (
+        <div key={cat.id} className="mb-4">
+          <h4 className="text-xs text-[#888888] uppercase tracking-wider mb-2">{cat.label}</h4>
+          <div className="space-y-1">
+            {cat.nodes.map(nodeType => {
+              const info = NODE_TYPES[nodeType as NodeType];
+              return (
+                <button
+                  key={nodeType}
+                  onClick={() => onAddNode(nodeType as NodeType)}
+                  className="w-full flex items-center gap-2 px-3 py-2 rounded-lg bg-[#111122] hover:bg-[#16162a] border border-transparent hover:border-[#222244] transition-all text-left group"
+                  draggable
+                  onDragStart={(e) => e.dataTransfer.setData('nodeType', nodeType)}
+                >
+                  <span className="text-base">{info.icon}</span>
+                  <span className="text-xs text-[#E0E0E0] group-hover:text-white">{info.label}</span>
+                </button>
+              );
+            })}
+          </div>
+        </div>
+      ))}
+    </div>
+  );
+}
+
+// ═══ Toolbar ═══
+function WorkflowToolbar({
+  name,
+  isDirty,
+  isExecuting,
+  onSave,
+  onExecute,
+  onClear,
+}: {
+  name: string;
+  isDirty: boolean;
+  isExecuting: boolean;
+  onSave: () => void;
+  onExecute: () => void;
+  onClear: () => void;
+}) {
+  return (
+    <div className="h-14 bg-[#0a0a1a] border-b border-[#222244] flex items-center justify-between px-4">
+      <div className="flex items-center gap-3">
+        <span className="text-lg">🔀</span>
+        <h2 className="text-base font-bold text-white">{name}</h2>
+        {isDirty && <span className="text-xs text-[#FFD93D]">● Não salvo</span>}
+      </div>
+      <div className="flex items-center gap-2">
+        <button
+          onClick={onClear}
+          className="px-3 py-1.5 text-xs text-[#888888] hover:text-white border border-[#222244] rounded-lg hover:border-[#444466] transition-colors"
+        >
+          Limpar
+        </button>
+        <button
+          onClick={onSave}
+          disabled={!isDirty}
+          className="px-3 py-1.5 text-xs text-white bg-[#222244] rounded-lg hover:bg-[#333355] disabled:opacity-50 transition-colors"
+        >
+          💾 Salvar
+        </button>
+        <button
+          onClick={onExecute}
+          disabled={isExecuting}
+          className="px-4 py-1.5 text-xs text-white bg-gradient-to-r from-[#4D96FF] to-[#6BCB77] rounded-lg hover:opacity-90 disabled:opacity-50 transition-opacity"
+        >
+          {isExecuting ? '⏳ Executando...' : '▶️ Executar'}
+        </button>
+      </div>
+    </div>
+  );
+}
+
+// ═══ Main Canvas ═══
+export function WorkflowCanvas() {
+  const store = useWorkflowStore();
+  const canvasRef = useRef<HTMLDivElement>(null);
+  const [zoom, setZoom] = useState(1);
+
+  const addNode = useCallback((type: NodeType) => {
+    const nodeInfo = NODE_TYPES[type];
+    const newNode = {
+      id: `node_${crypto.randomUUID().slice(0, 8)}`,
+      type,
+      position: {
+        x: 300 + Math.random() * 200,
+        y: 100 + store.nodes.length * 120,
+      },
+      data: {
+        label: nodeInfo.label,
+        type,
+        config: { ...NODE_DEFAULTS[type] },
+        status: 'idle' as const,
+      },
+    };
+    store.addNode(newNode);
+  }, [store]);
+
+  const handleSave = useCallback(async () => {
+    // Will be connected to workflowsService.saveWorkflow()
+    store.markClean();
+  }, [store]);
+
+  const handleExecute = useCallback(async () => {
+    if (store.nodes.length === 0) return;
+    store.setExecuting(store.nodes[0]?.id || null);
+    // Will be connected to workflow-engine-v2 Edge Function
+    setTimeout(() => store.setExecuting(null), 2000);
+  }, [store]);
+
+  const handleClear = useCallback(() => {
+    store.reset();
+  }, [store]);
+
+  return (
+    <div className="flex flex-col h-full bg-[#080816]">
+      <WorkflowToolbar
+        name={store.workflowName}
+        isDirty={store.isDirty}
+        isExecuting={store.isExecuting}
+        onSave={handleSave}
+        onExecute={handleExecute}
+        onClear={handleClear}
+      />
+
+      <div className="flex flex-1 overflow-hidden">
+        <NodePalette onAddNode={addNode} />
+
+        {/* Canvas Area */}
+        <div
+          ref={canvasRef}
+          className="flex-1 relative overflow-auto bg-[#080816]"
+          style={{
+            backgroundImage: `radial-gradient(circle, #222244 1px, transparent 1px)`,
+            backgroundSize: `${24 * zoom}px ${24 * zoom}px`,
+          }}
+          onDragOver={(e) => e.preventDefault()}
+          onDrop={(e) => {
+            const type = e.dataTransfer.getData('nodeType') as NodeType;
+            if (type && NODE_TYPES[type]) {
+              const rect = canvasRef.current?.getBoundingClientRect();
+              const x = (e.clientX - (rect?.left || 0)) / zoom;
+              const y = (e.clientY - (rect?.top || 0)) / zoom;
+              const nodeInfo = NODE_TYPES[type];
+              store.addNode({
+                id: `node_${crypto.randomUUID().slice(0, 8)}`,
+                type,
+                position: { x, y },
+                data: { label: nodeInfo.label, type, config: { ...NODE_DEFAULTS[type] }, status: 'idle' },
+              });
+            }
+          }}
+        >
+          {/* Render nodes */}
+          {store.nodes.map(node => (
+            <div
+              key={node.id}
+              className="absolute cursor-move"
+              style={{
+                left: node.position.x * zoom,
+                top: node.position.y * zoom,
+                transform: `scale(${zoom})`,
+                transformOrigin: 'top left',
+              }}
+              onClick={() => store.selectNode(node.id)}
+            >
+              <WorkflowNode
+                data={node.data as WorkflowNodeData}
+                selected={store.selectedNodeId === node.id}
+              />
+            </div>
+          ))}
+
+          {/* Empty state */}
+          {store.nodes.length === 0 && (
+            <div className="absolute inset-0 flex items-center justify-center">
+              <div className="text-center">
+                <div className="text-5xl mb-4">🔀</div>
+                <h3 className="text-lg font-bold text-white mb-2">Canvas Vazio</h3>
+                <p className="text-sm text-[#888888] max-w-md">
+                  Arraste blocos da barra lateral ou clique para adicionar.
+                  Conecte-os para criar seu workflow.
+                </p>
+              </div>
+            </div>
+          )}
+
+          {/* Minimap */}
+          <div className="absolute bottom-4 right-4 flex items-center gap-2 bg-[#111122] border border-[#222244] rounded-lg px-3 py-2">
+            <button onClick={() => setZoom(z => Math.max(0.25, z - 0.1))} className="text-[#888888] hover:text-white">−</button>
+            <span className="text-xs text-[#888888] w-12 text-center">{Math.round(zoom * 100)}%</span>
+            <button onClick={() => setZoom(z => Math.min(2, z + 0.1))} className="text-[#888888] hover:text-white">+</button>
+            <button onClick={() => setZoom(1)} className="text-xs text-[#4D96FF] ml-1">Reset</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+export default WorkflowCanvas;
+
+// ═══ Backwards-compatible type exports ═══
+// WorkflowsPage.tsx uses these types
+export type CanvasNode = {
+  id: string;
+  type: string;
+  position: { x: number; y: number };
+  data: Record<string, unknown>;
+};
+
+export type CanvasEdge = {
+  id: string;
+  source: string;
+  target: string;
+  sourceHandle?: string;
+  targetHandle?: string;
+};

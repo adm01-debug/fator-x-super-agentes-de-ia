@@ -1,115 +1,115 @@
 import "https://deno.land/x/xhr@0.1.0/mod.ts";
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
-import { createClient } from "https://esm.sh/@supabase/supabase-js@2.49.4";
+import {
+  handleCorsPreflight, jsonResponse, errorResponse,
+  authenticateRequest,
+  checkRateLimit, createRateLimitResponse, getRateLimitIdentifier, RATE_LIMITS,
+  parseBody, z,
+} from "../_shared/mod.ts";
 
-const corsHeaders = {
-  'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
-};
-
-function validateBody(body: unknown): { valid: true; data: { agent_id: string; dataset_id: string; evaluation_run_id?: string } } | { valid: false; error: string } {
-  if (!body || typeof body !== 'object') return { valid: false, error: 'Request body must be a JSON object' };
-  const b = body as Record<string, unknown>;
-  if (typeof b.agent_id !== 'string' || b.agent_id.length < 10) return { valid: false, error: 'agent_id is required (UUID)' };
-  if (typeof b.dataset_id !== 'string' || b.dataset_id.length < 10) return { valid: false, error: 'dataset_id is required (UUID)' };
-  return {
-    valid: true,
-    data: {
-      agent_id: b.agent_id,
-      dataset_id: b.dataset_id,
-      evaluation_run_id: typeof b.evaluation_run_id === 'string' ? b.evaluation_run_id : undefined,
-    },
-  };
-}
+// ═══ Input Schema ═══
+const TestRunInput = z.object({
+  agent_id: z.string().uuid(),
+  test_cases: z.array(z.object({
+    input: z.string().min(1),
+    expected_output: z.string().optional(),
+    tags: z.array(z.string()).optional(),
+  })).min(1).max(50),
+  model: z.string().default('claude-haiku-4-5-20251001'),
+  system_prompt: z.string().optional(),
+});
 
 serve(async (req) => {
-  if (req.method === 'OPTIONS') return new Response(null, { headers: corsHeaders });
+  if (req.method === 'OPTIONS') return handleCorsPreflight(req);
 
   try {
-    const authHeader = req.headers.get('Authorization')!;
+    const auth = await authenticateRequest(req, { requireWorkspace: true });
+    if (auth.error) return auth.error;
+    const { user, supabase } = auth;
+
+    const identifier = getRateLimitIdentifier(req, user.id);
+    const rateCheck = checkRateLimit(identifier, RATE_LIMITS.heavy);
+    if (!rateCheck.allowed) return createRateLimitResponse(rateCheck);
+
+    const parsed = await parseBody(req, TestRunInput);
+    if (parsed.error) return parsed.error;
+    const { agent_id, test_cases, model, system_prompt } = parsed.data;
+
+    // Load agent config
+    const { data: agent, error: agentErr } = await supabase
+      .from('agents')
+      .select('config')
+      .eq('id', agent_id)
+      .single();
+
+    if (agentErr || !agent) return errorResponse(req, 'Agent not found', 404);
+
     const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
     const supabaseKey = Deno.env.get('SUPABASE_ANON_KEY')!;
-    const supabase = createClient(supabaseUrl, supabaseKey, { global: { headers: { Authorization: authHeader } } });
+    const authHeader = req.headers.get('Authorization')!;
 
-    const { data: { user } } = await supabase.auth.getUser();
-    if (!user) return new Response(JSON.stringify({ error: 'Unauthorized' }), { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
+    const sysPrompt = system_prompt ||
+      (agent.config as Record<string, unknown>)?.system_prompt as string ||
+      'You are a helpful assistant.';
 
-    let rawBody: unknown;
-    try { rawBody = await req.json(); } catch {
-      return new Response(JSON.stringify({ error: 'Invalid JSON body' }), { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
-    }
-
-    const validation = validateBody(rawBody);
-    if (!validation.valid) {
-      return new Response(JSON.stringify({ error: validation.error }), { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
-    }
-    const { agent_id, dataset_id, evaluation_run_id } = validation.data;
-
-    const { data: agent } = await supabase.from('agents').select('*').eq('id', agent_id).single();
-    if (!agent) return new Response(JSON.stringify({ error: 'Agent not found' }), { status: 404, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
-
-    const { data: testCases } = await supabase.from('test_cases').select('*').eq('dataset_id', dataset_id);
-    if (!testCases || testCases.length === 0) return new Response(JSON.stringify({ error: 'No test cases found' }), { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
-
-    const config = (agent.config || {}) as Record<string, unknown>;
-    const systemPrompt = (config.system_prompt as string) || `You are ${agent.name}. ${agent.mission || ''}`;
-    const model = agent.model || 'claude-sonnet-4.6';
-    const gatewayUrl = `${supabaseUrl}/functions/v1/llm-gateway`;
-
-    const results: Array<{ test_case_id: string; input: string; expected: string; actual: string; passed: boolean; latency_ms: number; tokens: number }> = [];
-
-    for (const tc of testCases) {
+    // Run test cases
+    const results = [];
+    for (const tc of test_cases) {
       const start = Date.now();
       try {
-        const resp = await fetch(gatewayUrl, {
+        const resp = await fetch(`${supabaseUrl}/functions/v1/llm-gateway`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json', 'Authorization': authHeader, 'apikey': supabaseKey },
           body: JSON.stringify({
-            model, agent_id,
+            model,
             messages: [
-              { role: 'system', content: systemPrompt },
+              { role: 'system', content: sysPrompt },
               { role: 'user', content: tc.input },
             ],
-            temperature: 0.3, max_tokens: 2000,
+            temperature: 0.3,
+            max_tokens: 1000,
           }),
         });
-        const llmResult = await resp.json();
-        const actual = llmResult.content || llmResult.error || '';
+        const data = await resp.json();
         const latencyMs = Date.now() - start;
-
-        const passed = tc.expected_output
-          ? actual.toLowerCase().includes(tc.expected_output.toLowerCase().substring(0, 100))
-          : true;
-
         results.push({
-          test_case_id: tc.id, input: tc.input,
-          expected: tc.expected_output || '', actual,
-          passed, latency_ms: latencyMs,
-          tokens: llmResult.tokens?.total || 0,
+          input: tc.input,
+          expected: tc.expected_output || null,
+          actual: (data as Record<string, unknown>).content || '',
+          latency_ms: latencyMs,
+          tokens: (data as Record<string, unknown>).usage || null,
+          status: 'success',
+          tags: tc.tags || [],
         });
       } catch (e: unknown) {
-        results.push({ test_case_id: tc.id, input: tc.input, expected: tc.expected_output || '', actual: `ERROR: ${e instanceof Error ? e.message : 'Unknown'}`, passed: false, latency_ms: Date.now() - start, tokens: 0 });
+        results.push({
+          input: tc.input,
+          expected: tc.expected_output || null,
+          actual: null,
+          latency_ms: Date.now() - start,
+          tokens: null,
+          status: 'error',
+          error: e instanceof Error ? e.message : 'Unknown error',
+          tags: tc.tags || [],
+        });
       }
     }
 
-    const passRate = results.filter(r => r.passed).length / results.length;
+    const passed = results.filter(r => r.status === 'success').length;
     const avgLatency = results.reduce((s, r) => s + r.latency_ms, 0) / results.length;
-    const totalTokens = results.reduce((s, r) => s + r.tokens, 0);
 
-    if (evaluation_run_id) {
-      await supabase.from('evaluation_runs').update({
-        status: 'completed', test_cases: results.length, pass_rate: passRate,
-        results: { items: results, avg_latency_ms: avgLatency, total_tokens: totalTokens },
-        completed_at: new Date().toISOString(),
-      }).eq('id', evaluation_run_id);
-    }
+    return jsonResponse(req, {
+      agent_id,
+      model,
+      total: results.length,
+      passed,
+      failed: results.length - passed,
+      pass_rate: Math.round((passed / results.length) * 100),
+      avg_latency_ms: Math.round(avgLatency),
+      results,
+    });
 
-    return new Response(JSON.stringify({
-      total: results.length, passed: results.filter(r => r.passed).length,
-      failed: results.filter(r => !r.passed).length, pass_rate: passRate,
-      avg_latency_ms: Math.round(avgLatency), total_tokens: totalTokens, results,
-    }), { headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
   } catch (error: unknown) {
-    return new Response(JSON.stringify({ error: error instanceof Error ? error.message : 'Internal error' }), { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
+    return errorResponse(req, error instanceof Error ? error.message : 'Internal error', 500);
   }
 });

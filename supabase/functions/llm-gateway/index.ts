@@ -2,11 +2,10 @@ import "https://deno.land/x/xhr@0.1.0/mod.ts";
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient, type SupabaseClient } from "https://esm.sh/@supabase/supabase-js@2.49.4";
 import { callLovable, callOpenRouter, callAnthropic, callOpenAICompatible, callHuggingFace, type LLMCallParams, type LLMResult } from "./providers.ts";
+import { getCorsHeaders, handleCorsPreflight, checkRateLimit, getRateLimitIdentifier, createRateLimitResponse, RATE_LIMITS } from "../_shared/mod.ts";
 
-const corsHeaders = {
-  'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version',
-};
+// CORS handled by _shared/cors.ts — dynamic origin whitelist
+const corsHeaders = { 'Access-Control-Allow-Origin': 'dynamic', 'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type' };
 
 // ═══ Rate Limiting ═══
 const rateLimitMap = new Map<string, number[]>();
