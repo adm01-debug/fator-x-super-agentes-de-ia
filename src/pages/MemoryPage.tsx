@@ -20,14 +20,7 @@ const memoryTypes = [
   { key: 'external', icon: Database, title: 'Conectores Externos', desc: 'Redis, Pinecone, PostgreSQL', retention: 'Conforme provider', color: 'text-muted-foreground' },
 ];
 
-async function invokeMemoryTool(tool: string, params: Record<string, unknown>) {
-  const { data, error } = await supabase.functions.invoke('memory-tools', {
-    body: { tool, params },
-  });
-  if (error) throw new Error(error.message || 'Erro ao chamar memory-tools');
-  if (data?.error) throw new Error(data.error);
-  return data;
-}
+// Memory service functions are imported from memoryService
 
 export default function MemoryPage() {
   const [activeType, setActiveType] = useState('semantic');
