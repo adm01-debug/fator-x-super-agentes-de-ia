@@ -321,10 +321,7 @@ export default function DataHubPage() {
   const loadEntityCounts = useCallback(async () => {
     setLoadingCounts(true);
     try {
-      const { data, error } = await supabase.functions.invoke('datahub-query', {
-        body: { action: 'list_entities' },
-      });
-      if (error) throw error;
+      const data = await listDatahubEntities();
       setEntityCounts(data.entities ?? {});
     } catch (e: unknown) {
       toast.error(`Erro ao carregar contagens: ${e instanceof Error ? e.message : String(e)}`);
