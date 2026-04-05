@@ -83,3 +83,4 @@ export {
 export * from './executionHistoryService';
 export * from './connectorRegistryService';
 export * from './queueManagerService';
+export * from './batchProcessorService';
