@@ -11,6 +11,7 @@
  */
 
 import { supabase } from '@/integrations/supabase/client';
+import { fromTable } from '@/lib/supabaseExtended';
 
 /* ------------------------------------------------------------------ */
 /*  Types                                                              */
@@ -107,8 +108,7 @@ export async function listConnectors(
     has_webhooks?: boolean;
   },
 ): Promise<ConnectorDefinition[]> {
-  let query = supabase
-    .from('connector_registry')
+  let query = fromTable('connector_registry')
     .select('*')
     .order('name', { ascending: true });
 
@@ -124,8 +124,7 @@ export async function listConnectors(
 }
 
 export async function getConnector(id: string): Promise<ConnectorDefinition | null> {
-  const { data, error } = await supabase
-    .from('connector_registry')
+  const { data, error } = await fromTable('connector_registry')
     .select('*')
     .eq('id', id)
     .maybeSingle();
@@ -134,8 +133,7 @@ export async function getConnector(id: string): Promise<ConnectorDefinition | nu
 }
 
 export async function getConnectorBySlug(slug: string): Promise<ConnectorDefinition | null> {
-  const { data, error } = await supabase
-    .from('connector_registry')
+  const { data, error } = await fromTable('connector_registry')
     .select('*')
     .eq('slug', slug)
     .maybeSingle();
@@ -155,8 +153,7 @@ export async function connectService(
 ): Promise<ConnectorInstance> {
   const { data: userData } = await supabase.auth.getUser();
 
-  const { data, error } = await supabase
-    .from('connector_instances')
+  const { data, error } = await fromTable('connector_instances')
     .insert({
       connector_id: connectorId,
       name,
@@ -172,8 +169,7 @@ export async function connectService(
 }
 
 export async function disconnectService(instanceId: string): Promise<void> {
-  const { error } = await supabase
-    .from('connector_instances')
+  const { error } = await fromTable('connector_instances')
     .delete()
     .eq('id', instanceId);
   if (error) throw error;
@@ -182,8 +178,7 @@ export async function disconnectService(instanceId: string): Promise<void> {
 export async function listInstances(
   connectorId?: string,
 ): Promise<ConnectorInstance[]> {
-  let query = supabase
-    .from('connector_instances')
+  let query = fromTable('connector_instances')
     .select('*')
     .order('created_at', { ascending: false });
 
@@ -201,8 +196,7 @@ export async function updateInstanceStatus(
   status: ConnectorStatus,
   healthResult?: Record<string, unknown>,
 ): Promise<void> {
-  const { error } = await supabase
-    .from('connector_instances')
+  const { error } = await fromTable('connector_instances')
     .update({
       status,
       last_health_check: new Date().toISOString(),
@@ -214,15 +208,13 @@ export async function updateInstanceStatus(
 }
 
 export async function recordUsage(instanceId: string): Promise<void> {
-  const { data: existing } = await supabase
-    .from('connector_instances')
+  const { data: existing } = await fromTable('connector_instances')
     .select('usage_count')
     .eq('id', instanceId)
     .single();
 
   const count = (existing?.usage_count ?? 0) + 1;
-  await supabase
-    .from('connector_instances')
+  await fromTable('connector_instances')
     .update({ usage_count: count, last_used_at: new Date().toISOString() })
     .eq('id', instanceId);
 }

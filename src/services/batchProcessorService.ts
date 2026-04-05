@@ -11,6 +11,7 @@
  */
 
 import { supabase } from '@/integrations/supabase/client';
+import { fromTable } from '@/lib/supabaseExtended';
 
 /* ------------------------------------------------------------------ */
 /*  Types                                                              */
@@ -110,8 +111,7 @@ export async function createBatchJob(
   const batchSize = input.batch_size ?? 100;
   const totalBatches = Math.ceil(input.total_items / batchSize);
 
-  const { data, error } = await supabase
-    .from('batch_jobs')
+  const { data, error } = await fromTable('batch_jobs')
     .insert({
       name: input.name,
       description: input.description ?? '',
@@ -140,8 +140,7 @@ export async function createBatchJob(
 }
 
 export async function startBatchJob(jobId: string): Promise<void> {
-  const { error } = await supabase
-    .from('batch_jobs')
+  const { error } = await fromTable('batch_jobs')
     .update({
       status: 'running',
       started_at: new Date().toISOString(),
@@ -152,8 +151,7 @@ export async function startBatchJob(jobId: string): Promise<void> {
 }
 
 export async function pauseBatchJob(jobId: string): Promise<void> {
-  const { error } = await supabase
-    .from('batch_jobs')
+  const { error } = await fromTable('batch_jobs')
     .update({
       status: 'paused',
       paused_at: new Date().toISOString(),
@@ -164,8 +162,7 @@ export async function pauseBatchJob(jobId: string): Promise<void> {
 }
 
 export async function resumeBatchJob(jobId: string): Promise<void> {
-  const { error } = await supabase
-    .from('batch_jobs')
+  const { error } = await fromTable('batch_jobs')
     .update({
       status: 'running',
       paused_at: null,
@@ -177,8 +174,7 @@ export async function resumeBatchJob(jobId: string): Promise<void> {
 
 export async function cancelBatchJob(jobId: string): Promise<void> {
   const now = new Date();
-  const { data: job } = await supabase
-    .from('batch_jobs')
+  const { data: job } = await fromTable('batch_jobs')
     .select('started_at')
     .eq('id', jobId)
     .single();
@@ -187,8 +183,7 @@ export async function cancelBatchJob(jobId: string): Promise<void> {
     ? now.getTime() - new Date(job.started_at).getTime()
     : null;
 
-  const { error } = await supabase
-    .from('batch_jobs')
+  const { error } = await fromTable('batch_jobs')
     .update({
       status: 'cancelled',
       completed_at: now.toISOString(),
@@ -208,8 +203,7 @@ export async function reportBatchResults(
   batchNumber: number,
   results: BatchItemResult[],
 ): Promise<{ should_continue: boolean; job: BatchJob }> {
-  const { data: currentJob, error: fetchError } = await supabase
-    .from('batch_jobs')
+  const { data: currentJob, error: fetchError } = await fromTable('batch_jobs')
     .select('*')
     .eq('id', jobId)
     .single();
@@ -298,8 +292,7 @@ export async function reportBatchResults(
     updatePayload.duration_ms = durationMs;
   }
 
-  const { data: updatedJob, error: updateError } = await supabase
-    .from('batch_jobs')
+  const { data: updatedJob, error: updateError } = await fromTable('batch_jobs')
     .update(updatePayload)
     .eq('id', jobId)
     .select()
@@ -420,8 +413,7 @@ export async function processBatch<T, R>(
   }
 
   // Fetch final state
-  const { data: finalJob } = await supabase
-    .from('batch_jobs')
+  const { data: finalJob } = await fromTable('batch_jobs')
     .select('*')
     .eq('id', job.id)
     .single();
@@ -437,8 +429,7 @@ export async function listBatchJobs(
   status?: BatchStatus,
   limit: number = 50,
 ): Promise<BatchJob[]> {
-  let query = supabase
-    .from('batch_jobs')
+  let query = fromTable('batch_jobs')
     .select('*')
     .order('created_at', { ascending: false })
     .limit(limit);
@@ -453,8 +444,7 @@ export async function listBatchJobs(
 }
 
 export async function getBatchJob(id: string): Promise<BatchJob | null> {
-  const { data, error } = await supabase
-    .from('batch_jobs')
+  const { data, error } = await fromTable('batch_jobs')
     .select('*')
     .eq('id', id)
     .maybeSingle();
@@ -514,19 +504,19 @@ export async function getBatchStats(): Promise<{
   avg_duration_ms: number;
   avg_items_per_second: number;
 }> {
-  const { data, error } = await supabase
-    .from('batch_jobs')
+  const { data, error } = await fromTable('batch_jobs')
     .select('status, processed_items, successful_items, failed_items, duration_ms, avg_item_ms');
   if (error) throw error;
 
-  const jobs = data ?? [];
-  const completed = jobs.filter((j) => j.status === 'completed' || j.status === 'partial');
-  const failed = jobs.filter((j) => j.status === 'failed');
-  const running = jobs.filter((j) => j.status === 'running');
-  const totalProcessed = jobs.reduce((s, j) => s + (j.processed_items ?? 0), 0);
-  const totalSuccessful = jobs.reduce((s, j) => s + (j.successful_items ?? 0), 0);
-  const durations = jobs.map((j) => j.duration_ms).filter((d): d is number => d !== null);
-  const speeds = jobs.map((j) => j.avg_item_ms).filter((s): s is number => s !== null && s > 0);
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const jobs: any[] = data ?? [];
+  const completed = jobs.filter((j: any) => j.status === 'completed' || j.status === 'partial');
+  const failed = jobs.filter((j: any) => j.status === 'failed');
+  const running = jobs.filter((j: any) => j.status === 'running');
+  const totalProcessed = jobs.reduce((s: number, j: any) => s + (j.processed_items ?? 0), 0);
+  const totalSuccessful = jobs.reduce((s: number, j: any) => s + (j.successful_items ?? 0), 0);
+  const durations = jobs.map((j: any) => j.duration_ms).filter((d: any): d is number => d !== null);
+  const speeds = jobs.map((j: any) => j.avg_item_ms).filter((s: any): s is number => s !== null && s > 0);
 
   return {
     total_jobs: jobs.length,
