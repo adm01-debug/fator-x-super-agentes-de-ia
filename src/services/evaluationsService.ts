@@ -39,6 +39,72 @@ export async function listTestCases(datasetId: string) {
   return data ?? [];
 }
 
+export async function createEvaluationRun(run: {
+  name: string;
+  agent_id: string;
+  dataset_id: string;
+  test_cases: number;
+  workspace_id?: string;
+  status?: string;
+}) {
+  const { data, error } = await supabase
+    .from('evaluation_runs')
+    .insert({ ...run, status: run.status || 'running' })
+    .select()
+    .single();
+  if (error) throw error;
+  return data;
+}
+
+export async function updateEvaluationRun(id: string, updates: Record<string, unknown>) {
+  const { error } = await supabase
+    .from('evaluation_runs')
+    .update(updates)
+    .eq('id', id);
+  if (error) throw error;
+}
+
+export async function createEvaluationDataset(dataset: { name: string; description?: string; workspace_id?: string }) {
+  const { data, error } = await supabase
+    .from('evaluation_datasets')
+    .insert(dataset)
+    .select()
+    .single();
+  if (error) throw error;
+  return data;
+}
+
+export async function createTestCase(tc: { dataset_id: string; input: string; expected_output?: string; tags?: string[] }) {
+  const { data, error } = await supabase
+    .from('test_cases')
+    .insert(tc)
+    .select()
+    .single();
+  if (error) throw error;
+  return data;
+}
+
+export async function deleteTestCase(id: string) {
+  const { error } = await supabase.from('test_cases').delete().eq('id', id);
+  if (error) throw error;
+}
+
+export async function updateDatasetCaseCount(datasetId: string) {
+  const { count } = await supabase.from('test_cases').select('id', { count: 'exact', head: true }).eq('dataset_id', datasetId);
+  await supabase.from('evaluation_datasets').update({ case_count: count ?? 0 }).eq('id', datasetId);
+}
+
+export async function invokeEvalJudge(body: Record<string, unknown>) {
+  const { data, error } = await supabase.functions.invoke('eval-judge', { body });
+  if (error) throw error;
+  return data;
+}
+
+export async function listAgentsForSelect() {
+  const { data } = await supabase.from('agents').select('id, name').order('name');
+  return data ?? [];
+}
+
 // ═══ Types ═══
 
 export interface TestCase {

@@ -184,3 +184,68 @@ export async function fetchChunksForRerank(kbId?: string, limit = 50) {
   if (error) throw error;
   return data ?? [];
 }
+
+export async function createKnowledgeBaseWithWorkspace(kb: { name: string; description?: string; embedding_model?: string }) {
+  const { data: member } = await supabase.from('workspace_members').select('workspace_id').limit(1).maybeSingle();
+  const { data, error } = await supabase.from('knowledge_bases').insert({
+    ...kb,
+    workspace_id: member?.workspace_id,
+  }).select().single();
+  if (error) throw error;
+  return data;
+}
+
+export async function updateKnowledgeBase(id: string, updates: { name?: string; description?: string; embedding_model?: string }) {
+  const { error } = await supabase.from('knowledge_bases').update(updates).eq('id', id);
+  if (error) throw error;
+}
+
+export async function createCollectionInKB(kb_id: string, name: string) {
+  const { error } = await supabase.from('collections').insert({ name, knowledge_base_id: kb_id });
+  if (error) throw error;
+}
+
+export async function createDocument(doc: { title: string; collection_id: string; source_type?: string; mime_type?: string }) {
+  const { data, error } = await supabase.from('documents').insert(doc).select().single();
+  if (error) throw error;
+  return data;
+}
+
+export async function invokeRagIngest(body: Record<string, unknown>) {
+  const { data, error } = await supabase.functions.invoke('rag-ingest', { body });
+  if (error) throw error;
+  return data;
+}
+
+export async function getDocumentCount(collectionId: string) {
+  const { count } = await supabase.from('documents').select('id', { count: 'exact', head: true }).eq('collection_id', collectionId);
+  return count ?? 0;
+}
+
+export async function getChunkCountForCollection(documentIds: string[]) {
+  const { count } = await supabase.from('chunks').select('id', { count: 'exact', head: true }).in('document_id', documentIds);
+  return count ?? 0;
+}
+
+export async function getKBHealthStats() {
+  const [docs, chunks, colls] = await Promise.all([
+    supabase.from('documents').select('*', { count: 'exact', head: true }),
+    supabase.from('chunks').select('*', { count: 'exact', head: true }),
+    supabase.from('collections').select('*', { count: 'exact', head: true }),
+  ]);
+  return {
+    docCount: docs.count ?? 0,
+    chunkCount: chunks.count ?? 0,
+    collCount: colls.count ?? 0,
+  };
+}
+
+export async function createPromptVersion(pv: { agent_id: string; content: string; user_id: string; change_summary?: string }) {
+  const { error } = await supabase.from('prompt_versions').insert(pv);
+  if (error) throw error;
+}
+
+export async function listPromptVersions(agentId: string) {
+  const { data } = await supabase.from('prompt_versions').select('id, version, change_summary, is_active').eq('agent_id', agentId).order('version', { ascending: false });
+  return data ?? [];
+}
