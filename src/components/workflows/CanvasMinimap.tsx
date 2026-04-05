@@ -19,10 +19,10 @@ export function CanvasMinimap({ nodes, edges, zoom, pan, containerWidth, contain
   const PAD = 40;
   const NODE_W = 160;
   const NODE_H = 72;
-  const minX = Math.min(...nodes.map(n => n.x)) - PAD;
-  const minY = Math.min(...nodes.map(n => n.y)) - PAD;
-  const maxX = Math.max(...nodes.map(n => n.x + NODE_W)) + PAD;
-  const maxY = Math.max(...nodes.map(n => n.y + NODE_H)) + PAD;
+  const minX = Math.min(...nodes.map(n => n.position.x)) - PAD;
+  const minY = Math.min(...nodes.map(n => n.position.y)) - PAD;
+  const maxX = Math.max(...nodes.map(n => n.position.x + NODE_W)) + PAD;
+  const maxY = Math.max(...nodes.map(n => n.position.y + NODE_H)) + PAD;
   const worldW = maxX - minX || 1;
   const worldH = maxY - minY || 1;
 
@@ -49,11 +49,11 @@ export function CanvasMinimap({ nodes, edges, zoom, pan, containerWidth, contain
       <svg width={MINIMAP_W} height={MINIMAP_H} xmlns="http://www.w3.org/2000/svg">
         {/* Edges */}
         {edges.map((edge, i) => {
-          const fromNode = nodes.find(n => n.id === edge.from);
-          const toNode = nodes.find(n => n.id === edge.to);
+          const fromNode = nodes.find(n => n.id === edge.source);
+          const toNode = nodes.find(n => n.id === edge.target);
           if (!fromNode || !toNode) return null;
-          const from = toMini(fromNode.x + NODE_W / 2, fromNode.y + NODE_H / 2);
-          const to = toMini(toNode.x + NODE_W / 2, toNode.y + NODE_H / 2);
+          const from = toMini(fromNode.position.x + NODE_W / 2, fromNode.position.y + NODE_H / 2);
+          const to = toMini(toNode.position.x + NODE_W / 2, toNode.position.y + NODE_H / 2);
           return (
             <line key={i} x1={from.x} y1={from.y} x2={to.x} y2={to.y}
               stroke="hsl(var(--primary))" strokeWidth="1" opacity="0.4" />
@@ -61,7 +61,7 @@ export function CanvasMinimap({ nodes, edges, zoom, pan, containerWidth, contain
         })}
         {/* Nodes */}
         {nodes.map(node => {
-          const pos = toMini(node.x, node.y);
+          const pos = toMini(node.position.x, node.position.y);
           const w = NODE_W * scale;
           const h = NODE_H * scale;
           return (
