@@ -58,12 +58,29 @@ export function SearchTab() {
     setRerankMethod(null);
 
     try {
-      // Fetch chunks from DB to rerank
-      const { data: chunks, error: chunkErr } = await supabase
+      // Build chunk query, optionally filtering by KB
+      let chunkQuery = supabase
         .from('chunks')
         .select('id, content, chunk_index, token_count, document_id, metadata')
         .limit(50)
         .order('created_at', { ascending: false });
+
+      if (selectedKbId !== 'all') {
+        // Get document IDs belonging to the selected KB's collections
+        const { data: docs } = await supabase
+          .from('documents')
+          .select('id, collection_id, collections!inner(knowledge_base_id)')
+          .eq('collections.knowledge_base_id', selectedKbId);
+        const docIds = (docs || []).map(d => d.id);
+        if (docIds.length === 0) {
+          toast.warning('Nenhum documento encontrado nesta Knowledge Base.');
+          setIsReranking(false);
+          return;
+        }
+        chunkQuery = chunkQuery.in('document_id', docIds);
+      }
+
+      const { data: chunks, error: chunkErr } = await chunkQuery;
 
       if (chunkErr) throw chunkErr;
       if (!chunks || chunks.length === 0) {
@@ -75,7 +92,7 @@ export function SearchTab() {
       const result = await rerankChunks(
         rerankQuery,
         chunks.map(c => ({ ...c })),
-        { topK: rerankTopK }
+        { topK: rerankTopK, knowledgeBaseId: selectedKbId !== 'all' ? selectedKbId : undefined }
       );
 
       setRerankResults(result.reranked);
