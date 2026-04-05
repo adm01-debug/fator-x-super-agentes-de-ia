@@ -62,4 +62,15 @@ export * from './middlewarePipelineService';
 export * from './progressiveSkillLoader';
 export * from './forensicSnapshotService';
 export * from './preExecutionValidationService';
-export * from './acePlaybooksService';
+export {
+  generateCandidates,
+  evaluateCandidates,
+  curateBest,
+  runACECycle,
+  getDefaultACEConfig,
+  type PlaybookRun,
+  type PromptCandidate,
+  type CandidateScores,
+  type EvolutionStrategy,
+  type ACEConfig,
+} from './acePlaybooksService';
