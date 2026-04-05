@@ -268,3 +268,4 @@ export const TEMPLATE_CATEGORIES = [
   { id: 'estrategia', label: 'Estratégia', icon: '🎯' },
   { id: 'marketing', label: 'Marketing', icon: '📱' },
   { id: 'avancado', label: 'Avançado', icon: '🔧' },
+];
