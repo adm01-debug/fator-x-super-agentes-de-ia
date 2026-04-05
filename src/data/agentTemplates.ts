@@ -259,7 +259,9 @@ const RAW_TEMPLATES: AgentTemplateRaw[] = [
   },
 ];
 
-export const TEMPLATE_CATEGORIES = [
+export const AGENT_TEMPLATES: AgentTemplate[] = RAW_TEMPLATES.map(enrichTemplate);
+
+
   { id: 'vendas', label: 'Vendas & Atendimento', icon: '💼' },
   { id: 'rh', label: 'RH & Gestão', icon: '👥' },
   { id: 'produtividade', label: 'Produtividade', icon: '⚡' },
