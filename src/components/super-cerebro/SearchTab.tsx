@@ -1,12 +1,13 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Loader2, MessageSquare, Sparkles, ArrowUpDown, Search } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
-import { rerankChunks, type RerankResult } from "@/services/knowledgeService";
+import { rerankChunks, listKnowledgeBases, type RerankResult } from "@/services/knowledgeService";
 
 export function SearchTab() {
   const [query, setQuery] = useState('');
@@ -19,6 +20,14 @@ export function SearchTab() {
   const [isReranking, setIsReranking] = useState(false);
   const [rerankResults, setRerankResults] = useState<RerankResult[] | null>(null);
   const [rerankMethod, setRerankMethod] = useState<string | null>(null);
+
+  // KB filter
+  const [knowledgeBases, setKnowledgeBases] = useState<{ id: string; name: string }[]>([]);
+  const [selectedKbId, setSelectedKbId] = useState<string>('all');
+
+  useEffect(() => {
+    listKnowledgeBases().then(kbs => setKnowledgeBases(kbs.map(kb => ({ id: kb.id, name: kb.name })))).catch(() => {});
+  }, []);
 
   const handleSearch = async () => {
     if (!query.trim()) return;
@@ -49,12 +58,29 @@ export function SearchTab() {
     setRerankMethod(null);
 
     try {
-      // Fetch chunks from DB to rerank
-      const { data: chunks, error: chunkErr } = await supabase
+      // Build chunk query, optionally filtering by KB
+      let chunkQuery = supabase
         .from('chunks')
         .select('id, content, chunk_index, token_count, document_id, metadata')
         .limit(50)
         .order('created_at', { ascending: false });
+
+      if (selectedKbId !== 'all') {
+        // Get document IDs belonging to the selected KB's collections
+        const { data: docs } = await supabase
+          .from('documents')
+          .select('id, collection_id, collections!inner(knowledge_base_id)')
+          .eq('collections.knowledge_base_id', selectedKbId);
+        const docIds = (docs || []).map(d => d.id);
+        if (docIds.length === 0) {
+          toast.warning('Nenhum documento encontrado nesta Knowledge Base.');
+          setIsReranking(false);
+          return;
+        }
+        chunkQuery = chunkQuery.in('document_id', docIds);
+      }
+
+      const { data: chunks, error: chunkErr } = await chunkQuery;
 
       if (chunkErr) throw chunkErr;
       if (!chunks || chunks.length === 0) {
@@ -66,7 +92,7 @@ export function SearchTab() {
       const result = await rerankChunks(
         rerankQuery,
         chunks.map(c => ({ ...c })),
-        { topK: rerankTopK }
+        { topK: rerankTopK, knowledgeBaseId: selectedKbId !== 'all' ? selectedKbId : undefined }
       );
 
       setRerankResults(result.reranked);
@@ -142,6 +168,20 @@ export function SearchTab() {
                 onKeyDown={e => { if (e.key === 'Enter') handleRerank(); }}
               />
             </div>
+          </div>
+          <div className="w-48 space-y-1">
+            <label className="text-xs text-muted-foreground">Knowledge Base</label>
+            <Select value={selectedKbId} onValueChange={setSelectedKbId}>
+              <SelectTrigger className="bg-secondary/50 text-sm">
+                <SelectValue placeholder="Todas" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">Todas as bases</SelectItem>
+                {knowledgeBases.map(kb => (
+                  <SelectItem key={kb.id} value={kb.id}>{kb.name}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
           </div>
           <div className="w-24 space-y-1">
             <label className="text-xs text-muted-foreground">Top K</label>
