@@ -8,9 +8,6 @@
  * - Cost tracking per node and per execution
  */
 
-import { supabase } from '@/integrations/supabase/client';
-
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
 import { fromTable } from '@/lib/supabaseExtended';
 
 // ──────── Types ────────
