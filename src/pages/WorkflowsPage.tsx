@@ -332,16 +332,16 @@ function WorkflowRunsHistory() {
 
   return (
     <div className="space-y-3">
-      {runs.map((run: Record<string, unknown>) => {
+      {runs.map((run) => {
         const wfData = run.workflows as Record<string, unknown> | null;
         return (
-        <div key={run.id} className="nexus-card">
+        <div key={String(run.id)} className="nexus-card">
           <div className="flex items-center justify-between">
             <div>
               <p className="text-sm font-semibold text-foreground">{(wfData?.name as string) || 'Workflow'}</p>
               <p className="text-[11px] text-muted-foreground">
-                {run.total_steps} etapas • {run.current_step || 0} tokens • ${Number(run.output && typeof run.output === 'object' ? 0 : 0).toFixed(4)}
-                {run.started_at && ` • ${new Date(run.started_at).toLocaleString('pt-BR')}`}
+                {String(run.total_steps)} etapas • {String(run.current_step || 0)} tokens
+                {run.started_at && ` • ${new Date(String(run.started_at)).toLocaleString('pt-BR')}`}
               </p>
             </div>
             <Badge variant={run.status === 'completed' ? 'default' : run.status === 'failed' ? 'destructive' : 'outline'} className="text-[11px]">
