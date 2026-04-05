@@ -3,7 +3,7 @@
  * Nexus Agents Studio — Workflow Canvas (React Flow)
  * ═══════════════════════════════════════════════════════════════
  * Visual drag-and-drop workflow builder.
- * Reference: React Flow Pro "AI Workflow Editor" template
+ * Uses semantic design tokens instead of hardcoded colors.
  */
 
 import { useState, useCallback, useRef } from 'react';
@@ -13,28 +13,26 @@ import { NODE_TYPES, NODE_CATEGORIES, NODE_DEFAULTS, type NodeType, type Workflo
 // ═══ Custom Node Component ═══
 function WorkflowNode({ data, selected }: { data: WorkflowNodeData; selected: boolean }) {
   const nodeInfo = NODE_TYPES[data.type];
-  const statusColors = {
-    idle: 'border-[#222244]',
-    running: 'border-[#4D96FF] animate-pulse',
-    success: 'border-[#6BCB77]',
-    error: 'border-[#FF6B6B]',
+  const statusStyles = {
+    idle: 'border-border',
+    running: 'border-primary animate-pulse',
+    success: 'border-nexus-emerald',
+    error: 'border-destructive',
   };
 
   return (
     <div
       className={`
-        bg-[#111122] rounded-xl border-2 px-4 py-3 min-w-[200px] max-w-[280px]
+        bg-card rounded-xl border-2 px-4 py-3 min-w-[200px] max-w-[280px]
         transition-all duration-200 shadow-lg
-        ${selected ? 'border-[#4D96FF] shadow-[0_0_20px_rgba(77,150,255,0.3)]' : statusColors[data.status || 'idle']}
+        ${selected ? 'border-primary shadow-[0_0_20px_hsl(var(--primary)/0.3)]' : statusStyles[data.status || 'idle']}
       `}
     >
-      {/* Header */}
       <div className="flex items-center gap-2 mb-1">
         <span className="text-lg">{nodeInfo.icon}</span>
-        <span className="text-sm font-semibold text-white truncate">{data.label || nodeInfo.label}</span>
+        <span className="text-sm font-semibold text-foreground truncate">{data.label || nodeInfo.label}</span>
       </div>
 
-      {/* Type badge */}
       <div className="flex items-center gap-2">
         <span
           className="text-[10px] px-2 py-0.5 rounded-full font-medium"
@@ -43,29 +41,27 @@ function WorkflowNode({ data, selected }: { data: WorkflowNodeData; selected: bo
           {nodeInfo.label}
         </span>
         {data.status === 'running' && (
-          <span className="text-[10px] text-[#4D96FF] animate-pulse">Executando...</span>
+          <span className="text-[10px] text-primary animate-pulse">Executando...</span>
         )}
         {data.status === 'success' && (
-          <span className="text-[10px] text-[#6BCB77]">✓ Concluído</span>
+          <span className="text-[10px] text-nexus-emerald">✓ Concluído</span>
         )}
         {data.status === 'error' && (
-          <span className="text-[10px] text-[#FF6B6B]">✗ Erro</span>
+          <span className="text-[10px] text-destructive">✗ Erro</span>
         )}
       </div>
 
-      {/* Input handle (top) */}
       {data.type !== 'start' && (
-        <div className="absolute -top-2 left-1/2 -translate-x-1/2 w-4 h-4 bg-[#222244] border-2 border-[#4D96FF] rounded-full cursor-pointer hover:bg-[#4D96FF] transition-colors" />
+        <div className="absolute -top-2 left-1/2 -translate-x-1/2 w-4 h-4 bg-card border-2 border-primary rounded-full cursor-pointer hover:bg-primary transition-colors" />
       )}
 
-      {/* Output handle(s) (bottom) */}
       {data.type === 'condition' ? (
         <>
-          <div className="absolute -bottom-2 left-1/3 -translate-x-1/2 w-4 h-4 bg-[#222244] border-2 border-[#6BCB77] rounded-full cursor-pointer hover:bg-[#6BCB77] transition-colors" title="Sim" />
-          <div className="absolute -bottom-2 left-2/3 -translate-x-1/2 w-4 h-4 bg-[#222244] border-2 border-[#FF6B6B] rounded-full cursor-pointer hover:bg-[#FF6B6B] transition-colors" title="Não" />
+          <div className="absolute -bottom-2 left-1/3 -translate-x-1/2 w-4 h-4 bg-card border-2 border-nexus-emerald rounded-full cursor-pointer hover:bg-nexus-emerald transition-colors" title="Sim" />
+          <div className="absolute -bottom-2 left-2/3 -translate-x-1/2 w-4 h-4 bg-card border-2 border-destructive rounded-full cursor-pointer hover:bg-destructive transition-colors" title="Não" />
         </>
       ) : data.type !== 'output' ? (
-        <div className="absolute -bottom-2 left-1/2 -translate-x-1/2 w-4 h-4 bg-[#222244] border-2 border-[#6BCB77] rounded-full cursor-pointer hover:bg-[#6BCB77] transition-colors" />
+        <div className="absolute -bottom-2 left-1/2 -translate-x-1/2 w-4 h-4 bg-card border-2 border-nexus-emerald rounded-full cursor-pointer hover:bg-nexus-emerald transition-colors" />
       ) : null}
     </div>
   );
@@ -74,11 +70,11 @@ function WorkflowNode({ data, selected }: { data: WorkflowNodeData; selected: bo
 // ═══ Node Palette (Sidebar) ═══
 function NodePalette({ onAddNode }: { onAddNode: (type: NodeType) => void }) {
   return (
-    <div className="w-64 bg-[#0a0a1a] border-r border-[#222244] p-4 overflow-y-auto">
-      <h3 className="text-sm font-bold text-white mb-4">Blocos Disponíveis</h3>
+    <div className="w-64 bg-background border-r border-border p-4 overflow-y-auto">
+      <h3 className="text-sm font-bold text-foreground mb-4">Blocos Disponíveis</h3>
       {NODE_CATEGORIES.map(cat => (
         <div key={cat.id} className="mb-4">
-          <h4 className="text-xs text-[#888888] uppercase tracking-wider mb-2">{cat.label}</h4>
+          <h4 className="text-xs text-muted-foreground uppercase tracking-wider mb-2">{cat.label}</h4>
           <div className="space-y-1">
             {cat.nodes.map(nodeType => {
               const info = NODE_TYPES[nodeType as NodeType];
@@ -86,12 +82,12 @@ function NodePalette({ onAddNode }: { onAddNode: (type: NodeType) => void }) {
                 <button
                   key={nodeType}
                   onClick={() => onAddNode(nodeType as NodeType)}
-                  className="w-full flex items-center gap-2 px-3 py-2 rounded-lg bg-[#111122] hover:bg-[#16162a] border border-transparent hover:border-[#222244] transition-all text-left group"
+                  className="w-full flex items-center gap-2 px-3 py-2 rounded-lg bg-card hover:bg-secondary border border-transparent hover:border-border transition-all text-left group"
                   draggable
                   onDragStart={(e) => e.dataTransfer.setData('nodeType', nodeType)}
                 >
                   <span className="text-base">{info.icon}</span>
-                  <span className="text-xs text-[#E0E0E0] group-hover:text-white">{info.label}</span>
+                  <span className="text-xs text-muted-foreground group-hover:text-foreground">{info.label}</span>
                 </button>
               );
             })}
@@ -119,30 +115,30 @@ function WorkflowToolbar({
   onClear: () => void;
 }) {
   return (
-    <div className="h-14 bg-[#0a0a1a] border-b border-[#222244] flex items-center justify-between px-4">
+    <div className="h-14 bg-background border-b border-border flex items-center justify-between px-4">
       <div className="flex items-center gap-3">
         <span className="text-lg">🔀</span>
-        <h2 className="text-base font-bold text-white">{name}</h2>
-        {isDirty && <span className="text-xs text-[#FFD93D]">● Não salvo</span>}
+        <h2 className="text-base font-bold text-foreground">{name}</h2>
+        {isDirty && <span className="text-xs text-nexus-amber">● Não salvo</span>}
       </div>
       <div className="flex items-center gap-2">
         <button
           onClick={onClear}
-          className="px-3 py-1.5 text-xs text-[#888888] hover:text-white border border-[#222244] rounded-lg hover:border-[#444466] transition-colors"
+          className="px-3 py-1.5 text-xs text-muted-foreground hover:text-foreground border border-border rounded-lg hover:bg-secondary transition-colors"
         >
           Limpar
         </button>
         <button
           onClick={onSave}
           disabled={!isDirty}
-          className="px-3 py-1.5 text-xs text-white bg-[#222244] rounded-lg hover:bg-[#333355] disabled:opacity-50 transition-colors"
+          className="px-3 py-1.5 text-xs text-foreground bg-secondary rounded-lg hover:bg-secondary/80 disabled:opacity-50 transition-colors"
         >
           💾 Salvar
         </button>
         <button
           onClick={onExecute}
           disabled={isExecuting}
-          className="px-4 py-1.5 text-xs text-white bg-gradient-to-r from-[#4D96FF] to-[#6BCB77] rounded-lg hover:opacity-90 disabled:opacity-50 transition-opacity"
+          className="px-4 py-1.5 text-xs text-primary-foreground nexus-gradient-bg rounded-lg hover:opacity-90 disabled:opacity-50 transition-opacity"
         >
           {isExecuting ? '⏳ Executando...' : '▶️ Executar'}
         </button>
@@ -177,14 +173,12 @@ export function WorkflowCanvas() {
   }, [store]);
 
   const handleSave = useCallback(async () => {
-    // Will be connected to workflowsService.saveWorkflow()
     store.markClean();
   }, [store]);
 
   const handleExecute = useCallback(async () => {
     if (store.nodes.length === 0) return;
     store.setExecuting(store.nodes[0]?.id || null);
-    // Will be connected to workflow-engine-v2 Edge Function
     setTimeout(() => store.setExecuting(null), 2000);
   }, [store]);
 
@@ -193,7 +187,7 @@ export function WorkflowCanvas() {
   }, [store]);
 
   return (
-    <div className="flex flex-col h-full bg-[#080816]">
+    <div className="flex flex-col h-full bg-background">
       <WorkflowToolbar
         name={store.workflowName}
         isDirty={store.isDirty}
@@ -206,12 +200,11 @@ export function WorkflowCanvas() {
       <div className="flex flex-1 overflow-hidden">
         <NodePalette onAddNode={addNode} />
 
-        {/* Canvas Area */}
         <div
           ref={canvasRef}
-          className="flex-1 relative overflow-auto bg-[#080816]"
+          className="flex-1 relative overflow-auto bg-background"
           style={{
-            backgroundImage: `radial-gradient(circle, #222244 1px, transparent 1px)`,
+            backgroundImage: `radial-gradient(circle, hsl(var(--border)) 1px, transparent 1px)`,
             backgroundSize: `${24 * zoom}px ${24 * zoom}px`,
           }}
           onDragOver={(e) => e.preventDefault()}
@@ -231,7 +224,6 @@ export function WorkflowCanvas() {
             }
           }}
         >
-          {/* Render nodes */}
           {store.nodes.map(node => (
             <div
               key={node.id}
@@ -251,13 +243,12 @@ export function WorkflowCanvas() {
             </div>
           ))}
 
-          {/* Empty state */}
           {store.nodes.length === 0 && (
             <div className="absolute inset-0 flex items-center justify-center">
               <div className="text-center">
                 <div className="text-5xl mb-4">🔀</div>
-                <h3 className="text-lg font-bold text-white mb-2">Canvas Vazio</h3>
-                <p className="text-sm text-[#888888] max-w-md">
+                <h3 className="text-lg font-bold text-foreground mb-2">Canvas Vazio</h3>
+                <p className="text-sm text-muted-foreground max-w-md">
                   Arraste blocos da barra lateral ou clique para adicionar.
                   Conecte-os para criar seu workflow.
                 </p>
@@ -265,12 +256,11 @@ export function WorkflowCanvas() {
             </div>
           )}
 
-          {/* Minimap */}
-          <div className="absolute bottom-4 right-4 flex items-center gap-2 bg-[#111122] border border-[#222244] rounded-lg px-3 py-2">
-            <button onClick={() => setZoom(z => Math.max(0.25, z - 0.1))} className="text-[#888888] hover:text-white">−</button>
-            <span className="text-xs text-[#888888] w-12 text-center">{Math.round(zoom * 100)}%</span>
-            <button onClick={() => setZoom(z => Math.min(2, z + 0.1))} className="text-[#888888] hover:text-white">+</button>
-            <button onClick={() => setZoom(1)} className="text-xs text-[#4D96FF] ml-1">Reset</button>
+          <div className="absolute bottom-4 right-4 flex items-center gap-2 bg-card border border-border rounded-lg px-3 py-2 shadow-md">
+            <button onClick={() => setZoom(z => Math.max(0.25, z - 0.1))} className="text-muted-foreground hover:text-foreground transition-colors">−</button>
+            <span className="text-xs text-muted-foreground w-12 text-center">{Math.round(zoom * 100)}%</span>
+            <button onClick={() => setZoom(z => Math.min(2, z + 0.1))} className="text-muted-foreground hover:text-foreground transition-colors">+</button>
+            <button onClick={() => setZoom(1)} className="text-xs text-primary ml-1 hover:underline">Reset</button>
           </div>
         </div>
       </div>
@@ -281,7 +271,6 @@ export function WorkflowCanvas() {
 export default WorkflowCanvas;
 
 // ═══ Backwards-compatible type exports ═══
-// WorkflowsPage.tsx uses these types
 export type CanvasNode = {
   id: string;
   type: string;
