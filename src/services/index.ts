@@ -61,3 +61,4 @@ export {
 export * from './middlewarePipelineService';
 export * from './progressiveSkillLoader';
 export * from './cronSchedulerService';
+export * from './webhookTriggerService';
