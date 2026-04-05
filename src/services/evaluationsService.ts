@@ -91,8 +91,16 @@ export async function deleteTestCase(id: string) {
 }
 
 export async function updateDatasetCaseCount(datasetId: string) {
-  const { count } = await supabase.from('test_cases').select('id', { count: 'exact', head: true }).eq('dataset_id', datasetId);
-  await supabase.from('evaluation_datasets').update({ case_count: count ?? 0 }).eq('id', datasetId);
+  const { count, error: countErr } = await supabase.from('test_cases').select('id', { count: 'exact', head: true }).eq('dataset_id', datasetId);
+  if (countErr) {
+    logger.error('Failed to count test cases', { datasetId, error: countErr.message });
+    throw countErr;
+  }
+  const { error: updateErr } = await supabase.from('evaluation_datasets').update({ case_count: count ?? 0 }).eq('id', datasetId);
+  if (updateErr) {
+    logger.error('Failed to update dataset case count', { datasetId, error: updateErr.message });
+    throw updateErr;
+  }
 }
 
 export async function invokeEvalJudge(body: Record<string, unknown>) {
