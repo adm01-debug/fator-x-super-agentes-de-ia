@@ -60,3 +60,4 @@ export {
 } from './costCalculatorService';
 export * from './middlewarePipelineService';
 export * from './progressiveSkillLoader';
+export * from './cronSchedulerService';
