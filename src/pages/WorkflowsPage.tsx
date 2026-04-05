@@ -332,7 +332,7 @@ function WorkflowRunsHistory() {
 
   return (
     <div className="space-y-3">
-      {runs.map((run) => {
+      {runs.map((run: Record<string, unknown>) => {
         const wfData = run.workflows as Record<string, unknown> | null;
         return (
         <div key={run.id} className="nexus-card">
