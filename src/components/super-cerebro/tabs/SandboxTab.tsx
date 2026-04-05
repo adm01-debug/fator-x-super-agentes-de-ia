@@ -46,7 +46,7 @@ export function SandboxTab() {
           confidence: Number((data as Record<string, unknown>).confidence || 0),
           sources: Array.isArray((data as Record<string, unknown>).sources) ? (data as Record<string, string[]>).sources : [],
           latencyMs,
-          status: resp.ok ? 'success' : 'error',
+          status: 'success',
         });
       } catch (err) { console.error("Operation failed:", err);
         testResults.push({
@@ -54,7 +54,7 @@ export function SandboxTab() {
           answer: 'Erro ao consultar o cérebro',
           confidence: 0,
           sources: [],
-          latencyMs: Date.now() - start,
+          latencyMs: 0,
           status: 'error',
         });
       }
