@@ -62,3 +62,4 @@ export * from './middlewarePipelineService';
 export * from './progressiveSkillLoader';
 export * from './forensicSnapshotService';
 export * from './preExecutionValidationService';
+export * from './acePlaybooksService';
