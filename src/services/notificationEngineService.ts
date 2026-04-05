@@ -12,7 +12,6 @@
  * Gap 5/10 — automation topic analysis
  */
 
-import { supabase } from '@/integrations/supabase/client';
 import { fromTable } from '@/lib/supabaseExtended';
 
 /* ------------------------------------------------------------------ */
@@ -371,10 +370,10 @@ export async function getNotificationStats(): Promise<NotificationStats> {
   let totalDeliveryTime = 0;
   let deliveryCount = 0;
 
-  const sent = items.filter((i) => i.status !== 'pending' && i.status !== 'cancelled');
-  const delivered = items.filter((i) => ['delivered', 'read'].includes(i.status));
-  const failed = items.filter((i) => i.status === 'failed');
-  const read = items.filter((i) => i.status === 'read');
+  const sent = items.filter((i: any) => i.status !== 'pending' && i.status !== 'cancelled');
+  const delivered = items.filter((i: any) => ['delivered', 'read'].includes(i.status));
+  const failed = items.filter((i: any) => i.status === 'failed');
+  const read = items.filter((i: any) => i.status === 'read');
 
   for (const item of items) {
     if (!byChannel[item.channel]) {
