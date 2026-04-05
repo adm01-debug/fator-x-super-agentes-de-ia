@@ -33,8 +33,6 @@ export function SandboxTab() {
 
     for (let i = 0; i < lines.length; i++) {
       const question = lines[i].trim();
-      const start = Date.now();
-
       try {
         const start = Date.now();
         const data = await invokeCerebroQuery({ query: question, top_k: 5 });
