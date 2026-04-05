@@ -17,7 +17,7 @@ import type { EntityMapping, SecondaryMapping, CrossDbMapping } from "@/config/d
 import { DATAHUB_TABLE_BLACKLIST } from "@/config/datahub-blacklist";
 import { DataBrowser } from "@/components/datahub/DataBrowser";
 import { DataHubStats } from "@/components/datahub/DataHubStats";
-import { testDatahubConnections, listDatahubEntities, listDatahubTables } from "@/services/datahubService";
+import { testDatahubConnections, listDatahubEntities } from "@/services/datahubService";
 import { toast } from "sonner";
 
 /* ── Connection definitions ──────────────────────────── */
