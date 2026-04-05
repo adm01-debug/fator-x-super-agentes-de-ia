@@ -43,6 +43,7 @@ serve(async (req) => {
 
     // ═══ Reranking Pipeline (3 layers) ═══
     let reranked: Array<{ chunk: Record<string, unknown>; relevance_score: number }> | null = null;
+    let usedMethod = 'original_order';
 
     // Layer 1: Cohere Rerank API
     if (wsId) {
