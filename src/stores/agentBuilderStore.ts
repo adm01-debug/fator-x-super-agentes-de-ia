@@ -1,9 +1,10 @@
 import { create } from 'zustand';
-import type { AgentConfig, PromptVersion, ReadinessScore, ReadinessItem } from '@/types/agentTypes';
+import type { AgentConfig, PromptVersion, ReadinessScore } from '@/types/agentTypes';
 import { DEFAULT_AGENT, TABS } from '@/data/agentBuilderData';
 import * as agentService from '@/services/agentService';
 import { AgentConfigSchema } from '@/lib/validation';
 import * as agentGovernance from '@/services/agentGovernance';
+import { computeReadinessScore, computeCompleteness } from '@/services/readinessService';
 
 interface AgentBuilderStore {
   agent: AgentConfig;

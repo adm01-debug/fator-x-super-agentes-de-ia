@@ -220,5 +220,8 @@ export function getStreamingConfig(useCase: 'chat' | 'council' | 'workflow' | 'b
     case 'council': return { ...DEFAULT_STREAMING_CONFIG, protocol: 'hybrid', chunkSize: 10 };
     case 'workflow': return { ...DEFAULT_STREAMING_CONFIG, protocol: 'websocket', heartbeatInterval: 5000 };
     case 'batch': return { ...DEFAULT_STREAMING_CONFIG, enabled: false };
-  }
+    default: {
+      const _exhaustive: never = useCase;
+      throw new Error(`Unhandled streaming use case: ${_exhaustive}`);
+    }
 }

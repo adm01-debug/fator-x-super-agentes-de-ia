@@ -310,7 +310,7 @@ export async function loadPromptVersions(agentId: string) {
     .eq('agent_id', agentId)
     .order('version', { ascending: false });
 
-  if (error) throw new Error(`Erro ao carregar versões: ${error.message}`);
+  if (error) { logger.error(`Failed to load prompt versions: ${error.message}`, error, 'agentService'); throw new Error(`Erro ao carregar versões: ${error.message}`); }
   return data ?? [];
 }
 
@@ -321,7 +321,7 @@ export async function activatePromptVersion(agentId: string, versionId: string):
     .update({ is_active: false })
     .eq('agent_id', agentId);
 
-  if (deactivateError) throw new Error(`Erro ao desativar versões: ${deactivateError.message}`);
+  if (deactivateError) { logger.error(`Failed to deactivate prompt versions: ${deactivateError.message}`, deactivateError, 'agentService'); throw new Error(`Erro ao desativar versões: ${deactivateError.message}`); }
 
   // Activate the target version
   const { error } = await supabase
@@ -329,7 +329,7 @@ export async function activatePromptVersion(agentId: string, versionId: string):
     .update({ is_active: true })
     .eq('id', versionId);
 
-  if (error) throw new Error(`Erro ao ativar versão: ${error.message}`);
+  if (error) { logger.error(`Failed to activate prompt version: ${error.message}`, error, 'agentService'); throw new Error(`Erro ao ativar versão: ${error.message}`); }
 }
 
 // ═══ TRACES ═══
@@ -357,7 +357,7 @@ export async function saveTrace(
       session_id: meta?.session_id ?? null,
     });
 
-  if (error) throw new Error(`Erro ao salvar trace: ${error.message}`);
+  if (error) { logger.error(`Failed to save trace: ${error.message}`, error, 'agentService'); throw new Error(`Erro ao salvar trace: ${error.message}`); }
 }
 
 export async function loadTraces(agentId: string, limit = 50) {
@@ -368,7 +368,7 @@ export async function loadTraces(agentId: string, limit = 50) {
     .order('created_at', { ascending: false })
     .limit(limit);
 
-  if (error) throw new Error(`Erro ao carregar traces: ${error.message}`);
+  if (error) { logger.error(`Failed to load traces: ${error.message}`, error, 'agentService'); throw new Error(`Erro ao carregar traces: ${error.message}`); }
   return data ?? [];
 }
 
@@ -385,7 +385,7 @@ export async function loadUsage(agentId: string, days = 30) {
     .gte('date', since.toISOString().split('T')[0])
     .order('date', { ascending: true });
 
-  if (error) throw new Error(`Erro ao carregar uso: ${error.message}`);
+  if (error) { logger.error(`Failed to load usage: ${error.message}`, error, 'agentService'); throw new Error(`Erro ao carregar uso: ${error.message}`); }
   return data ?? [];
 }
 
@@ -398,6 +398,6 @@ export async function loadTemplates(): Promise<AgentRow[]> {
     .eq('is_template', true)
     .order('name');
 
-  if (error) throw new Error(`Erro ao carregar templates: ${error.message}`);
+  if (error) { logger.error(`Failed to load templates: ${error.message}`, error, 'agentService'); throw new Error(`Erro ao carregar templates: ${error.message}`); }
   return (data ?? []) as unknown as AgentRow[];
 }
