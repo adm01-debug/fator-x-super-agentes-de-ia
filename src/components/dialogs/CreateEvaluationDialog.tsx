@@ -7,6 +7,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Plus, Loader2 } from 'lucide-react';
 import { listAgentsForSelect, listEvaluationDatasets, createEvaluationRun, updateEvaluationRun, invokeEvalJudge } from '@/services/evaluationsService';
 import { invokeTestRunner } from '@/services/llmGatewayService';
+import { getWorkspaceId } from '@/lib/agentService';
 import { toast } from 'sonner';
 
 interface CreateEvaluationDialogProps {
@@ -37,38 +38,34 @@ export function CreateEvaluationDialog({ onCreated }: CreateEvaluationDialogProp
     if (!agentId) { toast.error('Selecione um agente'); return; }
     setLoading(true);
     try {
-      const { data: member } = await import('@/integrations/supabase/client').then(m => m.supabase.from('workspace_members').select('workspace_id').limit(1).maybeSingle());
+      const wsId = await getWorkspaceId();
       const evalRun = await createEvaluationRun({
         name: name.trim(),
         test_cases: parseInt(testCases) || 5,
         agent_id: agentId,
-        workspace_id: member?.data?.workspace_id,
+        dataset_id: datasetId || '',
+        workspace_id: wsId,
         status: 'running',
       });
 
-      // If a dataset is selected, call evaluation
       if (datasetId) {
         if (useJudge) {
           toast.info('Avaliando via LLM-as-Judge...');
-          const { data: result, error: judgeError } = await supabase.functions.invoke('eval-judge', {
-            body: { agent_id: agentId, dataset_id: datasetId, evaluation_run_id: evalRun.id, mode: judgeMode },
-          });
-          if (judgeError) {
-            toast.warning(`Avaliação criada mas judge falhou: ${judgeError.message}`);
-            await supabase.from('evaluation_runs').update({ status: 'failed' }).eq('id', evalRun.id);
-          } else {
+          try {
+            const result = await invokeEvalJudge({ agent_id: agentId, dataset_id: datasetId, evaluation_run_id: evalRun.id, mode: judgeMode });
             toast.success(`Judge concluído: score médio ${result?.average_score?.toFixed(1)}/5 (${result?.total_cases} cases)`);
+          } catch (judgeErr: unknown) {
+            toast.warning(`Avaliação criada mas judge falhou: ${judgeErr instanceof Error ? judgeErr.message : 'Erro'}`);
+            await updateEvaluationRun(evalRun.id, { status: 'failed' });
           }
         } else {
           toast.info('Executando testes via test-runner...');
-          const { data: result, error: runError } = await supabase.functions.invoke('test-runner', {
-            body: { agent_id: agentId, dataset_id: datasetId, evaluation_run_id: evalRun.id },
-          });
-          if (runError) {
-            toast.warning(`Avaliação criada mas execução falhou: ${runError.message}`);
-            await supabase.from('evaluation_runs').update({ status: 'failed' }).eq('id', evalRun.id);
-          } else {
+          try {
+            const result = await invokeTestRunner({ agent_id: agentId, dataset_id: datasetId, evaluation_run_id: evalRun.id });
             toast.success(`Testes concluídos: ${result?.passed || 0}/${result?.total || 0} aprovados (${((result?.pass_rate || 0) * 100).toFixed(0)}%)`);
+          } catch (runErr: unknown) {
+            toast.warning(`Avaliação criada mas execução falhou: ${runErr instanceof Error ? runErr.message : 'Erro'}`);
+            await updateEvaluationRun(evalRun.id, { status: 'failed' });
           }
         }
       } else {
