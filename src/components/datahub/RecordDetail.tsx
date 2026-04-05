@@ -196,7 +196,7 @@ function SupplierScoreCard({ data }: { data: Array<Record<string, unknown>> }) {
         )}
         {s.data_homologacao ? (
           <p className="text-muted-foreground">Homologado em: {formatDate(s.data_homologacao as string)}</p>
-        )}
+        ) : null}
       </div>
     </div>
   );
