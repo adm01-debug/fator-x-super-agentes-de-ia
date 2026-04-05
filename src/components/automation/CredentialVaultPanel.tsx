@@ -1,0 +1,90 @@
+import { useState, useEffect } from 'react';
+import { Card, CardContent } from '@/components/ui/card';
+import { Badge } from '@/components/ui/badge';
+import { Lock, ShieldCheck, AlertTriangle, RotateCcw, Key, Eye, EyeOff } from 'lucide-react';
+import { listCredentials, getVaultStats, CREDENTIAL_TEMPLATES, type VaultStats } from '@/services/credentialVaultService';
+import { useToast } from '@/hooks/use-toast';
+
+const TYPE_ICONS: Record<string, string> = { api_key: '🔑', oauth2: '🔐', basic_auth: '👤', bearer_token: '🎫', ssh_key: '🖥️', database: '🗄️', smtp: '📧', webhook_secret: '🔗', custom: '⚙️' };
+
+export function CredentialVaultPanel() {
+  const [credentials, setCredentials] = useState<Awaited<ReturnType<typeof listCredentials>>>([]);
+  const [stats, setStats] = useState<VaultStats | null>(null);
+  const [loading, setLoading] = useState(true);
+  const { toast } = useToast();
+
+  useEffect(() => {
+    Promise.all([listCredentials(), getVaultStats()])
+      .then(([c, s]) => { setCredentials(c); setStats(s); })
+      .catch(() => toast({ title: 'Erro', variant: 'destructive' }))
+      .finally(() => setLoading(false));
+  }, []);
+
+  return (
+    <div className="space-y-6">
+      <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
+        {[
+          { label: 'Total', value: stats?.total_credentials ?? 0, icon: Key, color: '#9B59B6' },
+          { label: 'Ativas', value: stats?.active ?? 0, icon: ShieldCheck, color: '#6BCB77' },
+          { label: 'Expiradas', value: stats?.expired ?? 0, icon: AlertTriangle, color: '#FF6B6B' },
+          { label: 'Expirando', value: stats?.expiring_soon ?? 0, icon: AlertTriangle, color: '#FFD93D' },
+          { label: 'Rotação Pendente', value: stats?.rotation_due ?? 0, icon: RotateCcw, color: '#E67E22' },
+        ].map((s, i) => (
+          <Card key={i} className="bg-[#111122] border-[#222244]">
+            <CardContent className="p-3 text-center">
+              <s.icon size={18} className="mx-auto mb-1" style={{ color: s.color }} />
+              <p className="text-xl font-bold" style={{ color: s.color }}>{s.value}</p>
+              <p className="text-[10px] text-gray-400">{s.label}</p>
+            </CardContent>
+          </Card>
+        ))}
+      </div>
+
+      <Card className="bg-[#111122] border-[#222244]">
+        <CardContent className="p-4">
+          <p className="text-sm text-gray-400 mb-3">Templates de Credencial</p>
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+            {Object.entries(CREDENTIAL_TEMPLATES).map(([key, tpl]) => (
+              <div key={key} className="p-3 rounded-lg bg-[#0a0a1a] border border-[#222244] hover:border-[#9B59B6]/50 cursor-pointer">
+                <div className="flex items-center gap-2 mb-1">
+                  <span>{TYPE_ICONS[tpl.type] ?? '🔑'}</span>
+                  <p className="font-medium text-sm">{tpl.label}</p>
+                </div>
+                <p className="text-[10px] text-gray-400">{tpl.fields.join(', ')}</p>
+              </div>
+            ))}
+          </div>
+        </CardContent>
+      </Card>
+
+      {loading ? (
+        <div className="text-center py-12 text-gray-400">Carregando vault...</div>
+      ) : credentials.length === 0 ? (
+        <Card className="bg-[#111122] border-[#222244]">
+          <CardContent className="py-12 text-center text-gray-400">
+            <Lock size={48} className="mx-auto mb-4 opacity-30" />
+            <p>Nenhuma credencial armazenada.</p>
+            <p className="text-sm mt-1">Use os templates acima para adicionar credenciais com segurança.</p>
+          </CardContent>
+        </Card>
+      ) : (
+        <div className="space-y-2">
+          {credentials.map((c) => (
+            <Card key={c.id} className="bg-[#111122] border-[#222244]">
+              <CardContent className="p-3 flex items-center gap-3">
+                <span className="text-lg">{TYPE_ICONS[c.credential_type] ?? '🔑'}</span>
+                <div className="flex-1">
+                  <p className="text-sm font-medium">{c.name}</p>
+                  <p className="text-[10px] text-gray-400">{c.service_name} • {c.access_count} acessos</p>
+                </div>
+                <Badge className={c.status === 'active' ? 'bg-green-500/20 text-green-400' : c.status === 'expired' ? 'bg-red-500/20 text-red-400' : 'bg-yellow-500/20 text-yellow-400'}>
+                  {c.status}
+                </Badge>
+              </CardContent>
+            </Card>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}

@@ -45,6 +45,7 @@ const ApprovalQueuePage = lazy(() => import("./pages/ApprovalQueuePage"));
 const AIStudioPage = lazy(() => import("./pages/AIStudioPage"));
 const FineTuningPage = lazy(() => import("./pages/FineTuningPage"));
 const SmolagentPage = lazy(() => import("./pages/SmolagentPage"));
+const AutomationCenterPage = lazy(() => import("./pages/AutomationCenterPage"));
 const NotFound = lazy(() => import("./pages/NotFound"));
 
 const queryClient = new QueryClient({
@@ -108,6 +109,7 @@ const App = () => (
                       <Route path="/prompts" element={<SafePage><PromptsPage /></SafePage>} />
                       <Route path="/prompts/:id" element={<SafePage><PromptEditorPage /></SafePage>} />
                       <Route path="/workflows" element={<SafePage><WorkflowsPage /></SafePage>} />
+                      <Route path="/automation" element={<SafePage><AutomationCenterPage /></SafePage>} />
                       <Route path="/evaluations" element={<SafePage><EvaluationsPage /></SafePage>} />
                       <Route path="/deployments" element={<SafePage><DeploymentsPage /></SafePage>} />
                       <Route path="/monitoring" element={<SafePage><MonitoringPage /></SafePage>} />

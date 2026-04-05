@@ -3,7 +3,7 @@ import { useLocation } from "react-router-dom";
 import fatorxIcon from "@/assets/fatorx-icon.png";
 import { NavLink } from "@/components/NavLink";
 import {
-  LayoutDashboard, Bot, BookOpen, Brain, Puzzle, FileText, GitBranch,
+  LayoutDashboard, Bot, BookOpen, Brain, Puzzle, FileText, GitBranch, Zap,
   FlaskConical, Rocket, Activity, Database, Shield, Users, CreditCard, Settings,
   Sparkles, PanelLeftClose, PanelLeft, LogOut, ServerCog, ChevronDown, Palette, Dna, Workflow,
   Globe,
@@ -41,6 +41,7 @@ const navSections = [
       { title: "Ferramentas", url: "/tools", icon: Puzzle },
       { title: "Prompts", url: "/prompts", icon: FileText },
       { title: "Workflows", url: "/workflows", icon: GitBranch },
+      { title: "Automação", url: "/automation", icon: Zap },
       { title: "Fine-tuning", url: "/fine-tuning", icon: Dna },
       { title: "Smolagent", url: "/smolagent", icon: Workflow },
     ],
