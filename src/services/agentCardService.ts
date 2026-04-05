@@ -223,7 +223,7 @@ export async function saveAgentCard(
   agentId: string,
   card: AgentCard
 ): Promise<void> {
-  const { error } = await (supabase.from as DynFrom)('agent_configs')
+  const { error } = await db.from('agent_configs')
     .update({
       metadata: {
         agent_card: card,
@@ -239,7 +239,7 @@ export async function saveAgentCard(
  * Get a cached agent card from the database
  */
 export async function getAgentCard(agentId: string): Promise<AgentCard | null> {
-  const { data, error } = await (supabase.from as DynFrom)('agent_configs')
+  const { data, error } = await db.from('agent_configs')
     .select('metadata')
     .eq('id' as never, agentId)
     .single();
@@ -257,7 +257,7 @@ export async function generateAndSaveAgentCard(
   agentId: string,
   options?: Parameters<typeof generateAgentCard>[1]
 ): Promise<AgentCard> {
-  const { data, error } = await (supabase.from as DynFrom)('agent_configs')
+  const { data, error } = await db.from('agent_configs')
     .select('*')
     .eq('id' as never, agentId)
     .single();
@@ -276,7 +276,7 @@ export async function generateAndSaveAgentCard(
  * List all agent cards in the workspace (for registry/marketplace)
  */
 export async function listAgentCards(): Promise<AgentCard[]> {
-  const { data, error } = await (supabase.from as DynFrom)('agent_configs')
+  const { data, error } = await db.from('agent_configs')
     .select('id, name, description, metadata, model, provider, tools, status, updated_at')
     .eq('status' as never, 'active');
 
