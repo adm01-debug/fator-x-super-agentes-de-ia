@@ -69,6 +69,22 @@ export const translations: Record<string, TranslationKeys> = {
     'common.confirm': 'Confirmar',
     'common.no_data': 'Sem dados',
     'common.unauthorized': 'Acesso não autorizado',
+
+    // Automation Center
+    'automation.title': 'Central de Automação',
+    'automation.schedules': 'Agendamentos',
+    'automation.webhooks': 'Webhooks',
+    'automation.notifications': 'Notificações',
+    'automation.templates': 'Templates',
+    'automation.history': 'Histórico',
+    'automation.connectors': 'Conectores',
+    'automation.queues': 'Filas',
+    'automation.credentials': 'Credenciais',
+    'automation.batch': 'Processamento em Lote',
+    'automation.active': 'Ativo',
+    'automation.paused': 'Pausado',
+    'automation.success_rate': 'Taxa de Sucesso',
+    'automation.no_data': 'Nenhum dado ainda',
   },
 
   'en-US': {
@@ -131,6 +147,22 @@ export const translations: Record<string, TranslationKeys> = {
     'common.confirm': 'Confirm',
     'common.no_data': 'No data',
     'common.unauthorized': 'Unauthorized access',
+
+    // Automation Center
+    'automation.title': 'Automation Center',
+    'automation.schedules': 'Schedules',
+    'automation.webhooks': 'Webhooks',
+    'automation.notifications': 'Notifications',
+    'automation.templates': 'Templates',
+    'automation.history': 'History',
+    'automation.connectors': 'Connectors',
+    'automation.queues': 'Queues',
+    'automation.credentials': 'Credentials',
+    'automation.batch': 'Batch',
+    'automation.active': 'Active',
+    'automation.paused': 'Paused',
+    'automation.success_rate': 'Success Rate',
+    'automation.no_data': 'No data yet',
   },
 };
 

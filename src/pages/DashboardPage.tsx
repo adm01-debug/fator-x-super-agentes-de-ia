@@ -13,6 +13,7 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { UsageCharts } from "@/components/dashboard/UsageCharts";
 import { ActivityFeed } from "@/components/dashboard/ActivityFeed";
+import { AutomationOverviewWidget } from "@/components/automation/AutomationOverviewWidget";
 
 
 // ═══ Dashboard Skeleton ═══
@@ -336,6 +337,9 @@ export default function DashboardPage() {
             </h3>
             <ActivityFeed />
           </div>
+
+          {/* Automation Center Overview */}
+          <AutomationOverviewWidget />
 
           {/* AI Insight */}
           <DashboardInsight agents={agents} usageStats={usageStats} recentTraces={recentTraces} />
