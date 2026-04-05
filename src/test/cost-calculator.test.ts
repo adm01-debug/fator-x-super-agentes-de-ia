@@ -20,20 +20,25 @@ describe('Cost Calculator Service', () => {
   });
 
   it('calculateCost returns valid estimate', () => {
-    const result = calculateCost('gpt-4o', 1000, 500);
-    expect(result.totalCost).toBeGreaterThanOrEqual(0);
-    expect(result.inputCost).toBeGreaterThanOrEqual(0);
-    expect(result.outputCost).toBeGreaterThanOrEqual(0);
+    const result = calculateCost('openai', 'gpt-4o', 1000, 500);
+    expect(result.totalCostUsd).toBeGreaterThanOrEqual(0);
+    expect(result.inputCostUsd).toBeGreaterThanOrEqual(0);
+    expect(result.outputCostUsd).toBeGreaterThanOrEqual(0);
   });
 
   it('calculateCost handles unknown models gracefully', () => {
-    const result = calculateCost('unknown-model-xyz', 1000, 500);
-    expect(result.totalCost).toBeGreaterThanOrEqual(0);
+    const result = calculateCost('unknown', 'unknown-model-xyz', 1000, 500);
+    expect(result.totalCostUsd).toBeGreaterThanOrEqual(0);
   });
 
   it('calculateCost scales with token count', () => {
-    const small = calculateCost('gpt-4o', 100, 50);
-    const large = calculateCost('gpt-4o', 10000, 5000);
-    expect(large.totalCost).toBeGreaterThanOrEqual(small.totalCost);
+    const small = calculateCost('openai', 'gpt-4o', 100, 50);
+    const large = calculateCost('openai', 'gpt-4o', 10000, 5000);
+    expect(large.totalCostUsd).toBeGreaterThanOrEqual(small.totalCostUsd);
+  });
+
+  it('calculateCost returns BRL conversion', () => {
+    const result = calculateCost('openai', 'gpt-4o', 1000, 500);
+    expect(result.totalCostBrl).toBeGreaterThan(result.totalCostUsd);
   });
 });
