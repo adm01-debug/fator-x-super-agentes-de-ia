@@ -75,6 +75,7 @@ export async function discoverTables(url: string, key: string): Promise<{ name: 
         'apikey': key,
         'Authorization': `Bearer ${key}`,
       },
+      signal: AbortSignal.timeout(10000),
     });
     if (!response.ok) return tables;
     const spec = await response.json();
@@ -345,6 +346,7 @@ export async function executeSQL(
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({ sql: trimmedSql }),
+        signal: AbortSignal.timeout(10000),
       });
       if (response.ok) {
         const result = await response.json();

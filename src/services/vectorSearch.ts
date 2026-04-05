@@ -54,6 +54,7 @@ export async function generateEmbedding(
           'Authorization': `Bearer ${resolvedKey}`,
           'Content-Type': 'application/json',
         },
+        signal: AbortSignal.timeout(10000),
         body: JSON.stringify({
           model: 'openai/text-embedding-3-small',
           input: text.slice(0, 8000), // Truncate to stay within token limits
