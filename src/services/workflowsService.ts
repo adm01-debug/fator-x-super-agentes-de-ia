@@ -129,10 +129,49 @@ export async function saveWorkflow(workflow: Partial<Workflow> & { name: string 
 
 /* ── Delete ── */
 export async function deleteWorkflow(id: string): Promise<void> {
-  // Steps cascade via FK, but let's be explicit
   await supabase.from('workflow_steps').delete().eq('workflow_id', id);
   const { error } = await supabase.from('workflows').delete().eq('id', id);
   if (error) throw error;
+}
+
+/* ── Toggle status ── */
+export async function toggleWorkflowStatus(id: string, currentStatus: string): Promise<void> {
+  const { error } = await supabase
+    .from('workflows')
+    .update({ status: currentStatus === 'active' ? 'draft' : 'active' })
+    .eq('id', id);
+  if (error) throw error;
+}
+
+/* ── Execute workflow ── */
+export async function executeWorkflow(workflowId: string, workflowName: string, steps: string[]): Promise<{ stepsExecuted: number; cost: number }> {
+  // Try workflow-engine for DB workflows
+  try {
+    const { data, error } = await supabase.functions.invoke('workflow-engine-v2', {
+      body: { workflow_id: workflowId, input: `Execute o workflow "${workflowName}"` },
+    });
+    if (!error && data?.status === 'completed') {
+      return { stepsExecuted: data.steps_executed, cost: data.total_cost_usd || 0 };
+    }
+  } catch { /* fallback below */ }
+
+  // Fallback: execute step-by-step via Gateway
+  let previousOutput = `Workflow: "${workflowName}". Etapas: ${steps.join(' → ')}`;
+  for (const step of steps) {
+    const { data, error } = await supabase.functions.invoke('llm-gateway', {
+      body: {
+        model: 'claude-sonnet-4.6',
+        messages: [
+          { role: 'system', content: `Você é o agente "${step}" em um workflow multi-agente. Execute sua função.` },
+          { role: 'user', content: `Contexto anterior:\n${previousOutput}\n\nExecute seu papel como "${step}".` },
+        ],
+        temperature: 0.7, max_tokens: 2000,
+      },
+    });
+    if (error) throw error;
+    previousOutput = data?.content || '';
+  }
+  return { stepsExecuted: steps.length, cost: 0 };
 }
 
 /* ── Duplicate ── */
