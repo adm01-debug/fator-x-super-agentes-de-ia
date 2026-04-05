@@ -12,38 +12,29 @@ import {
   RotateCcw, Trash2, Loader2, FileText,
 } from "lucide-react";
 import { toast } from "sonner";
-import { supabase } from "@/integrations/supabase/client";
 import { PageHeader } from "@/components/shared/PageHeader";
+import {
+  getAgentBasic,
+  listPromptVersions,
+  createPromptVersion,
+  updatePromptVersion,
+  deletePromptVersion,
+  restorePromptVersion,
+} from "@/services/promptVersionService";
 
 export default function PromptEditorPage() {
   const { id: agentId } = useParams();
   const queryClient = useQueryClient();
 
-  // Fetch agent info
   const { data: agent } = useQuery({
     queryKey: ["agent", agentId],
-    queryFn: async () => {
-      if (!agentId) return null;
-      const { data, error } = await supabase.from("agents").select("id, name, avatar_emoji").eq("id", agentId).maybeSingle();
-      if (error) throw error;
-      return data;
-    },
+    queryFn: () => getAgentBasic(agentId!),
     enabled: !!agentId,
   });
 
-  // Fetch all versions for this agent
   const { data: versions = [], isLoading } = useQuery({
     queryKey: ["prompt_versions", agentId],
-    queryFn: async () => {
-      if (!agentId) return [];
-      const { data, error } = await supabase
-        .from("prompt_versions")
-        .select("*")
-        .eq("agent_id", agentId)
-        .order("version", { ascending: false });
-      if (error) throw error;
-      return data ?? [];
-    },
+    queryFn: () => listPromptVersions(agentId!),
     enabled: !!agentId,
   });
 
@@ -55,7 +46,6 @@ export default function PromptEditorPage() {
   const [diffVersionId, setDiffVersionId] = useState<string | null>(null);
   const [dirty, setDirty] = useState(false);
 
-  // Sync content when active version changes
   useEffect(() => {
     if (activeVersion) {
       setContent(activeVersion.content);
@@ -69,30 +59,13 @@ export default function PromptEditorPage() {
     setDirty(true);
   };
 
-  // Create new version
-  const createVersion = useMutation({
-    mutationFn: async () => {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) throw new Error("Não autenticado");
-      const nextVersion = (versions[0]?.version || 0) + 1;
-      const { error } = await supabase.from("prompt_versions").insert({
-        agent_id: agentId!,
-        user_id: user.id,
-        content: content.trim(),
-        change_summary: summary.trim() || `Versão ${nextVersion}`,
-        version: nextVersion,
-        is_active: true,
-      });
-      if (error) throw error;
-      // Deactivate previous versions
-      if (versions.length > 0) {
-        await supabase
-          .from("prompt_versions")
-          .update({ is_active: false })
-          .eq("agent_id", agentId!)
-          .neq("version", nextVersion);
-      }
-    },
+  const createVersionMut = useMutation({
+    mutationFn: () => createPromptVersion({
+      agentId: agentId!,
+      content: content.trim(),
+      changeSummary: summary.trim(),
+      nextVersion: (versions[0]?.version || 0) + 1,
+    }),
     onSuccess: () => {
       toast.success("Nova versão salva!");
       setDirty(false);
@@ -102,12 +75,8 @@ export default function PromptEditorPage() {
     onError: (e: Error) => toast.error(e.message || "Erro ao salvar"),
   });
 
-  // Update existing version content
-  const updateVersion = useMutation({
-    mutationFn: async (versionId: string) => {
-      const { error } = await supabase.from("prompt_versions").update({ content: content.trim() }).eq("id", versionId);
-      if (error) throw error;
-    },
+  const updateVersionMut = useMutation({
+    mutationFn: (versionId: string) => updatePromptVersion(versionId, content.trim()),
     onSuccess: () => {
       toast.success("Versão atualizada!");
       setDirty(false);
@@ -116,12 +85,8 @@ export default function PromptEditorPage() {
     onError: (e: Error) => toast.error(e.message || 'Erro inesperado'),
   });
 
-  // Delete a version
-  const deleteVersion = useMutation({
-    mutationFn: async (versionId: string) => {
-      const { error } = await supabase.from("prompt_versions").delete().eq("id", versionId);
-      if (error) throw error;
-    },
+  const deleteVersionMut = useMutation({
+    mutationFn: deletePromptVersion,
     onSuccess: () => {
       toast.success("Versão removida");
       queryClient.invalidateQueries({ queryKey: ["prompt_versions", agentId] });
@@ -129,15 +94,8 @@ export default function PromptEditorPage() {
     onError: (e: Error) => toast.error(e.message || 'Erro inesperado'),
   });
 
-  // Restore (activate) a specific version
-  const restoreVersion = useMutation({
-    mutationFn: async (version: typeof versions[0]) => {
-      // Deactivate all
-      await supabase.from("prompt_versions").update({ is_active: false }).eq("agent_id", agentId!);
-      // Activate selected
-      const { error } = await supabase.from("prompt_versions").update({ is_active: true }).eq("id", version.id);
-      if (error) throw error;
-    },
+  const restoreVersionMut = useMutation({
+    mutationFn: (version: typeof versions[0]) => restorePromptVersion(agentId!, version.id),
     onSuccess: () => {
       toast.success("Versão restaurada!");
       setDiffVersionId(null);
@@ -146,7 +104,6 @@ export default function PromptEditorPage() {
     onError: (e: Error) => toast.error(e.message || 'Erro inesperado'),
   });
 
-  // Score calculation based on content
   const computeScore = useCallback((text: string) => {
     const lower = text.toLowerCase();
     return {
@@ -163,7 +120,6 @@ export default function PromptEditorPage() {
   const score = computeScore(content);
   const scoreItems = Object.entries(score);
   const scorePercent = Math.round((scoreItems.filter(([, v]) => v).length / scoreItems.length) * 100);
-
   const diffVersion = versions.find(v => v.id === diffVersionId);
 
   if (isLoading) {
@@ -176,7 +132,6 @@ export default function PromptEditorPage() {
 
   return (
     <div className="p-6 max-w-[1400px] mx-auto space-y-5">
-      {/* Header */}
       <PageHeader
         title={`${agent?.avatar_emoji || '📝'} ${agent?.name || "Prompt Editor"}`}
         description={`${versions.length} versão(ões) • Editor com versionamento completo`}
@@ -185,24 +140,23 @@ export default function PromptEditorPage() {
           <div className="flex items-center gap-2">
             {activeVersion && dirty && (
               <Button variant="outline" size="sm" className="gap-1.5 text-xs"
-                onClick={() => updateVersion.mutate(activeVersion.id)}
-                disabled={updateVersion.isPending}
+                onClick={() => updateVersionMut.mutate(activeVersion.id)}
+                disabled={updateVersionMut.isPending}
               >
-                {updateVersion.isPending ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Save className="h-3.5 w-3.5" />}
+                {updateVersionMut.isPending ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Save className="h-3.5 w-3.5" />}
                 Atualizar v{activeVersion.version}
               </Button>
             )}
             <Button size="sm" className="gap-1.5 text-xs nexus-gradient-bg text-primary-foreground hover:opacity-90"
-              onClick={() => createVersion.mutate()}
-              disabled={createVersion.isPending || !content.trim()}
+              onClick={() => createVersionMut.mutate()}
+              disabled={createVersionMut.isPending || !content.trim()}
             >
-              {createVersion.isPending ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Save className="h-3.5 w-3.5" />}
+              {createVersionMut.isPending ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Save className="h-3.5 w-3.5" />}
               Nova versão
             </Button>
           </div>
         }
       />
-
 
       <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
         <TabsList className="bg-secondary/50 border border-border/50">
@@ -213,16 +167,14 @@ export default function PromptEditorPage() {
           <TabsTrigger value="score" className="text-xs data-[state=active]:bg-background">Score</TabsTrigger>
         </TabsList>
 
-        {/* ─── Editor ─── */}
         <TabsContent value="editor" className="mt-4 space-y-4">
-          {versions.length === 0 ? (
+          {versions.length === 0 && (
             <div className="nexus-card flex flex-col items-center justify-center py-16 text-center">
               <FileText className="h-10 w-10 text-muted-foreground/30 mb-3" />
               <h3 className="text-sm font-semibold text-foreground mb-1">Nenhuma versão ainda</h3>
               <p className="text-xs text-muted-foreground mb-4">Escreva o primeiro prompt para este agente.</p>
             </div>
-          ) : null}
-
+          )}
           <div className="nexus-card">
             <Label className="text-sm font-semibold text-foreground mb-2 block">Conteúdo do prompt</Label>
             <Textarea
@@ -237,7 +189,6 @@ export default function PromptEditorPage() {
               {dirty && <Badge variant="outline" className="text-[11px] text-nexus-amber border-nexus-amber/30">não salvo</Badge>}
             </div>
           </div>
-
           <div className="nexus-card">
             <Label className="text-sm font-semibold text-foreground mb-2 block">Resumo da alteração (opcional)</Label>
             <Input
@@ -249,7 +200,6 @@ export default function PromptEditorPage() {
           </div>
         </TabsContent>
 
-        {/* ─── Versions ─── */}
         <TabsContent value="versions" className="mt-4 space-y-4">
           <div className="grid lg:grid-cols-2 gap-4">
             <div className="space-y-2">
@@ -278,7 +228,7 @@ export default function PromptEditorPage() {
                       {new Date(v.created_at).toLocaleDateString("pt-BR")}
                     </span>
                     <Button variant="ghost" size="icon" className="h-7 w-7 text-muted-foreground hover:text-destructive"
-                      onClick={e => { e.stopPropagation(); deleteVersion.mutate(v.id); }}
+                      onClick={e => { e.stopPropagation(); deleteVersionMut.mutate(v.id); }}
                     >
                       <Trash2 className="h-3 w-3" />
                     </Button>
@@ -286,8 +236,6 @@ export default function PromptEditorPage() {
                 </div>
               ))}
             </div>
-
-            {/* Diff / Detail panel */}
             <div className="nexus-card">
               {diffVersion ? (
                 <>
@@ -300,8 +248,8 @@ export default function PromptEditorPage() {
                   <div className="flex gap-2 mt-3">
                     {!diffVersion.is_active && (
                       <Button variant="outline" size="sm" className="gap-1.5 text-xs flex-1"
-                        onClick={() => restoreVersion.mutate(diffVersion)}
-                        disabled={restoreVersion.isPending}
+                        onClick={() => restoreVersionMut.mutate(diffVersion)}
+                        disabled={restoreVersionMut.isPending}
                       >
                         <RotateCcw className="h-3 w-3" /> Restaurar esta versão
                       </Button>
@@ -323,7 +271,6 @@ export default function PromptEditorPage() {
           </div>
         </TabsContent>
 
-        {/* ─── Score ─── */}
         <TabsContent value="score" className="mt-4">
           <div className="nexus-card">
             <div className="flex items-center gap-4 mb-4">
