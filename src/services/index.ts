@@ -82,3 +82,4 @@ export {
 } from './automationTemplateService';
 export * from './executionHistoryService';
 export * from './connectorRegistryService';
+export * from './queueManagerService';
