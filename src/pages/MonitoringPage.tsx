@@ -4,7 +4,8 @@ import { Button } from "@/components/ui/button";
 import { traces as mockTraces } from "@/lib/mock-data";
 import * as traceService from "@/services/traceService";
 import { Clock, DollarSign, Wrench, Search, Download, RefreshCw, Filter, X } from "lucide-react";
-import { useState, useCallback } from "react";
+import { useState, useCallback, useMemo } from "react";
+import { debounce } from "@/services/resilience";
 import { toast } from "sonner";
 
 const stepColors: Record<string, string> = {
@@ -36,12 +37,15 @@ export default function MonitoringPage() {
   const [allTraces] = useState(mappedReal.length > 0 ? mappedReal : mockTraces);
   const [selectedTrace, setSelectedTrace] = useState(mockTraces[0]);
   const [searchQuery, setSearchQuery] = useState('');
+  const [debouncedQuery, setDebouncedQuery] = useState('');
+  const applySearch = useMemo(() => debounce((v: unknown) => setDebouncedQuery(v as string), 300), []);
+  const handleSearch = (v: string) => { setSearchQuery(v); applySearch(v); };
   const [statusFilter, setStatusFilter] = useState<StatusFilter>('all');
   const [isRefreshing, setIsRefreshing] = useState(false);
 
   const filtered = allTraces.filter(t =>
     (statusFilter === 'all' || t.status === statusFilter) &&
-    (!searchQuery || t.agent.toLowerCase().includes(searchQuery.toLowerCase()) || t.sessionId.toLowerCase().includes(searchQuery.toLowerCase()))
+    (!debouncedQuery || t.agent.toLowerCase().includes(debouncedQuery.toLowerCase()) || t.sessionId.toLowerCase().includes(debouncedQuery.toLowerCase()))
   );
 
   const refresh = useCallback(() => {
@@ -91,7 +95,7 @@ export default function MonitoringPage() {
       <div className="flex items-center gap-3">
         <div className="relative flex-1 max-w-sm">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-          <input value={searchQuery} onChange={e => setSearchQuery(e.target.value)} placeholder="Buscar agente ou session ID..." className="w-full pl-9 bg-muted/30 border border-border rounded-lg px-3 py-2 text-sm text-foreground" />
+          <input value={searchQuery} onChange={e => handleSearch(e.target.value)} placeholder="Buscar agente ou session ID..." className="w-full pl-9 bg-muted/30 border border-border rounded-lg px-3 py-2 text-sm text-foreground" />
         </div>
         <div className="flex gap-1">
           {(['all', 'success', 'error', 'blocked', 'timeout'] as StatusFilter[]).map(s => (
