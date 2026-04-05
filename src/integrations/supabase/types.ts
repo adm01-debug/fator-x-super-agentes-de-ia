@@ -1804,6 +1804,7 @@ export type Database = {
       workspace_secrets: {
         Row: {
           created_at: string | null
+          encrypted_value: string | null
           id: string
           key_name: string
           key_value: string
@@ -1812,6 +1813,7 @@ export type Database = {
         }
         Insert: {
           created_at?: string | null
+          encrypted_value?: string | null
           id?: string
           key_name: string
           key_value: string
@@ -1820,6 +1822,7 @@ export type Database = {
         }
         Update: {
           created_at?: string | null
+          encrypted_value?: string | null
           id?: string
           key_name?: string
           key_value?: string
