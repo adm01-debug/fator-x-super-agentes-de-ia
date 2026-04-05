@@ -72,7 +72,7 @@ export class NexusMCPClient {
       },
     });
 
-    this.sessionId = initResponse._meta?.sessionId || null;
+    this.sessionId = (initResponse as Record<string, Record<string, string>>)?._meta?.sessionId || null;
 
     // Send initialized notification
     await this.sendNotification('notifications/initialized', {});
@@ -105,7 +105,7 @@ export class NexusMCPClient {
       arguments: args,
     });
 
-    return response as MCPCallResult;
+    return response as unknown as MCPCallResult;
   }
 
   /**
@@ -113,7 +113,7 @@ export class NexusMCPClient {
    */
   async readResource(uri: string): Promise<MCPCallResult> {
     const response = await this.sendRequest('resources/read', { uri });
-    return response as MCPCallResult;
+    return response as unknown as MCPCallResult;
   }
 
   /**

@@ -74,7 +74,7 @@ export async function searchKnowledge(query: string, options?: {
 export async function getCollectionStats(collectionId: string) {
   const [docsResult, chunksResult] = await Promise.all([
     supabase.from('documents').select('*', { count: 'exact', head: true }).eq('collection_id', collectionId),
-    supabase.from('chunks').select('*', { count: 'exact', head: true }).eq('collection_id', collectionId),
+    supabase.from('chunks').select('*', { count: 'exact', head: true }).eq('document_id', collectionId),
   ]);
 
   return {

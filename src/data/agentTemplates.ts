@@ -23,6 +23,13 @@ export interface AgentTemplate {
     guardrails: string[];
     memory_types: string[];
   };
+  /** Convenience accessors used by CreateAgentWizard */
+  emoji: string;
+  type: string;
+  model: string;
+  prompt: string;
+  tools: string[];
+  memory: string[];
 }
 
 export const AGENT_TEMPLATES: AgentTemplate[] = [

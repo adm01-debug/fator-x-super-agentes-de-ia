@@ -245,7 +245,7 @@ export function WorkflowCanvas() {
               onClick={() => store.selectNode(node.id)}
             >
               <WorkflowNode
-                data={node.data as WorkflowNodeData}
+                data={node.data as unknown as WorkflowNodeData}
                 selected={store.selectedNodeId === node.id}
               />
             </div>

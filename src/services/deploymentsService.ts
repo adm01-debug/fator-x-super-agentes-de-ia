@@ -60,7 +60,7 @@ export async function deleteDeployment(id: string) {
   if (error) throw error;
 }
 
-export function getWidgetSnippet(_agentId: string): string {
+export function getWidgetSnippet(agentId: string): string {
   const baseUrl = import.meta.env.VITE_SUPABASE_URL;
   return `<script src="${baseUrl}/functions/v1/widget-proxy/widget/${agentId}.js" async></script>`;
 }
