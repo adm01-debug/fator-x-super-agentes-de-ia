@@ -12,7 +12,8 @@
 
 import { supabase } from '@/integrations/supabase/client';
 
-type DynFrom = (table: string) => ReturnType<typeof supabase.from>;
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+const db = supabase as any;
 
 // ──────── Types ────────
 
@@ -146,7 +147,7 @@ export async function initiateHandoff(request: HandoffRequest): Promise<HandoffR
   };
 
   // Store in workflow_handoffs table
-  const { data, error } = await (supabase.from as DynFrom)('workflow_handoffs')
+  const { data, error } = await db.from('workflow_handoffs')
     .insert(record)
     .select()
     .single();
@@ -159,7 +160,7 @@ export async function initiateHandoff(request: HandoffRequest): Promise<HandoffR
  * Accept a pending handoff
  */
 export async function acceptHandoff(handoffId: string): Promise<HandoffRecord> {
-  const { data, error } = await (supabase.from as DynFrom)('workflow_handoffs')
+  const { data, error } = await db.from('workflow_handoffs')
     .update({
       status: 'accepted' as const,
     })
@@ -178,7 +179,7 @@ export async function completeHandoff(
   handoffId: string,
   response: Record<string, unknown>
 ): Promise<HandoffRecord> {
-  const { data, error } = await (supabase.from as DynFrom)('workflow_handoffs')
+  const { data, error } = await db.from('workflow_handoffs')
     .update({
       status: 'completed' as const,
       context: response,
@@ -198,7 +199,7 @@ export async function rejectHandoff(
   handoffId: string,
   reason: string
 ): Promise<HandoffRecord> {
-  const { data, error } = await (supabase.from as DynFrom)('workflow_handoffs')
+  const { data, error } = await db.from('workflow_handoffs')
     .update({
       status: 'rejected' as const,
       reason: reason,
@@ -218,7 +219,7 @@ export async function failHandoff(
   handoffId: string,
   errorMsg: string
 ): Promise<HandoffRecord> {
-  const { data, error } = await (supabase.from as DynFrom)('workflow_handoffs')
+  const { data, error } = await db.from('workflow_handoffs')
     .update({
       status: 'failed' as const,
       reason: errorMsg,
@@ -237,7 +238,7 @@ export async function failHandoff(
  * Get pending handoffs for an agent (inbox)
  */
 export async function getPendingHandoffs(targetAgentId: string): Promise<HandoffRecord[]> {
-  const { data, error } = await (supabase.from as DynFrom)('workflow_handoffs')
+  const { data, error } = await db.from('workflow_handoffs')
     .select('*')
     .eq('target_agent_id' as never, targetAgentId)
     .eq('status' as never, 'pending')
@@ -254,7 +255,7 @@ export async function getHandoffHistory(
   agentId: string,
   limit = 50
 ): Promise<HandoffRecord[]> {
-  const { data, error } = await (supabase.from as DynFrom)('workflow_handoffs')
+  const { data, error } = await db.from('workflow_handoffs')
     .select('*')
     .or(`source_agent_id.eq.${agentId},target_agent_id.eq.${agentId}`)
     .order('created_at' as never, { ascending: false })
@@ -268,7 +269,7 @@ export async function getHandoffHistory(
  * Get handoffs for a workflow execution
  */
 export async function getExecutionHandoffs(executionId: string): Promise<HandoffRecord[]> {
-  const { data, error } = await (supabase.from as DynFrom)('workflow_handoffs')
+  const { data, error } = await db.from('workflow_handoffs')
     .select('*')
     .eq('execution_id' as never, executionId)
     .order('created_at' as never, { ascending: true });
