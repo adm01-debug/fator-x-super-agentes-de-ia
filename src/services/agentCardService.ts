@@ -283,7 +283,7 @@ export async function listAgentCards(): Promise<AgentCard[]> {
   if (error) throw new Error(`Failed to list agents: ${error.message}`);
 
   return (data ?? [])
-    .map((agent) => {
+    .map((agent: any) => {
       const metadata = agent.metadata as Record<string, unknown> | null;
       const cached = metadata?.agent_card as AgentCard | undefined;
       if (cached) return cached;
