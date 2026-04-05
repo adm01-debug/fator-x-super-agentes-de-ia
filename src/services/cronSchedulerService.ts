@@ -283,7 +283,7 @@ export async function resumeSchedule(id: string): Promise<CronSchedule> {
 }
 
 export async function deleteSchedule(id: string): Promise<void> {
-  const { error } = await supabase.from('cron_schedules').delete().eq('id', id);
+  const { error } = await fromTable('cron_schedules').delete().eq('id', id);
   if (error) throw error;
 }
 

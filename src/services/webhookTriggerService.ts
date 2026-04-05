@@ -243,7 +243,7 @@ export async function regenerateSecret(id: string): Promise<WebhookEndpoint> {
 }
 
 export async function deleteWebhook(id: string): Promise<void> {
-  const { error } = await supabase.from('webhook_endpoints').delete().eq('id', id);
+  const { error } = await fromTable('webhook_endpoints').delete().eq('id', id);
   if (error) throw error;
 }
 
