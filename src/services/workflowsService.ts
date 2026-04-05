@@ -143,6 +143,17 @@ export async function toggleWorkflowStatus(id: string, currentStatus: string): P
   if (error) throw error;
 }
 
+/* ── List workflow runs ── */
+export async function listWorkflowRuns(limit = 30) {
+  const { data, error } = await supabase
+    .from('workflow_runs')
+    .select('*, workflows(name)')
+    .order('started_at', { ascending: false })
+    .limit(limit);
+  if (error) throw error;
+  return data ?? [];
+}
+
 /* ── Execute workflow ── */
 export async function executeWorkflow(workflowId: string, workflowName: string, steps: string[]): Promise<{ stepsExecuted: number; cost: number }> {
   // Try workflow-engine for DB workflows
