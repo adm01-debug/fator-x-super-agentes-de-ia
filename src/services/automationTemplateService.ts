@@ -11,7 +11,7 @@
  * Gap 6/10 — automation topic analysis
  */
 
-import { fromTable } from '@/lib/supabaseExtended';
+import { fromTable, rpcCall } from '@/lib/supabaseExtended';
 import { supabase } from '@/integrations/supabase/client';
 
 
@@ -145,7 +145,7 @@ export async function installTemplate(
   if (error) throw error;
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  await (supabase as any).rpc('increment_template_installs', { template_uuid: templateId });
+  await rpcCall('increment_template_installs', { template_uuid: templateId });
 
   return data as InstalledTemplate;
 }

@@ -12,7 +12,7 @@
  */
 
 import { supabase } from '@/integrations/supabase/client';
-import { fromTable } from '@/lib/supabaseExtended';
+import { fromTable, rpcCall } from '@/lib/supabaseExtended';
 
 /* ------------------------------------------------------------------ */
 /*  Types                                                              */
@@ -263,7 +263,7 @@ export async function logWebhookEvent(
   if (error) throw error;
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  await (supabase as any).rpc('increment_webhook_counter', { webhook_uuid: webhookId });
+  await rpcCall('increment_webhook_counter', { webhook_uuid: webhookId });
 
   return data as WebhookEvent;
 }

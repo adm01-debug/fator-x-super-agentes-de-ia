@@ -16,3 +16,15 @@ export function fromTable(name: string): AnyFrom {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   return (supabase as any).from(name);
 }
+
+/**
+ * Call an RPC function that is not in the auto-generated Supabase types.
+ * Scopes the type assertion to this single file.
+ */
+export async function rpcCall(
+  fnName: string,
+  params: Record<string, unknown> = {},
+): Promise<{ data: unknown; error: { message: string } | null }> {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  return (supabase as any).rpc(fnName, params);
+}
