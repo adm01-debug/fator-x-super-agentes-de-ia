@@ -8,6 +8,7 @@
  */
 
 import { supabase } from '@/integrations/supabase/client';
+import { logger } from '@/lib/logger';
 
 interface TraceSpan {
   name: string;
@@ -108,8 +109,8 @@ class NexusTracer {
           span_count: this.currentTrace.spans.length,
         },
       });
-    } catch (err) {
-      console.error('Failed to persist trace:', err);
+    } catch (err: unknown) {
+      logger.error('Failed to persist trace:', { error: err instanceof Error ? err.message : String(err) });
     }
 
     // Send to Langfuse (if configured)

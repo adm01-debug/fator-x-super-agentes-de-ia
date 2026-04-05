@@ -2,6 +2,7 @@
  * Nexus Agents Studio — Billing Service
  * Budget management, cost tracking, kill switch.
  */
+import { fromTable } from '@/lib/supabaseExtended';
 import { supabase } from '@/integrations/supabase/client';
 
 export async function getUsageSummary(period: 'day' | 'week' | 'month' = 'week') {
@@ -9,21 +10,20 @@ export async function getUsageSummary(period: 'day' | 'week' | 'month' = 'week')
   const periodMs = period === 'day' ? 86400000 : period === 'week' ? 604800000 : 2592000000;
   const since = new Date(now.getTime() - periodMs).toISOString();
 
-  const { data, error } = await supabase
-    .from('usage_records')
-    .select('cost_usd, usage_type, token_count, created_at')
+  const { data, error } = await fromTable('usage_records')
+    .select('cost_usd, record_type, tokens, created_at')
     .gte('created_at', since)
     .order('created_at', { ascending: true });
 
   if (error) throw error;
 
-  const records = data ?? [];
+  const records = (data ?? []) as Array<Record<string, unknown>>;
   const totalCost = records.reduce((s, r) => s + Number(r.cost_usd || 0), 0);
-  const totalTokens = records.reduce((s, r) => s + Number(r.token_count || 0), 0);
+  const totalTokens = records.reduce((s, r) => s + Number(r.tokens || 0), 0);
 
   const byType: Record<string, number> = {};
   records.forEach(r => {
-    const type = String(r.usage_type || 'llm');
+    const type = String(r.record_type || 'llm');
     byType[type] = (byType[type] || 0) + Number(r.cost_usd || 0);
   });
 
@@ -43,7 +43,7 @@ export async function getBudget(workspaceId: string) {
 export async function setBudget(workspaceId: string, monthlyLimit: number) {
   const { data, error } = await supabase
     .from('budgets')
-    .upsert({ workspace_id: workspaceId, monthly_limit: monthlyLimit, alert_threshold: 0.8 })
+    .upsert({ workspace_id: workspaceId, limit_usd: monthlyLimit, alert_threshold: 0.8 })
     .select()
     .single();
 
@@ -56,12 +56,13 @@ export async function checkBudgetStatus(workspaceId: string) {
   if (!budget) return { status: 'no_budget', used: 0, limit: 0, percentage: 0 };
 
   const usage = await getUsageSummary('month');
-  const percentage = budget.monthly_limit > 0 ? (usage.totalCost / budget.monthly_limit) * 100 : 0;
+  const limit = budget.limit_usd ?? 0;
+  const percentage = limit > 0 ? (usage.totalCost / limit) * 100 : 0;
 
   return {
     status: percentage >= 100 ? 'exceeded' : percentage >= 80 ? 'warning' : 'ok',
     used: usage.totalCost,
-    limit: budget.monthly_limit,
+    limit,
     percentage: Math.round(percentage),
   };
 }

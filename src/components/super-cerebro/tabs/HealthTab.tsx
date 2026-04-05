@@ -5,6 +5,7 @@
 
 import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
+import { logger } from '@/lib/logger';
 
 interface HealthMetric {
   category: string;
@@ -85,8 +86,8 @@ export function HealthTab() {
             color: '#E67E22',
           },
         ]);
-      } catch (err) {
-        console.error('Health check failed:', err);
+      } catch (err: unknown) {
+        logger.error('Health check failed:', { error: err instanceof Error ? err.message : String(err) });
       } finally {
         setLoading(false);
       }

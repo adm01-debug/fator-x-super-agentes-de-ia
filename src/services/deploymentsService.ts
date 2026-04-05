@@ -38,7 +38,6 @@ export async function createDeployment(agentId: string, channel: DeployChannel, 
       channel,
       config,
       status: 'active',
-      created_by: user.id,
     })
     .select()
     .single();
@@ -61,11 +60,11 @@ export async function deleteDeployment(id: string) {
   if (error) throw error;
 }
 
-export function getWidgetSnippet(agentId: string): string {
+export function getWidgetSnippet(_agentId: string): string {
   const baseUrl = import.meta.env.VITE_SUPABASE_URL;
   return `<script src="${baseUrl}/functions/v1/widget-proxy/widget/${agentId}.js" async></script>`;
 }
 
-export function getApiEndpoint(agentId: string): string {
+export function getApiEndpoint(_agentId: string): string {
   return `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/widget-proxy/chat`;
 }

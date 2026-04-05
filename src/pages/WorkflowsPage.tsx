@@ -41,19 +41,19 @@ const defaultTemplates: Workflow[] = [
 ];
 
 const defaultCanvasNodes: CanvasNode[] = [
-  { id: 'n1', type: 'planner', label: 'Planner', x: 60, y: 80 },
-  { id: 'n2', type: 'researcher', label: 'Researcher', x: 300, y: 40 },
-  { id: 'n3', type: 'retriever', label: 'Retriever', x: 300, y: 180 },
-  { id: 'n4', type: 'critic', label: 'Critic', x: 540, y: 110 },
-  { id: 'n5', type: 'executor', label: 'Executor', x: 760, y: 110 },
+  { id: 'n1', type: 'planner', position: { x: 60, y: 80 }, data: { label: 'Planner' } },
+  { id: 'n2', type: 'researcher', position: { x: 300, y: 40 }, data: { label: 'Researcher' } },
+  { id: 'n3', type: 'retriever', position: { x: 300, y: 180 }, data: { label: 'Retriever' } },
+  { id: 'n4', type: 'critic', position: { x: 540, y: 110 }, data: { label: 'Critic' } },
+  { id: 'n5', type: 'executor', position: { x: 760, y: 110 }, data: { label: 'Executor' } },
 ];
 
 const defaultCanvasEdges: CanvasEdge[] = [
-  { from: 'n1', to: 'n2' },
-  { from: 'n1', to: 'n3' },
-  { from: 'n2', to: 'n4' },
-  { from: 'n3', to: 'n4' },
-  { from: 'n4', to: 'n5' },
+  { id: 'e1', source: 'n1', target: 'n2' },
+  { id: 'e2', source: 'n1', target: 'n3' },
+  { id: 'e3', source: 'n2', target: 'n4' },
+  { id: 'e4', source: 'n3', target: 'n4' },
+  { id: 'e5', source: 'n4', target: 'n5' },
 ];
 
 export default function WorkflowsPage() {

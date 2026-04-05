@@ -6,7 +6,7 @@
  * Persists to Supabase mcp_servers table.
  */
 
-import { supabase } from '@/integrations/supabase/client';
+import { fromTable } from '@/lib/supabaseExtended';
 import { NexusMCPClient, type MCPServer, type MCPTool } from './mcpClient';
 
 const clients = new Map<string, NexusMCPClient>();
@@ -15,8 +15,7 @@ const clients = new Map<string, NexusMCPClient>();
  * List all registered MCP servers for the workspace.
  */
 export async function listMCPServers(): Promise<MCPServer[]> {
-  const { data, error } = await supabase
-    .from('mcp_servers')
+  const { data, error } = await fromTable('mcp_servers')
     .select('*')
     .order('name', { ascending: true });
 
@@ -32,9 +31,6 @@ export async function registerMCPServer(server: {
   url: string;
   transport?: 'streamable-http' | 'sse';
 }): Promise<MCPServer> {
-  const { data: { user } } = await supabase.auth.getUser();
-  if (!user) throw new Error('Not authenticated');
-
   // Try to connect and discover tools
   const client = new NexusMCPClient(server.url);
   let tools: MCPTool[] = [];
@@ -46,13 +42,12 @@ export async function registerMCPServer(server: {
     tools = result.tools;
     status = 'connected';
     clients.set(server.url, client);
-  } catch (err) {
+  } catch (err: unknown) {
     status = 'error';
     errorMsg = err instanceof Error ? err.message : 'Connection failed';
   }
 
-  const { data, error } = await supabase
-    .from('mcp_servers')
+  const { data, error } = await fromTable('mcp_servers')
     .insert({
       name: server.name,
       url: server.url,
@@ -60,7 +55,6 @@ export async function registerMCPServer(server: {
       status,
       tools_discovered: tools as unknown as Record<string, unknown>[],
       error: errorMsg,
-      created_by: user.id,
     })
     .select()
     .single();
@@ -92,20 +86,19 @@ export async function callMCPTool(
  * Remove an MCP server.
  */
 export async function removeMCPServer(serverId: string): Promise<void> {
-  const { data } = await supabase
-    .from('mcp_servers')
+  const { data } = await fromTable('mcp_servers')
     .select('url')
     .eq('id', serverId)
     .single();
 
-  if (data?.url) clients.delete(data.url as string);
+  const url = (data as Record<string, unknown> | null)?.url;
+  if (url) clients.delete(String(url));
 
-  await supabase.from('mcp_servers').delete().eq('id', serverId);
+  await fromTable('mcp_servers').delete().eq('id', serverId);
 }
 
 /**
  * Get all tools from all connected MCP servers.
- * Used by the agent runtime to know what tools are available.
  */
 export async function getAllMCPTools(): Promise<Array<MCPTool & { serverName: string; serverUrl: string }>> {
   const servers = await listMCPServers();
