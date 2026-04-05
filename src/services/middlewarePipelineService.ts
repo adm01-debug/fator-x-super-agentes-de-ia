@@ -369,7 +369,7 @@ export function createTokenCounterMiddleware(
     description: 'Tracks token usage and cost for each LLM call',
     enabled: true,
     priority: 90,
-    fn: async (ctx, next) => {
+    fn: async (_ctx, next) => {
       const result = await next();
 
       if (result.response) {

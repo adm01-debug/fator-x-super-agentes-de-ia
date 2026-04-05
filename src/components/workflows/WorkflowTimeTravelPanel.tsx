@@ -18,8 +18,6 @@ import {
   Clock,
   GitBranch,
   Play,
-  Pause,
-  RotateCcw,
   Eye,
   DollarSign,
   Zap,
