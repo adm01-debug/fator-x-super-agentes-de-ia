@@ -61,17 +61,17 @@ export async function getOracleHistory(limit = 20): Promise<OracleQuery[]> {
 export async function getOracleStats() {
   const { data, error } = await supabase
     .from('oracle_history')
-    .select('total_cost, total_tokens, latency_ms, created_at');
+    .select('total_cost_usd, total_tokens, total_latency_ms, created_at');
 
   if (error) throw error;
 
   const records = data ?? [];
   return {
     totalQueries: records.length,
-    totalCost: records.reduce((s, r) => s + Number(r.total_cost || 0), 0),
+    totalCost: records.reduce((s, r) => s + Number(r.total_cost_usd || 0), 0),
     totalTokens: records.reduce((s, r) => s + Number(r.total_tokens || 0), 0),
     avgLatency: records.length > 0
-      ? records.reduce((s, r) => s + Number(r.latency_ms || 0), 0) / records.length
+      ? records.reduce((s, r) => s + Number(r.total_latency_ms || 0), 0) / records.length
       : 0,
   };
 }
