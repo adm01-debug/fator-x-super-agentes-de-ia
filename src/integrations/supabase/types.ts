@@ -872,6 +872,57 @@ export type Database = {
           },
         ]
       }
+      forensic_snapshots: {
+        Row: {
+          agent_id: string
+          chain_hash: string
+          created_at: string
+          decision_rationale: string
+          decision_type: string
+          execution_id: string
+          id: string
+          input_hash: string
+          metadata: Json | null
+          output_hash: string
+          previous_hash: string
+          state_after: Json
+          state_before: Json
+          step_index: number
+        }
+        Insert: {
+          agent_id: string
+          chain_hash: string
+          created_at?: string
+          decision_rationale?: string
+          decision_type?: string
+          execution_id: string
+          id?: string
+          input_hash: string
+          metadata?: Json | null
+          output_hash: string
+          previous_hash?: string
+          state_after?: Json
+          state_before?: Json
+          step_index?: number
+        }
+        Update: {
+          agent_id?: string
+          chain_hash?: string
+          created_at?: string
+          decision_rationale?: string
+          decision_type?: string
+          execution_id?: string
+          id?: string
+          input_hash?: string
+          metadata?: Json | null
+          output_hash?: string
+          previous_hash?: string
+          state_after?: Json
+          state_before?: Json
+          step_index?: number
+        }
+        Relationships: []
+      }
       guardrail_policies: {
         Row: {
           config: Json | null
