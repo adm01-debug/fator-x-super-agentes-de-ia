@@ -131,7 +131,7 @@ export default function TeamPage() {
                           </AlertDialogHeader>
                           <AlertDialogFooter>
                             <AlertDialogCancel>Cancelar</AlertDialogCancel>
-                            <AlertDialogAction onClick={() => handleRemoveMember(m.id)} className="bg-destructive text-destructive-foreground">Remover</AlertDialogAction>
+                            <AlertDialogAction onClick={() => m.id && handleRemoveMember(m.id)} className="bg-destructive text-destructive-foreground">Remover</AlertDialogAction>
                           </AlertDialogFooter>
                         </AlertDialogContent>
                       </AlertDialog>
