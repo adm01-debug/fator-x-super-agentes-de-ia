@@ -11,7 +11,6 @@
  */
 
 import { supabase } from '@/integrations/supabase/client';
-import { fromTable } from '@/lib/supabaseExtended';
 
 /* ------------------------------------------------------------------ */
 /*  Types                                                              */
@@ -235,7 +234,7 @@ export async function createSchedule(
     created_by: userId,
   };
 
-  const { data, error } = await fromTable('cron_schedules'))
+  const { data, error } = await supabase.from('cron_schedules')
     .insert(record)
     .select()
     .single();
@@ -246,7 +245,7 @@ export async function createSchedule(
 export async function listSchedules(
   status?: ScheduleStatus,
 ): Promise<CronSchedule[]> {
-  let query = fromTable('cron_schedules'))
+  let query = supabase.from('cron_schedules')
     .select('*')
     .order('next_run_at', { ascending: true });
 
@@ -260,7 +259,7 @@ export async function listSchedules(
 }
 
 export async function getSchedule(id: string): Promise<CronSchedule | null> {
-  const { data, error } = await fromTable('cron_schedules'))
+  const { data, error } = await supabase.from('cron_schedules')
     .select('*')
     .eq('id', id)
     .maybeSingle();
@@ -278,7 +277,7 @@ export async function updateSchedule(
     patch.next_run_at = getNextCronRun(updates.cron_expression).toISOString();
   }
 
-  const { data, error } = await fromTable('cron_schedules'))
+  const { data, error } = await supabase.from('cron_schedules')
     .update(patch)
     .eq('id', id)
     .select()
@@ -296,7 +295,7 @@ export async function resumeSchedule(id: string): Promise<CronSchedule> {
 }
 
 export async function deleteSchedule(id: string): Promise<void> {
-  const { error } = await fromTable('cron_schedules').delete().eq('id', id);
+  const { error } = await supabase.from('cron_schedules').delete().eq('id', id);
   if (error) throw error;
 }
 
@@ -354,7 +353,7 @@ export async function recordExecution(
         updatePayload.next_run_at = next.toISOString();
       }
 
-      await fromTable('cron_schedules'))
+      await supabase.from('cron_schedules')
         .update(updatePayload)
         .eq('id', scheduleId);
     }

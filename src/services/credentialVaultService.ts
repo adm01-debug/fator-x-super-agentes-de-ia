@@ -11,7 +11,6 @@
  */
 
 import { supabase } from '@/integrations/supabase/client';
-import { fromTable } from '@/lib/supabaseExtended';
 
 /* ------------------------------------------------------------------ */
 /*  Types                                                              */
@@ -202,7 +201,7 @@ export async function createCredential(
     created_by: userId,
   };
 
-  const { data, error } = await fromTable('credential_vault'))
+  const { data, error } = await supabase.from('credential_vault')
     .insert(record)
     .select()
     .single();
@@ -221,7 +220,7 @@ export async function getCredential(
   requesterId?: string,
   requesterType: CredentialAuditLog['actor_type'] = 'user',
 ): Promise<CredentialData> {
-  const { data, error } = await fromTable('credential_vault'))
+  const { data, error } = await supabase.from('credential_vault')
     .select('*')
     .eq('id', id)
     .single();
@@ -249,14 +248,14 @@ export async function getCredential(
     throw new Error('Credential has expired');
   }
   if (entry.expires_at && new Date(entry.expires_at) < new Date()) {
-    await fromTable('credential_vault'))
+    await supabase.from('credential_vault')
       .update({ status: 'expired' })
       .eq('id', id);
     throw new Error('Credential has expired');
   }
 
   // Update access tracking
-  await fromTable('credential_vault'))
+  await supabase.from('credential_vault')
     .update({
       access_count: entry.access_count + 1,
       last_accessed_at: new Date().toISOString(),
@@ -276,7 +275,7 @@ export async function listCredentials(
     tag?: string;
   },
 ): Promise<Omit<CredentialEntry, 'encrypted_data'>[]> {
-  let query = fromTable('credential_vault'))
+  let query = supabase.from('credential_vault')
     .select(
       'id, name, description, credential_type, service_name, status, ' +
       'expires_at, rotation_interval_days, last_rotated_at, next_rotation_at, ' +
@@ -337,7 +336,7 @@ export async function updateCredential(
     patch.encrypted_data = await encryptData(updates.data);
   }
 
-  const { data, error } = await fromTable('credential_vault'))
+  const { data, error } = await supabase.from('credential_vault')
     .update(patch)
     .eq('id', id)
     .select()
@@ -359,7 +358,7 @@ export async function rotateCredential(
   const encrypted = await encryptData(newData);
   const now = new Date();
 
-  const existing = await fromTable('credential_vault'))
+  const existing = await supabase.from('credential_vault')
     .select('rotation_interval_days')
     .eq('id', id)
     .single();
@@ -373,7 +372,7 @@ export async function rotateCredential(
     nextRotation = d.toISOString();
   }
 
-  const { data, error } = await fromTable('credential_vault'))
+  const { data, error } = await supabase.from('credential_vault')
     .update({
       encrypted_data: encrypted,
       status: 'active',
@@ -395,7 +394,7 @@ export async function revokeCredential(id: string): Promise<void> {
   const { data: userData } = await supabase.auth.getUser();
   const userId = userData?.user?.id ?? null;
 
-  const { error } = await fromTable('credential_vault'))
+  const { error } = await supabase.from('credential_vault')
     .update({ status: 'revoked', updated_at: new Date().toISOString() })
     .eq('id', id);
   if (error) throw error;
@@ -409,7 +408,7 @@ export async function deleteCredential(id: string): Promise<void> {
 
   await logAudit(id, 'deleted', userId, 'user', {});
 
-  const { error } = await fromTable('credential_vault').delete().eq('id', id);
+  const { error } = await supabase.from('credential_vault').delete().eq('id', id);
   if (error) throw error;
 }
 
@@ -424,7 +423,7 @@ async function logAudit(
   actorType: CredentialAuditLog['actor_type'],
   details: Record<string, unknown>,
 ): Promise<void> {
-  await fromTable('credential_audit_logs').insert({
+  await supabase.from('credential_audit_logs').insert({
     credential_id: credentialId,
     action,
     actor_id: actorId,
@@ -437,7 +436,7 @@ export async function getAuditLogs(
   credentialId: string,
   limit: number = 50,
 ): Promise<CredentialAuditLog[]> {
-  const { data, error } = await fromTable('credential_audit_logs'))
+  const { data, error } = await supabase.from('credential_audit_logs')
     .select('*')
     .eq('credential_id', credentialId)
     .order('created_at', { ascending: false })

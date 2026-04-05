@@ -12,7 +12,6 @@
  */
 
 import { supabase } from '@/integrations/supabase/client';
-import { fromTable } from '@/lib/supabaseExtended';
 
 /* ------------------------------------------------------------------ */
 /*  Types                                                              */
@@ -198,7 +197,7 @@ export async function createWebhook(
     created_by: userId,
   };
 
-  const { data, error } = await fromTable('webhook_endpoints'))
+  const { data, error } = await supabase.from('webhook_endpoints')
     .insert(record)
     .select()
     .single();
@@ -209,7 +208,7 @@ export async function createWebhook(
 export async function listWebhooks(
   status?: WebhookStatus,
 ): Promise<WebhookEndpoint[]> {
-  let query = fromTable('webhook_endpoints'))
+  let query = supabase.from('webhook_endpoints')
     .select('*')
     .order('created_at', { ascending: false });
 
@@ -223,7 +222,7 @@ export async function listWebhooks(
 }
 
 export async function getWebhook(id: string): Promise<WebhookEndpoint | null> {
-  const { data, error } = await fromTable('webhook_endpoints'))
+  const { data, error } = await supabase.from('webhook_endpoints')
     .select('*')
     .eq('id', id)
     .maybeSingle();
@@ -235,7 +234,7 @@ export async function updateWebhook(
   id: string,
   updates: Partial<CreateWebhookInput> & { status?: WebhookStatus },
 ): Promise<WebhookEndpoint> {
-  const { data, error } = await fromTable('webhook_endpoints'))
+  const { data, error } = await supabase.from('webhook_endpoints')
     .update({ ...updates, updated_at: new Date().toISOString() })
     .eq('id', id)
     .select()
@@ -249,7 +248,7 @@ export async function revokeWebhook(id: string): Promise<WebhookEndpoint> {
 }
 
 export async function regenerateSecret(id: string): Promise<WebhookEndpoint> {
-  const { data, error } = await fromTable('webhook_endpoints'))
+  const { data, error } = await supabase.from('webhook_endpoints')
     .update({
       secret: generateWebhookSecret(),
       updated_at: new Date().toISOString(),
@@ -262,7 +261,7 @@ export async function regenerateSecret(id: string): Promise<WebhookEndpoint> {
 }
 
 export async function deleteWebhook(id: string): Promise<void> {
-  const { error } = await fromTable('webhook_endpoints').delete().eq('id', id);
+  const { error } = await supabase.from('webhook_endpoints').delete().eq('id', id);
   if (error) throw error;
 }
 
@@ -282,7 +281,7 @@ export async function logWebhookEvent(
   if (error) throw error;
 
   // Update counter
-  await (supabase as any).rpc('increment_webhook_counter', { webhook_uuid: webhookId });
+  await supabase.rpc('increment_webhook_counter', { webhook_uuid: webhookId });
 
   return data as WebhookEvent;
 }
