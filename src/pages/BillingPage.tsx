@@ -278,9 +278,9 @@ function PricingTable() {
           <th className="text-right p-3 font-medium">Custo estimado / 1M tokens</th>
         </tr></thead>
         <tbody>
-          {pricing.map((p: Record<string, unknown>) => (
+          {pricing.map((p) => (
             <tr key={p.id} className="border-b border-border/20 hover:bg-secondary/30">
-              <td className="p-3 font-mono text-foreground">{p.model_pattern}</td>
+              <td className="p-3 font-mono text-foreground">{String(p.model_pattern)}</td>
               <td className="p-3 text-right text-foreground">${Number(p.input_cost_per_1k).toFixed(6)}</td>
               <td className="p-3 text-right text-foreground">${Number(p.output_cost_per_1k).toFixed(6)}</td>
               <td className="p-3 text-right text-muted-foreground">${((Number(p.input_cost_per_1k) + Number(p.output_cost_per_1k)) * 500).toFixed(2)}</td>

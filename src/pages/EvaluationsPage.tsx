@@ -71,7 +71,12 @@ function EvalCard({ ev }: { ev: Record<string, unknown> }) {
   const [expanded, setExpanded] = useState(false);
   const results = ev.results as Record<string, any> | null;
   const cases = results?.cases as Array<{ input: string; expected: string; actual: string; passed: boolean; score?: number }> | undefined;
-  const passRate = ev.pass_rate ?? 0;
+  const passRate = Number(ev.pass_rate ?? 0);
+  const evName = String(ev.name ?? '');
+  const testCases = Number(ev.test_cases ?? 0);
+  const createdAt = String(ev.created_at ?? '');
+  const completedAt = ev.completed_at ? String(ev.completed_at) : null;
+  const evStatus = String(ev.status ?? 'queued');
 
   return (
     <div className="nexus-card">
@@ -81,14 +86,14 @@ function EvalCard({ ev }: { ev: Record<string, unknown> }) {
             <FlaskConical className="h-5 w-5 text-primary" />
           </div>
           <div>
-            <h3 className="text-sm font-semibold text-foreground">{ev.name}</h3>
-            <p className="text-[11px] text-muted-foreground">{ev.test_cases ?? 0} test cases • {new Date(ev.created_at!).toLocaleDateString('pt-BR')}</p>
+            <h3 className="text-sm font-semibold text-foreground">{evName}</h3>
+            <p className="text-[11px] text-muted-foreground">{testCases} test cases • {createdAt ? new Date(createdAt).toLocaleDateString('pt-BR') : ''}</p>
           </div>
         </div>
-        <StatusBadge status={ev.status || 'queued'} />
+        <StatusBadge status={evStatus} />
       </div>
 
-      {ev.status === 'completed' && (
+      {evStatus === 'completed' && (
         <>
           <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mt-4">
             <div className="text-center rounded-lg bg-secondary/30 p-3">
@@ -96,7 +101,7 @@ function EvalCard({ ev }: { ev: Record<string, unknown> }) {
               <p className="text-[11px] text-muted-foreground mt-0.5">Pass rate</p>
             </div>
             <div className="text-center rounded-lg bg-secondary/30 p-3">
-              <p className="text-lg font-heading font-bold text-foreground">{ev.test_cases ?? 0}</p>
+              <p className="text-lg font-heading font-bold text-foreground">{testCases}</p>
               <p className="text-[11px] text-muted-foreground mt-0.5">Test cases</p>
             </div>
             <div className="text-center rounded-lg bg-secondary/30 p-3">
@@ -110,7 +115,7 @@ function EvalCard({ ev }: { ev: Record<string, unknown> }) {
             </div>
             <div className="text-center rounded-lg bg-secondary/30 p-3">
               <p className="text-lg font-heading font-bold text-foreground">
-                {ev.completed_at ? `${Math.round((new Date(ev.completed_at).getTime() - new Date(ev.created_at!).getTime()) / 1000)}s` : '—'}
+                {completedAt && createdAt ? `${Math.round((new Date(completedAt).getTime() - new Date(createdAt).getTime()) / 1000)}s` : '—'}
               </p>
               <p className="text-[11px] text-muted-foreground mt-0.5">Duração</p>
             </div>
@@ -166,7 +171,7 @@ function EvalCard({ ev }: { ev: Record<string, unknown> }) {
         </>
       )}
 
-      {ev.status === 'running' && (
+      {evStatus === 'running' && (
         <div className="flex items-center gap-2 mt-3">
           <div className="h-1.5 flex-1 rounded-full bg-secondary overflow-hidden">
             <div className="h-full w-2/5 rounded-full nexus-gradient-bg animate-pulse" />

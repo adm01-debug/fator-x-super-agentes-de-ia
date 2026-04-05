@@ -321,15 +321,15 @@ function AbTestPanel({ agentId }: { agentId: string; currentVersion?: number }) 
       {isLoading ? <Loader2 className="h-4 w-4 animate-spin mx-auto" /> : tests.length > 0 && (
         <div className="space-y-2 pt-2 border-t border-border/30">
           {tests.map((t: Record<string, unknown>) => (
-            <div key={t.id} className="flex items-center justify-between text-xs py-1">
+            <div key={String(t.id)} className="flex items-center justify-between text-xs py-1">
               <div>
-                <span className="font-medium text-foreground">{t.name}</span>
-                <span className="text-muted-foreground ml-2">Split: {((t.traffic_split || 0.5) * 100).toFixed(0)}/{(100 - (t.traffic_split || 0.5) * 100).toFixed(0)}</span>
+                <span className="font-medium text-foreground">{String(t.name)}</span>
+                <span className="text-muted-foreground ml-2">Split: {((Number(t.traffic_split) || 0.5) * 100).toFixed(0)}/{(100 - (Number(t.traffic_split) || 0.5) * 100).toFixed(0)}</span>
               </div>
               <div className="flex items-center gap-2">
-                <Badge variant={t.status === 'running' ? 'default' : 'outline'} className="text-[11px]">{t.status}</Badge>
-                {t.status === 'running' && <Button variant="ghost" size="sm" className="h-6 text-[11px]" onClick={() => handleStop(t.id)}>Encerrar</Button>}
-                <Button variant="ghost" size="icon" className="h-5 w-5 text-destructive" onClick={() => handleDelete(t.id)}><Trash2 className="h-3 w-3" /></Button>
+                <Badge variant={t.status === 'running' ? 'default' : 'outline'} className="text-[11px]">{String(t.status)}</Badge>
+                {t.status === 'running' && <Button variant="ghost" size="sm" className="h-6 text-[11px]" onClick={() => handleStop(String(t.id))}>Encerrar</Button>}
+                <Button variant="ghost" size="icon" className="h-5 w-5 text-destructive" onClick={() => handleDelete(String(t.id))}><Trash2 className="h-3 w-3" /></Button>
               </div>
             </div>
           ))}

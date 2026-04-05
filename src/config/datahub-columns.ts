@@ -138,7 +138,7 @@ export function formatCellValue(value: unknown, format?: ColumnDef['format']): s
 
 /* ── CSV Export ──────────────────────────────────────── */
 
-export function exportToCSV(data: unknown[], columns: ColumnDef[], entityName: string): void {
+export function exportToCSV(data: Record<string, unknown>[], columns: ColumnDef[], entityName: string): void {
   if (!data.length) return;
 
   const headers = columns.map(c => c.label);
@@ -167,11 +167,11 @@ export function exportToCSV(data: unknown[], columns: ColumnDef[], entityName: s
 
 /* ── JSON Export ─────────────────────────────────────── */
 
-export function exportToJSON(data: unknown[], columns: ColumnDef[], entityName: string): void {
+export function exportToJSON(data: Record<string, unknown>[], columns: ColumnDef[], entityName: string): void {
   if (!data.length) return;
 
   const sanitized = data.map(row => {
-    const obj: Record<string, any> = {};
+    const obj: Record<string, unknown> = {};
     for (const col of columns) {
       const val = row[col.key];
       if (col.format === 'sensitive' && (String(val).includes('REDACTED') || String(val) === '***')) {

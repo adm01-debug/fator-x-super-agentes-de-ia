@@ -312,10 +312,10 @@ export default function DataHubPage() {
           lastTested: now,
         };
       }));
-      const connected = Object.values(data.connections ?? {}).filter((r: Record<string, unknown>) => r.status === 'connected').length;
+      const connected = Object.values(data.connections ?? {}).filter((r: unknown) => (r as Record<string, unknown>).status === 'connected').length;
       toast.success(`${connected} de 4 conexões ativas!`);
     } catch (e: unknown) {
-      toast.error(`Erro ao testar conexões: ${e.message}`);
+      toast.error(`Erro ao testar conexões: ${e instanceof Error ? e.message : String(e)}`);
     } finally {
       setTestingConnections(false);
     }
@@ -330,7 +330,7 @@ export default function DataHubPage() {
       if (error) throw error;
       setEntityCounts(data.entities ?? {});
     } catch (e: unknown) {
-      toast.error(`Erro ao carregar contagens: ${e.message}`);
+      toast.error(`Erro ao carregar contagens: ${e instanceof Error ? e.message : String(e)}`);
     } finally {
       setLoadingCounts(false);
     }

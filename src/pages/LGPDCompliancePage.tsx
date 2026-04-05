@@ -152,23 +152,24 @@ export default function LGPDCompliancePage() {
             <div className="text-center py-12 text-sm text-muted-foreground">Nenhum registro de consentimento ou exclusão.</div>
           ) : (
             <div className="space-y-2">
-              {[...deletions.map((d: Record<string, unknown>) => ({ ...d, _type: 'deletion' })), ...consents.map((c: Record<string, unknown>) => ({ ...c, _type: 'consent' }))]
-                .sort((a: Record<string, unknown>, b: Record<string, unknown>) => new Date(b.created_at || b.requested_at).getTime() - new Date(a.created_at || a.requested_at).getTime())
+              {[...deletions.map((d) => ({ ...d, _type: 'deletion' as const })), ...consents.map((c) => ({ ...c, _type: 'consent' as const }))]
+                .sort((a, b) => new Date(String(a.created_at ?? a.requested_at ?? '')).getTime() - new Date(String(b.created_at ?? b.requested_at ?? '')).getTime())
+                .reverse()
                 .slice(0, 30)
-                .map((item: Record<string, unknown>) => (
+                .map((item) => (
                 <div key={item.id}
                   className="nexus-card flex items-center justify-between text-xs">
                   <div className="flex items-center gap-3">
                     {item._type === 'deletion' ? <Trash2 className="h-3.5 w-3.5 text-destructive" /> : <Shield className="h-3.5 w-3.5 text-primary" />}
                     <div>
                       <span className="text-foreground font-medium">
-                        {item._type === 'deletion' ? `Exclusão: ${item.scope}` : `${item.granted ? 'Consentimento' : 'Revogação'}: ${item.purpose}`}
+                        {item._type === 'deletion' ? `Exclusão: ${String((item as Record<string, unknown>).scope ?? '')}` : `${'granted' in item && item.granted ? 'Consentimento' : 'Revogação'}: ${String((item as Record<string, unknown>).purpose ?? (item as Record<string, unknown>).consent_type ?? '')}`}
                       </span>
-                      <p className="text-[11px] text-muted-foreground">{new Date(item.created_at || item.requested_at).toLocaleString('pt-BR')}</p>
+                      <p className="text-[11px] text-muted-foreground">{new Date(String(item.created_at ?? item.requested_at ?? '')).toLocaleString('pt-BR')}</p>
                     </div>
                   </div>
-                  <Badge variant={item.status === 'completed' || item.granted ? 'default' : item.status === 'failed' ? 'destructive' : 'outline'} className="text-[11px]">
-                    {item.status || (item.granted ? 'ativo' : 'revogado')}
+                  <Badge variant={item.status === 'completed' || ('granted' in item && item.granted) ? 'default' : item.status === 'failed' ? 'destructive' : 'outline'} className="text-[11px]">
+                    {String(item.status ?? ('granted' in item && item.granted ? 'ativo' : 'revogado'))}
                   </Badge>
                 </div>
               ))}

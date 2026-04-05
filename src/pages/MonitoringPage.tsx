@@ -164,7 +164,7 @@ export default function MonitoringPage() {
           <SelectTrigger className="w-[220px] bg-secondary/50 text-xs"><SelectValue placeholder="Filtrar por agente" /></SelectTrigger>
           <SelectContent>
             <SelectItem value="all">Todos os agentes</SelectItem>
-            {agentsList.map((a: Record<string, unknown>) => <SelectItem key={a.id} value={a.id}>{a.name}</SelectItem>)}
+            {agentsList.map((a) => <SelectItem key={a.id} value={String(a.id)}>{String(a.name)}</SelectItem>)}
           </SelectContent>
         </Select>
         {agentFilter !== 'all' && <Badge variant="outline" className="text-[11px]">Filtrado</Badge>}

@@ -204,7 +204,7 @@ function VersionHistory({ agentId }: { agentId: string }) {
         )}
       </div>
       <div className="space-y-2 max-h-[250px] overflow-y-auto">
-        {versions.map((v: Record<string, unknown>, i: number) => (
+        {versions.map((v, i) => (
           <div key={v.id} className={`flex items-center justify-between py-2 px-3 rounded-lg text-xs ${i === 0 ? 'bg-primary/10 border border-primary/20' : 'bg-secondary/30'}`}>
             <div className="flex items-center gap-3">
               <span className="font-mono font-bold text-foreground">v{v.version}</span>
@@ -212,9 +212,6 @@ function VersionHistory({ agentId }: { agentId: string }) {
               {v.change_summary && <span className="text-muted-foreground truncate max-w-[200px]">{v.change_summary}</span>}
             </div>
             <div className="flex items-center gap-2">
-              <span className={`text-[11px] px-1.5 py-0.5 rounded ${v.environment === 'production' ? 'bg-nexus-emerald/10 text-nexus-emerald' : v.environment === 'staging' ? 'bg-nexus-amber/10 text-nexus-amber' : 'bg-secondary text-muted-foreground'}`}>
-                {v.environment}
-              </span>
               <span className="text-muted-foreground text-[11px]">{new Date(v.created_at).toLocaleDateString('pt-BR')}</span>
             </div>
           </div>
