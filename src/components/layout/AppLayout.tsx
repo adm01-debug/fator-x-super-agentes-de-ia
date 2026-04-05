@@ -127,15 +127,22 @@ export function AppLayout({ children }: AppLayoutProps) {
         <div className="min-h-screen flex w-full">
           <AppSidebar />
            <div className="flex-1 flex flex-col min-w-0">
-            <header className="h-14 flex items-center justify-between border-b border-border/50 px-3 sm:px-5 bg-background sticky top-0 z-30" role="banner">
+            <header className="h-14 flex items-center justify-between border-b border-border/50 px-3 sm:px-5 bg-background/95 backdrop-blur-sm sticky top-0 z-30" role="banner">
               <div className="flex items-center gap-2 sm:gap-3 flex-1 min-w-0">
-                <SidebarTrigger className="text-muted-foreground hover:text-foreground shrink-0" aria-label="Alternar sidebar" />
+                <SidebarTrigger className="text-muted-foreground hover:text-foreground hover:bg-secondary/60 rounded-lg transition-colors shrink-0" aria-label="Alternar sidebar" />
+                
+                {/* Breadcrumb */}
+                <nav className="hidden sm:flex items-center gap-1 text-sm text-muted-foreground" aria-label="Breadcrumb">
+                  <span className="text-foreground/50">•</span>
+                  <span className="font-medium text-foreground">{pageTitle}</span>
+                </nav>
+
                 {/* Mobile search icon */}
                 <button
                   onClick={() => {
                     document.dispatchEvent(new KeyboardEvent('keydown', { key: 'k', metaKey: true, bubbles: true }));
                   }}
-                  className="md:hidden flex items-center justify-center h-8 w-8 rounded-lg bg-secondary/50 text-muted-foreground hover:bg-secondary transition-colors shrink-0"
+                  className="md:hidden flex items-center justify-center h-9 w-9 rounded-lg bg-secondary/50 text-muted-foreground hover:bg-secondary hover:text-foreground transition-colors shrink-0 ml-auto"
                   aria-label="Abrir busca rápida"
                 >
                   <Search className="h-4 w-4" aria-hidden="true" />
@@ -145,7 +152,7 @@ export function AppLayout({ children }: AppLayoutProps) {
                   onClick={() => {
                     document.dispatchEvent(new KeyboardEvent('keydown', { key: 'k', metaKey: true, bubbles: true }));
                   }}
-                  className="hidden md:flex items-center gap-2 rounded-lg bg-secondary/50 px-3 py-1.5 text-sm text-muted-foreground cursor-pointer hover:bg-secondary transition-colors focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:outline-none"
+                  className="hidden md:flex items-center gap-2 rounded-lg bg-secondary/50 px-3 py-1.5 text-sm text-muted-foreground cursor-pointer hover:bg-secondary hover:text-foreground transition-colors focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:outline-none ml-auto"
                   aria-label="Abrir busca rápida (⌘K)"
                 >
                   <Search className="h-3.5 w-3.5" aria-hidden="true" />

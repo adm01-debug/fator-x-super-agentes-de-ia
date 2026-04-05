@@ -149,7 +149,7 @@ export function AppSidebar() {
                   aria-expanded={!isCollapsedSection}
                   aria-controls={`nav-section-${section.key}`}
                 >
-                  <SidebarGroupLabel className="text-[11px] uppercase tracking-wider text-muted-foreground/70 pointer-events-none p-0 h-auto">
+                  <SidebarGroupLabel className="text-[11px] uppercase tracking-wider text-muted-foreground/80 pointer-events-none p-0 h-auto font-semibold">
                     {section.label}
                   </SidebarGroupLabel>
                   <ChevronDown
@@ -175,12 +175,19 @@ export function AppSidebar() {
                           <NavLink
                             to={item.url}
                             end={item.url === "/"}
-                            className="flex items-center gap-2.5 rounded-lg px-2.5 py-2 text-sm transition-all text-sidebar-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground hover:translate-x-0.5"
-                            activeClassName="bg-primary/12 text-primary font-medium shadow-[inset_3px_0_0_hsl(var(--primary))]"
+                            className={`flex items-center gap-2.5 rounded-lg px-2.5 py-2 text-sm transition-all group/navitem ${
+                              isActive
+                                ? 'text-primary font-medium'
+                                : 'text-sidebar-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground'
+                            }`}
+                            activeClassName="bg-primary/12 shadow-[inset_3px_0_0_hsl(var(--primary))]"
                             aria-current={isActive ? "page" : undefined}
                           >
-                            <item.icon className="h-4 w-4 shrink-0" />
+                            <item.icon className={`h-4 w-4 shrink-0 transition-transform duration-200 group-hover/navitem:scale-110 ${isActive ? 'text-primary' : ''}`} />
                             {!collapsed && <span>{item.title}</span>}
+                            {isActive && !collapsed && (
+                              <span className="ml-auto h-1.5 w-1.5 rounded-full bg-primary animate-glow-pulse" />
+                            )}
                           </NavLink>
                         </SidebarMenuButton>
                       </SidebarMenuItem>
@@ -202,8 +209,8 @@ export function AppSidebar() {
                 <p className="text-[11px] font-semibold text-foreground">Workspace {planLabel}</p>
                 <span className="text-[11px] text-muted-foreground">{agentCount}/{maxAgents}</span>
               </div>
-              <div className="h-1.5 rounded-full bg-secondary" role="progressbar" aria-valuenow={usage} aria-valuemin={0} aria-valuemax={100} aria-label="Uso de agentes">
-                <div className="h-full rounded-full nexus-gradient-bg transition-all" style={{ width: `${Math.max(usage, 4)}%` }} />
+              <div className="h-2 rounded-full bg-secondary" role="progressbar" aria-valuenow={usage} aria-valuemin={0} aria-valuemax={100} aria-label="Uso de agentes">
+                <div className="h-full rounded-full nexus-gradient-bg transition-all duration-500" style={{ width: `${Math.max(usage, 4)}%` }} />
               </div>
             </div>
             <Separator className="bg-border/30" />
@@ -221,7 +228,7 @@ export function AppSidebar() {
                 </Button>
               </div>
             )}
-            <p className="text-[9px] text-muted-foreground/40 text-center px-2 select-none">Fator X v1.0 • Nexus Platform</p>
+            <p className="text-[10px] text-muted-foreground/50 text-center px-2 select-none">Fator X v1.0 • Nexus Platform</p>
           </>
         )}
         <Button
