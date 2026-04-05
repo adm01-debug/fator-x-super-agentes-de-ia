@@ -169,6 +169,20 @@ export function SearchTab() {
               />
             </div>
           </div>
+          <div className="w-48 space-y-1">
+            <label className="text-xs text-muted-foreground">Knowledge Base</label>
+            <Select value={selectedKbId} onValueChange={setSelectedKbId}>
+              <SelectTrigger className="bg-secondary/50 text-sm">
+                <SelectValue placeholder="Todas" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">Todas as bases</SelectItem>
+                {knowledgeBases.map(kb => (
+                  <SelectItem key={kb.id} value={kb.id}>{kb.name}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
           <div className="w-24 space-y-1">
             <label className="text-xs text-muted-foreground">Top K</label>
             <Input
