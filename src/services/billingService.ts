@@ -11,7 +11,6 @@ export async function getUsageSummary(period: 'day' | 'week' | 'month' = 'week')
   const since = new Date(now.getTime() - periodMs).toISOString();
 
   const { data, error } = await fromTable('usage_records')
-  if (error) throw error;
     .select('cost_usd, record_type, tokens, created_at')
     .gte('created_at', since)
     .order('created_at', { ascending: true });
@@ -43,7 +42,6 @@ export async function getBudget(workspaceId: string) {
 
 export async function setBudget(workspaceId: string, monthlyLimit: number) {
   const { data, error } = await supabase
-  if (error) throw error;
     .from('budgets')
     .upsert({ workspace_id: workspaceId, limit_usd: monthlyLimit, alert_threshold: 0.8 })
     .select()
