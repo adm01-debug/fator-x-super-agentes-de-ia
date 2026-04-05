@@ -96,6 +96,7 @@ const App = () => (
                   <AppLayout>
                     <Routes>
                       <Route path="/" element={<SafePage><DashboardPage /></SafePage>} />
+                      <Route path="/dashboard" element={<SafePage><DashboardPage /></SafePage>} />
                       <Route path="/agents" element={<SafePage><AgentsPage /></SafePage>} />
                       <Route path="/agents/new" element={<SafePage><CreateAgentPage /></SafePage>} />
                       <Route path="/agents/:id" element={<SafePage><AgentDetailPage /></SafePage>} />
