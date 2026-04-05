@@ -33,6 +33,22 @@ export async function removeMember(workspaceId: string, userId: string) {
   if (error) throw error;
 }
 
+export async function getPendingInvites(email: string) {
+  const { data, error } = await supabase
+    .from('workspace_members')
+    .select('*')
+    .eq('email', email)
+    .is('accepted_at', null)
+    .is('user_id', null);
+  if (error) throw error;
+  return data ?? [];
+}
+
+export async function acceptInvite(memberId: string) {
+  const { error } = await supabase.rpc('accept_workspace_invitation', { p_member_id: memberId });
+  if (error) throw error;
+}
+
 export async function updateMemberRole(workspaceId: string, userId: string, newRole: RoleKey) {
   const { error } = await supabase
     .from('workspace_members')
