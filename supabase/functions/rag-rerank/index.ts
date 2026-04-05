@@ -47,12 +47,13 @@ serve(async (req) => {
 
     // Layer 1: Cohere Rerank API
     if (wsId) {
-      const { data: cohereKey } = await supabase
+      const { data: secrets } = await supabase
         .from('workspace_secrets')
         .select('key_value')
         .eq('workspace_id', wsId)
         .eq('key_name', 'cohere_api_key')
-        .single();
+        .limit(1);
+      const cohereKeyValue = secrets?.[0]?.key_value;
 
       if (cohereKey?.key_value) {
         try {
