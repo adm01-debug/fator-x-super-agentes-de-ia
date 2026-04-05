@@ -13,6 +13,7 @@
  */
 
 import { supabase } from '@/integrations/supabase/client';
+import { fromTable } from '@/lib/supabaseExtended';
 
 /* ------------------------------------------------------------------ */
 /*  Types                                                              */
@@ -179,8 +180,7 @@ export async function sendNotification(
     source_id: input.source_id ?? null,
   };
 
-  const { data, error } = await supabase
-    .from('notifications')
+  const { data, error } = await fromTable('notifications')
     .insert(record)
     .select()
     .single();
@@ -216,24 +216,21 @@ export async function sendMultiChannel(
 /* ------------------------------------------------------------------ */
 
 export async function markDelivered(id: string): Promise<void> {
-  const { error } = await supabase
-    .from('notifications')
+  const { error } = await fromTable('notifications')
     .update({ status: 'delivered', delivered_at: new Date().toISOString() })
     .eq('id', id);
   if (error) throw error;
 }
 
 export async function markRead(id: string): Promise<void> {
-  const { error } = await supabase
-    .from('notifications')
+  const { error } = await fromTable('notifications')
     .update({ status: 'read', read_at: new Date().toISOString() })
     .eq('id', id);
   if (error) throw error;
 }
 
 export async function markFailed(id: string, errorMsg: string): Promise<void> {
-  const { error } = await supabase
-    .from('notifications')
+  const { error } = await fromTable('notifications')
     .update({
       status: 'failed',
       failed_at: new Date().toISOString(),
@@ -244,8 +241,7 @@ export async function markFailed(id: string, errorMsg: string): Promise<void> {
 }
 
 export async function cancelNotification(id: string): Promise<void> {
-  const { error } = await supabase
-    .from('notifications')
+  const { error } = await fromTable('notifications')
     .update({ status: 'cancelled' })
     .eq('id', id);
   if (error) throw error;
@@ -265,8 +261,7 @@ export async function listNotifications(
   },
   limit: number = 50,
 ): Promise<NotificationPayload[]> {
-  let query = supabase
-    .from('notifications')
+  let query = fromTable('notifications')
     .select('*')
     .order('created_at', { ascending: false })
     .limit(limit);
@@ -286,8 +281,7 @@ export async function getInAppNotifications(
   userId: string,
   unreadOnly: boolean = false,
 ): Promise<NotificationPayload[]> {
-  let query = supabase
-    .from('notifications')
+  let query = fromTable('notifications')
     .select('*')
     .eq('channel', 'in_app')
     .eq('recipient_id', userId)
@@ -304,8 +298,7 @@ export async function getInAppNotifications(
 }
 
 export async function markAllRead(userId: string): Promise<number> {
-  const { data, error } = await supabase
-    .from('notifications')
+  const { data, error } = await fromTable('notifications')
     .update({ status: 'read', read_at: new Date().toISOString() })
     .eq('channel', 'in_app')
     .eq('recipient_id', userId)
@@ -320,8 +313,7 @@ export async function markAllRead(userId: string): Promise<number> {
 /* ------------------------------------------------------------------ */
 
 async function getTemplate(id: string): Promise<NotificationTemplate | null> {
-  const { data, error } = await supabase
-    .from('notification_templates')
+  const { data, error } = await fromTable('notification_templates')
     .select('*')
     .eq('id', id)
     .maybeSingle();
@@ -332,8 +324,7 @@ async function getTemplate(id: string): Promise<NotificationTemplate | null> {
 export async function listTemplates(
   channel?: NotificationChannel,
 ): Promise<NotificationTemplate[]> {
-  let query = supabase
-    .from('notification_templates')
+  let query = fromTable('notification_templates')
     .select('*')
     .eq('is_active', true)
     .order('name');
@@ -350,8 +341,7 @@ export async function listTemplates(
 export async function createTemplate(
   input: Omit<NotificationTemplate, 'id' | 'created_at'>,
 ): Promise<NotificationTemplate> {
-  const { data, error } = await supabase
-    .from('notification_templates')
+  const { data, error } = await fromTable('notification_templates')
     .insert(input)
     .select()
     .single();
@@ -364,8 +354,7 @@ export async function createTemplate(
 /* ------------------------------------------------------------------ */
 
 export async function getNotificationStats(): Promise<NotificationStats> {
-  const { data, error } = await supabase
-    .from('notifications')
+  const { data, error } = await fromTable('notifications')
     .select('channel, priority, status, sent_at, delivered_at');
   if (error) throw error;
 

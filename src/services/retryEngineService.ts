@@ -11,6 +11,7 @@
  */
 
 import { supabase } from '@/integrations/supabase/client';
+import { fromTable } from '@/lib/supabaseExtended';
 
 /* ------------------------------------------------------------------ */
 /*  Types                                                              */
@@ -441,8 +442,7 @@ export async function addToDeadLetterQueue(
   attempts: number,
   policy: RetryPolicy,
 ): Promise<DeadLetterEntry> {
-  const { data, error: dbError } = await supabase
-    .from('dead_letter_queue')
+  const { data, error: dbError } = await fromTable('dead_letter_queue')
     .insert({
       source: 'retry_engine',
       operation,
@@ -462,8 +462,7 @@ export async function listDeadLetters(
   status?: DeadLetterEntry['status'],
   limit: number = 50,
 ): Promise<DeadLetterEntry[]> {
-  let query = supabase
-    .from('dead_letter_queue')
+  let query = fromTable('dead_letter_queue')
     .select('*')
     .order('created_at', { ascending: false })
     .limit(limit);
@@ -481,8 +480,7 @@ export async function resolveDeadLetter(
   id: string,
   status: 'retried' | 'resolved' | 'discarded' = 'resolved',
 ): Promise<void> {
-  const { error } = await supabase
-    .from('dead_letter_queue')
+  const { error } = await fromTable('dead_letter_queue')
     .update({ status, resolved_at: new Date().toISOString() })
     .eq('id', id);
   if (error) throw error;
@@ -495,8 +493,7 @@ export async function getDeadLetterStats(): Promise<{
   retried: number;
   discarded: number;
 }> {
-  const { data, error } = await supabase
-    .from('dead_letter_queue')
+  const { data, error } = await fromTable('dead_letter_queue')
     .select('status');
   if (error) throw error;
 

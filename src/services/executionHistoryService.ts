@@ -11,6 +11,7 @@
  */
 
 import { supabase } from '@/integrations/supabase/client';
+import { fromTable } from '@/lib/supabaseExtended';
 
 /* ------------------------------------------------------------------ */
 /*  Types                                                              */
@@ -110,8 +111,7 @@ export async function startExecution(
 ): Promise<ExecutionRecord> {
   const { data: userData } = await supabase.auth.getUser();
 
-  const { data, error } = await supabase
-    .from('execution_history')
+  const { data, error } = await fromTable('execution_history')
     .insert({
       execution_type: type,
       source_id: sourceId,
@@ -139,8 +139,7 @@ export async function completeExecution(
   costBrl?: number,
 ): Promise<void> {
   const now = new Date().toISOString();
-  const { data: existing } = await supabase
-    .from('execution_history')
+  const { data: existing } = await fromTable('execution_history')
     .select('started_at')
     .eq('id', id)
     .single();
@@ -149,8 +148,7 @@ export async function completeExecution(
     ? new Date(now).getTime() - new Date(existing.started_at).getTime()
     : null;
 
-  const { error } = await supabase
-    .from('execution_history')
+  const { error } = await fromTable('execution_history')
     .update({
       status: 'success',
       output_data: outputData,
@@ -169,8 +167,7 @@ export async function failExecution(
   errorStack?: string,
 ): Promise<void> {
   const now = new Date().toISOString();
-  const { data: existing } = await supabase
-    .from('execution_history')
+  const { data: existing } = await fromTable('execution_history')
     .select('started_at')
     .eq('id', id)
     .single();
@@ -179,8 +176,7 @@ export async function failExecution(
     ? new Date(now).getTime() - new Date(existing.started_at).getTime()
     : null;
 
-  const { error } = await supabase
-    .from('execution_history')
+  const { error } = await fromTable('execution_history')
     .update({
       status: 'failed',
       error: errorMsg,
@@ -196,8 +192,7 @@ export async function recordStep(
   executionId: string,
   step: ExecutionStepRecord,
 ): Promise<void> {
-  const { data: existing, error: fetchError } = await supabase
-    .from('execution_history')
+  const { data: existing, error: fetchError } = await fromTable('execution_history')
     .select('steps')
     .eq('id', executionId)
     .single();
@@ -205,8 +200,7 @@ export async function recordStep(
 
   const steps = [...((existing?.steps as ExecutionStepRecord[]) ?? []), step];
 
-  const { error } = await supabase
-    .from('execution_history')
+  const { error } = await fromTable('execution_history')
     .update({ steps })
     .eq('id', executionId);
   if (error) throw error;
@@ -221,8 +215,7 @@ export async function listExecutions(
   limit: number = 50,
   offset: number = 0,
 ): Promise<{ data: ExecutionRecord[]; total: number }> {
-  let query = supabase
-    .from('execution_history')
+  let query = fromTable('execution_history')
     .select('*', { count: 'exact' })
     .order('started_at', { ascending: false })
     .range(offset, offset + limit - 1);
@@ -245,8 +238,7 @@ export async function listExecutions(
 }
 
 export async function getExecution(id: string): Promise<ExecutionRecord | null> {
-  const { data, error } = await supabase
-    .from('execution_history')
+  const { data, error } = await fromTable('execution_history')
     .select('*')
     .eq('id', id)
     .maybeSingle();
@@ -327,8 +319,7 @@ export async function getExecutionTimeline(
   const since = new Date();
   since.setHours(since.getHours() - hours);
 
-  const { data, error } = await supabase
-    .from('execution_history')
+  const { data, error } = await fromTable('execution_history')
     .select('started_at, status, duration_ms')
     .gte('started_at', since.toISOString());
   if (error) throw error;
@@ -377,8 +368,7 @@ export async function getExecutionStats(
   const since = new Date();
   since.setHours(since.getHours() - timeframeHours);
 
-  const { data, error } = await supabase
-    .from('execution_history')
+  const { data, error } = await fromTable('execution_history')
     .select('status, execution_type, duration_ms, tokens_used, cost_brl')
     .gte('started_at', since.toISOString());
   if (error) throw error;
@@ -418,8 +408,7 @@ export async function purgeOldExecutions(
   const cutoff = new Date();
   cutoff.setDate(cutoff.getDate() - olderThanDays);
 
-  const { data, error } = await supabase
-    .from('execution_history')
+  const { data, error } = await fromTable('execution_history')
     .delete()
     .lt('started_at', cutoff.toISOString())
     .select('id');

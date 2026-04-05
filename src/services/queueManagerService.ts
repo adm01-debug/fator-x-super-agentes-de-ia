@@ -11,6 +11,7 @@
  */
 
 import { supabase } from '@/integrations/supabase/client';
+import { fromTable } from '@/lib/supabaseExtended';
 
 /* ------------------------------------------------------------------ */
 /*  Types                                                              */
@@ -100,8 +101,7 @@ export interface QueueMetrics {
 /* ------------------------------------------------------------------ */
 
 export async function createQueue(input: CreateQueueInput): Promise<QueueDefinition> {
-  const { data, error } = await supabase
-    .from('task_queues')
+  const { data, error } = await fromTable('task_queues')
     .insert({
       name: input.name,
       description: input.description ?? '',
@@ -125,8 +125,7 @@ export async function createQueue(input: CreateQueueInput): Promise<QueueDefinit
 }
 
 export async function listQueues(): Promise<QueueDefinition[]> {
-  const { data, error } = await supabase
-    .from('task_queues')
+  const { data, error } = await fromTable('task_queues')
     .select('*')
     .order('name');
   if (error) throw error;
@@ -134,8 +133,7 @@ export async function listQueues(): Promise<QueueDefinition[]> {
 }
 
 export async function getQueue(id: string): Promise<QueueDefinition | null> {
-  const { data, error } = await supabase
-    .from('task_queues')
+  const { data, error } = await fromTable('task_queues')
     .select('*')
     .eq('id', id)
     .maybeSingle();
@@ -144,24 +142,22 @@ export async function getQueue(id: string): Promise<QueueDefinition | null> {
 }
 
 export async function pauseQueue(id: string): Promise<void> {
-  const { error } = await supabase
-    .from('task_queues')
+  const { error } = await fromTable('task_queues')
     .update({ is_paused: true, updated_at: new Date().toISOString() })
     .eq('id', id);
   if (error) throw error;
 }
 
 export async function resumeQueue(id: string): Promise<void> {
-  const { error } = await supabase
-    .from('task_queues')
+  const { error } = await fromTable('task_queues')
     .update({ is_paused: false, updated_at: new Date().toISOString() })
     .eq('id', id);
   if (error) throw error;
 }
 
 export async function deleteQueue(id: string): Promise<void> {
-  await supabase.from('queue_items').delete().eq('queue_id', id);
-  const { error } = await supabase.from('task_queues').delete().eq('id', id);
+  await fromTable('queue_items').delete().eq('queue_id', id);
+  const { error } = await fromTable('task_queues').delete().eq('id', id);
   if (error) throw error;
 }
 
@@ -177,8 +173,7 @@ export async function enqueue(input: EnqueueInput): Promise<QueueItem> {
     throw new Error(`Queue ${queue.name} is full (${queue.max_size} items)`);
   }
 
-  const { data, error } = await supabase
-    .from('queue_items')
+  const { data, error } = await fromTable('queue_items')
     .insert({
       queue_id: input.queue_id,
       priority: input.priority ?? 0,
@@ -195,8 +190,7 @@ export async function enqueue(input: EnqueueInput): Promise<QueueItem> {
   if (error) throw error;
 
   // Update queue size
-  await supabase
-    .from('task_queues')
+  await fromTable('task_queues')
     .update({ current_size: queue.current_size + 1, updated_at: new Date().toISOString() })
     .eq('id', input.queue_id);
 
@@ -221,8 +215,7 @@ export async function dequeue(
   if (!queue || queue.is_paused) return [];
 
   // Check concurrency limit
-  const { data: processing } = await supabase
-    .from('queue_items')
+  const { data: processing } = await fromTable('queue_items')
     .select('id')
     .eq('queue_id', queueId)
     .eq('status', 'processing');
@@ -242,8 +235,7 @@ export async function dequeue(
 
   // Fetch and lock items
   const now = new Date();
-  const { data: pendingItems, error: fetchError } = await supabase
-    .from('queue_items')
+  const { data: pendingItems, error: fetchError } = await fromTable('queue_items')
     .select('*')
     .eq('queue_id', queueId)
     .eq('status', 'pending')
@@ -257,8 +249,7 @@ export async function dequeue(
 
   for (const item of items) {
     const lockUntil = new Date(now.getTime() + (item.timeout_ms ?? 30000));
-    const { data: updated, error: lockError } = await supabase
-      .from('queue_items')
+    const { data: updated, error: lockError } = await fromTable('queue_items')
       .update({
         status: 'processing',
         started_at: now.toISOString(),
@@ -287,8 +278,7 @@ export async function completeItem(
   itemId: string,
   result: Record<string, unknown>,
 ): Promise<void> {
-  const { data: item, error: fetchError } = await supabase
-    .from('queue_items')
+  const { data: item, error: fetchError } = await fromTable('queue_items')
     .select('queue_id, started_at')
     .eq('id', itemId)
     .single();
@@ -299,8 +289,7 @@ export async function completeItem(
     ? now.getTime() - new Date(item.started_at).getTime()
     : null;
 
-  const { error } = await supabase
-    .from('queue_items')
+  const { error } = await fromTable('queue_items')
     .update({
       status: 'completed',
       result,
@@ -320,8 +309,7 @@ export async function completeItem(
         ? (queue.avg_processing_ms * queue.processed_count + (durationMs ?? 0)) / newCount
         : (durationMs ?? 0);
 
-      await supabase
-        .from('task_queues')
+      await fromTable('task_queues')
         .update({
           current_size: Math.max(0, queue.current_size - 1),
           processed_count: newCount,
@@ -337,8 +325,7 @@ export async function failItem(
   itemId: string,
   errorMsg: string,
 ): Promise<void> {
-  const { data: item, error: fetchError } = await supabase
-    .from('queue_items')
+  const { data: item, error: fetchError } = await fromTable('queue_items')
     .select('queue_id, attempt, max_retries')
     .eq('id', itemId)
     .single();
@@ -347,8 +334,7 @@ export async function failItem(
   const shouldRetry = (item?.attempt ?? 0) < (item?.max_retries ?? 3);
   const newStatus: QueueItemStatus = shouldRetry ? 'pending' : 'dead_letter';
 
-  const { error } = await supabase
-    .from('queue_items')
+  const { error } = await fromTable('queue_items')
     .update({
       status: newStatus,
       error: errorMsg,
@@ -362,8 +348,7 @@ export async function failItem(
   if (newStatus === 'dead_letter' && item?.queue_id) {
     const queue = await getQueue(item.queue_id);
     if (queue) {
-      await supabase
-        .from('task_queues')
+      await fromTable('task_queues')
         .update({
           current_size: Math.max(0, queue.current_size - 1),
           failed_count: queue.failed_count + 1,
@@ -382,8 +367,7 @@ export async function getQueueMetrics(queueId: string): Promise<QueueMetrics> {
   const queue = await getQueue(queueId);
   if (!queue) throw new Error(`Queue ${queueId} not found`);
 
-  const { data: items, error } = await supabase
-    .from('queue_items')
+  const { data: items, error } = await fromTable('queue_items')
     .select('status, created_at, started_at, completed_at')
     .eq('queue_id', queueId);
   if (error) throw error;

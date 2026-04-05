@@ -300,8 +300,7 @@ export async function recordExecution(
   durationMs?: number,
   attempt?: number,
 ): Promise<ScheduleExecution> {
-  const { data, error } = await supabase
-    .from('cron_schedule_executions')
+  const { data, error } = await fromTable('cron_schedule_executions')
     .insert({
       schedule_id: scheduleId,
       status,
@@ -352,8 +351,7 @@ export async function getScheduleExecutions(
   scheduleId: string,
   limit: number = 50,
 ): Promise<ScheduleExecution[]> {
-  const { data, error } = await supabase
-    .from('cron_schedule_executions')
+  const { data, error } = await fromTable('cron_schedule_executions')
     .select('*')
     .eq('schedule_id', scheduleId)
     .order('started_at', { ascending: false })
@@ -371,8 +369,7 @@ export async function getScheduleStats(): Promise<ScheduleStats> {
   const active = allSchedules.filter((s) => s.status === 'active');
   const paused = allSchedules.filter((s) => s.status === 'paused');
 
-  const { data: executions, error } = await supabase
-    .from('cron_schedule_executions')
+  const { data: executions, error } = await fromTable('cron_schedule_executions')
     .select('status, duration_ms')
     .order('started_at', { ascending: false })
     .limit(1000);

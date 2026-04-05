@@ -256,8 +256,7 @@ export async function logWebhookEvent(
   webhookId: string,
   event: Omit<WebhookEvent, 'id' | 'webhook_id' | 'created_at'>,
 ): Promise<WebhookEvent> {
-  const { data, error } = await supabase
-    .from('webhook_events')
+  const { data, error } = await fromTable('webhook_events')
     .insert({ ...event, webhook_id: webhookId })
     .select()
     .single();
@@ -273,8 +272,7 @@ export async function getWebhookEvents(
   webhookId: string,
   limit: number = 100,
 ): Promise<WebhookEvent[]> {
-  const { data, error } = await supabase
-    .from('webhook_events')
+  const { data, error } = await fromTable('webhook_events')
     .select('*')
     .eq('webhook_id', webhookId)
     .order('created_at', { ascending: false })
