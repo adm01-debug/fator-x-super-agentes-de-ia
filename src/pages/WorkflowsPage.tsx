@@ -17,6 +17,7 @@ import { WorkflowCanvas, type CanvasNode, type CanvasEdge } from "@/components/w
 import { useWorkflowPersistence } from "@/hooks/use-workflow-persistence";
 import { supabase } from "@/integrations/supabase/client";
 import { workflowSchema } from "@/lib/validations/agentSchema";
+import { listWorkflows as listWorkflowsService, saveWorkflow as saveWorkflowService, deleteWorkflow as deleteWorkflowService } from "@/services/workflowsService";
 
 interface Workflow {
   id: string;
