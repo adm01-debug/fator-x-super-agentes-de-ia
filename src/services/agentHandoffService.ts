@@ -339,10 +339,34 @@ function matchesCondition(
       return false;
 
     case 'custom':
-      // Custom expressions are evaluated in a sandboxed context
+      // Custom expressions are NOT evaluated via eval/new Function for security.
+      // Instead, we support a limited set of declarative checks:
+      // expression format: "field_name operator value" e.g. "confidence gt 0.8"
       try {
-        const fn = new Function('ctx', `return (${condition.expression ?? 'false'})`);
-        return Boolean(fn(context));
+        const expr = (condition.expression ?? '').trim();
+        const parts = expr.split(/\s+/);
+        if (parts.length === 3) {
+          const [fieldName, op, val] = parts;
+          const fieldVal = context.state[fieldName];
+          if (fieldVal === undefined) return false;
+          const numField = Number(fieldVal);
+          const numVal = Number(val);
+          switch (op) {
+            case 'gt': return numField > numVal;
+            case 'lt': return numField < numVal;
+            case 'eq': return String(fieldVal) === val;
+            case 'gte': return numField >= numVal;
+            case 'lte': return numField <= numVal;
+            case 'contains': return String(fieldVal).toLowerCase().includes(val.toLowerCase());
+            case 'exists': return fieldVal !== undefined && fieldVal !== null;
+            default: return false;
+          }
+        }
+        // Simple boolean field check: "fieldName"
+        if (parts.length === 1) {
+          return Boolean(context.state[parts[0]]);
+        }
+        return false;
       } catch {
         return false;
       }
