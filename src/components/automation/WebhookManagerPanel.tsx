@@ -1,8 +1,7 @@
 import { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { Button } from '@/components/ui/button';
-import { Webhook, RefreshCw, Copy, Shield, Eye, EyeOff } from 'lucide-react';
+import { Webhook } from 'lucide-react';
 import { listWebhooks, WEBHOOK_TEMPLATES, type WebhookEndpoint } from '@/services/webhookTriggerService';
 import { useToast } from '@/hooks/use-toast';
 
@@ -14,7 +13,6 @@ const AUTH_LABELS: Record<string, string> = {
 export function WebhookManagerPanel() {
   const [webhooks, setWebhooks] = useState<WebhookEndpoint[]>([]);
   const [loading, setLoading] = useState(true);
-  const [showSecrets, setShowSecrets] = useState<Record<string, boolean>>({});
   const { toast } = useToast();
 
   useEffect(() => {

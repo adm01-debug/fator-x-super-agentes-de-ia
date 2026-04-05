@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { Lock, ShieldCheck, AlertTriangle, RotateCcw, Key, Eye, EyeOff } from 'lucide-react';
+import { Lock, ShieldCheck, AlertTriangle, RotateCcw, Key } from 'lucide-react';
 import { listCredentials, getVaultStats, CREDENTIAL_TEMPLATES, type VaultStats } from '@/services/credentialVaultService';
 import { useToast } from '@/hooks/use-toast';
 

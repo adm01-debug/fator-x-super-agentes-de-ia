@@ -1,14 +1,13 @@
 import { useState, useEffect } from 'react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { Plug, Activity, CheckCircle, XCircle } from 'lucide-react';
+import { CheckCircle, XCircle } from 'lucide-react';
 import { listConnectors, listInstances, BUILTIN_CONNECTORS, type ConnectorDefinition, type ConnectorInstance } from '@/services/connectorRegistryService';
 import { useToast } from '@/hooks/use-toast';
 
 export function ConnectorRegistryPanel() {
   const [connectors, setConnectors] = useState<ConnectorDefinition[]>([]);
   const [instances, setInstances] = useState<ConnectorInstance[]>([]);
-  const [loading, setLoading] = useState(true);
   const { toast } = useToast();
 
   useEffect(() => {

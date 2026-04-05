@@ -1,7 +1,6 @@
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { LayoutTemplate, ArrowRight } from 'lucide-react';
-import { Button } from '@/components/ui/button';
+import { ArrowRight } from 'lucide-react';
 import { BUILTIN_TEMPLATES } from '@/services/automationTemplateService';
 
 const DIFFICULTY_COLORS: Record<string, string> = { beginner: 'bg-green-500/20 text-green-400', intermediate: 'bg-yellow-500/20 text-yellow-400', advanced: 'bg-red-500/20 text-red-400' };
