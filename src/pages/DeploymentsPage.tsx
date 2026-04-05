@@ -6,44 +6,14 @@ import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Rocket, Loader2, Link2, Copy, CheckCircle } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
-import { supabase } from "@/integrations/supabase/client";
+import { listDeployedAgents } from "@/services/deploymentsService";
 import { toast } from "sonner";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 
 export default function DeploymentsPage() {
   const { data: deployments = [], isLoading } = useQuery({
     queryKey: ['deployments'],
-    queryFn: async () => {
-      const { data } = await supabase.from('agents').select('id, name, avatar_emoji, status, config, version, updated_at')
-        .in('status', ['production', 'staging', 'monitoring']);
-      if (!data) return [];
-      // Fetch deploy_connections for all deployed agents
-      const agentIds = data.map(a => a.id);
-      const { data: connections } = await supabase.from('deploy_connections').select('agent_id, channel, status, message_count, last_message_at, error_message').in('agent_id', agentIds);
-      const connMap = new Map<string, any[]>();
-      for (const c of (connections || [])) {
-        if (!connMap.has(c.agent_id)) connMap.set(c.agent_id, []);
-        connMap.get(c.agent_id)!.push(c);
-      }
-      return data.map(a => {
-        const config = a.config as Record<string, any> | null;
-        const configChannels = (config?.deploy_channels || []) as Array<{ channel: string; name: string; enabled: boolean }>;
-        const liveConns = connMap.get(a.id) || [];
-        return {
-          id: a.id,
-          name: a.name,
-          emoji: a.avatar_emoji,
-          status: a.status,
-          version: `v${a.version}`,
-          channels: configChannels.filter(c => c.enabled).map(c => {
-            const live = liveConns.find((lc: Record<string, unknown>) => lc.channel === c.channel);
-            return { name: c.name || c.channel, status: live?.status || 'inactive', messages: live?.message_count || 0, lastMsg: live?.last_message_at, error: live?.error_message };
-          }),
-          environment: config?.deploy_environment || 'production',
-          updated: a.updated_at,
-        };
-      });
-    },
+    queryFn: listDeployedAgents,
   });
 
   return (
@@ -74,7 +44,7 @@ export default function DeploymentsPage() {
               </div>
               {dep.channels.length > 0 && (
                 <div className="flex flex-wrap gap-1 mt-2">
-                  {dep.channels.map((c: { name: string; status: string; messages: number; lastMsg?: string; error?: string }) => (
+                  {dep.channels.map((c) => (
                     <span key={c.name} className={`text-[11px] px-2 py-0.5 rounded-full ${c.status === 'active' ? 'bg-nexus-emerald/10 text-nexus-emerald' : c.status === 'error' ? 'bg-destructive/10 text-destructive' : 'nexus-badge-primary'}`} title={c.error || `${c.messages} msgs`}>
                       {c.name} {c.messages > 0 ? `(${c.messages})` : ''}
                     </span>

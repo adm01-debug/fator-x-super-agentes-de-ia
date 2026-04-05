@@ -1,9 +1,9 @@
 /**
  * MCP Server Manager — Registrar, conectar e testar MCP servers.
- * Usa NexusMCPClient + mcpRegistry.
+ * Uses fromTable() since mcp_servers is not in generated types.
  */
 import { useState, useEffect } from 'react';
-import { supabase } from '@/integrations/supabase/client';
+import { fromTable } from '@/lib/supabaseExtended';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
@@ -29,7 +29,7 @@ export function MCPServerManager() {
 
   async function loadServers() {
     try {
-      const { data } = await supabase.from('mcp_servers').select('*').order('created_at', { ascending: false });
+      const { data } = await fromTable('mcp_servers').select('*').order('created_at', { ascending: false });
       setServers((data || []) as unknown as MCPServer[]);
     } catch { /* table might not exist yet */ }
     setLoading(false);
@@ -39,7 +39,7 @@ export function MCPServerManager() {
     if (!newName || !newUrl) return;
     setAdding(true);
     try {
-      await supabase.from('mcp_servers').insert({ name: newName, url: newUrl, status: 'disconnected', tools_discovered: [] });
+      await fromTable('mcp_servers').insert({ name: newName, url: newUrl, status: 'disconnected', tools_discovered: [] });
       setNewName('');
       setNewUrl('');
       await loadServers();
@@ -50,7 +50,7 @@ export function MCPServerManager() {
   }
 
   async function removeServer(id: string) {
-    await supabase.from('mcp_servers').delete().eq('id', id);
+    await fromTable('mcp_servers').delete().eq('id', id);
     await loadServers();
   }
 
@@ -58,8 +58,8 @@ export function MCPServerManager() {
     <div className="space-y-4">
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-2">
-          <Wrench className="w-5 h-5 text-[#E67E22]" />
-          <h3 className="text-sm font-bold text-white">MCP Servers</h3>
+          <Wrench className="w-5 h-5 text-primary" />
+          <h3 className="text-sm font-bold text-foreground">MCP Servers</h3>
           <Badge variant="outline" className="text-[10px]">{servers.length} registrados</Badge>
         </div>
       </div>
@@ -69,13 +69,13 @@ export function MCPServerManager() {
           value={newName}
           onChange={(e) => setNewName(e.target.value)}
           placeholder="Nome (ex: GitHub)"
-          className="bg-[#0a0a1a] border-[#222244] text-xs h-8"
+          className="bg-secondary/50 border-border/50 text-xs h-8"
         />
         <Input
           value={newUrl}
           onChange={(e) => setNewUrl(e.target.value)}
           placeholder="URL do MCP server"
-          className="bg-[#0a0a1a] border-[#222244] text-xs h-8 flex-1"
+          className="bg-secondary/50 border-border/50 text-xs h-8 flex-1"
         />
         <Button onClick={addServer} disabled={adding || !newName || !newUrl} size="sm" className="h-8">
           {adding ? <Loader2 className="w-3 h-3 animate-spin" /> : <Plus className="w-3 h-3" />}
@@ -83,32 +83,32 @@ export function MCPServerManager() {
       </div>
 
       {loading ? (
-        <div className="text-xs text-[#888888] text-center py-4">Carregando...</div>
+        <div className="text-xs text-muted-foreground text-center py-4">Carregando...</div>
       ) : servers.length === 0 ? (
-        <div className="text-xs text-[#888888] text-center py-8 bg-[#0a0a1a] rounded-lg">
+        <div className="text-xs text-muted-foreground text-center py-8 bg-secondary/30 rounded-lg">
           Nenhum MCP server registrado. Adicione acima para conectar a ferramentas externas.
         </div>
       ) : (
         <div className="space-y-2">
           {servers.map(s => (
-            <div key={s.id} className="bg-[#0a0a1a] rounded-lg p-3 flex items-center justify-between">
+            <div key={s.id} className="bg-secondary/30 rounded-lg p-3 flex items-center justify-between">
               <div>
                 <div className="flex items-center gap-2">
-                  <span className="text-sm font-medium text-white">{s.name}</span>
-                  <Badge variant="outline" className={`text-[10px] ${s.status === 'connected' ? 'border-[#6BCB77] text-[#6BCB77]' : 'border-[#888888] text-[#888888]'}`}>
+                  <span className="text-sm font-medium text-foreground">{s.name}</span>
+                  <Badge variant="outline" className={`text-[10px] ${s.status === 'connected' ? 'border-nexus-emerald text-nexus-emerald' : ''}`}>
                     {s.status}
                   </Badge>
                   {Array.isArray(s.tools_discovered) && s.tools_discovered.length > 0 && (
-                    <span className="text-[10px] text-[#888888]">{s.tools_discovered.length} tools</span>
+                    <span className="text-[10px] text-muted-foreground">{s.tools_discovered.length} tools</span>
                   )}
                 </div>
-                <span className="text-[10px] text-[#555555] font-mono">{s.url}</span>
+                <span className="text-[10px] text-muted-foreground font-mono">{s.url}</span>
               </div>
               <div className="flex gap-1">
                 <Button variant="ghost" size="sm" className="h-7 w-7 p-0">
                   <RefreshCw className="w-3 h-3" />
                 </Button>
-                <Button variant="ghost" size="sm" className="h-7 w-7 p-0 text-red-400" onClick={() => removeServer(s.id)}>
+                <Button variant="ghost" size="sm" className="h-7 w-7 p-0 text-destructive" onClick={() => removeServer(s.id)}>
                   <Trash2 className="w-3 h-3" />
                 </Button>
               </div>

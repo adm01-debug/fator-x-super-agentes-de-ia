@@ -6,7 +6,7 @@ import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Loader2, Link2, Unlink, ExternalLink } from 'lucide-react';
+import { Unlink, ExternalLink } from 'lucide-react';
 
 export function Bitrix24Connect() {
   const [connected, setConnected] = useState(false);
@@ -48,20 +48,20 @@ export function Bitrix24Connect() {
     }
   }
 
-  if (loading) return <div className="animate-pulse bg-[#111122] rounded-xl h-20" />;
+  if (loading) return <div className="animate-pulse bg-secondary/30 rounded-xl h-20" />;
 
   return (
-    <div className="bg-[#111122] rounded-xl border border-[#222244] p-5 flex items-center justify-between">
+    <div className="nexus-card flex items-center justify-between">
       <div className="flex items-center gap-3">
-        <div className="w-10 h-10 rounded-lg bg-[#2FC6F6]/10 flex items-center justify-center text-lg">🔗</div>
+        <div className="w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center text-lg">🔗</div>
         <div>
           <div className="flex items-center gap-2">
-            <span className="text-sm font-bold text-white">Bitrix24 CRM</span>
-            <Badge variant={connected ? 'default' : 'outline'} className={`text-[10px] ${connected ? 'bg-[#6BCB77]/20 text-[#6BCB77] border-[#6BCB77]' : ''}`}>
+            <span className="text-sm font-bold text-foreground">Bitrix24 CRM</span>
+            <Badge variant={connected ? 'default' : 'outline'} className={`text-[10px] ${connected ? 'bg-nexus-emerald/20 text-nexus-emerald border-nexus-emerald' : ''}`}>
               {connected ? '● Conectado' : 'Desconectado'}
             </Badge>
           </div>
-          {domain && <span className="text-xs text-[#888888]">{domain}</span>}
+          {domain && <span className="text-xs text-muted-foreground">{domain}</span>}
         </div>
       </div>
 
@@ -69,7 +69,6 @@ export function Bitrix24Connect() {
         onClick={connected ? undefined : handleConnect}
         variant={connected ? 'outline' : 'default'}
         size="sm"
-        className={connected ? 'border-[#222244]' : 'bg-[#2FC6F6] hover:bg-[#2FC6F6]/80'}
       >
         {connected ? (
           <><Unlink className="w-3 h-3 mr-1" /> Desconectar</>

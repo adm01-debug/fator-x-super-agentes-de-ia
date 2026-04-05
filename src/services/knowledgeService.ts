@@ -82,3 +82,34 @@ export async function getCollectionStats(collectionId: string) {
     chunks: chunksResult.count || 0,
   };
 }
+
+export async function listKnowledgeBases() {
+  const { data, error } = await supabase
+    .from('knowledge_bases')
+    .select('*')
+    .order('created_at', { ascending: false });
+  if (error) throw error;
+  return data ?? [];
+}
+
+export async function deleteKnowledgeBase(id: string) {
+  const { error } = await supabase.from('knowledge_bases').delete().eq('id', id);
+  if (error) throw error;
+}
+
+export async function listVectorIndexes() {
+  const { data } = await supabase
+    .from('vector_indexes')
+    .select('*, knowledge_bases(name)')
+    .order('created_at', { ascending: false });
+  return data ?? [];
+}
+
+export async function getChunkEmbeddingStats() {
+  const [done, pending, failed] = await Promise.all([
+    supabase.from('chunks').select('id', { count: 'exact', head: true }).eq('embedding_status', 'done'),
+    supabase.from('chunks').select('id', { count: 'exact', head: true }).eq('embedding_status', 'pending'),
+    supabase.from('chunks').select('id', { count: 'exact', head: true }).eq('embedding_status', 'failed'),
+  ]);
+  return { done: done.count ?? 0, pending: pending.count ?? 0, failed: failed.count ?? 0 };
+}

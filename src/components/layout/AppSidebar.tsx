@@ -5,6 +5,7 @@ import {
   LayoutDashboard, Bot, BookOpen, Brain, Puzzle, FileText, GitBranch,
   FlaskConical, Rocket, Activity, Database, Shield, Users, CreditCard, Settings,
   Sparkles, PanelLeftClose, PanelLeft, LogOut, ServerCog, ChevronDown, Palette, Dna, Workflow,
+  Globe,
 } from "lucide-react";
 import {
   Sidebar, SidebarContent, SidebarGroup, SidebarGroupContent, SidebarGroupLabel,
@@ -16,6 +17,7 @@ import { Separator } from "@/components/ui/separator";
 import { useAuth } from "@/contexts/AuthContext";
 import { useEffect, useState, useCallback } from "react";
 import { getWorkspaceInfo } from "@/lib/agentService";
+import { useI18n } from "@/hooks/useI18n";
 
 const navSections = [
   {
@@ -84,6 +86,7 @@ export function AppSidebar() {
   const collapsed = state === "collapsed";
   const location = useLocation();
   const { user, signOut } = useAuth();
+  const { locale, setLocale } = useI18n();
   const [wsInfo, setWsInfo] = useState<{ name: string; plan: string; maxAgents: number; agentCount: number; userName: string; email: string } | null>(null);
   const [sectionCollapsed, setSectionCollapsed] = useState<Record<string, boolean>>(getInitialCollapsed);
 
@@ -228,7 +231,17 @@ export function AppSidebar() {
                 </Button>
               </div>
             )}
-            <p className="text-[10px] text-muted-foreground/50 text-center px-2 select-none">Fator X v1.0 • Nexus Platform</p>
+            <div className="flex items-center justify-between px-2">
+              <p className="text-[10px] text-muted-foreground/50 select-none">Fator X v1.0</p>
+              <button
+                onClick={() => setLocale(locale === 'pt-BR' ? 'en' : 'pt-BR')}
+                className="flex items-center gap-1 text-[10px] text-muted-foreground hover:text-foreground transition-colors rounded px-1.5 py-0.5 hover:bg-secondary/50"
+                title="Alternar idioma"
+              >
+                <Globe className="h-3 w-3" />
+                {locale === 'pt-BR' ? 'PT' : 'EN'}
+              </button>
+            </div>
           </>
         )}
         <Button

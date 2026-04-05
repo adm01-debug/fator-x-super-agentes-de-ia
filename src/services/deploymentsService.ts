@@ -67,3 +67,49 @@ export function getWidgetSnippet(agentId: string): string {
 export function getApiEndpoint(_agentId: string): string {
   return `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/widget-proxy/chat`;
 }
+
+export async function listDeployedAgents() {
+  const { data, error } = await supabase
+    .from('agents')
+    .select('id, name, avatar_emoji, status, config, version, updated_at')
+    .in('status', ['production', 'staging', 'monitoring']);
+  if (error) throw error;
+  if (!data) return [];
+
+  const agentIds = data.map(a => a.id);
+  const { data: connections } = await supabase
+    .from('deploy_connections')
+    .select('agent_id, channel, status, message_count, last_message_at, error_message')
+    .in('agent_id', agentIds);
+
+  const connMap = new Map<string, Array<Record<string, unknown>>>();
+  for (const c of (connections || [])) {
+    if (!connMap.has(c.agent_id)) connMap.set(c.agent_id, []);
+    connMap.get(c.agent_id)!.push(c);
+  }
+
+  return data.map(a => {
+    const config = a.config as Record<string, unknown> | null;
+    const configChannels = ((config?.deploy_channels || []) as Array<{ channel: string; name: string; enabled: boolean }>);
+    const liveConns = connMap.get(a.id) || [];
+    return {
+      id: a.id,
+      name: a.name,
+      emoji: a.avatar_emoji,
+      status: a.status,
+      version: `v${a.version}`,
+      channels: configChannels.filter(c => c.enabled).map(c => {
+        const live = liveConns.find((lc) => lc.channel === c.channel);
+        return {
+          name: c.name || c.channel,
+          status: (live?.status as string) || 'inactive',
+          messages: (live?.message_count as number) || 0,
+          lastMsg: live?.last_message_at as string | undefined,
+          error: live?.error_message as string | undefined,
+        };
+      }),
+      environment: (config?.deploy_environment as string) || 'production',
+      updated: a.updated_at,
+    };
+  });
+}
