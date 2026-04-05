@@ -192,8 +192,8 @@ export default function DashboardPage() {
           <div className="flex items-center gap-2 flex-wrap">
             {[
               { label: 'Novo Agente', icon: Plus, path: '/agents/new' },
-              { label: 'Knowledge', icon: BookOpen, path: '/knowledge' },
-              { label: 'Monitoring', icon: Activity, path: '/monitoring' },
+              { label: 'Conhecimento', icon: BookOpen, path: '/knowledge' },
+              { label: 'Monitoramento', icon: Activity, path: '/monitoring' },
               { label: 'Workflows', icon: GitBranch, path: '/workflows' },
             ].map(action => (
               <button
