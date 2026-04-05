@@ -11,6 +11,7 @@
  */
 
 import { supabase } from '@/integrations/supabase/client';
+import { fromTable } from '@/lib/supabaseExtended';
 
 /* ------------------------------------------------------------------ */
 /*  Types                                                              */
@@ -110,8 +111,7 @@ export async function startExecution(
 ): Promise<ExecutionRecord> {
   const { data: userData } = await supabase.auth.getUser();
 
-  const { data, error } = await supabase
-    .from('execution_history')
+  const { data, error } = await fromTable('execution_history')
     .insert({
       execution_type: type,
       source_id: sourceId,
@@ -139,8 +139,7 @@ export async function completeExecution(
   costBrl?: number,
 ): Promise<void> {
   const now = new Date().toISOString();
-  const { data: existing } = await supabase
-    .from('execution_history')
+  const { data: existing } = await fromTable('execution_history')
     .select('started_at')
     .eq('id', id)
     .single();
@@ -149,8 +148,7 @@ export async function completeExecution(
     ? new Date(now).getTime() - new Date(existing.started_at).getTime()
     : null;
 
-  const { error } = await supabase
-    .from('execution_history')
+  const { error } = await fromTable('execution_history')
     .update({
       status: 'success',
       output_data: outputData,
@@ -169,8 +167,7 @@ export async function failExecution(
   errorStack?: string,
 ): Promise<void> {
   const now = new Date().toISOString();
-  const { data: existing } = await supabase
-    .from('execution_history')
+  const { data: existing } = await fromTable('execution_history')
     .select('started_at')
     .eq('id', id)
     .single();
@@ -179,8 +176,7 @@ export async function failExecution(
     ? new Date(now).getTime() - new Date(existing.started_at).getTime()
     : null;
 
-  const { error } = await supabase
-    .from('execution_history')
+  const { error } = await fromTable('execution_history')
     .update({
       status: 'failed',
       error: errorMsg,
@@ -196,8 +192,7 @@ export async function recordStep(
   executionId: string,
   step: ExecutionStepRecord,
 ): Promise<void> {
-  const { data: existing, error: fetchError } = await supabase
-    .from('execution_history')
+  const { data: existing, error: fetchError } = await fromTable('execution_history')
     .select('steps')
     .eq('id', executionId)
     .single();
@@ -205,8 +200,7 @@ export async function recordStep(
 
   const steps = [...((existing?.steps as ExecutionStepRecord[]) ?? []), step];
 
-  const { error } = await supabase
-    .from('execution_history')
+  const { error } = await fromTable('execution_history')
     .update({ steps })
     .eq('id', executionId);
   if (error) throw error;
@@ -221,8 +215,7 @@ export async function listExecutions(
   limit: number = 50,
   offset: number = 0,
 ): Promise<{ data: ExecutionRecord[]; total: number }> {
-  let query = supabase
-    .from('execution_history')
+  let query = fromTable('execution_history')
     .select('*', { count: 'exact' })
     .order('started_at', { ascending: false })
     .range(offset, offset + limit - 1);
@@ -245,8 +238,7 @@ export async function listExecutions(
 }
 
 export async function getExecution(id: string): Promise<ExecutionRecord | null> {
-  const { data, error } = await supabase
-    .from('execution_history')
+  const { data, error } = await fromTable('execution_history')
     .select('*')
     .eq('id', id)
     .maybeSingle();
@@ -294,7 +286,7 @@ export function compareExecutions(
   const durationDiffPct = aDuration > 0 ? (durationDiff / aDuration) * 100 : 0;
 
   const stepDiffs = a.steps.map((stepA) => {
-    const stepB = b.steps.find((s) => s.step_name === stepA.step_name);
+    const stepB = b.steps.find((s: any) => s.step_name === stepA.step_name);
     return {
       step_name: stepA.step_name,
       a_duration_ms: stepA.duration_ms,
@@ -327,8 +319,7 @@ export async function getExecutionTimeline(
   const since = new Date();
   since.setHours(since.getHours() - hours);
 
-  const { data, error } = await supabase
-    .from('execution_history')
+  const { data, error } = await fromTable('execution_history')
     .select('started_at, status, duration_ms')
     .gte('started_at', since.toISOString());
   if (error) throw error;
@@ -356,7 +347,7 @@ export async function getExecutionTimeline(
       failed: b.failed,
       avg_duration_ms:
         b.durations.length > 0
-          ? b.durations.reduce((a, v) => a + v, 0) / b.durations.length
+          ? b.durations.reduce((a: any, v: any) => a + v, 0) / b.durations.length
           : 0,
     }));
 }
@@ -377,17 +368,16 @@ export async function getExecutionStats(
   const since = new Date();
   since.setHours(since.getHours() - timeframeHours);
 
-  const { data, error } = await supabase
-    .from('execution_history')
+  const { data, error } = await fromTable('execution_history')
     .select('status, execution_type, duration_ms, tokens_used, cost_brl')
     .gte('started_at', since.toISOString());
   if (error) throw error;
 
   const items = data ?? [];
-  const success = items.filter((i) => i.status === 'success');
-  const failed = items.filter((i) => i.status === 'failed');
-  const running = items.filter((i) => i.status === 'running');
-  const durations = items.map((i) => i.duration_ms).filter((d): d is number => d !== null);
+  const success = items.filter((i: any) => i.status === 'success');
+  const failed = items.filter((i: any) => i.status === 'failed');
+  const running = items.filter((i: any) => i.status === 'running');
+  const durations = items.map((i: any) => i.duration_ms).filter((d: any): d is number => d !== null);
   const byType = {} as Record<ExecutionType, number>;
 
   for (const item of items) {
@@ -401,9 +391,9 @@ export async function getExecutionStats(
     failed: failed.length,
     running: running.length,
     success_rate: items.length > 0 ? (success.length / items.length) * 100 : 0,
-    avg_duration_ms: durations.length > 0 ? durations.reduce((a, b) => a + b, 0) / durations.length : 0,
-    total_tokens: items.reduce((s, i) => s + (i.tokens_used ?? 0), 0),
-    total_cost_brl: items.reduce((s, i) => s + (i.cost_brl ?? 0), 0),
+    avg_duration_ms: durations.length > 0 ? durations.reduce((a: any, b: any) => a + b, 0) / durations.length : 0,
+    total_tokens: items.reduce((s: any, i: any) => s + (i.tokens_used ?? 0), 0),
+    total_cost_brl: items.reduce((s: any, i: any) => s + (i.cost_brl ?? 0), 0),
     by_type: byType,
   };
 }
@@ -418,8 +408,7 @@ export async function purgeOldExecutions(
   const cutoff = new Date();
   cutoff.setDate(cutoff.getDate() - olderThanDays);
 
-  const { data, error } = await supabase
-    .from('execution_history')
+  const { data, error } = await fromTable('execution_history')
     .delete()
     .lt('started_at', cutoff.toISOString())
     .select('id');

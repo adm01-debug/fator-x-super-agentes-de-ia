@@ -126,7 +126,7 @@ function parseCronField(field: string, min: number, max: number): number[] {
     }
   }
 
-  return [...new Set(values)].sort((a, b) => a - b);
+  return [...new Set(values)].sort((a: any, b: any) => a - b);
 }
 
 export function parseCronExpression(expr: string): CronParts {
@@ -300,8 +300,7 @@ export async function recordExecution(
   durationMs?: number,
   attempt?: number,
 ): Promise<ScheduleExecution> {
-  const { data, error } = await supabase
-    .from('cron_schedule_executions')
+  const { data, error } = await fromTable('cron_schedule_executions')
     .insert({
       schedule_id: scheduleId,
       status,
@@ -352,8 +351,7 @@ export async function getScheduleExecutions(
   scheduleId: string,
   limit: number = 50,
 ): Promise<ScheduleExecution[]> {
-  const { data, error } = await supabase
-    .from('cron_schedule_executions')
+  const { data, error } = await fromTable('cron_schedule_executions')
     .select('*')
     .eq('schedule_id', scheduleId)
     .order('started_at', { ascending: false })
@@ -368,26 +366,25 @@ export async function getScheduleExecutions(
 
 export async function getScheduleStats(): Promise<ScheduleStats> {
   const allSchedules = await listSchedules();
-  const active = allSchedules.filter((s) => s.status === 'active');
-  const paused = allSchedules.filter((s) => s.status === 'paused');
+  const active = allSchedules.filter((s: any) => s.status === 'active');
+  const paused = allSchedules.filter((s: any) => s.status === 'paused');
 
-  const { data: executions, error } = await supabase
-    .from('cron_schedule_executions')
+  const { data: executions, error } = await fromTable('cron_schedule_executions')
     .select('status, duration_ms')
     .order('started_at', { ascending: false })
     .limit(1000);
   if (error) throw error;
 
   const execs = executions ?? [];
-  const successCount = execs.filter((e) => e.status === 'success').length;
+  const successCount = execs.filter((e: any) => e.status === 'success').length;
   const durations = execs
-    .map((e) => e.duration_ms)
-    .filter((d): d is number => d !== null);
+    .map((e: any) => e.duration_ms)
+    .filter((d: any): d is number => d !== null);
 
   const upcoming = active
-    .filter((s) => s.next_run_at !== null)
+    .filter((s: any) => s.next_run_at !== null)
     .sort(
-      (a, b) =>
+      (a: any, b: any) =>
         new Date(a.next_run_at!).getTime() - new Date(b.next_run_at!).getTime(),
     )
     .slice(0, 5);
@@ -400,7 +397,7 @@ export async function getScheduleStats(): Promise<ScheduleStats> {
     success_rate: execs.length > 0 ? (successCount / execs.length) * 100 : 0,
     avg_duration_ms:
       durations.length > 0
-        ? durations.reduce((a, b) => a + b, 0) / durations.length
+        ? durations.reduce((a: any, b: any) => a + b, 0) / durations.length
         : 0,
     next_upcoming: upcoming,
   };

@@ -80,7 +80,17 @@ export {
   getTemplateStats as getAutomationTemplateStats,
   BUILTIN_TEMPLATES,
 } from './automationTemplateService';
-export * from './executionHistoryService';
+export {
+  startExecution as startHistoryExecution,
+  completeExecution as completeHistoryExecution,
+  failExecution as failHistoryExecution,
+  listExecutions as listHistoryExecutions,
+  getExecution as getHistoryExecution,
+  getExecutionTimeline as getHistoryExecutionTimeline,
+  getExecutionStats,
+  type ExecutionRecord,
+  type ExecutionStatus,
+} from './executionHistoryService';
 export * from './connectorRegistryService';
 export * from './queueManagerService';
 export * from './batchProcessorService';

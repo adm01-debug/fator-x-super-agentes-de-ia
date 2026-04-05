@@ -508,14 +508,15 @@ export async function getBatchStats(): Promise<{
     .select('status, processed_items, successful_items, failed_items, duration_ms, avg_item_ms');
   if (error) throw error;
 
-  const jobs = data ?? [];
-  const completed = jobs.filter((j) => j.status === 'completed' || j.status === 'partial');
-  const failed = jobs.filter((j) => j.status === 'failed');
-  const running = jobs.filter((j) => j.status === 'running');
-  const totalProcessed = jobs.reduce((s, j) => s + (j.processed_items ?? 0), 0);
-  const totalSuccessful = jobs.reduce((s, j) => s + (j.successful_items ?? 0), 0);
-  const durations = jobs.map((j) => j.duration_ms).filter((d): d is number => d !== null);
-  const speeds = jobs.map((j) => j.avg_item_ms).filter((s): s is number => s !== null && s > 0);
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const jobs: any[] = data ?? [];
+  const completed = jobs.filter((j: any) => j.status === 'completed' || j.status === 'partial');
+  const failed = jobs.filter((j: any) => j.status === 'failed');
+  const running = jobs.filter((j: any) => j.status === 'running');
+  const totalProcessed = jobs.reduce((s: number, j: any) => s + (j.processed_items ?? 0), 0);
+  const totalSuccessful = jobs.reduce((s: number, j: any) => s + (j.successful_items ?? 0), 0);
+  const durations = jobs.map((j: any) => j.duration_ms).filter((d: any): d is number => d !== null);
+  const speeds = jobs.map((j: any) => j.avg_item_ms).filter((s: any): s is number => s !== null && s > 0);
 
   return {
     total_jobs: jobs.length,

@@ -10,7 +10,7 @@
  * Gap 9/10 — automation topic analysis
  */
 
-import { supabase } from '@/integrations/supabase/client';
+import { fromTable } from '@/lib/supabaseExtended';
 
 /* ------------------------------------------------------------------ */
 /*  Types                                                              */
@@ -100,8 +100,7 @@ export interface QueueMetrics {
 /* ------------------------------------------------------------------ */
 
 export async function createQueue(input: CreateQueueInput): Promise<QueueDefinition> {
-  const { data, error } = await supabase
-    .from('task_queues')
+  const { data, error } = await fromTable('task_queues')
     .insert({
       name: input.name,
       description: input.description ?? '',
@@ -125,8 +124,7 @@ export async function createQueue(input: CreateQueueInput): Promise<QueueDefinit
 }
 
 export async function listQueues(): Promise<QueueDefinition[]> {
-  const { data, error } = await supabase
-    .from('task_queues')
+  const { data, error } = await fromTable('task_queues')
     .select('*')
     .order('name');
   if (error) throw error;
@@ -134,8 +132,7 @@ export async function listQueues(): Promise<QueueDefinition[]> {
 }
 
 export async function getQueue(id: string): Promise<QueueDefinition | null> {
-  const { data, error } = await supabase
-    .from('task_queues')
+  const { data, error } = await fromTable('task_queues')
     .select('*')
     .eq('id', id)
     .maybeSingle();
@@ -144,24 +141,22 @@ export async function getQueue(id: string): Promise<QueueDefinition | null> {
 }
 
 export async function pauseQueue(id: string): Promise<void> {
-  const { error } = await supabase
-    .from('task_queues')
+  const { error } = await fromTable('task_queues')
     .update({ is_paused: true, updated_at: new Date().toISOString() })
     .eq('id', id);
   if (error) throw error;
 }
 
 export async function resumeQueue(id: string): Promise<void> {
-  const { error } = await supabase
-    .from('task_queues')
+  const { error } = await fromTable('task_queues')
     .update({ is_paused: false, updated_at: new Date().toISOString() })
     .eq('id', id);
   if (error) throw error;
 }
 
 export async function deleteQueue(id: string): Promise<void> {
-  await supabase.from('queue_items').delete().eq('queue_id', id);
-  const { error } = await supabase.from('task_queues').delete().eq('id', id);
+  await fromTable('queue_items').delete().eq('queue_id', id);
+  const { error } = await fromTable('task_queues').delete().eq('id', id);
   if (error) throw error;
 }
 
@@ -177,8 +172,7 @@ export async function enqueue(input: EnqueueInput): Promise<QueueItem> {
     throw new Error(`Queue ${queue.name} is full (${queue.max_size} items)`);
   }
 
-  const { data, error } = await supabase
-    .from('queue_items')
+  const { data, error } = await fromTable('queue_items')
     .insert({
       queue_id: input.queue_id,
       priority: input.priority ?? 0,
@@ -195,8 +189,7 @@ export async function enqueue(input: EnqueueInput): Promise<QueueItem> {
   if (error) throw error;
 
   // Update queue size
-  await supabase
-    .from('task_queues')
+  await fromTable('task_queues')
     .update({ current_size: queue.current_size + 1, updated_at: new Date().toISOString() })
     .eq('id', input.queue_id);
 
@@ -221,8 +214,7 @@ export async function dequeue(
   if (!queue || queue.is_paused) return [];
 
   // Check concurrency limit
-  const { data: processing } = await supabase
-    .from('queue_items')
+  const { data: processing } = await fromTable('queue_items')
     .select('id')
     .eq('queue_id', queueId)
     .eq('status', 'processing');
@@ -242,8 +234,7 @@ export async function dequeue(
 
   // Fetch and lock items
   const now = new Date();
-  const { data: pendingItems, error: fetchError } = await supabase
-    .from('queue_items')
+  const { data: pendingItems, error: fetchError } = await fromTable('queue_items')
     .select('*')
     .eq('queue_id', queueId)
     .eq('status', 'pending')
@@ -257,8 +248,7 @@ export async function dequeue(
 
   for (const item of items) {
     const lockUntil = new Date(now.getTime() + (item.timeout_ms ?? 30000));
-    const { data: updated, error: lockError } = await supabase
-      .from('queue_items')
+    const { data: updated, error: lockError } = await fromTable('queue_items')
       .update({
         status: 'processing',
         started_at: now.toISOString(),
@@ -287,8 +277,7 @@ export async function completeItem(
   itemId: string,
   result: Record<string, unknown>,
 ): Promise<void> {
-  const { data: item, error: fetchError } = await supabase
-    .from('queue_items')
+  const { data: item, error: fetchError } = await fromTable('queue_items')
     .select('queue_id, started_at')
     .eq('id', itemId)
     .single();
@@ -299,8 +288,7 @@ export async function completeItem(
     ? now.getTime() - new Date(item.started_at).getTime()
     : null;
 
-  const { error } = await supabase
-    .from('queue_items')
+  const { error } = await fromTable('queue_items')
     .update({
       status: 'completed',
       result,
@@ -320,8 +308,7 @@ export async function completeItem(
         ? (queue.avg_processing_ms * queue.processed_count + (durationMs ?? 0)) / newCount
         : (durationMs ?? 0);
 
-      await supabase
-        .from('task_queues')
+      await fromTable('task_queues')
         .update({
           current_size: Math.max(0, queue.current_size - 1),
           processed_count: newCount,
@@ -337,8 +324,7 @@ export async function failItem(
   itemId: string,
   errorMsg: string,
 ): Promise<void> {
-  const { data: item, error: fetchError } = await supabase
-    .from('queue_items')
+  const { data: item, error: fetchError } = await fromTable('queue_items')
     .select('queue_id, attempt, max_retries')
     .eq('id', itemId)
     .single();
@@ -347,8 +333,7 @@ export async function failItem(
   const shouldRetry = (item?.attempt ?? 0) < (item?.max_retries ?? 3);
   const newStatus: QueueItemStatus = shouldRetry ? 'pending' : 'dead_letter';
 
-  const { error } = await supabase
-    .from('queue_items')
+  const { error } = await fromTable('queue_items')
     .update({
       status: newStatus,
       error: errorMsg,
@@ -362,8 +347,7 @@ export async function failItem(
   if (newStatus === 'dead_letter' && item?.queue_id) {
     const queue = await getQueue(item.queue_id);
     if (queue) {
-      await supabase
-        .from('task_queues')
+      await fromTable('task_queues')
         .update({
           current_size: Math.max(0, queue.current_size - 1),
           failed_count: queue.failed_count + 1,
@@ -382,33 +366,32 @@ export async function getQueueMetrics(queueId: string): Promise<QueueMetrics> {
   const queue = await getQueue(queueId);
   if (!queue) throw new Error(`Queue ${queueId} not found`);
 
-  const { data: items, error } = await supabase
-    .from('queue_items')
+  const { data: items, error } = await fromTable('queue_items')
     .select('status, created_at, started_at, completed_at')
     .eq('queue_id', queueId);
   if (error) throw error;
 
   const all = items ?? [];
   const now = Date.now();
-  const pending = all.filter((i) => i.status === 'pending');
-  const processing = all.filter((i) => i.status === 'processing');
-  const completed = all.filter((i) => i.status === 'completed');
-  const failed = all.filter((i) => i.status === 'failed');
-  const deadLetter = all.filter((i) => i.status === 'dead_letter');
+  const pending = all.filter((i: any) => i.status === 'pending');
+  const processing = all.filter((i: any) => i.status === 'processing');
+  const completed = all.filter((i: any) => i.status === 'completed');
+  const failed = all.filter((i: any) => i.status === 'failed');
+  const deadLetter = all.filter((i: any) => i.status === 'dead_letter');
 
   // Throughput: completed items in last minute
   const oneMinuteAgo = new Date(now - 60000).toISOString();
-  const recentCompleted = completed.filter((i) => i.completed_at && i.completed_at >= oneMinuteAgo);
+  const recentCompleted = completed.filter((i: any) => i.completed_at && i.completed_at >= oneMinuteAgo);
 
   // Wait time
   const waitTimes = processing
-    .filter((i) => i.created_at && i.started_at)
-    .map((i) => new Date(i.started_at!).getTime() - new Date(i.created_at).getTime());
+    .filter((i: any) => i.created_at && i.started_at)
+    .map((i: any) => new Date(i.started_at!).getTime() - new Date(i.created_at).getTime());
 
   // Processing time
   const processingTimes = completed
-    .filter((i) => i.started_at && i.completed_at)
-    .map((i) => new Date(i.completed_at!).getTime() - new Date(i.started_at!).getTime());
+    .filter((i: any) => i.started_at && i.completed_at)
+    .map((i: any) => new Date(i.completed_at!).getTime() - new Date(i.started_at!).getTime());
 
   // Oldest pending
   const oldestPending = pending.length > 0
@@ -424,8 +407,8 @@ export async function getQueueMetrics(queueId: string): Promise<QueueMetrics> {
     failed: failed.length,
     dead_letter: deadLetter.length,
     throughput_per_minute: recentCompleted.length,
-    avg_wait_time_ms: waitTimes.length > 0 ? waitTimes.reduce((a, b) => a + b, 0) / waitTimes.length : 0,
-    avg_processing_time_ms: processingTimes.length > 0 ? processingTimes.reduce((a, b) => a + b, 0) / processingTimes.length : 0,
+    avg_wait_time_ms: waitTimes.length > 0 ? waitTimes.reduce((a: any, b: any) => a + b, 0) / waitTimes.length : 0,
+    avg_processing_time_ms: processingTimes.length > 0 ? processingTimes.reduce((a: any, b: any) => a + b, 0) / processingTimes.length : 0,
     oldest_pending_age_ms: oldestPending,
   };
 }
