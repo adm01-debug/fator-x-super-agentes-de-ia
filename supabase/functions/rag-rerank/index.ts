@@ -55,11 +55,11 @@ serve(async (req) => {
         .limit(1);
       const cohereKeyValue = secrets?.[0]?.key_value;
 
-      if (cohereKey?.key_value) {
+      if (cohereKeyValue) {
         try {
           const resp = await fetch('https://api.cohere.ai/v1/rerank', {
             method: 'POST',
-            headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${cohereKey.key_value}` },
+            headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${cohereKeyValue}` },
             body: JSON.stringify({
               model: 'rerank-v3.5',
               query,
