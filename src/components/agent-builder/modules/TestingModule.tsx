@@ -4,7 +4,7 @@ import { SectionTitle, NexusBadge, InputField, TextAreaField, SelectField } from
 import { CollapsibleCard } from '../ui/CollapsibleCard';
 import { Button } from '@/components/ui/button';
 import { Plus, Trash2, Play, CheckCircle2, XCircle, Clock, SkipForward, Loader2 } from 'lucide-react';
-import { supabase } from '@/integrations/supabase/client';
+import { invokeLLMGateway } from '@/services/llmGatewayService';
 import { toast } from 'sonner';
 import type { TestCase, EvalMetric } from '@/types/agentTypes';
 
@@ -283,10 +283,10 @@ function TestExecutionPanel({ testCases }: { testCases: TestCase[] }) {
 
       for (const tc of testCases) {
         const start = Date.now();
-        const { data, error } = await supabase.functions.invoke('llm-gateway', {
-          body: { model, agent_id: agent.id, messages: [{ role: 'system', content: systemPrompt }, { role: 'user', content: tc.input }], temperature: 0.3, max_tokens: 2000 },
+        const data = await invokeLLMGateway({
+          model, messages: [{ role: 'system', content: systemPrompt }, { role: 'user', content: tc.input }], temperature: 0.3, max_tokens: 2000,
         });
-        const actual = data?.content || data?.error || error?.message || '';
+        const actual = data?.content || data?.error || '';
         const passed = tc.expected_behavior ? actual.toLowerCase().includes(tc.expected_behavior.toLowerCase().substring(0, 100)) : true;
         newResults.push({ input: tc.input, expected: tc.expected_behavior, actual, passed, latency_ms: Date.now() - start });
         setResults([...newResults]);

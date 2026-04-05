@@ -4,7 +4,7 @@ import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { Badge } from '@/components/ui/badge';
 import { useAgentBuilderStore } from '@/stores/agentBuilderStore';
-import { supabase } from '@/integrations/supabase/client';
+import { invokeLLMGateway } from '@/services/llmGatewayService';
 import { useStreaming } from '@/hooks/useStreaming';
 import { Send, MessageSquare, Trash2, Bug, Loader2, StopCircle } from 'lucide-react';
 import ReactMarkdown from 'react-markdown';
@@ -81,16 +81,12 @@ export function AgentPlayground() {
       // Non-streaming mode
       setLoading(true);
       try {
-        const { data, error } = await supabase.functions.invoke('llm-gateway', {
-          body: {
-            model: agent.model || 'google/gemini-2.5-flash',
-            messages: allMessages,
-            temperature: agent.temperature ?? 0.7,
-            max_tokens: agent.max_tokens ?? 4000,
-            agent_id: agent.id || undefined,
-          },
+        const data = await invokeLLMGateway({
+          model: agent.model || 'google/gemini-2.5-flash',
+          messages: allMessages,
+          temperature: agent.temperature ?? 0.7,
+          max_tokens: agent.max_tokens ?? 4000,
         });
-        if (error) throw error;
         setMessages(prev => [...prev, {
           role: 'assistant', content: data.content || 'Sem resposta',
           metadata: { model: data.model, tokens: data.tokens, latency_ms: data.latency_ms, cost_usd: data.cost_usd, provider: data.provider },

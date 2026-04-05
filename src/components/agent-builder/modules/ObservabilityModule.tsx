@@ -5,7 +5,7 @@ import { Activity, Clock, DollarSign, AlertTriangle, CheckCircle, XCircle, Filte
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
-import { supabase } from '@/integrations/supabase/client';
+import { listPromptVersions } from '@/services/knowledgeService';
 import { fromTable } from '@/lib/supabaseExtended';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
@@ -256,8 +256,7 @@ function AbTestPanel({ agentId }: { agentId: string; currentVersion?: number }) 
     queryKey: ['prompt_versions_for_ab', agentId],
     queryFn: async () => {
       if (!agentId) return [];
-      const { data } = await supabase.from('prompt_versions').select('id, version, change_summary, is_active').eq('agent_id', agentId).order('version', { ascending: false });
-      return data ?? [];
+      return listPromptVersions(agentId);
     },
     enabled: !!agentId,
   });

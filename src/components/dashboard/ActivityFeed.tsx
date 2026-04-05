@@ -1,4 +1,4 @@
-import { supabase } from '@/integrations/supabase/client';
+import { getAuditLog } from '@/services/securityService';
 import { useQuery } from "@tanstack/react-query";
 import { Activity, Loader2 } from "lucide-react";
 
@@ -35,13 +35,7 @@ function getRelativeTime(date: string): string {
 export function ActivityFeed() {
   const { data: logs = [], isLoading } = useQuery({
     queryKey: ['activity_feed'],
-    queryFn: async () => {
-      const { data } = await supabase.from('audit_log')
-        .select('*')
-        .order('created_at', { ascending: false })
-        .limit(15);
-      return data ?? [];
-    },
+    queryFn: () => getAuditLog({ limit: 15 }),
     refetchInterval: 30000,
   });
 
