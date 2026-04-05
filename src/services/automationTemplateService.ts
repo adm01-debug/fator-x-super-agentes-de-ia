@@ -14,11 +14,6 @@
 import { fromTable } from '@/lib/supabaseExtended';
 import { supabase } from '@/integrations/supabase/client';
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-const db = {
-  automationTemplates: () => fromTable('automation_templates') as any,
-  installedTemplates: () => fromTable('installed_templates') as any,
-};
 
 /* ------------------------------------------------------------------ */
 /*  Types                                                              */
