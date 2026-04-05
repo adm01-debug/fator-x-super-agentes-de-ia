@@ -83,10 +83,13 @@ export default function MonitoringPage() {
   }));
 
   const handleResolveAlert = async (id: string) => {
-    const { error } = await supabase.from('alerts').update({ is_resolved: true, resolved_at: new Date().toISOString() }).eq('id', id);
-    if (error) { toast.error(error.message); return; }
-    toast.success('Alerta resolvido');
-    queryClient.invalidateQueries({ queryKey: ['alerts'] });
+    try {
+      await resolveAlert(id);
+      toast.success('Alerta resolvido');
+      queryClient.invalidateQueries({ queryKey: ['alerts'] });
+    } catch (e: unknown) {
+      toast.error(e instanceof Error ? e.message : 'Erro inesperado');
+    }
   };
 
   const unresolvedCount = alerts.filter(a => !a.is_resolved).length;
