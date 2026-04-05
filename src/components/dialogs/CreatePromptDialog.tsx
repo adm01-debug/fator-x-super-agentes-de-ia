@@ -7,7 +7,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Plus, Loader2 } from 'lucide-react';
 import { createPromptVersion, listPromptVersions } from '@/services/knowledgeService';
-import { supabase } from '@/integrations/supabase/client';
+import { getAuthUser } from '@/services/securityService';
 import { toast } from 'sonner';
 
 interface CreatePromptDialogProps {
@@ -27,7 +27,7 @@ export function CreatePromptDialog({ agents, onCreated }: CreatePromptDialogProp
     if (!content.trim()) { toast.error('Conteúdo é obrigatório'); return; }
     setLoading(true);
     try {
-      const { data: { user } } = await supabase.auth.getUser();
+      const user = await getAuthUser();
       if (!user) throw new Error('Não autenticado');
 
       const versions = await listPromptVersions(agentId);

@@ -1,9 +1,10 @@
 /**
  * Bitrix24 Connect — Botão de OAuth para conectar com Bitrix24 CRM.
- * Chama bitrix24-oauth Edge Function.
+ * Chama bitrix24-oauth Edge Function via service layer.
  */
 import { useState, useEffect } from 'react';
-import { supabase } from '@/integrations/supabase/client';
+import { invokeBitrix24OAuth } from '@/services/llmGatewayService';
+import { getAuthSession } from '@/services/securityService';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Unlink, ExternalLink } from 'lucide-react';
@@ -19,14 +20,9 @@ export function Bitrix24Connect() {
 
   async function checkStatus() {
     try {
-      const { data: { session } } = await supabase.auth.getSession();
+      const session = await getAuthSession();
       if (!session) return;
-
-      const resp = await fetch(
-        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/bitrix24-oauth?action=status`,
-        { headers: { 'Authorization': `Bearer ${session.access_token}`, 'apikey': import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY } }
-      );
-      const data = await resp.json() as Record<string, unknown>;
+      const data = await invokeBitrix24OAuth({ action: 'status' }) as Record<string, unknown>;
       setConnected(!!data.connected);
       setDomain(data.domain as string || null);
     } catch { /* ignore */ } finally { setLoading(false); }
@@ -34,14 +30,7 @@ export function Bitrix24Connect() {
 
   async function handleConnect() {
     try {
-      const { data: { session } } = await supabase.auth.getSession();
-      if (!session) return;
-
-      const resp = await fetch(
-        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/bitrix24-oauth?action=authorize`,
-        { headers: { 'Authorization': `Bearer ${session.access_token}`, 'apikey': import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY } }
-      );
-      const data = await resp.json() as Record<string, string>;
+      const data = await invokeBitrix24OAuth({ action: 'authorize' }) as Record<string, string>;
       if (data.auth_url) window.open(data.auth_url, '_blank', 'width=600,height=700');
     } catch (err) {
       console.error('Bitrix24 connect failed:', err);
@@ -65,16 +54,8 @@ export function Bitrix24Connect() {
         </div>
       </div>
 
-      <Button
-        onClick={connected ? undefined : handleConnect}
-        variant={connected ? 'outline' : 'default'}
-        size="sm"
-      >
-        {connected ? (
-          <><Unlink className="w-3 h-3 mr-1" /> Desconectar</>
-        ) : (
-          <><ExternalLink className="w-3 h-3 mr-1" /> Conectar</>
-        )}
+      <Button onClick={connected ? undefined : handleConnect} variant={connected ? 'outline' : 'default'} size="sm">
+        {connected ? <><Unlink className="w-3 h-3 mr-1" /> Desconectar</> : <><ExternalLink className="w-3 h-3 mr-1" /> Conectar</>}
       </Button>
     </div>
   );

@@ -3,7 +3,7 @@
  * Inspired by Promptfoo (7K+ stars).
  */
 import { useState } from 'react';
-import { supabase } from '@/integrations/supabase/client';
+import { invokeGuardrailsCheck, getAuthSession } from '@/services/securityService';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Shield, Play, Loader2, AlertTriangle } from 'lucide-react';
@@ -47,21 +47,15 @@ export function RedTeamingPanel() {
     const allAttacks = ATTACK_CATEGORIES.flatMap(cat => cat.attacks.map(a => ({ category: cat.id, attack: a })));
     const total = allAttacks.length;
 
+    const session = await getAuthSession();
+    if (!session) { setTesting(false); return; }
+
     for (let i = 0; i < allAttacks.length; i++) {
       const { category, attack } = allAttacks[i];
       setProgress(Math.round(((i + 1) / total) * 100));
 
       try {
-        const { data: { session } } = await supabase.auth.getSession();
-        if (!session) break;
-
-        const resp = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/guardrails-engine`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${session.access_token}`, 'apikey': import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY },
-          body: JSON.stringify({ action: 'check_full', text: attack }),
-        });
-
-        const data = await resp.json() as Record<string, unknown>;
+        const data = await invokeGuardrailsCheck(attack) as Record<string, unknown>;
         const guardrailResults = data.results as Array<Record<string, unknown>> | undefined;
         const blocked = guardrailResults?.some((r: Record<string, unknown>) => r.action === 'block') ?? false;
         const confidence = guardrailResults?.[0]?.confidence as number ?? 0;
@@ -79,11 +73,11 @@ export function RedTeamingPanel() {
   const score = results.length > 0 ? Math.round((blocked / results.length) * 100) : 0;
 
   return (
-    <div className="bg-[#111122] rounded-xl border border-[#222244] p-6 space-y-4">
+    <div className="bg-card rounded-xl border border-border p-6 space-y-4">
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-2">
-          <Shield className="w-5 h-5 text-[#FF6B6B]" />
-          <h3 className="text-sm font-bold text-white">Red Teaming — Pentesting de Prompts</h3>
+          <Shield className="w-5 h-5 text-destructive" />
+          <h3 className="text-sm font-bold text-foreground">Red Teaming — Pentesting de Prompts</h3>
           <Badge variant="outline" className="text-[10px]">{ATTACK_CATEGORIES.reduce((s, c) => s + c.attacks.length, 0)} ataques</Badge>
         </div>
         <Button onClick={runRedTeam} disabled={testing} size="sm" variant="destructive">
@@ -94,28 +88,28 @@ export function RedTeamingPanel() {
       {results.length > 0 && (
         <>
           <div className="grid grid-cols-3 gap-3">
-            <div className="bg-[#0a0a1a] rounded-lg p-3 text-center">
-              <div className="text-2xl font-bold text-[#6BCB77]">{blocked}</div>
-              <div className="text-[10px] text-[#888888]">Bloqueados</div>
+            <div className="bg-background rounded-lg p-3 text-center">
+              <div className="text-2xl font-bold text-nexus-emerald">{blocked}</div>
+              <div className="text-[10px] text-muted-foreground">Bloqueados</div>
             </div>
-            <div className="bg-[#0a0a1a] rounded-lg p-3 text-center">
-              <div className="text-2xl font-bold text-[#FF6B6B]">{passed}</div>
-              <div className="text-[10px] text-[#888888]">Passaram</div>
+            <div className="bg-background rounded-lg p-3 text-center">
+              <div className="text-2xl font-bold text-destructive">{passed}</div>
+              <div className="text-[10px] text-muted-foreground">Passaram</div>
             </div>
-            <div className="bg-[#0a0a1a] rounded-lg p-3 text-center">
-              <div className={`text-2xl font-bold ${score >= 80 ? 'text-[#6BCB77]' : score >= 50 ? 'text-[#FFD93D]' : 'text-[#FF6B6B]'}`}>{score}%</div>
-              <div className="text-[10px] text-[#888888]">Score de Segurança</div>
+            <div className="bg-background rounded-lg p-3 text-center">
+              <div className={`text-2xl font-bold ${score >= 80 ? 'text-nexus-emerald' : score >= 50 ? 'text-nexus-amber' : 'text-destructive'}`}>{score}%</div>
+              <div className="text-[10px] text-muted-foreground">Score de Segurança</div>
             </div>
           </div>
 
           <div className="space-y-1 max-h-60 overflow-y-auto">
             {results.map((r, i) => (
-              <div key={i} className={`flex items-center justify-between rounded px-3 py-1.5 text-xs ${r.blocked ? 'bg-green-500/5' : 'bg-red-500/5'}`}>
+              <div key={i} className={`flex items-center justify-between rounded px-3 py-1.5 text-xs ${r.blocked ? 'bg-nexus-emerald/5' : 'bg-destructive/5'}`}>
                 <div className="flex items-center gap-2 flex-1 min-w-0">
                   <span>{r.blocked ? '🛡️' : '⚠️'}</span>
-                  <span className="truncate text-[#E0E0E0]">{r.attack}</span>
+                  <span className="truncate text-foreground">{r.attack}</span>
                 </div>
-                <Badge className={`ml-2 text-[8px] ${r.blocked ? 'bg-[#6BCB77]/20 text-[#6BCB77]' : 'bg-[#FF6B6B]/20 text-[#FF6B6B]'}`}>
+                <Badge className={`ml-2 text-[8px] ${r.blocked ? 'bg-nexus-emerald/20 text-nexus-emerald' : 'bg-destructive/20 text-destructive'}`}>
                   {r.blocked ? 'BLOQUEADO' : 'VULNERÁVEL'}
                 </Badge>
               </div>
@@ -123,7 +117,7 @@ export function RedTeamingPanel() {
           </div>
 
           {passed > 0 && (
-            <div className="bg-red-500/10 border border-red-500/30 rounded-lg p-3 text-xs text-red-400 flex items-center gap-2">
+            <div className="bg-destructive/10 border border-destructive/30 rounded-lg p-3 text-xs text-destructive flex items-center gap-2">
               <AlertTriangle className="w-4 h-4 flex-shrink-0" />
               {passed} ataques passaram pelos guardrails. Revise as regras de proteção.
             </div>
