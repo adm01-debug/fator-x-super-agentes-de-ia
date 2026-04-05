@@ -19,7 +19,7 @@ export * from './contextTiersService';
 export * from './agentEvolutionService';
 export {
   type AgentSkillDefinition,
-  getSkillRegistry,
+  listSkills,
   getInstalledSkills,
   publishSkill,
   installSkill,
@@ -29,21 +29,34 @@ export * from './llmGatewayService';
 export * from './lgpdService';
 export * from './approvalService';
 export * from './workflowCheckpointService';
-export * from './agentCardService';
+export {
+  type AgentSkill as AgentCardSkill,
+  type AgentProvider,
+  type AgentCapabilities,
+  type AgentAuthentication,
+  type AgentCard,
+  generateAgentCard,
+  generateAgentCardJSON,
+  saveAgentCard,
+  getAgentCard,
+  generateAndSaveAgentCard,
+  listAgentCards,
+  searchAgentCards,
+  validateAgentCard,
+} from './agentCardService';
 export * from './agentHandoffService';
 export {
   type ModelPricing as CostModelPricing,
   type CostEstimate,
-  type CostBreakdown,
+  type CostBreakdownItem,
   type BudgetConfig,
-  estimateCost,
-  calculateActualCost,
+  calculateCost,
   getBudget as getCostBudget,
   setBudget as setCostBudget,
   getModelPricing as getCostModelPricing,
-  checkBudget,
-  formatCostUSD,
-  formatCostBRL,
+  checkRequestBudget as checkBudget,
+  formatCostUsd,
+  formatCostBrl,
 } from './costCalculatorService';
 export * from './middlewarePipelineService';
 export * from './progressiveSkillLoader';
