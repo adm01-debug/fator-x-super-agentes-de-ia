@@ -85,8 +85,8 @@ export function HealthTab() {
             color: '#E67E22',
           },
         ]);
-      } catch (err) {
-        console.error('Health check failed:', err);
+      } catch (err: unknown) {
+        logger.error('Health check failed:', err instanceof Error ? err.message : String(err));
       } finally {
         setLoading(false);
       }
