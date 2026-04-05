@@ -75,12 +75,13 @@ describe('Extended Service Layer Tests', () => {
   });
 
   describe('lgpdService', () => {
-    it('exports consent management functions', async () => {
+    it('exports LGPD compliance functions', async () => {
       const mod = await import('@/services/lgpdService');
       expect(typeof mod.listConsentRecords).toBe('function');
-      expect(typeof mod.updateConsent).toBe('function');
+      expect(typeof mod.manageConsent).toBe('function');
       expect(typeof mod.listDeletionRequests).toBe('function');
-      expect(typeof mod.createDeletionRequest).toBe('function');
+      expect(typeof mod.requestDeletion).toBe('function');
+      expect(typeof mod.exportMyData).toBe('function');
     });
   });
 
@@ -88,8 +89,8 @@ describe('Extended Service Layer Tests', () => {
     it('exports approval queue functions', async () => {
       const mod = await import('@/services/approvalService');
       expect(typeof mod.listPendingApprovals).toBe('function');
-      expect(typeof mod.approveItem).toBe('function');
-      expect(typeof mod.rejectItem).toBe('function');
+      expect(typeof mod.approveWorkflowRun).toBe('function');
+      expect(typeof mod.rejectWorkflowRun).toBe('function');
     });
   });
 
@@ -114,7 +115,7 @@ describe('Extended Service Layer Tests', () => {
       const mod = await import('@/services/memoryService');
       expect(typeof mod.listMemories).toBe('function');
       expect(typeof mod.addMemory).toBe('function');
-      expect(typeof mod.deleteMemory).toBe('function');
+      expect(typeof mod.forgetMemory).toBe('function');
       expect(typeof mod.searchMemory).toBe('function');
       expect(typeof mod.compactMemories).toBe('function');
     });
@@ -138,11 +139,11 @@ describe('Extended Service Layer Tests', () => {
   describe('teamsService', () => {
     it('exports team management functions', async () => {
       const mod = await import('@/services/teamsService');
-      expect(typeof mod.getWorkspace).toBe('function');
-      expect(typeof mod.getWorkspaceMembers).toBe('function');
+      expect(typeof mod.listMembers).toBe('function');
       expect(typeof mod.inviteMember).toBe('function');
       expect(typeof mod.removeMember).toBe('function');
       expect(typeof mod.updateMemberRole).toBe('function');
+      expect(typeof mod.insertWorkspaceMember).toBe('function');
     });
   });
 
