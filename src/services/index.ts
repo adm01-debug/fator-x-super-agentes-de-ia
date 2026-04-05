@@ -21,3 +21,4 @@ export * from './skillsRegistryService';
 export * from './llmGatewayService';
 export * from './lgpdService';
 export * from './approvalService';
+export * from './workflowCheckpointService';
