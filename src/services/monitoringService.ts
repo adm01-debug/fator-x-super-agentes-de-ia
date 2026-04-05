@@ -106,6 +106,37 @@ export async function getAgentsForFilter() {
   return data ?? [];
 }
 
+// ═══ Alert Rules ═══
+
+export async function listAlertRules() {
+  const { data: member } = await supabase.from('workspace_members').select('workspace_id').limit(1).maybeSingle();
+  if (!member?.workspace_id) return [];
+  const { data } = await fromTable('alert_rules').select('*').eq('workspace_id', member.workspace_id).order('created_at', { ascending: false });
+  return data ?? [];
+}
+
+export async function createAlertRule(rule: {
+  name: string; metric: string; operator: string; threshold: number; severity: string;
+}) {
+  const { data: member } = await supabase.from('workspace_members').select('workspace_id').limit(1).maybeSingle();
+  await fromTable('alert_rules').insert({
+    workspace_id: member?.workspace_id,
+    name: rule.name,
+    metric: rule.metric,
+    operator: rule.operator,
+    threshold: rule.threshold,
+    severity: rule.severity,
+  });
+}
+
+export async function deleteAlertRule(id: string) {
+  await fromTable('alert_rules').delete().eq('id', id);
+}
+
+export async function toggleAlertRule(id: string, enabled: boolean) {
+  await fromTable('alert_rules').update({ is_enabled: enabled }).eq('id', id);
+}
+
 // ═══ Dashboard Metrics ═══
 
 export async function getDashboardMetrics() {
