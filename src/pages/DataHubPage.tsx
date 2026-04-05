@@ -295,10 +295,7 @@ export default function DataHubPage() {
   const testConnections = useCallback(async () => {
     setTestingConnections(true);
     try {
-      const { data, error } = await supabase.functions.invoke('datahub-query', {
-        body: { action: 'test_connections' },
-      });
-      if (error) throw error;
+      const data = await testDatahubConnections();
       const now = new Date();
       setConnections(prev => prev.map(c => {
         if (c.status === 'hibernated') return c;
