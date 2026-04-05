@@ -163,7 +163,7 @@ export async function acceptHandoff(handoffId: string): Promise<HandoffRecord> {
     .update({
       status: 'accepted' as const,
     })
-    .eq('id', handoffId)
+    .eq('id' as never, handoffId)
     .select()
     .single();
 
@@ -183,7 +183,7 @@ export async function completeHandoff(
       status: 'completed' as const,
       context: response,
     })
-    .eq('id', handoffId)
+    .eq('id' as never, handoffId)
     .select()
     .single();
 
@@ -203,7 +203,7 @@ export async function rejectHandoff(
       status: 'rejected' as const,
       reason: reason,
     })
-    .eq('id', handoffId)
+    .eq('id' as never, handoffId)
     .select()
     .single();
 
@@ -223,7 +223,7 @@ export async function failHandoff(
       status: 'failed' as const,
       reason: errorMsg,
     })
-    .eq('id', handoffId)
+    .eq('id' as never, handoffId)
     .select()
     .single();
 
@@ -239,9 +239,9 @@ export async function failHandoff(
 export async function getPendingHandoffs(targetAgentId: string): Promise<HandoffRecord[]> {
   const { data, error } = await (supabase.from as DynFrom)('workflow_handoffs')
     .select('*')
-    .eq('target_agent_id', targetAgentId)
-    .eq('status', 'pending')
-    .order('created_at', { ascending: false });
+    .eq('target_agent_id' as never, targetAgentId)
+    .eq('status' as never, 'pending')
+    .order('created_at' as never, { ascending: false });
 
   if (error) throw new Error(`Failed to get pending handoffs: ${error.message}`);
   return (data ?? []) as unknown as HandoffRecord[];
@@ -257,7 +257,7 @@ export async function getHandoffHistory(
   const { data, error } = await (supabase.from as DynFrom)('workflow_handoffs')
     .select('*')
     .or(`source_agent_id.eq.${agentId},target_agent_id.eq.${agentId}`)
-    .order('created_at', { ascending: false })
+    .order('created_at' as never, { ascending: false })
     .limit(limit);
 
   if (error) throw new Error(`Failed to get handoff history: ${error.message}`);
@@ -270,8 +270,8 @@ export async function getHandoffHistory(
 export async function getExecutionHandoffs(executionId: string): Promise<HandoffRecord[]> {
   const { data, error } = await (supabase.from as DynFrom)('workflow_handoffs')
     .select('*')
-    .eq('execution_id', executionId)
-    .order('created_at', { ascending: true });
+    .eq('execution_id' as never, executionId)
+    .order('created_at' as never, { ascending: true });
 
   if (error) throw new Error(`Failed to get execution handoffs: ${error.message}`);
   return (data ?? []) as unknown as HandoffRecord[];

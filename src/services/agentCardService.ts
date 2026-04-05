@@ -229,7 +229,7 @@ export async function saveAgentCard(
         agent_card_updated_at: new Date().toISOString(),
       },
     })
-    .eq('id', agentId);
+    .eq('id' as never, agentId);
 
   if (error) throw new Error(`Failed to save agent card: ${error.message}`);
 }
@@ -240,7 +240,7 @@ export async function saveAgentCard(
 export async function getAgentCard(agentId: string): Promise<AgentCard | null> {
   const { data, error } = await (supabase.from as DynFrom)('agent_configs')
     .select('metadata')
-    .eq('id', agentId)
+    .eq('id' as never, agentId)
     .single();
 
   if (error) return null;
@@ -258,7 +258,7 @@ export async function generateAndSaveAgentCard(
 ): Promise<AgentCard> {
   const { data, error } = await (supabase.from as DynFrom)('agent_configs')
     .select('*')
-    .eq('id', agentId)
+    .eq('id' as never, agentId)
     .single();
 
   if (error) throw new Error(`Agent not found: ${error.message}`);
@@ -277,7 +277,7 @@ export async function generateAndSaveAgentCard(
 export async function listAgentCards(): Promise<AgentCard[]> {
   const { data, error } = await (supabase.from as DynFrom)('agent_configs')
     .select('id, name, description, metadata, model, provider, tools, status, updated_at')
-    .eq('status', 'active');
+    .eq('status' as never, 'active');
 
   if (error) throw new Error(`Failed to list agents: ${error.message}`);
 
