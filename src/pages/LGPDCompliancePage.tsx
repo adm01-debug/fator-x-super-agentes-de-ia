@@ -5,7 +5,7 @@ import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Shield, Trash2, Download, AlertTriangle, Loader2, FileText } from 'lucide-react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
-import { supabase } from '@/integrations/supabase/client';
+import { listConsentRecords, listDeletionRequests, exportMyData, requestDeletion, manageConsent } from '@/services/lgpdService';
 
 import { toast } from 'sonner';
 
@@ -17,29 +17,18 @@ export default function LGPDCompliancePage() {
   // Consent records
   const { data: consents = [] } = useQuery({
     queryKey: ['lgpd_consents'],
-    queryFn: async () => {
-      const { data } = await supabase.from('consent_records').select('*').order('created_at', { ascending: false });
-      return data ?? [];
-    },
+    queryFn: listConsentRecords,
   });
 
-  // Deletion requests
   const { data: deletions = [] } = useQuery({
     queryKey: ['lgpd_deletions'],
-    queryFn: async () => {
-      const { data } = await supabase.from('data_deletion_requests').select('*').order('requested_at', { ascending: false });
-      return data ?? [];
-    },
+    queryFn: listDeletionRequests,
   });
 
   const handleExportData = async () => {
     setExporting(true);
     try {
-      const { data, error } = await supabase.functions.invoke('lgpd-manager', {
-        body: { action: 'get_my_data' },
-      });
-      if (error) throw error;
-      // Download as JSON
+      const data = await exportMyData();
       const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
       const url = URL.createObjectURL(blob);
       const a = document.createElement('a'); a.href = url; a.download = `meus-dados-${new Date().toISOString().split('T')[0]}.json`;
@@ -53,10 +42,7 @@ export default function LGPDCompliancePage() {
     if (!confirm(`Tem certeza? Isso irá deletar ${scope === 'all' ? 'TODOS os seus dados' : `seus dados de ${scope}`} permanentemente.`)) return;
     setDeleting(true);
     try {
-      const { data, error } = await supabase.functions.invoke('lgpd-manager', {
-        body: { action: 'request_deletion', scope },
-      });
-      if (error) throw error;
+      const data = await requestDeletion(scope);
       toast.success(`${data.items_deleted} itens deletados (escopo: ${scope})`);
       queryClient.invalidateQueries({ queryKey: ['lgpd_deletions'] });
     } catch (e: unknown) { toast.error(e instanceof Error ? e.message : "Erro inesperado"); }
@@ -65,9 +51,7 @@ export default function LGPDCompliancePage() {
 
   const handleConsent = async (purpose: string, grant: boolean) => {
     try {
-      await supabase.functions.invoke('lgpd-manager', {
-        body: { action: grant ? 'consent_grant' : 'consent_revoke', purpose, legal_basis: 'consent' },
-      });
+      await manageConsent(purpose, grant);
       toast.success(grant ? 'Consentimento registrado' : 'Consentimento revogado');
       queryClient.invalidateQueries({ queryKey: ['lgpd_consents'] });
     } catch (e: unknown) { toast.error(e instanceof Error ? e.message : "Erro inesperado"); }
