@@ -7,6 +7,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Loader2 } from 'lucide-react';
 import { updateKnowledgeBase } from '@/services/knowledgeService';
+import { editKnowledgeBaseSchema } from '@/lib/validations/dialogSchemas';
 import { toast } from 'sonner';
 
 interface KnowledgeBase {
@@ -30,27 +31,37 @@ export function EditKnowledgeBaseDialog({ kb, open, onOpenChange, onUpdated }: E
   const [name, setName] = useState('');
   const [description, setDescription] = useState('');
   const [vectorDb, setVectorDb] = useState('pgvector');
-  const [embeddingModel, setEmbeddingModel] = useState('text-embedding-3-large');
-  const [status, setStatus] = useState('active');
+  const [embeddingModel, setEmbeddingModel] = useState<'text-embedding-3-large' | 'text-embedding-3-small'>('text-embedding-3-large');
+  const [status, setStatus] = useState<'active' | 'inactive' | 'indexing'>('active');
+  const [errors, setErrors] = useState<Record<string, string>>({});
 
   useEffect(() => {
     if (kb) {
       setName(kb.name);
       setDescription(kb.description || '');
       setVectorDb(kb.vector_db || 'pgvector');
-      setEmbeddingModel(kb.embedding_model || 'text-embedding-3-large');
-      setStatus(kb.status || 'active');
+      setEmbeddingModel((kb.embedding_model as typeof embeddingModel) || 'text-embedding-3-large');
+      setStatus((kb.status as typeof status) || 'active');
     }
   }, [kb]);
 
   const handleSave = async () => {
-    if (!kb || !name.trim()) { toast.error('Nome é obrigatório'); return; }
+    if (!kb) return;
+    const result = editKnowledgeBaseSchema.safeParse({ name, description: description || undefined, embeddingModel, status });
+    if (!result.success) {
+      const fieldErrors: Record<string, string> = {};
+      result.error.issues.forEach(i => { fieldErrors[String(i.path[0])] = i.message; });
+      setErrors(fieldErrors);
+      toast.error(Object.values(fieldErrors)[0]);
+      return;
+    }
+    setErrors({});
     setLoading(true);
     try {
       await updateKnowledgeBase(kb.id, {
-        name: name.trim(),
-        description: description.trim(),
-        embedding_model: embeddingModel,
+        name: result.data.name,
+        description: result.data.description ?? '',
+        embedding_model: result.data.embeddingModel,
       });
       toast.success('Base atualizada!');
       onOpenChange(false);
@@ -71,7 +82,8 @@ export function EditKnowledgeBaseDialog({ kb, open, onOpenChange, onUpdated }: E
         <div className="space-y-4 mt-2">
           <div className="space-y-1.5">
             <Label className="text-xs">Nome *</Label>
-            <Input value={name} onChange={e => setName(e.target.value)} className="bg-secondary/50" />
+            <Input value={name} onChange={e => setName(e.target.value)} className={`bg-secondary/50 ${errors.name ? 'border-destructive' : ''}`} />
+            {errors.name && <p className="text-xs text-destructive">{errors.name}</p>}
           </div>
           <div className="space-y-1.5">
             <Label className="text-xs">Descrição</Label>
@@ -90,7 +102,7 @@ export function EditKnowledgeBaseDialog({ kb, open, onOpenChange, onUpdated }: E
             </div>
             <div className="space-y-1.5">
               <Label className="text-xs">Embedding Model</Label>
-              <Select value={embeddingModel} onValueChange={setEmbeddingModel}>
+              <Select value={embeddingModel} onValueChange={(v) => setEmbeddingModel(v as typeof embeddingModel)}>
                 <SelectTrigger className="bg-secondary/50"><SelectValue /></SelectTrigger>
                 <SelectContent>
                   <SelectItem value="text-embedding-3-large">text-embedding-3-large</SelectItem>
@@ -101,7 +113,7 @@ export function EditKnowledgeBaseDialog({ kb, open, onOpenChange, onUpdated }: E
           </div>
           <div className="space-y-1.5">
             <Label className="text-xs">Status</Label>
-            <Select value={status} onValueChange={setStatus}>
+            <Select value={status} onValueChange={(v) => setStatus(v as typeof status)}>
               <SelectTrigger className="bg-secondary/50"><SelectValue /></SelectTrigger>
               <SelectContent>
                 <SelectItem value="active">Ativo</SelectItem>

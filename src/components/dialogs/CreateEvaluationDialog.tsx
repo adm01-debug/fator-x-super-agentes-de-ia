@@ -8,6 +8,7 @@ import { Plus, Loader2 } from 'lucide-react';
 import { listAgentsForSelect, listEvaluationDatasets, createEvaluationRun, updateEvaluationRun, invokeEvalJudge } from '@/services/evaluationsService';
 import { invokeTestRunner } from '@/services/llmGatewayService';
 import { getWorkspaceId } from '@/lib/agentService';
+import { createEvaluationSchema } from '@/lib/validations/dialogSchemas';
 import { toast } from 'sonner';
 
 interface CreateEvaluationDialogProps {
@@ -25,6 +26,7 @@ export function CreateEvaluationDialog({ onCreated }: CreateEvaluationDialogProp
   const [judgeMode, setJudgeMode] = useState<'pointwise' | 'faithfulness'>('pointwise');
   const [agents, setAgents] = useState<Array<{ id: string; name: string }>>([]);
   const [datasets, setDatasets] = useState<Array<{ id: string; name: string; case_count: number | null }>>([]);
+  const [errors, setErrors] = useState<Record<string, string>>({});
 
   const loadAgents = async () => {
     const agents = await listAgentsForSelect();
@@ -34,26 +36,33 @@ export function CreateEvaluationDialog({ onCreated }: CreateEvaluationDialogProp
   };
 
   const handleCreate = async () => {
-    if (!name.trim()) { toast.error('Nome é obrigatório'); return; }
-    if (!agentId) { toast.error('Selecione um agente'); return; }
+    const result = createEvaluationSchema.safeParse({ name, agentId, datasetId: datasetId || undefined, testCases, useJudge, judgeMode });
+    if (!result.success) {
+      const fieldErrors: Record<string, string> = {};
+      result.error.issues.forEach(i => { fieldErrors[String(i.path[0])] = i.message; });
+      setErrors(fieldErrors);
+      toast.error(Object.values(fieldErrors)[0]);
+      return;
+    }
+    setErrors({});
     setLoading(true);
     try {
       const wsId = await getWorkspaceId();
       const evalRun = await createEvaluationRun({
-        name: name.trim(),
-        test_cases: parseInt(testCases) || 5,
-        agent_id: agentId,
-        dataset_id: datasetId || '',
+        name: result.data.name,
+        test_cases: result.data.testCases,
+        agent_id: result.data.agentId,
+        dataset_id: result.data.datasetId ?? '',
         workspace_id: wsId,
         status: 'running',
       });
 
-      if (datasetId) {
-        if (useJudge) {
+      if (result.data.datasetId) {
+        if (result.data.useJudge) {
           toast.info('Avaliando via LLM-as-Judge...');
           try {
-            const result = await invokeEvalJudge({ agent_id: agentId, dataset_id: datasetId, evaluation_run_id: evalRun.id, mode: judgeMode });
-            toast.success(`Judge concluído: score médio ${result?.average_score?.toFixed(1)}/5 (${result?.total_cases} cases)`);
+            const judgeResult = await invokeEvalJudge({ agent_id: result.data.agentId, dataset_id: result.data.datasetId, evaluation_run_id: evalRun.id, mode: result.data.judgeMode });
+            toast.success(`Judge concluído: score médio ${judgeResult?.average_score?.toFixed(1)}/5 (${judgeResult?.total_cases} cases)`);
           } catch (judgeErr: unknown) {
             toast.warning(`Avaliação criada mas judge falhou: ${judgeErr instanceof Error ? judgeErr.message : 'Erro'}`);
             await updateEvaluationRun(evalRun.id, { status: 'failed' });
@@ -61,8 +70,8 @@ export function CreateEvaluationDialog({ onCreated }: CreateEvaluationDialogProp
         } else {
           toast.info('Executando testes via test-runner...');
           try {
-            const result = await invokeTestRunner({ agent_id: agentId, dataset_id: datasetId, evaluation_run_id: evalRun.id });
-            toast.success(`Testes concluídos: ${result?.passed || 0}/${result?.total || 0} aprovados (${((result?.pass_rate || 0) * 100).toFixed(0)}%)`);
+            const runResult = await invokeTestRunner({ agent_id: result.data.agentId, dataset_id: result.data.datasetId, evaluation_run_id: evalRun.id });
+            toast.success(`Testes concluídos: ${runResult?.passed || 0}/${runResult?.total || 0} aprovados (${((runResult?.pass_rate || 0) * 100).toFixed(0)}%)`);
           } catch (runErr: unknown) {
             toast.warning(`Avaliação criada mas execução falhou: ${runErr instanceof Error ? runErr.message : 'Erro'}`);
             await updateEvaluationRun(evalRun.id, { status: 'failed' });
@@ -96,16 +105,18 @@ export function CreateEvaluationDialog({ onCreated }: CreateEvaluationDialogProp
         <div className="space-y-4 mt-2">
           <div className="space-y-1.5">
             <Label className="text-xs">Nome *</Label>
-            <Input value={name} onChange={e => setName(e.target.value)} placeholder="Ex: Teste de Factualidade v2" className="bg-secondary/50" />
+            <Input value={name} onChange={e => setName(e.target.value)} placeholder="Ex: Teste de Factualidade v2" className={`bg-secondary/50 ${errors.name ? 'border-destructive' : ''}`} />
+            {errors.name && <p className="text-xs text-destructive">{errors.name}</p>}
           </div>
           <div className="space-y-1.5">
-            <Label className="text-xs">Agente</Label>
+            <Label className="text-xs">Agente *</Label>
             <Select value={agentId} onValueChange={setAgentId}>
-              <SelectTrigger className="bg-secondary/50"><SelectValue placeholder="Selecione um agente" /></SelectTrigger>
+              <SelectTrigger className={`bg-secondary/50 ${errors.agentId ? 'border-destructive' : ''}`}><SelectValue placeholder="Selecione um agente" /></SelectTrigger>
               <SelectContent>
                 {agents.map(a => <SelectItem key={a.id} value={a.id}>{a.name}</SelectItem>)}
               </SelectContent>
             </Select>
+            {errors.agentId && <p className="text-xs text-destructive">{errors.agentId}</p>}
           </div>
           <div className="space-y-1.5">
             <Label className="text-xs">Dataset de Testes</Label>
@@ -119,6 +130,7 @@ export function CreateEvaluationDialog({ onCreated }: CreateEvaluationDialogProp
           <div className="space-y-1.5">
             <Label className="text-xs">Número de test cases</Label>
             <Input type="number" value={testCases} onChange={e => setTestCases(e.target.value)} min="1" max="100" className="bg-secondary/50" />
+            {errors.testCases && <p className="text-xs text-destructive">{errors.testCases}</p>}
           </div>
           <div className="flex items-center gap-3 py-1">
             <input type="checkbox" checked={useJudge} onChange={e => setUseJudge(e.target.checked)} className="rounded" id="use-judge" />

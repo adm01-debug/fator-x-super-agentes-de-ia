@@ -7,6 +7,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Plus, Loader2 } from 'lucide-react';
 import { createKnowledgeBaseWithWorkspace } from '@/services/knowledgeService';
+import { createKnowledgeBaseSchema } from '@/lib/validations/dialogSchemas';
 import { toast } from 'sonner';
 
 interface CreateKnowledgeBaseDialogProps {
@@ -18,17 +19,26 @@ export function CreateKnowledgeBaseDialog({ onCreated }: CreateKnowledgeBaseDial
   const [loading, setLoading] = useState(false);
   const [name, setName] = useState('');
   const [description, setDescription] = useState('');
-  const [vectorDb, setVectorDb] = useState('pgvector');
-  const [embeddingModel, setEmbeddingModel] = useState('text-embedding-3-large');
+  const [vectorDb, setVectorDb] = useState<'pgvector' | 'pinecone'>('pgvector');
+  const [embeddingModel, setEmbeddingModel] = useState<'text-embedding-3-large' | 'text-embedding-3-small'>('text-embedding-3-large');
+  const [errors, setErrors] = useState<Record<string, string>>({});
 
   const handleCreate = async () => {
-    if (!name.trim()) { toast.error('Nome é obrigatório'); return; }
+    const result = createKnowledgeBaseSchema.safeParse({ name, description: description || undefined, vectorDb, embeddingModel });
+    if (!result.success) {
+      const fieldErrors: Record<string, string> = {};
+      result.error.issues.forEach(i => { fieldErrors[String(i.path[0])] = i.message; });
+      setErrors(fieldErrors);
+      toast.error(Object.values(fieldErrors)[0]);
+      return;
+    }
+    setErrors({});
     setLoading(true);
     try {
       await createKnowledgeBaseWithWorkspace({
-        name: name.trim(),
-        description: description.trim(),
-        embedding_model: embeddingModel,
+        name: result.data.name,
+        description: result.data.description ?? '',
+        embedding_model: result.data.embeddingModel,
       });
       toast.success('Base de conhecimento criada!');
       setOpen(false);
@@ -55,7 +65,8 @@ export function CreateKnowledgeBaseDialog({ onCreated }: CreateKnowledgeBaseDial
         <div className="space-y-4 mt-2">
           <div className="space-y-1.5">
             <Label className="text-xs">Nome *</Label>
-            <Input value={name} onChange={e => setName(e.target.value)} placeholder="Ex: Documentação Técnica" className="bg-secondary/50" />
+            <Input value={name} onChange={e => setName(e.target.value)} placeholder="Ex: Documentação Técnica" className={`bg-secondary/50 ${errors.name ? 'border-destructive' : ''}`} />
+            {errors.name && <p className="text-xs text-destructive">{errors.name}</p>}
           </div>
           <div className="space-y-1.5">
             <Label className="text-xs">Descrição</Label>
@@ -64,7 +75,7 @@ export function CreateKnowledgeBaseDialog({ onCreated }: CreateKnowledgeBaseDial
           <div className="grid grid-cols-2 gap-3">
             <div className="space-y-1.5">
               <Label className="text-xs">Vector DB</Label>
-              <Select value={vectorDb} onValueChange={setVectorDb}>
+              <Select value={vectorDb} onValueChange={(v) => setVectorDb(v as typeof vectorDb)}>
                 <SelectTrigger className="bg-secondary/50"><SelectValue /></SelectTrigger>
                 <SelectContent>
                   <SelectItem value="pgvector">pgvector</SelectItem>
@@ -74,7 +85,7 @@ export function CreateKnowledgeBaseDialog({ onCreated }: CreateKnowledgeBaseDial
             </div>
             <div className="space-y-1.5">
               <Label className="text-xs">Embedding Model</Label>
-              <Select value={embeddingModel} onValueChange={setEmbeddingModel}>
+              <Select value={embeddingModel} onValueChange={(v) => setEmbeddingModel(v as typeof embeddingModel)}>
                 <SelectTrigger className="bg-secondary/50"><SelectValue /></SelectTrigger>
                 <SelectContent>
                   <SelectItem value="text-embedding-3-large">text-embedding-3-large</SelectItem>

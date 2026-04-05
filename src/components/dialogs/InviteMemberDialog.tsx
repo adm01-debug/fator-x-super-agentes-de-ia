@@ -7,6 +7,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { UserPlus, Loader2 } from 'lucide-react';
 import { insertWorkspaceMember } from '@/services/teamsService';
 import { getWorkspaceId } from '@/lib/agentService';
+import { inviteMemberSchema } from '@/lib/validations/dialogSchemas';
 import { toast } from 'sonner';
 
 interface InviteMemberDialogProps {
@@ -18,20 +19,29 @@ export function InviteMemberDialog({ onInvited }: InviteMemberDialogProps) {
   const [loading, setLoading] = useState(false);
   const [email, setEmail] = useState('');
   const [name, setName] = useState('');
-  const [role, setRole] = useState('editor');
+  const [role, setRole] = useState<'admin' | 'editor' | 'viewer' | 'operator'>('editor');
+  const [errors, setErrors] = useState<Record<string, string>>({});
 
   const handleInvite = async () => {
-    if (!email.trim()) { toast.error('Email é obrigatório'); return; }
+    const result = inviteMemberSchema.safeParse({ email, name: name || undefined, role });
+    if (!result.success) {
+      const fieldErrors: Record<string, string> = {};
+      result.error.issues.forEach(i => { fieldErrors[String(i.path[0])] = i.message; });
+      setErrors(fieldErrors);
+      toast.error(Object.values(fieldErrors)[0]);
+      return;
+    }
+    setErrors({});
     setLoading(true);
     try {
       const wsId = await getWorkspaceId();
       await insertWorkspaceMember({
         workspace_id: wsId,
-        email: email.trim(),
-        name: name.trim() || undefined,
-        role,
+        email: result.data.email,
+        name: result.data.name,
+        role: result.data.role,
       });
-      toast.success(`Convite enviado para ${email}!`);
+      toast.success(`Convite enviado para ${result.data.email}!`);
       setOpen(false);
       setEmail(''); setName('');
       onInvited?.();
@@ -56,7 +66,8 @@ export function InviteMemberDialog({ onInvited }: InviteMemberDialogProps) {
         <div className="space-y-4 mt-2">
           <div className="space-y-1.5">
             <Label className="text-xs">Email *</Label>
-            <Input type="email" value={email} onChange={e => setEmail(e.target.value)} placeholder="membro@empresa.com" className="bg-secondary/50" />
+            <Input type="email" value={email} onChange={e => setEmail(e.target.value)} placeholder="membro@empresa.com" className={`bg-secondary/50 ${errors.email ? 'border-destructive' : ''}`} />
+            {errors.email && <p className="text-xs text-destructive">{errors.email}</p>}
           </div>
           <div className="space-y-1.5">
             <Label className="text-xs">Nome</Label>
@@ -64,7 +75,7 @@ export function InviteMemberDialog({ onInvited }: InviteMemberDialogProps) {
           </div>
           <div className="space-y-1.5">
             <Label className="text-xs">Papel</Label>
-            <Select value={role} onValueChange={setRole}>
+            <Select value={role} onValueChange={(v) => setRole(v as typeof role)}>
               <SelectTrigger className="bg-secondary/50"><SelectValue /></SelectTrigger>
               <SelectContent>
                 <SelectItem value="admin">Admin</SelectItem>

@@ -8,6 +8,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Plus, Loader2 } from 'lucide-react';
 import { createPromptVersion, listPromptVersions } from '@/services/knowledgeService';
 import { getAuthUser } from '@/services/securityService';
+import { createPromptSchema } from '@/lib/validations/dialogSchemas';
 import { toast } from 'sonner';
 
 interface CreatePromptDialogProps {
@@ -21,23 +22,31 @@ export function CreatePromptDialog({ agents, onCreated }: CreatePromptDialogProp
   const [agentId, setAgentId] = useState('');
   const [content, setContent] = useState('');
   const [summary, setSummary] = useState('');
+  const [errors, setErrors] = useState<Record<string, string>>({});
 
   const handleCreate = async () => {
-    if (!agentId) { toast.error('Selecione um agente'); return; }
-    if (!content.trim()) { toast.error('Conteúdo é obrigatório'); return; }
+    const result = createPromptSchema.safeParse({ agentId, content, summary: summary || undefined });
+    if (!result.success) {
+      const fieldErrors: Record<string, string> = {};
+      result.error.issues.forEach(i => { fieldErrors[String(i.path[0])] = i.message; });
+      setErrors(fieldErrors);
+      toast.error(Object.values(fieldErrors)[0]);
+      return;
+    }
+    setErrors({});
     setLoading(true);
     try {
       const user = await getAuthUser();
       if (!user) throw new Error('Não autenticado');
 
-      const versions = await listPromptVersions(agentId);
+      const versions = await listPromptVersions(result.data.agentId);
       const nextVersion = (versions[0]?.version || 0) + 1;
 
       await createPromptVersion({
-        agent_id: agentId,
+        agent_id: result.data.agentId,
         user_id: user.id,
-        content: content.trim(),
-        change_summary: summary.trim() || `Versão ${nextVersion}`,
+        content: result.data.content,
+        change_summary: result.data.summary ?? `Versão ${nextVersion}`,
       });
 
       toast.success('Prompt criado!');
@@ -66,11 +75,12 @@ export function CreatePromptDialog({ agents, onCreated }: CreatePromptDialogProp
           <div className="space-y-1.5">
             <Label className="text-xs">Agente *</Label>
             <Select value={agentId} onValueChange={setAgentId}>
-              <SelectTrigger className="bg-secondary/50"><SelectValue placeholder="Selecione um agente" /></SelectTrigger>
+              <SelectTrigger className={`bg-secondary/50 ${errors.agentId ? 'border-destructive' : ''}`}><SelectValue placeholder="Selecione um agente" /></SelectTrigger>
               <SelectContent>
                 {agents.map(a => <SelectItem key={a.id} value={a.id}>{a.name}</SelectItem>)}
               </SelectContent>
             </Select>
+            {errors.agentId && <p className="text-xs text-destructive">{errors.agentId}</p>}
           </div>
           <div className="space-y-1.5">
             <Label className="text-xs">Descrição da versão</Label>
@@ -78,7 +88,8 @@ export function CreatePromptDialog({ agents, onCreated }: CreatePromptDialogProp
           </div>
           <div className="space-y-1.5">
             <Label className="text-xs">Conteúdo do prompt *</Label>
-            <Textarea value={content} onChange={e => setContent(e.target.value)} placeholder="Você é um assistente..." className="bg-secondary/50 font-mono text-xs" rows={8} />
+            <Textarea value={content} onChange={e => setContent(e.target.value)} placeholder="Você é um assistente..." className={`bg-secondary/50 font-mono text-xs ${errors.content ? 'border-destructive' : ''}`} rows={8} />
+            {errors.content && <p className="text-xs text-destructive">{errors.content}</p>}
           </div>
           <Button onClick={handleCreate} disabled={loading} className="w-full nexus-gradient-bg text-primary-foreground">
             {loading ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : null}
