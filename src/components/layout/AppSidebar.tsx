@@ -4,7 +4,7 @@ import { NavLink } from "@/components/NavLink";
 import {
   LayoutDashboard, Bot, BookOpen, Brain, Puzzle, FileText, GitBranch,
   FlaskConical, Rocket, Activity, Database, Shield, Users, CreditCard, Settings,
-  Sparkles, PanelLeftClose, PanelLeft, LogOut, ServerCog, ChevronDown,
+  Sparkles, PanelLeftClose, PanelLeft, LogOut, ServerCog, ChevronDown, Palette,
 } from "lucide-react";
 import {
   Sidebar, SidebarContent, SidebarGroup, SidebarGroupContent, SidebarGroupLabel,
@@ -26,6 +26,7 @@ const navSections = [
       { title: "Agents", url: "/agents", icon: Bot },
       { title: "Super Cérebro", url: "/brain", icon: Brain },
       { title: "Oráculo", url: "/oracle", icon: Sparkles },
+      { title: "AI Studio", url: "/ai-studio", icon: Palette },
     ],
   },
   {
