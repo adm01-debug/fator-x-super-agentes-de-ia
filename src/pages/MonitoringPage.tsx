@@ -374,12 +374,7 @@ function AlertRulesPanel() {
 
   const { data: rules = [] } = useQuery({
     queryKey: ['alert_rules'],
-    queryFn: async () => {
-      const { data: member } = await supabase.from('workspace_members').select('workspace_id').limit(1).maybeSingle();
-      if (!member?.workspace_id) return [];
-      const { data } = await fromTable('alert_rules').select('*').eq('workspace_id', member.workspace_id).order('created_at', { ascending: false });
-      return data ?? [];
-    },
+    queryFn: listAlertRules,
   });
 
   const handleCreateRule = async () => {
@@ -387,10 +382,8 @@ function AlertRulesPanel() {
     if (!result.success) { toast.error(result.error.errors[0]?.message || 'Dados inválidos'); return; }
     setCreating(true);
     try {
-      const { data: member } = await supabase.from('workspace_members').select('workspace_id').limit(1).maybeSingle();
-      await fromTable('alert_rules').insert({
-        workspace_id: member?.workspace_id, name: ruleName.trim(),
-        metric: ruleMetric, operator: ruleOp,
+      await createAlertRule({
+        name: ruleName.trim(), metric: ruleMetric, operator: ruleOp,
         threshold: parseFloat(ruleThreshold) || 0, severity: ruleSeverity,
       });
       toast.success('Regra criada!');
@@ -401,13 +394,13 @@ function AlertRulesPanel() {
   };
 
   const handleDeleteRule = async (id: string) => {
-    await fromTable('alert_rules').delete().eq('id', id);
+    await deleteAlertRule(id);
     queryClient.invalidateQueries({ queryKey: ['alert_rules'] });
     toast.success('Regra removida');
   };
 
   const handleToggleRule = async (id: string, enabled: boolean) => {
-    await fromTable('alert_rules').update({ is_enabled: enabled }).eq('id', id);
+    await toggleAlertRule(id, enabled);
     queryClient.invalidateQueries({ queryKey: ['alert_rules'] });
   };
 
