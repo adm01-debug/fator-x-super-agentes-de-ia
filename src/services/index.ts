@@ -18,3 +18,6 @@ export * from './evaluationsService';
 export * from './contextTiersService';
 export * from './agentEvolutionService';
 export * from './skillsRegistryService';
+export * from './llmGatewayService';
+export * from './lgpdService';
+export * from './approvalService';
