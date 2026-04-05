@@ -100,7 +100,7 @@ function CodeWidget({ widget }: { widget: UIWidget }) {
   );
 }
 
-export function GenerativeUI({ widgets, onAction }: GenerativeUIProps) {
+export function GenerativeUI({ widgets, onAction: _onAction }: GenerativeUIProps) {
   return (
     <div className="space-y-3">
       {widgets.map((w, i) => {

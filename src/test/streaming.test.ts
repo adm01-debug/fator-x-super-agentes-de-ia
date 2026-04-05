@@ -21,7 +21,7 @@ describe('AG-UI Protocol', () => {
 
   it('getSSEHeaders returns correct content-type', async () => {
     const { getSSEHeaders } = await import('@/lib/ag-ui/protocol');
-    const headers = getSSEHeaders('https://test.com');
+    const headers = getSSEHeaders('https://test.com') as Record<string, string>;
     expect(headers['Content-Type']).toBe('text/event-stream');
     expect(headers['X-Protocol']).toBe('ag-ui/1.0');
   });
