@@ -10,6 +10,7 @@ import { Slider } from "@/components/ui/slider";
 import { Loader2, Play, Trash2, ChevronDown, ChevronRight, Clock, Cpu, Wrench } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
+import { StreamingChat } from '@/components/shared/StreamingChat';
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 type AnyData = Record<string, any>;
@@ -115,6 +116,15 @@ export default function SmolagentPage() {
           )}
           {!result && !loading && (<div className="flex flex-col items-center justify-center py-20 text-center"><div className="text-5xl mb-4">🤖</div><h2 className="text-lg font-semibold mb-1">Smolagent Runtime</h2><p className="text-sm text-muted-foreground max-w-md">Descreva uma tarefa e o agente autônomo irá executá-la.</p></div>)}
         </div>
+      </div>
+
+      {/* Streaming Chat Mode */}
+      <div className="nexus-card p-0 h-[500px]">
+        <StreamingChat
+          endpoint="/functions/v1/smolagent-runtime"
+          placeholder="Converse com o agente autônomo (streaming)..."
+          buildBody={(msg) => ({ task: msg, agent_id: 'default', stream: true })}
+        />
       </div>
     </div>
   );

@@ -7,6 +7,7 @@ import { Bot, Loader2, GitCompare } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { VersionDiffDialog } from "@/components/agents/VersionDiffDialog";
+import { getSkillbook, buildSkillbookPrompt } from '@/services/agentEvolutionService';
 
 export default function AgentDetailPage() {
   const { id } = useParams();

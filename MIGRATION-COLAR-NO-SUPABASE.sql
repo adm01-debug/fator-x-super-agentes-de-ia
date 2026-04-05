@@ -247,3 +247,55 @@ DROP TRIGGER IF EXISTS trg_chunks_bm25 ON public.chunks;
 CREATE TRIGGER trg_chunks_bm25 BEFORE INSERT OR UPDATE OF content ON public.chunks FOR EACH ROW EXECUTE FUNCTION public.chunks_update_bm25();
 
 -- ═══ FIM — 4 migrations aplicadas com sucesso ═══
+
+-- ══════ 5/5: AGENT EVOLUTION + SKILLS REGISTRY ══════
+
+CREATE TABLE IF NOT EXISTS public.agent_skills (
+  id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+  agent_id UUID NOT NULL,
+  skill_name TEXT NOT NULL,
+  description TEXT,
+  pattern TEXT NOT NULL,
+  success_count INTEGER DEFAULT 0,
+  failure_count INTEGER DEFAULT 0,
+  confidence NUMERIC(3,2) DEFAULT 0.5,
+  source_trace_id UUID,
+  created_at TIMESTAMPTZ DEFAULT NOW(),
+  updated_at TIMESTAMPTZ DEFAULT NOW(),
+  UNIQUE(agent_id, skill_name)
+);
+ALTER TABLE public.agent_skills ENABLE ROW LEVEL SECURITY;
+
+CREATE TABLE IF NOT EXISTS public.skill_registry (
+  id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+  name TEXT NOT NULL,
+  slug TEXT NOT NULL UNIQUE,
+  description TEXT,
+  version TEXT DEFAULT '1.0.0',
+  author TEXT,
+  category TEXT NOT NULL DEFAULT 'tools',
+  tags TEXT[] DEFAULT '{}',
+  install_count INTEGER DEFAULT 0,
+  rating NUMERIC(3,2) DEFAULT 0,
+  skill_config JSONB DEFAULT '{}',
+  mcp_server_url TEXT,
+  is_verified BOOLEAN DEFAULT false,
+  is_public BOOLEAN DEFAULT true,
+  created_by UUID REFERENCES auth.users(id),
+  created_at TIMESTAMPTZ DEFAULT NOW()
+);
+ALTER TABLE public.skill_registry ENABLE ROW LEVEL SECURITY;
+
+CREATE TABLE IF NOT EXISTS public.agent_installed_skills (
+  id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+  agent_id UUID NOT NULL,
+  skill_id UUID NOT NULL REFERENCES public.skill_registry(id) ON DELETE CASCADE,
+  installed_at TIMESTAMPTZ DEFAULT NOW(),
+  UNIQUE(agent_id, skill_id)
+);
+ALTER TABLE public.agent_installed_skills ENABLE ROW LEVEL SECURITY;
+
+ALTER TABLE public.chunks ADD COLUMN IF NOT EXISTS l0_abstract TEXT;
+ALTER TABLE public.chunks ADD COLUMN IF NOT EXISTS l1_overview TEXT;
+
+-- ═══ FIM — 5 migrations completas ═══
