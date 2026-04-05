@@ -8,12 +8,15 @@ import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Mic, Volume2, FileText, ImageIcon, PackageOpen, Loader2, Download, Play, Upload, Copy, CheckCircle } from "lucide-react";
+import { Mic, Volume2, FileText, ImageIcon, PackageOpen, Loader2, Download, Play, Copy, CheckCircle } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+type AnyData = Record<string, any>;
+
 type ToolResult = {
-  data: Record<string, unknown> | null;
+  data: AnyData | null;
   loading: boolean;
   error: string | null;
 };
