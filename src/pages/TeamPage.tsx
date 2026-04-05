@@ -4,12 +4,11 @@ import { Button } from "@/components/ui/button";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
 import { Loader2, Users, Trash2, CheckCircle } from "lucide-react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { supabase } from "@/integrations/supabase/client";
 import { getWorkspaceId } from "@/lib/agentService";
 import { useAuth } from "@/contexts/AuthContext";
 import { InviteMemberDialog } from "@/components/dialogs/InviteMemberDialog";
 import { toast } from "sonner";
-import { listMembers, removeMember } from "@/services/teamsService";
+import { listMembers, removeMember, getPendingInvites, acceptInvite } from "@/services/teamsService";
 
 const roleLabels: Record<string, string> = { admin: 'Admin', editor: 'Editor', viewer: 'Viewer', operator: 'Operator', owner: 'Owner' };
 
@@ -28,29 +27,19 @@ export default function TeamPage() {
   // Pending invitations for the current user
   const { data: pendingInvites = [] } = useQuery({
     queryKey: ['pending_invites', user?.email],
-    queryFn: async () => {
-      if (!user?.email) return [];
-      const { data, error } = await supabase
-        .from('workspace_members')
-        .select('*')
-        .eq('email', user.email)
-        .is('accepted_at', null)
-        .is('user_id', null);
-      if (error) throw error;
-      return data ?? [];
-    },
+    queryFn: () => getPendingInvites(user!.email!),
     enabled: !!user?.email,
   });
 
   const handleAcceptInvite = async (memberId: string) => {
-    const { error } = await supabase.rpc('accept_workspace_invitation', { p_member_id: memberId });
-    if (error) {
-      toast.error(`Erro ao aceitar convite: ${error.message}`);
-      return;
+    try {
+      await acceptInvite(memberId);
+      toast.success('Convite aceito!');
+      queryClient.invalidateQueries({ queryKey: ['workspace_members'] });
+      queryClient.invalidateQueries({ queryKey: ['pending_invites'] });
+    } catch (e: unknown) {
+      toast.error(e instanceof Error ? e.message : 'Erro ao aceitar convite');
     }
-    toast.success('Convite aceito!');
-    queryClient.invalidateQueries({ queryKey: ['workspace_members'] });
-    queryClient.invalidateQueries({ queryKey: ['pending_invites'] });
   };
 
   const handleRemoveMember = async (memberId: string) => {
