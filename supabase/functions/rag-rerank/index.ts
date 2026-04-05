@@ -38,9 +38,8 @@ serve(async (req) => {
       .from('workspace_members')
       .select('workspace_id')
       .eq('user_id', user.id)
-      .limit(1)
-      .maybeSingle();
-    const wsId = members?.workspace_id;
+      .limit(1);
+    const wsId = members?.[0]?.workspace_id;
 
     // ═══ Reranking Pipeline (3 layers) ═══
     let reranked: Array<{ chunk: Record<string, unknown>; relevance_score: number }> | null = null;
