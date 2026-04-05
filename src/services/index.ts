@@ -63,3 +63,4 @@ export * from './progressiveSkillLoader';
 export * from './cronSchedulerService';
 export * from './webhookTriggerService';
 export * from './retryEngineService';
+export * from './credentialVaultService';
