@@ -549,7 +549,7 @@ serve(async (req) => {
             latency_ms: totalMs,
             tools_used: [...new Set(result.steps.map(s => s.action).filter(a => a !== 'final_answer' && a !== 'none'))],
           },
-        }).then(() => {}).catch(() => {});
+        }).catch(() => {});
       }
 
       return jsonResponse({

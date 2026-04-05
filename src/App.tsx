@@ -118,10 +118,10 @@ const App = () => (
                       <Route path="/billing" element={<SafePage><BillingPage /></SafePage>} />
                       <Route path="/settings" element={<SafePage><SettingsPage /></SafePage>} />
                       <Route path="/lgpd" element={<SafePage><LGPDCompliancePage /></SafePage>} />
+                      <Route path="/approvals" element={<SafePage><ApprovalQueuePage /></SafePage>} />
                       <Route path="/ai-studio" element={<SafePage><AIStudioPage /></SafePage>} />
                       <Route path="/fine-tuning" element={<SafePage><FineTuningPage /></SafePage>} />
                       <Route path="/smolagent" element={<SafePage><SmolagentPage /></SafePage>} />
-                      <Route path="/approvals" element={<SafePage><ApprovalQueuePage /></SafePage>} />
                       <Route path="*" element={<SafePage><NotFound /></SafePage>} />
                     </Routes>
                   </AppLayout>

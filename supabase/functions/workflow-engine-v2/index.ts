@@ -606,7 +606,7 @@ Then on a new line after the code, write "RESULT:" followed by what the code wou
       }
 
       // Resolve next node via edges
-      if ((node.type as string) !== 'conditional' && (node.type as string) !== 'parallel') {
+      if (node.type !== 'conditional' && node.type !== 'parallel') {
         const outEdges = graph.edges.filter(e => e.from === node.id);
         if (outEdges.length === 0) break;
         let nextNode: string | null = null;

@@ -203,7 +203,7 @@ serve(async (req) => {
 
       // ─── Single record with enrichment ───
       if (record_id) {
-        const { data: record, error } = await (client.from(prim.table).select('*').eq(prim.id_column, record_id).single() as any);
+        const { data: record, error } = await client.from(prim.table).select('*').eq(prim.id_column, record_id).single();
         if (error) throw new Error(error.message);
 
         if (mapping.sensitive_fields) {

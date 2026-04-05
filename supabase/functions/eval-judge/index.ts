@@ -62,7 +62,7 @@ serve(async (req) => {
     let cases = parsed.data.test_cases;
     if (!cases && parsed.data.dataset_id) {
       const { data: tc } = await supabase.from('test_cases').select('*').eq('dataset_id', parsed.data.dataset_id).order('created_at');
-      cases = (tc as unknown) as typeof cases;
+      cases = tc as typeof cases;
     }
     if (!cases || cases.length === 0) return new Response(JSON.stringify({ error: 'No test cases' }), { status: 400, headers: jsonHeaders });
 
