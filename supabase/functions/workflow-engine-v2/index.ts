@@ -4,6 +4,82 @@ import { z } from "https://deno.land/x/zod@v3.22.4/mod.ts";
 
 const corsHeaders = { 'Access-Control-Allow-Origin': '*', 'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type' };
 
+// ═══ SAFE CONDITION EVALUATOR (replaces new Function() — blocks code injection) ═══
+// Supports: state.key, state.key === 'value', state.key > N, state._output.includes('text')
+// Blocks: fetch, import, require, eval, Function, Deno, process, globalThis
+const BLOCKED_KEYWORDS = /\b(fetch|import|require|eval|Function|Deno|process|globalThis|window|document|XMLHttpRequest|WebSocket|constructor|prototype|__proto__)\b/;
+
+function safeEvalCondition(condition: string, state: Record<string, unknown>): boolean {
+  // Block dangerous keywords
+  if (BLOCKED_KEYWORDS.test(condition)) return false;
+  // Block backticks, semicolons (multi-statement), assignment
+  if (/[`;]|(?<!=)=(?!=)/.test(condition.replace(/[!=<>]=+/g, ''))) return false;
+
+  try {
+    // Pattern: state.key.includes('value')
+    const includesMatch = condition.match(/^state\.(\w+)\.includes\(['"](.+)['"]\)$/);
+    if (includesMatch) {
+      const val = String(state[includesMatch[1]] || '');
+      return val.includes(includesMatch[2]);
+    }
+
+    // Pattern: state.key.startsWith('value')
+    const startsMatch = condition.match(/^state\.(\w+)\.startsWith\(['"](.+)['"]\)$/);
+    if (startsMatch) {
+      const val = String(state[startsMatch[1]] || '');
+      return val.startsWith(startsMatch[2]);
+    }
+
+    // Pattern: state.key.length > N
+    const lengthMatch = condition.match(/^state\.(\w+)\.length\s*(>|<|>=|<=|===|!==)\s*(\d+)$/);
+    if (lengthMatch) {
+      const val = state[lengthMatch[1]];
+      const len = typeof val === 'string' ? val.length : Array.isArray(val) ? val.length : 0;
+      const num = parseInt(lengthMatch[3]);
+      return compareValues(len, lengthMatch[2], num);
+    }
+
+    // Pattern: state.key === 'value' or state.key === true/false/number
+    const eqMatch = condition.match(/^state\.(\w+)\s*(===|!==|==|!=|>|<|>=|<=)\s*['"]?([^'"]*?)['"]?$/);
+    if (eqMatch) {
+      const stateVal = state[eqMatch[1]];
+      let compareVal: unknown = eqMatch[3];
+      if (compareVal === 'true') compareVal = true;
+      else if (compareVal === 'false') compareVal = false;
+      else if (!isNaN(Number(compareVal))) compareVal = Number(compareVal);
+      return compareValues(stateVal, eqMatch[2], compareVal);
+    }
+
+    // Pattern: state.key (truthy check)
+    const truthyMatch = condition.match(/^state\.(\w+)$/);
+    if (truthyMatch) {
+      return !!state[truthyMatch[1]];
+    }
+
+    // Pattern: !state.key (falsy check)
+    const falsyMatch = condition.match(/^!state\.(\w+)$/);
+    if (falsyMatch) {
+      return !state[falsyMatch[1]];
+    }
+
+    return false; // Unrecognized pattern — safe default
+  } catch {
+    return false;
+  }
+}
+
+function compareValues(a: unknown, op: string, b: unknown): boolean {
+  switch (op) {
+    case '===': case '==': return a === b || String(a) === String(b);
+    case '!==': case '!=': return a !== b && String(a) !== String(b);
+    case '>': return Number(a) > Number(b);
+    case '<': return Number(a) < Number(b);
+    case '>=': return Number(a) >= Number(b);
+    case '<=': return Number(a) <= Number(b);
+    default: return false;
+  }
+}
+
 const RequestSchema = z.object({
   workflow_id: z.string().uuid(),
   input: z.string().max(10000).optional().default(''),
@@ -424,7 +500,7 @@ serve(async (req) => {
           for (const edge of outEdges) {
             if (edge.condition) {
               try {
-                const evalResult = new Function('state', `return ${edge.condition}`)(state);
+                const evalResult = safeEvalCondition(edge.condition, state);
                 if (evalResult) { nextNode = edge.to; break; }
               } catch { /* condition failed */ }
             }
@@ -536,7 +612,7 @@ Then on a new line after the code, write "RESULT:" followed by what the code wou
         let nextNode: string | null = null;
         for (const edge of outEdges) {
           if (edge.condition) {
-            try { if (new Function('state', `return ${edge.condition}`)(state)) { nextNode = edge.to; break; } } catch { /* skip */ }
+            try { if (safeEvalCondition(edge.condition, state)) { nextNode = edge.to; break; } } catch { /* skip */ }
           }
         }
         if (!nextNode) nextNode = outEdges.find(e => !e.condition)?.to || outEdges[0]?.to || null;

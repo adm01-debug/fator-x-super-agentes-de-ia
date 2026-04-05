@@ -605,29 +605,33 @@ serve(async (req) => {
       const sqlResult = await sqlResp.json();
       const generatedSql = (sqlResult.content || '').replace(/```sql\n?|```/g, '').trim();
 
-      // Validate: must be SELECT
-      if (!generatedSql.toUpperCase().startsWith('SELECT')) {
+      // ═══ SQL SANITIZATION (C2 fix) ═══
+      const sqlUpper = generatedSql.toUpperCase();
+      // Must start with SELECT
+      if (!sqlUpper.startsWith('SELECT')) {
         return new Response(JSON.stringify({ error: 'Generated query is not a SELECT statement', sql: generatedSql }), { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
       }
-
-      // Execute the query
-      try {
-        const { data: queryData, error: queryError } = await client.rpc('', {}).catch(() => ({ data: null, error: { message: 'RPC not available' } }));
-        // Fallback: use a simple select approach
-        // Note: direct SQL execution requires service role or RPC function
-        return new Response(JSON.stringify({
-          sql: generatedSql,
-          question,
-          connection: connId,
-          schema_context: schemaContext,
-          status: 'sql_generated',
-          note: 'Execute this SQL via Supabase dashboard or RPC function. Direct SQL execution requires service_role key.',
-          model: 'Qwen/Qwen3-30B-A3B',
-          cost_usd: sqlResult.cost_usd || 0,
-        }), { headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
-      } catch {
-        return new Response(JSON.stringify({ sql: generatedSql, status: 'sql_generated' }), { headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
+      // Block dangerous statements (even if preceded by SELECT)
+      const SQL_BLOCKLIST = /\b(DROP|DELETE|UPDATE|INSERT|ALTER|CREATE|GRANT|REVOKE|TRUNCATE|EXEC|EXECUTE|COPY|LOAD|INTO\s+OUTFILE|pg_shadow|pg_authid|pg_roles|information_schema\.role|pg_catalog\.pg_shadow|pg_user|current_setting|set_config)\b/i;
+      if (SQL_BLOCKLIST.test(generatedSql)) {
+        return new Response(JSON.stringify({ error: 'Generated SQL contains blocked keywords', sql: generatedSql }), { status: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
       }
+      // Block multiple statements (semicolon followed by non-whitespace)
+      if (/;[\s]*\S/.test(generatedSql)) {
+        return new Response(JSON.stringify({ error: 'Multiple SQL statements not allowed', sql: generatedSql }), { status: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
+      }
+
+      // Return SQL for manual execution (NEVER execute directly)
+      return new Response(JSON.stringify({
+        sql: generatedSql,
+        question,
+        connection: connId,
+        schema_context: schemaContext,
+        status: 'sql_generated',
+        note: 'SQL gerado para revisão. Execute via Supabase dashboard com read-only role.',
+        model: 'Qwen/Qwen3-30B-A3B',
+        cost_usd: sqlResult.cost_usd || 0,
+      }), { headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
     }
 
     // ═══ ACTION: table_qa — Perguntas sobre tabelas (#37) ═══

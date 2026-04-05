@@ -53,6 +53,14 @@ interface AgentStep {
 const MAX_STEPS = 10;
 const STEP_TIMEOUT = 30000;
 
+// ═══ SAFE FETCH (H1 fix): All tool fetches have timeout ═══
+function safeFetch(url: string, options: RequestInit = {}): Promise<Response> {
+  return fetch(url, {
+    ...options,
+    signal: options.signal || AbortSignal.timeout(STEP_TIMEOUT),
+  });
+}
+
 // ═══ BUILT-IN TOOLS ═══
 
 function buildToolRegistry(ctx: AgentContext): AgentTool[] {
@@ -66,7 +74,7 @@ function buildToolRegistry(ctx: AgentContext): AgentTool[] {
         entity: { type: 'string', description: 'Entity type: empresa, contato, cooperativa, produto, conversa_whatsapp' },
       },
       execute: async (params) => {
-        const resp = await fetch(`${ctx.supabaseUrl}/functions/v1/datahub-query`, {
+        const resp = await safeFetch(`${ctx.supabaseUrl}/functions/v1/datahub-query`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json', 'Authorization': ctx.authHeader, 'apikey': ctx.supabaseKey },
           body: JSON.stringify({ action: 'natural_language_query', question: params.question, connection_id: 'bancodadosclientes' }),
@@ -83,7 +91,7 @@ function buildToolRegistry(ctx: AgentContext): AgentTool[] {
         search: { type: 'string', description: 'Search term', required: true },
       },
       execute: async (params) => {
-        const resp = await fetch(`${ctx.supabaseUrl}/functions/v1/datahub-query`, {
+        const resp = await safeFetch(`${ctx.supabaseUrl}/functions/v1/datahub-query`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json', 'Authorization': ctx.authHeader, 'apikey': ctx.supabaseKey },
           body: JSON.stringify({ action: 'query_entity', entity: params.entity, search: params.search, page_size: 10 }),
@@ -100,7 +108,7 @@ function buildToolRegistry(ctx: AgentContext): AgentTool[] {
         analysis_type: { type: 'string', description: 'Type: classify, detect_color, detect_objects, check_nsfw, full_analysis' },
       },
       execute: async (params) => {
-        const resp = await fetch(`${ctx.supabaseUrl}/functions/v1/image-analysis`, {
+        const resp = await safeFetch(`${ctx.supabaseUrl}/functions/v1/image-analysis`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json', 'Authorization': ctx.authHeader, 'apikey': ctx.supabaseKey },
           body: JSON.stringify({ action: params.analysis_type || 'full_analysis', image_url: params.image_url }),
@@ -115,7 +123,7 @@ function buildToolRegistry(ctx: AgentContext): AgentTool[] {
         audio_url: { type: 'string', description: 'URL of the audio file', required: true },
       },
       execute: async (params) => {
-        const resp = await fetch(`${ctx.supabaseUrl}/functions/v1/audio-transcribe`, {
+        const resp = await safeFetch(`${ctx.supabaseUrl}/functions/v1/audio-transcribe`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json', 'Authorization': ctx.authHeader, 'apikey': ctx.supabaseKey },
           body: JSON.stringify({ action: 'transcribe', audio_url: params.audio_url }),
@@ -133,11 +141,11 @@ function buildToolRegistry(ctx: AgentContext): AgentTool[] {
       },
       execute: async (params) => {
         // Fetch image and convert to base64
-        const imgResp = await fetch(params.product_image_url as string);
+        const imgResp = await safeFetch(params.product_image_url as string);
         const imgBuffer = await imgResp.arrayBuffer();
         const base64 = btoa(String.fromCharCode(...new Uint8Array(imgBuffer)));
 
-        const resp = await fetch(`${ctx.supabaseUrl}/functions/v1/product-mockup`, {
+        const resp = await safeFetch(`${ctx.supabaseUrl}/functions/v1/product-mockup`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json', 'Authorization': ctx.authHeader, 'apikey': ctx.supabaseKey },
           body: JSON.stringify({
@@ -157,7 +165,7 @@ function buildToolRegistry(ctx: AgentContext): AgentTool[] {
         image_url: { type: 'string', description: 'URL of the document image', required: true },
       },
       execute: async (params) => {
-        const resp = await fetch(`${ctx.supabaseUrl}/functions/v1/doc-ocr`, {
+        const resp = await safeFetch(`${ctx.supabaseUrl}/functions/v1/doc-ocr`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json', 'Authorization': ctx.authHeader, 'apikey': ctx.supabaseKey },
           body: JSON.stringify({ action: 'extract_text', image_url: params.image_url }),
@@ -173,7 +181,7 @@ function buildToolRegistry(ctx: AgentContext): AgentTool[] {
         language: { type: 'string', description: 'Language code: pt, en, es. Default: pt' },
       },
       execute: async (params) => {
-        const resp = await fetch(`${ctx.supabaseUrl}/functions/v1/text-to-speech`, {
+        const resp = await safeFetch(`${ctx.supabaseUrl}/functions/v1/text-to-speech`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json', 'Authorization': ctx.authHeader, 'apikey': ctx.supabaseKey },
           body: JSON.stringify({ text: params.text, language: params.language || 'pt', return_format: 'base64' }),
@@ -193,7 +201,7 @@ function buildToolRegistry(ctx: AgentContext): AgentTool[] {
       },
       execute: async (params) => {
         const labels = (params.categories as string).split(',').map(s => s.trim());
-        const resp = await fetch('https://router.huggingface.co/hf-inference/models/joeddav/xlm-roberta-large-xnli', {
+        const resp = await safeFetch('https://router.huggingface.co/hf-inference/models/joeddav/xlm-roberta-large-xnli', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${ctx.hfToken}` },
           body: JSON.stringify({ inputs: (params.text as string).substring(0, 500), parameters: { candidate_labels: labels } }),
@@ -208,7 +216,7 @@ function buildToolRegistry(ctx: AgentContext): AgentTool[] {
         text: { type: 'string', description: 'Text to analyze', required: true },
       },
       execute: async (params) => {
-        const resp = await fetch('https://router.huggingface.co/hf-inference/models/cardiffnlp/twitter-roberta-base-sentiment-latest', {
+        const resp = await safeFetch('https://router.huggingface.co/hf-inference/models/cardiffnlp/twitter-roberta-base-sentiment-latest', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${ctx.hfToken}` },
           body: JSON.stringify({ inputs: (params.text as string).substring(0, 512) }),
@@ -223,7 +231,7 @@ function buildToolRegistry(ctx: AgentContext): AgentTool[] {
         text: { type: 'string', description: 'Text to extract entities from', required: true },
       },
       execute: async (params) => {
-        const resp = await fetch('https://router.huggingface.co/hf-inference/models/dslim/bert-base-NER', {
+        const resp = await safeFetch('https://router.huggingface.co/hf-inference/models/dslim/bert-base-NER', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${ctx.hfToken}` },
           body: JSON.stringify({ inputs: (params.text as string).substring(0, 1000) }),
@@ -240,7 +248,7 @@ function buildToolRegistry(ctx: AgentContext): AgentTool[] {
         target_lang: { type: 'string', description: 'Target language code', required: true },
       },
       execute: async (params) => {
-        const resp = await fetch('https://router.huggingface.co/hf-inference/models/facebook/nllb-200-distilled-600M', {
+        const resp = await safeFetch('https://router.huggingface.co/hf-inference/models/facebook/nllb-200-distilled-600M', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${ctx.hfToken}` },
           body: JSON.stringify({ inputs: (params.text as string).substring(0, 2000), parameters: { src_lang: params.source_lang, tgt_lang: params.target_lang } }),
@@ -256,7 +264,7 @@ function buildToolRegistry(ctx: AgentContext): AgentTool[] {
       },
       execute: async (params) => {
         // Use DuckDuckGo HTML search (no API key needed)
-        const resp = await fetch(`https://html.duckduckgo.com/html/?q=${encodeURIComponent(params.query as string)}`, {
+        const resp = await safeFetch(`https://html.duckduckgo.com/html/?q=${encodeURIComponent(params.query as string)}`, {
           headers: { 'User-Agent': 'FatorX-Agent/1.0' },
         });
         const html = await resp.text();
@@ -274,7 +282,7 @@ function buildToolRegistry(ctx: AgentContext): AgentTool[] {
         system_prompt: { type: 'string', description: 'Optional system prompt to guide the response' },
       },
       execute: async (params) => {
-        const resp = await fetch(`${ctx.supabaseUrl}/functions/v1/llm-gateway`, {
+        const resp = await safeFetch(`${ctx.supabaseUrl}/functions/v1/llm-gateway`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json', 'Authorization': ctx.authHeader, 'apikey': ctx.supabaseKey },
           body: JSON.stringify({
@@ -427,6 +435,24 @@ async function runAgent(
       // Add to conversation
       messages.push({ role: 'assistant', content: response });
       messages.push({ role: 'user', content: `Observation: ${observation}` });
+
+      // ═══ SLIDING WINDOW (C4 fix): keep context under control ═══
+      // System prompt (index 0) + task (index 1) + last 6 messages (3 steps)
+      const MAX_CONTEXT_MESSAGES = 8; // system + task + 3 recent steps
+      if (messages.length > MAX_CONTEXT_MESSAGES) {
+        const systemPromptMsg = messages[0]; // always keep system prompt
+        const taskMsg = messages[1]; // always keep original task
+        // Summarize old steps into a context message
+        const oldMessages = messages.slice(2, -6); // everything except system, task, and last 3 steps
+        const summary = oldMessages
+          .filter(m => m.role === 'user' && m.content.startsWith('Observation:'))
+          .map(m => m.content.substring(0, 150))
+          .join(' | ');
+        const contextMsg = { role: 'user' as const, content: `[Previous steps summary: ${summary.substring(0, 500)}]` };
+        const recentMessages = messages.slice(-6); // last 3 steps (6 messages)
+        messages.length = 0;
+        messages.push(systemPromptMsg, taskMsg, contextMsg, ...recentMessages);
+      }
     } else {
       // No action parsed — treat as final answer
       steps.push({

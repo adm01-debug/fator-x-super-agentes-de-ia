@@ -664,72 +664,89 @@ serve(async (req) => {
       } catch { /* non-blocking */ }
     }
 
-    // ═══ AUTO-CLASSIFICATION (fire-and-forget via HuggingFace zero-shot) ═══
+    // ═══ CONSOLIDATED TRACE ENRICHMENT (C3 fix: single update, no race condition) ═══
     const hfTokenClassify = Deno.env.get('HF_API_TOKEN');
-    if (hfTokenClassify && Deno.env.get('ENABLE_AUTO_CLASSIFY') !== 'false') {
-      const CATEGORIES = ['comercial', 'suporte', 'produto', 'financeiro', 'logística', 'rh', 'técnico', 'criativo'];
-      fetch('https://router.huggingface.co/hf-inference/models/joeddav/xlm-roberta-large-xnli', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${hfTokenClassify}` },
-        body: JSON.stringify({ inputs: userMessage.substring(0, 500), parameters: { candidate_labels: CATEGORIES } }),
-      }).then(r => r.json()).then(classifyResult => {
-        if (classifyResult?.labels?.[0] && classifyResult?.scores?.[0] > 0.3) {
+    if (hfTokenClassify) {
+      // Run all enrichments in parallel, then do ONE metadata update
+      (async () => {
+        const metadata: Record<string, unknown> = {};
+        // Add pre-computed values
+        if (detectedLanguage) metadata.detected_language = detectedLanguage;
+        if (toxicityScore > 0.1) metadata.toxicity_score = Math.round(toxicityScore * 1000) / 1000;
+        if (outputToxicityScore > 0.1) metadata.output_toxicity = Math.round(outputToxicityScore * 1000) / 1000;
+        if (hallucinationScore !== null && hallucinationScore > 0.3) metadata.hallucination_risk = hallucinationScore;
+        if (agenticRisk) metadata.agentic_risk = agenticRisk;
+
+        const enrichmentPromises: Array<Promise<void>> = [];
+
+        // Auto-classification
+        if (Deno.env.get('ENABLE_AUTO_CLASSIFY') !== 'false') {
+          enrichmentPromises.push(
+            fetch('https://router.huggingface.co/hf-inference/models/joeddav/xlm-roberta-large-xnli', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${hfTokenClassify}` },
+              body: JSON.stringify({ inputs: userMessage.substring(0, 500), parameters: { candidate_labels: ['comercial', 'suporte', 'produto', 'financeiro', 'logística', 'rh', 'técnico', 'criativo'] } }),
+              signal: AbortSignal.timeout(5000),
+            }).then(r => r.json()).then(cr => {
+              if (cr?.labels?.[0] && cr?.scores?.[0] > 0.3) {
+                metadata.auto_category = cr.labels[0];
+                metadata.auto_category_score = Math.round(cr.scores[0] * 100) / 100;
+                metadata.auto_categories_top3 = cr.labels.slice(0, 3);
+              }
+            }).catch(() => {})
+          );
+        }
+
+        // Emotion detection
+        if (Deno.env.get('ENABLE_EMOTION_DETECTION') !== 'false') {
+          enrichmentPromises.push(
+            fetch('https://router.huggingface.co/hf-inference/models/j-hartmann/emotion-english-distilroberta-base', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${hfTokenClassify}` },
+              body: JSON.stringify({ inputs: userMessage.substring(0, 512) }),
+              signal: AbortSignal.timeout(5000),
+            }).then(r => r.json()).then(er => {
+              const emotions = Array.isArray(er?.[0]) ? er[0] : er;
+              if (Array.isArray(emotions) && emotions.length > 0) {
+                const sorted = [...emotions].sort((a: Record<string, unknown>, b: Record<string, unknown>) => (b.score as number) - (a.score as number));
+                metadata.emotion = sorted[0]?.label;
+                metadata.emotion_score = Math.round((sorted[0]?.score as number) * 100) / 100;
+              }
+            }).catch(() => {})
+          );
+        }
+
+        // Keyphrase extraction
+        if (Deno.env.get('ENABLE_KEYPHRASE_EXTRACTION') !== 'false' && userMessage.length > 30) {
+          enrichmentPromises.push(
+            fetch('https://router.huggingface.co/hf-inference/models/ml6team/keyphrase-extraction-kbir-inspec', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${hfTokenClassify}` },
+              body: JSON.stringify({ inputs: userMessage.substring(0, 500) }),
+              signal: AbortSignal.timeout(5000),
+            }).then(r => r.json()).then(kp => {
+              if (Array.isArray(kp) && kp.length > 0) {
+                const keyphrases = kp.filter((k: Record<string, unknown>) => (k.score as number) > 0.5).map((k: Record<string, unknown>) => k.word).slice(0, 5);
+                if (keyphrases.length > 0) metadata.keyphrases = keyphrases;
+              }
+            }).catch(() => {})
+          );
+        }
+
+        // Wait for ALL enrichments to complete
+        await Promise.allSettled(enrichmentPromises);
+
+        // Single atomic update with ALL metadata merged
+        if (Object.keys(metadata).length > 0) {
           supabase.from('agent_traces')
-            .update({ metadata: { auto_category: classifyResult.labels[0], auto_category_score: Math.round(classifyResult.scores[0] * 100) / 100, auto_categories_top3: classifyResult.labels.slice(0, 3), detected_language: detectedLanguage, toxicity_score: toxicityScore > 0.1 ? Math.round(toxicityScore * 1000) / 1000 : undefined } })
+            .update({ metadata })
             .eq('agent_id', agent_id || '00000000-0000-0000-0000-000000000000')
             .eq('user_id', user.id)
             .order('created_at', { ascending: false })
             .limit(1)
             .then(() => {});
         }
-      }).catch(() => {}); // silently ignore classification errors
-    }
-
-    // ═══ EMOTION DETECTION in text (#45, fire-and-forget) ═══
-    if (hfTokenClassify && Deno.env.get('ENABLE_EMOTION_DETECTION') !== 'false') {
-      fetch('https://router.huggingface.co/hf-inference/models/j-hartmann/emotion-english-distilroberta-base', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${hfTokenClassify}` },
-        body: JSON.stringify({ inputs: userMessage.substring(0, 512) }),
-      }).then(r => r.json()).then(emotionResult => {
-        const emotions = Array.isArray(emotionResult?.[0]) ? emotionResult[0] : emotionResult;
-        if (Array.isArray(emotions) && emotions.length > 0) {
-          const sorted = [...emotions].sort((a: Record<string, unknown>, b: Record<string, unknown>) => (b.score as number) - (a.score as number));
-          // Update trace metadata with emotion (non-blocking)
-          supabase.from('agent_traces')
-            .update({ metadata: { emotion: sorted[0]?.label, emotion_score: Math.round((sorted[0]?.score as number) * 100) / 100 } })
-            .eq('agent_id', agent_id || '00000000-0000-0000-0000-000000000000')
-            .eq('user_id', user.id)
-            .order('created_at', { ascending: false })
-            .limit(1)
-            .then(() => {});
-        }
-      }).catch(() => {});
-    }
-
-    // ═══ KEYPHRASE EXTRACTION (#47, fire-and-forget) ═══
-    if (hfTokenClassify && Deno.env.get('ENABLE_KEYPHRASE_EXTRACTION') !== 'false' && userMessage.length > 30) {
-      fetch('https://router.huggingface.co/hf-inference/models/ml6team/keyphrase-extraction-kbir-inspec', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${hfTokenClassify}` },
-        body: JSON.stringify({ inputs: userMessage.substring(0, 500) }),
-      }).then(r => r.json()).then(kpResult => {
-        if (Array.isArray(kpResult) && kpResult.length > 0) {
-          const keyphrases = kpResult
-            .filter((k: Record<string, unknown>) => (k.score as number) > 0.5)
-            .map((k: Record<string, unknown>) => k.word)
-            .slice(0, 5);
-          if (keyphrases.length > 0) {
-            supabase.from('agent_traces')
-              .update({ metadata: { keyphrases } })
-              .eq('agent_id', agent_id || '00000000-0000-0000-0000-000000000000')
-              .eq('user_id', user.id)
-              .order('created_at', { ascending: false })
-              .limit(1)
-              .then(() => {});
-          }
-        }
-      }).catch(() => {});
+      })().catch(() => {}); // entire enrichment block is non-blocking
     }
 
     return new Response(JSON.stringify({
