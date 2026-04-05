@@ -9,6 +9,7 @@ import { getWorkspaceId } from "@/lib/agentService";
 import { useAuth } from "@/contexts/AuthContext";
 import { InviteMemberDialog } from "@/components/dialogs/InviteMemberDialog";
 import { toast } from "sonner";
+import { listMembers, removeMember } from "@/services/teamsService";
 
 const roleLabels: Record<string, string> = { admin: 'Admin', editor: 'Editor', viewer: 'Viewer', operator: 'Operator', owner: 'Owner' };
 
@@ -20,9 +21,7 @@ export default function TeamPage() {
     queryKey: ['workspace_members'],
     queryFn: async () => {
       const wsId = await getWorkspaceId();
-      const { data, error } = await supabase.from('workspace_members').select('*').eq('workspace_id', wsId);
-      if (error) throw error;
-      return data ?? [];
+      return listMembers(wsId);
     },
   });
 
@@ -55,13 +54,15 @@ export default function TeamPage() {
   };
 
   const handleRemoveMember = async (memberId: string) => {
-    const { error } = await supabase.from('workspace_members').delete().eq('id', memberId);
-    if (error) {
-      toast.error(error.message);
-      return;
+    try {
+      const wsId = await getWorkspaceId();
+      const member = members.find(m => m.id === memberId);
+      if (member?.user_id) await removeMember(wsId, member.user_id);
+      toast.success('Membro removido');
+      refetch();
+    } catch (e: unknown) {
+      toast.error(e instanceof Error ? e.message : 'Erro inesperado');
     }
-    toast.success('Membro removido');
-    refetch();
   };
 
   return (
