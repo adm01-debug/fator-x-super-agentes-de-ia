@@ -3,7 +3,87 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2.49.4";
 import { z } from "https://deno.land/x/zod@v3.22.4/mod.ts";
 import { getCorsHeaders, handleCorsPreflight, jsonResponse, errorResponse, checkRateLimit, getRateLimitIdentifier, createRateLimitResponse, RATE_LIMITS } from "../_shared/mod.ts";
 
-// CORS handled by _shared/cors.ts — dynamic origin whitelist
+// ═══ Types ═══
+interface GraphNode {
+  id: string;
+  type: string;
+  label: string;
+  config: Record<string, unknown>;
+}
+
+interface GraphEdge {
+  from: string;
+  to: string;
+  condition?: string;
+}
+
+interface WorkflowGraph {
+  nodes: GraphNode[];
+  edges: GraphEdge[];
+  entry_node: string;
+}
+
+interface WorkflowState {
+  _current_node: string;
+  _history: string[];
+  _iteration_count: Record<string, number>;
+  _output: unknown;
+  input: string;
+  [key: string]: unknown;
+}
+
+// ═══ Constants ═══
+const MAX_ITERATIONS = 50;
+const STEP_TIMEOUT_MS = 30000;
+const SPACE_TIMEOUT = 60000;
+
+// ═══ Helpers ═══
+function safeEvalCondition(condition: string, state: WorkflowState): boolean {
+  const output = String(state._output || '').toLowerCase();
+  const cond = condition.toLowerCase();
+  if (cond.includes('contains:')) {
+    const search = cond.split('contains:')[1]?.trim();
+    return output.includes(search || '');
+  }
+  if (cond === 'default' || cond === 'else') return true;
+  if (cond.startsWith('length>')) {
+    const threshold = parseInt(cond.split('>')[1] || '0');
+    return output.length > threshold;
+  }
+  return false;
+}
+
+// ═══ Input Schema ═══
+const WorkflowInput = z.object({
+  workflow_id: z.string().uuid(),
+  input: z.string().default(''),
+  resume_run_id: z.string().uuid().optional(),
+});
+
+serve(async (req) => {
+  if (req.method === 'OPTIONS') return handleCorsPreflight(req);
+
+  try {
+    const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
+    const supabaseKey = Deno.env.get('SUPABASE_ANON_KEY')!;
+    const authHeader = req.headers.get('Authorization') || `Bearer ${supabaseKey}`;
+    const supabase = createClient(supabaseUrl, supabaseKey, { global: { headers: { Authorization: authHeader } } });
+
+    const body = await req.json();
+    const parsed = WorkflowInput.safeParse(body);
+    if (!parsed.success) return jsonResponse({ error: 'Invalid input', details: parsed.error.flatten() }, 400);
+    const { workflow_id, input, resume_run_id } = parsed.data;
+
+    // Load workflow
+    const { data: workflow, error: wfErr } = await supabase.from('workflows').select('*').eq('id', workflow_id).single();
+    if (wfErr || !workflow) return jsonResponse({ error: 'Workflow not found' }, 404);
+
+    const wfConfig = (workflow.config || {}) as Record<string, unknown>;
+    const graph: WorkflowGraph = {
+      nodes: (wfConfig.nodes as GraphNode[]) || [],
+      edges: (wfConfig.edges as GraphEdge[]) || [],
+      entry_node: (wfConfig.entry_node as string) || 'step_0',
+    };
 
     // If no graph nodes, fall back to sequential steps
     if (graph.nodes.length === 0) {

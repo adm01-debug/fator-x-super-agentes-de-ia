@@ -133,7 +133,7 @@ export default function WorkflowsPage() {
 
   const handleToggleStatus = async (id: string) => {
     if (id.includes('-')) {
-      const wf = workflows.find((w: Record<string, unknown>) => w.id === id);
+      const wf = workflows.find((w) => w.id === id);
       if (wf) {
         await supabase.from('workflows').update({ status: wf.status === 'active' ? 'draft' : 'active' }).eq('id', id);
         queryClient.invalidateQueries({ queryKey: ['workflows_list'] });
@@ -286,7 +286,7 @@ export default function WorkflowsPage() {
           </InfoHint>
 
           <div className="grid gap-4 md:grid-cols-2">
-            {workflows.map((wf: Record<string, unknown>) => (
+            {workflows.map((wf) => (
                 <div key={wf.id} className="nexus-card group">
                   <div className="flex items-center justify-between mb-4">
                     <div className="flex items-center gap-2.5">
@@ -315,7 +315,7 @@ export default function WorkflowsPage() {
                   </div>
 
                   <div className="flex items-center gap-1.5 overflow-x-auto pb-2">
-                    {wf.steps.map((step: Record<string, unknown>, j: number) => {
+                    {wf.steps.map((step, j) => {
                       const Icon = stepIcons[step] || Brain;
                       return (
                         <div key={j} className="flex items-center gap-1.5 shrink-0">
