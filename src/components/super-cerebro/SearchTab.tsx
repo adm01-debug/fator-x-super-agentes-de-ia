@@ -7,7 +7,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Loader2, MessageSquare, Sparkles, ArrowUpDown, Search } from "lucide-react";
 import { invokeCerebroQuery } from "@/services/cerebroService";
 import { toast } from "sonner";
-import { rerankChunks, listKnowledgeBases, type RerankResult } from "@/services/knowledgeService";
+import { rerankChunks, listKnowledgeBases, fetchChunksForRerank, type RerankResult } from "@/services/knowledgeService";
 
 export function SearchTab() {
   const [query, setQuery] = useState('');
@@ -55,32 +55,12 @@ export function SearchTab() {
     setRerankMethod(null);
 
     try {
-      // Build chunk query, optionally filtering by KB
-      let chunkQuery = supabase
-        .from('chunks')
-        .select('id, content, chunk_index, token_count, document_id, metadata')
-        .limit(50)
-        .order('created_at', { ascending: false });
+      const chunks = await fetchChunksForRerank(
+        selectedKbId !== 'all' ? selectedKbId : undefined,
+        50
+      );
 
-      if (selectedKbId !== 'all') {
-        // Get document IDs belonging to the selected KB's collections
-        const { data: docs } = await supabase
-          .from('documents')
-          .select('id, collection_id, collections!inner(knowledge_base_id)')
-          .eq('collections.knowledge_base_id', selectedKbId);
-        const docIds = (docs || []).map(d => d.id);
-        if (docIds.length === 0) {
-          toast.warning('Nenhum documento encontrado nesta Knowledge Base.');
-          setIsReranking(false);
-          return;
-        }
-        chunkQuery = chunkQuery.in('document_id', docIds);
-      }
-
-      const { data: chunks, error: chunkErr } = await chunkQuery;
-
-      if (chunkErr) throw chunkErr;
-      if (!chunks || chunks.length === 0) {
+      if (chunks.length === 0) {
         toast.warning('Nenhum chunk encontrado na base. Adicione documentos primeiro.');
         setIsReranking(false);
         return;
@@ -88,7 +68,7 @@ export function SearchTab() {
 
       const result = await rerankChunks(
         rerankQuery,
-        chunks.map(c => ({ ...c })),
+        chunks.map((c: Record<string, unknown>) => ({ ...c })),
         { topK: rerankTopK, knowledgeBaseId: selectedKbId !== 'all' ? selectedKbId : undefined }
       );
 
