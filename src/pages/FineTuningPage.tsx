@@ -219,7 +219,7 @@ export default function FineTuningPage() {
                 <div className="space-y-3 mt-2">
                   {result.job_id && (
                     <div className="flex items-center gap-2">
-                      <CheckCircle className="h-4 w-4 text-emerald-500" />
+                      <CheckCircle className="h-4 w-4 text-primary" />
                       <span className="text-sm font-medium">Job ID: {result.job_id}</span>
                     </div>
                   )}

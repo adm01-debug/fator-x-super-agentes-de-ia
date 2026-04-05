@@ -191,8 +191,8 @@ export default function SmolagentPage() {
                     {expandedSteps.has(idx) && (
                       <div className="border-t border-border p-3 bg-muted/20 space-y-2 text-xs">
                         {step.thought && <div><span className="font-semibold text-primary">💭 Thought:</span><pre className="whitespace-pre-wrap mt-1 text-muted-foreground">{step.thought}</pre></div>}
-                        {step.action_input && <div><span className="font-semibold text-amber-500">⚡ Input:</span><pre className="whitespace-pre-wrap mt-1 text-muted-foreground">{step.action_input}</pre></div>}
-                        {step.observation && <div><span className="font-semibold text-emerald-500">👁 Observation:</span><pre className="whitespace-pre-wrap mt-1 text-muted-foreground">{step.observation.substring(0, 1000)}</pre></div>}
+                        {step.action_input && <div><span className="font-semibold text-warning">⚡ Input:</span><pre className="whitespace-pre-wrap mt-1 text-muted-foreground">{step.action_input}</pre></div>}
+                        {step.observation && <div><span className="font-semibold text-accent-foreground">👁 Observation:</span><pre className="whitespace-pre-wrap mt-1 text-muted-foreground">{step.observation.substring(0, 1000)}</pre></div>}
                       </div>
                     )}
                   </div>
