@@ -198,7 +198,7 @@ export async function createWebhook(
     created_by: userId,
   };
 
-  const { data, error } = await fromTable('webhook_endpoints'))
+  const { data, error } = await fromTable('webhook_endpoints')
     .insert(record)
     .select()
     .single();
@@ -209,7 +209,7 @@ export async function createWebhook(
 export async function listWebhooks(
   status?: WebhookStatus,
 ): Promise<WebhookEndpoint[]> {
-  let query = fromTable('webhook_endpoints'))
+  let query = fromTable('webhook_endpoints')
     .select('*')
     .order('created_at', { ascending: false });
 
@@ -223,7 +223,7 @@ export async function listWebhooks(
 }
 
 export async function getWebhook(id: string): Promise<WebhookEndpoint | null> {
-  const { data, error } = await fromTable('webhook_endpoints'))
+  const { data, error } = await fromTable('webhook_endpoints')
     .select('*')
     .eq('id', id)
     .maybeSingle();
@@ -235,7 +235,7 @@ export async function updateWebhook(
   id: string,
   updates: Partial<CreateWebhookInput> & { status?: WebhookStatus },
 ): Promise<WebhookEndpoint> {
-  const { data, error } = await fromTable('webhook_endpoints'))
+  const { data, error } = await fromTable('webhook_endpoints')
     .update({ ...updates, updated_at: new Date().toISOString() })
     .eq('id', id)
     .select()
@@ -249,7 +249,7 @@ export async function revokeWebhook(id: string): Promise<WebhookEndpoint> {
 }
 
 export async function regenerateSecret(id: string): Promise<WebhookEndpoint> {
-  const { data, error } = await fromTable('webhook_endpoints'))
+  const { data, error } = await fromTable('webhook_endpoints')
     .update({
       secret: generateWebhookSecret(),
       updated_at: new Date().toISOString(),

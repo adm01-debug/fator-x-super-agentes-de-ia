@@ -235,7 +235,7 @@ export async function createSchedule(
     created_by: userId,
   };
 
-  const { data, error } = await fromTable('cron_schedules'))
+  const { data, error } = await fromTable('cron_schedules')
     .insert(record)
     .select()
     .single();
@@ -246,7 +246,7 @@ export async function createSchedule(
 export async function listSchedules(
   status?: ScheduleStatus,
 ): Promise<CronSchedule[]> {
-  let query = fromTable('cron_schedules'))
+  let query = fromTable('cron_schedules')
     .select('*')
     .order('next_run_at', { ascending: true });
 
@@ -260,7 +260,7 @@ export async function listSchedules(
 }
 
 export async function getSchedule(id: string): Promise<CronSchedule | null> {
-  const { data, error } = await fromTable('cron_schedules'))
+  const { data, error } = await fromTable('cron_schedules')
     .select('*')
     .eq('id', id)
     .maybeSingle();
@@ -278,7 +278,7 @@ export async function updateSchedule(
     patch.next_run_at = getNextCronRun(updates.cron_expression).toISOString();
   }
 
-  const { data, error } = await fromTable('cron_schedules'))
+  const { data, error } = await fromTable('cron_schedules')
     .update(patch)
     .eq('id', id)
     .select()
@@ -354,7 +354,7 @@ export async function recordExecution(
         updatePayload.next_run_at = next.toISOString();
       }
 
-      await fromTable('cron_schedules'))
+      await fromTable('cron_schedules')
         .update(updatePayload)
         .eq('id', scheduleId);
     }
