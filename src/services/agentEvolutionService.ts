@@ -134,6 +134,42 @@ export async function reflectAndEvolve(agentId: string, windowHours = 24): Promi
   };
 }
 
+// Build a prompt section from the agent's skillbook
+export function buildSkillbookPrompt(skills: AgentSkill[]): string {
+  const highConf = skills.filter(s => s.confidence >= 0.5);
+  if (highConf.length === 0) return '';
+  const lines = highConf.map(s => `- ${s.skill_name}: ${s.pattern} (confidence: ${(s.confidence * 100).toFixed(0)}%)`);
+  return `<learned_skills>\n${lines.join('\n')}\n</learned_skills>`;
+}
+
+// Reflect on execution traces to find patterns
+export async function reflectOnTraces(
+  _agentId: string,
+  traces: Array<{ input: string; output: string; success: boolean; tools_used: string[] }>
+): Promise<{ lessons_learned: string[]; failure_patterns: string[] }> {
+  const lessons: string[] = [];
+  const failures: string[] = [];
+
+  const toolFreq: Record<string, number> = {};
+  const toolFails: Record<string, number> = {};
+
+  for (const t of traces) {
+    for (const tool of t.tools_used) {
+      toolFreq[tool] = (toolFreq[tool] ?? 0) + 1;
+      if (!t.success) toolFails[tool] = (toolFails[tool] ?? 0) + 1;
+    }
+  }
+
+  for (const [tool, count] of Object.entries(toolFreq)) {
+    if (count >= 2) lessons.push(`Tool "${tool}" used ${count} times — consider as a core skill`);
+  }
+  for (const [tool, count] of Object.entries(toolFails)) {
+    if (count >= 2) failures.push(`Tool "${tool}" failed ${count} times — investigate reliability`);
+  }
+
+  return { lessons_learned: lessons, failure_patterns: failures };
+}
+
 // Prune skills that have very low confidence
 export async function pruneWeakSkills(agentId: string, minConfidence = 0.2): Promise<number> {
   const { data, error } = await supabase

@@ -83,7 +83,7 @@ export async function uninstallSkill(agentId: string, skillId: string): Promise<
 export async function publishSkill(skill: Omit<AgentSkillDefinition, 'id' | 'install_count' | 'rating' | 'created_at'>): Promise<AgentSkillDefinition> {
   const { data, error } = await supabase
     .from('skill_registry')
-    .insert({
+    .insert([{
       name: skill.name,
       slug: skill.slug,
       description: skill.description,
@@ -95,7 +95,7 @@ export async function publishSkill(skill: Omit<AgentSkillDefinition, 'id' | 'ins
       mcp_server_url: skill.mcp_server_url ?? null,
       is_verified: false,
       is_public: skill.is_public,
-    })
+    }])
     .select()
     .single();
   if (error) throw error;
