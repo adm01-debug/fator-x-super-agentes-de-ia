@@ -88,6 +88,9 @@ export {
   getExecution as getHistoryExecution,
   getExecutionTimeline as getHistoryExecutionTimeline,
   getExecutionStats,
+  compareExecutions,
+  replayExecution,
+  purgeOldExecutions,
   type ExecutionRecord,
   type ExecutionStatus,
 } from './executionHistoryService';
