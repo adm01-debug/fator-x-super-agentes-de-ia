@@ -215,7 +215,7 @@ export async function ingestDocument(
 
 // ═══ RETRIEVAL ═══
 
-/** Retrieve relevant chunks for a query. Uses keyword matching + optional LLM reranking. */
+/** Retrieve relevant chunks for a query. Uses keyword matching + vector similarity + optional LLM reranking. */
 export async function retrieve(
   query: string,
   knowledgeBaseId?: string,
@@ -225,7 +225,44 @@ export async function retrieve(
   const topK = config.topK ?? DEFAULT_CONFIG.topK;
   const threshold = config.similarityThreshold ?? DEFAULT_CONFIG.similarityThreshold;
 
-  // Filter chunks by knowledge base
+  // --- Strategy 1: Supabase persisted chunks with vector similarity ---
+  try {
+    const queryEmbedding = await generateEmbedding(query);
+    let dbQuery = supabase
+      .from('knowledge_base_chunks')
+      .select('id, content, metadata, embedding');
+    if (knowledgeBaseId) {
+      dbQuery = dbQuery.eq('kb_id', knowledgeBaseId);
+    }
+    const { data: dbChunks, error } = await dbQuery.limit(topK * 5);
+
+    if (!error && dbChunks && dbChunks.length > 0) {
+      // Score by cosine similarity against query embedding
+      const vectorScored = dbChunks
+        .map((row: { id: string; content: string; metadata: Record<string, string> | null; embedding: string | number[] | null }) => {
+          let sim = 0;
+          if (row.embedding) {
+            const embArr = typeof row.embedding === 'string'
+              ? JSON.parse(row.embedding.replace(/^\[/, '[').replace(/\]$/, ']'))
+              : row.embedding;
+            sim = cosineSimilarity(queryEmbedding.embedding, embArr);
+          }
+          return { content: row.content, score: sim, source: (row.metadata as Record<string, string>)?.filename ?? 'supabase', chunkIndex: 0 };
+        })
+        .filter((s: { score: number }) => s.score >= threshold * 0.5)
+        .sort((a: { score: number }, b: { score: number }) => b.score - a.score)
+        .slice(0, topK);
+
+      if (vectorScored.length > 0) {
+        logger.info(`RAG retrieve (Supabase vector): ${vectorScored.length} results`, 'ragPipeline');
+        return { chunks: vectorScored, totalFound: vectorScored.length, latencyMs: Date.now() - startTime };
+      }
+    }
+  } catch (err) {
+    logger.debug(`Supabase chunk retrieval failed (table may not exist): ${err instanceof Error ? err.message : ''}`, 'ragPipeline');
+  }
+
+  // --- Strategy 2: In-memory chunks with keyword scoring (fallback) ---
   let candidates = knowledgeBaseId
     ? chunks.filter(c => c.metadata.knowledgeBaseId === knowledgeBaseId)
     : chunks;
@@ -248,7 +285,6 @@ export async function retrieve(
 
   // Optional: LLM reranking
   if (config.rerankerEnabled && llm.isLLMConfigured() && scored.length > 1) {
-    // Rerank using LLM
     const reranked = await rerankWithLLM(query, scored.map(s => s.chunk.content));
     const result: RetrievalResult = {
       chunks: reranked.map((idx, rank) => ({

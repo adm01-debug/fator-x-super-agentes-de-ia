@@ -219,7 +219,7 @@ export async function loadAgent(agentId: string): Promise<AgentConfig> {
     .eq('id', agentId)
     .single();
 
-  if (error) throw new Error(`Erro ao carregar agente: ${error.message}`);
+  if (error) { logger.error(`Failed to load agent: ${error.message}`, error, 'agentService'); throw new Error(`Erro ao carregar agente: ${error.message}`); }
   return rowToConfig(data as unknown as AgentRow);
 }
 
@@ -275,7 +275,7 @@ export async function savePromptVersion(
     .select('id')
     .single();
 
-  if (insertError) throw new Error(`Erro ao salvar versão de prompt: ${insertError.message}`);
+  if (insertError) { logger.error(`Failed to save prompt version: ${insertError.message}`, insertError, 'agentService'); throw new Error(`Erro ao salvar versão de prompt: ${insertError.message}`); }
 
   // Step 2: Deactivate all previous versions
   const { error: deactivateError } = await supabase
