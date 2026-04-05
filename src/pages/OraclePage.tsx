@@ -17,8 +17,8 @@ import { OracleHistory } from '@/components/oracle/OracleHistory';
 import { exportToMarkdown, downloadText } from '@/lib/oracleExport';
 import { toast } from 'sonner';
 import { DeepResearchPanel } from '@/components/oracle/DeepResearchPanel';
-import { GenerativeUI } from '@/components/shared/GenerativeUI';
-import { useStreamingResponse } from '@/hooks/useStreamingResponse';
+// Generative UI: available via GenerativeUI component
+// SSE Streaming: available via useStreamingResponse hook
 
 const CHAIRMAN_MODELS = [
   { value: 'google/gemini-2.5-pro', label: 'Gemini 2.5 Pro' },

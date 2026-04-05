@@ -90,7 +90,7 @@ export function A2APanel() {
           <h3 className="text-sm font-bold text-white">A2A — Agent-to-Agent Protocol</h3>
           <Badge variant="outline" className="text-[10px] border-[#9B59B6] text-[#9B59B6]">Google A2A v0.3</Badge>
         </div>
-        <Button variant="ghost" size="sm" onClick={loadCard}><RefreshCw className="w-3 h-3" /></Button>
+        <Button variant="ghost" size="sm" aria-label="Atualizar" onClick={loadCard}><RefreshCw className="w-3 h-3" /></Button>
       </div>
 
       {/* Agent Card Info */}

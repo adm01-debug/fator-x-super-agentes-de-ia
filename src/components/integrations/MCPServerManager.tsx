@@ -105,7 +105,7 @@ export function MCPServerManager() {
                 <span className="text-[10px] text-muted-foreground font-mono">{s.url}</span>
               </div>
               <div className="flex gap-1">
-                <Button variant="ghost" size="sm" className="h-7 w-7 p-0">
+                <Button variant="ghost" size="sm" className="h-7 w-7 p-0" aria-label="Ação">
                   <RefreshCw className="w-3 h-3" />
                 </Button>
                 <Button variant="ghost" size="sm" className="h-7 w-7 p-0 text-destructive" onClick={() => removeServer(s.id)}>

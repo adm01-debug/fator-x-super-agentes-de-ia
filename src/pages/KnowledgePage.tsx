@@ -13,7 +13,7 @@ import { CreateKnowledgeBaseDialog } from "@/components/dialogs/CreateKnowledgeB
 import { EditKnowledgeBaseDialog } from "@/components/dialogs/EditKnowledgeBaseDialog";
 import { KnowledgeBaseDetail } from "@/components/knowledge/KnowledgeBaseDetail";
 import { toast } from "sonner";
-import { tieredSearch } from '@/services/contextTiersService';
+// Context Tiers: available via contextTiersService (tieredSearch)
 
 const pipeline = ['Parsing', 'Chunking', 'Metadata', 'Embeddings', 'Indexing'];
 
