@@ -1,9 +1,10 @@
-import { Shield, ShieldAlert, ShieldCheck, Loader2, Plus, Trash2 } from "lucide-react";
+import { Shield, ShieldAlert, ShieldCheck, Loader2, Plus, Trash2, FlaskConical } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
+import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
@@ -144,6 +145,70 @@ export function GuardrailPolicies() {
               </AlertDialog>
             </div>
           ))}
+        </div>
+      )}
+
+      {/* Guardrail Test Panel */}
+      <GuardrailTester />
+    </div>
+  );
+}
+
+// ═══ Guardrail Tester — calls guardrails-engine edge function ═══
+function GuardrailTester() {
+  const [testInput, setTestInput] = useState('');
+  const [testing, setTesting] = useState(false);
+  const [result, setResult] = useState<Record<string, unknown> | null>(null);
+
+  const handleTest = async () => {
+    if (!testInput.trim()) { toast.error('Digite um texto para testar'); return; }
+    setTesting(true);
+    setResult(null);
+    try {
+      const { data, error } = await supabase.functions.invoke('guardrails-engine', {
+        body: { text: testInput.trim(), checks: ['pii', 'injection', 'toxicity', 'content'] },
+      });
+      if (error) throw new Error(error.message);
+      setResult(data);
+      toast.success('Verificação concluída!');
+    } catch (e: unknown) {
+      toast.error(e instanceof Error ? e.message : 'Erro ao testar guardrails');
+    } finally {
+      setTesting(false);
+    }
+  };
+
+  return (
+    <div className="mt-4 pt-4 border-t border-border/30">
+      <h4 className="text-xs font-semibold text-foreground flex items-center gap-1.5 mb-3">
+        <FlaskConical className="h-3.5 w-3.5 text-primary" /> Testar Guardrails Engine
+      </h4>
+      <div className="space-y-2">
+        <Textarea
+          value={testInput}
+          onChange={e => setTestInput(e.target.value)}
+          placeholder="Digite um texto para verificar (PII, injection, toxicidade)..."
+          rows={2}
+          className="bg-secondary/50 text-xs"
+        />
+        <Button size="sm" onClick={handleTest} disabled={testing} className="gap-1.5">
+          {testing ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <FlaskConical className="h-3.5 w-3.5" />}
+          Testar
+        </Button>
+      </div>
+      {result && (
+        <div className="mt-3 p-3 rounded-lg bg-secondary/30 border border-border/30">
+          <div className="flex items-center gap-2 mb-2">
+            <Badge variant={result.passed ? 'default' : 'destructive'} className="text-[11px]">
+              {result.passed ? '✅ Aprovado' : '❌ Bloqueado'}
+            </Badge>
+            {result.score != null && (
+              <span className="text-[11px] text-muted-foreground">Score: {String(result.score)}</span>
+            )}
+          </div>
+          <pre className="text-[11px] text-muted-foreground overflow-auto max-h-[150px]">
+            {JSON.stringify(result, null, 2)}
+          </pre>
         </div>
       )}
     </div>
