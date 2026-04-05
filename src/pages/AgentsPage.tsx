@@ -16,7 +16,7 @@ import { useState, useCallback, useRef } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { listAgents, cloneAgent, autoTagAgent } from "@/lib/agentService";
 import { useAuth } from "@/contexts/AuthContext";
-import type { Tables, Database } from "@/integrations/supabase/types";
+import type { Tables } from "@/integrations/supabase/types";
 import { exportAgentToJSON, downloadJSON, importAgentFromJSON, readFileAsText } from "@/lib/agentExportImport";
 import { bulkUpdateStatus, bulkDelete } from "@/lib/agentBulkActions";
 import {
@@ -70,14 +70,7 @@ export default function AgentsPage() {
     e.stopPropagation();
     setCloning(agent.id);
     try {
-      const { id, created_at, updated_at, ...rest } = agent;
-      const { error } = await supabase.from('agents').insert({
-        ...rest,
-        name: `${agent.name} (cópia)`,
-        status: 'draft' as const,
-        version: 1,
-      }).select('id').single();
-      if (error) throw error;
+      await cloneAgent(agent);
       toast.success('Agente clonado!');
       queryClient.invalidateQueries({ queryKey: ['agents'] });
     } catch (err: unknown) {
@@ -89,25 +82,14 @@ export default function AgentsPage() {
 
   const handleAutoTag = useCallback(async (e: React.MouseEvent, agent: AgentRow) => {
     e.stopPropagation();
-    const config = agent.config as Record<string, unknown> | null;
-    const tags: string[] = [];
-    if (agent.model?.includes('gpt')) tags.push('OpenAI');
-    if (agent.model?.includes('gemini')) tags.push('Gemini');
-    if (agent.model?.includes('claude')) tags.push('Claude');
-    if (config?.tools && Array.isArray(config.tools) && config.tools.length) tags.push('tools');
-    if (config?.rag_enabled || config?.knowledge_base) tags.push('RAG');
-    if (config?.memory_enabled) tags.push('memory');
-    if (agent.status === 'production') tags.push('prod');
-    if (agent.persona) tags.push('persona');
-    const merged = [...new Set([...(agent.tags ?? []), ...tags])];
-    if (merged.length === (agent.tags ?? []).length) {
-      toast.info('Nenhuma tag nova detectada');
-      return;
+    try {
+      const result = await autoTagAgent(agent);
+      if (result.added === 0) { toast.info('Nenhuma tag nova detectada'); return; }
+      toast.success(`${result.added} tags adicionadas automaticamente`);
+      queryClient.invalidateQueries({ queryKey: ['agents'] });
+    } catch (err: unknown) {
+      toast.error(err instanceof Error ? err.message : 'Erro ao auto-tag');
     }
-    const { error } = await supabase.from('agents').update({ tags: merged }).eq('id', agent.id);
-    if (error) { toast.error(error.message); return; }
-    toast.success(`${merged.length - (agent.tags ?? []).length} tags adicionadas automaticamente`);
-    queryClient.invalidateQueries({ queryKey: ['agents'] });
   }, [queryClient]);
 
   // ═══ Export ═══
