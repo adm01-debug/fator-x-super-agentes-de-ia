@@ -6,7 +6,7 @@
  * Reference: React Flow Pro "AI Workflow Editor" template
  */
 
-import { useState, useCallback, useRef, useMemo } from 'react';
+import { useState, useCallback, useRef } from 'react';
 import { useWorkflowStore } from '@/stores/workflowStore';
 import { NODE_TYPES, NODE_CATEGORIES, NODE_DEFAULTS, type NodeType, type WorkflowNodeData } from './nodes';
 
