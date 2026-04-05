@@ -8,7 +8,7 @@ import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, 
 import { Brain, Clock, Globe, User, Users, Database, Plus, Trash2, Search, Loader2, Zap, Archive } from "lucide-react";
 import { toast } from "sonner";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { addMemory, searchMemory, forgetMemory, listMemories } from "@/services/memoryService";
+import { addMemory, searchMemory, forgetMemory, listMemories, compactMemories } from "@/services/memoryService";
 import { memorySchema } from "@/lib/validations/agentSchema";
 
 const memoryTypes = [
