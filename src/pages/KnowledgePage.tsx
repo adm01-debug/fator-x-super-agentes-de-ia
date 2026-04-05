@@ -18,7 +18,7 @@ const pipeline = ['Parsing', 'Chunking', 'Metadata', 'Embeddings', 'Indexing'];
 
 export default function KnowledgePage() {
   const [search, setSearch] = useState("");
-  const [editKb, setEditKb] = useState<Record<string, unknown> | null>(null);
+  const [editKb, setEditKb] = useState<unknown>(null);
   const [selectedKb, setSelectedKb] = useState<{ id: string; name: string } | null>(null);
   const queryClient = useQueryClient();
 
