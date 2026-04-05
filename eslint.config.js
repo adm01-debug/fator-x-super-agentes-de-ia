@@ -24,6 +24,7 @@ export default tseslint.config(
       ...jsxA11y.configs.recommended.rules,
       "react-refresh/only-export-components": ["warn", { allowConstantExport: true }],
       "@typescript-eslint/no-unused-vars": ["warn", { argsIgnorePattern: "^_", varsIgnorePattern: "^_" }],
+      "no-console": ["error", { allow: ["debug", "info", "warn", "error"] }],
     },
   },
 );
