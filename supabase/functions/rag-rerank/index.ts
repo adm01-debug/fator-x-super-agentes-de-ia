@@ -72,7 +72,8 @@ serve(async (req) => {
             reranked = (data.results || []).map((r: Record<string, unknown>) => ({
               chunk: chunks[r.index as number],
               relevance_score: r.relevance_score as number,
-            }));
+            });
+            if (reranked.length > 0) usedMethod = 'cohere';
           }
         } catch (e: unknown) {
           console.error('Cohere rerank failed:', e instanceof Error ? e.message : e);
