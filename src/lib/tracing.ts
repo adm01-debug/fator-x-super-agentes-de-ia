@@ -110,7 +110,7 @@ class NexusTracer {
         },
       });
     } catch (err: unknown) {
-      logger.error('Failed to persist trace:', err instanceof Error ? err.message : String(err));
+      logger.error('Failed to persist trace:', { error: err instanceof Error ? err.message : String(err) });
     }
 
     // Send to Langfuse (if configured)

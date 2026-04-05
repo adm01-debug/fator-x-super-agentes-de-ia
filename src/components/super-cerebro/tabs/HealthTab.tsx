@@ -87,7 +87,7 @@ export function HealthTab() {
           },
         ]);
       } catch (err: unknown) {
-        logger.error('Health check failed:', err instanceof Error ? err.message : String(err));
+        logger.error('Health check failed:', { error: err instanceof Error ? err.message : String(err) });
       } finally {
         setLoading(false);
       }
