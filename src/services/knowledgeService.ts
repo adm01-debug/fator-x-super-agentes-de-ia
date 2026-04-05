@@ -6,6 +6,7 @@ import { supabase } from '@/integrations/supabase/client';
 
 export async function listCollections() {
   const { data, error } = await supabase
+  if (error) throw error;
     .from('collections')
     .select('*, documents:documents(count)')
     .order('updated_at', { ascending: false });
@@ -19,6 +20,7 @@ export async function createCollection(name: string, description?: string) {
   if (!user) throw new Error('Not authenticated');
 
   const { data, error } = await supabase
+  if (error) throw error;
     .from('collections')
     .insert({ name, description, created_by: user.id })
     .select()
@@ -35,6 +37,7 @@ export async function deleteCollection(id: string) {
 
 export async function listDocuments(collectionId: string) {
   const { data, error } = await supabase
+  if (error) throw error;
     .from('documents')
     .select('*')
     .eq('collection_id', collectionId)

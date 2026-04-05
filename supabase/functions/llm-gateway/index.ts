@@ -5,7 +5,7 @@ import { callLovable, callOpenRouter, callAnthropic, callOpenAICompatible, callH
 import { getCorsHeaders, handleCorsPreflight, checkRateLimit, getRateLimitIdentifier, createRateLimitResponse, RATE_LIMITS } from "../_shared/mod.ts";
 
 // CORS handled by _shared/cors.ts — dynamic origin whitelist
-const corsHeaders = { 'Access-Control-Allow-Origin': 'dynamic', 'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type' };
+// corsHeaders removed — using getCorsHeaders(req) from _shared/cors.ts
 
 // ═══ Rate Limiting ═══
 const rateLimitMap = new Map<string, number[]>();
@@ -359,25 +359,25 @@ async function callWithFallback(
 
 // ═══ Main Handler ═══
 serve(async (req) => {
-  if (req.method === 'OPTIONS') return new Response(null, { headers: corsHeaders });
+  if (req.method === 'OPTIONS') return handleCorsPreflight(req);
 
   try {
     const authHeader = req.headers.get('Authorization');
-    if (!authHeader) return new Response(JSON.stringify({ error: 'Missing authorization' }), { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
+    if (!authHeader) return new Response(JSON.stringify({ error: 'Missing authorization' }), { status: 401, headers: { ...getCorsHeaders(req), 'Content-Type': 'application/json' } });
 
     const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
     const supabaseKey = Deno.env.get('SUPABASE_ANON_KEY')!;
     const supabase = createClient(supabaseUrl, supabaseKey, { global: { headers: { Authorization: authHeader } } });
 
     const { data: { user }, error: authError } = await supabase.auth.getUser();
-    if (authError || !user) return new Response(JSON.stringify({ error: 'Unauthorized' }), { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
-    if (!checkRateLimit(user.id)) return new Response(JSON.stringify({ error: 'Rate limit exceeded' }), { status: 429, headers: { ...corsHeaders, 'Content-Type': 'application/json', 'Retry-After': '60' } });
+    if (authError || !user) return new Response(JSON.stringify({ error: 'Unauthorized' }), { status: 401, headers: { ...getCorsHeaders(req), 'Content-Type': 'application/json' } });
+    if (!checkRateLimit(user.id)) return new Response(JSON.stringify({ error: 'Rate limit exceeded' }), { status: 429, headers: { ...getCorsHeaders(req), 'Content-Type': 'application/json', 'Retry-After': '60' } });
 
     let rawBody: unknown;
-    try { rawBody = await req.json(); } catch { return new Response(JSON.stringify({ error: 'Invalid JSON' }), { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }); }
+    try { rawBody = await req.json(); } catch { return new Response(JSON.stringify({ error: 'Invalid JSON' }), { status: 400, headers: { ...getCorsHeaders(req), 'Content-Type': 'application/json' } }); }
 
     const validation = validateRequest(rawBody);
-    if (!validation.valid) return new Response(JSON.stringify({ error: validation.error }), { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
+    if (!validation.valid) return new Response(JSON.stringify({ error: validation.error }), { status: 400, headers: { ...getCorsHeaders(req), 'Content-Type': 'application/json' } });
 
     const { model, messages, temperature, max_tokens, agent_id, session_id, stream } = validation.data;
     const userMessage = messages.filter(m => m.role === 'user').pop()?.content || '';
@@ -392,14 +392,14 @@ serve(async (req) => {
     const injectionML = await detectInjectionML(userMessage);
     if (injectionML.detected) {
       recordTrace(supabase, { workspaceId, agentId: agent_id, sessionId: session_id, userId: user.id, userInput: userMessage, assistantOutput: '[INJECTION_BLOCKED_ML]', model, provider: 'none', promptTokens: 0, completionTokens: 0, totalTokens: 0, costUsd: 0, latencyMs: 0, guardrailsTriggered: [{ name: `ml_${injectionML.label}`, severity: 'block', reason: `ML score: ${injectionML.score.toFixed(4)}` }], event: 'injection_block_ml', level: 'critical' });
-      return new Response(JSON.stringify({ error: 'Request blocked: prompt injection detected (ML)', detection: { label: injectionML.label, score: injectionML.score, method: 'ml' } }), { status: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
+      return new Response(JSON.stringify({ error: 'Request blocked: prompt injection detected (ML)', detection: { label: injectionML.label, score: injectionML.score, method: 'ml' } }), { status: 403, headers: { ...getCorsHeaders(req), 'Content-Type': 'application/json' } });
     }
 
     // ═══ PROMPT INJECTION DETECTION (Layer 2: Regex fallback) ═══
     const injection = detectInjection(userMessage);
     if (injection.detected && injection.riskLevel === 'critical') {
       recordTrace(supabase, { workspaceId, agentId: agent_id, sessionId: session_id, userId: user.id, userInput: userMessage, assistantOutput: '[INJECTION_BLOCKED]', model, provider: 'none', promptTokens: 0, completionTokens: 0, totalTokens: 0, costUsd: 0, latencyMs: 0, guardrailsTriggered: injection.patterns.map(p => ({ name: p, severity: 'block', reason: 'prompt_injection_regex' })), event: 'injection_block', level: 'critical' });
-      return new Response(JSON.stringify({ error: 'Request blocked: potential prompt injection detected', patterns: injection.patterns }), { status: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
+      return new Response(JSON.stringify({ error: 'Request blocked: potential prompt injection detected', patterns: injection.patterns }), { status: 403, headers: { ...getCorsHeaders(req), 'Content-Type': 'application/json' } });
     }
 
     // ═══ TOXICITY DETECTION (Layer 3: ML via HuggingFace) ═══
@@ -422,7 +422,7 @@ serve(async (req) => {
             toxicityScore = toxic?.score || 0;
             if (toxicityScore > 0.85) {
               recordTrace(supabase, { workspaceId, agentId: agent_id, sessionId: session_id, userId: user.id, userInput: userMessage, assistantOutput: '[TOXICITY_BLOCKED]', model, provider: 'none', promptTokens: 0, completionTokens: 0, totalTokens: 0, costUsd: 0, latencyMs: 0, guardrailsTriggered: [{ name: 'toxicity', severity: 'block', reason: `toxic score: ${toxicityScore.toFixed(4)}` }], event: 'toxicity_block', level: 'warning' });
-              return new Response(JSON.stringify({ error: 'Request blocked: toxic content detected', score: toxicityScore }), { status: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
+              return new Response(JSON.stringify({ error: 'Request blocked: toxic content detected', score: toxicityScore }), { status: 403, headers: { ...getCorsHeaders(req), 'Content-Type': 'application/json' } });
             }
           }
         }
@@ -511,16 +511,16 @@ serve(async (req) => {
     const gr = await checkGuardrails(supabase, agent_id, userMessage);
     if (!gr.passed) {
       recordTrace(supabase, { workspaceId, agentId: agent_id, sessionId: session_id, userId: user.id, userInput: userMessage, assistantOutput: '[BLOCKED]', model, provider: 'none', promptTokens: 0, completionTokens: 0, totalTokens: 0, costUsd: 0, latencyMs: 0, guardrailsTriggered: gr.triggered, event: 'guardrail_block', level: 'warning' });
-      return new Response(JSON.stringify({ error: 'Blocked by guardrails', guardrails_triggered: gr.triggered }), { status: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
+      return new Response(JSON.stringify({ error: 'Blocked by guardrails', guardrails_triggered: gr.triggered }), { status: 403, headers: { ...getCorsHeaders(req), 'Content-Type': 'application/json' } });
     }
 
     // ═══ BUDGET ═══
     const budget = await checkBudget(supabase, workspaceId ?? undefined, agent_id);
-    if (!budget.allowed) return new Response(JSON.stringify({ error: 'Budget exceeded', reason: budget.reason }), { status: 402, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
+    if (!budget.allowed) return new Response(JSON.stringify({ error: 'Budget exceeded', reason: budget.reason }), { status: 402, headers: { ...getCorsHeaders(req), 'Content-Type': 'application/json' } });
 
     // ═══ RESOLVE PROVIDER CHAIN ═══
     const chain = await resolveFallbackChain(supabase, workspaceId ?? undefined, model);
-    if (chain.length === 0) return new Response(JSON.stringify({ error: 'No API key configured for any provider' }), { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
+    if (chain.length === 0) return new Response(JSON.stringify({ error: 'No API key configured for any provider' }), { status: 400, headers: { ...getCorsHeaders(req), 'Content-Type': 'application/json' } });
 
     // ═══ STREAMING SSE BRANCH ═══
     if (stream) {
@@ -595,14 +595,14 @@ serve(async (req) => {
           }
         }
       });
-      return new Response(readable, { headers: { ...corsHeaders, 'Content-Type': 'text/event-stream', 'Cache-Control': 'no-cache', 'Connection': 'keep-alive' } });
+      return new Response(readable, { headers: { ...getCorsHeaders(req), 'Content-Type': 'text/event-stream', 'Cache-Control': 'no-cache', 'Connection': 'keep-alive' } });
     }
 
     // ═══ NON-STREAMING LLM CALL — with fallback chain ═══
     const tPreCall = Date.now();
     const guardrailMs = tPreCall - t0; // includes injection + PII + guardrails + budget
     const chain2 = await resolveFallbackChain(supabase, workspaceId ?? undefined, model);
-    if (chain2.length === 0) return new Response(JSON.stringify({ error: 'No API key configured for any provider' }), { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
+    if (chain2.length === 0) return new Response(JSON.stringify({ error: 'No API key configured for any provider' }), { status: 400, headers: { ...getCorsHeaders(req), 'Content-Type': 'application/json' } });
 
     const startTime = Date.now();
     const callParams: LLMCallParams = { model, messages: safeMessages, temperature, max_tokens };
@@ -763,8 +763,8 @@ serve(async (req) => {
       output_toxicity: outputToxicityScore > 0.1 ? Math.round(outputToxicityScore * 1000) / 1000 : undefined,
       hallucination_risk: hallucinationScore !== null && hallucinationScore > 0.3 ? hallucinationScore : undefined,
       agentic_risk: agenticRisk || undefined,
-    }), { headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
+    }), { headers: { ...getCorsHeaders(req), 'Content-Type': 'application/json' } });
   } catch (error: unknown) {
-    return new Response(JSON.stringify({ error: error instanceof Error ? error.message : 'Internal error' }), { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
+    return new Response(JSON.stringify({ error: error instanceof Error ? error.message : 'Internal error' }), { status: 500, headers: { ...getCorsHeaders(req), 'Content-Type': 'application/json' } });
   }
 });
