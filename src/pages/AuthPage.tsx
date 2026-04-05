@@ -1,11 +1,23 @@
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "sonner";
-import { Bot, Mail, Lock, ArrowRight } from "lucide-react";
+import { Bot, Mail, Lock, ArrowRight, Check, X } from "lucide-react";
+
+interface PasswordRule {
+  label: string;
+  test: (pw: string) => boolean;
+}
+
+const passwordRules: PasswordRule[] = [
+  { label: "Mínimo 8 caracteres", test: (pw) => pw.length >= 8 },
+  { label: "Pelo menos 1 letra maiúscula", test: (pw) => /[A-Z]/.test(pw) },
+  { label: "Pelo menos 1 letra minúscula", test: (pw) => /[a-z]/.test(pw) },
+  { label: "Pelo menos 1 número", test: (pw) => /[0-9]/.test(pw) },
+];
 
 export default function AuthPage() {
   const [isLogin, setIsLogin] = useState(true);
@@ -15,8 +27,22 @@ export default function AuthPage() {
   const { signIn, signUp } = useAuth();
   const navigate = useNavigate();
 
+  const passwordValidation = useMemo(
+    () => passwordRules.map((rule) => ({ ...rule, passed: rule.test(password) })),
+    [password]
+  );
+  const allPasswordRulesPassed = passwordValidation.every((r) => r.passed);
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+
+    if (!isLogin && !allPasswordRulesPassed) {
+      toast.error("Senha não atende aos requisitos", {
+        description: "Verifique os critérios de senha abaixo.",
+      });
+      return;
+    }
+
     setLoading(true);
 
     if (isLogin) {
@@ -80,9 +106,28 @@ export default function AuthPage() {
                   placeholder="••••••••"
                   className="pl-10 bg-secondary/50 border-border/50"
                   required
-                  minLength={6}
+                  minLength={isLogin ? 6 : 8}
                 />
               </div>
+              {!isLogin && password.length > 0 && (
+                <ul className="mt-2 space-y-1">
+                  {passwordValidation.map((rule) => (
+                    <li
+                      key={rule.label}
+                      className={`flex items-center gap-1.5 text-xs ${
+                        rule.passed ? "text-green-500" : "text-muted-foreground"
+                      }`}
+                    >
+                      {rule.passed ? (
+                        <Check className="h-3 w-3" />
+                      ) : (
+                        <X className="h-3 w-3" />
+                      )}
+                      {rule.label}
+                    </li>
+                  ))}
+                </ul>
+              )}
             </div>
           </div>
 

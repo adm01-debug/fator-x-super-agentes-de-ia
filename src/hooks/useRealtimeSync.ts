@@ -4,6 +4,7 @@
  */
 import { useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
+import { logger } from '@/lib/logger';
 
 export function useRealtimeSync(workspaceId: string | undefined) {
   useEffect(() => {
@@ -21,7 +22,7 @@ export function useRealtimeSync(workspaceId: string | undefined) {
         },
         (payload) => {
           // Handle agent changes from other users
-          console.log('[realtime] agents change:', payload.eventType);
+          logger.debug('[realtime] agents change:', payload.eventType);
           // Could trigger a refresh of the agent list
         }
       )
@@ -33,7 +34,7 @@ export function useRealtimeSync(workspaceId: string | undefined) {
           table: 'agent_traces',
         },
         (payload) => {
-          console.log('[realtime] new trace:', payload.new);
+          logger.debug('[realtime] new trace:', payload.new);
         }
       )
       .subscribe();

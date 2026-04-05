@@ -1,0 +1,19 @@
+# Default owner for all files
+* @adm01-debug
+
+# Services layer (backend logic)
+/src/services/ @adm01-debug
+
+# Components (frontend UI)
+/src/components/ @adm01-debug
+
+# Database migrations (require careful review)
+/supabase/migrations/ @adm01-debug
+
+# CI/CD configuration
+/.github/workflows/ @adm01-debug
+
+# Security-sensitive files
+/src/services/securityService.ts @adm01-debug
+/src/services/llmService.ts @adm01-debug
+/src/contexts/AuthContext.tsx @adm01-debug

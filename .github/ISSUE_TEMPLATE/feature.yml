@@ -1,0 +1,26 @@
+name: Feature Request
+description: Sugerir uma nova funcionalidade
+labels: ["enhancement"]
+body:
+  - type: textarea
+    id: description
+    attributes:
+      label: Descricao da Feature
+      description: O que voce gostaria que o sistema fizesse?
+    validations:
+      required: true
+  - type: textarea
+    id: motivation
+    attributes:
+      label: Motivacao
+      description: Por que essa feature e importante?
+    validations:
+      required: true
+  - type: dropdown
+    id: priority
+    attributes:
+      label: Prioridade
+      options:
+        - Alta - Bloqueia receita
+        - Media - Melhora experiencia
+        - Baixa - Nice to have

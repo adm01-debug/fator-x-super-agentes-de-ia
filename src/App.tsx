@@ -8,6 +8,7 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import { AppLayout } from "@/components/layout/AppLayout";
 import { PageLoading } from "@/components/shared/PageLoading";
 import { AuthProvider } from "@/contexts/AuthContext";
+import { ProtectedRoute } from "@/components/shared/ProtectedRoute";
 
 // Lazy-loaded pages for code splitting
 const DashboardPage = lazy(() => import("./pages/DashboardPage"));
@@ -52,6 +53,7 @@ const App = () => (
                 <Suspense fallback={<PageLoading />}><AuthPage /></Suspense>
               } />
               <Route path="*" element={
+                <ProtectedRoute>
                 <AppLayout>
                   <Suspense fallback={<PageLoading />}>
                     <Routes>
@@ -84,6 +86,7 @@ const App = () => (
                     </Routes>
                   </Suspense>
                 </AppLayout>
+                </ProtectedRoute>
               } />
             </Routes>
           </BrowserRouter>

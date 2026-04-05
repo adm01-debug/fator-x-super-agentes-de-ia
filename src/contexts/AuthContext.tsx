@@ -2,6 +2,51 @@ import { createContext, useContext, useEffect, useState, type ReactNode } from "
 import { supabase } from "@/integrations/supabase/client";
 import type { User, Session } from "@supabase/supabase-js";
 
+// Rate limiting: track failed sign-in attempts per email
+const MAX_ATTEMPTS = 5;
+const LOCKOUT_DURATION_MS = 15 * 60 * 1000; // 15 minutes
+
+interface AttemptRecord {
+  count: number;
+  lastAttempt: number;
+}
+
+const failedAttempts = new Map<string, AttemptRecord>();
+
+function isRateLimited(email: string): { blocked: boolean; remainingMinutes: number } {
+  const record = failedAttempts.get(email.toLowerCase());
+  if (!record || record.count < MAX_ATTEMPTS) {
+    return { blocked: false, remainingMinutes: 0 };
+  }
+  const elapsed = Date.now() - record.lastAttempt;
+  if (elapsed >= LOCKOUT_DURATION_MS) {
+    failedAttempts.delete(email.toLowerCase());
+    return { blocked: false, remainingMinutes: 0 };
+  }
+  const remainingMinutes = Math.ceil((LOCKOUT_DURATION_MS - elapsed) / 60000);
+  return { blocked: true, remainingMinutes };
+}
+
+function recordFailedAttempt(email: string): void {
+  const key = email.toLowerCase();
+  const record = failedAttempts.get(key);
+  if (record) {
+    // Reset if lockout period has passed
+    const elapsed = Date.now() - record.lastAttempt;
+    if (elapsed >= LOCKOUT_DURATION_MS) {
+      failedAttempts.set(key, { count: 1, lastAttempt: Date.now() });
+    } else {
+      failedAttempts.set(key, { count: record.count + 1, lastAttempt: Date.now() });
+    }
+  } else {
+    failedAttempts.set(key, { count: 1, lastAttempt: Date.now() });
+  }
+}
+
+function clearFailedAttempts(email: string): void {
+  failedAttempts.delete(email.toLowerCase());
+}
+
 interface AuthContextType {
   user: User | null;
   session: Session | null;
@@ -44,8 +89,37 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   };
 
   const signIn = async (email: string, password: string) => {
+    const { blocked, remainingMinutes } = isRateLimited(email);
+    if (blocked) {
+      return {
+        error: new Error(
+          `Muitas tentativas de login. Tente novamente em ${remainingMinutes} minuto${remainingMinutes !== 1 ? "s" : ""}.`
+        ),
+      };
+    }
+
     const { error } = await supabase.auth.signInWithPassword({ email, password });
-    return { error: error as Error | null };
+
+    if (error) {
+      recordFailedAttempt(email);
+      const record = failedAttempts.get(email.toLowerCase());
+      const attemptsLeft = record ? MAX_ATTEMPTS - record.count : MAX_ATTEMPTS;
+      if (attemptsLeft > 0) {
+        return {
+          error: new Error(
+            `${error.message} (${attemptsLeft} tentativa${attemptsLeft !== 1 ? "s" : ""} restante${attemptsLeft !== 1 ? "s" : ""})`
+          ),
+        };
+      }
+      return {
+        error: new Error(
+          "Conta bloqueada temporariamente. Tente novamente em 15 minutos."
+        ),
+      };
+    }
+
+    clearFailedAttempts(email);
+    return { error: null };
   };
 
   const signOut = async () => {

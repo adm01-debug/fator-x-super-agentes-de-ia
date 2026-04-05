@@ -1,0 +1,38 @@
+name: Bug Report
+description: Reportar um bug no sistema
+labels: ["bug"]
+body:
+  - type: textarea
+    id: description
+    attributes:
+      label: Descricao do Bug
+      description: O que aconteceu? O que voce esperava?
+    validations:
+      required: true
+  - type: textarea
+    id: steps
+    attributes:
+      label: Passos para Reproduzir
+      description: Liste os passos para reproduzir o bug
+      value: |
+        1. Va para '...'
+        2. Clique em '...'
+        3. Veja o erro
+    validations:
+      required: true
+  - type: dropdown
+    id: severity
+    attributes:
+      label: Severidade
+      options:
+        - P0 - Sistema fora do ar
+        - P1 - Funcionalidade quebrada
+        - P2 - Bug menor
+        - P3 - Melhoria visual
+    validations:
+      required: true
+  - type: textarea
+    id: environment
+    attributes:
+      label: Ambiente
+      description: Browser, OS, versao do sistema
