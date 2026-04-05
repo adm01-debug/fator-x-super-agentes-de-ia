@@ -15,3 +15,6 @@ export * from './cerebroService';
 export * from './datahubService';
 export * from './memoryService';
 export * from './evaluationsService';
+export * from './contextTiersService';
+export * from './agentEvolutionService';
+export * from './skillsRegistryService';

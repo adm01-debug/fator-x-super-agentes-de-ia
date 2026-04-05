@@ -14,6 +14,7 @@ import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { Key, Plus, Trash2, Loader2, Copy } from 'lucide-react';
 import { toast } from 'sonner';
+import { RedTeamingPanel } from '@/components/security/RedTeamingPanel';
 
 interface ApiKey {
   id: string;
@@ -135,6 +136,8 @@ export default function SecurityPage() {
       <SessionManagement />
       <RateLimitingPanel />
       <AuditLogSection />
+
+      <RedTeamingPanel />
     </div>
   );
 }
