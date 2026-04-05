@@ -1,12 +1,13 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Loader2, MessageSquare, Sparkles, ArrowUpDown, Search } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
-import { rerankChunks, type RerankResult } from "@/services/knowledgeService";
+import { rerankChunks, listKnowledgeBases, type RerankResult } from "@/services/knowledgeService";
 
 export function SearchTab() {
   const [query, setQuery] = useState('');
