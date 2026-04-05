@@ -64,7 +64,7 @@ export default function KnowledgePage() {
       />
 
       <QuickActionsBar actions={[
-        { label: 'Agents', icon: Bot, path: '/agents' },
+        { label: 'Agentes', icon: Bot, path: '/agents' },
         { label: 'Prompts', icon: FileText, path: '/prompts' },
       ]} />
 
