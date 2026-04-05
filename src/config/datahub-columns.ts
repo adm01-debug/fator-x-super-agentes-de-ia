@@ -1,3 +1,4 @@
+import { logger } from '@/lib/logger';
 /**
  * Column definitions per entity for DataHub list/detail views.
  * Controls which columns are visible, their labels, widths, and formatting.
@@ -121,7 +122,7 @@ export function formatDate(value: string | null): string {
   if (!value) return '—';
   try {
     return new Date(value).toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit', year: '2-digit' });
-  } catch (err) { console.error("Operation failed:", err); return value; }
+  } catch (err) { logger.error("Operation failed:", err); return value; }
 }
 
 export function formatCellValue(value: unknown, format?: ColumnDef['format']): string {

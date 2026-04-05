@@ -1,3 +1,4 @@
+import { logger } from '@/lib/logger';
 import { supabase } from '@/integrations/supabase/client';
 import type { AgentConfig } from '@/types/agentTypes';
 import { DEFAULT_AGENT } from '@/data/agentBuilderData';
@@ -71,7 +72,7 @@ export async function saveAgent(agent: AgentConfig): Promise<AgentConfig> {
   if (!user) throw new Error('Não autenticado');
 
   let workspaceId: string | null = null;
-  try { workspaceId = await getWorkspaceId(); } catch (err) { console.error("Operation failed:", err);}
+  try { workspaceId = await getWorkspaceId(); } catch (err) { logger.error("Operation failed:", err);}
 
   const { id, created_at: _ca, updated_at: _ua, ...configData } = agent;
   const row = {

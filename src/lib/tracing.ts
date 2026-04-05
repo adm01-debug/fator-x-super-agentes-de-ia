@@ -138,7 +138,7 @@ class NexusTracer {
             }],
           }),
         });
-      } catch (err) { console.error("Operation failed:", err); /* Langfuse send is best-effort */ }
+      } catch (err) { logger.error("Operation failed:", err); /* Langfuse send is best-effort */ }
     }
 
     // Also persist to usage_records for billing

@@ -1,3 +1,4 @@
+import { logger } from '@/lib/logger';
 import { useState } from "react";
 import { PageHeader } from "@/components/shared/PageHeader";
 import { InfoHint } from "@/components/shared/InfoHint";
@@ -37,7 +38,7 @@ export default function MemoryPage() {
       if (search.trim()) {
         try {
           return await searchMemory(search.trim(), activeType, 50);
-        } catch (err) { console.error("Search fallback:", err); }
+        } catch (err) { logger.error("Search fallback:", err); }
       }
       return listMemories(activeType, 100);
     },

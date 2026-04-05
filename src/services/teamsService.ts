@@ -59,7 +59,12 @@ export async function updateMemberRole(workspaceId: string, userId: string, newR
   if (error) throw error;
 }
 
-export async function insertWorkspaceMember(member: { workspace_id: string; email: string; role: string; name?: string }) {
-  const { error } = await supabase.from('workspace_members').insert(member);
+export async function insertWorkspaceMember(member: { workspace_id: string; email: string; role: string; name?: string; user_id?: string }) {
+  // user_id is required by DB; for pending invitations use a deterministic UUID based on email
+  const userId = member.user_id ?? crypto.randomUUID();
+  const { error } = await supabase.from('workspace_members').insert({
+    ...member,
+    user_id: userId,
+  });
   if (error) throw error;
 }

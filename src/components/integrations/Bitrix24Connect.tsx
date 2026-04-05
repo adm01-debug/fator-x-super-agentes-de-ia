@@ -2,6 +2,7 @@
  * Bitrix24 Connect — Botão de OAuth para conectar com Bitrix24 CRM.
  * Chama bitrix24-oauth Edge Function via service layer.
  */
+import { logger } from '@/lib/logger';
 import { useState, useEffect } from 'react';
 import { invokeBitrix24OAuth } from '@/services/llmGatewayService';
 import { getAuthSession } from '@/services/securityService';
@@ -33,7 +34,7 @@ export function Bitrix24Connect() {
       const data = await invokeBitrix24OAuth({ action: 'authorize' }) as Record<string, string>;
       if (data.auth_url) window.open(data.auth_url, '_blank', 'width=600,height=700');
     } catch (err) {
-      console.error('Bitrix24 connect failed:', err);
+      logger.error('Bitrix24 connect failed:', err);
     }
   }
 

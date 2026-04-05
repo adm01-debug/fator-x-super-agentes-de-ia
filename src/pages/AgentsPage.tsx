@@ -1,3 +1,4 @@
+import { logger } from '@/lib/logger';
 import { PageHeader } from "@/components/shared/PageHeader";
 import { StatusBadge } from "@/components/shared/StatusBadge";
 import { QuickActionsBar } from "@/components/shared/QuickActionsBar";
@@ -30,7 +31,7 @@ type AgentRow = Tables<"agents">;
 
 const FAV_KEY = "nexus-fav-agents";
 function getFavorites(): string[] {
-  try { return JSON.parse(localStorage.getItem(FAV_KEY) || "[]"); } catch (err) { console.error("Operation failed:", err); return []; }
+  try { return JSON.parse(localStorage.getItem(FAV_KEY) || "[]"); } catch (err) { logger.error("Operation failed:", err); return []; }
 }
 function toggleFavorite(id: string): string[] {
   const prev = getFavorites();

@@ -1,3 +1,4 @@
+import { logger } from '@/lib/logger';
 /**
  * Nexus Agents Studio — Middleware Pipeline Service
  * 
@@ -200,7 +201,7 @@ export class MiddlewarePipeline {
 export function createLoggingMiddleware(
   logFn?: (msg: string, data: Record<string, unknown>) => void
 ): MiddlewareConfig {
-  const log = logFn ?? ((msg, data) => console.log(`[NexusMW:Log] ${msg}`, data));
+  const log = logFn ?? ((msg, data) => logger.info(`[NexusMW:Log] ${msg}`, data));
 
   return {
     name: 'logging',

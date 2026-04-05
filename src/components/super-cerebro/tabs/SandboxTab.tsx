@@ -3,6 +3,7 @@
  * Test the brain with questions before connecting to agents.
  */
 
+import { logger } from '@/lib/logger';
 import { useState, useCallback } from 'react';
 import { invokeCerebroQuery } from '@/services/cerebroService';
 
@@ -46,7 +47,7 @@ export function SandboxTab() {
           latencyMs,
           status: 'success',
         });
-      } catch (err) { console.error("Operation failed:", err);
+      } catch (err) { logger.error("Operation failed:", err);
         testResults.push({
           question,
           answer: 'Erro ao consultar o cérebro',

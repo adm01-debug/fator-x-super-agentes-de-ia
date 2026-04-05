@@ -23,13 +23,20 @@ function formatEntry(entry: LogEntry): string {
   return `[${entry.timestamp}] [${entry.level.toUpperCase()}] ${entry.message}${ctx}`;
 }
 
-function log(level: LogLevel, message: string, context?: Record<string, unknown>) {
+function normalizeContext(ctx: unknown): Record<string, unknown> | undefined {
+  if (ctx === undefined) return undefined;
+  if (ctx instanceof Error) return { error: ctx.message, stack: ctx.stack };
+  if (typeof ctx === 'object' && ctx !== null) return ctx as Record<string, unknown>;
+  return { value: String(ctx) };
+}
+
+function log(level: LogLevel, message: string, context?: unknown) {
   if (!shouldLog(level)) return;
 
   const entry: LogEntry = {
     level,
     message,
-    context,
+    context: normalizeContext(context),
     timestamp: new Date().toISOString(),
   };
 
@@ -45,11 +52,11 @@ function log(level: LogLevel, message: string, context?: Record<string, unknown>
 }
 
 export const logger = {
-  debug: (msg: string, ctx?: Record<string, unknown>) => log('debug', msg, ctx),
-  info: (msg: string, ctx?: Record<string, unknown>) => log('info', msg, ctx),
-  warn: (msg: string, ctx?: Record<string, unknown>) => log('warn', msg, ctx),
-  error: (msg: string, ctx?: Record<string, unknown>) => log('error', msg, ctx),
-  critical: (msg: string, ctx?: Record<string, unknown>) => log('critical', msg, ctx),
+  debug: (msg: string, ctx?: unknown) => log('debug', msg, ctx),
+  info: (msg: string, ctx?: unknown) => log('info', msg, ctx),
+  warn: (msg: string, ctx?: unknown) => log('warn', msg, ctx),
+  error: (msg: string, ctx?: unknown) => log('error', msg, ctx),
+  critical: (msg: string, ctx?: unknown) => log('critical', msg, ctx),
 };
 
 /** Attach global error handlers — call once at app boot */

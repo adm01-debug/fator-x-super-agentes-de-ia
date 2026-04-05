@@ -1,3 +1,4 @@
+import { logger } from '@/lib/logger';
 /**
  * ═══════════════════════════════════════════════════════════════
  * Nexus Agents Studio — MCP Client
@@ -81,7 +82,7 @@ export class NexusMCPClient {
     try {
       const toolsResponse = await this.sendRequest('tools/list', {});
       this.tools = (toolsResponse.tools || []) as MCPTool[];
-    } catch (err) { console.error("Operation failed:", err);
+    } catch (err) { logger.error("Operation failed:", err);
       this.tools = [];
     }
 
@@ -89,7 +90,7 @@ export class NexusMCPClient {
     try {
       const resourcesResponse = await this.sendRequest('resources/list', {});
       this.resources = (resourcesResponse.resources || []) as MCPResource[];
-    } catch (err) { console.error("Operation failed:", err);
+    } catch (err) { logger.error("Operation failed:", err);
       this.resources = [];
     }
 

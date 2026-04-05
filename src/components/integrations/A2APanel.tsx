@@ -2,6 +2,7 @@
  * A2A Agent Cards Panel — Gestão de Agent Cards para protocolo A2A.
  * Mostra cards publicados, permite configurar skills e testar comunicação.
  */
+import { logger } from '@/lib/logger';
 import { useState, useEffect, useCallback } from 'react';
 import { invokeA2AServer } from '@/services/llmGatewayService';
 import { getAuthSession } from '@/services/securityService';
@@ -40,7 +41,7 @@ export function A2APanel() {
       });
       if (resp.ok) setCard(await resp.json() as AgentCard);
     } catch (err) {
-      console.error('Failed to load Agent Card:', err);
+      logger.error('Failed to load Agent Card:', err);
     } finally {
       setLoading(false);
     }

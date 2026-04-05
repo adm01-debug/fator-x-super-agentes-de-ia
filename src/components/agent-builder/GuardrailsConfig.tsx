@@ -2,6 +2,7 @@
  * Guardrails Config — Conecta a tab Guardrails do Agent Builder
  * ao guardrails-engine Edge Function.
  */
+import { logger } from '@/lib/logger';
 import { useState } from 'react';
 import { invokeGuardrailsEngine } from '@/services/llmGatewayService';
 import { Button } from '@/components/ui/button';
@@ -29,7 +30,7 @@ export function GuardrailsConfig() {
       const data = await invokeGuardrailsEngine({ action: 'check_full', text: testText });
       setResults((data as Record<string, unknown>).results as typeof results);
     } catch (err) {
-      console.error('Guardrails test failed:', err);
+      logger.error('Guardrails test failed:', err);
     } finally {
       setTesting(false);
     }

@@ -1,3 +1,4 @@
+import { logger } from '@/lib/logger';
 import { useState } from "react";
 import { PageHeader } from "@/components/shared/PageHeader";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -79,7 +80,7 @@ const TABLE_CONFIG: { key: TableName; label: string; icon: React.ElementType; co
 function formatCell(value: unknown, key: string): string {
   if (value === null || value === undefined) return "—";
   if (key.includes("_at") || key === "created_at" || key === "updated_at") {
-    try { return format(new Date(String(value)), "dd/MM/yy HH:mm"); } catch (err) { console.error("Operation failed:", err); return String(value); }
+    try { return format(new Date(String(value)), "dd/MM/yy HH:mm"); } catch (err) { logger.error("Operation failed:", err); return String(value); }
   }
   if (typeof value === "boolean") return value ? "✓" : "✗";
   if (typeof value === "object") return JSON.stringify(value).slice(0, 60);

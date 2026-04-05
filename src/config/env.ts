@@ -1,3 +1,4 @@
+import { logger } from '@/lib/logger';
 /**
  * ═══════════════════════════════════════════════════════════════
  * Nexus Agents Studio — Environment Validation
@@ -28,8 +29,8 @@ function validateEnv(): EnvConfig {
     };
   } catch (error) {
     if (import.meta.env.DEV) {
-      console.error('🔴 Environment validation failed:', (error as Error).message);
-      console.error('   Check your .env file or Lovable environment settings.');
+      logger.error('🔴 Environment validation failed:', (error as Error).message);
+      logger.error('   Check your .env file or Lovable environment settings.');
     }
     throw error;
   }

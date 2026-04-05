@@ -1,3 +1,4 @@
+import { logger } from '@/lib/logger';
 import { useState, useEffect } from 'react';
 import { SectionTitle } from '../ui';
 import { useAgentBuilderStore } from '@/stores/agentBuilderStore';
@@ -40,7 +41,7 @@ export function SettingsModule() {
         map[row.key_name] = { value: row.masked_value, saved: true };
       }
       setKeys(map);
-    } catch (err) { console.error("Operation failed:", err);
+    } catch (err) { logger.error("Operation failed:", err);
       // No workspace yet
     } finally {
       setLoading(false);

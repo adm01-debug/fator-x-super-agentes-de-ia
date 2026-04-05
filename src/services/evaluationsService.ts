@@ -7,6 +7,7 @@
  * Reference: arXiv 2511.14136, RAGAS, SWE-bench
  */
 
+import { logger } from '@/lib/logger';
 import { supabase } from '@/integrations/supabase/client';
 
 // ═══ CRUD ═══
@@ -157,8 +158,8 @@ function scoreDeterministic(expected: string, actual: string): number {
   try {
     JSON.parse(expected);
     checks++;
-    try { JSON.parse(actual); score++; } catch (err) { console.error("Operation failed:", err); /* not JSON */ }
-  } catch (err) { console.error("Operation failed:", err); /* expected is not JSON */ }
+    try { JSON.parse(actual); score++; } catch (err) { logger.error("Operation failed:", err); /* not JSON */ }
+  } catch (err) { logger.error("Operation failed:", err); /* expected is not JSON */ }
 
   // Length sanity (not too short, not too long)
   checks++;
@@ -234,7 +235,7 @@ export async function runEvaluation(
         cost_usd: tokens * 0.000001,
         status: combined > 0.7 ? 'pass' : combined > 0.4 ? 'partial' : 'fail',
       });
-    } catch (err) { console.error("Operation failed:", err);
+    } catch (err) { logger.error("Operation failed:", err);
       results.push({
         test_case_id: tc.id,
         input: tc.input,

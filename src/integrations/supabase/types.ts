@@ -1568,7 +1568,7 @@ export type Database = {
           invited_at: string | null
           name: string | null
           role: string | null
-          user_id: string | null
+          user_id: string
           workspace_id: string | null
         }
         Insert: {
@@ -1578,7 +1578,7 @@ export type Database = {
           invited_at?: string | null
           name?: string | null
           role?: string | null
-          user_id?: string | null
+          user_id: string
           workspace_id?: string | null
         }
         Update: {
@@ -1588,7 +1588,7 @@ export type Database = {
           invited_at?: string | null
           name?: string | null
           role?: string | null
-          user_id?: string | null
+          user_id?: string
           workspace_id?: string | null
         }
         Relationships: [

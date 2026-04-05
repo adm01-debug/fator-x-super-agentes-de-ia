@@ -1,3 +1,4 @@
+import { logger } from '@/lib/logger';
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -307,7 +308,7 @@ function GroupMembers({ entityId, grupoId, excludeId }: { entityId: string; grup
           },
         });
         setMembers((data?.data ?? []).filter((r: Record<string, unknown>) => r.id !== excludeId));
-      } catch (err) { console.error("Operation failed:", err); /* ignore */ }
+      } catch (err) { logger.error("Operation failed:", err); /* ignore */ }
       finally { setLoading(false); }
     })();
   }, [entityId, grupoId, excludeId]);
