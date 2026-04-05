@@ -6,7 +6,7 @@ import { useState, useRef, useEffect } from 'react';
 import { useStreamingResponse } from '@/hooks/useStreamingResponse';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Loader2, Send, Square, Zap, Clock, Hash } from 'lucide-react';
+import { Send, Square, Zap, Clock, Hash } from 'lucide-react';
 
 interface StreamingChatProps {
   endpoint: string;

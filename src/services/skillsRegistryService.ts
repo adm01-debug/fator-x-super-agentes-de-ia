@@ -70,7 +70,7 @@ export async function getInstalledSkills(agentId: string): Promise<AgentSkillDef
     .select('skill_id, skill_registry(*)' as never)
     .eq('agent_id' as never, agentId);
   if (error) throw error;
-  return (data ?? []).map(d => (d as Record<string, unknown>).skill_registry as unknown as AgentSkillDefinition);
+  return (data ?? []).map(d => ((d as unknown as Record<string, unknown>).skill_registry) as unknown as AgentSkillDefinition);
 }
 
 // Uninstall a skill
