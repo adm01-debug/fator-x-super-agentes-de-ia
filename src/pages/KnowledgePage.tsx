@@ -1,4 +1,5 @@
-import { useState, useCallback } from "react";
+import { useState, useCallback, useMemo } from "react";
+import { debounce } from "@/services/resilience";
 import { PageHeader } from "@/components/shared/PageHeader";
 import { StatusBadge } from "@/components/shared/StatusBadge";
 import { InfoHint } from "@/components/shared/InfoHint";
@@ -45,6 +46,9 @@ export default function KnowledgePage() {
   const [showCreate, setShowCreate] = useState(false);
   const [showConfig, setShowConfig] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
+  const [debouncedQuery, setDebouncedQuery] = useState('');
+  const applySearch = useMemo(() => debounce((v: unknown) => setDebouncedQuery(v as string), 300), []);
+  const handleSearch = (v: string) => { setSearchQuery(v); applySearch(v); };
   const [showUpload, setShowUpload] = useState<string | null>(null);
 
   // Create form
@@ -124,7 +128,7 @@ export default function KnowledgePage() {
     toast.success('Configuração atualizada');
   }, []);
 
-  const filtered = kbs.filter(k => !searchQuery || k.name.toLowerCase().includes(searchQuery.toLowerCase()));
+  const filtered = kbs.filter(k => !debouncedQuery || k.name.toLowerCase().includes(debouncedQuery.toLowerCase()));
 
   return (
     <div className="p-6 space-y-6 max-w-[1400px] mx-auto">
@@ -154,7 +158,7 @@ export default function KnowledgePage() {
       {/* Search */}
       <div className="relative max-w-sm">
         <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-        <input value={searchQuery} onChange={e => setSearchQuery(e.target.value)} placeholder="Buscar bases..." className="w-full pl-9 bg-muted/30 border border-border rounded-lg px-3 py-2 text-sm text-foreground" />
+        <input value={searchQuery} onChange={e => handleSearch(e.target.value)} placeholder="Buscar bases..." className="w-full pl-9 bg-muted/30 border border-border rounded-lg px-3 py-2 text-sm text-foreground" />
       </div>
 
       {/* Knowledge bases grid */}

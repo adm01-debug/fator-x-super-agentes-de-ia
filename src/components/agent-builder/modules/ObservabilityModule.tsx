@@ -5,6 +5,7 @@ import { Activity, Clock, DollarSign, AlertTriangle, CheckCircle, XCircle, Filte
 import { Button } from '@/components/ui/button';
 import type { ExecutionTrace } from '@/types/agentTypes';
 import { useState, useMemo } from 'react';
+import { debounce } from '@/services/resilience';
 import * as traceService from '@/services/traceService';
 
 /** Convert real traceService traces to the UI ExecutionTrace format. */
@@ -45,6 +46,18 @@ export function ObservabilityModule() {
   const updateAgent = useAgentBuilderStore((s) => s.updateAgent);
   const [selectedTrace, setSelectedTrace] = useState<string | null>(null);
   const [statusFilter, setStatusFilter] = useState<string>('all');
+
+  // Debounced trace search for the "why did agent respond" textarea
+  const debouncedTraceSearch = useMemo(() => debounce((query: unknown) => {
+    const q = (query as string).toLowerCase().trim();
+    if (q.length > 10) {
+      const tracesList = convertServiceTraces(agent.id ?? 'default');
+      const match = tracesList.find(t =>
+        t.final_output.toLowerCase().includes(q.slice(0, 30))
+      );
+      if (match) setSelectedTrace(match.id);
+    }
+  }, 300), [agent.id]);
 
   const traces = useMemo(() => convertServiceTraces(agent.id ?? 'default'), [agent.id]);
   const filtered = statusFilter === 'all' ? traces : traces.filter((t) => t.status === statusFilter);
@@ -240,15 +253,7 @@ export function ObservabilityModule() {
             className="w-full bg-muted/30 border border-border rounded-lg px-4 py-3 text-sm text-foreground font-mono resize-none placeholder:text-muted-foreground"
             rows={4}
             placeholder="Cole aqui uma resposta do agente para investigar o trace correspondente..."
-            onChange={(e) => {
-              const query = e.target.value.toLowerCase().trim();
-              if (query.length > 10) {
-                const match = traces.find(t =>
-                  t.final_output.toLowerCase().includes(query.slice(0, 30))
-                );
-                if (match) setSelectedTrace(match.id);
-              }
-            }}
+            onChange={(e) => debouncedTraceSearch(e.target.value)}
           />
           <p className="text-[11px] text-muted-foreground">
             <span aria-hidden="true">💡</span> O sistema buscará o trace correspondente e mostrará a cadeia completa: input → memória → RAG → LLM → tools → guardrails → output.

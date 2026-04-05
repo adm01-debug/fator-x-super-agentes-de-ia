@@ -39,6 +39,9 @@ const TYPES = [{ id: 'all', label: 'Todos' }, { id: 'data', label: 'Dados' }, { 
 export default function ToolsPage() {
   const [tools, setTools] = useState<Tool[]>(SEED_TOOLS);
   const [search, setSearch] = useState('');
+  const [debouncedSearch, setDebouncedSearch] = useState('');
+  const applySearch = useMemo(() => debounce((v: unknown) => setDebouncedSearch(v as string), 300), []);
+  const handleSearch = (v: string) => { setSearch(v); applySearch(v); };
   const [filterType, setFilterType] = useState('all');
   const [showCreate, setShowCreate] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
@@ -49,7 +52,7 @@ export default function ToolsPage() {
 
   const filtered = tools.filter(t =>
     (filterType === 'all' || t.type === filterType) &&
-    (!search || t.name.toLowerCase().includes(search.toLowerCase()))
+    (!debouncedSearch || t.name.toLowerCase().includes(debouncedSearch.toLowerCase()))
   );
 
   const toggleTool = useCallback((id: string) => {
@@ -110,7 +113,7 @@ export default function ToolsPage() {
       <div className="flex items-center gap-3">
         <div className="relative flex-1 max-w-sm">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-          <input value={search} onChange={e => setSearch(e.target.value)} placeholder="Buscar ferramenta..." className="w-full pl-9 bg-muted/30 border border-border rounded-lg px-3 py-2 text-sm text-foreground" />
+          <input value={search} onChange={e => handleSearch(e.target.value)} placeholder="Buscar ferramenta..." className="w-full pl-9 bg-muted/30 border border-border rounded-lg px-3 py-2 text-sm text-foreground" />
         </div>
         <div className="flex gap-1">
           {TYPES.map(tp => (
