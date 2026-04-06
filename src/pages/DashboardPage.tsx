@@ -212,10 +212,10 @@ export default function DashboardPage() {
           {/* Metrics */}
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4 sm:gap-6 stagger-children" role="region" aria-label="Métricas principais">
             {[
-              { icon: Bot, color: "text-primary", bgColor: "bg-primary/10", sparkColor: "hsl(var(--primary))", value: agents.length, label: "Total de agentes", hint: `${draftCount} rascunhos`, tooltip: "Número total de agentes criados no workspace" },
-              { icon: Zap, color: "text-nexus-emerald", bgColor: "bg-nexus-emerald/10", sparkColor: "hsl(var(--nexus-emerald))", value: activeCount, label: "Em produção", hint: activeCount > 0 ? "Operando normalmente" : "Nenhum ativo", tooltip: "Agentes com status 'production' ou 'monitoring'" },
-              { icon: DollarSign, color: "text-nexus-amber", bgColor: "bg-nexus-amber/10", sparkColor: "hsl(var(--nexus-amber))", value: usageStats?.totalCost ?? 0, label: `Custo (${dateRange})`, prefix: "$", decimals: 2, noData: !usageStats, hint: usageStats ? `${usageStats.totalRequests} requests` : undefined, tooltip: `Custo acumulado dos últimos ${days} dias` },
-              { icon: TrendingUp, color: "text-primary", bgColor: "bg-primary/10", sparkColor: "hsl(var(--primary))", value: usageStats?.totalRequests ?? 0, label: `Requests (${dateRange})`, noData: !usageStats, hint: usageStats ? `~${usageStats.avgLatency}ms latência` : undefined, tooltip: `Total de requisições processadas nos últimos ${days} dias` },
+              { icon: Bot, color: "text-primary", bgColor: "bg-primary/10", sparkColor: "hsl(var(--primary))", value: agents.length, label: "Total de agentes", hint: `${draftCount} rascunhos`, tooltip: "Número total de agentes criados no workspace", path: '/agents' },
+              { icon: Zap, color: "text-nexus-emerald", bgColor: "bg-nexus-emerald/10", sparkColor: "hsl(var(--nexus-emerald))", value: activeCount, label: "Em produção", hint: activeCount > 0 ? "Operando normalmente" : "Nenhum ativo", tooltip: "Agentes com status 'production' ou 'monitoring'", path: '/deployments' },
+              { icon: DollarSign, color: "text-nexus-amber", bgColor: "bg-nexus-amber/10", sparkColor: "hsl(var(--nexus-amber))", value: usageStats?.totalCost ?? 0, label: `Custo (${dateRange})`, prefix: "$", decimals: 2, noData: !usageStats, hint: usageStats ? `${usageStats.totalRequests} requests` : undefined, tooltip: `Custo acumulado dos últimos ${days} dias`, path: '/billing' },
+              { icon: TrendingUp, color: "text-primary", bgColor: "bg-primary/10", sparkColor: "hsl(var(--primary))", value: usageStats?.totalRequests ?? 0, label: `Requests (${dateRange})`, noData: !usageStats, hint: usageStats ? `~${usageStats.avgLatency}ms latência` : undefined, tooltip: `Total de requisições processadas nos últimos ${days} dias`, path: '/monitoring' },
             ].map((metric, i) => {
               // Generate sparkline from usage data (last 7 data points)
               const sparkData = i === 2
@@ -226,9 +226,9 @@ export default function DashboardPage() {
               return (
                 <div
                   key={metric.label}
-                  className="nexus-card nexus-metric-card group"
+                  className="nexus-card nexus-metric-card nexus-card-interactive group cursor-pointer"
                   title={metric.tooltip}
-                >
+                  onClick={() => navigate(metric.path)}
                   <div className="flex items-start justify-between mb-1">
                     <p className="text-[11px] font-medium text-muted-foreground uppercase tracking-wider">{metric.label}</p>
                     <div className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-xl ${metric.bgColor} transition-all group-hover:scale-110`}>
@@ -281,7 +281,7 @@ export default function DashboardPage() {
 
           {/* Additional metrics row */}
           {usageStats && (
-            <div className="grid grid-cols-3 gap-3 sm:gap-4 stagger-children">
+            <div className="grid grid-cols-3 gap-4 sm:gap-5 stagger-children">
               <div className="nexus-card nexus-metric-card py-3 sm:py-4 text-center">
                 <p className="text-sm sm:text-lg font-heading font-extrabold text-foreground">{usageStats.avgLatency}ms</p>
                 <p className="text-[11px] text-muted-foreground/70 uppercase tracking-wider mt-0.5">Latência média</p>
