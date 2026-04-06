@@ -20,6 +20,27 @@ export async function inviteMember(workspaceId: string, email: string, role: Rol
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) throw new Error('Not authenticated');
 
+  // Check if member already exists
+  const { data: existing } = await supabase
+    .from('workspace_members')
+    .select('id')
+    .eq('workspace_id', workspaceId)
+    .eq('email', email)
+    .limit(1);
+
+  if (existing && existing.length > 0) {
+    throw new Error(`Member with email ${email} already exists in this workspace`);
+  }
+
+  // Insert as pending invitation (no user_id yet — assigned on accept)
+  const { error } = await supabase.from('workspace_members').insert({
+    workspace_id: workspaceId,
+    email,
+    role,
+    user_id: crypto.randomUUID(), // placeholder until invitation is accepted
+  });
+
+  if (error) throw error;
   return { invited: true, email, role, workspace_id: workspaceId };
 }
 

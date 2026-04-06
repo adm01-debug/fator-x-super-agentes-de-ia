@@ -4,9 +4,7 @@ import { getCorsHeaders, handleCorsPreflight, jsonResponse, errorResponse, check
 
 // CORS handled by _shared/cors.ts — dynamic origin whitelist
 
-function jsonResponse(data: unknown, status = 200) {
-  return new Response(JSON.stringify(data), { status, headers: jsonHeaders });
-}
+// jsonResponse imported from _shared/mod.ts — uses getCorsHeaders(req)
 
 /**
  * product-mockup — AI-powered product photography pipeline
@@ -40,7 +38,7 @@ serve(async (req) => {
     const supabase = createClient(supabaseUrl, supabaseKey, { global: { headers: { Authorization: authHeader } } });
 
     const { data: { user } } = await supabase.auth.getUser();
-    if (!user) return jsonResponse({ error: 'Unauthorized' }, 401);
+    if (!user) return jsonResponse(req, { error: 'Unauthorized' }, 401);
 
     const hfToken = Deno.env.get('HF_API_TOKEN');
     const body = await req.json();
@@ -49,7 +47,7 @@ serve(async (req) => {
     // ═══ ACTION: generate_mockup — Full product mockup pipeline (#51) ═══
     if (action === 'generate_mockup') {
       const { product_image_base64, logo_base64, background_prompt, product_name } = body;
-      if (!product_image_base64) return jsonResponse({ error: 'product_image_base64 required' }, 400);
+      if (!product_image_base64) return jsonResponse(req, { error: 'product_image_base64 required' }, 400);
 
       const steps: Array<{ step: string; status: string; details?: string }> = [];
 
@@ -93,7 +91,7 @@ serve(async (req) => {
             steps.push({ step: 'background_generation', status: 'ok', details: 'FLUX.1-schnell' });
             // Note: In production, composite product onto generated background
             // For now, return both images for frontend compositing
-            return jsonResponse({
+            return jsonResponse(req, {
               product_clean: cleanProductBase64,
               background_generated: bgBase64,
               logo_provided: !!logo_base64,
@@ -108,7 +106,7 @@ serve(async (req) => {
         }
       }
 
-      return jsonResponse({
+      return jsonResponse(req, {
         product_clean: cleanProductBase64,
         steps,
         cost_usd: 0,
@@ -118,7 +116,7 @@ serve(async (req) => {
     // ═══ ACTION: upscale — Enhance image resolution (#52) ═══
     if (action === 'upscale') {
       const { image_base64, scale } = body;
-      if (!image_base64) return jsonResponse({ error: 'image_base64 required' }, 400);
+      if (!image_base64) return jsonResponse(req, { error: 'image_base64 required' }, 400);
 
       // Use HF Inference API with upscaling model
       if (hfToken) {
@@ -133,7 +131,7 @@ serve(async (req) => {
           if (upResp.ok) {
             const resultBuffer = await upResp.arrayBuffer();
             const resultBase64 = btoa(String.fromCharCode(...new Uint8Array(resultBuffer)));
-            return jsonResponse({
+            return jsonResponse(req, {
               image_base64: resultBase64,
               scale: scale || 2,
               model: 'caidas/swin2SR-classical-sr-x2-64',
@@ -143,7 +141,7 @@ serve(async (req) => {
         } catch { /* fallback below */ }
       }
 
-      return jsonResponse({
+      return jsonResponse(req, {
         error: 'Upscaling failed. Model may require GPU endpoint.',
         suggestion: 'Use HF Space jasperai/Flux.1-dev-Controlnet-Upscaler for production upscaling',
       }, 502);
@@ -153,7 +151,7 @@ serve(async (req) => {
     if (action === 'inpaint') {
       const { image_base64: inpImg, mask_base64, prompt: inpPrompt } = body;
       if (!inpImg || !mask_base64 || !inpPrompt) {
-        return jsonResponse({ error: 'image_base64, mask_base64, and prompt required' }, 400);
+        return jsonResponse(req, { error: 'image_base64, mask_base64, and prompt required' }, 400);
       }
 
       // Use LLM to describe what inpainting should do, then apply via FLUX
@@ -169,7 +167,7 @@ serve(async (req) => {
           if (genResp.ok) {
             const resultBuffer = await genResp.arrayBuffer();
             const resultBase64 = btoa(String.fromCharCode(...new Uint8Array(resultBuffer)));
-            return jsonResponse({
+            return jsonResponse(req, {
               image_base64: resultBase64,
               prompt: inpPrompt,
               model: 'FLUX.1-schnell',
@@ -180,13 +178,13 @@ serve(async (req) => {
         } catch { /* fallback */ }
       }
 
-      return jsonResponse({ error: 'Inpainting requires GPU endpoint' }, 502);
+      return jsonResponse(req, { error: 'Inpainting requires GPU endpoint' }, 502);
     }
 
     // ═══ ACTION: segment — Segment object from image (#54) ═══
     if (action === 'segment') {
       const { image_base64: segImg } = body;
-      if (!segImg) return jsonResponse({ error: 'image_base64 required' }, 400);
+      if (!segImg) return jsonResponse(req, { error: 'image_base64 required' }, 400);
 
       if (hfToken) {
         try {
@@ -199,7 +197,7 @@ serve(async (req) => {
           });
           if (segResp.ok) {
             const segments = await segResp.json();
-            return jsonResponse({
+            return jsonResponse(req, {
               segments: Array.isArray(segments) ? segments.map((s: Record<string, unknown>) => ({
                 label: s.label,
                 score: Math.round((s.score as number) * 1000) / 1000,
@@ -212,12 +210,12 @@ serve(async (req) => {
         } catch { /* fallback */ }
       }
 
-      return jsonResponse({ error: 'Segmentation failed' }, 502);
+      return jsonResponse(req, { error: 'Segmentation failed' }, 502);
     }
 
-    return jsonResponse({ error: `Unknown action: ${action}` }, 400);
+    return jsonResponse(req, { error: `Unknown action: ${action}` }, 400);
 
   } catch (error: unknown) {
-    return jsonResponse({ error: error instanceof Error ? error.message : 'Internal error' }, 500);
+    return jsonResponse(req, { error: error instanceof Error ? error.message : 'Internal error' }, 500);
   }
 });

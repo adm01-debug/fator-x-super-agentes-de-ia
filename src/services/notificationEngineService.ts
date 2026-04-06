@@ -116,6 +116,12 @@ export interface NotificationStats {
 /*  Template Engine (simple Mustache-like)                              */
 /* ------------------------------------------------------------------ */
 
+const FORBIDDEN_KEYS = new Set(['__proto__', 'constructor', 'prototype']);
+
+function escapeHtml(str: string): string {
+  return str.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+}
+
 export function renderTemplate(
   template: string,
   variables: Record<string, unknown>,
@@ -125,6 +131,7 @@ export function renderTemplate(
     let value: unknown = variables;
 
     for (const part of parts) {
+      if (FORBIDDEN_KEYS.has(part)) return `{{${path}}}`;
       if (value && typeof value === 'object' && part in (value as Record<string, unknown>)) {
         value = (value as Record<string, unknown>)[part];
       } else {
@@ -132,7 +139,8 @@ export function renderTemplate(
       }
     }
 
-    return String(value ?? '');
+    const raw = String(value ?? '');
+    return escapeHtml(raw);
   });
 }
 

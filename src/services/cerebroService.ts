@@ -56,7 +56,6 @@ export async function getMemories(options?: { type?: string; limit?: number }) {
 
   const { data, error } = await query;
   if (error) throw error;
-  if (error) throw error;
   return data ?? [];
 }
 

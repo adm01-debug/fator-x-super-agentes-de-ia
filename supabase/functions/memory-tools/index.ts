@@ -35,13 +35,13 @@ serve(async (req) => {
     const supabase = createClient(supabaseUrl, supabaseKey, { global: { headers: { Authorization: authHeader } } });
 
     const { data: { user } } = await supabase.auth.getUser();
-    if (!user) return new Response(JSON.stringify({ error: 'Unauthorized' }), { status: 401, headers: jsonHeaders });
+    if (!user) return new Response(JSON.stringify({ error: 'Unauthorized' }), { status: 401, headers: { ...getCorsHeaders(req), 'Content-Type': 'application/json' } });
 
     // Validate top-level body
     const rawBody = await req.json();
     const bodyResult = bodySchema.safeParse(rawBody);
     if (!bodyResult.success) {
-      return new Response(JSON.stringify({ error: 'Invalid request', details: bodyResult.error.flatten().fieldErrors }), { status: 400, headers: jsonHeaders });
+      return new Response(JSON.stringify({ error: 'Invalid request', details: bodyResult.error.flatten().fieldErrors }), { status: 400, headers: { ...getCorsHeaders(req), 'Content-Type': 'application/json' } });
     }
     const { tool, params, agent_id } = bodyResult.data;
 
@@ -50,7 +50,7 @@ serve(async (req) => {
 
     if (tool === 'memory_save') {
       const parsed = saveParams.safeParse(params);
-      if (!parsed.success) return new Response(JSON.stringify({ error: parsed.error.flatten().fieldErrors }), { status: 400, headers: jsonHeaders });
+      if (!parsed.success) return new Response(JSON.stringify({ error: parsed.error.flatten().fieldErrors }), { status: 400, headers: { ...getCorsHeaders(req), 'Content-Type': 'application/json' } });
       const { content, memory_type, importance } = parsed.data;
 
       const { data: mem, error } = await (supabase as unknown as { from: (t: string) => any }).from('agent_memories').insert({
@@ -64,12 +64,12 @@ serve(async (req) => {
       }).select('id').single();
       if (error) throw error;
 
-      return new Response(JSON.stringify({ success: true, memory_id: mem.id, message: `Memória salva (${memory_type})` }), { headers: jsonHeaders });
+      return new Response(JSON.stringify({ success: true, memory_id: mem.id, message: `Memória salva (${memory_type})` }), { headers: { ...getCorsHeaders(req), 'Content-Type': 'application/json' } });
     }
 
     if (tool === 'memory_search') {
       const parsed = searchParams.safeParse(params);
-      if (!parsed.success) return new Response(JSON.stringify({ error: parsed.error.flatten().fieldErrors }), { status: 400, headers: jsonHeaders });
+      if (!parsed.success) return new Response(JSON.stringify({ error: parsed.error.flatten().fieldErrors }), { status: 400, headers: { ...getCorsHeaders(req), 'Content-Type': 'application/json' } });
       const { query, memory_type, limit } = parsed.data;
 
       let q = (supabase as unknown as { from: (t: string) => any }).from('agent_memories').select('id, content, memory_type, relevance_score, created_at, metadata')
@@ -82,29 +82,29 @@ serve(async (req) => {
       q = q.ilike('content', `%${query}%`);
 
       const { data: memories } = await q;
-      return new Response(JSON.stringify({ memories: memories || [], count: memories?.length || 0 }), { headers: jsonHeaders });
+      return new Response(JSON.stringify({ memories: memories || [], count: memories?.length || 0 }), { headers: { ...getCorsHeaders(req), 'Content-Type': 'application/json' } });
     }
 
     if (tool === 'memory_update') {
       const parsed = updateParams.safeParse(params);
-      if (!parsed.success) return new Response(JSON.stringify({ error: parsed.error.flatten().fieldErrors }), { status: 400, headers: jsonHeaders });
+      if (!parsed.success) return new Response(JSON.stringify({ error: parsed.error.flatten().fieldErrors }), { status: 400, headers: { ...getCorsHeaders(req), 'Content-Type': 'application/json' } });
       const { memory_id, new_content } = parsed.data;
 
       await (supabase as unknown as { from: (t: string) => any }).from('agent_memories').update({ content: new_content, updated_at: new Date().toISOString() }).eq('id', memory_id);
-      return new Response(JSON.stringify({ success: true, message: 'Memória atualizada' }), { headers: jsonHeaders });
+      return new Response(JSON.stringify({ success: true, message: 'Memória atualizada' }), { headers: { ...getCorsHeaders(req), 'Content-Type': 'application/json' } });
     }
 
     if (tool === 'memory_forget') {
       const parsed = forgetParams.safeParse(params);
-      if (!parsed.success) return new Response(JSON.stringify({ error: parsed.error.flatten().fieldErrors }), { status: 400, headers: jsonHeaders });
+      if (!parsed.success) return new Response(JSON.stringify({ error: parsed.error.flatten().fieldErrors }), { status: 400, headers: { ...getCorsHeaders(req), 'Content-Type': 'application/json' } });
 
       await (supabase as unknown as { from: (t: string) => any }).from('agent_memories').delete().eq('id', parsed.data.memory_id);
-      return new Response(JSON.stringify({ success: true, message: 'Memória removida' }), { headers: jsonHeaders });
+      return new Response(JSON.stringify({ success: true, message: 'Memória removida' }), { headers: { ...getCorsHeaders(req), 'Content-Type': 'application/json' } });
     }
 
     if (tool === 'memory_compact') {
       const parsed = compactParams.safeParse(params);
-      if (!parsed.success) return new Response(JSON.stringify({ error: parsed.error.flatten().fieldErrors }), { status: 400, headers: jsonHeaders });
+      if (!parsed.success) return new Response(JSON.stringify({ error: parsed.error.flatten().fieldErrors }), { status: 400, headers: { ...getCorsHeaders(req), 'Content-Type': 'application/json' } });
 
       const { data: episodic } = await (supabase as unknown as { from: (t: string) => any }).from('agent_memories')
         .select('id, content, created_at')
@@ -114,7 +114,7 @@ serve(async (req) => {
         .limit(20);
 
       if (!episodic || episodic.length < 5) {
-        return new Response(JSON.stringify({ success: false, message: 'Not enough memories to compact (need 5+)' }), { headers: jsonHeaders });
+        return new Response(JSON.stringify({ success: false, message: 'Not enough memories to compact (need 5+)' }), { headers: { ...getCorsHeaders(req), 'Content-Type': 'application/json' } });
       }
 
       const summaryResp = await fetch(`${supabaseUrl}/functions/v1/llm-gateway`, {
@@ -145,12 +145,12 @@ serve(async (req) => {
         await (supabase as unknown as { from: (t: string) => any }).from('agent_memories').delete().in('id', idsToDelete);
       }
 
-      return new Response(JSON.stringify({ success: true, compacted: episodic.length, summary_preview: summary.substring(0, 200) }), { headers: jsonHeaders });
+      return new Response(JSON.stringify({ success: true, compacted: episodic.length, summary_preview: summary.substring(0, 200) }), { headers: { ...getCorsHeaders(req), 'Content-Type': 'application/json' } });
     }
 
-    return new Response(JSON.stringify({ error: 'Unknown tool. Valid: memory_save, memory_search, memory_update, memory_forget, memory_compact' }), { status: 400, headers: jsonHeaders });
+    return new Response(JSON.stringify({ error: 'Unknown tool. Valid: memory_save, memory_search, memory_update, memory_forget, memory_compact' }), { status: 400, headers: { ...getCorsHeaders(req), 'Content-Type': 'application/json' } });
 
   } catch (error: unknown) {
-    return new Response(JSON.stringify({ error: error instanceof Error ? error.message : 'Internal error' }), { status: 500, headers: jsonHeaders });
+    return new Response(JSON.stringify({ error: error instanceof Error ? error.message : 'Internal error' }), { status: 500, headers: { ...getCorsHeaders(req), 'Content-Type': 'application/json' } });
   }
 });

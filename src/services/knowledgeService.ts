@@ -72,14 +72,25 @@ export async function searchKnowledge(query: string, options?: {
 }
 
 export async function getCollectionStats(collectionId: string) {
-  const [docsResult, chunksResult] = await Promise.all([
-    supabase.from('documents').select('*', { count: 'exact', head: true }).eq('collection_id', collectionId),
-    supabase.from('chunks').select('*', { count: 'exact', head: true }).eq('document_id', collectionId),
-  ]);
+  const docsResult = await supabase
+    .from('documents')
+    .select('id', { count: 'exact' })
+    .eq('collection_id', collectionId);
+
+  const docIds = (docsResult.data ?? []).map((d: { id: string }) => d.id);
+
+  let chunksCount = 0;
+  if (docIds.length > 0) {
+    const chunksResult = await supabase
+      .from('chunks')
+      .select('*', { count: 'exact', head: true })
+      .in('document_id', docIds);
+    chunksCount = chunksResult.count || 0;
+  }
 
   return {
     documents: docsResult.count || 0,
-    chunks: chunksResult.count || 0,
+    chunks: chunksCount,
   };
 }
 

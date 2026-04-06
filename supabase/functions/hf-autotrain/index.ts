@@ -5,9 +5,7 @@ import { getCorsHeaders, handleCorsPreflight, jsonResponse, errorResponse, check
 
 // CORS handled by _shared/cors.ts — dynamic origin whitelist
 
-function jsonResponse(data: unknown, status = 200) {
-  return new Response(JSON.stringify(data), { status, headers: jsonHeaders });
-}
+// jsonResponse imported from _shared/mod.ts — uses getCorsHeaders(req)
 
 // ═══ Zod Schemas ═══
 const ActionSchema = z.object({
@@ -41,22 +39,22 @@ serve(async (req) => {
     const supabase = createClient(supabaseUrl, supabaseKey, { global: { headers: { Authorization: authHeader } } });
 
     const { data: { user } } = await supabase.auth.getUser();
-    if (!user) return jsonResponse({ error: 'Unauthorized' }, 401);
+    if (!user) return jsonResponse(req, { error: 'Unauthorized' }, 401);
 
     const rawBody = await req.json();
     const parsed = ActionSchema.safeParse(rawBody);
-    if (!parsed.success) return jsonResponse({ error: 'Validation failed', details: parsed.error.flatten().fieldErrors }, 400);
+    if (!parsed.success) return jsonResponse(req, { error: 'Validation failed', details: parsed.error.flatten().fieldErrors }, 400);
 
     const { action, agent_id, dataset_config, training_config, job_id } = parsed.data;
     const hfToken = Deno.env.get('HF_API_TOKEN');
-    if (!hfToken) return jsonResponse({ error: 'HF_API_TOKEN not configured' }, 400);
+    if (!hfToken) return jsonResponse(req, { error: 'HF_API_TOKEN not configured' }, 400);
 
     const { data: member } = await supabase.from('workspace_members').select('workspace_id').eq('user_id', user.id).limit(1).single();
     const wsId = member?.workspace_id;
 
     // ═══ ACTION: export_traces — Export agent traces as training data ═══
     if (action === 'export_traces') {
-      if (!agent_id) return jsonResponse({ error: 'agent_id required' }, 400);
+      if (!agent_id) return jsonResponse(req, { error: 'agent_id required' }, 400);
 
       const minScore = dataset_config?.min_quality_score || 3;
       const maxSamples = dataset_config?.max_samples || 1000;
@@ -90,7 +88,7 @@ serve(async (req) => {
           };
         });
 
-      return jsonResponse({
+      return jsonResponse(req, {
         dataset_size: dataset.length,
         format: 'alpaca',
         sample: dataset.slice(0, 3),
@@ -101,7 +99,7 @@ serve(async (req) => {
 
     // ═══ ACTION: prepare_dataset — Prepare and validate dataset for training ═══
     if (action === 'prepare_dataset') {
-      if (!agent_id) return jsonResponse({ error: 'agent_id required' }, 400);
+      if (!agent_id) return jsonResponse(req, { error: 'agent_id required' }, 400);
 
       const taskType = dataset_config?.task_type || 'text-generation';
       const maxSamples = dataset_config?.max_samples || 500;
@@ -147,7 +145,7 @@ serve(async (req) => {
       if (dataset.length < 50) issues.push(`Dataset muito pequeno: ${dataset.length} amostras (mínimo recomendado: 50)`);
       if (dataset.length < 10) issues.push('CRÍTICO: Menos de 10 amostras. Fine-tuning não é viável.');
 
-      return jsonResponse({
+      return jsonResponse(req, {
         status: issues.length === 0 ? 'ready' : 'warning',
         dataset_size: dataset.length,
         task_type: taskType,
@@ -196,7 +194,7 @@ serve(async (req) => {
         });
       }
 
-      return jsonResponse({
+      return jsonResponse(req, {
         status: 'repo_created',
         repo_id: `${hfUsername}/${repoName}`,
         repo_url: `https://huggingface.co/${hfUsername}/${repoName}`,
@@ -225,7 +223,7 @@ serve(async (req) => {
       });
       const models = await modelsResp.json();
 
-      return jsonResponse({
+      return jsonResponse(req, {
         hf_username: hfUsername,
         models: (models || []).map((m: Record<string, unknown>) => ({
           id: m.id,
@@ -241,13 +239,13 @@ serve(async (req) => {
 
     // ═══ ACTION: check_status — Check training job status ═══
     if (action === 'check_status') {
-      if (!job_id) return jsonResponse({ error: 'job_id (repo_id) required' }, 400);
+      if (!job_id) return jsonResponse(req, { error: 'job_id (repo_id) required' }, 400);
 
       const repoResp = await fetch(`https://huggingface.co/api/models/${job_id}`, {
         headers: { 'Authorization': `Bearer ${hfToken}` },
       });
 
-      if (!repoResp.ok) return jsonResponse({ error: 'Model not found', job_id }, 404);
+      if (!repoResp.ok) return jsonResponse(req, { error: 'Model not found', job_id }, 404);
       const repoData = await repoResp.json();
 
       // Check if model files exist (indicates training completion)
@@ -260,7 +258,7 @@ serve(async (req) => {
         return fname.endsWith('.safetensors') || fname.endsWith('.bin') || fname === 'config.json';
       });
 
-      return jsonResponse({
+      return jsonResponse(req, {
         job_id,
         status: hasModelFiles ? 'completed' : 'pending',
         model_url: `https://huggingface.co/${job_id}`,
@@ -274,7 +272,7 @@ serve(async (req) => {
 
     // ═══ ACTION: prepare_dpo_dataset — Prepare DPO preference dataset from user feedback (#55) ═══
     if (action === 'prepare_dpo_dataset') {
-      if (!agent_id) return jsonResponse({ error: 'agent_id required' }, 400);
+      if (!agent_id) return jsonResponse(req, { error: 'agent_id required' }, 400);
 
       // Get traces with user feedback (thumbs up/down from chat interface)
       const { data: posTraces } = await supabase
@@ -319,7 +317,7 @@ serve(async (req) => {
       // Partial pairs can be completed by generating alternatives via LLM
       const partialPairs = dpoPairs.filter(p => !p.chosen || !p.rejected);
 
-      return jsonResponse({
+      return jsonResponse(req, {
         status: completePairs.length >= 10 ? 'ready' : 'insufficient',
         complete_pairs: completePairs.length,
         partial_pairs: partialPairs.length,
@@ -362,7 +360,7 @@ serve(async (req) => {
         },
       };
 
-      return jsonResponse({
+      return jsonResponse(req, {
         trl_version: '1.0',
         base_model: baseModel,
         task,
@@ -379,9 +377,9 @@ serve(async (req) => {
       });
     }
 
-    return jsonResponse({ error: `Unknown action: ${action}` }, 400);
+    return jsonResponse(req, { error: `Unknown action: ${action}` }, 400);
 
   } catch (error: unknown) {
-    return jsonResponse({ error: error instanceof Error ? error.message : 'Internal error' }, 500);
+    return jsonResponse(req, { error: error instanceof Error ? error.message : 'Internal error' }, 500);
   }
 });

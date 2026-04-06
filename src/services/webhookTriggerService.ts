@@ -136,6 +136,8 @@ export async function verifyHmacSignature(
 /*  Transform Engine (safe eval-free)                                  */
 /* ------------------------------------------------------------------ */
 
+const UNSAFE_KEYS = new Set(['__proto__', 'constructor', 'prototype']);
+
 export function applyTransform(
   payload: Record<string, unknown>,
   script: string,
@@ -143,15 +145,25 @@ export function applyTransform(
   const result: Record<string, unknown> = {};
   const lines = script.split('\n').filter((l) => l.trim() && !l.trim().startsWith('#'));
 
+  // Limit script size to prevent abuse
+  if (script.length > 10_000) throw new Error('Transform script too large (max 10KB)');
+  if (lines.length > 100) throw new Error('Transform script too many lines (max 100)');
+
   for (const line of lines) {
     const match = line.match(/^\s*(\w+)\s*=\s*(.+)\s*$/);
     if (!match) continue;
 
     const [, targetField, sourcePath] = match;
+
+    // Prevent prototype pollution on target
+    if (UNSAFE_KEYS.has(targetField)) continue;
+
     const pathParts = sourcePath.trim().split('.');
     let value: unknown = payload;
 
     for (const part of pathParts) {
+      // Prevent prototype pollution during traversal
+      if (UNSAFE_KEYS.has(part)) { value = undefined; break; }
       if (value && typeof value === 'object' && part in (value as Record<string, unknown>)) {
         value = (value as Record<string, unknown>)[part];
       } else {

@@ -96,7 +96,7 @@ export interface VaultStats {
 
 const VAULT_KEY_NAME = 'nexus-vault-master-key-v1';
 
-async function getOrCreateMasterKey(): Promise<CryptoKey> {
+async function getOrCreateMasterKey(workspaceId?: string): Promise<CryptoKey> {
   const encoder = new TextEncoder();
   const seed = encoder.encode(VAULT_KEY_NAME + '-promo-brindes-2026');
 
@@ -108,10 +108,15 @@ async function getOrCreateMasterKey(): Promise<CryptoKey> {
     ['deriveKey'],
   );
 
+  // Use workspace-specific salt to isolate keys between workspaces
+  const saltBase = workspaceId
+    ? `nexus-vault-salt-ws-${workspaceId}`
+    : 'nexus-vault-salt-v1';
+
   return crypto.subtle.deriveKey(
     {
       name: 'PBKDF2',
-      salt: encoder.encode('nexus-vault-salt-v1'),
+      salt: encoder.encode(saltBase),
       iterations: 100000,
       hash: 'SHA-256',
     },

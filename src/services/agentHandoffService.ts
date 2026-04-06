@@ -255,6 +255,10 @@ export async function getHandoffHistory(
   agentId: string,
   limit = 50
 ): Promise<HandoffRecord[]> {
+  // Validate agentId is a UUID to prevent injection via .or() template
+  const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+  if (!uuidRegex.test(agentId)) throw new Error('Invalid agent ID format');
+
   const { data, error } = await fromTable('workflow_handoffs')
     .select('*')
     .or(`source_agent_id.eq.${agentId},target_agent_id.eq.${agentId}`)

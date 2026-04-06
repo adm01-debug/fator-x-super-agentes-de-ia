@@ -44,12 +44,12 @@ serve(async (req) => {
     const supabase = createClient(supabaseUrl, supabaseKey, { global: { headers: { Authorization: authHeader } } });
 
     const { data: { user } } = await supabase.auth.getUser();
-    if (!user) return new Response(JSON.stringify({ error: 'Unauthorized' }), { status: 401, headers: jsonHeaders });
+    if (!user) return new Response(JSON.stringify({ error: 'Unauthorized' }), { status: 401, headers: { ...getCorsHeaders(req), 'Content-Type': 'application/json' } });
 
     const rawBody = await req.json();
     const parsed = bodySchema.safeParse(rawBody);
     if (!parsed.success) {
-      return new Response(JSON.stringify({ error: 'Invalid request', details: parsed.error.flatten().fieldErrors }), { status: 400, headers: jsonHeaders });
+      return new Response(JSON.stringify({ error: 'Invalid request', details: parsed.error.flatten().fieldErrors }), { status: 400, headers: { ...getCorsHeaders(req), 'Content-Type': 'application/json' } });
     }
     const { evaluation_run_id, agent_id, judge_model, mode } = parsed.data;
 
@@ -64,7 +64,7 @@ serve(async (req) => {
       const { data: tc } = await supabase.from('test_cases').select('*').eq('dataset_id', parsed.data.dataset_id).order('created_at');
       cases = tc as typeof cases;
     }
-    if (!cases || cases.length === 0) return new Response(JSON.stringify({ error: 'No test cases' }), { status: 400, headers: jsonHeaders });
+    if (!cases || cases.length === 0) return new Response(JSON.stringify({ error: 'No test cases' }), { status: 400, headers: { ...getCorsHeaders(req), 'Content-Type': 'application/json' } });
 
     // Resolve API key for judge model
     const { data: member } = await supabase.from('workspace_members').select('workspace_id').eq('user_id', user.id).limit(1).single();
@@ -95,7 +95,7 @@ serve(async (req) => {
     };
 
     const { key: apiKey, provider } = await resolveKey();
-    if (!apiKey) return new Response(JSON.stringify({ error: 'No API key for judge model' }), { status: 400, headers: jsonHeaders });
+    if (!apiKey) return new Response(JSON.stringify({ error: 'No API key for judge model' }), { status: 400, headers: { ...getCorsHeaders(req), 'Content-Type': 'application/json' } });
 
     const judgeModelName = judge_model || (provider === 'huggingface' ? 'huggingface/mistralai/Mistral-Small-24B-Instruct-2501' : 'claude-haiku-4-5-20251001');
     const results: Array<Record<string, unknown>> = [];
@@ -200,9 +200,9 @@ serve(async (req) => {
       total_cases: cases.length, average_score: Math.round(avgScore * 100) / 100,
       pass_rate: Math.round((avgScore / 5) * 100) / 100,
       results,
-    }), { headers: jsonHeaders });
+    }), { headers: { ...getCorsHeaders(req), 'Content-Type': 'application/json' } });
 
   } catch (error: unknown) {
-    return new Response(JSON.stringify({ error: error instanceof Error ? error.message : 'Internal error' }), { status: 500, headers: jsonHeaders });
+    return new Response(JSON.stringify({ error: error instanceof Error ? error.message : 'Internal error' }), { status: 500, headers: { ...getCorsHeaders(req), 'Content-Type': 'application/json' } });
   }
 });

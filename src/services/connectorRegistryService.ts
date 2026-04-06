@@ -225,10 +225,21 @@ export async function recordUsage(instanceId: string): Promise<void> {
 
 export async function checkAllHealth(): Promise<ConnectorHealth[]> {
   const instances = await listInstances();
+  if (instances.length === 0) return [];
+
+  // Batch-fetch all connectors in a single query to avoid N+1
+  const connectorIds = [...new Set(instances.map(i => i.connector_id))];
+  const { data: connectorRows } = await fromTable('connector_registry')
+    .select('*')
+    .in('id', connectorIds);
+  const connectorsMap = new Map(
+    (connectorRows ?? []).map((c: ConnectorDefinition) => [c.id, c])
+  );
+
   const results: ConnectorHealth[] = [];
 
   for (const instance of instances) {
-    const connector = await getConnector(instance.connector_id);
+    const connector = connectorsMap.get(instance.connector_id);
     if (!connector) continue;
 
     const health: ConnectorHealth = {

@@ -7,28 +7,7 @@ import { getCorsHeaders, handleCorsPreflight, checkRateLimit, getRateLimitIdenti
 // CORS handled by _shared/cors.ts — dynamic origin whitelist
 // corsHeaders removed — using getCorsHeaders(req) from _shared/cors.ts
 
-// ═══ Rate Limiting ═══
-const rateLimitMap = new Map<string, number[]>();
-const RATE_LIMIT_MAX = 30;
-const RATE_LIMIT_WINDOW_MS = 60_000;
-// Clean stale entries every 5 minutes to prevent memory leak
-setInterval(() => {
-  const now = Date.now();
-  for (const [key, timestamps] of rateLimitMap.entries()) {
-    const fresh = timestamps.filter(t => now - t < RATE_LIMIT_WINDOW_MS);
-    if (fresh.length === 0) rateLimitMap.delete(key);
-    else rateLimitMap.set(key, fresh);
-  }
-}, 300_000);
-
-function checkRateLimit(userId: string): boolean {
-  const now = Date.now();
-  const timestamps = (rateLimitMap.get(userId) || []).filter(t => now - t < RATE_LIMIT_WINDOW_MS);
-  if (timestamps.length >= RATE_LIMIT_MAX) return false;
-  timestamps.push(now);
-  rateLimitMap.set(userId, timestamps);
-  return true;
-}
+// Rate limiting uses shared _shared/rate-limiter.ts (imported via mod.ts)
 
 // ═══ Input Validation ═══
 interface LLMRequest {
@@ -371,7 +350,8 @@ serve(async (req) => {
 
     const { data: { user }, error: authError } = await supabase.auth.getUser();
     if (authError || !user) return new Response(JSON.stringify({ error: 'Unauthorized' }), { status: 401, headers: { ...getCorsHeaders(req), 'Content-Type': 'application/json' } });
-    if (!checkRateLimit(user.id)) return new Response(JSON.stringify({ error: 'Rate limit exceeded' }), { status: 429, headers: { ...getCorsHeaders(req), 'Content-Type': 'application/json', 'Retry-After': '60' } });
+    const rateCheck = checkRateLimit(getRateLimitIdentifier(req, user.id), RATE_LIMITS.llm);
+    if (!rateCheck.allowed) return createRateLimitResponse(rateCheck, getCorsHeaders(req));
 
     let rawBody: unknown;
     try { rawBody = await req.json(); } catch { return new Response(JSON.stringify({ error: 'Invalid JSON' }), { status: 400, headers: { ...getCorsHeaders(req), 'Content-Type': 'application/json' } }); }

@@ -5,19 +5,7 @@ import { getCorsHeaders, handleCorsPreflight, jsonResponse, errorResponse, check
 
 // CORS handled by _shared/cors.ts — dynamic origin whitelist
 
-// ═══ Rate Limiting ═══
-const rateLimitMap = new Map<string, number[]>();
-const RATE_LIMIT_MAX = 10; // Oracle is expensive — 10 req/min
-const RATE_LIMIT_WINDOW_MS = 60_000;
-
-function checkRateLimit(userId: string): boolean {
-  const now = Date.now();
-  const timestamps = (rateLimitMap.get(userId) || []).filter(t => now - t < RATE_LIMIT_WINDOW_MS);
-  if (timestamps.length >= RATE_LIMIT_MAX) return false;
-  timestamps.push(now);
-  rateLimitMap.set(userId, timestamps);
-  return true;
-}
+// Rate limiting uses shared _shared/rate-limiter.ts (imported via mod.ts)
 
 // ═══ Input Validation ═══
 const VALID_MODES = ['council', 'researcher', 'validator', 'executor', 'advisor'];
@@ -90,9 +78,8 @@ serve(async (req) => {
     }
 
     // Rate limit
-    if (!checkRateLimit(user.id)) {
-      return new Response(JSON.stringify({ error: 'Rate limit exceeded. Max 10 Oracle requests per minute.' }), { status: 429, headers: { ...getCorsHeaders(req), 'Content-Type': 'application/json', 'Retry-After': '60' } });
-    }
+    const rateCheck = checkRateLimit(getRateLimitIdentifier(req, user.id), RATE_LIMITS.oracle);
+    if (!rateCheck.allowed) return createRateLimitResponse(rateCheck, getCorsHeaders(req));
 
     // Validate input
     let rawBody: unknown;

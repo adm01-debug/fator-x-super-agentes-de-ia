@@ -4,9 +4,7 @@ import { getCorsHeaders, handleCorsPreflight, jsonResponse, errorResponse, check
 
 // CORS handled by _shared/cors.ts — dynamic origin whitelist
 
-function jsonResponse(data: unknown, status = 200) {
-  return new Response(JSON.stringify(data), { status, headers: jsonHeaders });
-}
+// jsonResponse imported from _shared/mod.ts — uses getCorsHeaders(req)
 
 /**
  * smolagent-runtime — Real ReAct Agent Runtime
@@ -496,10 +494,10 @@ serve(async (req) => {
     const supabase = createClient(supabaseUrl, supabaseKey, { global: { headers: { Authorization: authHeader } } });
 
     const { data: { user } } = await supabase.auth.getUser();
-    if (!user) return jsonResponse({ error: 'Unauthorized' }, 401);
+    if (!user) return jsonResponse(req, { error: 'Unauthorized' }, 401);
 
     const hfToken = Deno.env.get('HF_API_TOKEN');
-    if (!hfToken) return jsonResponse({ error: 'HF_API_TOKEN not configured' }, 400);
+    if (!hfToken) return jsonResponse(req, { error: 'HF_API_TOKEN not configured' }, 400);
 
     const body = await req.json();
     const { action } = body;
@@ -509,7 +507,7 @@ serve(async (req) => {
 
     // ═══ ACTION: list_tools ═══
     if (action === 'list_tools') {
-      return jsonResponse({
+      return jsonResponse(req, {
         tools: allTools.map(t => ({
           name: t.name,
           description: t.description,
@@ -522,7 +520,7 @@ serve(async (req) => {
     // ═══ ACTION: run — Execute a task ═══
     if (action === 'run') {
       const { task, model: reqModel, max_steps, agent_id } = body;
-      if (!task) return jsonResponse({ error: 'task required' }, 400);
+      if (!task) return jsonResponse(req, { error: 'task required' }, 400);
 
       const model = reqModel || 'huggingface/Qwen/Qwen3-30B-A3B';
       const maxSteps = Math.min(max_steps || MAX_STEPS, 15);
@@ -552,7 +550,7 @@ serve(async (req) => {
         }).catch(() => {});
       }
 
-      return jsonResponse({
+      return jsonResponse(req, {
         answer: result.answer,
         steps: result.steps,
         total_steps: result.steps.length,
@@ -568,14 +566,14 @@ serve(async (req) => {
     // ═══ ACTION: run_with_tools — Execute with specific tools ═══
     if (action === 'run_with_tools') {
       const { task, tool_names, model: reqModel, max_steps } = body;
-      if (!task) return jsonResponse({ error: 'task required' }, 400);
+      if (!task) return jsonResponse(req, { error: 'task required' }, 400);
 
       const selectedTools = tool_names
         ? allTools.filter(t => (tool_names as string[]).includes(t.name))
         : allTools;
 
       if (selectedTools.length === 0) {
-        return jsonResponse({ error: 'No valid tools selected', available: allTools.map(t => t.name) }, 400);
+        return jsonResponse(req, { error: 'No valid tools selected', available: allTools.map(t => t.name) }, 400);
       }
 
       const model = reqModel || 'huggingface/Qwen/Qwen3-30B-A3B';
@@ -584,7 +582,7 @@ serve(async (req) => {
       const startTime = Date.now();
       const result = await runAgent(task, selectedTools, ctx, model, maxSteps);
 
-      return jsonResponse({
+      return jsonResponse(req, {
         answer: result.answer,
         steps: result.steps,
         total_steps: result.steps.length,
@@ -596,9 +594,9 @@ serve(async (req) => {
       });
     }
 
-    return jsonResponse({ error: `Unknown action: ${action}` }, 400);
+    return jsonResponse(req, { error: `Unknown action: ${action}` }, 400);
 
   } catch (error: unknown) {
-    return jsonResponse({ error: error instanceof Error ? error.message : 'Internal error' }, 500);
+    return jsonResponse(req, { error: error instanceof Error ? error.message : 'Internal error' }, 500);
   }
 });
