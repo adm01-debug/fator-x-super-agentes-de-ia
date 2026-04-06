@@ -280,18 +280,18 @@ export default function DashboardPage() {
 
           {/* Additional metrics row */}
           {usageStats && (
-            <div className="grid grid-cols-3 gap-2 sm:gap-3 stagger-children">
-              <div className="nexus-card nexus-metric-card py-2.5 sm:py-3 text-center">
-                <p className="text-xs sm:text-sm font-heading font-bold text-foreground">{usageStats.avgLatency}ms</p>
-                <p className="text-[11px] sm:text-[11px] text-muted-foreground">Latência média</p>
+            <div className="grid grid-cols-3 gap-3 sm:gap-4 stagger-children">
+              <div className="nexus-card nexus-metric-card py-3 sm:py-4 text-center">
+                <p className="text-sm sm:text-lg font-heading font-extrabold text-foreground">{usageStats.avgLatency}ms</p>
+                <p className="text-[11px] text-muted-foreground/70 uppercase tracking-wider mt-0.5">Latência média</p>
               </div>
-              <div className="nexus-card nexus-metric-card py-2.5 sm:py-3 text-center">
-                <p className="text-xs sm:text-sm font-heading font-bold text-foreground">{(usageStats.totalTokens / 1000).toFixed(0)}k</p>
-                <p className="text-[11px] sm:text-[11px] text-muted-foreground">Tokens totais</p>
+              <div className="nexus-card nexus-metric-card py-3 sm:py-4 text-center">
+                <p className="text-sm sm:text-lg font-heading font-extrabold text-foreground">{(usageStats.totalTokens / 1000).toFixed(0)}k</p>
+                <p className="text-[11px] text-muted-foreground/70 uppercase tracking-wider mt-0.5">Tokens totais</p>
               </div>
-              <div className="nexus-card nexus-metric-card py-2.5 sm:py-3 text-center">
-                <p className="text-xs sm:text-sm font-heading font-bold text-foreground">{draftCount}</p>
-                <p className="text-[11px] sm:text-[11px] text-muted-foreground">Rascunhos</p>
+              <div className="nexus-card nexus-metric-card py-3 sm:py-4 text-center">
+                <p className="text-sm sm:text-lg font-heading font-extrabold text-foreground">{draftCount}</p>
+                <p className="text-[11px] text-muted-foreground/70 uppercase tracking-wider mt-0.5">Rascunhos</p>
               </div>
             </div>
           )}
