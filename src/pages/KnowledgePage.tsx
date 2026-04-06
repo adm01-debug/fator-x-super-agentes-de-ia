@@ -6,7 +6,7 @@ import { QuickActionsBar } from "@/components/shared/QuickActionsBar";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
-import { Search, BookOpen, ArrowRight, Loader2, Database, Pencil, Trash2, Bot, FileText } from "lucide-react";
+import { Search, BookOpen, ArrowRight, Database, Pencil, Trash2, Bot, FileText } from "lucide-react";
 import { useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { listKnowledgeBases, deleteKnowledgeBase, listVectorIndexes, getChunkEmbeddingStats } from "@/services/knowledgeService";
