@@ -253,7 +253,6 @@
 code, pre, .font-mono, [class*="font-mono"] {
   font-family: var(--font-mono) !important;
 }
-}
 
 @layer utilities {
   .nexus-card-hover {
