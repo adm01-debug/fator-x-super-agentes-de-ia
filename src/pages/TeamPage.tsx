@@ -7,6 +7,7 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { getWorkspaceId } from "@/lib/agentService";
 import { useAuth } from "@/contexts/AuthContext";
 import { InviteMemberDialog } from "@/components/dialogs/InviteMemberDialog";
+import { AccessControl } from "@/components/rbac/AccessControl";
 import { toast } from "sonner";
 import { listMembers, removeMember, getPendingInvites, acceptInvite } from "@/services/teamsService";
 
@@ -59,7 +60,7 @@ export default function TeamPage() {
       <PageHeader
         title="Team & Roles"
         description="Gerencie membros, papéis e permissões do workspace"
-        actions={<InviteMemberDialog onInvited={() => refetch()} />}
+        actions={<AccessControl permission="team.manage"><InviteMemberDialog onInvited={() => refetch()} /></AccessControl>}
       />
 
       {/* Pending invitations banner */}

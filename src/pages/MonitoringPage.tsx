@@ -2,7 +2,8 @@ import { PageHeader } from "@/components/shared/PageHeader";
 import { StatusBadge } from "@/components/shared/StatusBadge";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Clock, DollarSign, Wrench, Activity, Loader2, Bell, CheckCircle, Trash2, Layers } from "lucide-react";
+import { Clock, DollarSign, Wrench, Activity, Loader2, Bell, CheckCircle, Trash2, Layers, Radio, Settings2 } from "lucide-react";
+import { tracer } from "@/lib/tracing";
 import { useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { alertRuleSchema } from "@/lib/validations/agentSchema";
@@ -124,6 +125,9 @@ export default function MonitoringPage() {
           </TabsTrigger>
           <TabsTrigger value="alerts" className="gap-1.5">
             Alertas {unresolvedCount > 0 && <Badge variant="destructive" className="text-[11px] h-4 px-1">{unresolvedCount}</Badge>}
+          </TabsTrigger>
+          <TabsTrigger value="tracing" className="gap-1.5">
+            <Radio className="h-3.5 w-3.5" /> Tracing
           </TabsTrigger>
         </TabsList>
 
@@ -358,6 +362,10 @@ export default function MonitoringPage() {
           {/* Alert Rules Management */}
           <AlertRulesPanel />
         </TabsContent>
+
+        <TabsContent value="tracing">
+          <TracingConfigPanel />
+        </TabsContent>
       </Tabs>
     </div>
   );
@@ -453,6 +461,109 @@ function AlertRulesPanel() {
           ))}
         </div>
       )}
+    </div>
+  );
+}
+
+// ═══ Tracing Configuration Panel ═══
+function TracingConfigPanel() {
+  const [langfuseUrl, setLangfuseUrl] = useState('');
+  const [langfuseKey, setLangfuseKey] = useState('');
+  const [connected, setConnected] = useState(false);
+
+  const handleConnect = () => {
+    if (!langfuseUrl || !langfuseKey) {
+      toast.error('Preencha URL e Public Key do Langfuse');
+      return;
+    }
+    tracer.configureLangfuse(langfuseUrl, langfuseKey);
+    setConnected(true);
+    toast.success('Langfuse configurado! Traces serão enviados automaticamente.');
+  };
+
+  const handleDisconnect = () => {
+    tracer.configureLangfuse('', '');
+    setConnected(false);
+    setLangfuseUrl('');
+    setLangfuseKey('');
+    toast.info('Langfuse desconectado.');
+  };
+
+  return (
+    <div className="space-y-6">
+      {/* Status */}
+      <div className="rounded-xl border border-border bg-card p-6">
+        <div className="flex items-center gap-3 mb-4">
+          <Settings2 className="h-5 w-5 text-primary" />
+          <h3 className="text-lg font-heading font-bold text-foreground">Configuração do NexusTracer</h3>
+        </div>
+        <p className="text-sm text-muted-foreground mb-4">
+          O NexusTracer persiste traces automaticamente no Supabase (tabela <code className="text-xs bg-muted px-1 py-0.5 rounded">trace_events</code>).
+          Opcionalmente, conecte ao Langfuse para dashboards avançados de observabilidade.
+        </p>
+
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-3 mb-4">
+          <div className="rounded-lg bg-secondary/30 p-3 text-center">
+            <p className="text-xs text-muted-foreground">Persistência</p>
+            <Badge className="mt-1">Supabase (ativo)</Badge>
+          </div>
+          <div className="rounded-lg bg-secondary/30 p-3 text-center">
+            <p className="text-xs text-muted-foreground">Formato</p>
+            <Badge variant="outline" className="mt-1">OTel GenAI SemConv</Badge>
+          </div>
+          <div className="rounded-lg bg-secondary/30 p-3 text-center">
+            <p className="text-xs text-muted-foreground">Langfuse</p>
+            <Badge variant={connected ? 'default' : 'outline'} className="mt-1">
+              {connected ? 'Conectado' : 'Não configurado'}
+            </Badge>
+          </div>
+        </div>
+      </div>
+
+      {/* Langfuse Config */}
+      <div className="rounded-xl border border-border bg-card p-6">
+        <h4 className="text-sm font-semibold text-foreground mb-3">Langfuse (Opcional)</h4>
+        <div className="space-y-3">
+          <div>
+            <label className="text-xs text-muted-foreground">Langfuse URL</label>
+            <input
+              value={langfuseUrl}
+              onChange={e => setLangfuseUrl(e.target.value)}
+              placeholder="https://cloud.langfuse.com"
+              disabled={connected}
+              className="w-full mt-1 bg-secondary/50 border border-border rounded-lg px-3 py-2 text-sm text-foreground placeholder-muted-foreground focus:border-primary focus:outline-none"
+            />
+          </div>
+          <div>
+            <label className="text-xs text-muted-foreground">Public Key</label>
+            <input
+              value={langfuseKey}
+              onChange={e => setLangfuseKey(e.target.value)}
+              placeholder="pk-lf-..."
+              type="password"
+              disabled={connected}
+              className="w-full mt-1 bg-secondary/50 border border-border rounded-lg px-3 py-2 text-sm text-foreground placeholder-muted-foreground focus:border-primary focus:outline-none"
+            />
+          </div>
+          {connected ? (
+            <Button variant="destructive" size="sm" onClick={handleDisconnect}>Desconectar Langfuse</Button>
+          ) : (
+            <Button size="sm" onClick={handleConnect} className="nexus-gradient-bg">Conectar Langfuse</Button>
+          )}
+        </div>
+      </div>
+
+      {/* How tracing works */}
+      <div className="rounded-xl border border-border bg-card p-6">
+        <h4 className="text-sm font-semibold text-foreground mb-3">Como funciona</h4>
+        <div className="space-y-2 text-xs text-muted-foreground">
+          <p>1. Cada chamada ao LLM Gateway cria um trace com spans (LLM, Tool, RAG, Guardrail)</p>
+          <p>2. Spans incluem: modelo, tokens input/output, custo USD, duração, status</p>
+          <p>3. Traces são persistidos em <code className="bg-muted px-1 py-0.5 rounded">trace_events</code> e <code className="bg-muted px-1 py-0.5 rounded">usage_records</code></p>
+          <p>4. Se Langfuse configurado, traces também são enviados para dashboards externos</p>
+          <p>5. Atributos seguem OpenTelemetry GenAI Semantic Conventions v1.37+</p>
+        </div>
+      </div>
     </div>
   );
 }

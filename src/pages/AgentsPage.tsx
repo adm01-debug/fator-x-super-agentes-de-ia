@@ -17,6 +17,7 @@ import { useQuery } from "@tanstack/react-query";
 import { listAgents, cloneAgent, autoTagAgent } from "@/lib/agentService";
 import { useAuth } from "@/contexts/AuthContext";
 import { useI18nContext } from "@/contexts/I18nContext";
+import { AccessControl } from "@/components/rbac/AccessControl";
 import type { Tables } from "@/integrations/supabase/types";
 import { exportAgentToJSON, downloadJSON, importAgentFromJSON, readFileAsText } from "@/lib/agentExportImport";
 import { bulkUpdateStatus, bulkDelete } from "@/lib/agentBulkActions";
@@ -204,9 +205,11 @@ export default function AgentsPage() {
               <Upload className="h-3.5 w-3.5" /> {t('action.import')}
             </Button>
             <input ref={fileInputRef} type="file" accept=".json" className="hidden" onChange={handleImport} />
-            <Button onClick={() => navigate('/agents/new')} className="nexus-gradient-bg text-primary-foreground gap-2 hover:opacity-90">
-              <Plus className="h-4 w-4" /> {t('agents.create')}
-            </Button>
+            <AccessControl permission="agents.create">
+              <Button onClick={() => navigate('/agents/new')} className="nexus-gradient-bg text-primary-foreground gap-2 hover:opacity-90">
+                <Plus className="h-4 w-4" /> {t('agents.create')}
+              </Button>
+            </AccessControl>
           </div>
         }
       />
