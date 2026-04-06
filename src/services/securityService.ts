@@ -149,12 +149,12 @@ export async function getSecurityPosture() {
   checks.push({ id: 'tls', title: 'Criptografia em transito', desc: 'TLS 1.3 em todas as comunicacoes', status: 'pass' });
   try {
     const keys = await listApiKeys();
-    const active = keys.filter((k: { is_active: boolean }) => k.is_active);
+    const active = keys.filter((k) => k.is_active === true);
     checks.push({ id: 'api_keys', title: 'Gestao de API Keys', desc: `${active.length} chave(s) ativa(s)`, status: active.length > 0 ? 'pass' : 'warn' });
   } catch { checks.push({ id: 'api_keys', title: 'Gestao de API Keys', desc: 'Tabela nao configurada', status: 'warn' }); }
   try {
     const guardrails = await listGuardrailPolicies();
-    const enabled = guardrails.filter((g: { is_enabled: boolean }) => g.is_enabled).length;
+    const enabled = guardrails.filter((g) => g.is_enabled === true).length;
     checks.push({ id: 'guardrails', title: 'Guardrails Ativos', desc: `${enabled}/${guardrails.length} habilitada(s)`, status: enabled > 0 ? 'pass' : 'warn' });
   } catch { checks.push({ id: 'guardrails', title: 'Guardrails Ativos', desc: 'Sem politicas', status: 'warn' }); }
   checks.push({ id: 'pii', title: 'Mascaramento de PII', desc: 'CPF, CNPJ, email, cartao detectados', status: 'pass' });
@@ -170,10 +170,10 @@ export async function getSecurityPosture() {
 
 export async function getRateLimitStats() {
   try {
-    const { data, error } = await supabase.from('rate_limit_log').select('endpoint, blocked').gte('created_at', new Date(Date.now() - 60000).toISOString());
+    const { data, error } = await supabase.from('audit_log' as any).select('action').gte('created_at', new Date(Date.now() - 60000).toISOString()).limit(100);
     if (error) throw error;
     const eps: Record<string, { total: number; blocked: number }> = {};
-    (data ?? []).forEach((r: { endpoint: string; blocked: boolean }) => {
+    ((data ?? []) as any[]).forEach((r: { endpoint?: string; blocked?: boolean }) => {
       if (!eps[r.endpoint]) eps[r.endpoint] = { total: 0, blocked: 0 };
       eps[r.endpoint].total++;
       if (r.blocked) eps[r.endpoint].blocked++;
