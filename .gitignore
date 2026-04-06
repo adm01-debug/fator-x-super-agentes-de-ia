@@ -12,6 +12,17 @@ dist
 dist-ssr
 *.local
 
+# Lock files (standardized on npm/package-lock.json)
+bun.lock
+yarn.lock
+pnpm-lock.yaml
+
+# Environment files (never commit secrets)
+.env
+.env.local
+.env.production
+.env.staging
+
 # Editor directories and files
 .vscode/*
 !.vscode/extensions.json
