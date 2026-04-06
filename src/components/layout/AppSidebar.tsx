@@ -62,8 +62,8 @@ const navSections = [
     key: "admin",
     items: [
       { title: "Segurança", url: "/security", icon: Shield },
-      { title: "LGPD", url: "/lgpd", icon: Shield },
-      { title: "Aprovações", url: "/approvals", icon: Shield },
+      { title: "LGPD", url: "/lgpd", icon: ShieldCheck },
+      { title: "Aprovações", url: "/approvals", icon: CircleCheckBig },
       { title: "Equipe", url: "/team", icon: Users },
       { title: "Faturamento", url: "/billing", icon: CreditCard },
       { title: "Configurações", url: "/settings", icon: Settings },
