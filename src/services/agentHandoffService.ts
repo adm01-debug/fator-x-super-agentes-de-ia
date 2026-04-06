@@ -10,9 +10,6 @@
  * preserving conversation history, state, and metadata.
  */
 
-// supabase import removed — this service uses fromTable for untyped tables
-
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
 import { fromTable } from '@/lib/supabaseExtended';
 
 // ──────── Types ────────
