@@ -19,7 +19,9 @@ async function getValidToken(supabase: ReturnType<typeof createClient>) {
     .in('key_name', ['bitrix24_access_token', 'bitrix24_refresh_token']);
 
   const tokens: Record<string, string> = {};
-  (tokenData || []).forEach((t: Record<string, string>) => { tokens[t.key_name] = t.key_value; });
+  (tokenData || []).forEach((t: { key_name: unknown; key_value: unknown }) => {
+    tokens[String(t.key_name)] = String(t.key_value);
+  });
 
   if (!tokens.bitrix24_access_token) throw new Error('Bitrix24 não conectado');
   return tokens.bitrix24_access_token;
@@ -41,7 +43,7 @@ serve(async (req) => {
     if (parsed.error) return parsed.error;
     const { method, params } = parsed.data;
 
-    const token = await getValidToken(supabase);
+    const token = await getValidToken(supabase as ReturnType<typeof createClient>);
     const domain = Deno.env.get('BITRIX24_DOMAIN');
     if (!domain) return errorResponse(req, 'BITRIX24_DOMAIN not configured', 503);
 

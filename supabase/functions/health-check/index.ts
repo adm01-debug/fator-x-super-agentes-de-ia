@@ -1,13 +1,14 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.49.4";
-import { handleCorsPreflight, getCorsHeaders, checkRateLimit } from "../_shared/mod.ts";
+import { handleCorsPreflight, getCorsHeaders, getRateLimitIdentifier, checkRateLimit, RATE_LIMITS, createRateLimitResponse } from "../_shared/mod.ts";
 
 serve(async (req) => {
   if (req.method === 'OPTIONS') return handleCorsPreflight(req);
   const corsHeaders = getCorsHeaders(req);
 
-  const rateLimitResult = await checkRateLimit(req, { preset: "relaxed" });
-  if (rateLimitResult) return rateLimitResult;
+  const identifier = getRateLimitIdentifier(req);
+  const rateCheck = checkRateLimit(identifier, RATE_LIMITS.standard);
+  if (!rateCheck.allowed) return createRateLimitResponse(rateCheck);
 
   const start = Date.now();
   const checks: Record<string, { status: string; latency_ms?: number; error?: string }> = {};
@@ -29,13 +30,8 @@ serve(async (req) => {
     checks.database = { status: 'down', error: e instanceof Error ? e.message : String(e) };
   }
 
-  // Check Edge Function runtime
-  checks.runtime = {
-    status: 'healthy',
-    latency_ms: 0,
-  };
+  checks.runtime = { status: 'healthy', latency_ms: 0 };
 
-  // Overall status
   const allHealthy = Object.values(checks).every((c) => c.status === 'healthy');
   const anyDown = Object.values(checks).some((c) => c.status === 'down');
   const overallStatus = anyDown ? 'down' : allHealthy ? 'healthy' : 'degraded';

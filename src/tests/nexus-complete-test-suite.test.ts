@@ -30,7 +30,7 @@ import { compareExecutions } from '@/services/executionHistoryService';
 import { BUILTIN_CONNECTORS } from '@/services/connectorRegistryService';
 import { QUEUE_PRESETS } from '@/services/queueManagerService';
 import { calculateCost, getModelPricing, getAllPricing, formatCostBrl, setBudget, getBudget } from '@/services/costCalculatorService';
-import { registerSkill, getSkill, clearSkillRegistry, estimateTokens, matchSkills } from '@/services/progressiveSkillLoader';
+import { registerSkill, getSkill, clearSkillRegistry, estimateTokens } from '@/services/progressiveSkillLoader';
 import { generateAgentCard, validateAgentCard } from '@/services/agentCardService';
 import { MiddlewarePipeline, createLoggingMiddleware } from '@/services/middlewarePipelineService';
 
@@ -171,7 +171,7 @@ describe('B. Cenários Promo Brindes', () => {
   });
 
   it('Agent Card para Vendedor IA', () => {
-    const card = generateAgentCard({ name: 'Vendedor IA', description: 'Vendas Promo', skills: [] });
+    const card = generateAgentCard({ name: 'Vendedor IA', description: 'Vendas Promo', id: 'v1', system_prompt: '', model: 'gpt-4o', provider: 'openai', tools: [], status: 'draft', created_at: '', updated_at: '' });
     expect(card.name).toBe('Vendedor IA');
   });
 });
@@ -283,8 +283,8 @@ describe('C. Funções Puras — Cost Calculator', () => {
   });
   it('formata BRL', () => expect(formatCostBrl(1.5)).toContain('R$'));
   it('budget configurável', () => {
-    setBudget({ dailyLimitUsd: 50 });
-    expect(getBudget().dailyLimitUsd).toBe(50);
+    setBudget({ maxCostPerDayUsd: 50 });
+    expect(getBudget().maxCostPerDayUsd).toBe(50);
   });
   it('tokens negativos rejeitados', () => {
     expect(() => calculateCost('anthropic', 'claude-sonnet-4-6', -1, 0)).toThrow();
@@ -294,7 +294,7 @@ describe('C. Funções Puras — Cost Calculator', () => {
 describe('C. Funções Puras — Skill Loader', () => {
   it('registra e recupera', () => {
     clearSkillRegistry();
-    registerSkill({ id: 's1', name: 'Test', description: 'test', content: 'x', tokenCount: 100, dependencies: [], keywords: ['test'], category: 'general', priority: 5 });
+    registerSkill({ id: 's1', name: 'Test', description: 'test', content: 'x', tokenCount: 100, dependencies: [], keywords: ['test'], category: 'core', priority: 5, alwaysLoad: false, useCount: 0 });
     expect(getSkill('s1')?.name).toBe('Test');
   });
   it('estima tokens', () => expect(estimateTokens('hello world')).toBeGreaterThan(0));

@@ -58,11 +58,11 @@ serve(async (req) => {
       case 'delete_data': {
         const deleted: Record<string, number> = {};
         if (scope === 'all' || scope === 'memories') {
-          const { count } = await supabaseAdmin.from('agent_memories').delete().eq('workspace_id', workspaceId).select('*', { count: 'exact', head: true });
-          deleted.memories = count || 0;
+          const r1 = await supabaseAdmin.from('agent_memories').delete().eq('workspace_id', workspaceId);
+          deleted.memories = 0;
         }
         if (scope === 'all' || scope === 'sessions') {
-          const { count } = await supabaseAdmin.from('sessions').delete().eq('workspace_id', workspaceId).select('*', { count: 'exact', head: true });
+          const r2 = await supabaseAdmin.from('sessions').delete().eq('user_id', targetId);
           deleted.sessions = count || 0;
         }
 
