@@ -11,6 +11,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { toast } from "sonner";
 import { getAgentTraces, getSessions, getSessionTraces, getTraceEvents, getAlerts, resolveAlert, getAgentsForFilter, listAlertRules, createAlertRule, deleteAlertRule, toggleAlertRule } from "@/services/monitoringService";
+import { Zap } from "lucide-react";
 
 
 const PIE_COLORS = ['hsl(var(--primary))', 'hsl(var(--nexus-emerald, 142 71% 45%))', 'hsl(var(--nexus-amber, 38 92% 50%))', 'hsl(var(--nexus-cyan, 190 90% 50%))', 'hsl(var(--destructive))'];
@@ -124,6 +125,9 @@ export default function MonitoringPage() {
           </TabsTrigger>
           <TabsTrigger value="alerts" className="gap-1.5">
             Alertas {unresolvedCount > 0 && <Badge variant="destructive" className="text-[11px] h-4 px-1">{unresolvedCount}</Badge>}
+          </TabsTrigger>
+          <TabsTrigger value="tracing" className="gap-1.5">
+            <Zap className="h-3.5 w-3.5" /> Tracing
           </TabsTrigger>
         </TabsList>
 
@@ -358,7 +362,97 @@ export default function MonitoringPage() {
           {/* Alert Rules Management */}
           <AlertRulesPanel />
         </TabsContent>
+
+        {/* ═══ TRACING TAB ═══ */}
+        <TabsContent value="tracing">
+          <TracingPanel />
+        </TabsContent>
       </Tabs>
+    </div>
+  );
+}
+
+// ═══ Tracing Panel — shows OTel-style trace spans from trace_events ═══
+function TracingPanel() {
+  const { data: traceData = [], isLoading } = useQuery({
+    queryKey: ['trace_events_all'],
+    queryFn: async () => {
+      const { getTraceEvents: _unused, ...mod } = await import("@/services/monitoringService");
+      void _unused;
+      const { supabase } = await import("@/integrations/supabase/client");
+      const { data } = await supabase
+        .from('trace_events')
+        .select('*')
+        .order('created_at', { ascending: false })
+        .limit(50);
+      return (data ?? []) as Array<{
+        id: string;
+        event_type: string;
+        data: Record<string, unknown>;
+        created_at: string;
+        session_trace_id: string | null;
+      }>;
+    },
+  });
+
+  if (isLoading) {
+    return <div className="flex justify-center py-12"><Loader2 className="h-5 w-5 animate-spin text-muted-foreground" /></div>;
+  }
+
+  if (traceData.length === 0) {
+    return (
+      <div className="flex flex-col items-center justify-center py-20 text-center">
+        <Zap className="h-12 w-12 text-muted-foreground mb-4" />
+        <h2 className="text-lg font-semibold text-foreground mb-1">Nenhum trace registrado</h2>
+        <p className="text-sm text-muted-foreground">Traces OpenTelemetry aparecerao aqui quando agentes executarem via NexusTracer.</p>
+        <p className="text-xs text-muted-foreground mt-2">Configure Langfuse em Settings para observabilidade avancada.</p>
+      </div>
+    );
+  }
+
+  return (
+    <div className="space-y-3">
+      <div className="flex items-center justify-between">
+        <h3 className="text-sm font-heading font-semibold text-foreground">Trace Events ({traceData.length})</h3>
+        <Badge variant="outline" className="text-[10px]">OTel GenAI SemConv</Badge>
+      </div>
+      {traceData.map(trace => {
+        const d = trace.data || {};
+        const spans = Array.isArray(d.spans) ? d.spans.length : 0;
+        return (
+          <div key={trace.id} className="nexus-card p-3">
+            <div className="flex items-center justify-between mb-2">
+              <div className="flex items-center gap-2">
+                <Zap className={`h-4 w-4 ${d.status === 'error' ? 'text-destructive' : 'text-nexus-emerald'}`} />
+                <span className="text-xs font-medium text-foreground">{trace.event_type}</span>
+                <Badge variant="outline" className="text-[10px]">{String(d.status || 'unknown')}</Badge>
+              </div>
+              <span className="text-[11px] text-muted-foreground">{new Date(trace.created_at).toLocaleString('pt-BR')}</span>
+            </div>
+            <div className="grid grid-cols-4 gap-2 text-center">
+              <div className="p-2 rounded bg-secondary/30">
+                <p className="text-sm font-bold text-foreground">{d.duration_ms ? `${Number(d.duration_ms)}ms` : '-'}</p>
+                <p className="text-[10px] text-muted-foreground">Duracao</p>
+              </div>
+              <div className="p-2 rounded bg-secondary/30">
+                <p className="text-sm font-bold text-foreground">{d.token_count?.toLocaleString() || '-'}</p>
+                <p className="text-[10px] text-muted-foreground">Tokens</p>
+              </div>
+              <div className="p-2 rounded bg-secondary/30">
+                <p className="text-sm font-bold text-foreground">{d.cost_usd ? `$${Number(d.cost_usd).toFixed(4)}` : '-'}</p>
+                <p className="text-[10px] text-muted-foreground">Custo</p>
+              </div>
+              <div className="p-2 rounded bg-secondary/30">
+                <p className="text-sm font-bold text-foreground">{spans}</p>
+                <p className="text-[10px] text-muted-foreground">Spans</p>
+              </div>
+            </div>
+            {d.agent_id && (
+              <p className="text-[11px] text-muted-foreground mt-2">Agent: {String(d.agent_id).substring(0, 12)}... | Trace: {String(d.trace_id || trace.id).substring(0, 12)}...</p>
+            )}
+          </div>
+        );
+      })}
     </div>
   );
 }
