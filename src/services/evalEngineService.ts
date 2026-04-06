@@ -38,7 +38,7 @@ export async function runRAGASEvaluation(
 }
 
 export async function getAgentRAGASAverage(agentId: string) {
-  const { data, error } = await supabase.rpc('get_ragas_avg', { p_agent_id: agentId });
+  const { data, error } = await (supabase.rpc as (fn: string, params: Record<string, unknown>) => ReturnType<typeof supabase.rpc>)('get_ragas_avg', { p_agent_id: agentId });
   if (error) {
     logger.error('RAGAS avg query failed', { error: error.message, agentId });
     throw new Error(`RAGAS avg error: ${error.message}`);
