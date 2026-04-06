@@ -1,7 +1,9 @@
 import "https://deno.land/x/xhr@0.1.0/mod.ts";
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.49.4";
-import { getCorsHeaders, handleCorsPreflight, jsonResponse, errorResponse, checkRateLimit, getRateLimitIdentifier, createRateLimitResponse, RATE_LIMITS } from "../_shared/mod.ts";
+import { getCorsHeaders, handleCorsPreflight, jsonResponse, errorResponse, checkRateLimit, getRateLimitIdentifier, createRateLimitResponse, RATE_LIMITS, createLogger } from "../_shared/mod.ts";
+
+const log = createLogger('cerebro-brain');
 
 // CORS handled by _shared/cors.ts — dynamic origin whitelist
 
@@ -223,7 +225,7 @@ serve(async (req) => {
               }), { headers: { ...getCorsHeaders(req), 'Content-Type': 'application/json' } });
             }
           }
-        } catch (e: unknown) { console.error('HF NER failed, falling back to LLM:', e instanceof Error ? e.message : e); }
+        } catch (e: unknown) { log.warn('HF NER failed, falling back to LLM', { error: e instanceof Error ? e.message : String(e) }); }
       }
 
       // Layer 2: LLM extraction (for facts, rules, contacts, or NER fallback)

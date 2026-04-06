@@ -1,7 +1,8 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.49.4";
-import { getCorsHeaders, handleCorsPreflight, jsonResponse, errorResponse, checkRateLimit, getRateLimitIdentifier, createRateLimitResponse, RATE_LIMITS } from "../_shared/mod.ts";
+import { getCorsHeaders, handleCorsPreflight, jsonResponse, errorResponse, checkRateLimit, getRateLimitIdentifier, createRateLimitResponse, RATE_LIMITS, createLogger } from "../_shared/mod.ts";
 
+const log = createLogger('datahub-query');
 // CORS handled by _shared/cors.ts — dynamic origin whitelist
 
 /* ── Connection registry ─────────────────────────────── */
@@ -743,7 +744,7 @@ serve(async (req) => {
 
     return new Response(JSON.stringify({ error: 'Invalid action' }), { status: 400, headers: { ...getCorsHeaders(req), 'Content-Type': 'application/json' } });
   } catch (error: unknown) {
-    console.error('datahub-query error:', error);
+    log.error('datahub-query error', { error: error instanceof Error ? error.message : String(error) });
     return new Response(JSON.stringify({ error: error instanceof Error ? error.message : 'Internal error' }), { status: 500, headers: { ...getCorsHeaders(req), 'Content-Type': 'application/json' } });
   }
 });

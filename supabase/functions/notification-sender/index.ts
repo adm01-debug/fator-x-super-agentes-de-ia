@@ -1,6 +1,8 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.49.4";
-import { handleCorsPreflight, getCorsHeaders, checkRateLimit, getRateLimitIdentifier, createRateLimitResponse, RATE_LIMITS } from "../_shared/mod.ts";
+import { handleCorsPreflight, getCorsHeaders, checkRateLimit, getRateLimitIdentifier, createRateLimitResponse, RATE_LIMITS, createLogger } from "../_shared/mod.ts";
+
+const log = createLogger('notification-sender');
 
 serve(async (req) => {
   if (req.method === 'OPTIONS') return handleCorsPreflight(req);
@@ -128,7 +130,7 @@ async function sendEmail(subject: string, body: string, to: string): Promise<{ s
 
   if (!resendKey) {
     // Fallback: log only when no email service configured
-    console.warn(`[EMAIL] No RESEND_API_KEY configured. Would send to: ${to} | Subject: ${subject}`);
+    log.warn('No RESEND_API_KEY configured, email not sent', { to, subject });
     return { success: true };
   }
 

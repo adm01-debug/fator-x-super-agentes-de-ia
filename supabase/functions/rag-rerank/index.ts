@@ -4,7 +4,10 @@ import {
   authenticateRequest,
   checkRateLimit, createRateLimitResponse, getRateLimitIdentifier, RATE_LIMITS,
   parseBody, z,
+  createLogger,
 } from "../_shared/mod.ts";
+
+const log = createLogger('rag-rerank');
 
 // ═══ Input Schema (Zod) ═══
 const RerankInput = z.object({
@@ -79,7 +82,7 @@ serve(async (req) => {
         }
       }
     } catch (e: unknown) {
-      console.error('Cohere layer failed:', e instanceof Error ? e.message : e);
+      log.warn('Cohere layer failed', { error: e instanceof Error ? e.message : String(e) });
     }
 
     // Layer 2: HuggingFace BGE Reranker (free cross-encoder)
@@ -116,7 +119,7 @@ serve(async (req) => {
           }
         }
       } catch (e: unknown) {
-        console.error('HF rerank failed:', e instanceof Error ? e.message : e);
+        log.warn('HF rerank failed', { error: e instanceof Error ? e.message : String(e) });
       }
     }
 

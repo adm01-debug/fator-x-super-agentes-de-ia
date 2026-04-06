@@ -1,7 +1,9 @@
 import "https://deno.land/x/xhr@0.1.0/mod.ts";
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.49.4";
-import { getCorsHeaders, handleCorsPreflight, jsonResponse, errorResponse, checkRateLimit, getRateLimitIdentifier, createRateLimitResponse, RATE_LIMITS } from "../_shared/mod.ts";
+import { getCorsHeaders, handleCorsPreflight, jsonResponse, errorResponse, checkRateLimit, getRateLimitIdentifier, createRateLimitResponse, RATE_LIMITS, createLogger } from "../_shared/mod.ts";
+
+const log = createLogger('rag-ingest');
 
 // CORS handled by _shared/cors.ts — dynamic origin whitelist
 
@@ -170,7 +172,7 @@ serve(async (req) => {
             }
           }
         } catch (e: unknown) {
-          console.error('Embedding failed:', e instanceof Error ? e.message : e);
+          log.error('Embedding failed', { error: e instanceof Error ? e.message : String(e) });
           await supabase.from('chunks').update({ embedding_status: 'failed' }).eq('document_id', document_id).eq('embedding_status', 'pending');
         }
       }

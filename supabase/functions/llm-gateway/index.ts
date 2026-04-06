@@ -2,7 +2,9 @@ import "https://deno.land/x/xhr@0.1.0/mod.ts";
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient, type SupabaseClient } from "https://esm.sh/@supabase/supabase-js@2.49.4";
 import { callLovable, callOpenRouter, callAnthropic, callOpenAICompatible, callHuggingFace, type LLMCallParams, type LLMResult } from "./providers.ts";
-import { getCorsHeaders, handleCorsPreflight, checkRateLimit, getRateLimitIdentifier, createRateLimitResponse, RATE_LIMITS } from "../_shared/mod.ts";
+import { getCorsHeaders, handleCorsPreflight, checkRateLimit, getRateLimitIdentifier, createRateLimitResponse, RATE_LIMITS, createLogger } from "../_shared/mod.ts";
+
+const log = createLogger('llm-gateway');
 
 // CORS handled by _shared/cors.ts — dynamic origin whitelist
 // corsHeaders removed — using getCorsHeaders(req) from _shared/cors.ts
@@ -167,7 +169,7 @@ async function checkGuardrails(supabase: SupabaseClient, agentId: string | undef
   } catch (e) {
     // FAIL-OPEN by design: guardrail errors should not block user requests.
     // In production, monitor this via security_events table.
-    console.error('[guardrails] Check failed, allowing request (fail-open):', e instanceof Error ? e.message : e);
+    log.error('[guardrails] Check failed, allowing request (fail-open)', { error: e instanceof Error ? e.message : String(e) });
     return { passed: true, triggered: [] };
   }
 }
@@ -196,7 +198,7 @@ async function checkBudget(supabase: SupabaseClient, workspaceId: string | undef
     }
   } catch (e) {
     // FAIL-OPEN by design: budget check errors should not block requests.
-    console.error('[budget] Check failed, allowing request (fail-open):', e instanceof Error ? e.message : e);
+    log.error('[budget] Check failed, allowing request (fail-open)', { error: e instanceof Error ? e.message : String(e) });
   }
   return { allowed: true };
 }
@@ -261,7 +263,7 @@ async function recordTrace(supabase: SupabaseClient, p: {
         }
       }
     }
-  } catch (e: unknown) { console.error('Trace failed:', e instanceof Error ? e.message : e); }
+  } catch (e: unknown) { log.error('Trace failed', { error: e instanceof Error ? e.message : String(e) }); }
 }
 
 // ═══ API Key Resolution — Fallback Chain ═══
@@ -337,7 +339,7 @@ async function callWithFallback(
     } catch (err) {
       const errMsg = `[${opt.provider}/${opt.model}] ${err instanceof Error ? err.message : 'Unknown error'}`;
       errors.push(errMsg);
-      console.error(`Fallback attempt ${i + 1} failed:`, errMsg);
+      log.error(`Fallback attempt ${i + 1} failed`, { error: errMsg });
       // Continue to next provider
     }
   }
