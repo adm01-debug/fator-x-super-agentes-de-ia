@@ -229,6 +229,7 @@ export default function DashboardPage() {
                   className="nexus-card nexus-metric-card nexus-card-interactive group cursor-pointer"
                   title={metric.tooltip}
                   onClick={() => navigate(metric.path)}
+                >
                   <div className="flex items-start justify-between mb-1">
                     <p className="text-[11px] font-medium text-muted-foreground uppercase tracking-wider">{metric.label}</p>
                     <div className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-xl ${metric.bgColor} transition-all group-hover:scale-110`}>
