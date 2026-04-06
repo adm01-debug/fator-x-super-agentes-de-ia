@@ -3,13 +3,17 @@
  * API keys, security events, audit trail.
  */
 import { supabase } from '@/integrations/supabase/client';
+import { logger } from '@/lib/logger';
 
 export async function listApiKeys() {
   const { data, error } = await supabase
     .from('api_keys')
     .select('id, name, key_prefix, scopes, is_active, last_used_at, created_at')
     .order('created_at', { ascending: false });
-  if (error) throw error;
+  if (error) {
+    logger.error('listApiKeys failed', { error: error.message });
+    throw error;
+  }
   return data ?? [];
 }
 
@@ -36,7 +40,10 @@ export async function createApiKey(name: string, scopes: string[] = ['read', 'ex
     scopes,
   });
 
-  if (error) throw error;
+  if (error) {
+    logger.error('createApiKey failed', { error: error.message });
+    throw error;
+  }
   return { raw_key: rawKey, key_prefix: keyPrefix };
 }
 
@@ -45,7 +52,10 @@ export async function revokeApiKey(id: string) {
     .from('api_keys')
     .update({ is_active: false })
     .eq('id', id);
-  if (error) throw error;
+  if (error) {
+    logger.error('revokeApiKey failed', { error: error.message });
+    throw error;
+  }
 }
 
 export async function getSecurityEvents(_options?: { severity?: string; limit?: number }) {
@@ -55,7 +65,10 @@ export async function getSecurityEvents(_options?: { severity?: string; limit?: 
     .order('created_at', { ascending: false })
     .limit(_options?.limit || 50);
 
-  if (error) throw error;
+  if (error) {
+    logger.error('getSecurityEvents failed', { error: error.message });
+    throw error;
+  }
   return (data ?? []).map(entry => ({
     ...entry,
     severity: 'info',
@@ -73,7 +86,10 @@ export async function getAuditLog(options?: { userId?: string; limit?: number })
   if (options?.userId) query = query.eq('user_id', options.userId);
 
   const { data, error } = await query;
-  if (error) throw error;
+  if (error) {
+    logger.error('getAuditLog failed', { error: error.message });
+    throw error;
+  }
   return data ?? [];
 }
 
@@ -81,7 +97,10 @@ export async function invokeGuardrailsCheck(text: string) {
   const { data, error } = await supabase.functions.invoke('guardrails-engine', {
     body: { action: 'check_full', text },
   });
-  if (error) throw error;
+  if (error) {
+    logger.error('invokeGuardrailsCheck failed', { error: error.message });
+    throw error;
+  }
   return data;
 }
 
@@ -103,7 +122,10 @@ export async function listGuardrailPolicies() {
     .from('guardrail_policies')
     .select('*')
     .order('created_at', { ascending: false });
-  if (error) throw error;
+  if (error) {
+    logger.error('listGuardrailPolicies failed', { error: error.message });
+    throw error;
+  }
   return data ?? [];
 }
 
@@ -113,7 +135,10 @@ export async function createGuardrailPolicy(name: string, type: string, workspac
     type,
     workspace_id: workspaceId,
   });
-  if (error) throw error;
+  if (error) {
+    logger.error('createGuardrailPolicy failed', { error: error.message });
+    throw error;
+  }
 }
 
 export async function toggleGuardrailPolicy(id: string, enabled: boolean) {
@@ -121,7 +146,10 @@ export async function toggleGuardrailPolicy(id: string, enabled: boolean) {
     .from('guardrail_policies')
     .update({ is_enabled: enabled })
     .eq('id', id);
-  if (error) throw error;
+  if (error) {
+    logger.error('toggleGuardrailPolicy failed', { error: error.message });
+    throw error;
+  }
 }
 
 export async function deleteGuardrailPolicy(id: string) {
@@ -129,14 +157,20 @@ export async function deleteGuardrailPolicy(id: string) {
     .from('guardrail_policies')
     .delete()
     .eq('id', id);
-  if (error) throw error;
+  if (error) {
+    logger.error('deleteGuardrailPolicy failed', { error: error.message });
+    throw error;
+  }
 }
 
 export async function testGuardrails(text: string, checks: string[] = ['pii', 'injection', 'toxicity', 'content']) {
   const { data, error } = await supabase.functions.invoke('guardrails-engine', {
     body: { text, checks },
   });
-  if (error) throw error;
+  if (error) {
+    logger.error('testGuardrails failed', { error: error.message });
+    throw error;
+  }
   return data;
 }
 
@@ -155,7 +189,10 @@ export async function getActiveSessions() {
 
 export async function signOutOtherSessions() {
   const { error } = await supabase.auth.signOut({ scope: 'others' });
-  if (error) throw error;
+  if (error) {
+    logger.error('signOutOtherSessions failed', { error: error.message });
+    throw error;
+  }
 }
 
 // ──────── Security Posture (real checks) ────────
@@ -209,7 +246,10 @@ export async function getRateLimitStats() {
       .from('rate_limit_log')
       .select('endpoint, blocked')
       .gte('created_at', new Date(Date.now() - 60000).toISOString());
-    if (error) throw error;
+    if (error) {
+      logger.error('getRateLimitStats failed', { error: error.message });
+      throw error;
+    }
 
     const endpoints: Record<string, { total: number; blocked: number }> = {};
     (data ?? []).forEach((row: { endpoint: string; blocked: boolean }) => {

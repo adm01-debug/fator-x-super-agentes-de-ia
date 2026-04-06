@@ -3,6 +3,7 @@
  * Collections, documents, chunks management for Super Cérebro.
  */
 import { supabase } from '@/integrations/supabase/client';
+import { logger } from '@/lib/logger';
 
 export async function listCollections() {
   const { data, error } = await supabase
@@ -10,7 +11,10 @@ export async function listCollections() {
     .select('*, documents:documents(count)')
     .order('updated_at', { ascending: false });
 
-  if (error) throw error;
+  if (error) {
+    logger.error('listCollections failed', { error: error.message });
+    throw error;
+  }
   return data ?? [];
 }
 
@@ -24,13 +28,19 @@ export async function createCollection(name: string, description?: string) {
     .select()
     .single();
 
-  if (error) throw error;
+  if (error) {
+    logger.error('createCollection failed', { error: error.message });
+    throw error;
+  }
   return data;
 }
 
 export async function deleteCollection(id: string) {
   const { error } = await supabase.from('collections').delete().eq('id', id);
-  if (error) throw error;
+  if (error) {
+    logger.error('deleteCollection failed', { error: error.message });
+    throw error;
+  }
 }
 
 export async function listDocuments(collectionId: string) {
@@ -40,7 +50,10 @@ export async function listDocuments(collectionId: string) {
     .eq('collection_id', collectionId)
     .order('created_at', { ascending: false });
 
-  if (error) throw error;
+  if (error) {
+    logger.error('listDocuments failed', { error: error.message });
+    throw error;
+  }
   return data ?? [];
 }
 
@@ -88,13 +101,19 @@ export async function listKnowledgeBases() {
     .from('knowledge_bases')
     .select('*')
     .order('created_at', { ascending: false });
-  if (error) throw error;
+  if (error) {
+    logger.error('listKnowledgeBases failed', { error: error.message });
+    throw error;
+  }
   return data ?? [];
 }
 
 export async function deleteKnowledgeBase(id: string) {
   const { error } = await supabase.from('knowledge_bases').delete().eq('id', id);
-  if (error) throw error;
+  if (error) {
+    logger.error('deleteKnowledgeBase failed', { error: error.message });
+    throw error;
+  }
 }
 
 export async function listVectorIndexes() {
@@ -181,7 +200,10 @@ export async function fetchChunksForRerank(kbId?: string, limit = 50) {
   }
 
   const { data, error } = await query;
-  if (error) throw error;
+  if (error) {
+    logger.error('fetchChunksForRerank failed', { error: error.message });
+    throw error;
+  }
   return data ?? [];
 }
 
@@ -191,29 +213,44 @@ export async function createKnowledgeBaseWithWorkspace(kb: { name: string; descr
     ...kb,
     workspace_id: member?.workspace_id,
   }).select().single();
-  if (error) throw error;
+  if (error) {
+    logger.error('createKnowledgeBaseWithWorkspace failed', { error: error.message });
+    throw error;
+  }
   return data;
 }
 
 export async function updateKnowledgeBase(id: string, updates: { name?: string; description?: string; embedding_model?: string }) {
   const { error } = await supabase.from('knowledge_bases').update(updates).eq('id', id);
-  if (error) throw error;
+  if (error) {
+    logger.error('updateKnowledgeBase failed', { error: error.message });
+    throw error;
+  }
 }
 
 export async function createCollectionInKB(kb_id: string, name: string) {
   const { error } = await supabase.from('collections').insert({ name, knowledge_base_id: kb_id });
-  if (error) throw error;
+  if (error) {
+    logger.error('createCollectionInKB failed', { error: error.message });
+    throw error;
+  }
 }
 
 export async function createDocument(doc: { title: string; collection_id: string; source_type?: string; mime_type?: string }) {
   const { data, error } = await supabase.from('documents').insert(doc).select().single();
-  if (error) throw error;
+  if (error) {
+    logger.error('createDocument failed', { error: error.message });
+    throw error;
+  }
   return data;
 }
 
 export async function invokeRagIngest(body: Record<string, unknown>) {
   const { data, error } = await supabase.functions.invoke('rag-ingest', { body });
-  if (error) throw error;
+  if (error) {
+    logger.error('invokeRagIngest failed', { error: error.message });
+    throw error;
+  }
   return data;
 }
 
@@ -242,7 +279,10 @@ export async function getKBHealthStats() {
 
 export async function createPromptVersion(pv: { agent_id: string; content: string; user_id: string; change_summary?: string }) {
   const { error } = await supabase.from('prompt_versions').insert(pv);
-  if (error) throw error;
+  if (error) {
+    logger.error('createPromptVersion failed', { error: error.message });
+    throw error;
+  }
 }
 
 export async function listPromptVersions(agentId: string) {
@@ -252,20 +292,29 @@ export async function listPromptVersions(agentId: string) {
 
 export async function listCollectionsForKB(kbId: string) {
   const { data, error } = await supabase.from('collections').select('*').eq('knowledge_base_id', kbId).order('created_at', { ascending: false });
-  if (error) throw error;
+  if (error) {
+    logger.error('listCollectionsForKB failed', { error: error.message });
+    throw error;
+  }
   return data ?? [];
 }
 
 export async function listChunksForDocuments(docIds: string[], limit = 100) {
   if (docIds.length === 0) return [];
   const { data, error } = await supabase.from('chunks').select('*').in('document_id', docIds).order('chunk_index', { ascending: true }).limit(limit);
-  if (error) throw error;
+  if (error) {
+    logger.error('listChunksForDocuments failed', { error: error.message });
+    throw error;
+  }
   return data ?? [];
 }
 
 export async function createCollectionForKB(kbId: string, name: string, description?: string) {
   const { error } = await supabase.from('collections').insert({ name, description, knowledge_base_id: kbId });
-  if (error) throw error;
+  if (error) {
+    logger.error('createCollectionForKB failed', { error: error.message });
+    throw error;
+  }
 }
 
 export async function deleteDocument(docId: string) {

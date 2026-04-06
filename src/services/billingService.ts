@@ -4,6 +4,7 @@
  */
 import { fromTable } from '@/lib/supabaseExtended';
 import { supabase } from '@/integrations/supabase/client';
+import { logger } from '@/lib/logger';
 
 // ═══ Usage ═══
 
@@ -17,7 +18,10 @@ export async function getUsageSummary(period: 'day' | 'week' | 'month' = 'week')
     .gte('created_at', since)
     .order('created_at', { ascending: true });
 
-  if (error) throw error;
+  if (error) {
+    logger.error('getUsageSummary failed', { error: error.message });
+    throw error;
+  }
 
   const records = (data ?? []) as Array<Record<string, unknown>>;
   const totalCost = records.reduce((s, r) => s + Number(r.cost_usd || 0), 0);
@@ -40,7 +44,10 @@ export async function getAgentUsage(days = 30) {
     .select('*')
     .gte('date', since.toISOString().split('T')[0])
     .order('date', { ascending: true });
-  if (error) throw error;
+  if (error) {
+    logger.error('getAgentUsage failed', { error: error.message });
+    throw error;
+  }
   return data ?? [];
 }
 
@@ -50,7 +57,10 @@ export async function getUsageRecords(limit = 50) {
     .select('*')
     .order('created_at', { ascending: false })
     .limit(limit);
-  if (error) throw error;
+  if (error) {
+    logger.error('getUsageRecords failed', { error: error.message });
+    throw error;
+  }
   return data ?? [];
 }
 
@@ -61,7 +71,10 @@ export async function listBudgets() {
     .from('budgets')
     .select('*')
     .order('created_at', { ascending: false });
-  if (error) throw error;
+  if (error) {
+    logger.error('listBudgets failed', { error: error.message });
+    throw error;
+  }
   return data ?? [];
 }
 
@@ -80,13 +93,19 @@ export async function createBudget(workspaceId: string, name: string, limitUsd: 
     .insert({ name, limit_usd: limitUsd, workspace_id: workspaceId })
     .select()
     .single();
-  if (error) throw error;
+  if (error) {
+    logger.error('createBudget failed', { error: error.message });
+    throw error;
+  }
   return data;
 }
 
 export async function deleteBudget(id: string) {
   const { error } = await supabase.from('budgets').delete().eq('id', id);
-  if (error) throw error;
+  if (error) {
+    logger.error('deleteBudget failed', { error: error.message });
+    throw error;
+  }
 }
 
 export async function setBudget(workspaceId: string, monthlyLimit: number) {
@@ -95,7 +114,10 @@ export async function setBudget(workspaceId: string, monthlyLimit: number) {
     .upsert({ workspace_id: workspaceId, limit_usd: monthlyLimit, alert_threshold: 0.8 })
     .select()
     .single();
-  if (error) throw error;
+  if (error) {
+    logger.error('setBudget failed', { error: error.message });
+    throw error;
+  }
   return data;
 }
 
@@ -122,6 +144,9 @@ export async function getModelPricing() {
     .from('model_pricing')
     .select('*')
     .order('model_pattern');
-  if (error) throw error;
+  if (error) {
+    logger.error('getModelPricing failed', { error: error.message });
+    throw error;
+  }
   return data ?? [];
 }
