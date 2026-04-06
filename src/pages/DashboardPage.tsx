@@ -132,7 +132,7 @@ export default function DashboardPage() {
   const summary = getSummary();
 
   return (
-    <div className="p-4 sm:p-8 lg:p-10 space-y-5 sm:space-y-6 max-w-[1400px] mx-auto" role="main" aria-label="Dashboard principal">
+    <div className="p-4 sm:p-8 lg:p-10 space-y-5 sm:space-y-6 max-w-[1400px] mx-auto animate-page-enter" role="main" aria-label="Dashboard principal">
       <div className="space-y-1">
         <PageHeader
           title={`${getGreeting()} 👋`}
@@ -159,12 +159,17 @@ export default function DashboardPage() {
 
       {agents.length === 0 ? (
         <div className="flex flex-col items-center justify-center py-12 sm:py-20 text-center px-4">
-          <div className="text-5xl sm:text-6xl mb-4" aria-hidden="true">⚡</div>
-          <h2 className="text-lg sm:text-xl font-heading font-bold text-foreground mb-2">Bem-vindo ao Fator X!</h2>
-          <p className="text-sm text-muted-foreground mb-6 max-w-md">
-            Crie, configure, avalie e opere agentes de IA com governança completa. Comece criando seu primeiro agente.
+          <div className="relative mb-6">
+            <div className="h-20 w-20 rounded-2xl bg-gradient-to-br from-primary/15 to-accent/10 flex items-center justify-center border border-primary/10 mx-auto nexus-glow-sm">
+              <span className="text-4xl" aria-hidden="true">⚡</span>
+            </div>
+          </div>
+          <h2 className="text-xl sm:text-2xl font-heading font-bold nexus-gradient-text mb-2">Bem-vindo ao Fator X!</h2>
+          <p className="text-sm text-muted-foreground mb-6 max-w-md leading-relaxed">
+            Crie, configure, avalie e opere agentes de IA com governança completa.<br className="hidden sm:block" />
+            Comece criando seu primeiro agente.
           </p>
-          <Button onClick={() => navigate('/agents/new')} className="nexus-gradient-bg text-primary-foreground gap-2 hover:opacity-90 min-h-[44px]">
+          <Button onClick={() => navigate('/agents/new')} size="lg" className="nexus-gradient-bg text-primary-foreground gap-2 hover:opacity-90 min-h-[48px] shadow-lg shadow-primary/20">
             <Plus className="h-4 w-4" aria-hidden="true" /> Criar seu primeiro agente
           </Button>
           <div className="grid sm:grid-cols-3 gap-3 sm:gap-4 mt-8 sm:mt-10 w-full max-w-2xl stagger-children">
@@ -201,7 +206,7 @@ export default function DashboardPage() {
               <button
                 key={action.label}
                 onClick={() => navigate(action.path)}
-                className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-border/50 bg-card text-xs font-medium text-muted-foreground hover:text-foreground hover:border-primary/30 hover:bg-primary/5 transition-all"
+                className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-lg border border-border/40 bg-card/80 backdrop-blur-sm text-xs font-medium text-muted-foreground hover:text-foreground hover:border-primary/40 hover:bg-primary/5 hover:shadow-sm transition-all min-h-[36px]"
               >
                 <action.icon className="h-3.5 w-3.5" />
                 {action.label}
@@ -499,9 +504,12 @@ function DashboardInsight({ agents, usageStats, recentTraces }: InsightProps) {
   if (insights.length === 0) return null;
 
   return (
-    <div className="nexus-card border-primary/10 bg-gradient-to-r from-card to-primary/[0.02]">
-      <div className="flex items-center gap-2 mb-3">
-        <Sparkles className="h-4 w-4 text-primary" aria-hidden="true" />
+    <div className="nexus-card border-primary/15 bg-gradient-to-r from-card via-card to-primary/[0.04] relative overflow-hidden">
+      <div className="absolute top-0 right-0 w-32 h-32 bg-primary/[0.03] rounded-full blur-2xl -translate-y-1/2 translate-x-1/2" aria-hidden="true" />
+      <div className="flex items-center gap-2 mb-3 relative">
+        <div className="h-7 w-7 rounded-lg bg-primary/10 flex items-center justify-center">
+          <Sparkles className="h-3.5 w-3.5 text-primary" aria-hidden="true" />
+        </div>
         <h3 className="text-sm font-heading font-semibold text-foreground">Insights da IA</h3>
       </div>
       <div className="space-y-2">
