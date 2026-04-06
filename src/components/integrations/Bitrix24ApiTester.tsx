@@ -58,7 +58,7 @@ export function Bitrix24ApiTester() {
       <Button size="sm" onClick={handleTest} disabled={testing} className="gap-1.5">
         {testing ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Play className="h-3.5 w-3.5" />} Executar
       </Button>
-      {result && (
+      {result !== null && (
         <div className="mt-3 p-3 rounded-lg bg-secondary/30 border border-border/30">
           <pre className="text-[11px] text-muted-foreground overflow-auto max-h-[200px] font-mono">{JSON.stringify(result, null, 2)}</pre>
         </div>
