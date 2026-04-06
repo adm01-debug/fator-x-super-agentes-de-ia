@@ -508,8 +508,7 @@ export async function getBatchStats(): Promise<{
     .select('status, processed_items, successful_items, failed_items, duration_ms, avg_item_ms');
   if (error) throw error;
 
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const jobs: any[] = data ?? [];
+  const jobs = (data ?? []) as BatchJob[];
   const completed = jobs.filter((j: BatchJob) => j.status === 'completed' || j.status === 'partial');
   const failed = jobs.filter((j: BatchJob) => j.status === 'failed');
   const running = jobs.filter((j: BatchJob) => j.status === 'running');
