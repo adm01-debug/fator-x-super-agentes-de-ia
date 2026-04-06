@@ -1,3 +1,4 @@
+import { CardGridSkeleton } from "@/components/shared/PageSkeleton";
 import { PageHeader } from "@/components/shared/PageHeader";
 import { StatusBadge } from "@/components/shared/StatusBadge";
 import { InfoHint } from "@/components/shared/InfoHint";
@@ -92,7 +93,7 @@ export default function KnowledgePage() {
       </div>
 
       {isLoading ? (
-        <div className="flex items-center justify-center py-20"><Loader2 className="h-6 w-6 animate-spin text-muted-foreground" /></div>
+        <CardGridSkeleton count={6} cols={3} />
       ) : filtered.length === 0 ? (
         <div className="flex flex-col items-center justify-center py-20 text-center">
           <Database className="h-12 w-12 text-muted-foreground mb-4" />
