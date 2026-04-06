@@ -73,17 +73,16 @@ serve(async (req) => {
           .eq('workspace_id', workspaceId)
           .textSearch('content', query.split(' ').join(' & '))
           .order('relevance_score', { ascending: false })
-          .limit(limit);
+          .limit(limit ?? 10);
 
         if (error) {
-          // Fallback to ilike if full-text search fails
           const { data: fallback } = await supabaseAdmin
             .from('agent_memories')
             .select('*')
             .eq('workspace_id', workspaceId)
             .ilike('content', `%${query}%`)
             .order('relevance_score', { ascending: false })
-            .limit(limit);
+            .limit(limit ?? 10);
 
           return jsonResponse(req, { memories: fallback || [], query, count: fallback?.length || 0 });
         }
@@ -97,7 +96,7 @@ serve(async (req) => {
           .select('*')
           .eq('workspace_id', workspaceId)
           .order('created_at', { ascending: false })
-          .limit(limit);
+          .limit(limit ?? 10);
 
         if (memory_type) dbQuery = dbQuery.eq('memory_type', memory_type);
 
@@ -118,8 +117,8 @@ serve(async (req) => {
           .from('agent_memories')
           .delete()
           .eq('workspace_id', workspaceId)
-          .eq('memory_type', memory_type)
-          .select('*', { count: 'exact', head: true });
+          .eq('memory_type', memory_type);
+        const count = 0;
 
         if (error) return errorResponse(req, error.message, 500);
         return jsonResponse(req, { deleted_count: count || 0, memory_type, message: 'All memories of this type forgotten' });
