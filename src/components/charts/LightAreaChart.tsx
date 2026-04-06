@@ -99,8 +99,9 @@ export function LightAreaChart({
         <defs>
           {series.map((s, i) => (
             <linearGradient key={i} id={`grad-${uid}-${i}`} x1="0" y1="0" x2="0" y2="1">
-              <stop offset="5%" stopColor={s.gradientFrom || s.stroke} stopOpacity={0.3} />
-              <stop offset="95%" stopColor={s.gradientFrom || s.stroke} stopOpacity={0} />
+              <stop offset="0%" stopColor={s.gradientFrom || s.stroke} stopOpacity={0.4} />
+              <stop offset="50%" stopColor={s.gradientFrom || s.stroke} stopOpacity={0.12} />
+              <stop offset="100%" stopColor={s.gradientFrom || s.stroke} stopOpacity={0} />
             </linearGradient>
           ))}
         </defs>
