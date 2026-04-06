@@ -6,7 +6,7 @@ import { StatusBadge } from "@/components/shared/StatusBadge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
-import { Rocket, Loader2, Link2, Copy, CheckCircle } from "lucide-react";
+import { Rocket, Link2, Copy, CheckCircle } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
 import { listDeployedAgents } from "@/services/deploymentsService";
 import { toast } from "sonner";
