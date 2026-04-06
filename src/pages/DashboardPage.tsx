@@ -209,50 +209,89 @@ export default function DashboardPage() {
           </div>
 
           {/* Metrics */}
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-3 sm:gap-4 stagger-children" role="region" aria-label="Métricas principais">
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-4 sm:gap-6 stagger-children" role="region" aria-label="Métricas principais">
             {[
-              { icon: Bot, color: "text-primary", bgColor: "bg-primary/10", value: agents.length, label: "Total de agentes", hint: `${draftCount} rascunhos`, tooltip: "Número total de agentes criados no workspace" },
-              { icon: Zap, color: "text-nexus-emerald", bgColor: "bg-nexus-emerald/10", value: activeCount, label: "Em produção", hint: activeCount > 0 ? "Operando normalmente" : "Nenhum ativo", tooltip: "Agentes com status 'production' ou 'monitoring'" },
-              { icon: DollarSign, color: "text-nexus-amber", bgColor: "bg-nexus-amber/10", value: usageStats?.totalCost ?? 0, label: `Custo (${dateRange})`, prefix: "$", decimals: 2, noData: !usageStats, hint: usageStats ? `${usageStats.totalRequests} requests` : undefined, tooltip: `Custo acumulado dos últimos ${days} dias` },
-              { icon: TrendingUp, color: "text-primary", bgColor: "bg-primary/10", value: usageStats?.totalRequests ?? 0, label: `Requests (${dateRange})`, noData: !usageStats, hint: usageStats ? `~${usageStats.avgLatency}ms latência` : undefined, tooltip: `Total de requisições processadas nos últimos ${days} dias` },
-            ].map((metric, i) => (
-             <div
-                key={metric.label}
-                className="nexus-card nexus-metric-card text-center group"
-                title={metric.tooltip}
-              >
-                <div className={`inline-flex items-center justify-center h-8 w-8 rounded-lg ${metric.bgColor} mb-2`}>
-                  <metric.icon className={`h-4 w-4 ${metric.color}`} aria-hidden="true" />
-                </div>
-                <p className={`text-xl sm:text-2xl font-heading font-bold ${i === 1 ? "text-nexus-emerald" : "text-foreground"}`}>
-                  {metric.noData ? '—' : (
-                    <AnimatedCounter
-                      value={metric.value}
-                      prefix={metric.prefix}
-                      decimals={metric.decimals}
-                    />
+              { icon: Bot, color: "text-primary", bgColor: "bg-primary/10", sparkColor: "hsl(var(--primary))", value: agents.length, label: "Total de agentes", hint: `${draftCount} rascunhos`, tooltip: "Número total de agentes criados no workspace" },
+              { icon: Zap, color: "text-nexus-emerald", bgColor: "bg-nexus-emerald/10", sparkColor: "hsl(var(--nexus-emerald))", value: activeCount, label: "Em produção", hint: activeCount > 0 ? "Operando normalmente" : "Nenhum ativo", tooltip: "Agentes com status 'production' ou 'monitoring'" },
+              { icon: DollarSign, color: "text-nexus-amber", bgColor: "bg-nexus-amber/10", sparkColor: "hsl(var(--nexus-amber))", value: usageStats?.totalCost ?? 0, label: `Custo (${dateRange})`, prefix: "$", decimals: 2, noData: !usageStats, hint: usageStats ? `${usageStats.totalRequests} requests` : undefined, tooltip: `Custo acumulado dos últimos ${days} dias` },
+              { icon: TrendingUp, color: "text-primary", bgColor: "bg-primary/10", sparkColor: "hsl(var(--primary))", value: usageStats?.totalRequests ?? 0, label: `Requests (${dateRange})`, noData: !usageStats, hint: usageStats ? `~${usageStats.avgLatency}ms latência` : undefined, tooltip: `Total de requisições processadas nos últimos ${days} dias` },
+            ].map((metric, i) => {
+              // Generate sparkline from usage data (last 7 data points)
+              const sparkData = i === 2
+                ? usageData.slice(-7).map(u => Number(u.total_cost_usd || 0))
+                : i === 3
+                ? usageData.slice(-7).map(u => u.requests || 0)
+                : undefined;
+              return (
+                <div
+                  key={metric.label}
+                  className="nexus-card nexus-metric-card group"
+                  title={metric.tooltip}
+                >
+                  <div className="flex items-start justify-between mb-1">
+                    <p className="text-[11px] font-medium text-muted-foreground uppercase tracking-wider">{metric.label}</p>
+                    <div className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-xl ${metric.bgColor} transition-all group-hover:scale-110`}>
+                      <metric.icon className={`h-4 w-4 ${metric.color} icon-hover-bounce`} aria-hidden="true" />
+                    </div>
+                  </div>
+                  <p className={`text-2xl sm:text-3xl font-heading font-extrabold tracking-tight animate-number-pop ${i === 1 ? "text-nexus-emerald" : "text-foreground"}`}>
+                    {metric.noData ? '—' : (
+                      <AnimatedCounter
+                        value={metric.value}
+                        prefix={metric.prefix}
+                        decimals={metric.decimals}
+                      />
+                    )}
+                  </p>
+                  {metric.hint && <p className="text-[11px] text-muted-foreground/60 mt-0.5">{metric.hint}</p>}
+                  {sparkData && sparkData.length > 1 && (
+                    <div className="mt-2 opacity-60 group-hover:opacity-100 transition-opacity">
+                      <svg width="100%" height="24" viewBox="0 0 64 24" preserveAspectRatio="none" aria-hidden="true" className="overflow-visible">
+                        {(() => {
+                          const max = Math.max(...sparkData, 1);
+                          const min = Math.min(...sparkData, 0);
+                          const range = max - min || 1;
+                          const pts = sparkData.map((v, idx) => {
+                            const x = (idx / (sparkData.length - 1)) * 64;
+                            const y = 24 - ((v - min) / range) * 20 - 2;
+                            return `${x},${y}`;
+                          }).join(' ');
+                          const area = `0,24 ${pts} 64,24`;
+                          return (
+                            <>
+                              <defs>
+                                <linearGradient id={`sg${i}`} x1="0" y1="0" x2="0" y2="1">
+                                  <stop offset="0%" stopColor={metric.sparkColor} stopOpacity="0.25" />
+                                  <stop offset="100%" stopColor={metric.sparkColor} stopOpacity="0" />
+                                </linearGradient>
+                              </defs>
+                              <polygon points={area} fill={`url(#sg${i})`} />
+                              <polyline points={pts} fill="none" stroke={metric.sparkColor} strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+                            </>
+                          );
+                        })()}
+                      </svg>
+                    </div>
                   )}
-                </p>
-                <p className="text-[11px] text-muted-foreground font-medium">{metric.label}</p>
-                {metric.hint && <p className="text-[11px] text-muted-foreground/60 mt-0.5">{metric.hint}</p>}
-              </div>
-            ))}
+                </div>
+              );
+            })}
           </div>
 
           {/* Additional metrics row */}
           {usageStats && (
-            <div className="grid grid-cols-3 gap-2 sm:gap-3 stagger-children">
-              <div className="nexus-card nexus-metric-card py-2.5 sm:py-3 text-center">
-                <p className="text-xs sm:text-sm font-heading font-bold text-foreground">{usageStats.avgLatency}ms</p>
-                <p className="text-[11px] sm:text-[11px] text-muted-foreground">Latência média</p>
+            <div className="grid grid-cols-3 gap-3 sm:gap-4 stagger-children">
+              <div className="nexus-card nexus-metric-card py-3 sm:py-4 text-center">
+                <p className="text-sm sm:text-lg font-heading font-extrabold text-foreground">{usageStats.avgLatency}ms</p>
+                <p className="text-[11px] text-muted-foreground/70 uppercase tracking-wider mt-0.5">Latência média</p>
               </div>
-              <div className="nexus-card nexus-metric-card py-2.5 sm:py-3 text-center">
-                <p className="text-xs sm:text-sm font-heading font-bold text-foreground">{(usageStats.totalTokens / 1000).toFixed(0)}k</p>
-                <p className="text-[11px] sm:text-[11px] text-muted-foreground">Tokens totais</p>
+              <div className="nexus-card nexus-metric-card py-3 sm:py-4 text-center">
+                <p className="text-sm sm:text-lg font-heading font-extrabold text-foreground">{(usageStats.totalTokens / 1000).toFixed(0)}k</p>
+                <p className="text-[11px] text-muted-foreground/70 uppercase tracking-wider mt-0.5">Tokens totais</p>
               </div>
-              <div className="nexus-card nexus-metric-card py-2.5 sm:py-3 text-center">
-                <p className="text-xs sm:text-sm font-heading font-bold text-foreground">{draftCount}</p>
-                <p className="text-[11px] sm:text-[11px] text-muted-foreground">Rascunhos</p>
+              <div className="nexus-card nexus-metric-card py-3 sm:py-4 text-center">
+                <p className="text-sm sm:text-lg font-heading font-extrabold text-foreground">{draftCount}</p>
+                <p className="text-[11px] text-muted-foreground/70 uppercase tracking-wider mt-0.5">Rascunhos</p>
               </div>
             </div>
           )}

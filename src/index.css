@@ -89,7 +89,7 @@
     --secondary-foreground: 210 20% 85%;
 
     --muted: 232 25% 12%;
-    --muted-foreground: 220 12% 68%;
+    --muted-foreground: 220 12% 72%;
 
     --accent: 142 50% 56%;
     --accent-foreground: 0 0% 100%;
@@ -139,6 +139,21 @@
     transition-property: color, background-color, border-color, box-shadow, opacity;
     transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
     transition-duration: 200ms;
+  }
+
+  /* Global focus-visible ring for accessibility */
+  *:focus-visible {
+    @apply outline-none ring-2 ring-ring ring-offset-2 ring-offset-background;
+  }
+
+  /* Remove focus ring from elements that handle it themselves */
+  button:focus-visible,
+  [role="button"]:focus-visible,
+  a:focus-visible,
+  input:focus-visible,
+  textarea:focus-visible,
+  select:focus-visible {
+    @apply outline-none ring-2 ring-ring ring-offset-1 ring-offset-background rounded-sm;
   }
 
   /* Respect reduced motion preference */
