@@ -22,13 +22,13 @@ function TableWidget({ widget }: { widget: UIWidget }) {
   const rows = (widget.data.rows || []) as Array<Record<string, string>>;
   const columns = (widget.data.columns || Object.keys(rows[0] || {})) as string[];
   return (
-    <div className="bg-[#0a0a1a] rounded-lg overflow-hidden">
-      {widget.title && <div className="px-3 py-2 text-xs font-bold text-white border-b border-[#222244]">{widget.title}</div>}
+    <div className="bg-secondary/30 rounded-lg overflow-hidden border border-border/30">
+      {widget.title && <div className="px-3 py-2 text-xs font-bold text-foreground border-b border-border/30">{widget.title}</div>}
       <table className="w-full text-xs">
-        <thead><tr>{columns.map(c => <th key={c} className="px-3 py-2 text-left text-[#888888] border-b border-[#222244]">{c}</th>)}</tr></thead>
+        <thead><tr>{columns.map(c => <th key={c} className="px-3 py-2 text-left text-muted-foreground border-b border-border/30">{c}</th>)}</tr></thead>
         <tbody>{rows.map((row, i) => (
-          <tr key={i} className="border-b border-[#222244]/50 hover:bg-[#111122]">
-            {columns.map(c => <td key={c} className="px-3 py-2 text-[#E0E0E0]">{row[c]}</td>)}
+          <tr key={i} className="border-b border-border/20 hover:bg-secondary/50">
+            {columns.map(c => <td key={c} className="px-3 py-2 text-foreground">{row[c]}</td>)}
           </tr>
         ))}</tbody>
       </table>
@@ -42,15 +42,15 @@ function CardWidget({ widget }: { widget: UIWidget }) {
     actions?: Array<{ label: string; action: string }>;
   };
   return (
-    <div className="bg-[#0a0a1a] rounded-lg p-4 space-y-3">
-      {(cardTitle || widget.title) && <h4 className="text-sm font-bold text-white">{cardTitle || widget.title}</h4>}
-      {description && <p className="text-xs text-[#888888]">{description}</p>}
+    <div className="nexus-card space-y-3">
+      {(cardTitle || widget.title) && <h4 className="text-sm font-bold text-foreground">{cardTitle || widget.title}</h4>}
+      {description && <p className="text-xs text-muted-foreground">{description}</p>}
       {metrics && (
         <div className="grid grid-cols-3 gap-2">
           {metrics.map((m, i) => (
-            <div key={i} className="bg-[#111122] rounded p-2 text-center">
-              <div className="text-lg font-bold" style={{ color: m.color || '#4D96FF' }}>{m.value}</div>
-              <div className="text-[10px] text-[#888888]">{m.label}</div>
+            <div key={i} className="bg-secondary/30 rounded p-2 text-center border border-border/20">
+              <div className="text-lg font-bold text-primary">{m.value}</div>
+              <div className="text-[10px] text-muted-foreground">{m.label}</div>
             </div>
           ))}
         </div>
@@ -67,10 +67,10 @@ function CardWidget({ widget }: { widget: UIWidget }) {
 function ProgressWidget({ widget }: { widget: UIWidget }) {
   const { steps, current } = widget.data as { steps: string[]; current: number };
   return (
-    <div className="bg-[#0a0a1a] rounded-lg p-4 space-y-2">
-      {widget.title && <h4 className="text-sm font-bold text-white">{widget.title}</h4>}
+    <div className="nexus-card space-y-2">
+      {widget.title && <h4 className="text-sm font-bold text-foreground">{widget.title}</h4>}
       {steps.map((step, i) => (
-        <div key={i} className={`flex items-center gap-2 text-xs ${i < current ? 'text-[#6BCB77]' : i === current ? 'text-[#4D96FF]' : 'text-[#555555]'}`}>
+        <div key={i} className={`flex items-center gap-2 text-xs ${i < current ? 'text-nexus-emerald' : i === current ? 'text-primary' : 'text-muted-foreground/50'}`}>
           <span>{i < current ? '✅' : i === current ? '⏳' : '○'}</span>
           <span>{step}</span>
         </div>
@@ -81,11 +81,16 @@ function ProgressWidget({ widget }: { widget: UIWidget }) {
 
 function AlertWidget({ widget }: { widget: UIWidget }) {
   const { severity, message } = widget.data as { severity: 'info' | 'warning' | 'error' | 'success'; message: string };
-  const colors = { info: '#4D96FF', warning: '#FFD93D', error: '#FF6B6B', success: '#6BCB77' };
+  const colorMap = {
+    info: 'bg-primary/10 border-primary/30 text-primary',
+    warning: 'bg-nexus-amber/10 border-nexus-amber/30 text-nexus-amber',
+    error: 'bg-destructive/10 border-destructive/30 text-destructive',
+    success: 'bg-nexus-emerald/10 border-nexus-emerald/30 text-nexus-emerald',
+  };
   return (
-    <div className="rounded-lg p-3 text-xs" style={{ background: `${colors[severity]}15`, border: `1px solid ${colors[severity]}40` }}>
-      <Badge className="mb-1" style={{ background: `${colors[severity]}30`, color: colors[severity] }}>{severity}</Badge>
-      <p className="text-[#E0E0E0]">{message}</p>
+    <div className={`rounded-lg p-3 text-xs border ${colorMap[severity]}`}>
+      <Badge variant="outline" className="mb-1">{severity}</Badge>
+      <p className="text-foreground">{message}</p>
     </div>
   );
 }
@@ -93,9 +98,9 @@ function AlertWidget({ widget }: { widget: UIWidget }) {
 function CodeWidget({ widget }: { widget: UIWidget }) {
   const { language, code } = widget.data as { language?: string; code: string };
   return (
-    <div className="bg-[#0a0a1a] rounded-lg overflow-hidden">
-      {(widget.title || language) && <div className="px-3 py-1.5 text-[10px] text-[#888888] border-b border-[#222244]">{widget.title || language}</div>}
-      <pre className="p-3 text-xs text-[#E0E0E0] overflow-x-auto font-mono"><code>{code}</code></pre>
+    <div className="bg-secondary/30 rounded-lg overflow-hidden border border-border/30">
+      {(widget.title || language) && <div className="px-3 py-1.5 text-[10px] text-muted-foreground border-b border-border/30">{widget.title || language}</div>}
+      <pre className="p-3 text-xs text-foreground overflow-x-auto font-mono"><code>{code}</code></pre>
     </div>
   );
 }
@@ -110,8 +115,8 @@ export function GenerativeUI({ widgets, onAction: _onAction }: GenerativeUIProps
           case 'progress': return <ProgressWidget key={i} widget={w} />;
           case 'alert': return <AlertWidget key={i} widget={w} />;
           case 'code': return <CodeWidget key={i} widget={w} />;
-          case 'text': return <p key={i} className="text-sm text-[#E0E0E0]">{String(w.data.content)}</p>;
-          default: return <div key={i} className="text-xs text-[#888888]">[Widget: {w.type}]</div>;
+          case 'text': return <p key={i} className="text-sm text-foreground">{String(w.data.content)}</p>;
+          default: return <div key={i} className="text-xs text-muted-foreground">[Widget: {w.type}]</div>;
         }
       })}
     </div>
