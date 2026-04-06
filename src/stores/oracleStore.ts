@@ -1,4 +1,5 @@
 import { create } from 'zustand';
+import { logger } from '@/lib/logger';
 import { supabase } from '@/integrations/supabase/client';
 import { saveOracleHistory } from '@/lib/oracleHistory';
 
@@ -381,7 +382,7 @@ export const useOracleStore = create<OracleStore>((set, get) => ({
       });
 
       // Persist to database
-      saveOracleHistory(query, mode, preset.id, preset.name, chairmanModel, enableThinking, results).catch(() => {});
+      saveOracleHistory(query, mode, preset.id, preset.name, chairmanModel, enableThinking, results).catch((err: unknown) => { logger.warn('Oracle history save failed', { error: err instanceof Error ? err.message : String(err) }); });
     } catch (e: unknown) {
       set({ error: e instanceof Error ? e.message : 'Erro ao consultar o Oráculo', isRunning: false, currentStage: 0, stageLabel: '' });
     }
