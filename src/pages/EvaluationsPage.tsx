@@ -6,7 +6,7 @@ import { StatusBadge } from "@/components/shared/StatusBadge";
 import { InfoHint } from "@/components/shared/InfoHint";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { FlaskConical, Loader2, ChevronDown, ChevronUp, CheckCircle2, XCircle } from "lucide-react";
+import { FlaskConical, ChevronDown, ChevronUp, CheckCircle2, XCircle } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
 import { listEvaluationRuns } from "@/services/evaluationsService";
 import { CreateEvaluationDialog } from "@/components/dialogs/CreateEvaluationDialog";
