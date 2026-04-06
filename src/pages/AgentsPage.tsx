@@ -19,6 +19,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import type { Tables } from "@/integrations/supabase/types";
 import { exportAgentToJSON, downloadJSON, importAgentFromJSON, readFileAsText } from "@/lib/agentExportImport";
 import { bulkUpdateStatus, bulkDelete } from "@/lib/agentBulkActions";
+import { AccessControl } from "@/components/rbac/AccessControl";
 import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from "@/components/ui/select";
@@ -36,7 +37,7 @@ function getFavorites(): string[] {
 function toggleFavorite(id: string): string[] {
   const prev = getFavorites();
   const next = prev.includes(id) ? prev.filter(f => f !== id) : [...prev, id];
-  localStorage.setItem(FAV_KEY, JSON.stringify(next));
+  try { localStorage.setItem(FAV_KEY, JSON.stringify(next)); } catch { /* quota */ }
   return next;
 }
 
@@ -202,9 +203,11 @@ export default function AgentsPage() {
               <Upload className="h-3.5 w-3.5" /> Importar
             </Button>
             <input ref={fileInputRef} type="file" accept=".json" className="hidden" onChange={handleImport} />
-            <Button onClick={() => navigate('/agents/new')} className="nexus-gradient-bg text-primary-foreground gap-2 hover:opacity-90">
-              <Plus className="h-4 w-4" /> Criar agente
-            </Button>
+            <AccessControl permission="agents.create">
+              <Button onClick={() => navigate('/agents/new')} className="nexus-gradient-bg text-primary-foreground gap-2 hover:opacity-90">
+                <Plus className="h-4 w-4" /> Criar agente
+              </Button>
+            </AccessControl>
           </div>
         }
       />

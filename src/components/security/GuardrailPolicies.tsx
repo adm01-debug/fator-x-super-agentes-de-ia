@@ -10,9 +10,9 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
 import { useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { supabase } from "@/integrations/supabase/client";
 import { getWorkspaceId } from "@/lib/agentService";
 import { toast } from "sonner";
+import { listGuardrailPolicies, createGuardrailPolicy, toggleGuardrailPolicy, deleteGuardrailPolicy, testGuardrails } from "@/services/securityService";
 
 const typeLabels: Record<string, string> = {
   content_filter: 'Filtro de conteúdo',
@@ -31,14 +31,7 @@ export function GuardrailPolicies() {
 
   const { data: guardrails = [], isLoading } = useQuery({
     queryKey: ['guardrail_policies'],
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from('guardrail_policies')
-        .select('*')
-        .order('created_at', { ascending: false });
-      if (error) throw error;
-      return data ?? [];
-    },
+    queryFn: listGuardrailPolicies,
   });
 
   const handleCreate = async () => {
@@ -46,12 +39,7 @@ export function GuardrailPolicies() {
     setSaving(true);
     try {
       const wsId = await getWorkspaceId();
-      const { error } = await supabase.from('guardrail_policies').insert({
-        name: grName.trim(),
-        type: grType,
-        workspace_id: wsId,
-      });
-      if (error) throw error;
+      await createGuardrailPolicy(grName.trim(), grType, wsId);
       toast.success('Guardrail criado!');
       setNewOpen(false);
       setGrName('');
@@ -64,14 +52,12 @@ export function GuardrailPolicies() {
   };
 
   const handleToggle = async (id: string, enabled: boolean) => {
-    await supabase.from('guardrail_policies').update({ is_enabled: enabled }).eq('id', id);
+    try { await toggleGuardrailPolicy(id, enabled); } catch (e: unknown) { toast.error(e instanceof Error ? e.message : 'Erro'); }
     queryClient.invalidateQueries({ queryKey: ['guardrail_policies'] });
   };
 
   const handleDelete = async (id: string) => {
-    const { error } = await supabase.from('guardrail_policies').delete().eq('id', id);
-    if (error) { toast.error(error.message); return; }
-    toast.success('Guardrail removido');
+    try { await deleteGuardrailPolicy(id); toast.success('Guardrail removido'); } catch (e: unknown) { toast.error(e instanceof Error ? e.message : 'Erro'); }
     queryClient.invalidateQueries({ queryKey: ['guardrail_policies'] });
   };
 
@@ -165,11 +151,8 @@ function GuardrailTester() {
     setTesting(true);
     setResult(null);
     try {
-      const { data, error } = await supabase.functions.invoke('guardrails-engine', {
-        body: { text: testInput.trim(), checks: ['pii', 'injection', 'toxicity', 'content'] },
-      });
-      if (error) throw new Error(error.message);
-      setResult(data);
+      const data = await testGuardrails(testInput.trim());
+      setResult(data as Record<string, unknown>);
       toast.success('Verificação concluída!');
     } catch (e: unknown) {
       toast.error(e instanceof Error ? e.message : 'Erro ao testar guardrails');
