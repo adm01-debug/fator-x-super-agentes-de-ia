@@ -143,7 +143,7 @@ export default function DashboardPage() {
               <DateRangePicker value={dateRange} onChange={setDateRange} />
               {agents.length > 0 && (
                 <Button onClick={() => navigate('/agents/new')} className="nexus-gradient-bg text-primary-foreground gap-2 hover:opacity-90 min-h-[44px]">
-                  <Plus className="h-4 w-4" aria-hidden="true" /> Criar agente
+                  <Plus className="h-4 w-4" aria-hidden="true" /> <span className="hidden sm:inline">Criar agente</span>
                 </Button>
               )}
             </div>
@@ -204,9 +204,9 @@ export default function DashboardPage() {
               { label: 'Workflows', icon: GitBranch, path: '/workflows' },
             ].map(action => (
               <button
-                key={action.label}
+                 key={action.label}
                 onClick={() => navigate(action.path)}
-                className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-lg border border-border/40 bg-card/80 backdrop-blur-sm text-xs font-medium text-muted-foreground hover:text-foreground hover:border-primary/40 hover:bg-primary/5 hover:shadow-sm transition-all min-h-[36px]"
+                className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-lg border border-border/40 bg-card/80 backdrop-blur-sm text-xs font-medium text-muted-foreground hover:text-foreground hover:border-primary/40 hover:bg-primary/5 hover:shadow-md hover:-translate-y-[1px] transition-all min-h-[36px]"
               >
                 <action.icon className="h-3.5 w-3.5" />
                 {action.label}
