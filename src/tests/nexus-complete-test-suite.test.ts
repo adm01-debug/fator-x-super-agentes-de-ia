@@ -294,7 +294,7 @@ describe('C. Funções Puras — Cost Calculator', () => {
 describe('C. Funções Puras — Skill Loader', () => {
   it('registra e recupera', () => {
     clearSkillRegistry();
-    registerSkill({ id: 's1', name: 'Test', description: 'test', content: 'x', tokenCount: 100, dependencies: [], keywords: ['test'], category: 'core', priority: 5 });
+    registerSkill({ id: 's1', name: 'Test', description: 'test', content: 'x', tokenCount: 100, dependencies: [], keywords: ['test'], category: 'core', priority: 5, alwaysLoad: false, useCount: 0 });
     expect(getSkill('s1')?.name).toBe('Test');
   });
   it('estima tokens', () => expect(estimateTokens('hello world')).toBeGreaterThan(0));
