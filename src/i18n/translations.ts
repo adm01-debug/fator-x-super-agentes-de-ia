@@ -1,8 +1,5 @@
 /**
- * ═══════════════════════════════════════════════════════════════
  * Nexus Agents Studio — i18n Translations
- * ═══════════════════════════════════════════════════════════════
- * pt-BR and en-US translations for the entire UI.
  * Usage: const { t } = useI18n(); t('agents.create')
  */
 
@@ -21,6 +18,21 @@ export const translations: Record<string, TranslationKeys> = {
     'nav.team': 'Equipe',
     'nav.settings': 'Configurações',
     'nav.cerebro': 'Super Cérebro',
+    'nav.memory': 'Memória',
+    'nav.tools': 'Ferramentas',
+    'nav.prompts': 'Prompts',
+    'nav.evaluations': 'Avaliações',
+    'nav.deployments': 'Implantações',
+    'nav.security': 'Segurança',
+    'nav.lgpd': 'LGPD',
+    'nav.approvals': 'Aprovações',
+    'nav.billing': 'Faturamento',
+    'nav.admin': 'Admin BD',
+    'nav.ai_studio': 'AI Studio',
+    'nav.automation': 'Automação',
+    'nav.fine_tuning': 'Fine-tuning',
+    'nav.smolagent': 'Smolagent',
+    'nav.data_storage': 'Dados & Storage',
 
     // Actions
     'action.save': 'Salvar',
@@ -36,15 +48,28 @@ export const translations: Record<string, TranslationKeys> = {
     'action.deploy': 'Deploy',
     'action.duplicate': 'Duplicar',
     'action.archive': 'Arquivar',
+    'action.confirm': 'Confirmar',
+    'action.back': 'Voltar',
+    'action.next': 'Próximo',
+    'action.refresh': 'Atualizar',
+    'action.close': 'Fechar',
+    'action.add': 'Adicionar',
+    'action.remove': 'Remover',
+    'action.connect': 'Conectar',
+    'action.disconnect': 'Desconectar',
 
     // Agents
     'agents.title': 'Agentes',
+    'agents.subtitle': 'Gerencie seus agentes de IA',
     'agents.create': 'Novo Agente',
     'agents.empty': 'Nenhum agente criado ainda',
+    'agents.search_placeholder': 'Buscar agentes...',
     'agents.status.draft': 'Rascunho',
     'agents.status.testing': 'Em Testes',
     'agents.status.production': 'Produção',
     'agents.status.archived': 'Arquivado',
+    'agents.status.deprecated': 'Descontinuado',
+    'agents.delete_confirm': 'Tem certeza que deseja excluir este agente?',
 
     // Builder tabs
     'builder.identity': 'Identidade',
@@ -61,16 +86,96 @@ export const translations: Record<string, TranslationKeys> = {
     'builder.billing': 'Custos',
     'builder.readiness': 'Prontidão',
     'builder.blueprint': 'Blueprint',
+    'builder.settings': 'Configurações',
 
-    // Common
-    'common.loading': 'Carregando...',
-    'common.error': 'Erro',
-    'common.success': 'Sucesso',
-    'common.confirm': 'Confirmar',
-    'common.no_data': 'Sem dados',
-    'common.unauthorized': 'Acesso não autorizado',
+    // Dashboard
+    'dashboard.title': 'Dashboard',
+    'dashboard.subtitle': 'Visão geral do seu ambiente',
+    'dashboard.welcome': 'Bem-vindo de volta',
+    'dashboard.agents_total': 'Agentes Totais',
+    'dashboard.active_agents': 'Agentes Ativos',
+    'dashboard.total_traces': 'Total de Traces',
+    'dashboard.total_cost': 'Custo Total',
+    'dashboard.recent_agents': 'Agentes Recentes',
+    'dashboard.quick_actions': 'Ações Rápidas',
 
-    // Automation Center
+    // Workflows
+    'workflows.title': 'Workflows',
+    'workflows.subtitle': 'Orquestre fluxos de trabalho entre agentes',
+    'workflows.create': 'Novo Workflow',
+    'workflows.canvas': 'Canvas Visual',
+    'workflows.list': 'Lista',
+    'workflows.runs': 'Execuções',
+    'workflows.schedule': 'Agendamentos',
+    'workflows.timetravel': 'Time Travel',
+
+    // Knowledge
+    'knowledge.title': 'Base de Conhecimento',
+    'knowledge.subtitle': 'Gerencie documentos e coleções RAG',
+    'knowledge.upload': 'Upload de Documento',
+    'knowledge.collections': 'Coleções',
+    'knowledge.documents': 'Documentos',
+    'knowledge.search': 'Busca Semântica',
+
+    // Oracle
+    'oracle.title': 'Oráculo Multi-LLM',
+    'oracle.subtitle': 'Conselho deliberativo com múltiplos modelos de IA',
+    'oracle.modes.council': 'Conselho',
+    'oracle.modes.debate': 'Debate',
+    'oracle.modes.critique': 'Crítica',
+    'oracle.modes.brainstorm': 'Brainstorm',
+    'oracle.modes.vote': 'Votação',
+
+    // Monitoring
+    'monitoring.title': 'Monitoramento',
+    'monitoring.subtitle': 'Traces, sessões, alertas e métricas',
+    'monitoring.traces': 'Traces',
+    'monitoring.sessions': 'Sessões',
+    'monitoring.alerts': 'Alertas',
+    'monitoring.tracing': 'Tracing',
+
+    // Billing
+    'billing.title': 'Faturamento',
+    'billing.subtitle': 'Custos, orçamentos e uso de tokens',
+    'billing.total_cost': 'Custo Total (30d)',
+    'billing.budgets': 'Orçamentos',
+    'billing.usage': 'Uso Detalhado',
+    'billing.pricing': 'Tabela de Preços',
+
+    // Team
+    'team.title': 'Equipe',
+    'team.subtitle': 'Gerencie membros e permissões',
+    'team.invite': 'Convidar Membro',
+    'team.roles.admin': 'Admin',
+    'team.roles.editor': 'Editor',
+    'team.roles.viewer': 'Visualizador',
+    'team.roles.operator': 'Operador',
+
+    // Security
+    'security.title': 'Segurança',
+    'security.subtitle': 'Guardrails, políticas e monitoramento de segurança',
+    'security.guardrails': 'Guardrails',
+    'security.red_team': 'Red Teaming',
+    'security.events': 'Eventos de Segurança',
+
+    // Memory
+    'memory.title': 'Memória',
+    'memory.subtitle': 'Memórias persistentes dos agentes',
+    'memory.add': 'Nova Memória',
+    'memory.search_placeholder': 'Buscar memórias...',
+
+    // Evaluations
+    'evaluations.title': 'Avaliações',
+    'evaluations.subtitle': 'Teste e avalie a qualidade dos agentes',
+    'evaluations.run': 'Executar Avaliação',
+    'evaluations.history': 'Histórico',
+
+    // Deployments
+    'deployments.title': 'Implantações',
+    'deployments.subtitle': 'Gerencie deploy dos agentes',
+    'deployments.create': 'Nova Implantação',
+
+    // Automation
     'automation.title': 'Central de Automação',
     'automation.schedules': 'Agendamentos',
     'automation.webhooks': 'Webhooks',
@@ -85,6 +190,32 @@ export const translations: Record<string, TranslationKeys> = {
     'automation.paused': 'Pausado',
     'automation.success_rate': 'Taxa de Sucesso',
     'automation.no_data': 'Nenhum dado ainda',
+
+    // Settings
+    'settings.title': 'Configurações',
+    'settings.subtitle': 'Configure seu workspace e preferências',
+    'settings.workspace': 'Workspace',
+    'settings.api_keys': 'Chaves de API',
+    'settings.preferences': 'Preferências',
+
+    // Common
+    'common.loading': 'Carregando...',
+    'common.error': 'Erro',
+    'common.success': 'Sucesso',
+    'common.confirm': 'Confirmar',
+    'common.no_data': 'Sem dados',
+    'common.unauthorized': 'Acesso não autorizado',
+    'common.items': 'itens',
+    'common.total': 'Total',
+    'common.status': 'Status',
+    'common.name': 'Nome',
+    'common.description': 'Descrição',
+    'common.type': 'Tipo',
+    'common.created_at': 'Criado em',
+    'common.updated_at': 'Atualizado em',
+    'common.actions': 'Ações',
+    'common.yes': 'Sim',
+    'common.no': 'Não',
   },
 
   'en-US': {
@@ -99,6 +230,21 @@ export const translations: Record<string, TranslationKeys> = {
     'nav.team': 'Team',
     'nav.settings': 'Settings',
     'nav.cerebro': 'Super Brain',
+    'nav.memory': 'Memory',
+    'nav.tools': 'Tools',
+    'nav.prompts': 'Prompts',
+    'nav.evaluations': 'Evaluations',
+    'nav.deployments': 'Deployments',
+    'nav.security': 'Security',
+    'nav.lgpd': 'LGPD',
+    'nav.approvals': 'Approvals',
+    'nav.billing': 'Billing',
+    'nav.admin': 'Admin DB',
+    'nav.ai_studio': 'AI Studio',
+    'nav.automation': 'Automation',
+    'nav.fine_tuning': 'Fine-tuning',
+    'nav.smolagent': 'Smolagent',
+    'nav.data_storage': 'Data & Storage',
 
     // Actions
     'action.save': 'Save',
@@ -114,15 +260,28 @@ export const translations: Record<string, TranslationKeys> = {
     'action.deploy': 'Deploy',
     'action.duplicate': 'Duplicate',
     'action.archive': 'Archive',
+    'action.confirm': 'Confirm',
+    'action.back': 'Back',
+    'action.next': 'Next',
+    'action.refresh': 'Refresh',
+    'action.close': 'Close',
+    'action.add': 'Add',
+    'action.remove': 'Remove',
+    'action.connect': 'Connect',
+    'action.disconnect': 'Disconnect',
 
     // Agents
     'agents.title': 'Agents',
+    'agents.subtitle': 'Manage your AI agents',
     'agents.create': 'New Agent',
     'agents.empty': 'No agents created yet',
+    'agents.search_placeholder': 'Search agents...',
     'agents.status.draft': 'Draft',
     'agents.status.testing': 'Testing',
     'agents.status.production': 'Production',
     'agents.status.archived': 'Archived',
+    'agents.status.deprecated': 'Deprecated',
+    'agents.delete_confirm': 'Are you sure you want to delete this agent?',
 
     // Builder tabs
     'builder.identity': 'Identity',
@@ -139,16 +298,96 @@ export const translations: Record<string, TranslationKeys> = {
     'builder.billing': 'Billing',
     'builder.readiness': 'Readiness',
     'builder.blueprint': 'Blueprint',
+    'builder.settings': 'Settings',
 
-    // Common
-    'common.loading': 'Loading...',
-    'common.error': 'Error',
-    'common.success': 'Success',
-    'common.confirm': 'Confirm',
-    'common.no_data': 'No data',
-    'common.unauthorized': 'Unauthorized access',
+    // Dashboard
+    'dashboard.title': 'Dashboard',
+    'dashboard.subtitle': 'Overview of your environment',
+    'dashboard.welcome': 'Welcome back',
+    'dashboard.agents_total': 'Total Agents',
+    'dashboard.active_agents': 'Active Agents',
+    'dashboard.total_traces': 'Total Traces',
+    'dashboard.total_cost': 'Total Cost',
+    'dashboard.recent_agents': 'Recent Agents',
+    'dashboard.quick_actions': 'Quick Actions',
 
-    // Automation Center
+    // Workflows
+    'workflows.title': 'Workflows',
+    'workflows.subtitle': 'Orchestrate work flows between agents',
+    'workflows.create': 'New Workflow',
+    'workflows.canvas': 'Visual Canvas',
+    'workflows.list': 'List',
+    'workflows.runs': 'Runs',
+    'workflows.schedule': 'Schedules',
+    'workflows.timetravel': 'Time Travel',
+
+    // Knowledge
+    'knowledge.title': 'Knowledge Base',
+    'knowledge.subtitle': 'Manage RAG documents and collections',
+    'knowledge.upload': 'Upload Document',
+    'knowledge.collections': 'Collections',
+    'knowledge.documents': 'Documents',
+    'knowledge.search': 'Semantic Search',
+
+    // Oracle
+    'oracle.title': 'Multi-LLM Oracle',
+    'oracle.subtitle': 'Deliberative council with multiple AI models',
+    'oracle.modes.council': 'Council',
+    'oracle.modes.debate': 'Debate',
+    'oracle.modes.critique': 'Critique',
+    'oracle.modes.brainstorm': 'Brainstorm',
+    'oracle.modes.vote': 'Vote',
+
+    // Monitoring
+    'monitoring.title': 'Monitoring',
+    'monitoring.subtitle': 'Traces, sessions, alerts and metrics',
+    'monitoring.traces': 'Traces',
+    'monitoring.sessions': 'Sessions',
+    'monitoring.alerts': 'Alerts',
+    'monitoring.tracing': 'Tracing',
+
+    // Billing
+    'billing.title': 'Billing',
+    'billing.subtitle': 'Costs, budgets and token usage',
+    'billing.total_cost': 'Total Cost (30d)',
+    'billing.budgets': 'Budgets',
+    'billing.usage': 'Detailed Usage',
+    'billing.pricing': 'Pricing Table',
+
+    // Team
+    'team.title': 'Team',
+    'team.subtitle': 'Manage members and permissions',
+    'team.invite': 'Invite Member',
+    'team.roles.admin': 'Admin',
+    'team.roles.editor': 'Editor',
+    'team.roles.viewer': 'Viewer',
+    'team.roles.operator': 'Operator',
+
+    // Security
+    'security.title': 'Security',
+    'security.subtitle': 'Guardrails, policies and security monitoring',
+    'security.guardrails': 'Guardrails',
+    'security.red_team': 'Red Teaming',
+    'security.events': 'Security Events',
+
+    // Memory
+    'memory.title': 'Memory',
+    'memory.subtitle': 'Persistent agent memories',
+    'memory.add': 'New Memory',
+    'memory.search_placeholder': 'Search memories...',
+
+    // Evaluations
+    'evaluations.title': 'Evaluations',
+    'evaluations.subtitle': 'Test and evaluate agent quality',
+    'evaluations.run': 'Run Evaluation',
+    'evaluations.history': 'History',
+
+    // Deployments
+    'deployments.title': 'Deployments',
+    'deployments.subtitle': 'Manage agent deployments',
+    'deployments.create': 'New Deployment',
+
+    // Automation
     'automation.title': 'Automation Center',
     'automation.schedules': 'Schedules',
     'automation.webhooks': 'Webhooks',
@@ -158,11 +397,37 @@ export const translations: Record<string, TranslationKeys> = {
     'automation.connectors': 'Connectors',
     'automation.queues': 'Queues',
     'automation.credentials': 'Credentials',
-    'automation.batch': 'Batch',
+    'automation.batch': 'Batch Processing',
     'automation.active': 'Active',
     'automation.paused': 'Paused',
     'automation.success_rate': 'Success Rate',
     'automation.no_data': 'No data yet',
+
+    // Settings
+    'settings.title': 'Settings',
+    'settings.subtitle': 'Configure your workspace and preferences',
+    'settings.workspace': 'Workspace',
+    'settings.api_keys': 'API Keys',
+    'settings.preferences': 'Preferences',
+
+    // Common
+    'common.loading': 'Loading...',
+    'common.error': 'Error',
+    'common.success': 'Success',
+    'common.confirm': 'Confirm',
+    'common.no_data': 'No data',
+    'common.unauthorized': 'Unauthorized access',
+    'common.items': 'items',
+    'common.total': 'Total',
+    'common.status': 'Status',
+    'common.name': 'Name',
+    'common.description': 'Description',
+    'common.type': 'Type',
+    'common.created_at': 'Created at',
+    'common.updated_at': 'Updated at',
+    'common.actions': 'Actions',
+    'common.yes': 'Yes',
+    'common.no': 'No',
   },
 };
 

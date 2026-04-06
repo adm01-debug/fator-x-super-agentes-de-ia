@@ -16,6 +16,7 @@ import { useState, useCallback, useRef } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { listAgents, cloneAgent, autoTagAgent } from "@/lib/agentService";
 import { useAuth } from "@/contexts/AuthContext";
+import { useI18nContext } from "@/contexts/I18nContext";
 import type { Tables } from "@/integrations/supabase/types";
 import { exportAgentToJSON, downloadJSON, importAgentFromJSON, readFileAsText } from "@/lib/agentExportImport";
 import { bulkUpdateStatus, bulkDelete } from "@/lib/agentBulkActions";
@@ -43,6 +44,7 @@ function toggleFavorite(id: string): string[] {
 export default function AgentsPage() {
   const navigate = useNavigate();
   const { user } = useAuth();
+  const { t } = useI18nContext();
   const queryClient = useQueryClient();
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState<string>("all");
@@ -194,16 +196,16 @@ export default function AgentsPage() {
   return (
     <div className="p-6 sm:p-8 lg:p-10 space-y-6 max-w-[1400px] mx-auto">
       <PageHeader
-        title="Agents"
-        description="Gerencie seus agentes de IA — crie, configure e monitore"
+        title={t('agents.title')}
+        description={t('agents.subtitle')}
         actions={
           <div className="flex items-center gap-2">
             <Button variant="outline" size="sm" className="gap-1.5" onClick={() => fileInputRef.current?.click()}>
-              <Upload className="h-3.5 w-3.5" /> Importar
+              <Upload className="h-3.5 w-3.5" /> {t('action.import')}
             </Button>
             <input ref={fileInputRef} type="file" accept=".json" className="hidden" onChange={handleImport} />
             <Button onClick={() => navigate('/agents/new')} className="nexus-gradient-bg text-primary-foreground gap-2 hover:opacity-90">
-              <Plus className="h-4 w-4" /> Criar agente
+              <Plus className="h-4 w-4" /> {t('agents.create')}
             </Button>
           </div>
         }
@@ -294,7 +296,7 @@ export default function AgentsPage() {
                   <Upload className="h-4 w-4" /> Importar JSON
                 </Button>
                 <Button onClick={() => navigate('/agents/new')} className="nexus-gradient-bg text-primary-foreground gap-2">
-                  <Plus className="h-4 w-4" /> Criar agente
+                  <Plus className="h-4 w-4" /> {t('agents.create')}
                 </Button>
               </div>
             </>

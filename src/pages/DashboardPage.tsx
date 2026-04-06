@@ -7,6 +7,7 @@ import { DateRangePicker, getDateRangeDays, type DateRange } from "@/components/
 import { Button } from "@/components/ui/button";
 import { Bot, Plus, ArrowRight, TrendingUp, DollarSign, Clock, Zap, Sparkles, BookOpen, Activity, GitBranch } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
+import { useI18nContext } from "@/contexts/I18nContext";
 import { useNavigate } from "react-router-dom";
 import { useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
@@ -59,6 +60,7 @@ function DashboardLoadingSkeleton() {
 export default function DashboardPage() {
   const navigate = useNavigate();
   const { user } = useAuth();
+  const { t } = useI18nContext();
   const [dateRange, setDateRange] = useState<DateRange>('30d');
 
   const { data: agents = [], isLoading } = useQuery({
@@ -136,13 +138,13 @@ export default function DashboardPage() {
       <div className="space-y-1">
         <PageHeader
           title={`${getGreeting()} 👋`}
-          description="Visão executiva da operação de agentes de IA"
+          description={t('dashboard.subtitle')}
           actions={
             <div className="flex items-center gap-3">
               <DateRangePicker value={dateRange} onChange={setDateRange} />
               {agents.length > 0 && (
                 <Button onClick={() => navigate('/agents/new')} className="nexus-gradient-bg text-primary-foreground gap-2 hover:opacity-90 min-h-[44px]">
-                  <Plus className="h-4 w-4" aria-hidden="true" /> Criar agente
+                  <Plus className="h-4 w-4" aria-hidden="true" /> {t('agents.create')}
                 </Button>
               )}
             </div>

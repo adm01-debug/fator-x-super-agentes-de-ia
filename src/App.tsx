@@ -10,6 +10,7 @@ import { AppLayout } from "@/components/layout/AppLayout";
 import { PageLoading } from "@/components/shared/PageLoading";
 import { ErrorBoundary } from "@/components/shared/ErrorBoundary";
 import { AuthProvider } from "@/contexts/AuthContext";
+import { I18nProvider } from "@/contexts/I18nContext";
 import { AuthGuard } from "@/components/layout/AuthGuard";
 import { ProtectedRoute } from "@/components/rbac/ProtectedRoute";
 import type { ReactNode } from "react";
@@ -84,6 +85,7 @@ const App = () => (
   <QueryClientProvider client={queryClient}>
     <ThemeProvider attribute="class" defaultTheme="dark" enableSystem={false}>
       <AuthProvider>
+        <I18nProvider>
         <TooltipProvider>
           <Toaster />
           <Sonner />
@@ -135,6 +137,7 @@ const App = () => (
             </Routes>
           </BrowserRouter>
         </TooltipProvider>
+        </I18nProvider>
       </AuthProvider>
     </ThemeProvider>
   </QueryClientProvider>
