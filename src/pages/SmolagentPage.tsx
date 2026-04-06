@@ -31,7 +31,7 @@ export default function SmolagentPage() {
   useEffect(() => {
     supabase.functions.invoke('smolagent-runtime', { body: { action: 'list_tools' } })
       .then(({ data }) => { if (data?.tools) setTools(data.tools.map((t: AnyData) => t.name)); })
-      .catch(() => {});
+      .catch(() => { /* tools list is optional, UI works without it */ });
   }, []);
 
   const handleRun = async () => {

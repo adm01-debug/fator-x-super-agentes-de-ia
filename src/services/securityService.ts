@@ -185,7 +185,8 @@ export async function getRateLimitStats() {
       { name: 'File Uploads', current: eps['rag-ingest']?.total ?? 0, max: 50, unit: '/hora' },
       { name: 'Blocked', current: Object.values(eps).reduce((s, e) => s + e.blocked, 0), max: 100, unit: '/min' },
     ];
-  } catch {
+  } catch (e) {
+    logger.warn('Rate limit stats unavailable, returning defaults', e);
     return [
       { name: 'API Requests', current: 0, max: 1000, unit: '/min' },
       { name: 'LLM Calls', current: 0, max: 200, unit: '/min' },

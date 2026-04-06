@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import { Shield, Loader2 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { getSecurityPosture, listGuardrailPolicies, getAuditLog } from "@/services/securityService";
+import { logger } from "@/lib/logger";
 
 export function ComplianceFrameworks() {
   const [frameworks, setFrameworks] = useState<Array<{ name: string; status: string; coverage: number }>>([]);
@@ -10,9 +11,9 @@ export function ComplianceFrameworks() {
   useEffect(() => {
     (async () => {
       let postureScore = 0, hasGuardrails = false, hasLogs = false;
-      try { const p = await getSecurityPosture(); postureScore = p.length > 0 ? Math.round((p.filter(c => c.status === 'pass').length / p.length) * 100) : 0; } catch {}
-      try { const g = await listGuardrailPolicies(); hasGuardrails = g.some((x) => x.is_enabled === true); } catch {}
-      try { const l = await getAuditLog({ limit: 1 }); hasLogs = l.length > 0; } catch {}
+      try { const p = await getSecurityPosture(); postureScore = p.length > 0 ? Math.round((p.filter(c => c.status === 'pass').length / p.length) * 100) : 0; } catch (e) { logger.warn('Security posture check failed', e); }
+      try { const g = await listGuardrailPolicies(); hasGuardrails = g.some((x) => x.is_enabled === true); } catch (e) { logger.warn('Guardrail policies check failed', e); }
+      try { const l = await getAuditLog({ limit: 1 }); hasLogs = l.length > 0; } catch (e) { logger.warn('Audit log check failed', e); }
       const lgpd = Math.min(100, postureScore + (hasGuardrails ? 10 : 0));
       const gdpr = Math.min(100, postureScore + (hasGuardrails ? 5 : 0));
       const soc2 = Math.min(100, Math.round(postureScore * 0.8) + (hasLogs ? 15 : 0));

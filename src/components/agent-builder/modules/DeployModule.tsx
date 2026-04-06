@@ -64,7 +64,7 @@ export function DeployModule() {
             agent_id: agent.id, workspace_id: wsId, channel: ch.channel,
             status: ch.enabled ? 'active' : 'inactive', config: ch.config,
           });
-        }).catch(() => {});
+        }).catch(() => { /* deploy upsert is best-effort */ });
       }
     }
   };
