@@ -122,7 +122,7 @@ function ApiKeysPanel() {
 
 export default function SecurityPage() {
   return (
-    <div className="p-6 sm:p-8 lg:p-10 space-y-6 max-w-[1400px] mx-auto">
+    <div className="p-6 sm:p-8 lg:p-10 space-y-6 max-w-[1400px] mx-auto animate-page-enter">
       <PageHeader title="Segurança & Guardrails" description="Segurança, compliance e governança dos agentes de IA" />
       <InfoHint title="Segurança em camadas">
         A segurança opera em múltiplas camadas: autenticação, criptografia, mascaramento de dados, detecção de jailbreak, rate limiting, audit logging e guardrails customizados por agente.

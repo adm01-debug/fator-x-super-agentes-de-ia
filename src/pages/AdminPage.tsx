@@ -223,7 +223,7 @@ function AdminTable({ config }: { config: typeof TABLE_CONFIG[0] }) {
 
 export default function AdminPage() {
   return (
-    <div className="p-6 sm:p-8 lg:p-10 space-y-6 max-w-[1400px] mx-auto">
+    <div className="p-6 sm:p-8 lg:p-10 space-y-6 max-w-[1400px] mx-auto animate-page-enter">
       <PageHeader
         title="Administração do Banco"
         description="Visualize e gerencie todos os dados do sistema — CRUD completo"
