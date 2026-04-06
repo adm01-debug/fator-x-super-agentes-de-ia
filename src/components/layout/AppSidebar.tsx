@@ -195,7 +195,12 @@ export function AppSidebar() {
                           >
                             <item.icon className={`h-4 w-4 shrink-0 transition-all duration-200 group-hover/navitem:scale-110 ${isActive ? 'text-primary drop-shadow-[0_0_6px_hsl(var(--primary)/0.4)]' : ''}`} />
                             {!collapsed && <span className="transition-colors duration-150">{item.title}</span>}
-                            {isActive && !collapsed && (
+                            {!collapsed && badgeCounts[item.url] > 0 && (
+                              <span className="ml-auto text-[10px] font-semibold bg-primary/15 text-primary rounded-full px-1.5 py-0.5 tabular-nums leading-none">
+                                {badgeCounts[item.url]}
+                              </span>
+                            )}
+                            {isActive && !collapsed && !badgeCounts[item.url] && (
                               <span className="ml-auto h-1.5 w-1.5 rounded-full bg-primary animate-glow-pulse nexus-pulse-ring" />
                             )}
                           </NavLink>
