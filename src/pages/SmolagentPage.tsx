@@ -53,7 +53,7 @@ export default function SmolagentPage() {
 
   return (
     <div className="p-6 max-w-[1400px] mx-auto space-y-6">
-      <PageHeader title="🤖 Smolagent Runtime" description="Runtime ReAct Agent — Pense, Aja, Observe, Repita" />
+      <PageHeader title="🤖 Smolagent Runtime" description="Runtime ReAct Agent — Pense, Aja, Observe, Repita" gradient={false} />
       <InfoHint title="O que é o Smolagent?">
         Runtime autônomo baseado no padrão ReAct. Recebe uma tarefa, pensa, executa ferramentas (busca web, edge functions, APIs), observa e repete até a resposta final.
       </InfoHint>

@@ -45,7 +45,7 @@ export default function OraclePage() {
 
   return (
     <div className="p-6 sm:p-8 lg:p-10 space-y-6 max-w-[1400px] mx-auto">
-      <PageHeader title="🔮 Oráculo v2 — Conselho Multi-LLM" description="5 modos de operação • Revisão por pares • Consenso visual • Raciocínio expandível" />
+      <PageHeader title="🔮 Oráculo v2 — Conselho Multi-LLM" description="5 modos de operação • Revisão por pares • Consenso visual • Raciocínio expandível" gradient={false} />
 
       {/* ═══ INPUT AREA ═══ */}
       <div className="nexus-card space-y-4">

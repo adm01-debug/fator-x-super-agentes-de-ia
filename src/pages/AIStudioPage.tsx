@@ -204,7 +204,7 @@ export default function AIStudioPage() {
   const [activeTab, setActiveTab] = useState('audio');
   return (
     <div className="p-6 max-w-[1400px] mx-auto space-y-6">
-      <PageHeader title="🎨 AI Studio" description="Ferramentas de IA — Áudio, Visão, OCR, Geração de Imagens" />
+      <PageHeader title="🎨 AI Studio" description="Ferramentas de IA — Áudio, Visão, OCR, Geração de Imagens" gradient={false} />
       <InfoHint title="O que é o AI Studio?">
         O AI Studio reúne todas as ferramentas de IA: transcrição (Whisper), text-to-speech, OCR, análise de imagens e mockups de produtos. Todas usam HuggingFace Inference (gratuito).
       </InfoHint>

@@ -20,7 +20,7 @@ export default function SuperCerebroPage() {
 
   return (
     <div className="p-6 max-w-[1400px] mx-auto space-y-6">
-      <PageHeader title="🧠 Super Cérebro" description="Enterprise Memory Layer — Memória centralizada da empresa" />
+      <PageHeader title="🧠 Super Cérebro" description="Enterprise Memory Layer — Memória centralizada da empresa" gradient={false} />
 
       <InfoHint title="O que é o Super Cérebro?">
         O Super Cérebro é a camada de memória empresarial que conecta todos os agentes. Ele armazena conhecimento institucional, processos, dados de clientes e fornecedores — permitindo que qualquer agente acesse informações da empresa em tempo real.
