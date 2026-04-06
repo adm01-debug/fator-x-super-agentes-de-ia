@@ -130,10 +130,10 @@ export function AppLayout({ children }: AppLayoutProps) {
 
         <NavigationProgress />
         <ScrollRestoration />
-        <div className="min-h-screen flex w-full nexus-grain">
+        <div className="min-h-screen flex w-full">
           <AppSidebar />
            <div className="flex-1 flex flex-col min-w-0">
-            <header className="h-14 flex items-center justify-between border-b border-border/40 px-3 sm:px-5 bg-background/80 backdrop-blur-xl sticky top-0 z-30" role="banner">
+             <header className="h-14 flex items-center justify-between border-b border-border/50 px-3 sm:px-5 bg-background/95 sticky top-0 z-30" role="banner">
               <div className="flex items-center gap-2 sm:gap-3 flex-1 min-w-0">
                 <SidebarTrigger className="text-muted-foreground hover:text-foreground hover:bg-secondary/60 rounded-lg transition-colors shrink-0" aria-label="Alternar sidebar" />
                 
@@ -213,7 +213,7 @@ export function AppLayout({ children }: AppLayoutProps) {
                 </DropdownMenu>
               </div>
             </header>
-            <main id="main-content" className="flex-1 overflow-auto animate-page-enter" tabIndex={-1} aria-label={pageTitle}>
+            <main id="main-content" className="flex-1 overflow-auto" tabIndex={-1} aria-label={pageTitle}>
               <ErrorBoundary>
                 {isMobile ? (
                   <SwipeNavigation>

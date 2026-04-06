@@ -134,14 +134,14 @@ export function AppSidebar() {
   };
 
   return (
-    <Sidebar collapsible="icon" className="border-r border-border/30 bg-sidebar/95 backdrop-blur-sm" aria-label="Navegação principal">
+    <Sidebar collapsible="icon" className="border-r border-border/30 bg-sidebar" aria-label="Navegação principal">
       <SidebarHeader className="p-3">
         <div className="flex items-center gap-2.5">
           <img src={fatorxIcon} alt="" className="h-8 w-8 shrink-0 rounded-lg shadow-sm shadow-primary/20" />
           {!collapsed && (
             <span className="font-heading text-base font-extrabold tracking-tight" aria-label="Fator X">
               <span className="text-foreground">FATOR</span>
-              <span className="text-transparent bg-clip-text bg-gradient-to-r from-nexus-cyan to-nexus-teal ml-0.5">X</span>
+              <span className="text-primary ml-0.5">X</span>
             </span>
           )}
         </div>
@@ -187,13 +187,13 @@ export function AppSidebar() {
                             end={item.url === "/"}
                             className={`flex items-center gap-2.5 rounded-lg px-2.5 py-2 text-sm transition-all duration-200 group/navitem ${
                               isActive
-                                ? 'text-primary font-semibold bg-primary/10 shadow-[inset_3px_0_0_hsl(var(--primary)),0_0_15px_-4px_hsl(var(--primary)/0.25)]'
+                                ? 'text-primary font-semibold bg-primary/12'
                                 : 'text-sidebar-foreground hover:bg-sidebar-accent/60 hover:text-sidebar-accent-foreground hover:translate-x-0.5 hover:shadow-sm'
                             }`}
                             activeClassName=""
                             aria-current={isActive ? "page" : undefined}
                           >
-                            <item.icon className={`h-4 w-4 shrink-0 transition-all duration-200 group-hover/navitem:scale-110 ${isActive ? 'text-primary drop-shadow-[0_0_8px_hsl(var(--primary)/0.5)]' : ''}`} />
+                            <item.icon className={`h-4 w-4 shrink-0 transition-all duration-200 group-hover/navitem:scale-110 ${isActive ? 'text-primary' : ''}`} />
                             {!collapsed && <span className="transition-colors duration-150">{item.title}</span>}
                             {!collapsed && badgeCounts[item.url] > 0 && (
                               <span className="ml-auto text-[10px] font-semibold bg-primary/15 text-primary rounded-full px-1.5 py-0.5 tabular-nums leading-none">
