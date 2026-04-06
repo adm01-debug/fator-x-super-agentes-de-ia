@@ -174,9 +174,10 @@ export async function getRateLimitStats() {
     if (error) throw error;
     const eps: Record<string, { total: number; blocked: number }> = {};
     ((data ?? []) as any[]).forEach((r: { endpoint?: string; blocked?: boolean }) => {
-      if (!eps[r.endpoint]) eps[r.endpoint] = { total: 0, blocked: 0 };
-      eps[r.endpoint].total++;
-      if (r.blocked) eps[r.endpoint].blocked++;
+      const ep = r.endpoint ?? 'unknown';
+      if (!eps[ep]) eps[ep] = { total: 0, blocked: 0 };
+      eps[ep].total++;
+      if (r.blocked) eps[ep].blocked++;
     });
     return [
       { name: 'API Requests', current: Object.values(eps).reduce((s, e) => s + e.total, 0), max: 1000, unit: '/min' },
