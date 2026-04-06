@@ -64,7 +64,7 @@ export function DeepResearchPanel() {
         onChange={(e) => setQuery(e.target.value)}
         placeholder="Ex: Análise completa do mercado de brindes promocionais no Brasil em 2026..."
         rows={3}
-        className="w-full bg-background border border-border rounded-lg p-3 text-sm text-foreground placeholder-muted-foreground resize-none focus:border-primary focus:outline-none"
+        className="w-full bg-background border border-border rounded-lg p-3 text-sm text-foreground placeholder-muted-foreground resize-none focus:border-primary/50 focus:ring-2 focus:ring-primary/20 focus:outline-none transition-all"
       />
 
       <div className="flex items-center gap-3">
