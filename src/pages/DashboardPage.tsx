@@ -19,7 +19,7 @@ import { AutomationOverviewWidget } from "@/components/automation/AutomationOver
 // ═══ Dashboard Skeleton ═══
 function DashboardLoadingSkeleton() {
   return (
-    <div className="p-4 sm:p-8 lg:p-10 space-y-6 max-w-[1400px] mx-auto" aria-busy="true" aria-label="Carregando dashboard">
+    <div className="p-6 sm:p-8 lg:p-10 space-y-6 max-w-[1400px] mx-auto" aria-busy="true" aria-label="Carregando dashboard">
       <div className="flex items-center justify-between">
         <div className="space-y-2">
           <div className="h-7 w-40 rounded-md skeleton-shimmer" />
@@ -132,7 +132,7 @@ export default function DashboardPage() {
   const summary = getSummary();
 
   return (
-    <div className="p-4 sm:p-8 lg:p-10 space-y-5 sm:space-y-6 max-w-[1400px] mx-auto animate-page-enter" role="main" aria-label="Dashboard principal">
+    <div className="p-6 sm:p-8 lg:p-10 space-y-6 max-w-[1400px] mx-auto animate-page-enter" role="main" aria-label="Dashboard principal">
       <div className="space-y-1">
         <PageHeader
           title={`${getGreeting()} 👋`}
