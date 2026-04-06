@@ -320,7 +320,10 @@ export async function createCollectionForKB(kbId: string, name: string, descript
 export async function deleteDocument(docId: string) {
   await supabase.from('chunks').delete().eq('document_id', docId);
   const { error } = await supabase.from('documents').delete().eq('id', docId);
-  if (error) throw error;
+  if (error) {
+    logger.error('deleteDocument failed', { error: error.message });
+    throw error;
+  }
 }
 
 export async function createDocumentWithIngest(doc: { title: string; collection_id: string; source_url?: string | null; source_type?: string }, content?: string) {
@@ -331,14 +334,20 @@ export async function createDocumentWithIngest(doc: { title: string; collection_
     source_type: doc.source_type || 'manual',
     status: 'pending',
   }).select('id').single();
-  if (error || !data) throw error || new Error('Failed to create document');
+  if (error || !data) {
+    logger.error('createDocumentWithIngest failed', { error: error?.message ?? 'No data returned' });
+    throw error || new Error('Failed to create document');
+  }
 
   let ingestResult = null;
   if (content?.trim()) {
     const { data: ir, error: ie } = await supabase.functions.invoke('rag-ingest', {
       body: { document_id: data.id, content: content.trim(), chunk_size: 1000, chunk_overlap: 200 },
     });
-    if (ie) throw ie;
+    if (ie) {
+      logger.error('createDocumentWithIngest ingest failed', { error: ie.message });
+      throw ie;
+    }
     ingestResult = ir;
   }
   return { docId: data.id, ingestResult };

@@ -3,6 +3,7 @@
  * Workspace member management, invitations.
  */
 import { supabase } from '@/integrations/supabase/client';
+import { logger } from '@/lib/logger';
 import type { RoleKey } from './rbacService';
 
 export async function listMembers(workspaceId: string) {
@@ -12,7 +13,10 @@ export async function listMembers(workspaceId: string) {
     .eq('workspace_id', workspaceId)
     .order('invited_at', { ascending: true });
 
-  if (error) throw error;
+  if (error) {
+    logger.error('listMembers failed', { error: error.message });
+    throw error;
+  }
   return data ?? [];
 }
 
@@ -30,7 +34,10 @@ export async function removeMember(workspaceId: string, userId: string) {
     .eq('workspace_id', workspaceId)
     .eq('user_id', userId);
 
-  if (error) throw error;
+  if (error) {
+    logger.error('removeMember failed', { error: error.message });
+    throw error;
+  }
 }
 
 export async function getPendingInvites(email: string) {
@@ -40,13 +47,19 @@ export async function getPendingInvites(email: string) {
     .eq('email', email)
     .is('accepted_at', null)
     .is('user_id', null);
-  if (error) throw error;
+  if (error) {
+    logger.error('getPendingInvites failed', { error: error.message });
+    throw error;
+  }
   return data ?? [];
 }
 
 export async function acceptInvite(memberId: string) {
   const { error } = await supabase.rpc('accept_workspace_invitation', { p_member_id: memberId });
-  if (error) throw error;
+  if (error) {
+    logger.error('acceptInvite failed', { error: error.message });
+    throw error;
+  }
 }
 
 export async function updateMemberRole(workspaceId: string, userId: string, newRole: RoleKey) {
@@ -56,7 +69,10 @@ export async function updateMemberRole(workspaceId: string, userId: string, newR
     .eq('workspace_id', workspaceId)
     .eq('user_id', userId);
 
-  if (error) throw error;
+  if (error) {
+    logger.error('updateMemberRole failed', { error: error.message });
+    throw error;
+  }
 }
 
 export async function insertWorkspaceMember(member: { workspace_id: string; email: string; role: string; name?: string; user_id?: string }) {
@@ -66,5 +82,8 @@ export async function insertWorkspaceMember(member: { workspace_id: string; emai
     ...member,
     user_id: userId,
   });
-  if (error) throw error;
+  if (error) {
+    logger.error('insertWorkspaceMember failed', { error: error.message });
+    throw error;
+  }
 }
