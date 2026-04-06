@@ -294,9 +294,20 @@ export default function AuthPage() {
             <FeaturePill icon={Shield} text="Guardrails & Observabilidade" />
             <FeaturePill icon={Zap} text="Deploy em 1 clique" />
           </div>
-        </div>
 
-        {/* Trust footer */}
+          {/* Social proof */}
+          <div className="mt-6 rounded-xl border border-border/30 bg-card/30 backdrop-blur-sm p-5 max-w-md">
+            <p className="text-sm text-muted-foreground italic leading-relaxed">
+              "Reduzimos 60% do tempo de atendimento ao cliente com agentes criados no Fator X. A plataforma é intuitiva e segura."
+            </p>
+            <div className="flex items-center gap-3 mt-3">
+              <div className="h-8 w-8 rounded-full bg-primary/20 flex items-center justify-center text-xs font-bold text-primary">MC</div>
+              <div>
+                <p className="text-xs font-medium text-foreground">Marcos Costa</p>
+                <p className="text-[11px] text-muted-foreground">Head de Operações, TechBR</p>
+              </div>
+            </div>
+          </div>
         <div className="animate-fade-in" style={{ animationDelay: '200ms' }}>
           <p className="text-xs text-muted-foreground/60">
             🔒 Criptografia ponta-a-ponta · SOC 2 · LGPD Compliant
