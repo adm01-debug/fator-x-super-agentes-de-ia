@@ -164,7 +164,12 @@ async function checkGuardrails(supabase: SupabaseClient, agentId: string | undef
       }
     }
     return { passed: !triggered.some(t => t.severity === 'block'), triggered };
-  } catch { return { passed: true, triggered: [] }; }
+  } catch (e) {
+    // FAIL-OPEN by design: guardrail errors should not block user requests.
+    // In production, monitor this via security_events table.
+    console.error('[guardrails] Check failed, allowing request (fail-open):', e instanceof Error ? e.message : e);
+    return { passed: true, triggered: [] };
+  }
 }
 
 // ═══ Budget Check ═══
@@ -189,7 +194,10 @@ async function checkBudget(supabase: any, workspaceId: string | undefined, agent
         }
       }
     }
-  } catch { /* allow on error */ }
+  } catch (e) {
+    // FAIL-OPEN by design: budget check errors should not block requests.
+    console.error('[budget] Check failed, allowing request (fail-open):', e instanceof Error ? e.message : e);
+  }
   return { allowed: true };
 }
 

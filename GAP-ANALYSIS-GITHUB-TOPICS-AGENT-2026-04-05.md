@@ -10,23 +10,23 @@
 |---|---|---|---|
 | MCP (Model Context Protocol) | ✅ Padrão da indústria | ✅ mcpClient + mcpRegistry + datahub-mcp-server | ❌ Sem gap |
 | A2A (Agent-to-Agent) | ✅ Google protocol v0.3 | ✅ a2a-server + A2APanel | ❌ Sem gap |
-| **AG-UI Protocol** | ✅ 9K+ stars, adotado por Microsoft, AWS, Google | ❌ **NÃO IMPLEMENTADO** | 🔴 **GAP CRÍTICO** |
-| **A2UI (Generative UI)** | ✅ Google spec, CopilotKit nativo | ❌ **NÃO IMPLEMENTADO** | 🔴 **GAP CRÍTICO** |
-| **Context Engineering (L0/L1/L2)** | ✅ OpenViking 20K+ stars (ByteDance) | ⚠️ Super Cérebro existe mas RAG é flat | 🟠 **GAP ALTO** |
-| **Agent Self-Evolution (ACE)** | ✅ kayba-ai, Stanford/SambaNova paper | ❌ **NÃO IMPLEMENTADO** | 🟠 **GAP ALTO** |
+| **AG-UI Protocol** | ✅ 9K+ stars, adotado por Microsoft, AWS, Google | ✅ **IMPLEMENTADO** (protocol.ts + createSSEEmitter + 16 event types) | ❌ Sem gap |
+| **A2UI (Generative UI)** | ✅ Google spec, CopilotKit nativo | ✅ **IMPLEMENTADO** (GenerativeUI.tsx — 7 widgets dinâmicos) | ❌ Sem gap |
+| **Context Engineering (L0/L1/L2)** | ✅ OpenViking 20K+ stars (ByteDance) | ✅ **IMPLEMENTADO** (contextTiersService.ts) | ❌ Sem gap |
+| **Agent Self-Evolution (ACE)** | ✅ kayba-ai, Stanford/SambaNova paper | ✅ **IMPLEMENTADO** (agentEvolutionService.ts — Skillbook + Reflector) | ❌ Sem gap |
 | Multi-LLM Council | ✅ Vários (ORCH, SYMPHONY) | ✅ Oráculo (5 modos, chairman synthesis) | ❌ Sem gap |
 | RAG Hybrid Search | ✅ Padrão | ✅ pgvector + BM25 + RRF | ❌ Sem gap |
 | Deep Research | ✅ DeerFlow/LangManus (ByteDance) | ✅ oracle-research + DeepResearchPanel | ❌ Sem gap |
 | Guardrails | ✅ Promptfoo, DeepTeam | ✅ guardrails-engine (4 camadas) | ❌ Sem gap |
-| **Red Teaming / Prompt Pentesting** | ✅ Promptfoo 7K+ stars | ❌ **NÃO IMPLEMENTADO** | 🟡 **GAP MÉDIO** |
+| **Red Teaming / Prompt Pentesting** | ✅ Promptfoo 7K+ stars | ✅ **IMPLEMENTADO** (RedTeamingPanel — 14 ataques automatizados) | ❌ Sem gap |
 | RBAC | ✅ Open WebUI, Dify | ✅ 5 roles, 32 permissions | ❌ Sem gap |
 | Workflow Visual | ✅ n8n, Langflow, Dify | ✅ WorkflowCanvas + 18 node types | ❌ Sem gap |
-| **AI Sandbox Isolado** | ✅ Daytona 71K stars | ⚠️ smolagent executa código sem isolamento | 🟡 **GAP MÉDIO** |
-| **Agent Skills Marketplace** | ✅ LobeHub, akm, OpenViking Skills | ❌ Só 22 templates estáticos | 🟡 **GAP MÉDIO** |
-| **Streaming SSE Nativo** | ✅ AG-UI, todos os frameworks modernos | ⚠️ Apenas 1 ref a SSE | 🟠 **GAP ALTO** |
-| **DESIGN.md / Design System** | ✅ VoltAgent 4.8K stars | ❌ **NÃO TEM** | 🟡 **GAP MÉDIO** |
-| Observabilidade / Tracing | ✅ OpenTelemetry GenAI SemConv | ⚠️ NexusTracer existe mas não conectado | 🟡 **GAP MÉDIO** |
-| Memory Persistence Cross-Session | ✅ OpenViking, Mem0, Letta | ⚠️ Memory Manager existe mas básico | 🟡 **GAP MÉDIO** |
+| **AI Sandbox Isolado** | ✅ Daytona 71K stars | ✅ **IMPLEMENTADO** (SandboxExecutionPanel — Docker/WASM/Local policies) | ❌ Sem gap |
+| **Agent Skills Marketplace** | ✅ LobeHub, akm, OpenViking Skills | ✅ **IMPLEMENTADO** (skillsRegistryService + progressiveSkillLoader) | ❌ Sem gap |
+| **Streaming SSE Nativo** | ✅ AG-UI, todos os frameworks modernos | ✅ **IMPLEMENTADO** (useStreamingResponse + StreamingChat SSE) | ❌ Sem gap |
+| **DESIGN.md / Design System** | ✅ VoltAgent 4.8K stars | ✅ **IMPLEMENTADO** (DESIGN.md documentado) | ❌ Sem gap |
+| Observabilidade / Tracing | ✅ OpenTelemetry GenAI SemConv | ✅ **IMPLEMENTADO** (otel-genai.ts — 25+ atributos semânticos) | ❌ Sem gap |
+| Memory Persistence Cross-Session | ✅ OpenViking, Mem0, Letta | ✅ **IMPLEMENTADO** (Memory Manager Mem0-style + memory-tools EF) | ❌ Sem gap |
 | Bitrix24 Integration | ❌ Nicho (Promo Brindes only) | ✅ OAuth + API proxy | ❌ Vantagem competitiva |
 | DataHub Multi-Database | ❌ Nicho (Promo Brindes only) | ✅ 5 bancos, 508+ tabelas | ❌ Vantagem competitiva |
 
