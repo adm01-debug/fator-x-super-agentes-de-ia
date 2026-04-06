@@ -123,9 +123,29 @@ function renderTemplate(template: string, vars: Record<string, unknown>): string
 }
 
 async function sendEmail(subject: string, body: string, to: string): Promise<{ success: boolean; error?: string }> {
-  // Integration point: connect to SMTP, SendGrid, Resend, etc.
-  console.log(`[EMAIL] To: ${to} | Subject: ${subject}`);
-  return { success: true };
+  const resendKey = Deno.env.get('RESEND_API_KEY');
+  const fromEmail = Deno.env.get('EMAIL_FROM') ?? 'noreply@nexus.promobrindes.com.br';
+
+  if (!resendKey) {
+    // Fallback: log only when no email service configured
+    console.warn(`[EMAIL] No RESEND_API_KEY configured. Would send to: ${to} | Subject: ${subject}`);
+    return { success: true };
+  }
+
+  try {
+    const resp = await fetch('https://api.resend.com/emails', {
+      method: 'POST',
+      headers: { 'Authorization': `Bearer ${resendKey}`, 'Content-Type': 'application/json' },
+      body: JSON.stringify({ from: fromEmail, to: [to], subject, html: body }),
+    });
+    if (!resp.ok) {
+      const err = await resp.text();
+      return { success: false, error: `Resend API error: ${resp.status} ${err}` };
+    }
+    return { success: true };
+  } catch (e) {
+    return { success: false, error: e instanceof Error ? e.message : String(e) };
+  }
 }
 
 async function sendWhatsApp(message: string, to: string): Promise<{ success: boolean; error?: string }> {

@@ -96,7 +96,33 @@ serve(async (req) => {
 
       case 'anonymize': {
         // Anonymize user data by replacing PII with hashed values
-        return jsonResponse(req, { action, status: 'completed', message: 'Data anonymized' });
+        const anonTables = ['agent_memories', 'sessions', 'session_traces'];
+        let totalAnonymized = 0;
+
+        for (const table of anonTables) {
+          const { data: rows } = await supabaseAdmin
+            .from(table)
+            .select('id')
+            .eq('user_id', targetId)
+            .limit(500);
+
+          if (rows && rows.length > 0) {
+            const ids = rows.map((r: { id: string }) => r.id);
+            // Replace user_id with anonymized marker
+            await supabaseAdmin
+              .from(table)
+              .update({ user_id: '00000000-0000-0000-0000-000000000000' })
+              .in('id', ids);
+            totalAnonymized += ids.length;
+          }
+        }
+
+        return jsonResponse(req, {
+          action,
+          status: 'completed',
+          message: `Data anonymized: ${totalAnonymized} records across ${anonTables.length} tables`,
+          records_anonymized: totalAnonymized,
+        });
       }
 
       default:

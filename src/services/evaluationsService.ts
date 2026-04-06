@@ -170,8 +170,8 @@ function scoreDeterministic(expected: string, actual: string): number {
   try {
     JSON.parse(expected);
     checks++;
-    try { JSON.parse(actual); score++; } catch (err) { logger.error("Operation failed:", err); /* not JSON */ }
-  } catch (err) { logger.error("Operation failed:", err); /* expected is not JSON */ }
+    try { JSON.parse(actual); score++; } catch { /* actual is not valid JSON */ }
+  } catch { /* expected is not JSON, skip format check */ }
 
   // Length sanity (not too short, not too long)
   checks++;
