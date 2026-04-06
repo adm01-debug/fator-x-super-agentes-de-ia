@@ -18,6 +18,7 @@ import { DATAHUB_TABLE_BLACKLIST } from "@/config/datahub-blacklist";
 import { DataBrowser } from "@/components/datahub/DataBrowser";
 import { DataHubStats } from "@/components/datahub/DataHubStats";
 import { testDatahubConnections, listDatahubEntities } from "@/services/datahubService";
+import { useDatahubStore } from "@/stores/datahubStore";
 import { toast } from "sonner";
 
 /* ── Connection definitions ──────────────────────────── */
@@ -291,6 +292,8 @@ export default function DataHubPage() {
   const [entityCounts, setEntityCounts] = useState<Record<string, number>>({});
   const [testingConnections, setTestingConnections] = useState(false);
   const [loadingCounts, setLoadingCounts] = useState(false);
+  const syncToStore = useDatahubStore(s => s.setConnections);
+  const syncEntityToStore = useDatahubStore(s => s.selectEntity);
 
   const testConnections = useCallback(async () => {
     setTestingConnections(true);
@@ -317,6 +320,15 @@ export default function DataHubPage() {
       setTestingConnections(false);
     }
   }, []);
+
+  // Sync local state to global store for cross-component access
+  useEffect(() => {
+    syncToStore(connections as Record<string, unknown>[]);
+  }, [connections, syncToStore]);
+
+  useEffect(() => {
+    syncEntityToStore(selectedEntity);
+  }, [selectedEntity, syncEntityToStore]);
 
   const loadEntityCounts = useCallback(async () => {
     setLoadingCounts(true);

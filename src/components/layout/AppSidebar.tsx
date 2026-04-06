@@ -18,7 +18,7 @@ import { Separator } from "@/components/ui/separator";
 import { useAuth } from "@/contexts/AuthContext";
 import { useEffect, useState, useCallback } from "react";
 import { getWorkspaceInfo } from "@/lib/agentService";
-import { useI18n } from "@/hooks/useI18n";
+import { useI18nContext } from "@/contexts/I18nContext";
 
 const navSections = [
   {
@@ -88,7 +88,7 @@ export function AppSidebar() {
   const collapsed = state === "collapsed";
   const location = useLocation();
   const { user, signOut } = useAuth();
-  const { locale, setLocale } = useI18n();
+  const { locale, setLocale } = useI18nContext();
   const [wsInfo, setWsInfo] = useState<{ name: string; plan: string; maxAgents: number; agentCount: number; userName: string; email: string } | null>(null);
   const [sectionCollapsed, setSectionCollapsed] = useState<Record<string, boolean>>(getInitialCollapsed);
 
