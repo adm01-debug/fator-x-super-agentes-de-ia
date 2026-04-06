@@ -10,6 +10,7 @@
  */
 
 import { fromTable } from '@/lib/supabaseExtended';
+import { platform } from '@/config/env';
 
 // ──────── A2A Agent Card Types (following official spec) ────────
 
@@ -91,14 +92,12 @@ interface AgentConfig {
 // ──────── Constants ────────
 
 const DEFAULT_PROVIDER: AgentProvider = {
-  organization: 'Promo Brindes',
-  url: 'https://promobrindes.com.br',
-  support_contact: 'suporte@promobrindes.com.br',
+  organization: platform.organization,
+  url: platform.url,
+  support_contact: platform.supportEmail,
 };
 
-const NEXUS_BASE_URL = typeof window !== 'undefined'
-  ? window.location.origin
-  : 'https://nexus.promobrindes.com.br';
+const NEXUS_BASE_URL = platform.nexusBaseUrl;
 
 // ──────── Card Generation ────────
 
