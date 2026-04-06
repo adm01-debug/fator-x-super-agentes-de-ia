@@ -238,7 +238,7 @@ export default function AgentsPage() {
           <Button variant="destructive" size="sm" className="gap-1.5 h-7 text-xs" onClick={() => setDeleteDialogOpen(true)} disabled={bulkLoading}>
             <Trash2 className="h-3 w-3" /> Excluir
           </Button>
-          <Button variant="ghost" size="icon" className="h-7 w-7" onClick={clearSelection}>
+          <Button variant="ghost" size="icon" className="h-7 w-7" onClick={clearSelection} aria-label="Limpar seleção">
             <X className="h-3.5 w-3.5" />
           </Button>
         </div>

@@ -278,13 +278,13 @@ export default function WorkflowsPage() {
                       <Badge variant="outline" className={`text-[11px] ${wf.status === 'active' ? 'border-nexus-emerald/30 text-nexus-emerald' : 'border-muted-foreground/30'}`}>
                         {wf.status === 'active' ? 'Ativo' : 'Rascunho'}
                       </Badge>
-                      <Button size="icon" variant="ghost" className="h-7 w-7 opacity-0 group-hover:opacity-100" onClick={() => handleToggleStatus(wf.id)}>
+                      <Button size="icon" variant="ghost" className="h-7 w-7 opacity-0 group-hover:opacity-100" onClick={() => handleToggleStatus(wf.id)} aria-label="Alternar status">
                         <Play className="h-3 w-3" />
                       </Button>
-                      <Button size="icon" variant="ghost" className="h-7 w-7 opacity-0 group-hover:opacity-100 text-primary" onClick={() => handleExecute(wf)} disabled={executing === wf.id} title="Executar workflow">
+                      <Button size="icon" variant="ghost" className="h-7 w-7 opacity-0 group-hover:opacity-100 text-primary" onClick={() => handleExecute(wf)} disabled={executing === wf.id} aria-label="Executar workflow">
                         {executing === wf.id ? <Loader2 className="h-3 w-3 animate-spin" /> : <ArrowRight className="h-3 w-3" />}
                       </Button>
-                      <Button size="icon" variant="ghost" className="h-7 w-7 opacity-0 group-hover:opacity-100 text-destructive" onClick={() => handleDelete(wf.id)}>
+                      <Button size="icon" variant="ghost" className="h-7 w-7 opacity-0 group-hover:opacity-100 text-destructive" onClick={() => handleDelete(wf.id)} aria-label="Excluir workflow">
                         <Trash2 className="h-3 w-3" />
                       </Button>
                     </div>

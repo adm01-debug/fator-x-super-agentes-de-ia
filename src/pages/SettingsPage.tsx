@@ -229,10 +229,10 @@ export default function SettingsPage() {
                            Atualizado: {new Date(s.updated_at ?? s.created_at ?? '').toLocaleDateString('pt-BR')}
                          </p>
                        </div>
-                       <Button size="icon" variant="ghost" className="h-7 w-7" title="Rotacionar" onClick={() => { setEditingKey(s.id); setEditValue(''); }}>
+                       <Button size="icon" variant="ghost" className="h-7 w-7" title="Rotacionar" onClick={() => { setEditingKey(s.id); setEditValue(''); }} aria-label="Rotacionar chave">
                          <RotateCw className="h-3.5 w-3.5 text-nexus-amber" />
                        </Button>
-                       <Button size="icon" variant="ghost" className="h-7 w-7 text-destructive" onClick={() => deleteKeyMutation.mutate(s.id)}>
+                       <Button size="icon" variant="ghost" className="h-7 w-7 text-destructive" onClick={() => deleteKeyMutation.mutate(s.id)} aria-label="Excluir chave">
                          <Trash2 className="h-3.5 w-3.5" />
                        </Button>
                      </div>

@@ -454,7 +454,7 @@ function AlertRulesPanel() {
                 </div>
                 <Badge variant={rule.severity === 'critical' ? 'destructive' : 'outline'} className="text-[11px]">{String(rule.severity)}</Badge>
               </div>
-              <Button variant="ghost" size="icon" className="h-6 w-6 text-destructive" onClick={() => handleDeleteRule(String(rule.id))}>
+              <Button variant="ghost" size="icon" className="h-6 w-6 text-destructive" onClick={() => handleDeleteRule(String(rule.id))} aria-label="Excluir regra">
                 <Trash2 className="h-3 w-3" />
               </Button>
             </div>
