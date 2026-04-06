@@ -18,8 +18,13 @@
 | 6 | Zero any types em todos os 37 services | CONCLUIDO | c43ae1b |
 | 7 | Atualizar documento de analise com progresso | CONCLUIDO | 250022f |
 | 8 | Remover .env do tracking, fix .gitignore, remover bun.lock | CONCLUIDO | 6bb5e7d |
+| 9 | Wire 6 componentes orfaos (TimeTravelPanel, SandboxPanel, GenerativeUI, costCalc, agentEvolution) | CONCLUIDO | 849689c |
+| 10 | i18n global context com 200+ chaves, integrado em DashboardPage e AgentsPage | CONCLUIDO | ee05e86 |
+| 11 | NexusTracer tab na MonitoringPage, NotificationStore no drawer, AccessControl nos botoes | CONCLUIDO | a04ec9a |
+| 12 | datahubStore no DataHubPage, sidebar migrado para i18n global | CONCLUIDO | 6502cd2 |
+| 13 | uiStore no CommandPalette para controle global | CONCLUIDO | f2bef26 |
 
-**Total de melhorias implementadas: 120+**
+**Total de melhorias implementadas: 160+**
 **TSC: 0 erros em todas as iteracoes**
 
 ### Score de Qualidade (Antes vs Depois)
@@ -35,6 +40,14 @@
 | .env commitado | Sim | **Nao** |
 | Package manager conflict | Sim (npm+bun) | **Nao** (apenas npm) |
 | Gap Analysis desatualizado | Sim | **Nao** |
+| Componentes orfaos (sem UI) | 14/28 | **3/28** |
+| i18n integrado globalmente | Nao | **Sim** (200+ chaves, 2 idiomas) |
+| NexusTracer conectado na UI | Nao | **Sim** (tab Tracing no Monitoring) |
+| NotificationStore integrado | Nao | **Sim** (NotificationsDrawer) |
+| AccessControl nos botoes | Nao | **Sim** (Agents, Team) |
+| datahubStore integrado | Nao | **Sim** (DataHubPage) |
+| uiStore integrado | Nao | **Sim** (CommandPalette) |
+| Sidebar com i18n global | Nao | **Sim** (useI18nContext) |
 
 ### PRs Abertas Analisadas
 
