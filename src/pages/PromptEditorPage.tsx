@@ -131,7 +131,7 @@ export default function PromptEditorPage() {
   }
 
   return (
-    <div className="p-6 max-w-[1400px] mx-auto space-y-5">
+    <div className="p-6 sm:p-8 lg:p-10 space-y-6 max-w-[1400px] mx-auto animate-page-enter">
       <PageHeader
         title={`${agent?.avatar_emoji || '📝'} ${agent?.name || "Prompt Editor"}`}
         description={`${versions.length} versão(ões) • Editor com versionamento completo`}

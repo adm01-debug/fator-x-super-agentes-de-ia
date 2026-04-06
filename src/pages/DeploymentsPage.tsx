@@ -1,10 +1,12 @@
 import { useState } from "react";
+import { CardGridSkeleton } from "@/components/shared/PageSkeleton";
+import { EmptyState } from "@/components/shared/EmptyState";
 import { PageHeader } from "@/components/shared/PageHeader";
 import { StatusBadge } from "@/components/shared/StatusBadge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
-import { Rocket, Loader2, Link2, Copy, CheckCircle } from "lucide-react";
+import { Rocket, Link2, Copy, CheckCircle } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
 import { listDeployedAgents } from "@/services/deploymentsService";
 import { toast } from "sonner";
@@ -22,13 +24,14 @@ export default function DeploymentsPage() {
       <PageHeader title="Implantações" description="Agentes em produção e staging" actions={<EndpointGeneratorButton />} />
 
       {isLoading ? (
-        <div className="flex items-center justify-center py-20"><Loader2 className="h-6 w-6 animate-spin text-muted-foreground" /></div>
+        <CardGridSkeleton count={6} cols={3} />
       ) : deployments.length === 0 ? (
-        <div className="flex flex-col items-center justify-center py-20 text-center">
-          <Rocket className="h-12 w-12 text-muted-foreground mb-4" />
-          <h2 className="text-lg font-semibold text-foreground mb-1">Nenhum agente deployado</h2>
-          <p className="text-sm text-muted-foreground">Mude o status de um agente para "production" ou "staging" no builder.</p>
-        </div>
+        <EmptyState
+          icon={Rocket}
+          title="Nenhum agente deployado"
+          description="Mude o status de um agente para 'production' ou 'staging' no builder."
+          illustration="agents"
+        />
       ) : (
         <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
           {deployments.map((dep) => (
