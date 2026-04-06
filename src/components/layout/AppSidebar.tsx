@@ -180,18 +180,18 @@ export function AppSidebar() {
                           <NavLink
                             to={item.url}
                             end={item.url === "/"}
-                            className={`flex items-center gap-2.5 rounded-lg px-2.5 py-2 text-sm transition-all group/navitem ${
+                            className={`flex items-center gap-2.5 rounded-lg px-2.5 py-2 text-sm transition-all duration-200 group/navitem ${
                               isActive
-                                ? 'text-primary font-medium'
-                                : 'text-sidebar-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground'
+                                ? 'text-primary font-semibold bg-primary/10 shadow-[inset_3px_0_0_hsl(var(--primary)),0_0_12px_-4px_hsl(var(--primary)/0.2)]'
+                                : 'text-sidebar-foreground hover:bg-sidebar-accent/60 hover:text-sidebar-accent-foreground hover:translate-x-0.5'
                             }`}
-                            activeClassName="bg-primary/12 shadow-[inset_3px_0_0_hsl(var(--primary))]"
+                            activeClassName=""
                             aria-current={isActive ? "page" : undefined}
                           >
-                            <item.icon className={`h-4 w-4 shrink-0 transition-transform duration-200 group-hover/navitem:scale-110 ${isActive ? 'text-primary' : ''}`} />
-                            {!collapsed && <span>{item.title}</span>}
+                            <item.icon className={`h-4 w-4 shrink-0 transition-all duration-200 group-hover/navitem:scale-110 ${isActive ? 'text-primary drop-shadow-[0_0_6px_hsl(var(--primary)/0.4)]' : ''}`} />
+                            {!collapsed && <span className="transition-colors duration-150">{item.title}</span>}
                             {isActive && !collapsed && (
-                              <span className="ml-auto h-1.5 w-1.5 rounded-full bg-primary animate-glow-pulse" />
+                              <span className="ml-auto h-1.5 w-1.5 rounded-full bg-primary animate-glow-pulse nexus-pulse-ring" />
                             )}
                           </NavLink>
                         </SidebarMenuButton>
