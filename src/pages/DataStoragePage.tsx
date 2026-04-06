@@ -39,7 +39,7 @@ export default function DataStoragePage() {
 
   return (
     <div className="p-6 sm:p-8 lg:p-10 space-y-6 max-w-[1400px] mx-auto">
-      <PageHeader title="Data & Storage" description="Arquitetura de dados: bancos vetoriais, relacionais, cache e storage" />
+      <PageHeader title="Dados & Armazenamento" description="Arquitetura de dados: bancos vetoriais, relacionais, cache e storage" />
 
       <InfoHint title="Por que banco vetorial?">
         Bancos vetoriais armazenam embeddings — representações numéricas de texto. Permitem busca semântica, onde o agente encontra informações por significado, não por palavras-chave exatas. Essencial para RAG de alta qualidade.

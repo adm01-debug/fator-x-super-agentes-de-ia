@@ -55,7 +55,7 @@ export default function KnowledgePage() {
   return (
     <div className="p-6 sm:p-8 lg:p-10 space-y-6 max-w-[1400px] mx-auto">
       <PageHeader
-        title="Knowledge / RAG"
+        title="Conhecimento / RAG"
         description="Gerencie bases de conhecimento, documentos e pipelines de ingestão"
         actions={<CreateKnowledgeBaseDialog onCreated={() => refetch()} />}
       />

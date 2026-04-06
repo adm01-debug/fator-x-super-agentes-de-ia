@@ -65,7 +65,7 @@ export default function LGPDCompliancePage() {
 
   return (
     <div className="p-6 sm:p-8 lg:p-10 space-y-6 max-w-[1400px] mx-auto">
-      <PageHeader title="LGPD Compliance" description="Gerencie consentimento, dados pessoais e solicitações de exclusão" />
+      <PageHeader title="Conformidade LGPD" description="Gerencie consentimento, dados pessoais e solicitações de exclusão" />
 
       <Tabs defaultValue="consent" className="space-y-4">
         <TabsList>

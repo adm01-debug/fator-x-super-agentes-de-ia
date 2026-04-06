@@ -159,7 +159,7 @@ export default function WorkflowsPage() {
   return (
     <div className="p-6 sm:p-8 lg:p-10 space-y-6 max-w-[1400px] mx-auto">
       <PageHeader
-        title="Workflow Studio"
+        title="Estúdio de Workflows"
         description="Crie fluxos de orquestração multi-agente e automações complexas"
         actions={
           <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>

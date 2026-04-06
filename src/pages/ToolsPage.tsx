@@ -113,7 +113,7 @@ export default function ToolsPage() {
   return (
     <div className="p-6 sm:p-8 lg:p-10 space-y-6 max-w-[1400px] mx-auto">
       <PageHeader
-        title="Tools & Integrations"
+        title="Ferramentas & Integrações"
         description="Ferramentas disponíveis e integrações configuradas"
         actions={
           <Dialog open={newToolOpen} onOpenChange={setNewToolOpen}>

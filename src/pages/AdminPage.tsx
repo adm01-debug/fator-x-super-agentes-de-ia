@@ -37,7 +37,7 @@ const TABLE_CONFIG: { key: TableName; label: string; icon: React.ElementType; co
     ],
   },
   {
-    key: "knowledge_bases", label: "Knowledge Bases", icon: BookOpen,
+    key: "knowledge_bases", label: "Bases de Conhecimento", icon: BookOpen,
     columns: [
       { key: "name", label: "Nome" },
       { key: "vector_db", label: "Vector DB" },
