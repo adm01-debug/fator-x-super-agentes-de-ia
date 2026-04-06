@@ -374,7 +374,7 @@ export default function AuthPage() {
           {/* Form card */}
           <form
             onSubmit={isForgotPassword ? handleForgotPassword : handleSubmit}
-            className="space-y-5 rounded-2xl border border-border bg-card p-6 sm:p-8 shadow-2xl shadow-primary/[0.03]"
+            className="space-y-5 rounded-2xl border border-border/50 bg-card/80 backdrop-blur-sm p-6 sm:p-8 shadow-2xl shadow-primary/[0.04]"
             noValidate
           >
             <div className="space-y-4">
