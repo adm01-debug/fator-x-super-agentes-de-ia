@@ -56,34 +56,13 @@ export async function getDatahubStats() {
 }
 
 export async function testDatahubConnections() {
-  const { data, error } = await supabase.functions.invoke('datahub-query', {
-    body: { action: 'test_connections' },
-  });
-  if (error) {
-    logger.error('DataHub connection test failed', { error: error.message });
-    throw error;
-  }
-  return data;
+  return invokeDatahub({ action: 'test_connections' });
 }
 
 export async function listDatahubEntities() {
-  const { data, error } = await supabase.functions.invoke('datahub-query', {
-    body: { action: 'list_entities' },
-  });
-  if (error) {
-    logger.error('DataHub list entities failed', { error: error.message });
-    throw error;
-  }
-  return data;
+  return invokeDatahub({ action: 'list_entities' });
 }
 
 export async function listDatahubTables() {
-  const { data, error } = await supabase.functions.invoke('datahub-query', {
-    body: { action: 'list_tables' },
-  });
-  if (error) {
-    logger.error('DataHub list tables failed', { error: error.message });
-    throw error;
-  }
-  return data;
+  return invokeDatahub({ action: 'list_tables' });
 }

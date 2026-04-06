@@ -80,20 +80,25 @@ export async function searchKnowledge(query: string, options?: {
     }),
   });
 
-  if (!resp.ok) throw new Error('Knowledge search failed');
+  if (!resp.ok) {
+    const errText = await resp.text().catch(() => 'Unknown');
+    logger.error('searchKnowledge failed', { status: resp.status, error: errText.substring(0, 200) });
+    throw new Error(`Knowledge search failed: ${resp.status}`);
+  }
   return resp.json();
 }
 
 export async function getCollectionStats(collectionId: string) {
-  const [docsResult, chunksResult] = await Promise.all([
-    supabase.from('documents').select('*', { count: 'exact', head: true }).eq('collection_id', collectionId),
-    supabase.from('chunks').select('*', { count: 'exact', head: true }).eq('document_id', collectionId),
-  ]);
-
-  return {
-    documents: docsResult.count || 0,
-    chunks: chunksResult.count || 0,
-  };
+  try {
+    const [docsResult, chunksResult] = await Promise.all([
+      supabase.from('documents').select('*', { count: 'exact', head: true }).eq('collection_id', collectionId),
+      supabase.from('chunks').select('*', { count: 'exact', head: true }).eq('document_id', collectionId),
+    ]);
+    return { documents: docsResult.count || 0, chunks: chunksResult.count || 0 };
+  } catch (err) {
+    logger.error('getCollectionStats failed', { collectionId, error: err instanceof Error ? err.message : String(err) });
+    return { documents: 0, chunks: 0 };
+  }
 }
 
 export async function listKnowledgeBases() {
@@ -117,20 +122,29 @@ export async function deleteKnowledgeBase(id: string) {
 }
 
 export async function listVectorIndexes() {
-  const { data } = await supabase
+  const { data, error } = await supabase
     .from('vector_indexes')
     .select('*, knowledge_bases(name)')
     .order('created_at', { ascending: false });
+  if (error) {
+    logger.error('listVectorIndexes failed', { error: error.message });
+    throw error;
+  }
   return data ?? [];
 }
 
 export async function getChunkEmbeddingStats() {
-  const [done, pending, failed] = await Promise.all([
-    supabase.from('chunks').select('id', { count: 'exact', head: true }).eq('embedding_status', 'done'),
-    supabase.from('chunks').select('id', { count: 'exact', head: true }).eq('embedding_status', 'pending'),
-    supabase.from('chunks').select('id', { count: 'exact', head: true }).eq('embedding_status', 'failed'),
-  ]);
-  return { done: done.count ?? 0, pending: pending.count ?? 0, failed: failed.count ?? 0 };
+  try {
+    const [done, pending, failed] = await Promise.all([
+      supabase.from('chunks').select('id', { count: 'exact', head: true }).eq('embedding_status', 'done'),
+      supabase.from('chunks').select('id', { count: 'exact', head: true }).eq('embedding_status', 'pending'),
+      supabase.from('chunks').select('id', { count: 'exact', head: true }).eq('embedding_status', 'failed'),
+    ]);
+    return { done: done.count ?? 0, pending: pending.count ?? 0, failed: failed.count ?? 0 };
+  } catch (err) {
+    logger.error('getChunkEmbeddingStats failed', { error: err instanceof Error ? err.message : String(err) });
+    return { done: 0, pending: 0, failed: 0 };
+  }
 }
 
 export interface RerankResult {
@@ -255,26 +269,29 @@ export async function invokeRagIngest(body: Record<string, unknown>) {
 }
 
 export async function getDocumentCount(collectionId: string) {
-  const { count } = await supabase.from('documents').select('id', { count: 'exact', head: true }).eq('collection_id', collectionId);
+  const { count, error } = await supabase.from('documents').select('id', { count: 'exact', head: true }).eq('collection_id', collectionId);
+  if (error) logger.error('getDocumentCount failed', { collectionId, error: error.message });
   return count ?? 0;
 }
 
 export async function getChunkCountForCollection(documentIds: string[]) {
-  const { count } = await supabase.from('chunks').select('id', { count: 'exact', head: true }).in('document_id', documentIds);
+  const { count, error } = await supabase.from('chunks').select('id', { count: 'exact', head: true }).in('document_id', documentIds);
+  if (error) logger.error('getChunkCountForCollection failed', { error: error.message });
   return count ?? 0;
 }
 
 export async function getKBHealthStats() {
-  const [docs, chunks, colls] = await Promise.all([
-    supabase.from('documents').select('*', { count: 'exact', head: true }),
-    supabase.from('chunks').select('*', { count: 'exact', head: true }),
-    supabase.from('collections').select('*', { count: 'exact', head: true }),
-  ]);
-  return {
-    docCount: docs.count ?? 0,
-    chunkCount: chunks.count ?? 0,
-    collCount: colls.count ?? 0,
-  };
+  try {
+    const [docs, chunks, colls] = await Promise.all([
+      supabase.from('documents').select('*', { count: 'exact', head: true }),
+      supabase.from('chunks').select('*', { count: 'exact', head: true }),
+      supabase.from('collections').select('*', { count: 'exact', head: true }),
+    ]);
+    return { docCount: docs.count ?? 0, chunkCount: chunks.count ?? 0, collCount: colls.count ?? 0 };
+  } catch (err) {
+    logger.error('getKBHealthStats failed', { error: err instanceof Error ? err.message : String(err) });
+    return { docCount: 0, chunkCount: 0, collCount: 0 };
+  }
 }
 
 export async function createPromptVersion(pv: { agent_id: string; content: string; user_id: string; change_summary?: string }) {
@@ -286,7 +303,8 @@ export async function createPromptVersion(pv: { agent_id: string; content: strin
 }
 
 export async function listPromptVersions(agentId: string) {
-  const { data } = await supabase.from('prompt_versions').select('id, version, change_summary, is_active').eq('agent_id', agentId).order('version', { ascending: false });
+  const { data, error } = await supabase.from('prompt_versions').select('id, version, change_summary, is_active').eq('agent_id', agentId).order('version', { ascending: false });
+  if (error) logger.error('listPromptVersions failed', { agentId, error: error.message });
   return data ?? [];
 }
 
@@ -354,5 +372,6 @@ export async function createDocumentWithIngest(doc: { title: string; collection_
 }
 
 export async function updateKBCounts(kbId: string, docCount: number, chunkCount: number) {
-  await supabase.from('knowledge_bases').update({ document_count: docCount, chunk_count: chunkCount }).eq('id', kbId);
+  const { error } = await supabase.from('knowledge_bases').update({ document_count: docCount, chunk_count: chunkCount }).eq('id', kbId);
+  if (error) logger.error('updateKBCounts failed', { kbId, error: error.message });
 }

@@ -164,7 +164,7 @@ export function generateAgentCard(
 
   return {
     schemaVersion: '1.0',
-    humanReadableId: `promobrindes/${agent.name.toLowerCase().replace(/\s+/g, '-')}`,
+    humanReadableId: `${platform.organization.toLowerCase().replace(/\s+/g, '')}/${agent.name.toLowerCase().replace(/\s+/g, '-')}`,
     agentVersion: '1.0.0',
     name: agent.name,
     description: agent.description || `Nexus Agent: ${agent.name}`,
@@ -279,7 +279,7 @@ export async function listAgentCards(): Promise<AgentCard[]> {
   if (error) throw new Error(`Failed to list agents: ${error.message}`);
 
   return (data ?? [])
-    .map((agent: any) => {
+    .map((agent: Record<string, unknown>) => {
       const metadata = agent.metadata as Record<string, unknown> | null;
       const cached = metadata?.agent_card as AgentCard | undefined;
       if (cached) return cached;
