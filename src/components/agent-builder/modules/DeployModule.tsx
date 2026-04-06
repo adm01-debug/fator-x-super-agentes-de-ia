@@ -1,4 +1,5 @@
 import { fromTable } from '@/lib/supabaseExtended';
+import { logger } from '@/lib/logger';
 import { useAgentBuilderStore } from '@/stores/agentBuilderStore';
 import { SectionTitle, NexusBadge, ToggleField } from '../ui';
 import { Globe, MessageSquare, Mail, Hash, Send, Radio, Sparkles } from 'lucide-react';
@@ -64,7 +65,7 @@ export function DeployModule() {
             agent_id: agent.id, workspace_id: wsId, channel: ch.channel,
             status: ch.enabled ? 'active' : 'inactive', config: ch.config,
           });
-        }).catch(() => {});
+        }).catch((err: unknown) => { logger.warn('Deploy connection sync failed', { error: err instanceof Error ? err.message : String(err) }); });
       }
     }
   };

@@ -1,4 +1,5 @@
 import { create } from 'zustand';
+import { logger } from '@/lib/logger';
 import type { AgentConfig, PromptVersion, AgentPersona, LLMModel, ReasoningPattern, AgentLifecycleStage } from '@/types/agentTypes';
 import { DEFAULT_AGENT, TABS } from '@/data/agentBuilderData';
 import { supabase } from '@/integrations/supabase/client';
@@ -212,7 +213,7 @@ export const useAgentBuilderStore = create<AgentBuilderStore>((set, get) => ({
             max_calls_per_run: tool.max_calls_per_session,
             requires_approval: tool.requires_approval,
             config: { name: tool.name, category: tool.category, permission_level: tool.permission_level },
-          }, { onConflict: 'agent_id,tool_integration_id' }).then(() => {}, () => {});
+          }, { onConflict: 'agent_id,tool_integration_id' }).then(() => {}, (err: unknown) => { logger.warn('Tool policy upsert failed', { error: err instanceof Error ? err.message : String(err) }); });
         }
       }
       // ═══ Auto-versioning: snapshot agent config on every save ═══

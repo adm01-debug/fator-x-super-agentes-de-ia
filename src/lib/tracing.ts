@@ -149,7 +149,7 @@ class NexusTracer {
         cost_usd: this.currentTrace.totalCost,
         tokens: this.currentTrace.totalTokens,
         metadata: { trace_id: this.currentTrace.id },
-      }).then(() => {}, () => {});
+      }).then(() => {}, (err: unknown) => { logger.warn('Usage record insert failed', { error: err instanceof Error ? err.message : String(err) }); });
     }
 
     this.currentTrace = null;

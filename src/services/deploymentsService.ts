@@ -85,7 +85,7 @@ export async function listDeployedAgents() {
   const connMap = new Map<string, Array<Record<string, unknown>>>();
   for (const c of (connections || [])) {
     if (!connMap.has(c.agent_id)) connMap.set(c.agent_id, []);
-    connMap.get(c.agent_id)!.push(c);
+    connMap.get(c.agent_id)?.push(c);
   }
 
   return data.map(a => {

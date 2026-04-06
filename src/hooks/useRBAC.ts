@@ -45,6 +45,7 @@ export function useRBAC() {
     }
 
     let cancelled = false;
+    const userId = user.id;
 
     async function loadPermissions() {
       try {
@@ -52,7 +53,7 @@ export function useRBAC() {
         const { data: membership } = await supabase
           .from('workspace_members')
           .select('workspace_id')
-          .eq('user_id', user!.id)
+          .eq('user_id', userId)
           .limit(1)
           .maybeSingle();
 
@@ -64,8 +65,8 @@ export function useRBAC() {
         }
 
         const [userRole, permissions] = await Promise.all([
-          getUserRole(user!.id, membership.workspace_id),
-          getUserPermissions(user!.id, membership.workspace_id),
+          getUserRole(userId, membership.workspace_id),
+          getUserPermissions(userId, membership.workspace_id),
         ]);
 
         if (!cancelled) {

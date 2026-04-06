@@ -11,6 +11,8 @@ const sessions = [
 
 export function SessionManagement() {
   const handleRevoke = (_id: string) => {
+    // Session revocation requires Supabase Auth Admin API (server-side)
+    // For now, show success feedback — real implementation needs edge function
     toast.success('Sessão encerrada com sucesso');
   };
 
