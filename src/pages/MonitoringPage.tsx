@@ -2,7 +2,7 @@ import { PageHeader } from "@/components/shared/PageHeader";
 import { StatusBadge } from "@/components/shared/StatusBadge";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Clock, DollarSign, Wrench, Activity, Loader2, Bell, CheckCircle, Trash2, Layers } from "lucide-react";
+import { Clock, DollarSign, Wrench, Activity, Loader2, Bell, CheckCircle, Trash2, Layers, Zap } from "lucide-react";
 import { useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { alertRuleSchema } from "@/lib/validations/agentSchema";
@@ -125,6 +125,7 @@ export default function MonitoringPage() {
           <TabsTrigger value="alerts" className="gap-1.5">
             Alertas {unresolvedCount > 0 && <Badge variant="destructive" className="text-[11px] h-4 px-1">{unresolvedCount}</Badge>}
           </TabsTrigger>
+          <TabsTrigger value="tracing" className="gap-1.5"><Zap className="h-3.5 w-3.5" /> Tracing</TabsTrigger>
         </TabsList>
 
         <TabsContent value="traces">
@@ -358,7 +359,61 @@ export default function MonitoringPage() {
           {/* Alert Rules Management */}
           <AlertRulesPanel />
         </TabsContent>
+
+        <TabsContent value="tracing">
+          <TracingPanel />
+        </TabsContent>
       </Tabs>
+    </div>
+  );
+}
+
+function TracingPanel() {
+  const { data: traceData = [], isLoading } = useQuery({
+    queryKey: ['trace_events_tracing'],
+    queryFn: async () => {
+      const { supabase } = await import("@/integrations/supabase/client");
+      const { data } = await supabase.from('trace_events').select('*').order('created_at', { ascending: false }).limit(50);
+      return (data ?? []) as Array<{ id: string; event_type: string; data: Record<string, unknown>; created_at: string }>;
+    },
+  });
+
+  if (isLoading) return <div className="flex justify-center py-12"><Loader2 className="h-5 w-5 animate-spin text-muted-foreground" /></div>;
+  if (traceData.length === 0) return (
+    <div className="flex flex-col items-center justify-center py-20 text-center">
+      <Zap className="h-12 w-12 text-muted-foreground mb-4" />
+      <h2 className="text-lg font-semibold text-foreground mb-1">Nenhum trace registrado</h2>
+      <p className="text-sm text-muted-foreground">Traces OpenTelemetry aparecerao quando agentes executarem via NexusTracer.</p>
+    </div>
+  );
+
+  return (
+    <div className="space-y-3">
+      <div className="flex items-center justify-between">
+        <h3 className="text-sm font-heading font-semibold text-foreground">Trace Events ({traceData.length})</h3>
+        <Badge variant="outline" className="text-[10px]">OTel GenAI</Badge>
+      </div>
+      {traceData.map(trace => {
+        const d = trace.data || {};
+        return (
+          <div key={trace.id} className="nexus-card p-3">
+            <div className="flex items-center justify-between mb-2">
+              <div className="flex items-center gap-2">
+                <Zap className={`h-4 w-4 ${d.status === 'error' ? 'text-destructive' : 'text-nexus-emerald'}`} />
+                <span className="text-xs font-medium text-foreground">{trace.event_type}</span>
+                <Badge variant="outline" className="text-[10px]">{String(d.status || 'unknown')}</Badge>
+              </div>
+              <span className="text-[11px] text-muted-foreground">{new Date(trace.created_at).toLocaleString('pt-BR')}</span>
+            </div>
+            <div className="grid grid-cols-4 gap-2 text-center">
+              <div className="p-2 rounded bg-secondary/30"><p className="text-sm font-bold text-foreground">{d.duration_ms ? `${Number(d.duration_ms)}ms` : '-'}</p><p className="text-[10px] text-muted-foreground">Duracao</p></div>
+              <div className="p-2 rounded bg-secondary/30"><p className="text-sm font-bold text-foreground">{typeof d.token_count === 'number' ? d.token_count.toLocaleString() : '-'}</p><p className="text-[10px] text-muted-foreground">Tokens</p></div>
+              <div className="p-2 rounded bg-secondary/30"><p className="text-sm font-bold text-foreground">{d.cost_usd ? `$${Number(d.cost_usd).toFixed(4)}` : '-'}</p><p className="text-[10px] text-muted-foreground">Custo</p></div>
+              <div className="p-2 rounded bg-secondary/30"><p className="text-sm font-bold text-foreground">{Array.isArray(d.spans) ? d.spans.length : '-'}</p><p className="text-[10px] text-muted-foreground">Spans</p></div>
+            </div>
+          </div>
+        );
+      })}
     </div>
   );
 }
