@@ -7,6 +7,7 @@ import { Bell, AlertTriangle, XCircle, Info, CheckCircle2, FlaskConical } from "
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
+import { useNotificationStore } from "@/stores/notificationStore";
 
 interface Notification {
   id: string;
@@ -199,16 +200,34 @@ export function NotificationsDrawer() {
     return () => { supabase.removeChannel(channel); };
   }, []);
 
-  // Merge realtime + db alerts, deduplicate by id
+  // Zustand store notifications (programmatic in-app notifications)
+  const storeNotifications = useNotificationStore(s => s.notifications);
+  const markStoreRead = useNotificationStore(s => s.markAllRead);
+
+  // Merge realtime + db alerts + store notifications, deduplicate by id
   const allNotifs = useCallback(() => {
     const map = new Map<string, Notification>();
+    // Add store notifications (converted to our format)
+    for (const sn of storeNotifications) {
+      if (!map.has(sn.id)) {
+        map.set(sn.id, {
+          id: sn.id,
+          type: 'trace',
+          title: sn.title,
+          description: sn.message,
+          level: sn.type === 'error' ? 'error' : sn.type === 'warning' ? 'warning' : sn.type === 'success' ? 'success' : 'info',
+          created_at: sn.createdAt,
+          read: sn.read,
+        });
+      }
+    }
     for (const n of [...realtimeNotifs, ...dbAlerts]) {
       if (!map.has(n.id)) map.set(n.id, n);
     }
     return Array.from(map.values())
       .sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())
       .slice(0, 30);
-  }, [realtimeNotifs, dbAlerts]);
+  }, [realtimeNotifs, dbAlerts, storeNotifications]);
 
   const notifications = allNotifs();
   const uniqueUnread = new Set([
@@ -218,6 +237,7 @@ export function NotificationsDrawer() {
 
   const markAllRead = () => {
     setRealtimeNotifs(prev => prev.map(n => ({ ...n, read: true })));
+    markStoreRead();
   };
 
   return (
