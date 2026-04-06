@@ -1,12 +1,12 @@
 import { logger } from '@/lib/logger';
-import { useLocation } from "react-router-dom";
+import { useLocation, useNavigate } from "react-router-dom";
 import fatorxIcon from "@/assets/fatorx-icon.png";
 import { NavLink } from "@/components/NavLink";
 import {
   LayoutDashboard, Bot, BookOpen, Brain, Puzzle, FileText, GitBranch, Zap,
   FlaskConical, Rocket, Activity, Database, Shield, Users, CreditCard, Settings,
   Sparkles, PanelLeftClose, PanelLeft, LogOut, ServerCog, ChevronDown, Palette, Dna, Workflow,
-  Globe,
+  Globe, ShieldCheck, CircleCheckBig, Crown,
 } from "lucide-react";
 import {
   Sidebar, SidebarContent, SidebarGroup, SidebarGroupContent, SidebarGroupLabel,
@@ -62,8 +62,8 @@ const navSections = [
     key: "admin",
     items: [
       { title: "Segurança", url: "/security", icon: Shield },
-      { title: "LGPD", url: "/lgpd", icon: Shield },
-      { title: "Aprovações", url: "/approvals", icon: Shield },
+      { title: "LGPD", url: "/lgpd", icon: ShieldCheck },
+      { title: "Aprovações", url: "/approvals", icon: CircleCheckBig },
       { title: "Equipe", url: "/team", icon: Users },
       { title: "Faturamento", url: "/billing", icon: CreditCard },
       { title: "Configurações", url: "/settings", icon: Settings },
@@ -87,6 +87,7 @@ export function AppSidebar() {
   const { state, toggleSidebar } = useSidebar();
   const collapsed = state === "collapsed";
   const location = useLocation();
+  const navigate = useNavigate();
   const { user, signOut } = useAuth();
   const { locale, setLocale } = useI18n();
   const [wsInfo, setWsInfo] = useState<{ name: string; plan: string; maxAgents: number; agentCount: number; userName: string; email: string } | null>(null);
@@ -127,6 +128,10 @@ export function AppSidebar() {
   const agentCount = wsInfo?.agentCount ?? 0;
   const maxAgents = wsInfo?.maxAgents ?? 5;
   const usage = maxAgents > 0 ? Math.min((agentCount / maxAgents) * 100, 100) : 0;
+
+  const badgeCounts: Record<string, number> = {
+    '/agents': agentCount,
+  };
 
   return (
     <Sidebar collapsible="icon" className="border-r border-border/50" aria-label="Navegação principal">
@@ -190,7 +195,12 @@ export function AppSidebar() {
                           >
                             <item.icon className={`h-4 w-4 shrink-0 transition-all duration-200 group-hover/navitem:scale-110 ${isActive ? 'text-primary drop-shadow-[0_0_6px_hsl(var(--primary)/0.4)]' : ''}`} />
                             {!collapsed && <span className="transition-colors duration-150">{item.title}</span>}
-                            {isActive && !collapsed && (
+                            {!collapsed && badgeCounts[item.url] > 0 && (
+                              <span className="ml-auto text-[10px] font-semibold bg-primary/15 text-primary rounded-full px-1.5 py-0.5 tabular-nums leading-none">
+                                {badgeCounts[item.url]}
+                              </span>
+                            )}
+                            {isActive && !collapsed && !badgeCounts[item.url] && (
                               <span className="ml-auto h-1.5 w-1.5 rounded-full bg-primary animate-glow-pulse nexus-pulse-ring" />
                             )}
                           </NavLink>
@@ -215,15 +225,28 @@ export function AppSidebar() {
                 <span className="text-[11px] text-muted-foreground">{agentCount}/{maxAgents}</span>
               </div>
               <div className="h-2 rounded-full bg-secondary" role="progressbar" aria-valuenow={usage} aria-valuemin={0} aria-valuemax={100} aria-label="Uso de agentes">
-                <div className="h-full rounded-full nexus-gradient-bg transition-all duration-500" style={{ width: `${Math.max(usage, 4)}%` }} />
+                <div className={`h-full rounded-full transition-all duration-500 ${usage >= 100 ? 'bg-nexus-amber' : 'nexus-gradient-bg'}`} style={{ width: `${Math.max(usage, 4)}%` }} />
               </div>
+              {usage >= 80 && planLabel === 'Free' && (
+                <button
+                  onClick={() => navigate('/billing')}
+                  className="flex items-center gap-1.5 mt-2 w-full justify-center rounded-md bg-gradient-to-r from-nexus-amber/20 to-nexus-amber/10 border border-nexus-amber/30 px-2 py-1.5 text-[11px] font-semibold text-nexus-amber hover:from-nexus-amber/30 hover:to-nexus-amber/20 transition-all"
+                >
+                  <Crown className="h-3 w-3" />
+                  {usage >= 100 ? 'Limite atingido — Fazer upgrade' : 'Quase no limite — Upgrade'}
+                </button>
+              )}
             </div>
             <Separator className="bg-border/30" />
             {user && (
               <div className="flex items-center gap-2.5 px-2 py-1.5 rounded-lg hover:bg-secondary/30 transition-colors">
-                <div className="h-7 w-7 rounded-full nexus-gradient-bg flex items-center justify-center text-xs font-bold text-primary-foreground shrink-0">
-                  {(wsInfo?.userName?.[0] || user.email?.[0] || 'U').toUpperCase()}
-                </div>
+                {user.user_metadata?.avatar_url ? (
+                  <img src={user.user_metadata.avatar_url} alt="" className="h-7 w-7 rounded-full shrink-0 object-cover" referrerPolicy="no-referrer" />
+                ) : (
+                  <div className="h-7 w-7 rounded-full nexus-gradient-bg flex items-center justify-center text-xs font-bold text-primary-foreground shrink-0">
+                    {(wsInfo?.userName?.[0] || user.email?.[0] || 'U').toUpperCase()}
+                  </div>
+                )}
                 <div className="flex-1 min-w-0">
                   <p className="text-xs font-medium text-foreground truncate">{wsInfo?.userName || 'Usuário'}</p>
                   <p className="text-[11px] text-muted-foreground truncate">{user.email}</p>
