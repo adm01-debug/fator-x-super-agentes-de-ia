@@ -227,12 +227,23 @@
   h2 { letter-spacing: -0.03em; }
   h3 { letter-spacing: -0.02em; }
 
+  /* Enforce heading font on bold large text (catches non-semantic titles) */
+  .font-heading,
+  .font-bold,
+  .font-extrabold,
+  .font-semibold {
+    font-family: var(--font-heading);
+  }
+
+  /* Body text keeps Inter */
   p, li, span, div {
+    font-family: var(--font-body);
     line-height: 1.6;
   }
 
-  code, pre, .font-mono {
-    font-family: var(--font-mono);
+  /* Mono always wins */
+  code, pre, .font-mono, [class*="font-mono"] {
+    font-family: var(--font-mono) !important;
   }
 }
 
