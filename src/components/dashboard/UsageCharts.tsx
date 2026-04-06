@@ -100,6 +100,29 @@ export function UsageCharts({ data }: UsageChartsProps) {
     return maxVal > 0 ? maxIdx : -1;
   }, [chartData]);
 
+  const hasData = data.length > 0 && chartData.some(d => d.requests > 0 || d.cost > 0);
+
+  if (!hasData) {
+    return (
+      <div className="grid gap-4 lg:grid-cols-2">
+        {['Requests & Erros', 'Custo USD', 'Latência média', 'Tokens'].map(title => (
+          <div key={title} className="nexus-card">
+            <h3 className="text-sm font-heading font-semibold text-foreground mb-4">
+              {title} <span className="text-muted-foreground font-normal">(30 dias)</span>
+            </h3>
+            <div className="flex flex-col items-center justify-center h-[220px] text-center">
+              <div className="h-12 w-12 rounded-xl bg-muted/20 flex items-center justify-center mb-3">
+                <span className="text-2xl opacity-40" aria-hidden="true">📊</span>
+              </div>
+              <p className="text-sm text-muted-foreground">Sem dados neste período</p>
+              <p className="text-[11px] text-muted-foreground/60 mt-1">Os dados aparecerão quando seus agentes processarem requisições</p>
+            </div>
+          </div>
+        ))}
+      </div>
+    );
+  }
+
   return (
     <div className="grid gap-4 lg:grid-cols-2">
       {/* Requests & Errors */}
