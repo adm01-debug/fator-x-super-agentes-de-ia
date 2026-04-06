@@ -129,6 +129,10 @@ export function AppSidebar() {
   const maxAgents = wsInfo?.maxAgents ?? 5;
   const usage = maxAgents > 0 ? Math.min((agentCount / maxAgents) * 100, 100) : 0;
 
+  const badgeCounts: Record<string, number> = {
+    '/agents': agentCount,
+  };
+
   return (
     <Sidebar collapsible="icon" className="border-r border-border/50" aria-label="Navegação principal">
       <SidebarHeader className="p-3">
