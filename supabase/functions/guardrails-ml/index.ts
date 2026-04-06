@@ -95,13 +95,13 @@ function checkPII(text: string): { passed: boolean; score: number; details: stri
 
 function checkSecretLeakage(text: string): { passed: boolean; score: number; details: string } {
   const secretPatterns = [
-    { name: "HuggingFace Token", pattern: /hf_[a-zA-Z0-9]{20,}/g },
-    { name: "OpenAI Key", pattern: /sk-[a-zA-Z0-9]{20,}/g },
-    { name: "Anthropic Key", pattern: /sk-ant-[a-zA-Z0-9]{20,}/g },
-    { name: "GitHub Token", pattern: /ghp_[a-zA-Z0-9]{36}/g },
-    { name: "Supabase Key", pattern: /sbp_[a-zA-Z0-9]{20,}/g },
+    { name: "HuggingFace Token", pattern: /hf_[a-zA-Z0-9]{10,}/g },
+    { name: "OpenAI Key", pattern: /sk-[a-zA-Z0-9\-]{10,}/g },
+    { name: "Anthropic Key", pattern: /sk-ant-[a-zA-Z0-9]{10,}/g },
+    { name: "GitHub Token", pattern: /ghp_[a-zA-Z0-9]{30,}/g },
+    { name: "Supabase Key", pattern: /sbp_[a-zA-Z0-9]{10,}/g },
     { name: "AWS Key", pattern: /AKIA[0-9A-Z]{16}/g },
-    { name: "Bearer Token", pattern: /Bearer\s+[a-zA-Z0-9\-._~+\/]{30,}/g },
+    { name: "Bearer Token", pattern: /Bearer\s+[a-zA-Z0-9\-._~+\/]{20,}/g },
     { name: "Password", pattern: /(?:password|senha|pwd)\s*[:=]\s*\S{6,}/gi },
   ];
   const found = secretPatterns.filter(p => p.pattern.test(text)).map(p => p.name);
