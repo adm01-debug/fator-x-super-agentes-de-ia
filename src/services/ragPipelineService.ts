@@ -37,7 +37,7 @@ export async function searchAndRerank(query: string, knowledgeBaseId: string, to
   const firstEmbed = Array.isArray(queryEmbedding) ? queryEmbedding[0] : null;
   if (!firstEmbed) throw new Error('Failed to embed query');
 
-  const { data: candidates, error } = await supabase.rpc('match_documents', {
+  const { data: candidates, error } = await (supabase.rpc as (fn: string, params: Record<string, unknown>) => ReturnType<typeof supabase.rpc>)('match_documents', {
     query_embedding: firstEmbed,
     match_threshold: 0.5,
     match_count: 50,
