@@ -82,6 +82,7 @@ export function AppLayout({ children }: AppLayoutProps) {
       '/tools': 'Ferramentas',
       '/prompts': 'Prompts',
       '/workflows': 'Workflows',
+      '/automation': 'Automação',
       '/fine-tuning': 'Fine-tuning',
       '/smolagent': 'Smolagent',
       '/evaluations': 'Avaliações',
