@@ -215,8 +215,17 @@ export function AppSidebar() {
                 <span className="text-[11px] text-muted-foreground">{agentCount}/{maxAgents}</span>
               </div>
               <div className="h-2 rounded-full bg-secondary" role="progressbar" aria-valuenow={usage} aria-valuemin={0} aria-valuemax={100} aria-label="Uso de agentes">
-                <div className="h-full rounded-full nexus-gradient-bg transition-all duration-500" style={{ width: `${Math.max(usage, 4)}%` }} />
+                <div className={`h-full rounded-full transition-all duration-500 ${usage >= 100 ? 'bg-nexus-amber' : 'nexus-gradient-bg'}`} style={{ width: `${Math.max(usage, 4)}%` }} />
               </div>
+              {usage >= 80 && planLabel === 'Free' && (
+                <button
+                  onClick={() => navigate('/billing')}
+                  className="flex items-center gap-1.5 mt-2 w-full justify-center rounded-md bg-gradient-to-r from-nexus-amber/20 to-nexus-amber/10 border border-nexus-amber/30 px-2 py-1.5 text-[11px] font-semibold text-nexus-amber hover:from-nexus-amber/30 hover:to-nexus-amber/20 transition-all"
+                >
+                  <Crown className="h-3 w-3" />
+                  {usage >= 100 ? 'Limite atingido — Fazer upgrade' : 'Quase no limite — Upgrade'}
+                </button>
+              )}
             </div>
             <Separator className="bg-border/30" />
             {user && (
