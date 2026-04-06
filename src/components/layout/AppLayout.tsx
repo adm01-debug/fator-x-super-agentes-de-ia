@@ -73,6 +73,7 @@ export function AppLayout({ children }: AppLayoutProps) {
     const path = location.pathname;
     const titles: Record<string, string> = {
       '/': 'Dashboard',
+      '/dashboard': 'Dashboard',
       '/agents': 'Agentes',
       '/brain': 'Super Cérebro',
       '/oracle': 'Oráculo',

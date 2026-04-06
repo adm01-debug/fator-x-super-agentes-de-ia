@@ -137,6 +137,7 @@ export default function DashboardPage() {
         <PageHeader
           title={`${getGreeting()} 👋`}
           description="Visão executiva da operação de agentes de IA"
+          gradient={false}
           actions={
             <div className="flex items-center gap-3">
               <DateRangePicker value={dateRange} onChange={setDateRange} />
