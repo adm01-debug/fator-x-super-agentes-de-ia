@@ -1,5 +1,6 @@
 import { describe, it, expect } from "vitest";
 import { render, screen } from "@testing-library/react";
+import { MemoryRouter } from "react-router-dom";
 import { EmptyState } from "@/components/shared/EmptyState";
 import { LoadingSpinner, FullPageLoader } from "@/components/shared/LoadingSpinner";
 import { PageLoading } from "@/components/shared/PageLoading";
@@ -42,7 +43,7 @@ describe("Accessibility", () => {
 
   describe("PageLoading", () => {
     it("has accessible status role", () => {
-      render(<PageLoading />);
+      render(<MemoryRouter><PageLoading /></MemoryRouter>);
       expect(screen.getByRole("status")).toBeInTheDocument();
     });
   });
