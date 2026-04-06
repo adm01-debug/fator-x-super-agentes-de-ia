@@ -10,9 +10,9 @@ const HF_API_KEY = Deno.env.get("HUGGINGFACE_API_KEY") || Deno.env.get("HF_API_T
 const VERSION = "v1.0";
 
 const PROVIDERS: Record<string, string> = {
-  "qwen3-embedding-8b": "https://api-inference.huggingface.co/models/Qwen/Qwen3-Embedding-8B",
-  "bge-m3": "https://api-inference.huggingface.co/models/BAAI/bge-m3",
-  "jina-embeddings-v3": "https://api-inference.huggingface.co/models/jinaai/jina-embeddings-v3",
+  "qwen3-embedding-8b": "https://router.huggingface.co/hf-inference/models/Qwen/Qwen3-Embedding-8B",
+  "bge-m3": "https://router.huggingface.co/hf-inference/models/BAAI/bge-m3",
+  "jina-embeddings-v3": "https://router.huggingface.co/hf-inference/models/jinaai/jina-embeddings-v3",
 };
 
 async function getEmbeddings(texts: string[], provider: string, dimension: number, task: string): Promise<number[][]> {

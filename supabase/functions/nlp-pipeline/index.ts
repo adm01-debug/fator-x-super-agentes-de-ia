@@ -8,7 +8,7 @@ const corsHeaders = {
 };
 
 const HF_API_KEY = Deno.env.get("HUGGINGFACE_API_KEY") || Deno.env.get("HF_API_TOKEN") || "";
-const HF_API = "https://api-inference.huggingface.co/models";
+const HF_API = "https://router.huggingface.co/hf-inference/models";
 
 const VERSION = "v2.4";
 

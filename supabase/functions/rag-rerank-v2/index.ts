@@ -10,8 +10,8 @@ const HF_API_KEY = Deno.env.get("HUGGINGFACE_API_KEY") || Deno.env.get("HF_API_T
 const VERSION = "v1.0";
 
 const RERANKER_MODELS: Record<string, string> = {
-  "qwen3-reranker-8b": "https://api-inference.huggingface.co/models/Qwen/Qwen3-Reranker-8B",
-  "bge-reranker-v2-m3": "https://api-inference.huggingface.co/models/BAAI/bge-reranker-v2-m3",
+  "qwen3-reranker-8b": "https://router.huggingface.co/hf-inference/models/Qwen/Qwen3-Reranker-8B",
+  "bge-reranker-v2-m3": "https://router.huggingface.co/hf-inference/models/BAAI/bge-reranker-v2-m3",
 };
 
 interface Document {
