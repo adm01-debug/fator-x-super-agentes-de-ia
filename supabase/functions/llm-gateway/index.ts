@@ -173,7 +173,7 @@ async function checkGuardrails(supabase: SupabaseClient, agentId: string | undef
 }
 
 // ═══ Budget Check ═══
-async function checkBudget(supabase: any, workspaceId: string | undefined, agentId: string | undefined): Promise<{ allowed: boolean; reason?: string }> {
+async function checkBudget(supabase: SupabaseClient, workspaceId: string | undefined, agentId: string | undefined): Promise<{ allowed: boolean; reason?: string }> {
   if (!workspaceId) return { allowed: true };
   try {
     const { data: budgets } = await supabase.from('budgets').select('*').eq('workspace_id', workspaceId).eq('is_active', true);
@@ -187,7 +187,7 @@ async function checkBudget(supabase: any, workspaceId: string | undefined, agent
           }
           if (agentId) {
             const { data: agent } = await supabase.from('agents').select('config').eq('id', agentId).single();
-            if ((agent?.config as any)?.budget_kill_switch) {
+            if ((agent?.config as Record<string, unknown>)?.budget_kill_switch) {
               return { allowed: false, reason: `Budget "${b.name}" exceeded: $${Number(b.current_usd).toFixed(4)} / $${b.limit_usd}` };
             }
           }
@@ -202,7 +202,7 @@ async function checkBudget(supabase: any, workspaceId: string | undefined, agent
 }
 
 // ═══ Record Trace + Usage (non-blocking) ═══
-async function recordTrace(supabase: any, p: {
+async function recordTrace(supabase: SupabaseClient, p: {
   workspaceId?: string; agentId?: string; sessionId?: string; userId?: string;
   userInput: string; assistantOutput: string; model: string; provider: string;
   promptTokens: number; completionTokens: number; totalTokens: number;
