@@ -227,17 +227,8 @@
   h2 { letter-spacing: -0.03em; }
   h3 { letter-spacing: -0.02em; }
 
-  /* Enforce heading font on bold large text (catches non-semantic titles) */
-  .font-heading,
-  .font-bold,
-  .font-extrabold,
-  .font-semibold {
-    font-family: var(--font-heading);
-  }
-
-  /* Body text keeps Inter */
-  p, li, span, div {
-    font-family: var(--font-body);
+  /* Body text baseline */
+  p, li, span, div, label, input, textarea, select, button {
     line-height: 1.6;
   }
 
@@ -245,6 +236,22 @@
   code, pre, .font-mono, [class*="font-mono"] {
     font-family: var(--font-mono) !important;
   }
+}
+
+/* Enforce heading font on bold/semibold text — outside @layer for higher specificity */
+.font-heading,
+.font-bold,
+.font-extrabold,
+.font-semibold,
+[class*="font-bold"],
+[class*="font-semibold"],
+[class*="font-extrabold"] {
+  font-family: var(--font-heading);
+}
+
+/* Mono override — highest priority */
+code, pre, .font-mono, [class*="font-mono"] {
+  font-family: var(--font-mono) !important;
 }
 
 @layer utilities {
