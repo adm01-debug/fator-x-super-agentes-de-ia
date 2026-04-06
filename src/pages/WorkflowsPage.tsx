@@ -378,7 +378,7 @@ function WorkflowScheduler({ workflows }: { workflows: Array<Record<string, unkn
     const newSchedule = { id: crypto.randomUUID(), workflowId: selWf, cron: cronInfo.cron, enabled: true, nextRun: cronInfo.next() };
     const updated = [...schedules, newSchedule];
     setSchedules(updated);
-    localStorage.setItem('nexus-wf-schedules', JSON.stringify(updated));
+    try { localStorage.setItem('nexus-wf-schedules', JSON.stringify(updated)); } catch { /* quota */ }
     toast.success('Agendamento criado!');
     setSelWf('');
   };
@@ -386,13 +386,13 @@ function WorkflowScheduler({ workflows }: { workflows: Array<Record<string, unkn
   const handleToggle = (id: string) => {
     const updated = schedules.map(s => s.id === id ? { ...s, enabled: !s.enabled } : s);
     setSchedules(updated);
-    localStorage.setItem('nexus-wf-schedules', JSON.stringify(updated));
+    try { localStorage.setItem('nexus-wf-schedules', JSON.stringify(updated)); } catch { /* quota */ }
   };
 
   const handleRemove = (id: string) => {
     const updated = schedules.filter(s => s.id !== id);
     setSchedules(updated);
-    localStorage.setItem('nexus-wf-schedules', JSON.stringify(updated));
+    try { localStorage.setItem('nexus-wf-schedules', JSON.stringify(updated)); } catch { /* quota */ }
     toast.success('Agendamento removido');
   };
 

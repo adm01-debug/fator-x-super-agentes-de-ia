@@ -37,7 +37,7 @@ function getFavorites(): string[] {
 function toggleFavorite(id: string): string[] {
   const prev = getFavorites();
   const next = prev.includes(id) ? prev.filter(f => f !== id) : [...prev, id];
-  localStorage.setItem(FAV_KEY, JSON.stringify(next));
+  try { localStorage.setItem(FAV_KEY, JSON.stringify(next)); } catch { /* quota exceeded */ }
   return next;
 }
 
