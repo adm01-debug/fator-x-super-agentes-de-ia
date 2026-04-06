@@ -64,7 +64,7 @@ export default function FineTuningPage() {
   };
 
   return (
-    <div className="p-6 max-w-[1400px] mx-auto space-y-6">
+    <div className="p-6 sm:p-8 lg:p-10 space-y-6 max-w-[1400px] mx-auto animate-page-enter">
       <PageHeader title="🧬 Fine-tuning" description="Treine modelos customizados via HuggingFace AutoTrain" gradient={false} />
       <InfoHint title="Como funciona?">
         Pipeline: 1) Prepare o dataset a partir de traces/test cases → 2) Configure o training → 3) Inicie → 4) Acompanhe. Modelos publicados no HF Hub.
