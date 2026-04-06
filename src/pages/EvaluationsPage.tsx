@@ -18,7 +18,7 @@ export default function EvaluationsPage() {
   });
 
   return (
-    <div className="p-6 sm:p-8 lg:p-10 space-y-6 max-w-[1400px] mx-auto">
+    <div className="p-6 sm:p-8 lg:p-10 space-y-6 max-w-[1400px] mx-auto animate-page-enter">
       <PageHeader
         title="Laboratório de Avaliações"
         description="Avalie agentes com métricas de factualidade, groundedness, sucesso e segurança"

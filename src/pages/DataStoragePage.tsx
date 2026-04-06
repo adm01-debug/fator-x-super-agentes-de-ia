@@ -38,7 +38,7 @@ export default function DataStoragePage() {
   });
 
   return (
-    <div className="p-6 sm:p-8 lg:p-10 space-y-6 max-w-[1400px] mx-auto">
+    <div className="p-6 sm:p-8 lg:p-10 space-y-6 max-w-[1400px] mx-auto animate-page-enter">
       <PageHeader title="Dados & Armazenamento" description="Arquitetura de dados: bancos vetoriais, relacionais, cache e storage" />
 
       <InfoHint title="Por que banco vetorial?">
