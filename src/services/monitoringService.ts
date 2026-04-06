@@ -4,6 +4,7 @@
  */
 import { supabase } from '@/integrations/supabase/client';
 import { fromTable } from '@/lib/supabaseExtended';
+import { logger } from '@/lib/logger';
 
 // ═══ Agent Traces ═══
 
@@ -19,7 +20,10 @@ export async function getAgentTraces(options: {
     .limit(limit);
   if (agentId && agentId !== 'all') query = query.eq('agent_id', agentId);
   const { data, error } = await query;
-  if (error) throw error;
+  if (error) {
+    logger.error('getAgentTraces failed', { error: error.message });
+    throw error;
+  }
   return data ?? [];
 }
 
@@ -38,7 +42,10 @@ export async function getSessions(options: { agentId?: string; limit?: number })
     .limit(limit);
   if (agentId && agentId !== 'all') query = query.eq('agent_id', agentId);
   const { data, error } = await query;
-  if (error) throw error;
+  if (error) {
+    logger.error('getSessions failed', { error: error.message });
+    throw error;
+  }
   return (data ?? []) as Array<{
     id: string; agent_id: string | null; status: string;
     started_at: string; ended_at: string | null; metadata: Record<string, unknown>;
@@ -51,7 +58,10 @@ export async function getSessionTraces(sessionId: string) {
     .select('*')
     .eq('session_id', sessionId)
     .order('created_at', { ascending: true });
-  if (error) throw error;
+  if (error) {
+    logger.error('getSessionTraces failed', { error: error.message });
+    throw error;
+  }
   return (data ?? []) as Array<{
     id: string; trace_type: string; input: unknown; output: unknown;
     latency_ms: number | null; tokens_used: number | null;
@@ -65,7 +75,10 @@ export async function getTraceEvents(traceId: string) {
     .select('*')
     .eq('session_trace_id', traceId)
     .order('created_at', { ascending: true });
-  if (error) throw error;
+  if (error) {
+    logger.error('getTraceEvents failed', { error: error.message });
+    throw error;
+  }
   return (data ?? []) as Array<{
     id: string; event_type: string; data: Record<string, unknown>; created_at: string;
   }>;
@@ -87,7 +100,10 @@ export async function getAlerts(options: {
   if (severity) query = query.eq('severity', severity);
   if (acknowledged !== undefined) query = query.eq('is_resolved', acknowledged);
   const { data, error } = await query;
-  if (error) throw error;
+  if (error) {
+    logger.error('getAlerts failed', { error: error.message });
+    throw error;
+  }
   return data ?? [];
 }
 
@@ -96,7 +112,10 @@ export async function resolveAlert(alertId: string): Promise<void> {
     .from('alerts')
     .update({ is_resolved: true, resolved_at: new Date().toISOString() })
     .eq('id', alertId);
-  if (error) throw error;
+  if (error) {
+    logger.error('resolveAlert failed', { error: error.message });
+    throw error;
+  }
 }
 
 // ═══ Agents list (for filter dropdown) ═══

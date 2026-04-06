@@ -1,10 +1,8 @@
-import { logger } from '@/lib/logger';
 import { useState, useEffect, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import { X, ArrowRight, Bot, Sparkles, Keyboard, Rocket, Brain, Shield, GitBranch } from "lucide-react";
 import { Button } from "@/components/ui/button";
-
-const TOUR_KEY = "nexus-onboarding-v2";
+import { useUIStore } from "@/stores/uiStore";
 
 interface TourStep {
   title: string;
@@ -65,20 +63,20 @@ export function OnboardingTour() {
   const [step, setStep] = useState(0);
   const navigate = useNavigate();
 
+  const onboardingComplete = useUIStore(s => s.onboardingComplete);
+  const setOnboardingComplete = useUIStore(s => s.setOnboardingComplete);
+
   useEffect(() => {
-    try {
-      const done = localStorage.getItem(TOUR_KEY);
-      if (!done) {
-        const t = setTimeout(() => setVisible(true), 1200);
-        return () => clearTimeout(t);
-      }
-    } catch (err) { logger.error("Operation failed:", err);}
-  }, []);
+    if (!onboardingComplete) {
+      const t = setTimeout(() => setVisible(true), 1200);
+      return () => clearTimeout(t);
+    }
+  }, [onboardingComplete]);
 
   const dismiss = useCallback(() => {
     setVisible(false);
-    try { localStorage.setItem(TOUR_KEY, "true"); } catch (err) { logger.error("Operation failed:", err);}
-  }, []);
+    setOnboardingComplete(true);
+  }, [setOnboardingComplete]);
 
   const next = () => {
     if (step < TOUR_STEPS.length - 1) {

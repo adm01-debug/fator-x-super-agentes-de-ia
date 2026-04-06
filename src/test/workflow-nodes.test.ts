@@ -2,8 +2,8 @@ import { describe, it, expect } from 'vitest';
 import { NODE_TYPES, NODE_CATEGORIES, NODE_DEFAULTS } from '@/components/workflows/nodes';
 
 describe('Workflow Node Types', () => {
-  it('has 12 node types', () => {
-    expect(Object.keys(NODE_TYPES).length).toBe(12);
+  it('has 18 node types (12 original + 6 automation)', () => {
+    expect(Object.keys(NODE_TYPES).length).toBe(18);
   });
 
   it('all node types have defaults', () => {
@@ -13,7 +13,7 @@ describe('Workflow Node Types', () => {
   });
 
   it('categories cover all nodes', () => {
-    const allCategoryNodes = NODE_CATEGORIES.flatMap(c => c.nodes);
+    const allCategoryNodes = NODE_CATEGORIES.flatMap((c) => c.nodes);
     const allNodeTypes = Object.keys(NODE_TYPES);
     expect(allCategoryNodes.sort()).toEqual(allNodeTypes.sort());
   });

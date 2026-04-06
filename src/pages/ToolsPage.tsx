@@ -17,6 +17,7 @@ import { getWorkspaceId } from "@/lib/agentService";
 import { toast } from "sonner";
 import { MCPServerManager } from '@/components/integrations/MCPServerManager';
 import { Bitrix24Connect } from '@/components/integrations/Bitrix24Connect';
+import { Bitrix24ApiTester } from '@/components/integrations/Bitrix24ApiTester';
 import { SKILL_CATEGORIES } from '@/services/skillsRegistryService';
 
 const builtInTools = [
@@ -205,8 +206,9 @@ export default function ToolsPage() {
 
       {/* Integrações */}
       <div className="nexus-card p-6 space-y-4">
-        <h3 className="text-sm font-bold text-white">Integrações Externas</h3>
+        <h3 className="text-sm font-bold text-white">Integracoes Externas</h3>
         <Bitrix24Connect />
+        <Bitrix24ApiTester />
       </div>
 
       {/* MCP Servers */}

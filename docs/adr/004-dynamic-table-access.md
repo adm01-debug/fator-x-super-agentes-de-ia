@@ -1,8 +1,8 @@
 # ADR-004: Dynamic Table Access Pattern
 
-**Status:** Accepted  
-**Date:** 2026-04-05  
-**Context:** Some services reference tables not yet in the DB schema.
+**Status:** Superseded  
+**Date:** 2026-04-05 (Updated: 2026-04-06)  
+**Context:** Some services reference tables not yet in the DB schema. Tables now created via migration `20260406000001_create_adr004_planned_tables.sql`.
 
 ## Decision
 Use `(supabase as any).from('table')` cast for tables planned but not yet created.
@@ -18,10 +18,12 @@ Use `(supabase as any).from('table')` cast for tables planned but not yet create
 - Must track which tables are "planned" vs "real" in this ADR
 - Goal: create all planned tables and remove `as any` casts
 
-## Planned Tables
-| Table | Service | Priority |
-|-------|---------|----------|
-| `workflow_executions` | workflowCheckpointService | High |
-| `workflow_checkpoints` | workflowCheckpointService | High |
-| `workflow_handoffs` | agentHandoffService | Medium |
-| `agent_configs` | agentCardService | Medium |
+## Planned Tables (NOW CREATED)
+| Table | Service | Priority | Status |
+|-------|---------|----------|--------|
+| `workflow_executions` | workflowCheckpointService | High | CREATED |
+| `workflow_checkpoints` | workflowCheckpointService | High | CREATED |
+| `workflow_handoffs` | agentHandoffService | Medium | CREATED |
+| `agent_configs` | agentCardService | Medium | CREATED |
+
+All tables created in migration `20260406000001_create_adr004_planned_tables.sql` with full RLS policies and indexes.

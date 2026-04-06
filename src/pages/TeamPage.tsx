@@ -9,6 +9,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { InviteMemberDialog } from "@/components/dialogs/InviteMemberDialog";
 import { toast } from "sonner";
 import { listMembers, removeMember, getPendingInvites, acceptInvite } from "@/services/teamsService";
+import { AccessControl } from "@/components/rbac/AccessControl";
 
 const roleLabels: Record<string, string> = { admin: 'Admin', editor: 'Editor', viewer: 'Viewer', operator: 'Operator', owner: 'Owner' };
 
@@ -118,6 +119,7 @@ export default function TeamPage() {
                   <td className="px-5 py-3"><StatusBadge status={m.accepted_at ? 'active' : 'invited'} /></td>
                   <td className="px-5 py-3 text-right">
                     {m.user_id !== user?.id && (
+                      <AccessControl permission="team.manage">
                       <AlertDialog>
                         <AlertDialogTrigger asChild>
                           <Button variant="ghost" size="sm" className="h-7 text-xs text-destructive gap-1">
@@ -135,6 +137,7 @@ export default function TeamPage() {
                           </AlertDialogFooter>
                         </AlertDialogContent>
                       </AlertDialog>
+                      </AccessControl>
                     )}
                   </td>
                 </tr>

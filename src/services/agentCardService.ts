@@ -9,10 +9,8 @@
  * This enables automatic discovery and interoperability between agents.
  */
 
-// supabase import removed — this service uses fromTable for untyped tables
-
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
 import { fromTable } from '@/lib/supabaseExtended';
+import { platform } from '@/config/env';
 
 // ──────── A2A Agent Card Types (following official spec) ────────
 
@@ -94,14 +92,12 @@ interface AgentConfig {
 // ──────── Constants ────────
 
 const DEFAULT_PROVIDER: AgentProvider = {
-  organization: 'Promo Brindes',
-  url: 'https://promobrindes.com.br',
-  support_contact: 'suporte@promobrindes.com.br',
+  organization: platform.organization,
+  url: platform.url,
+  support_contact: platform.supportEmail,
 };
 
-const NEXUS_BASE_URL = typeof window !== 'undefined'
-  ? window.location.origin
-  : 'https://nexus.promobrindes.com.br';
+const NEXUS_BASE_URL = platform.nexusBaseUrl;
 
 // ──────── Card Generation ────────
 
@@ -168,7 +164,7 @@ export function generateAgentCard(
 
   return {
     schemaVersion: '1.0',
-    humanReadableId: `promobrindes/${agent.name.toLowerCase().replace(/\s+/g, '-')}`,
+    humanReadableId: `${platform.organization.toLowerCase().replace(/\s+/g, '')}/${agent.name.toLowerCase().replace(/\s+/g, '-')}`,
     agentVersion: '1.0.0',
     name: agent.name,
     description: agent.description || `Nexus Agent: ${agent.name}`,
@@ -283,7 +279,7 @@ export async function listAgentCards(): Promise<AgentCard[]> {
   if (error) throw new Error(`Failed to list agents: ${error.message}`);
 
   return (data ?? [])
-    .map((agent: any) => {
+    .map((agent: Record<string, unknown>) => {
       const metadata = agent.metadata as Record<string, unknown> | null;
       const cached = metadata?.agent_card as AgentCard | undefined;
       if (cached) return cached;

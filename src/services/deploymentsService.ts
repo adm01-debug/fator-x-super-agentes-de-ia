@@ -3,6 +3,7 @@
  * Multi-channel deploy: Widget, WhatsApp, Slack, API, Bitrix24
  */
 import { supabase } from '@/integrations/supabase/client';
+import { logger } from '@/lib/logger';
 
 export type DeployChannel = 'widget' | 'api' | 'whatsapp' | 'slack' | 'bitrix24' | 'telegram';
 
@@ -23,7 +24,10 @@ export async function listDeployments(agentId: string): Promise<DeployConnection
     .eq('agent_id', agentId)
     .order('created_at', { ascending: false });
 
-  if (error) throw error;
+  if (error) {
+    logger.error('listDeployments failed', { error: error.message });
+    throw error;
+  }
   return (data ?? []) as unknown as DeployConnection[];
 }
 
@@ -41,7 +45,10 @@ export async function createDeployment(agentId: string, channel: DeployChannel, 
     .select()
     .single();
 
-  if (error) throw error;
+  if (error) {
+    logger.error('createDeployment failed', { error: error.message });
+    throw error;
+  }
   return data;
 }
 
@@ -51,12 +58,18 @@ export async function toggleDeployment(id: string, active: boolean) {
     .update({ status: active ? 'active' : 'inactive' })
     .eq('id', id);
 
-  if (error) throw error;
+  if (error) {
+    logger.error('toggleDeployment failed', { error: error.message });
+    throw error;
+  }
 }
 
 export async function deleteDeployment(id: string) {
   const { error } = await supabase.from('deploy_connections').delete().eq('id', id);
-  if (error) throw error;
+  if (error) {
+    logger.error('deleteDeployment failed', { error: error.message });
+    throw error;
+  }
 }
 
 export function getWidgetSnippet(agentId: string): string {
@@ -73,7 +86,10 @@ export async function listDeployedAgents() {
     .from('agents')
     .select('id, name, avatar_emoji, status, config, version, updated_at')
     .in('status', ['production', 'staging', 'monitoring']);
-  if (error) throw error;
+  if (error) {
+    logger.error('listDeployedAgents failed', { error: error.message });
+    throw error;
+  }
   if (!data) return [];
 
   const agentIds = data.map(a => a.id);

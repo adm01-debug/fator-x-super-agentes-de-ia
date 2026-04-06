@@ -1,21 +1,74 @@
-import { Shield } from "lucide-react";
+import { useState, useEffect } from "react";
+import { Shield, Loader2 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
+import { getSecurityPosture, listGuardrailPolicies, getAuditLog } from "@/services/securityService";
 
-const complianceFrameworks = [
-  { name: 'LGPD', status: 'compliant', coverage: 92 },
-  { name: 'SOC 2', status: 'partial', coverage: 78 },
-  { name: 'GDPR', status: 'compliant', coverage: 88 },
-  { name: 'ISO 27001', status: 'in_progress', coverage: 65 },
-];
+interface ComplianceEntry {
+  name: string;
+  status: 'compliant' | 'partial' | 'in_progress';
+  coverage: number;
+}
+
+async function computeComplianceFrameworks(): Promise<ComplianceEntry[]> {
+  let postureScore = 0;
+  let hasGuardrails = false;
+  let hasAuditLogs = false;
+
+  try {
+    const posture = await getSecurityPosture();
+    const passCount = posture.filter(c => c.status === 'pass').length;
+    postureScore = posture.length > 0 ? Math.round((passCount / posture.length) * 100) : 0;
+  } catch { /* fallback */ }
+
+  try {
+    const guardrails = await listGuardrailPolicies();
+    hasGuardrails = guardrails.some((g: { is_enabled: boolean }) => g.is_enabled);
+  } catch { /* fallback */ }
+
+  try {
+    const logs = await getAuditLog({ limit: 1 });
+    hasAuditLogs = logs.length > 0;
+  } catch { /* fallback */ }
+
+  const lgpdCoverage = Math.min(100, postureScore + (hasGuardrails ? 10 : 0));
+  const gdprCoverage = Math.min(100, postureScore + (hasGuardrails ? 5 : 0));
+  const soc2Coverage = Math.min(100, Math.round(postureScore * 0.8) + (hasAuditLogs ? 15 : 0));
+  const isoCoverage = Math.min(100, Math.round(postureScore * 0.7) + (hasAuditLogs ? 10 : 0));
+
+  return [
+    { name: 'LGPD', status: lgpdCoverage >= 90 ? 'compliant' : lgpdCoverage >= 60 ? 'partial' : 'in_progress', coverage: lgpdCoverage },
+    { name: 'SOC 2', status: soc2Coverage >= 90 ? 'compliant' : soc2Coverage >= 60 ? 'partial' : 'in_progress', coverage: soc2Coverage },
+    { name: 'GDPR', status: gdprCoverage >= 90 ? 'compliant' : gdprCoverage >= 60 ? 'partial' : 'in_progress', coverage: gdprCoverage },
+    { name: 'ISO 27001', status: isoCoverage >= 90 ? 'compliant' : isoCoverage >= 60 ? 'partial' : 'in_progress', coverage: isoCoverage },
+  ];
+}
 
 export function ComplianceFrameworks() {
+  const [frameworks, setFrameworks] = useState<ComplianceEntry[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    computeComplianceFrameworks()
+      .then(setFrameworks)
+      .catch(() => setFrameworks([]))
+      .finally(() => setLoading(false));
+  }, []);
+
+  if (loading) {
+    return (
+      <div className="nexus-card flex items-center justify-center py-8">
+        <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
+      </div>
+    );
+  }
+
   return (
     <div className="nexus-card">
       <h3 className="text-sm font-heading font-semibold text-foreground mb-4 flex items-center gap-2">
         <Shield className="h-4 w-4 text-primary" /> Compliance Frameworks
       </h3>
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-        {complianceFrameworks.map(fw => (
+        {frameworks.map(fw => (
           <div key={fw.name} className="p-3 rounded-lg bg-secondary/30 border border-border/30 text-center">
             <p className="text-sm font-heading font-bold text-foreground">{fw.name}</p>
             <div className="mt-2 h-1.5 rounded-full bg-secondary overflow-hidden">

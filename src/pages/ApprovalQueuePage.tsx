@@ -62,8 +62,8 @@ export default function ApprovalQueuePage() {
       ) : (
         <div className="space-y-4">
           {pendingRuns.map((run) => {
-            const output = run.output as Record<string, any> | null;
-            const pending = output?.pending_approval as Record<string, any> | undefined;
+            const output = run.output as Record<string, unknown> | null;
+            const pending = output?.pending_approval as Record<string, unknown> | undefined;
             const isSelected = selectedRun === run.id;
             const workflows = run.workflows as { name?: string } | null;
             return (

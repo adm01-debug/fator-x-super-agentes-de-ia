@@ -6,7 +6,8 @@ import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Palette, Globe, Bell, Key, Plus, Trash2, Save, Loader2, RotateCw, Sparkles } from "lucide-react";
+import { Palette, Globe, Bell, Key, Plus, Trash2, Save, Loader2, RotateCw, Sparkles, Server } from "lucide-react";
+import { MCPServerManager } from "@/components/integrations/MCPServerManager";
 import { toast } from "sonner";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
@@ -102,6 +103,7 @@ export default function SettingsPage() {
           <TabsTrigger value="notifications" className="text-xs gap-1.5"><Bell className="h-3.5 w-3.5" /> Notificações</TabsTrigger>
           <TabsTrigger value="environments" className="text-xs gap-1.5"><Globe className="h-3.5 w-3.5" /> Ambientes</TabsTrigger>
           <TabsTrigger value="huggingface" className="text-xs gap-1.5"><Sparkles className="h-3.5 w-3.5" /> HuggingFace</TabsTrigger>
+          <TabsTrigger value="mcp" className="text-xs gap-1.5"><Server className="h-3.5 w-3.5" /> MCP Servers</TabsTrigger>
         </TabsList>
 
         {/* General */}
@@ -374,6 +376,11 @@ docker run --gpus all -p 8081:80 -v tei-data:/data \\
               </div>
             </div>
           </div>
+        </TabsContent>
+
+        {/* MCP Servers */}
+        <TabsContent value="mcp" className="mt-4">
+          <MCPServerManager />
         </TabsContent>
       </Tabs>
     </div>

@@ -13,8 +13,7 @@ import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { useQuery } from "@tanstack/react-query";
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-type AnyData = Record<string, any>;
+type AnyData = Record<string, unknown>;
 
 function useFineTuning() {
   const [loading, setLoading] = useState(false);

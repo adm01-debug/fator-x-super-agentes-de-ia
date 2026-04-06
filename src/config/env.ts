@@ -44,3 +44,13 @@ export const isDev = import.meta.env.DEV;
 
 /** Check if running in production mode */
 export const isProd = import.meta.env.PROD;
+
+/** Platform branding — configurable per deployment */
+export const platform = {
+  organization: getEnvVar('VITE_ORG_NAME', 'Promo Brindes'),
+  url: getEnvVar('VITE_ORG_URL', 'https://promobrindes.com.br'),
+  supportEmail: getEnvVar('VITE_ORG_SUPPORT_EMAIL', 'suporte@promobrindes.com.br'),
+  nexusBaseUrl: typeof window !== 'undefined'
+    ? window.location.origin
+    : getEnvVar('VITE_NEXUS_BASE_URL', 'https://nexus.promobrindes.com.br'),
+} as const;
