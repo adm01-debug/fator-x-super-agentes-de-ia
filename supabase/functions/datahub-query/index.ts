@@ -83,6 +83,66 @@ const ENTITY_MAPPINGS: Record<string, any> = {
 function applyStaticFilter(query: any, filterStr: string) {
   const parts = filterStr.split(' AND ').map((f: string) => f.trim());
   for (const f of parts) {
+    // IS NULL / IS NOT NULL
+    const nullMatch = f.match(/^(\w+)\s+(IS NULL|IS NOT NULL)$/i);
+    if (nullMatch) {
+      const [, col, op] = nullMatch;
+      if (op.toUpperCase() === 'IS NOT NULL') query = query.not(col, 'is', null);
+      else query = query.is(col, null);
+      continue;
+    }
+    // != (not equal)
+    const neqMatch = f.match(/^(\w+)\s*!=\s*(.+)$/);
+    if (neqMatch) {
+      const [, col, val] = neqMatch;
+      const cleanVal = val.replace(/^'|'$/g, '');
+      query = query.neq(col, cleanVal);
+      continue;
+    }
+    // >= (greater than or equal)
+    const gteMatch = f.match(/^(\w+)\s*>=\s*(.+)$/);
+    if (gteMatch) {
+      const [, col, val] = gteMatch;
+      query = query.gte(col, val.replace(/^'|'$/g, ''));
+      continue;
+    }
+    // <= (less than or equal)
+    const lteMatch = f.match(/^(\w+)\s*<=\s*(.+)$/);
+    if (lteMatch) {
+      const [, col, val] = lteMatch;
+      query = query.lte(col, val.replace(/^'|'$/g, ''));
+      continue;
+    }
+    // > (greater than)
+    const gtMatch = f.match(/^(\w+)\s*>\s*(.+)$/);
+    if (gtMatch) {
+      const [, col, val] = gtMatch;
+      query = query.gt(col, val.replace(/^'|'$/g, ''));
+      continue;
+    }
+    // < (less than)
+    const ltMatch = f.match(/^(\w+)\s*<\s*(.+)$/);
+    if (ltMatch) {
+      const [, col, val] = ltMatch;
+      query = query.lt(col, val.replace(/^'|'$/g, ''));
+      continue;
+    }
+    // LIKE
+    const likeMatch = f.match(/^(\w+)\s+LIKE\s+'(.+)'$/i);
+    if (likeMatch) {
+      const [, col, val] = likeMatch;
+      query = query.like(col, val);
+      continue;
+    }
+    // IN
+    const inMatch = f.match(/^(\w+)\s+IN\s*\((.+)\)$/i);
+    if (inMatch) {
+      const [, col, valStr] = inMatch;
+      const values = valStr.split(',').map((v: string) => v.trim().replace(/^'|'$/g, ''));
+      query = query.in(col, values);
+      continue;
+    }
+    // = (equality — default)
     const eqMatch = f.match(/^(\w+)\s*=\s*(.+)$/);
     if (eqMatch) {
       const [, col, val] = eqMatch;
@@ -90,12 +150,6 @@ function applyStaticFilter(query: any, filterStr: string) {
       if (cleanVal === 'true') query = query.eq(col, true);
       else if (cleanVal === 'false') query = query.eq(col, false);
       else query = query.eq(col, cleanVal);
-    }
-    const neqMatch = f.match(/^(\w+)\s*(IS NOT NULL|!= '')$/i);
-    if (neqMatch) {
-      const [, col, op] = neqMatch;
-      if (op.toUpperCase() === 'IS NOT NULL') query = query.not(col, 'is', null);
-      else query = query.neq(col, '');
     }
   }
   return query;

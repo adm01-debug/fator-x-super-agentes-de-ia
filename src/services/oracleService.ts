@@ -40,8 +40,13 @@ export async function queryOracle(params: {
   });
 
   if (!resp.ok) {
-    const err = await resp.json();
-    throw new Error((err as Record<string, string>).error || 'Oracle query failed');
+    const errText = await resp.text().catch(() => '');
+    let errMsg = `Oracle query failed (${resp.status})`;
+    try {
+      const errJson = JSON.parse(errText) as Record<string, string>;
+      if (errJson.error) errMsg = errJson.error;
+    } catch { errMsg += `: ${errText || resp.statusText}`; }
+    throw new Error(errMsg);
   }
 
   return resp.json();
