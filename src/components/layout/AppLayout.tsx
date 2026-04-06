@@ -207,7 +207,7 @@ export function AppLayout({ children }: AppLayoutProps) {
                 </DropdownMenu>
               </div>
             </header>
-            <main id="main-content" className="flex-1 overflow-auto" tabIndex={-1} aria-label={pageTitle}>
+            <main id="main-content" className="flex-1 overflow-auto animate-page-enter" tabIndex={-1} aria-label={pageTitle}>
               <ErrorBoundary>
                 {isMobile ? (
                   <SwipeNavigation>
