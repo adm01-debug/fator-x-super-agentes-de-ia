@@ -10,7 +10,7 @@ import { Switch } from "@/components/ui/switch";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Plus, GitBranch, ArrowRight, Brain, Search, Shield, CheckCircle, Wrench, FileText, Play, Trash2, LayoutGrid, Network, Save, FolderOpen, Loader2, Clock, Calendar } from "lucide-react";
+import { Plus, GitBranch, ArrowRight, Brain, Search, Shield, CheckCircle, Wrench, FileText, Play, Trash2, LayoutGrid, Network, Save, FolderOpen, Loader2, Clock, Calendar, History } from "lucide-react";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
 import { toast } from "sonner";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
@@ -18,6 +18,7 @@ import { WorkflowCanvas, type CanvasNode, type CanvasEdge } from "@/components/w
 import { useWorkflowPersistence } from "@/hooks/use-workflow-persistence";
 import { workflowSchema } from "@/lib/validations/agentSchema";
 import { listWorkflows as listWorkflowsService, saveWorkflow as saveWorkflowService, deleteWorkflow as deleteWorkflowService, toggleWorkflowStatus, executeWorkflow, listWorkflowRuns } from "@/services/workflowsService";
+import { WorkflowTimeTravelPanel } from "@/components/workflows/WorkflowTimeTravelPanel";
 
 interface Workflow {
   id: string;
@@ -191,6 +192,7 @@ export default function WorkflowsPage() {
           <TabsTrigger value="list" className="gap-1.5"><LayoutGrid className="h-3.5 w-3.5" /> Lista</TabsTrigger>
           <TabsTrigger value="runs" className="gap-1.5"><Play className="h-3.5 w-3.5" /> Execuções</TabsTrigger>
           <TabsTrigger value="schedule" className="gap-1.5"><Calendar className="h-3.5 w-3.5" /> Agendamentos</TabsTrigger>
+          <TabsTrigger value="timetravel" className="gap-1.5"><History className="h-3.5 w-3.5" /> Time Travel</TabsTrigger>
         </TabsList>
 
         <TabsContent value="canvas" className="space-y-4">
@@ -316,6 +318,10 @@ export default function WorkflowsPage() {
 
         <TabsContent value="schedule" className="space-y-4">
           <WorkflowScheduler workflows={workflows as unknown as Array<Record<string, unknown>>} />
+        </TabsContent>
+
+        <TabsContent value="timetravel" className="space-y-4">
+          <WorkflowTimeTravelPanel />
         </TabsContent>
       </Tabs>
     </div>

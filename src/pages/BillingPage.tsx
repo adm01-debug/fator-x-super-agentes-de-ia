@@ -11,6 +11,7 @@ import { useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { getWorkspaceId } from "@/lib/agentService";
 import { getAgentUsage, listBudgets, createBudget, deleteBudget, getUsageRecords, getModelPricing } from "@/services/billingService";
+import { formatCostBrl, formatCostUsd } from "@/services/costCalculatorService";
 import { LightBarChart } from "@/components/charts";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { toast } from "sonner";
@@ -101,7 +102,7 @@ export default function BillingPage() {
           ) : (
             <>
               <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-                <MetricCard title="Custo total (30d)" value={`$${totals.cost.toFixed(2)}`} icon={DollarSign} />
+                <MetricCard title="Custo total (30d)" value={`${formatCostUsd(totals.cost)} (${formatCostBrl(totals.cost)})`} icon={DollarSign} />
                 <MetricCard title="Requests" value={totals.requests.toLocaleString()} icon={Hash} />
                 <MetricCard title="Tokens entrada" value={`${(totals.tokensIn / 1000).toFixed(0)}k`} icon={Hash} />
                 <MetricCard title="Tokens saída" value={`${(totals.tokensOut / 1000).toFixed(0)}k`} icon={Hash} />

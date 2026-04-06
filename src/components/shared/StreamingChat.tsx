@@ -7,6 +7,15 @@ import { useStreamingResponse } from '@/hooks/useStreamingResponse';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Send, Square, Zap, Clock, Hash } from 'lucide-react';
+import { GenerativeUI, type UIWidget } from '@/components/shared/GenerativeUI';
+
+function tryParseWidgets(content: string): UIWidget[] | null {
+  try {
+    const parsed = JSON.parse(content);
+    if (parsed?.widgets && Array.isArray(parsed.widgets)) return parsed.widgets;
+  } catch { /* not JSON or no widgets */ }
+  return null;
+}
 
 interface StreamingChatProps {
   endpoint: string;
@@ -50,7 +59,9 @@ export function StreamingChat({ endpoint, placeholder = 'Digite sua mensagem...'
             <div className={`max-w-[80%] rounded-lg px-3 py-2 text-sm ${
               msg.role === 'user' ? 'bg-[#4D96FF]/20 text-white' : 'bg-[#111122] text-[#E0E0E0]'
             }`}>
-              {msg.content}
+              {msg.role === 'assistant' && tryParseWidgets(msg.content)
+                ? <GenerativeUI widgets={tryParseWidgets(msg.content)!} />
+                : msg.content}
             </div>
           </div>
         ))}

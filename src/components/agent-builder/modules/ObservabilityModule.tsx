@@ -1,7 +1,8 @@
 import { useAgentBuilderStore } from '@/stores/agentBuilderStore';
 import { SectionTitle, NexusBadge, ToggleField } from '../ui';
 import { CollapsibleCard } from '../ui/CollapsibleCard';
-import { Activity, Clock, DollarSign, AlertTriangle, CheckCircle, XCircle, Filter, Loader2, Plus, Trash2 } from 'lucide-react';
+import { Activity, Clock, DollarSign, AlertTriangle, CheckCircle, XCircle, Filter, Loader2, Plus, Trash2, Brain } from 'lucide-react';
+import { getSkillbook, type AgentSkill } from '@/services/agentEvolutionService';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
@@ -220,6 +221,58 @@ export function ObservabilityModule() {
           </div>
         </section>
       )}
+
+      {/* Skillbook / Self-Evolution */}
+      {agent.id && (
+        <section>
+          <SectionTitle
+            icon="🧬"
+            title="Skillbook (Self-Evolution)"
+            subtitle="Habilidades aprendidas pelo agente ao longo das execuções."
+          />
+          <SkillbookSection agentId={agent.id as string} />
+        </section>
+      )}
+    </div>
+  );
+}
+
+function SkillbookSection({ agentId }: { agentId: string }) {
+  const { data: skills = [], isLoading } = useQuery({
+    queryKey: ['skillbook', agentId],
+    queryFn: () => getSkillbook(agentId),
+    enabled: !!agentId,
+  });
+
+  if (isLoading) return <div className="flex justify-center py-4"><Loader2 className="h-4 w-4 animate-spin" /></div>;
+
+  if (skills.length === 0) {
+    return (
+      <div className="text-center py-6 bg-secondary/30 rounded-lg">
+        <Brain className="h-6 w-6 mx-auto mb-2 text-muted-foreground" />
+        <p className="text-xs text-muted-foreground">Nenhuma habilidade aprendida ainda. Execute o agente para ele evoluir.</p>
+      </div>
+    );
+  }
+
+  return (
+    <div className="space-y-2">
+      {skills.map((skill: AgentSkill) => (
+        <div key={skill.id} className="flex items-center justify-between rounded-lg border border-border bg-card p-3">
+          <div className="min-w-0 flex-1">
+            <span className="text-sm font-medium text-foreground">{skill.skill_name}</span>
+            <p className="text-[11px] text-muted-foreground truncate">{skill.description}</p>
+          </div>
+          <div className="flex items-center gap-2">
+            <Badge variant="outline" className="text-[10px]">
+              Conf: {(skill.confidence * 100).toFixed(0)}%
+            </Badge>
+            <Badge variant={skill.success_count > skill.failure_count ? 'default' : 'destructive'} className="text-[10px]">
+              {skill.success_count}✓ / {skill.failure_count}✗
+            </Badge>
+          </div>
+        </div>
+      ))}
     </div>
   );
 }

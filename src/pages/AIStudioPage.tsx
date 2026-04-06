@@ -8,7 +8,8 @@ import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Mic, Volume2, FileText, ImageIcon, PackageOpen, Loader2, Download, Play, Copy, CheckCircle } from "lucide-react";
+import { Mic, Volume2, FileText, ImageIcon, PackageOpen, Loader2, Download, Play, Copy, CheckCircle, Shield } from "lucide-react";
+import { SandboxExecutionPanel } from "@/components/workflows/SandboxExecutionPanel";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 
@@ -215,12 +216,14 @@ export default function AIStudioPage() {
           <TabsTrigger value="ocr" className="text-xs gap-1.5"><FileText className="h-3.5 w-3.5" /> OCR</TabsTrigger>
           <TabsTrigger value="image" className="text-xs gap-1.5"><ImageIcon className="h-3.5 w-3.5" /> Imagem</TabsTrigger>
           <TabsTrigger value="mockup" className="text-xs gap-1.5"><PackageOpen className="h-3.5 w-3.5" /> Mockup</TabsTrigger>
+          <TabsTrigger value="sandbox" className="text-xs gap-1.5"><Shield className="h-3.5 w-3.5" /> Sandbox</TabsTrigger>
         </TabsList>
         <TabsContent value="audio" className="mt-4"><AudioTranscribeTab /></TabsContent>
         <TabsContent value="tts" className="mt-4"><TextToSpeechTab /></TabsContent>
         <TabsContent value="ocr" className="mt-4"><DocOCRTab /></TabsContent>
         <TabsContent value="image" className="mt-4"><ImageAnalysisTab /></TabsContent>
         <TabsContent value="mockup" className="mt-4"><ProductMockupTab /></TabsContent>
+        <TabsContent value="sandbox" className="mt-4"><SandboxExecutionPanel /></TabsContent>
       </Tabs>
     </div>
   );
