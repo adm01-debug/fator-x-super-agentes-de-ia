@@ -19,8 +19,7 @@ const pipeline = ['Parsing', 'Chunking', 'Metadata', 'Embeddings', 'Indexing'];
 
 export default function KnowledgePage() {
   const [search, setSearch] = useState("");
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const [editKb, setEditKb] = useState<any>(null);
+  const [editKb, setEditKb] = useState<Record<string, unknown> | null>(null);
   const [selectedKb, setSelectedKb] = useState<{ id: string; name: string } | null>(null);
   const [semanticQuery, setSemanticQuery] = useState("");
   const [semanticResults, setSemanticResults] = useState<ContextTier[]>([]);

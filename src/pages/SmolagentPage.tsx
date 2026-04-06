@@ -12,8 +12,7 @@ import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { StreamingChat } from '@/components/shared/StreamingChat';
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-type AnyData = Record<string, any>;
+type AnyData = Record<string, unknown>;
 
 interface AgentStep { step: number; thought: string; action: string; action_input: string; observation: string; latency_ms?: number; tokens?: number; }
 interface AgentResult { answer: string; steps: AgentStep[]; total_steps: number; total_tokens: number; total_cost_usd: number; total_latency_ms: number; }

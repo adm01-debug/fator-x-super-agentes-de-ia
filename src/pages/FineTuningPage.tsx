@@ -14,8 +14,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useQuery } from "@tanstack/react-query";
 import { listAgents } from "@/lib/agentService";
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-type AnyData = Record<string, any>;
+type AnyData = Record<string, unknown>;
 
 function useFineTuning() {
   const [loading, setLoading] = useState(false);
