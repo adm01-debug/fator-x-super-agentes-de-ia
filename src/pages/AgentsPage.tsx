@@ -334,7 +334,7 @@ export default function AgentsPage() {
           )}
         </div>
       ) : (
-        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3 stagger-children">
+        <div className="grid gap-5 md:grid-cols-2 lg:grid-cols-3 stagger-children">
           {sorted.map((agent) => {
             const config = getConfig(agent);
             const isFav = favorites.includes(agent.id);
@@ -342,7 +342,7 @@ export default function AgentsPage() {
             return (
               <div
                 key={agent.id}
-                className={`nexus-card nexus-card-interactive cursor-pointer group relative ${isSelected ? 'ring-2 ring-primary' : ''}`}
+                className={`nexus-card nexus-card-interactive cursor-pointer group relative overflow-hidden ${isSelected ? 'ring-2 ring-primary border-primary/40' : ''}`}
                 onClick={() => selectionMode ? toggleSelect({stopPropagation: () => {}} as React.MouseEvent, agent.id) : navigate(`/builder/${agent.id}`)}
               >
                 {/* Selection checkbox */}
@@ -356,7 +356,7 @@ export default function AgentsPage() {
                 <div className={`flex items-start justify-between mb-3 ${selectionMode ? 'ml-7' : ''}`}>
                   <div className="flex items-center gap-3">
                     <div className="relative">
-                      <div className="h-11 w-11 rounded-xl bg-primary/10 flex items-center justify-center text-lg">
+                      <div className="h-12 w-12 rounded-xl bg-gradient-to-br from-primary/15 to-accent/10 flex items-center justify-center text-xl shadow-sm group-hover:shadow-md transition-shadow">
                         {agent.avatar_emoji || "🤖"}
                       </div>
                       <span
@@ -373,7 +373,7 @@ export default function AgentsPage() {
                       />
                     </div>
                     <div>
-                      <h3 className="text-sm font-semibold text-foreground">{agent.name}</h3>
+                      <h3 className="text-sm font-bold text-foreground group-hover:text-primary transition-colors">{agent.name}</h3>
                       <p className="text-[11px] text-muted-foreground">
                         {(config as Record<string, unknown>).type as string || agent.persona} • {agent.model}
                       </p>
@@ -433,7 +433,7 @@ export default function AgentsPage() {
                   <p className="text-[11px] text-muted-foreground">
                     v{agent.version} • {new Date(agent.updated_at).toLocaleDateString("pt-BR")}
                   </p>
-                  <ArrowRight className="h-4 w-4 text-muted-foreground group-hover:text-primary transition-colors" />
+                  <ArrowRight className="h-4 w-4 text-muted-foreground group-hover:text-primary group-hover:translate-x-0.5 transition-all" />
                 </div>
               </div>
             );
