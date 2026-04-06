@@ -231,9 +231,13 @@ export function AppSidebar() {
             <Separator className="bg-border/30" />
             {user && (
               <div className="flex items-center gap-2.5 px-2 py-1.5 rounded-lg hover:bg-secondary/30 transition-colors">
-                <div className="h-7 w-7 rounded-full nexus-gradient-bg flex items-center justify-center text-xs font-bold text-primary-foreground shrink-0">
-                  {(wsInfo?.userName?.[0] || user.email?.[0] || 'U').toUpperCase()}
-                </div>
+                {user.user_metadata?.avatar_url ? (
+                  <img src={user.user_metadata.avatar_url} alt="" className="h-7 w-7 rounded-full shrink-0 object-cover" referrerPolicy="no-referrer" />
+                ) : (
+                  <div className="h-7 w-7 rounded-full nexus-gradient-bg flex items-center justify-center text-xs font-bold text-primary-foreground shrink-0">
+                    {(wsInfo?.userName?.[0] || user.email?.[0] || 'U').toUpperCase()}
+                  </div>
+                )}
                 <div className="flex-1 min-w-0">
                   <p className="text-xs font-medium text-foreground truncate">{wsInfo?.userName || 'Usuário'}</p>
                   <p className="text-[11px] text-muted-foreground truncate">{user.email}</p>
