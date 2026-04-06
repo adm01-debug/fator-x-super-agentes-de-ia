@@ -13,7 +13,7 @@ import { CreateKnowledgeBaseDialog } from "@/components/dialogs/CreateKnowledgeB
 import { EditKnowledgeBaseDialog } from "@/components/dialogs/EditKnowledgeBaseDialog";
 import { KnowledgeBaseDetail } from "@/components/knowledge/KnowledgeBaseDetail";
 import { toast } from "sonner";
-// Context Tiers: available via contextTiersService (tieredSearch)
+import { tieredSearch, type ContextTier } from "@/services/contextTiersService";
 
 const pipeline = ['Parsing', 'Chunking', 'Metadata', 'Embeddings', 'Indexing'];
 
@@ -22,7 +22,24 @@ export default function KnowledgePage() {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const [editKb, setEditKb] = useState<any>(null);
   const [selectedKb, setSelectedKb] = useState<{ id: string; name: string } | null>(null);
+  const [semanticQuery, setSemanticQuery] = useState("");
+  const [semanticResults, setSemanticResults] = useState<ContextTier[]>([]);
+  const [searching, setSearching] = useState(false);
   const queryClient = useQueryClient();
+
+  const handleSemanticSearch = async () => {
+    if (!semanticQuery.trim()) return;
+    setSearching(true);
+    try {
+      const results = await tieredSearch(semanticQuery, selectedKb?.id);
+      setSemanticResults(results);
+      if (results.length === 0) toast.info('Nenhum resultado encontrado.');
+    } catch {
+      toast.error('Erro na busca semântica');
+    } finally {
+      setSearching(false);
+    }
+  };
 
   const { data: knowledgeBases = [], isLoading, refetch } = useQuery({
     queryKey: ['knowledge_bases'],
@@ -82,6 +99,40 @@ export default function KnowledgePage() {
             </div>
           ))}
         </div>
+      </div>
+
+      {/* Semantic Search (Context Tiers L0/L1/L2) */}
+      <div className="nexus-card">
+        <h3 className="text-sm font-heading font-semibold text-foreground mb-3">Busca Semântica (Context Tiers)</h3>
+        <div className="flex items-center gap-2">
+          <div className="relative flex-1">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+            <Input
+              placeholder="Busca semântica com tiers L0→L1→L2..."
+              value={semanticQuery}
+              onChange={e => setSemanticQuery(e.target.value)}
+              onKeyDown={e => e.key === 'Enter' && handleSemanticSearch()}
+              className="pl-9 bg-secondary/50 border-border/50"
+            />
+          </div>
+          <Button onClick={handleSemanticSearch} disabled={searching || !semanticQuery.trim()} size="sm" className="nexus-gradient-bg">
+            {searching ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Search className="h-3.5 w-3.5" />}
+          </Button>
+        </div>
+        {semanticResults.length > 0 && (
+          <div className="mt-3 space-y-2">
+            <p className="text-xs text-muted-foreground">{semanticResults.length} resultados (busca em 2 fases: L0 filtra, L2 detalha)</p>
+            {semanticResults.slice(0, 5).map((r, i) => (
+              <div key={r.chunkId || i} className="rounded-lg border border-border bg-secondary/20 p-3">
+                <div className="flex items-center gap-2 mb-1">
+                  <span className="text-[10px] font-bold px-1.5 py-0.5 rounded bg-primary/10 text-primary">L{r.tier}</span>
+                  <span className="text-xs text-muted-foreground truncate">{r.chunkId}</span>
+                </div>
+                <p className="text-xs text-foreground line-clamp-3">{r.content}</p>
+              </div>
+            ))}
+          </div>
+        )}
       </div>
 
       <div className="flex items-center gap-3">
