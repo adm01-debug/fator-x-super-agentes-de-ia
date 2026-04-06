@@ -308,6 +308,9 @@ export default function AuthPage() {
               </div>
             </div>
           </div>
+        </div>
+
+        {/* Trust footer */}
         <div className="animate-fade-in" style={{ animationDelay: '200ms' }}>
           <p className="text-xs text-muted-foreground/60">
             🔒 Criptografia ponta-a-ponta · SOC 2 · LGPD Compliant
