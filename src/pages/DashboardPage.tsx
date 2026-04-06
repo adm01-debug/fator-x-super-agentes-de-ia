@@ -12,6 +12,9 @@ import { useNavigate } from "react-router-dom";
 import { useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
+import { listAgents } from "@/lib/agentService";
+import { getAgentTraces, getAlerts } from "@/services/monitoringService";
+import { getAgentUsage } from "@/services/billingService";
 import { UsageCharts } from "@/components/dashboard/UsageCharts";
 import { ActivityFeed } from "@/components/dashboard/ActivityFeed";
 import { AutomationOverviewWidget } from "@/components/automation/AutomationOverviewWidget";
@@ -65,29 +68,14 @@ export default function DashboardPage() {
 
   const { data: agents = [], isLoading } = useQuery({
     queryKey: ['agents'],
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from('agents')
-        .select('id, name, mission, avatar_emoji, status, model, tags, version, updated_at')
-        .order('updated_at', { ascending: false });
-      if (error) throw error;
-      return data ?? [];
-    },
+    queryFn: () => listAgents(),
   });
 
   const days = getDateRangeDays(dateRange);
 
   const { data: usageData = [] } = useQuery({
     queryKey: ['dashboard_usage', dateRange],
-    queryFn: async () => {
-      const fromDate = new Date();
-      fromDate.setDate(fromDate.getDate() - days);
-      const { data } = await supabase
-        .from('agent_usage')
-        .select('*')
-        .gte('date', fromDate.toISOString().split('T')[0]);
-      return data ?? [];
-    },
+    queryFn: () => getAgentUsage(days),
   });
 
   const usageStats = usageData.length ? {
@@ -99,10 +87,7 @@ export default function DashboardPage() {
 
   const { data: recentTraces = [] } = useQuery({
     queryKey: ['dashboard_traces'],
-    queryFn: async () => {
-      const { data } = await supabase.from('agent_traces').select('id, event, level, latency_ms, created_at').order('created_at', { ascending: false }).limit(5);
-      return data ?? [];
-    },
+    queryFn: () => getAgentTraces({ limit: 5 }),
   });
 
   const activeCount = agents.filter(a => a.status === 'production' || a.status === 'monitoring').length;
@@ -363,10 +348,7 @@ function DashboardAlerts() {
   const queryClient = useQueryClient();
   const { data: alerts = [] } = useQuery({
     queryKey: ['dashboard_alerts'],
-    queryFn: async () => {
-      const { data } = await supabase.from('alerts').select('id, title, severity, created_at, is_resolved').eq('is_resolved', false).order('created_at', { ascending: false }).limit(5);
-      return data ?? [];
-    },
+    queryFn: () => getAlerts({ acknowledged: false, limit: 5 }),
   });
 
   // Realtime subscription for alerts

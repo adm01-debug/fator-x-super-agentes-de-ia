@@ -6,6 +6,8 @@ import { Button } from "@/components/ui/button";
 import { Bot, Loader2, GitCompare } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
+import { getAgentTraces } from "@/services/monitoringService";
+import { getAgent } from "@/lib/agentService";
 import { VersionDiffDialog } from "@/components/agents/VersionDiffDialog";
 // Self-Evolution: available via agentEvolutionService (getSkillbook, buildSkillbookPrompt)
 
@@ -15,11 +17,7 @@ export default function AgentDetailPage() {
 
   const { data: agent, isLoading, error } = useQuery({
     queryKey: ['agent', id],
-    queryFn: async () => {
-      const { data, error } = await supabase.from('agents').select('*').eq('id', id!).maybeSingle();
-      if (error) throw error;
-      return data;
-    },
+    queryFn: () => getAgent(id!),
     enabled: !!id,
   });
 
@@ -100,10 +98,7 @@ export default function AgentDetailPage() {
 function AgentMetrics({ agentId }: { agentId: string }) {
   const { data: traces = [] } = useQuery({
     queryKey: ['agent_detail_traces', agentId],
-    queryFn: async () => {
-      const { data } = await supabase.from('agent_traces').select('latency_ms, tokens_used, cost_usd, level, created_at').eq('agent_id', agentId).order('created_at', { ascending: false }).limit(50);
-      return data ?? [];
-    },
+    queryFn: () => getAgentTraces({ agentId, limit: 50 }),
   });
 
   const { data: usage = [] } = useQuery({
