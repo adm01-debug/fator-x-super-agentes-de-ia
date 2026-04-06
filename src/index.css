@@ -218,7 +218,17 @@
 
   h1, h2, h3, h4, h5, h6 {
     font-family: var(--font-heading);
-    @apply font-semibold tracking-tight;
+    @apply font-semibold;
+    letter-spacing: -0.025em;
+    line-height: 1.2;
+  }
+
+  h1 { letter-spacing: -0.035em; line-height: 1.1; }
+  h2 { letter-spacing: -0.03em; }
+  h3 { letter-spacing: -0.02em; }
+
+  p, li, span, div {
+    line-height: 1.6;
   }
 
   code, pre, .font-mono {
