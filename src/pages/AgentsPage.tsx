@@ -432,7 +432,7 @@ export default function AgentsPage() {
                     <span className="nexus-badge-muted">+{(agent.tags ?? []).length - 3}</span>
                   )}
                 </div>
-                <div className="flex items-center justify-between mt-3 pt-3 border-t border-border/50">
+                <div className="flex items-center justify-between mt-auto pt-3 border-t border-border/50">
                   <p className="text-[11px] text-muted-foreground">
                     v{agent.version} • {new Date(agent.updated_at).toLocaleDateString("pt-BR")}
                   </p>
