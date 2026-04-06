@@ -10,7 +10,7 @@ import {
   Search, Database, ArrowRight, ExternalLink, AlertTriangle,
   Users, Factory, Truck, Package, UserCheck, MessageCircle,
   Link2, Eye, RefreshCcw, Table2, GitBranch, Loader2, CheckCircle2,
-  XCircle, Snowflake, Clock,
+  XCircle, Snowflake, Clock, Server, Copy, Play,
 } from "lucide-react";
 import { ENTITY_MAPPINGS, ENTITY_LIST } from "@/config/datahub-entities";
 import type { EntityMapping, SecondaryMapping, CrossDbMapping } from "@/config/datahub-entities";
@@ -389,6 +389,7 @@ export default function DataHubPage() {
           <TabsTrigger value="entities" className="gap-1.5"><Database className="h-3.5 w-3.5" /> Entidades</TabsTrigger>
           <TabsTrigger value="connections" className="gap-1.5"><Link2 className="h-3.5 w-3.5" /> Conexões</TabsTrigger>
           <TabsTrigger value="schema" className="gap-1.5"><Table2 className="h-3.5 w-3.5" /> Schema</TabsTrigger>
+          <TabsTrigger value="mcp" className="gap-1.5"><Server className="h-3.5 w-3.5" /> MCP Server</TabsTrigger>
         </TabsList>
 
         {/* ── Entities Tab ── */}
@@ -640,7 +641,152 @@ export default function DataHubPage() {
             })}
           </div>
         </TabsContent>
+
+        {/* ── MCP Server Tab ── */}
+        <TabsContent value="mcp" className="space-y-4">
+          <MCPServerPanel />
+        </TabsContent>
       </Tabs>
+    </div>
+  );
+}
+
+/* ── MCP Server Panel ────────────────────────────────── */
+function MCPServerPanel() {
+  const [testing, setTesting] = useState(false);
+  const [mcpResult, setMcpResult] = useState<Record<string, unknown> | null>(null);
+  const [testTool, setTestTool] = useState('search_entities');
+  const [testQuery, setTestQuery] = useState('');
+
+  const mcpUrl = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/datahub-mcp-server`;
+
+  const mcpTools = [
+    { name: 'search_entities', desc: 'Busca entidades por nome, tipo ou filtro', params: '{"entity_type": "Clientes", "query": "...", "limit": 10}' },
+    { name: 'get_entity_detail', desc: 'Detalhe completo de uma entidade', params: '{"entity_type": "Produtos", "id": "..."}' },
+    { name: 'run_query', desc: 'Executa query SQL no DataHub', params: '{"sql": "SELECT ..."}' },
+    { name: 'get_schema', desc: 'Schema de uma tabela', params: '{"table": "companies", "db": "bancodadosclientes"}' },
+    { name: 'get_stats', desc: 'Estatisticas gerais do DataHub', params: '{}' },
+    { name: 'cross_reference', desc: 'Referencia cruzada entre bancos', params: '{"entity_type": "Clientes", "id": "..."}' },
+  ];
+
+  const handleTest = async () => {
+    setTesting(true);
+    setMcpResult(null);
+    try {
+      const { supabase } = await import('@/integrations/supabase/client');
+      const { data, error } = await supabase.functions.invoke('datahub-mcp-server', {
+        body: {
+          jsonrpc: '2.0',
+          id: 1,
+          method: 'tools/call',
+          params: {
+            name: testTool,
+            arguments: testQuery.trim() ? JSON.parse(testQuery) : {},
+          },
+        },
+      });
+      if (error) throw error;
+      setMcpResult(data);
+      toast.success('MCP tool executada com sucesso');
+    } catch (e: unknown) {
+      toast.error(e instanceof Error ? e.message : 'Erro ao executar MCP tool');
+    } finally {
+      setTesting(false);
+    }
+  };
+
+  const copyConfig = () => {
+    const config = JSON.stringify({
+      mcpServers: {
+        "nexus-datahub": {
+          url: mcpUrl,
+          transport: "streamable-http",
+          headers: { Authorization: "Bearer <YOUR_SUPABASE_ANON_KEY>" },
+        }
+      }
+    }, null, 2);
+    navigator.clipboard.writeText(config);
+    toast.success('Config MCP copiada!');
+  };
+
+  return (
+    <div className="space-y-4">
+      {/* Info card */}
+      <div className="nexus-card">
+        <div className="flex items-center gap-3 mb-3">
+          <div className="h-10 w-10 rounded-xl bg-primary/10 flex items-center justify-center">
+            <Server className="h-5 w-5 text-primary" />
+          </div>
+          <div>
+            <h3 className="text-sm font-heading font-semibold text-foreground">DataHub MCP Server</h3>
+            <p className="text-[11px] text-muted-foreground">Exponha o DataHub como um MCP Server para Claude Desktop, VS Code ou qualquer cliente MCP.</p>
+          </div>
+        </div>
+
+        <div className="bg-secondary/30 rounded-lg p-3 mb-3">
+          <div className="flex items-center justify-between mb-1">
+            <p className="text-xs font-medium text-foreground">Endpoint MCP</p>
+            <Button variant="ghost" size="sm" className="h-6 text-xs gap-1" onClick={() => { navigator.clipboard.writeText(mcpUrl); toast.success('URL copiada!'); }}>
+              <Copy className="h-3 w-3" /> Copiar
+            </Button>
+          </div>
+          <code className="text-[11px] text-muted-foreground font-mono break-all">{mcpUrl}</code>
+        </div>
+
+        <div className="flex gap-2">
+          <Button variant="outline" size="sm" className="text-xs gap-1.5" onClick={copyConfig}>
+            <Copy className="h-3 w-3" /> Copiar Config para Claude Desktop
+          </Button>
+        </div>
+      </div>
+
+      {/* Available tools */}
+      <div className="nexus-card">
+        <h3 className="text-sm font-heading font-semibold text-foreground mb-3">MCP Tools Disponiveis ({mcpTools.length})</h3>
+        <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-2">
+          {mcpTools.map(tool => (
+            <div key={tool.name} className="p-3 rounded-lg bg-secondary/20 border border-border/30">
+              <p className="text-xs font-medium text-foreground font-mono">{tool.name}</p>
+              <p className="text-[11px] text-muted-foreground mt-0.5">{tool.desc}</p>
+            </div>
+          ))}
+        </div>
+      </div>
+
+      {/* Test panel */}
+      <div className="nexus-card">
+        <h3 className="text-sm font-heading font-semibold text-foreground mb-3">Testar MCP Tool</h3>
+        <div className="grid md:grid-cols-3 gap-3 mb-3">
+          <div>
+            <label className="text-[11px] text-muted-foreground">Tool</label>
+            <select value={testTool} onChange={e => setTestTool(e.target.value)} className="w-full rounded-lg border border-border bg-secondary/50 px-2 py-1.5 text-xs">
+              {mcpTools.map(t => <option key={t.name} value={t.name}>{t.name}</option>)}
+            </select>
+          </div>
+          <div className="md:col-span-2">
+            <label className="text-[11px] text-muted-foreground">Parametros (JSON)</label>
+            <Input
+              value={testQuery}
+              onChange={e => setTestQuery(e.target.value)}
+              placeholder={mcpTools.find(t => t.name === testTool)?.params}
+              className="bg-secondary/50 text-xs font-mono"
+            />
+          </div>
+        </div>
+        <Button size="sm" onClick={handleTest} disabled={testing} className="gap-1.5">
+          {testing ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Play className="h-3.5 w-3.5" />}
+          Executar
+        </Button>
+
+        {mcpResult && (
+          <div className="mt-3 p-3 rounded-lg bg-secondary/30 border border-border/30">
+            <p className="text-xs font-semibold text-foreground mb-1">Resultado</p>
+            <pre className="text-[11px] text-muted-foreground overflow-auto max-h-[250px] font-mono">
+              {JSON.stringify(mcpResult, null, 2)}
+            </pre>
+          </div>
+        )}
+      </div>
     </div>
   );
 }
