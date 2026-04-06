@@ -97,3 +97,8 @@ export {
 export * from './connectorRegistryService';
 export * from './queueManagerService';
 export * from './batchProcessorService';
+export * from './nlpPipelineService';
+export * from './guardrailsMLService';
+export * from './modelRouterService';
+export * from './ragPipelineService';
+export * from './evalEngineService';

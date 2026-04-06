@@ -16,15 +16,25 @@ async function checkPromptInjection(text: string): Promise<{ passed: boolean; sc
     // Fallback: pattern-based detection
     const injectionPatterns = [
       /ignore\s+(all\s+)?previous\s+instructions/i,
+      /ignore\s+(all\s+)?(your\s+)?instructions/i,
+      /disregard\s+(all\s+)?(your\s+)?instructions/i,
       /you\s+are\s+now\s+a/i,
       /system\s*:\s*/i,
       /\[INST\]/i,
       /<<SYS>>/i,
       /forget\s+(everything|all)/i,
-      /pretend\s+you\s+are/i,
-      /bypass\s+(security|filter|guardrail)/i,
+      /pretend\s+(you\s+are|to\s+be)/i,
+      /bypass\s+(security|filter|guardrail|safety)/i,
       /jailbreak/i,
       /do\s+anything\s+now/i,
+      /DAN\s+mode/i,
+      /reveal\s+(your\s+)?(system|internal)\s*prompt/i,
+      /override\s+(your\s+)?(instructions|rules|guidelines)/i,
+      /act\s+as\s+(if|though)\s+you\s+(have\s+)?no\s+(restrictions|rules)/i,
+      /sudo\s+mode/i,
+      /developer\s+mode/i,
+      /ignore\s+(safety|content)\s+(policy|filter|guidelines)/i,
+      /new\s+instructions?\s*:/i,
     ];
     const matches = injectionPatterns.filter(p => p.test(text));
     const score = matches.length > 0 ? Math.min(0.5 + matches.length * 0.15, 1) : 0.05;
@@ -83,6 +93,25 @@ function checkPII(text: string): { passed: boolean; score: number; details: stri
   };
 }
 
+function checkSecretLeakage(text: string): { passed: boolean; score: number; details: string } {
+  const secretPatterns = [
+    { name: "HuggingFace Token", pattern: /hf_[a-zA-Z0-9]{20,}/g },
+    { name: "OpenAI Key", pattern: /sk-[a-zA-Z0-9]{20,}/g },
+    { name: "Anthropic Key", pattern: /sk-ant-[a-zA-Z0-9]{20,}/g },
+    { name: "GitHub Token", pattern: /ghp_[a-zA-Z0-9]{36}/g },
+    { name: "Supabase Key", pattern: /sbp_[a-zA-Z0-9]{20,}/g },
+    { name: "AWS Key", pattern: /AKIA[0-9A-Z]{16}/g },
+    { name: "Bearer Token", pattern: /Bearer\s+[a-zA-Z0-9\-._~+\/]{30,}/g },
+    { name: "Password", pattern: /(?:password|senha|pwd)\s*[:=]\s*\S{6,}/gi },
+  ];
+  const found = secretPatterns.filter(p => p.pattern.test(text)).map(p => p.name);
+  return {
+    passed: found.length === 0,
+    score: found.length > 0 ? 0.95 : 0,
+    details: found.length > 0 ? `Secret leakage detected: ${found.join(", ")}` : "No secrets detected",
+  };
+}
+
 function checkLength(text: string, direction: string): { passed: boolean; score: number; details: string } {
   const maxLen = direction === "input" ? 10000 : 50000;
   const ratio = text.length / maxLen;
@@ -111,12 +140,14 @@ Deno.serve(async (req: Request) => {
       checkToxicity(text),
     ]);
     const pii = checkPII(text);
+    const secrets = checkSecretLeakage(text);
     const length = checkLength(text, direction);
 
     const results = [
       { layer: "prompt_injection", ...injection },
       { layer: "toxicity", ...toxicity },
       { layer: "pii_leak", ...pii },
+      { layer: "secret_leakage", ...secrets },
       { layer: "length", ...length },
     ];
 
