@@ -11,6 +11,7 @@ import {
 } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
+import { useUIStore } from "@/stores/uiStore";
 
 const pages = [
   { name: "Dashboard", href: "/", icon: LayoutDashboard, keywords: "home início" },
@@ -60,6 +61,14 @@ export function CommandPalette() {
   const [open, setOpen] = useState(false);
   const navigate = useNavigate();
   const location = useLocation();
+  const commandPaletteOpen = useUIStore(s => s.commandPaletteOpen);
+  const toggleCommandPalette = useUIStore(s => s.toggleCommandPalette);
+
+  // Sync with global store (allows opening from anywhere via store)
+  useEffect(() => {
+    if (commandPaletteOpen && !open) setOpen(true);
+    if (!commandPaletteOpen && open) setOpen(false);
+  }, [commandPaletteOpen]); // eslint-disable-line react-hooks/exhaustive-deps
   const [recent, setRecent] = useState<string[]>([]);
 
   // ═══ Fetch agents ═══
@@ -141,7 +150,7 @@ export function CommandPalette() {
     .filter(Boolean) as Array<{ name: string; href: string; icon: React.ElementType; type: string }>;
 
   return (
-    <CommandDialog open={open} onOpenChange={setOpen}>
+    <CommandDialog open={open} onOpenChange={(v) => { setOpen(v); if (v !== commandPaletteOpen) toggleCommandPalette(); }}>
       <CommandInput placeholder="Buscar agentes, bases de conhecimento, workflows, páginas..." />
       <CommandList>
         <CommandEmpty>Nenhum resultado encontrado.</CommandEmpty>
