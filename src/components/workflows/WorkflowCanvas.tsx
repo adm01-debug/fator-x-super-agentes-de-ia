@@ -245,12 +245,20 @@ export function WorkflowCanvas() {
 
           {store.nodes.length === 0 && (
             <div className="absolute inset-0 flex items-center justify-center">
-              <div className="text-center">
-                <div className="text-5xl mb-4">🔀</div>
-                <h3 className="text-lg font-bold text-foreground mb-2">Canvas Vazio</h3>
-                <p className="text-sm text-muted-foreground max-w-md">
-                  Arraste blocos da barra lateral ou clique para adicionar.
-                  Conecte-os para criar seu workflow.
+              <div className="text-center max-w-sm">
+                <div className="relative mx-auto mb-6 h-24 w-24 rounded-2xl bg-gradient-to-br from-primary/10 to-accent/10 border border-dashed border-primary/30 flex items-center justify-center">
+                  <span className="text-5xl" aria-hidden="true">🔀</span>
+                  <div className="absolute -bottom-2 -right-2 h-8 w-8 rounded-lg bg-card border border-border flex items-center justify-center shadow-md">
+                    <span className="text-sm">➕</span>
+                  </div>
+                </div>
+                <h3 className="text-lg font-heading font-bold text-foreground mb-2">Canvas Vazio</h3>
+                <p className="text-sm text-muted-foreground leading-relaxed">
+                  Arraste blocos da barra lateral ou clique para adicionar ao canvas.
+                  Conecte-os para criar seu pipeline de automação.
+                </p>
+                <p className="text-[11px] text-primary/60 mt-3">
+                  💡 Dica: comece com "Início / Trigger" para definir o ponto de partida
                 </p>
               </div>
             </div>

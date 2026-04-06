@@ -345,7 +345,7 @@ export default function AgentsPage() {
             return (
               <div
                 key={agent.id}
-                className={`nexus-card nexus-card-interactive cursor-pointer group relative overflow-hidden ${isSelected ? 'ring-2 ring-primary border-primary/40' : ''}`}
+                className={`nexus-card nexus-card-interactive cursor-pointer group relative overflow-hidden min-h-[180px] flex flex-col ${isSelected ? 'ring-2 ring-primary border-primary/40' : ''}`}
                 onClick={() => selectionMode ? toggleSelect({stopPropagation: () => {}} as React.MouseEvent, agent.id) : navigate(`/builder/${agent.id}`)}
               >
                 {/* Selection checkbox */}
@@ -432,7 +432,7 @@ export default function AgentsPage() {
                     <span className="nexus-badge-muted">+{(agent.tags ?? []).length - 3}</span>
                   )}
                 </div>
-                <div className="flex items-center justify-between mt-3 pt-3 border-t border-border/50">
+                <div className="flex items-center justify-between mt-auto pt-3 border-t border-border/50">
                   <p className="text-[11px] text-muted-foreground">
                     v{agent.version} • {new Date(agent.updated_at).toLocaleDateString("pt-BR")}
                   </p>

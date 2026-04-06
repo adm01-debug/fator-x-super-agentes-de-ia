@@ -143,7 +143,7 @@ export default function DashboardPage() {
               <DateRangePicker value={dateRange} onChange={setDateRange} />
               {agents.length > 0 && (
                 <Button onClick={() => navigate('/agents/new')} className="nexus-gradient-bg text-primary-foreground gap-2 hover:opacity-90 min-h-[44px]">
-                  <Plus className="h-4 w-4" aria-hidden="true" /> Criar agente
+                  <Plus className="h-4 w-4" aria-hidden="true" /> <span className="hidden sm:inline">Criar agente</span>
                 </Button>
               )}
             </div>
@@ -204,9 +204,9 @@ export default function DashboardPage() {
               { label: 'Workflows', icon: GitBranch, path: '/workflows' },
             ].map(action => (
               <button
-                key={action.label}
+                 key={action.label}
                 onClick={() => navigate(action.path)}
-                className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-lg border border-border/40 bg-card/80 backdrop-blur-sm text-xs font-medium text-muted-foreground hover:text-foreground hover:border-primary/40 hover:bg-primary/5 hover:shadow-sm transition-all min-h-[36px]"
+                className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-lg border border-border/40 bg-card/80 backdrop-blur-sm text-xs font-medium text-muted-foreground hover:text-foreground hover:border-primary/40 hover:bg-primary/5 hover:shadow-md hover:-translate-y-[1px] transition-all min-h-[36px]"
               >
                 <action.icon className="h-3.5 w-3.5" />
                 {action.label}
@@ -288,18 +288,21 @@ export default function DashboardPage() {
           {/* Additional metrics row */}
           {usageStats && (
             <div className="grid grid-cols-3 gap-4 sm:gap-5 stagger-children">
-              <div className="nexus-card nexus-metric-card py-3 sm:py-4 text-center">
-                <p className="text-sm sm:text-lg font-heading font-extrabold text-foreground">{usageStats.avgLatency}ms</p>
-                <p className="text-[11px] text-muted-foreground/70 uppercase tracking-wider mt-0.5">Latência média</p>
-              </div>
-              <div className="nexus-card nexus-metric-card py-3 sm:py-4 text-center">
-                <p className="text-sm sm:text-lg font-heading font-extrabold text-foreground">{(usageStats.totalTokens / 1000).toFixed(0)}k</p>
-                <p className="text-[11px] text-muted-foreground/70 uppercase tracking-wider mt-0.5">Tokens totais</p>
-              </div>
-              <div className="nexus-card nexus-metric-card py-3 sm:py-4 text-center">
-                <p className="text-sm sm:text-lg font-heading font-extrabold text-foreground">{draftCount}</p>
-                <p className="text-[11px] text-muted-foreground/70 uppercase tracking-wider mt-0.5">Rascunhos</p>
-              </div>
+              {[
+                { icon: Clock, color: "text-nexus-purple", bgColor: "bg-nexus-purple/10", value: `${usageStats.avgLatency}ms`, label: "Latência média" },
+                { icon: Sparkles, color: "text-nexus-cyan", bgColor: "bg-nexus-cyan/10", value: `${(usageStats.totalTokens / 1000).toFixed(0)}k`, label: "Tokens totais" },
+                { icon: Bot, color: "text-muted-foreground", bgColor: "bg-muted/10", value: `${draftCount}`, label: "Rascunhos" },
+              ].map((m) => (
+                <div key={m.label} className="nexus-card nexus-metric-card py-3 sm:py-4 flex items-center gap-3">
+                  <div className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-xl ${m.bgColor}`}>
+                    <m.icon className={`h-4 w-4 ${m.color}`} aria-hidden="true" />
+                  </div>
+                  <div>
+                    <p className="text-sm sm:text-lg font-heading font-extrabold text-foreground">{m.value}</p>
+                    <p className="text-[11px] text-muted-foreground/70 uppercase tracking-wider">{m.label}</p>
+                  </div>
+                </div>
+              ))}
             </div>
           )}
 

@@ -105,11 +105,11 @@ export function OnboardingTour() {
 
   return (
     <div
-      className="fixed inset-0 z-[60] bg-black/50 flex items-end sm:items-center justify-center p-4"
+      className="fixed inset-0 z-[60] bg-black/60 backdrop-blur-sm flex items-end sm:items-center justify-center p-4"
       onClick={dismiss}
     >
       <div
-        className="w-full max-w-md rounded-2xl border border-border bg-background shadow-2xl overflow-hidden animate-fade-in-up"
+        className="w-full max-w-md rounded-2xl border border-primary/20 bg-background/95 backdrop-blur-xl shadow-2xl shadow-primary/10 overflow-hidden animate-fade-in-up"
         onClick={(e) => e.stopPropagation()}
         role="dialog"
         aria-label="Tour de boas-vindas"
