@@ -1,3 +1,4 @@
+import { TableSkeleton } from "@/components/shared/PageSkeleton";
 import { PageHeader } from "@/components/shared/PageHeader";
 import { StatusBadge } from "@/components/shared/StatusBadge";
 import { Button } from "@/components/ui/button";
@@ -82,7 +83,7 @@ export default function TeamPage() {
       )}
 
       {isLoading ? (
-        <div className="flex items-center justify-center py-20"><Loader2 className="h-6 w-6 animate-spin text-muted-foreground" /></div>
+        <TableSkeleton rows={5} cols={4} />
       ) : members.length === 0 ? (
         <div className="flex flex-col items-center justify-center py-20 text-center">
           <Users className="h-12 w-12 text-muted-foreground mb-4" />
