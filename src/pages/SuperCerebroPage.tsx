@@ -19,7 +19,7 @@ export default function SuperCerebroPage() {
   const [activeTab, setActiveTab] = useState('overview');
 
   return (
-    <div className="p-6 max-w-[1400px] mx-auto space-y-6">
+    <div className="p-6 sm:p-8 lg:p-10 space-y-6 max-w-[1400px] mx-auto animate-page-enter">
       <PageHeader title="🧠 Super Cérebro" description="Enterprise Memory Layer — Memória centralizada da empresa" gradient={false} />
 
       <InfoHint title="O que é o Super Cérebro?">
