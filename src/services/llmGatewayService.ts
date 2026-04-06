@@ -1,8 +1,18 @@
 /**
  * Nexus Agents Studio — LLM Gateway Service
- * Centralized access to llm-gateway edge function.
+ * Centralized access to Edge Functions via supabase.functions.invoke().
  */
 import { supabase } from '@/integrations/supabase/client';
+import { logger } from '@/lib/logger';
+
+async function invokeEdgeFunction(fnName: string, body: Record<string, unknown>): Promise<unknown> {
+  const { data, error } = await supabase.functions.invoke(fnName, { body });
+  if (error) {
+    logger.error(`Edge function ${fnName} failed`, { error: error.message, body: Object.keys(body) });
+    throw new Error(`${fnName}: ${error.message}`);
+  }
+  return data;
+}
 
 export async function invokeLLMGateway(body: {
   model: string;
@@ -10,58 +20,54 @@ export async function invokeLLMGateway(body: {
   temperature?: number;
   max_tokens?: number;
 }) {
-  const { data, error } = await supabase.functions.invoke('llm-gateway', { body });
-  if (error) throw error;
-  return data;
+  return invokeEdgeFunction('llm-gateway', body);
 }
 
-
 export async function invokeGuardrailsEngine(body: Record<string, unknown>) {
-  const { data, error } = await supabase.functions.invoke('guardrails-engine', { body });
-  if (error) throw error;
-  return data;
+  return invokeEdgeFunction('guardrails-engine', body);
 }
 
 export async function invokeOracleResearch(body: Record<string, unknown>) {
-  const { data, error } = await supabase.functions.invoke('oracle-research', { body });
-  if (error) throw error;
-  return data;
+  return invokeEdgeFunction('oracle-research', body);
 }
 
 export async function invokeA2AServer(body: Record<string, unknown>) {
-  const { data, error } = await supabase.functions.invoke('a2a-server', { body });
-  if (error) throw error;
-  return data;
+  return invokeEdgeFunction('a2a-server', body);
 }
 
 export async function invokeBitrix24OAuth(body: Record<string, unknown>) {
-  const { data, error } = await supabase.functions.invoke('bitrix24-oauth', { body });
-  if (error) throw error;
-  return data;
+  return invokeEdgeFunction('bitrix24-oauth', body);
 }
 
 export async function invokeBitrix24Api(body: Record<string, unknown>) {
-  const { data, error } = await supabase.functions.invoke('bitrix24-api', { body });
-  if (error) throw error;
-  return data;
+  return invokeEdgeFunction('bitrix24-api', body);
 }
 
 export async function invokeTestRunner(body: Record<string, unknown>) {
-  const { data, error } = await supabase.functions.invoke('test-runner', { body });
-  if (error) throw error;
-  return data;
+  return invokeEdgeFunction('test-runner', body);
 }
 
 export async function saveWorkspaceSecret(wsId: string, keyName: string, value: string, isUpdate: boolean) {
-  if (isUpdate) {
-    await supabase.from('workspace_secrets').update({ key_value: value, updated_at: new Date().toISOString() })
-      .eq('workspace_id', wsId).eq('key_name', keyName);
-  } else {
-    await supabase.from('workspace_secrets').insert({ workspace_id: wsId, key_name: keyName, key_value: value });
+  try {
+    if (isUpdate) {
+      const { error } = await supabase.from('workspace_secrets').update({ key_value: value, updated_at: new Date().toISOString() })
+        .eq('workspace_id', wsId).eq('key_name', keyName);
+      if (error) throw error;
+    } else {
+      const { error } = await supabase.from('workspace_secrets').insert({ workspace_id: wsId, key_name: keyName, key_value: value });
+      if (error) throw error;
+    }
+  } catch (err) {
+    logger.error('Failed to save workspace secret', { keyName, error: err instanceof Error ? err.message : String(err) });
+    throw err;
   }
 }
 
 export async function getMaskedSecrets(wsId: string) {
-  const { data } = await supabase.rpc('get_masked_secrets', { p_workspace_id: wsId });
+  const { data, error } = await supabase.rpc('get_masked_secrets', { p_workspace_id: wsId });
+  if (error) {
+    logger.error('Failed to get masked secrets', { error: error.message });
+    throw error;
+  }
   return data ?? [];
 }
