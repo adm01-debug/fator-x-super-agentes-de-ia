@@ -155,7 +155,7 @@ export async function rerankChunks(
   });
 
   if (!resp.ok) {
-    const err = await resp.json().catch(() => ({}));
+    const err = await resp.json().catch(() => ({ error: `Rerank HTTP ${resp.status}` }));
     throw new Error((err as Record<string, string>).error || `Rerank failed (${resp.status})`);
   }
 

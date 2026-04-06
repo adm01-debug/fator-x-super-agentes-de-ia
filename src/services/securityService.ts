@@ -4,6 +4,7 @@
  */
 import { supabase } from '@/integrations/supabase/client';
 import { logger } from '@/lib/logger';
+import { fromTable } from '@/lib/supabaseExtended';
 
 export async function listApiKeys() {
   const { data, error } = await supabase
@@ -170,14 +171,14 @@ export async function getSecurityPosture() {
 
 export async function getRateLimitStats() {
   try {
-    const { data, error } = await supabase.from('audit_log' as any).select('action').gte('created_at', new Date(Date.now() - 60000).toISOString()).limit(100);
+    const { data, error } = await fromTable('rate_limit_logs').select('endpoint,was_blocked').gte('created_at', new Date(Date.now() - 60000).toISOString()).limit(100);
     if (error) throw error;
     const eps: Record<string, { total: number; blocked: number }> = {};
-    ((data ?? []) as any[]).forEach((r: { endpoint?: string; blocked?: boolean }) => {
+    ((data ?? []) as Array<{ endpoint?: string; was_blocked?: boolean }>).forEach((r) => {
       const ep = r.endpoint ?? 'unknown';
       if (!eps[ep]) eps[ep] = { total: 0, blocked: 0 };
       eps[ep].total++;
-      if (r.blocked) eps[ep].blocked++;
+      if (r.was_blocked) eps[ep].blocked++;
     });
     return [
       { name: 'API Requests', current: Object.values(eps).reduce((s, e) => s + e.total, 0), max: 1000, unit: '/min' },

@@ -13,6 +13,7 @@
 
 import { supabase } from '@/integrations/supabase/client';
 import { fromTable, rpcCall } from '@/lib/supabaseExtended';
+import { logger } from '@/lib/logger';
 
 /* ------------------------------------------------------------------ */
 /*  Types                                                              */
@@ -127,7 +128,8 @@ export async function verifyHmacSignature(
       .map((b) => b.toString(16).padStart(2, '0'))
       .join('');
     return computed === signature.replace('sha256=', '');
-  } catch {
+  } catch (e) {
+    logger.error('Webhook signature verification crypto error', e);
     return false;
   }
 }
