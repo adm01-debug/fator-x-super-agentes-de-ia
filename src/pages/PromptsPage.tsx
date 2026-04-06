@@ -43,7 +43,7 @@ export default function PromptsPage() {
   return (
     <div className="p-6 sm:p-8 lg:p-10 space-y-6 max-w-[1400px] mx-auto">
       <PageHeader
-        title="Prompt Library"
+        title="Biblioteca de Prompts"
         description="Biblioteca de prompts reutilizáveis com versionamento e scoring"
         actions={<CreatePromptDialog agents={agents} onCreated={() => refetch()} />}
       />

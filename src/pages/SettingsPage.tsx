@@ -92,7 +92,7 @@ export default function SettingsPage() {
 
   return (
     <div className="p-6 sm:p-8 lg:p-10 space-y-6 max-w-[1000px] mx-auto">
-      <PageHeader title="Settings" description="Configure seu workspace e preferências da plataforma" />
+      <PageHeader title="Configurações" description="Configure seu workspace e preferências da plataforma" />
 
       <Tabs defaultValue="general">
         <TabsList className="bg-secondary/50 border border-border/50">
