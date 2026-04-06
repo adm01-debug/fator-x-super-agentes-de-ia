@@ -1,13 +1,14 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.49.4";
-import { handleCorsPreflight, getCorsHeaders, checkRateLimit } from "../_shared/mod.ts";
+import { handleCorsPreflight, getCorsHeaders, getRateLimitIdentifier, checkRateLimit, RATE_LIMITS, createRateLimitResponse } from "../_shared/mod.ts";
 
 serve(async (req) => {
   if (req.method === 'OPTIONS') return handleCorsPreflight(req);
   const corsHeaders = getCorsHeaders(req);
 
-  const rateLimitResult = await checkRateLimit(req, { preset: "standard" });
-  if (rateLimitResult) return rateLimitResult;
+  const identifier = getRateLimitIdentifier(req);
+  const rateCheck = checkRateLimit(identifier, RATE_LIMITS.standard);
+  if (!rateCheck.allowed) return createRateLimitResponse(rateCheck);
 
   try {
     const supabase = createClient(
@@ -37,7 +38,6 @@ serve(async (req) => {
       let execError: string | undefined;
 
       try {
-        // Execute based on target type
         switch (schedule.target_type) {
           case 'edge_function': {
             const targetConfig = schedule.target_config as Record<string, unknown>;
@@ -78,7 +78,6 @@ serve(async (req) => {
 
           case 'workflow':
           case 'agent':
-            // Record the trigger — actual execution handled by workflow engine
             execStatus = 'success';
             break;
 
@@ -93,7 +92,6 @@ serve(async (req) => {
 
       const durationMs = Date.now() - startTime;
 
-      // Record execution
       await supabase.from('cron_schedule_executions').insert({
         schedule_id: schedule.id,
         status: execStatus,
@@ -102,7 +100,6 @@ serve(async (req) => {
         completed_at: new Date().toISOString(),
       });
 
-      // Update schedule: increment run_count, calculate next_run
       const newRunCount = (schedule.run_count ?? 0) + 1;
       const shouldComplete = schedule.max_runs !== null && newRunCount >= schedule.max_runs;
 
@@ -135,11 +132,7 @@ serve(async (req) => {
     }
 
     return new Response(
-      JSON.stringify({
-        executed: results.length,
-        results,
-        checked_at: now,
-      }),
+      JSON.stringify({ executed: results.length, results, checked_at: now }),
       { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );
 
@@ -151,7 +144,6 @@ serve(async (req) => {
   }
 });
 
-/** Lightweight next cron run calculator for Edge Function context */
 function getNextCronRun(expr: string): string {
   const parts = expr.trim().split(/\s+/);
   if (parts.length !== 5) return new Date(Date.now() + 60000).toISOString();
