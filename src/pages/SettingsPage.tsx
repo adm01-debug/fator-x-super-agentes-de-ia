@@ -10,7 +10,10 @@ import { Palette, Globe, Bell, Key, Plus, Trash2, Save, Loader2, RotateCw, Spark
 import { MCPServerManager } from "@/components/integrations/MCPServerManager";
 import { toast } from "sonner";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { supabase } from "@/integrations/supabase/client";
+import {
+  listMaskedSecrets, createWorkspaceSecret, deleteWorkspaceSecret, rotateWorkspaceSecret,
+  getWorkspace, listEnvironments, createEnvironment, deleteEnvironment,
+} from "@/services/settingsService";
 import { getWorkspaceId } from "@/lib/agentService";
 import { environmentSchema } from "@/lib/validations/agentSchema";
 import { useTheme } from "next-themes";
@@ -30,9 +33,7 @@ export default function SettingsPage() {
     queryKey: ['workspace_secrets'],
     queryFn: async () => {
       const wsId = await getWorkspaceId();
-      const { data, error } = await supabase.rpc('get_masked_secrets', { p_workspace_id: wsId });
-      if (error) throw error;
-      return (data ?? []) as Array<{ id: string; key_name: string; masked_value: string; created_at: string | null; updated_at: string | null }>;
+      return listMaskedSecrets(wsId);
     },
   });
 
@@ -40,12 +41,7 @@ export default function SettingsPage() {
     mutationFn: async () => {
       if (!newKeyName.trim() || !newKeyValue.trim()) throw new Error('Nome e valor são obrigatórios');
       const wsId = await getWorkspaceId();
-      const { error } = await supabase.from('workspace_secrets').insert({
-        workspace_id: wsId,
-        key_name: newKeyName.trim(),
-        key_value: newKeyValue.trim(),
-      });
-      if (error) throw error;
+      await createWorkspaceSecret({ workspaceId: wsId, keyName: newKeyName.trim(), keyValue: newKeyValue.trim() });
     },
     onSuccess: () => {
       toast.success('API Key adicionada!');
@@ -56,10 +52,7 @@ export default function SettingsPage() {
   });
 
   const deleteKeyMutation = useMutation({
-    mutationFn: async (id: string) => {
-      const { error } = await supabase.from('workspace_secrets').delete().eq('id', id);
-      if (error) throw error;
-    },
+    mutationFn: deleteWorkspaceSecret,
     onSuccess: () => {
       toast.success('API Key removida');
       queryClient.invalidateQueries({ queryKey: ['workspace_secrets'] });
@@ -68,9 +61,7 @@ export default function SettingsPage() {
 
   const rotateKeyMutation = useMutation({
     mutationFn: async ({ id, newValue }: { id: string; newValue: string }) => {
-      if (!newValue.trim()) throw new Error('Novo valor é obrigatório');
-      const { error } = await supabase.from('workspace_secrets').update({ encrypted_value: new TextEncoder().encode(newValue.trim()) } as Record<string, unknown>).eq('id', id);
-      if (error) throw error;
+      await rotateWorkspaceSecret(id, newValue);
     },
     onSuccess: () => {
       toast.success('API Key rotacionada com sucesso!');
@@ -86,8 +77,7 @@ export default function SettingsPage() {
     queryKey: ['workspace_settings'],
     queryFn: async () => {
       const wsId = await getWorkspaceId();
-      const { data } = await supabase.from('workspaces').select('*').eq('id', wsId).maybeSingle();
-      return data;
+      return getWorkspace(wsId);
     },
   });
 
@@ -395,8 +385,7 @@ function EnvironmentsManager() {
     queryKey: ['environments'],
     queryFn: async () => {
       const wsId = await getWorkspaceId();
-      const { data } = await supabase.from('environments').select('*').eq('workspace_id', wsId).order('created_at');
-      return data ?? [];
+      return listEnvironments(wsId);
     },
   });
 
@@ -405,7 +394,7 @@ function EnvironmentsManager() {
     if (!result.success) { toast.error(result.error.errors[0]?.message || 'Nome inválido'); return; }
     setCreating(true);
     const wsId = await getWorkspaceId();
-    await supabase.from('environments').insert({ workspace_id: wsId, name: newEnvName.trim() });
+    await createEnvironment(wsId, newEnvName);
     setNewEnvName('');
     setCreating(false);
     queryClient.invalidateQueries({ queryKey: ['environments'] });
@@ -413,7 +402,7 @@ function EnvironmentsManager() {
   };
 
   const handleDelete = async (id: string) => {
-    await supabase.from('environments').delete().eq('id', id);
+    await deleteEnvironment(id);
     queryClient.invalidateQueries({ queryKey: ['environments'] });
     toast.success('Ambiente removido');
   };
