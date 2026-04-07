@@ -73,7 +73,7 @@ export function DataHubIdentityResolutionTab() {
   const [submittedQuery, setSubmittedQuery] = useState('');
   const [submittedType, setSubmittedType] = useState<string>('auto');
 
-  const { data: result, isLoading, refetch } = useQuery({
+  const { data: result, isLoading } = useQuery({
     queryKey: ['identity-resolution', submittedQuery, submittedType],
     queryFn: async (): Promise<IdentityResolutionResult> => {
       if (!submittedQuery.trim()) {
