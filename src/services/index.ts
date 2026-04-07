@@ -111,3 +111,4 @@ export * from './batchProcessorService';
 export * from './openclawDeployService';
 export * from './widgetService';
 export * from './auditLogService';
+export * from './temporalKnowledgeService';
