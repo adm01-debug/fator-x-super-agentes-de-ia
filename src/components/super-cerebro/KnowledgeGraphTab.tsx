@@ -2,6 +2,7 @@ import { Loader2, Network, RefreshCw } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { invokeCerebroBrain } from "@/services/cerebroService";
 import { useQuery } from "@tanstack/react-query";
+import { KnowledgeGraphSvg } from "./KnowledgeGraphSvg";
 
 interface GraphNode {
   id: string;
@@ -65,6 +66,16 @@ export function KnowledgeGraphTab() {
               </div>
             ))}
           </div>
+
+          {/* SVG Visualization */}
+          {data?.nodes && data.nodes.length > 0 && (
+            <div className="nexus-card">
+              <h4 className="text-xs font-semibold text-foreground mb-3 flex items-center gap-1.5">
+                <Network className="h-3.5 w-3.5" /> Visualização do Grafo
+              </h4>
+              <KnowledgeGraphSvg nodes={data.nodes} edges={data.edges ?? []} />
+            </div>
+          )}
 
           <div className="grid md:grid-cols-2 gap-4">
             {Object.entries(typeConfig).map(([type, cfg]) => {
