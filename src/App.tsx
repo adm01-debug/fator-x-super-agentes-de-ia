@@ -10,6 +10,7 @@ import { AppLayout } from "@/components/layout/AppLayout";
 import { PageLoading } from "@/components/shared/PageLoading";
 import { ErrorBoundary } from "@/components/shared/ErrorBoundary";
 import { AuthProvider } from "@/contexts/AuthContext";
+import { I18nProvider } from "@/i18n/I18nProvider";
 import { AuthGuard } from "@/components/layout/AuthGuard";
 import { ProtectedRoute } from "@/components/rbac/ProtectedRoute";
 import type { ReactNode } from "react";
@@ -84,8 +85,9 @@ function SafePage({ children }: { children: ReactNode }) {
 const App = () => (
   <QueryClientProvider client={queryClient}>
     <ThemeProvider attribute="class" defaultTheme="dark" enableSystem={false}>
-      <AuthProvider>
-        <TooltipProvider>
+      <I18nProvider>
+        <AuthProvider>
+          <TooltipProvider>
           <Toaster />
           <Sonner />
           <BrowserRouter>
@@ -137,7 +139,8 @@ const App = () => (
             </Routes>
           </BrowserRouter>
         </TooltipProvider>
-      </AuthProvider>
+        </AuthProvider>
+      </I18nProvider>
     </ThemeProvider>
   </QueryClientProvider>
 );

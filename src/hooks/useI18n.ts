@@ -1,30 +1,15 @@
 /**
  * Nexus Agents Studio — useI18n Hook
- * Usage: const { t, locale, setLocale } = useI18n();
- *        <span>{t('agents.create')}</span>
+ * Reads from the global I18nProvider context so locale changes are
+ * shared across the entire app. If used outside the provider it
+ * falls back to defaults via useI18nContext.
+ *
+ * Usage:
+ *   const { t, locale, setLocale } = useI18n();
+ *   <span>{t('agents.create')}</span>
  */
-
-import { logger } from '@/lib/logger';
-import { useState, useCallback } from 'react';
-import { translations, DEFAULT_LOCALE, type Locale } from '@/i18n/translations';
+import { useI18nContext } from '@/i18n/I18nProvider';
 
 export function useI18n() {
-  const [locale, setLocale] = useState<Locale>(() => {
-    try {
-      return (localStorage.getItem('nexus-locale') as Locale) || DEFAULT_LOCALE;
-    } catch (err) { logger.error("Operation failed:", err);
-      return DEFAULT_LOCALE;
-    }
-  });
-
-  const t = useCallback((key: string): string => {
-    return translations[locale]?.[key] || translations[DEFAULT_LOCALE]?.[key] || key;
-  }, [locale]);
-
-  const changeLocale = useCallback((newLocale: Locale) => {
-    setLocale(newLocale);
-    try { localStorage.setItem('nexus-locale', newLocale); } catch (err) { logger.error("Operation failed:", err);}
-  }, []);
-
-  return { t, locale, setLocale: changeLocale };
+  return useI18nContext();
 }
