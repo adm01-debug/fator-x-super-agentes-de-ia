@@ -49,6 +49,8 @@ export function IdentityModule() {
                   key={emoji}
                   type="button"
                   onClick={() => updateAgent({ avatar_emoji: emoji })}
+                  aria-label={`Avatar ${emoji}`}
+                  aria-pressed={agent.avatar_emoji === emoji}
                   className={cn(
                     'w-10 h-10 rounded-lg text-xl flex items-center justify-center transition-all duration-200 border',
                     agent.avatar_emoji === emoji

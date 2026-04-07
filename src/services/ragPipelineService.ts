@@ -75,5 +75,5 @@ export async function searchAndRerank(query: string, knowledgeBaseId: string, to
       topK
     );
   }
-  return { results: [], total_candidates: 0 };
+  return { results: [], total_candidates: 0, returned: 0, model: 'none', processing_time_ms: 0 };
 }

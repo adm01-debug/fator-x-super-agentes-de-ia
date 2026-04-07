@@ -14,6 +14,7 @@ export default function ApprovalQueuePage() {
   const [selectedRun, setSelectedRun] = useState<string | null>(null);
   const [feedback, setFeedback] = useState('');
   const [processing, setProcessing] = useState(false);
+  const [lastError, setLastError] = useState<string | null>(null);
 
   // Load pending approval runs
   const { data: pendingRuns = [], isLoading } = useQuery({
@@ -31,25 +32,33 @@ export default function ApprovalQueuePage() {
       setSelectedRun(null);
       setFeedback('');
       queryClient.invalidateQueries({ queryKey: ['hitl_pending'] });
-    } catch (e: unknown) { toast.error(e instanceof Error ? e.message : "Erro inesperado"); }
+    } catch (e: unknown) { const msg = e instanceof Error ? e.message : "Erro inesperado"; toast.error(msg); setLastError(`Aprovar falhou: ${msg}`); }
     finally { setProcessing(false); }
   };
 
   const handleReject = async (runId: string) => {
     setProcessing(true);
+    setLastError(null);
     try {
       await rejectWorkflowRun(runId, feedback);
       toast.success('Workflow rejeitado');
       setSelectedRun(null);
       setFeedback('');
       queryClient.invalidateQueries({ queryKey: ['hitl_pending'] });
-    } catch (e: unknown) { toast.error(e instanceof Error ? e.message : "Erro inesperado"); }
+    } catch (e: unknown) { const msg = e instanceof Error ? e.message : "Erro inesperado"; toast.error(msg); setLastError(`Rejeitar falhou: ${msg}`); }
     finally { setProcessing(false); }
   };
 
   return (
     <div className="p-6 sm:p-8 lg:p-10 space-y-6 max-w-[1400px] mx-auto animate-page-enter">
       <PageHeader title="Aprovações Pendentes" description="Human-in-the-Loop: workflows aguardando revisão humana" />
+
+      {lastError && (
+        <div className="bg-destructive/10 border border-destructive/30 rounded-lg p-3 flex items-center justify-between">
+          <p className="text-sm text-destructive">{lastError}</p>
+          <Button variant="ghost" size="sm" onClick={() => setLastError(null)} className="text-xs">Fechar</Button>
+        </div>
+      )}
 
       {isLoading ? (
         <div className="flex justify-center py-12"><Loader2 className="h-6 w-6 animate-spin text-muted-foreground" /></div>
