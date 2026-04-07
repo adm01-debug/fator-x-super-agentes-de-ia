@@ -298,3 +298,45 @@ export async function createDocumentWithIngest(doc: { title: string; collection_
 export async function updateKBCounts(kbId: string, docCount: number, chunkCount: number) {
   await supabase.from('knowledge_bases').update({ document_count: docCount, chunk_count: chunkCount }).eq('id', kbId);
 }
+
+// ─────────────────────────────────────────────
+// Document OCR (doc-ocr Edge Function)
+// ─────────────────────────────────────────────
+
+export type DocOcrAction = 'ocr' | 'describe' | 'extract_table' | 'extract_fields';
+
+export interface DocOcrOptions {
+  action?: DocOcrAction;
+  imageBase64?: string;
+  imageUrl?: string;
+  prompt?: string;
+  fields?: string[];
+}
+
+export interface DocOcrResult {
+  text: string;
+  action: DocOcrAction;
+  model: string;
+}
+
+/**
+ * Invokes the doc-ocr Edge Function (IBM Granite Vision 3.3-2b).
+ * Routes between full-text OCR, descriptive analysis, table extraction
+ * and structured field extraction.
+ */
+export async function runDocOcr(opts: DocOcrOptions): Promise<DocOcrResult> {
+  if (!opts.imageBase64 && !opts.imageUrl) {
+    throw new Error('Forneça imageBase64 ou imageUrl');
+  }
+  const { data, error } = await supabase.functions.invoke('doc-ocr', {
+    body: {
+      action: opts.action ?? 'ocr',
+      image_base64: opts.imageBase64,
+      image_url: opts.imageUrl,
+      prompt: opts.prompt,
+      fields: opts.fields,
+    },
+  });
+  if (error) throw error;
+  return data as DocOcrResult;
+}
