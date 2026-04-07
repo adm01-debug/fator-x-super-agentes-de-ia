@@ -6,10 +6,10 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
-import { Brain, Clock, Globe, User, Users, Database, Plus, Trash2, Search, Loader2, Zap, Archive } from "lucide-react";
+import { Brain, Clock, Globe, User, Users, Database, Plus, Trash2, Search, Loader2, Zap, Archive, Sparkles } from "lucide-react";
 import { toast } from "sonner";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { addMemory, searchMemory, forgetMemory, listMemories, compactMemories } from "@/services/memoryService";
+import { addMemory, searchMemory, forgetMemory, listMemories, compactMemories, promoteMemoryToFact } from "@/services/memoryService";
 import { memorySchema } from "@/lib/validations/agentSchema";
 
 const memoryTypes = [
@@ -152,6 +152,24 @@ export default function MemoryPage() {
                   )}
                 </div>
               </div>
+              <Button
+                variant="ghost"
+                size="icon"
+                className="h-7 w-7 shrink-0"
+                title="Promover a fato (memory-manager)"
+                onClick={async () => {
+                  try {
+                    await promoteMemoryToFact(entry.id, 0.95);
+                    toast.success('Memória promovida a fato');
+                    queryClient.invalidateQueries({ queryKey: ['agent_memories'] });
+                  } catch (e) {
+                    logger.error('promoteMemoryToFact failed', { error: e instanceof Error ? e.message : String(e) });
+                    toast.error(e instanceof Error ? e.message : 'Falha ao promover');
+                  }
+                }}
+              >
+                <Sparkles className="h-3.5 w-3.5 text-nexus-amber" />
+              </Button>
               <AlertDialog>
                 <AlertDialogTrigger asChild>
                   <Button variant="ghost" size="icon" className="h-7 w-7 shrink-0">
