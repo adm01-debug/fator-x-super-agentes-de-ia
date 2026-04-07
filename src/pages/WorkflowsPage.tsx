@@ -15,6 +15,7 @@ import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, 
 import { toast } from "sonner";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { WorkflowCanvas, type CanvasNode, type CanvasEdge } from "@/components/workflows/WorkflowCanvas";
+import { WorkflowTemplatesGallery } from "@/components/workflows/WorkflowTemplatesGallery";
 import { useWorkflowPersistence } from "@/hooks/use-workflow-persistence";
 import { workflowSchema } from "@/lib/validations/agentSchema";
 import { listWorkflows as listWorkflowsService, saveWorkflow as saveWorkflowService, deleteWorkflow as deleteWorkflowService, toggleWorkflowStatus, executeWorkflow, listWorkflowRuns } from "@/services/workflowsService";
@@ -207,6 +208,7 @@ export default function WorkflowsPage() {
               placeholder="Nome do pipeline"
               className="max-w-[220px] bg-secondary/50 text-sm"
             />
+            <WorkflowTemplatesGallery />
             <Button size="sm" className="gap-1.5" onClick={handleSave} disabled={persistence.saving}>
               {persistence.saving ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Save className="h-3.5 w-3.5" />}
               {persistence.selectedId ? 'Atualizar' : 'Salvar'}
