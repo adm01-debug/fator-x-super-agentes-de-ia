@@ -10,7 +10,7 @@ import {
   Search, Database, ArrowRight, ExternalLink, AlertTriangle,
   Users, Factory, Truck, Package, UserCheck, MessageCircle,
   Link2, Eye, RefreshCcw, Table2, GitBranch, Loader2, CheckCircle2,
-  XCircle, Snowflake, Clock, Server, Copy, Play, Activity, Code2,
+  XCircle, Snowflake, Clock, Server, Copy, Play, Activity, Code2, Brain,
 } from "lucide-react";
 import { ENTITY_MAPPINGS, ENTITY_LIST } from "@/config/datahub-entities";
 import type { EntityMapping, SecondaryMapping, CrossDbMapping } from "@/config/datahub-entities";
@@ -20,6 +20,7 @@ import { DataHubStats } from "@/components/datahub/DataHubStats";
 import { DataHubHealthTab } from "@/components/datahub/DataHubHealthTab";
 import { DataHubQueryBuilderTab } from "@/components/datahub/DataHubQueryBuilderTab";
 import { DataHubIdentityResolutionTab } from "@/components/datahub/DataHubIdentityResolutionTab";
+import { DataHubSyncTab } from "@/components/datahub/DataHubSyncTab";
 import { testDatahubConnections, listDatahubEntities } from "@/services/datahubService";
 import { toast } from "sonner";
 
@@ -396,6 +397,7 @@ export default function DataHubPage() {
           <TabsTrigger value="health" className="gap-1.5"><Activity className="h-3.5 w-3.5" /> Health</TabsTrigger>
           <TabsTrigger value="query" className="gap-1.5"><Code2 className="h-3.5 w-3.5" /> Query</TabsTrigger>
           <TabsTrigger value="identity" className="gap-1.5"><Link2 className="h-3.5 w-3.5" /> Identity</TabsTrigger>
+          <TabsTrigger value="sync" className="gap-1.5"><Brain className="h-3.5 w-3.5" /> Sync</TabsTrigger>
         </TabsList>
 
         {/* ── Entities Tab ── */}
@@ -666,6 +668,11 @@ export default function DataHubPage() {
         {/* ── Identity Resolution Tab ── */}
         <TabsContent value="identity" className="space-y-4">
           <DataHubIdentityResolutionTab />
+        </TabsContent>
+
+        {/* ── Sync to Cerebro Tab ── */}
+        <TabsContent value="sync" className="space-y-4">
+          <DataHubSyncTab />
         </TabsContent>
       </Tabs>
     </div>
