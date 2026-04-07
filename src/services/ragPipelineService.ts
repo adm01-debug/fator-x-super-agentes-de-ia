@@ -61,3 +61,46 @@ export async function searchAndRerank(query: string, knowledgeBaseId: string, to
   }
   return { results: [], total_candidates: 0 };
 }
+
+// ============================================================================
+// EDGE FUNCTION INVOKERS — wires the rag-rerank (v1) Edge Function to the UI
+// ============================================================================
+
+export interface RagRerankV1Input {
+  query: string;
+  chunks: Array<Record<string, unknown>>;
+  top_k?: number;
+  knowledge_base_id?: string;
+}
+
+export interface RagRerankV1Result {
+  reranked?: Array<{ chunk: Record<string, unknown>; relevance_score: number }>;
+  method?: string;
+  error?: string;
+}
+
+/**
+ * Invokes the legacy `rag-rerank` Edge Function (Cohere-first reranker)
+ * directly with raw chunks. Used by the KnowledgePage "Test Rerank" panel
+ * so operators can compare rerank quality without going through the
+ * full embed → vector-search pipeline.
+ */
+export async function invokeRagRerank(
+  input: RagRerankV1Input
+): Promise<RagRerankV1Result> {
+  const { data, error } = await supabase.functions.invoke('rag-rerank', {
+    body: {
+      query: input.query,
+      chunks: input.chunks,
+      top_k: input.top_k ?? 5,
+      knowledge_base_id: input.knowledge_base_id,
+    },
+  });
+
+  if (error) {
+    logger.error('rag-rerank invoke failed', { error: error.message });
+    throw new Error(error.message);
+  }
+
+  return (data as RagRerankV1Result) ?? {};
+}

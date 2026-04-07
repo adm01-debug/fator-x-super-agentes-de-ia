@@ -66,3 +66,78 @@ export async function listMemories(type: string, limit = 100): Promise<MemoryEnt
   if (error) throw error;
   return (data ?? []) as MemoryEntry[];
 }
+
+// ============================================================================
+// EDGE FUNCTION INVOKERS — wires the memory-manager Edge Function to the UI
+// ============================================================================
+
+export type MemoryManagerAction =
+  | 'add'
+  | 'search'
+  | 'list'
+  | 'forget'
+  | 'forget_all'
+  | 'promote_to_fact';
+
+export interface MemoryManagerInvokeInput {
+  action: MemoryManagerAction;
+  content?: string;
+  query?: string;
+  memory_id?: string;
+  memory_type?: 'episodic' | 'semantic' | 'procedural';
+  scope?: MemoryScope;
+  scope_id?: string;
+  importance?: number;
+  limit?: number;
+  metadata?: Record<string, unknown>;
+}
+
+export interface MemoryManagerInvokeResult {
+  ok?: boolean;
+  data?: unknown;
+  memories?: MemoryEntry[];
+  error?: string;
+}
+
+/**
+ * Invokes the `memory-manager` Edge Function (Mem0-style memory).
+ * Distinct from memory-tools (the agent runtime helper) — memory-manager is
+ * the operator/admin interface used by the MemoryPage for promote-to-fact,
+ * forget-all, and scoped operations.
+ */
+export async function invokeMemoryManager(
+  input: MemoryManagerInvokeInput
+): Promise<MemoryManagerInvokeResult> {
+  const { data, error } = await supabase.functions.invoke('memory-manager', {
+    body: {
+      action: input.action,
+      content: input.content,
+      query: input.query,
+      memory_id: input.memory_id,
+      memory_type: input.memory_type ?? 'episodic',
+      scope: input.scope ?? 'user',
+      scope_id: input.scope_id,
+      importance: input.importance ?? 0.5,
+      limit: input.limit ?? 10,
+      metadata: input.metadata,
+    },
+  });
+
+  if (error) {
+    throw new Error(error.message || 'memory-manager invocation failed');
+  }
+
+  return (data as MemoryManagerInvokeResult) ?? { ok: true };
+}
+
+/** Promotes an episodic memory to a long-lived fact via memory-manager. */
+export async function promoteMemoryToFact(
+  memoryId: string,
+  importance = 0.9
+): Promise<MemoryManagerInvokeResult> {
+  return invokeMemoryManager({
+    action: 'promote_to_fact',
+    memory_id: memoryId,
+    importance,
+  });
+}
