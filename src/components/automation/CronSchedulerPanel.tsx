@@ -2,8 +2,8 @@ import { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Clock, RefreshCw } from 'lucide-react';
-import { listSchedules, CRON_PRESETS, getScheduleStats, describeCronExpression, type CronSchedule, type ScheduleStats } from '@/services/cronSchedulerService';
+import { Clock, RefreshCw, Play, Loader2 } from 'lucide-react';
+import { listSchedules, runCronExecutor, CRON_PRESETS, getScheduleStats, describeCronExpression, type CronSchedule, type ScheduleStats } from '@/services/cronSchedulerService';
 import { useToast } from '@/hooks/use-toast';
 
 const STATUS_COLORS: Record<string, string> = {
@@ -18,6 +18,7 @@ export function CronSchedulerPanel() {
   const [schedules, setSchedules] = useState<CronSchedule[]>([]);
   const [stats, setStats] = useState<ScheduleStats | null>(null);
   const [loading, setLoading] = useState(true);
+  const [running, setRunning] = useState(false);
   const { toast } = useToast();
 
   const loadData = async () => {
@@ -37,6 +38,30 @@ export function CronSchedulerPanel() {
   };
 
   useEffect(() => { loadData(); }, []);
+
+  const handleRunPending = async () => {
+    setRunning(true);
+    try {
+      const result = await runCronExecutor();
+      const count = result.results?.length ?? result.executed ?? 0;
+      const succ = result.results?.filter(r => r.status === 'success').length ?? 0;
+      toast({
+        title: 'Cron-executor disparado',
+        description: count
+          ? `${count} agendamentos executados (${succ} ok)`
+          : 'Nenhum agendamento pendente',
+      });
+      await loadData();
+    } catch (e) {
+      toast({
+        title: 'Falha ao executar pendentes',
+        description: e instanceof Error ? e.message : 'Erro desconhecido',
+        variant: 'destructive',
+      });
+    } finally {
+      setRunning(false);
+    }
+  };
 
   return (
     <div className="space-y-6">
@@ -61,6 +86,20 @@ export function CronSchedulerPanel() {
       <div className="flex items-center justify-between">
         <h3 className="text-lg font-semibold">Agendamentos</h3>
         <div className="flex gap-2">
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={handleRunPending}
+            disabled={running}
+            className="border-[#222244] hover:border-[#4D96FF]"
+          >
+            {running ? (
+              <Loader2 size={14} className="mr-1 animate-spin" />
+            ) : (
+              <Play size={14} className="mr-1" />
+            )}
+            Executar Pendentes
+          </Button>
           <Button variant="outline" size="sm" onClick={loadData} className="border-[#222244]">
             <RefreshCw size={14} className="mr-1" /> Atualizar
           </Button>
