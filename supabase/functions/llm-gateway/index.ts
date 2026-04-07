@@ -555,9 +555,14 @@ serve(async (req) => {
               if (isHuggingFace) { headers['X-Title'] = 'Fator X'; }
               if (opt.provider === 'openrouter') { headers['HTTP-Referer'] = supabaseUrl; headers['X-Title'] = 'Fator X'; }
               const streamModel = isHuggingFace ? opt.model.replace('huggingface/', '') : isLovable ? opt.model : isGoogle ? opt.model.replace('google/', '') : opt.model;
+              const streamBody: Record<string, unknown> = { model: streamModel, messages: safeMessages, temperature, max_tokens, stream: true };
+              // Disable thinking for Qwen3/DeepSeek to save tokens
+              if (isHuggingFace && (streamModel.includes('Qwen3') || streamModel.includes('DeepSeek'))) {
+                streamBody.chat_template_kwargs = { enable_thinking: false };
+              }
               const body = isAnthropic
                 ? JSON.stringify({ model: opt.model.replace('anthropic/', ''), messages: safeMessages.filter(m => m.role !== 'system'), system: safeMessages.find(m => m.role === 'system')?.content, max_tokens, temperature, stream: true })
-                : JSON.stringify({ model: streamModel, messages: safeMessages, temperature, max_tokens, stream: true });
+                : JSON.stringify(streamBody);
               // Timeout for streaming connection (90s)
               const streamController = new AbortController();
               const streamTimeout = setTimeout(() => streamController.abort(), 90_000);
