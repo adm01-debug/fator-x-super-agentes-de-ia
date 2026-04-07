@@ -110,3 +110,4 @@ export * from './queueManagerService';
 export * from './batchProcessorService';
 export * from './openclawDeployService';
 export * from './widgetService';
+export * from './auditLogService';
