@@ -14,32 +14,102 @@ export interface LLMResult {
   finish_reason: string;
 }
 
-export async function callHuggingFace(params: LLMCallParams, apiKey: string): Promise<LLMResult> {
-  const model = params.model.replace('huggingface/', '');
+// HuggingFace free model fallback pool — tried in order on cold start / rate limit
+const HF_FREE_MODELS = [
+  'Qwen/Qwen3-30B-A3B',
+  'mistralai/Mistral-Small-24B-Instruct-2501',
+  'meta-llama/Llama-4-Scout-17B-16E-Instruct',
+  'google/gemma-3-12b-it',
+  'deepseek-ai/DeepSeek-V3',
+];
+
+async function callHuggingFaceSingle(model: string, params: LLMCallParams, apiKey: string): Promise<{ result?: LLMResult; retryable: boolean; status: number; errorMsg: string }> {
   const body: Record<string, unknown> = {
     model,
     messages: params.messages,
     temperature: params.temperature,
     max_tokens: params.max_tokens,
   };
-  // #41 — Structured Output: pass response_format if provided
-  if (params.response_format) {
-    body.response_format = params.response_format;
+  if (params.response_format) body.response_format = params.response_format;
+
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), 60_000);
+  try {
+    const response = await fetch('https://router.huggingface.co/v1/chat/completions', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${apiKey}`, 'X-Title': 'Fator X' },
+      body: JSON.stringify(body),
+      signal: controller.signal,
+    });
+    clearTimeout(timeout);
+    const status = response.status;
+
+    // 503 = model loading (cold start) — retryable with different model
+    if (status === 503) {
+      const text = await response.text();
+      const estimatedTime = text.match(/"estimated_time":\s*([\d.]+)/)?.[1];
+      return { retryable: true, status, errorMsg: `Model loading (cold start)${estimatedTime ? `, ETA: ${estimatedTime}s` : ''}` };
+    }
+    // 429 = rate limit — retryable with different model
+    if (status === 429) {
+      await response.text();
+      return { retryable: true, status, errorMsg: 'Rate limit exceeded' };
+    }
+    // 500/502 = transient server error — retryable
+    if (status === 500 || status === 502) {
+      await response.text();
+      return { retryable: true, status, errorMsg: `Server error ${status}` };
+    }
+    // Other errors (401, 400, etc.) — not retryable
+    if (!response.ok) {
+      const text = await response.text();
+      return { retryable: false, status, errorMsg: `HF API error ${status}: ${text.substring(0, 200)}` };
+    }
+
+    const result = await response.json();
+    if (result.error) {
+      const msg = typeof result.error === 'string' ? result.error : result.error?.message || JSON.stringify(result.error);
+      // "Model is currently loading" or queued
+      if (msg.includes('currently loading') || msg.includes('is currently') || msg.includes('queue')) {
+        return { retryable: true, status: 503, errorMsg: msg };
+      }
+      return { retryable: false, status: 400, errorMsg: `HuggingFace API error: ${msg}` };
+    }
+    return { result: normalizeOpenAIResponse(result), retryable: false, status: 200, errorMsg: '' };
+  } catch (err) {
+    clearTimeout(timeout);
+    if (err instanceof DOMException && err.name === 'AbortError') {
+      return { retryable: true, status: 408, errorMsg: 'Request timeout (60s)' };
+    }
+    return { retryable: false, status: 0, errorMsg: err instanceof Error ? err.message : 'Unknown error' };
   }
-  const response = await fetch('https://router.huggingface.co/v1/chat/completions', {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      'Authorization': `Bearer ${apiKey}`,
-      'X-Title': 'Fator X',
-    },
-    body: JSON.stringify(body),
-  });
-  const result = await response.json();
-  if (result.error) {
-    throw new Error(`HuggingFace API error: ${typeof result.error === 'string' ? result.error : result.error?.message || JSON.stringify(result.error)}`);
+}
+
+export async function callHuggingFace(params: LLMCallParams, apiKey: string): Promise<LLMResult> {
+  const requestedModel = params.model.replace('huggingface/', '');
+  const errors: string[] = [];
+
+  // 1. Try the requested model first
+  const first = await callHuggingFaceSingle(requestedModel, params, apiKey);
+  if (first.result) return first.result;
+  errors.push(`[${requestedModel}] ${first.errorMsg}`);
+
+  // 2. If retryable, try other free models as fallback
+  if (first.retryable) {
+    const fallbacks = HF_FREE_MODELS.filter(m => m !== requestedModel);
+    for (const fallbackModel of fallbacks) {
+      console.log(`HF fallback: trying ${fallbackModel} after ${requestedModel} failed (${first.errorMsg})`);
+      const attempt = await callHuggingFaceSingle(fallbackModel, params, apiKey);
+      if (attempt.result) {
+        console.log(`HF fallback success: ${fallbackModel}`);
+        return attempt.result;
+      }
+      errors.push(`[${fallbackModel}] ${attempt.errorMsg}`);
+      if (!attempt.retryable) break;
+    }
   }
-  return normalizeOpenAIResponse(result);
+
+  throw new Error(`HuggingFace: all models failed — ${errors.join(' | ')}`);
 }
 
 export async function callLovable(params: LLMCallParams, apiKey: string): Promise<LLMResult> {
