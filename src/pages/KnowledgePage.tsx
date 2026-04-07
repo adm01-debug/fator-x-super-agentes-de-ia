@@ -5,7 +5,6 @@ import { InfoHint } from "@/components/shared/InfoHint";
 import { QuickActionsBar } from "@/components/shared/QuickActionsBar";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
 import { Search, BookOpen, ArrowRight, Database, Pencil, Trash2, Bot, FileText } from "lucide-react";
 import { useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
@@ -16,6 +15,7 @@ import { KnowledgeBaseDetail } from "@/components/knowledge/KnowledgeBaseDetail"
 import { AudioUploadDialog } from "@/components/knowledge/AudioUploadDialog";
 import { DocOcrDialog } from "@/components/knowledge/DocOcrDialog";
 import { RagRerankTestDialog } from "@/components/knowledge/RagRerankTestDialog";
+import { AccessControl, DangerousActionDialog } from "@/components/rbac";
 import { toast } from "sonner";
 // Context Tiers: available via contextTiersService (tieredSearch)
 
@@ -144,30 +144,32 @@ export default function KnowledgePage() {
                 <Button variant="outline" size="sm" className="flex-1 gap-1.5 text-xs" onClick={() => setEditKb(kb as unknown as Record<string, unknown>)}>
                   <Pencil className="h-3 w-3" /> Editar
                 </Button>
-                <AlertDialog>
-                  <AlertDialogTrigger asChild>
-                    <Button variant="outline" size="sm" className="gap-1.5 text-xs text-destructive hover:text-destructive">
-                      <Trash2 className="h-3 w-3" /> Excluir
-                    </Button>
-                  </AlertDialogTrigger>
-                  <AlertDialogContent>
-                    <AlertDialogHeader>
-                      <AlertDialogTitle>Excluir "{kb.name}"?</AlertDialogTitle>
-                      <AlertDialogDescription>
-                        Todos os documentos e chunks desta base serão removidos permanentemente.
-                      </AlertDialogDescription>
-                    </AlertDialogHeader>
-                    <AlertDialogFooter>
-                      <AlertDialogCancel>Cancelar</AlertDialogCancel>
-                      <AlertDialogAction
-                        onClick={() => handleDelete(kb.id)}
-                        className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
-                      >
-                        Excluir
-                      </AlertDialogAction>
-                    </AlertDialogFooter>
-                  </AlertDialogContent>
-                </AlertDialog>
+                <AccessControl permission="knowledge.delete">
+                  <DangerousActionDialog
+                    trigger={
+                      <Button variant="outline" size="sm" className="gap-1.5 text-xs text-destructive hover:text-destructive">
+                        <Trash2 className="h-3 w-3" /> Excluir
+                      </Button>
+                    }
+                    title={`Excluir base de conhecimento`}
+                    description={
+                      <>
+                        <p>Todos os documentos, chunks e embeddings desta base serão removidos permanentemente.</p>
+                        <p>Agentes que usam esta base perderão acesso ao conhecimento.</p>
+                      </>
+                    }
+                    action="delete"
+                    resourceType="knowledge_base"
+                    resourceId={kb.id}
+                    resourceName={kb.name}
+                    confirmText={kb.name}
+                    minReasonLength={10}
+                    confirmLabel="Excluir Base"
+                    onConfirm={async () => {
+                      await handleDelete(kb.id);
+                    }}
+                  />
+                </AccessControl>
               </div>
             </div>
           ))}
