@@ -20,7 +20,7 @@ export * from './agentEvolutionService';
 export * from './fineTuningService';
 export * from './dashboardService';
 export * from './dataStorageService';
-export * from './agentsService';
+export { getAgentById, getAgentDetailTraces, getAgentRecentAlerts, getAgentVersions, type AgentDetail, type AgentTrace, type AgentUsage as AgentServiceUsage, type AgentAlert, type AgentVersion } from './agentsService';
 export * from './settingsService';
 export * from './toolsService';
 export * from './adminCrudService';

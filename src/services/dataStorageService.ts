@@ -16,8 +16,8 @@ export interface DataStorageStats {
 }
 
 async function countTable(tableName: string): Promise<number> {
-  const { count, error } = await supabase
-    .from(tableName)
+  const { count, error } = await (supabase
+    .from(tableName as any) as any)
     .select('id', { count: 'exact', head: true });
   if (error) {
     logger.error(`Failed to count ${tableName}`, { error: error.message });
