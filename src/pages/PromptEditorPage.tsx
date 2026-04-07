@@ -13,6 +13,7 @@ import {
 } from "lucide-react";
 import { toast } from "sonner";
 import { PageHeader } from "@/components/shared/PageHeader";
+import { AccessControl, DangerousActionDialog } from "@/components/rbac";
 import {
   getAgentBasic,
   listPromptVersions,
@@ -227,11 +228,31 @@ export default function PromptEditorPage() {
                     <span className="text-[11px] text-muted-foreground">
                       {new Date(v.created_at).toLocaleDateString("pt-BR")}
                     </span>
-                    <Button variant="ghost" size="icon" className="h-7 w-7 text-muted-foreground hover:text-destructive"
-                      onClick={e => { e.stopPropagation(); deleteVersionMut.mutate(v.id); }}
-                    >
-                      <Trash2 className="h-3 w-3" />
-                    </Button>
+                    <AccessControl permission="workflows.delete">
+                      <DangerousActionDialog
+                        trigger={
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="h-7 w-7 text-muted-foreground hover:text-destructive"
+                            onClick={(e) => e.stopPropagation()}
+                          >
+                            <Trash2 className="h-3 w-3" />
+                          </Button>
+                        }
+                        title="Excluir versão do prompt"
+                        description="Esta versão será apagada permanentemente. O histórico de execuções vinculado a ela ficará órfão."
+                        action="delete"
+                        resourceType="prompt_version"
+                        resourceId={v.id}
+                        resourceName={`v${v.version_number ?? v.id.slice(0, 8)}`}
+                        minReasonLength={8}
+                        confirmLabel="Excluir Versão"
+                        onConfirm={async () => {
+                          await deleteVersionMut.mutateAsync(v.id);
+                        }}
+                      />
+                    </AccessControl>
                   </div>
                 </div>
               ))}
