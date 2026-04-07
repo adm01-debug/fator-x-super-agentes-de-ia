@@ -1,8 +1,14 @@
 import { useState, useEffect } from 'react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { ListOrdered } from 'lucide-react';
-import { listQueues, QUEUE_PRESETS, type QueueDefinition } from '@/services/queueManagerService';
+import { Button } from '@/components/ui/button';
+import { ListOrdered, Loader2, Play } from 'lucide-react';
+import {
+  listQueues,
+  runQueueWorker,
+  QUEUE_PRESETS,
+  type QueueDefinition,
+} from '@/services/queueManagerService';
 import { useToast } from '@/hooks/use-toast';
 
 const STRATEGY_LABELS: Record<string, string> = { fifo: 'FIFO', lifo: 'LIFO', priority: 'Prioridade' };
@@ -10,11 +16,46 @@ const STRATEGY_LABELS: Record<string, string> = { fifo: 'FIFO', lifo: 'LIFO', pr
 export function QueueMonitorPanel() {
   const [queues, setQueues] = useState<QueueDefinition[]>([]);
   const [loading, setLoading] = useState(true);
+  const [runningId, setRunningId] = useState<string | null>(null);
   const { toast } = useToast();
 
+  const loadQueues = async () => {
+    try {
+      const data = await listQueues();
+      setQueues(data);
+    } catch {
+      toast({ title: 'Erro ao carregar filas', variant: 'destructive' });
+    } finally {
+      setLoading(false);
+    }
+  };
+
   useEffect(() => {
-    listQueues().then(setQueues).catch(() => toast({ title: 'Erro', variant: 'destructive' })).finally(() => setLoading(false));
+    loadQueues();
   }, []);
+
+  const handleRunWorker = async (q: QueueDefinition) => {
+    setRunningId(q.id);
+    try {
+      const result = await runQueueWorker({ queue_id: q.id, batch_size: 10 });
+      const summary = result.results?.[0];
+      toast({
+        title: 'Worker executado',
+        description: summary
+          ? `${q.name}: ${summary.items_processed} processados (${summary.successes} ok, ${summary.failures} falhas)`
+          : `${q.name} drenada`,
+      });
+      await loadQueues();
+    } catch (e) {
+      toast({
+        title: 'Falha ao executar worker',
+        description: e instanceof Error ? e.message : 'Erro desconhecido',
+        variant: 'destructive',
+      });
+    } finally {
+      setRunningId(null);
+    }
+  };
 
   return (
     <div className="space-y-6">
@@ -51,9 +92,25 @@ export function QueueMonitorPanel() {
                     <p className="font-medium">{q.name}</p>
                     <Badge variant="outline" className="text-[10px] border-[#222244]">{STRATEGY_LABELS[q.strategy]}</Badge>
                   </div>
-                  <Badge className={q.is_paused ? 'bg-yellow-500/20 text-yellow-400' : 'bg-green-500/20 text-green-400'}>
-                    {q.is_paused ? 'Pausada' : 'Ativa'}
-                  </Badge>
+                  <div className="flex items-center gap-2">
+                    <Badge className={q.is_paused ? 'bg-yellow-500/20 text-yellow-400' : 'bg-green-500/20 text-green-400'}>
+                      {q.is_paused ? 'Pausada' : 'Ativa'}
+                    </Badge>
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      className="h-7 text-xs gap-1.5 border-[#222244] hover:bg-[#1a1a3e] hover:border-[#FF6B6B]"
+                      disabled={runningId === q.id || q.is_paused || q.current_size === 0}
+                      onClick={() => handleRunWorker(q)}
+                    >
+                      {runningId === q.id ? (
+                        <Loader2 className="h-3 w-3 animate-spin" />
+                      ) : (
+                        <Play className="h-3 w-3" />
+                      )}
+                      Run Worker
+                    </Button>
+                  </div>
                 </div>
                 <div className="grid grid-cols-4 gap-4 text-center text-xs">
                   <div><p className="text-lg font-bold text-[#4D96FF]">{q.current_size}</p><p className="text-gray-400">Na fila</p></div>
