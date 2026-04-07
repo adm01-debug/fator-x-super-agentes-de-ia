@@ -537,6 +537,7 @@ serve(async (req) => {
             const opt = chain[ci];
             try {
               let fullContent = '';
+              let insideThinkBlock = false; // Track <think> blocks for filtering
               let promptTokens = 0, completionTokens = 0;
               const isAnthropic = opt.provider === 'anthropic';
               const isHuggingFace = opt.provider === 'huggingface';
@@ -595,6 +596,12 @@ serve(async (req) => {
                     }
                     if (token) {
                       fullContent += token;
+                      // Filter out <think>...</think> blocks from streaming output
+                      if (token.includes('<think>')) { insideThinkBlock = true; continue; }
+                      if (insideThinkBlock) {
+                        if (token.includes('</think>')) { insideThinkBlock = false; }
+                        continue; // Skip tokens inside think block
+                      }
                       controller.enqueue(encoder.encode(`data: ${JSON.stringify({ token, model: opt.model, provider: opt.provider })}\n\n`));
                     }
                   } catch { /* skip unparseable lines */ }
