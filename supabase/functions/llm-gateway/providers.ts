@@ -17,10 +17,10 @@ export interface LLMResult {
 // HuggingFace free model fallback pool — tried in order on cold start / rate limit
 const HF_FREE_MODELS = [
   'Qwen/Qwen3-30B-A3B',
-  'mistralai/Mistral-Small-24B-Instruct-2501',
   'meta-llama/Llama-4-Scout-17B-16E-Instruct',
   'google/gemma-3-12b-it',
   'deepseek-ai/DeepSeek-V3',
+  'mistralai/Mistral-Small-3.1-24B-Instruct-2503',
 ];
 
 async function callHuggingFaceSingle(model: string, params: LLMCallParams, apiKey: string): Promise<{ result?: LLMResult; retryable: boolean; status: number; errorMsg: string }> {
