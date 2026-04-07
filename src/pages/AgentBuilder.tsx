@@ -1,49 +1,69 @@
-import { useEffect } from 'react';
+import { useEffect, Suspense, lazy } from 'react';
 import { useParams } from 'react-router-dom';
 import { AgentBuilderLayout } from '@/components/agent-builder/AgentBuilderLayout';
 import { useAgentBuilderStore } from '@/stores/agentBuilderStore';
-import { IdentityModule } from '@/components/agent-builder/modules/IdentityModule';
-import { BrainModule } from '@/components/agent-builder/modules/BrainModule';
-import { MemoryModule } from '@/components/agent-builder/modules/MemoryModule';
-import { RAGModule } from '@/components/agent-builder/modules/RAGModule';
-import { ToolsModule } from '@/components/agent-builder/modules/ToolsModule';
-import { PromptModule } from '@/components/agent-builder/modules/PromptModule';
-import { OrchestrationModule } from '@/components/agent-builder/modules/OrchestrationModule';
-import { GuardrailsModule } from '@/components/agent-builder/modules/GuardrailsModule';
-import { TestingModule } from '@/components/agent-builder/modules/TestingModule';
-import { ObservabilityModule } from '@/components/agent-builder/modules/ObservabilityModule';
-import { DeployModule } from '@/components/agent-builder/modules/DeployModule';
-import { BillingModule } from '@/components/agent-builder/modules/BillingModule';
-import { ReadinessModule } from '@/components/agent-builder/modules/ReadinessModule';
-import { BlueprintModule } from '@/components/agent-builder/modules/BlueprintModule';
-import { SettingsModule } from '@/components/agent-builder/modules/SettingsModule';
 import { Loader2 } from 'lucide-react';
+import { Skeleton } from '@/components/ui/skeleton';
+
+// Lazy-load modules for better code splitting
+const IdentityModule = lazy(() => import('@/components/agent-builder/modules/IdentityModule').then(m => ({ default: m.IdentityModule })));
+const BrainModule = lazy(() => import('@/components/agent-builder/modules/BrainModule').then(m => ({ default: m.BrainModule })));
+const MemoryModule = lazy(() => import('@/components/agent-builder/modules/MemoryModule').then(m => ({ default: m.MemoryModule })));
+const RAGModule = lazy(() => import('@/components/agent-builder/modules/RAGModule').then(m => ({ default: m.RAGModule })));
+const ToolsModule = lazy(() => import('@/components/agent-builder/modules/ToolsModule').then(m => ({ default: m.ToolsModule })));
+const PromptModule = lazy(() => import('@/components/agent-builder/modules/PromptModule').then(m => ({ default: m.PromptModule })));
+const OrchestrationModule = lazy(() => import('@/components/agent-builder/modules/OrchestrationModule').then(m => ({ default: m.OrchestrationModule })));
+const GuardrailsModule = lazy(() => import('@/components/agent-builder/modules/GuardrailsModule').then(m => ({ default: m.GuardrailsModule })));
+const TestingModule = lazy(() => import('@/components/agent-builder/modules/TestingModule').then(m => ({ default: m.TestingModule })));
+const ObservabilityModule = lazy(() => import('@/components/agent-builder/modules/ObservabilityModule').then(m => ({ default: m.ObservabilityModule })));
+const DeployModule = lazy(() => import('@/components/agent-builder/modules/DeployModule').then(m => ({ default: m.DeployModule })));
+const BillingModule = lazy(() => import('@/components/agent-builder/modules/BillingModule').then(m => ({ default: m.BillingModule })));
+const ReadinessModule = lazy(() => import('@/components/agent-builder/modules/ReadinessModule').then(m => ({ default: m.ReadinessModule })));
+const BlueprintModule = lazy(() => import('@/components/agent-builder/modules/BlueprintModule').then(m => ({ default: m.BlueprintModule })));
+const SettingsModule = lazy(() => import('@/components/agent-builder/modules/SettingsModule').then(m => ({ default: m.SettingsModule })));
+
+function ModuleSkeleton() {
+  return (
+    <div className="space-y-4 animate-pulse">
+      <Skeleton className="h-8 w-48" />
+      <Skeleton className="h-4 w-72" />
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-6">
+        <Skeleton className="h-32 rounded-lg" />
+        <Skeleton className="h-32 rounded-lg" />
+      </div>
+      <Skeleton className="h-48 rounded-lg" />
+    </div>
+  );
+}
+
+const MODULE_MAP: Record<string, React.LazyExoticComponent<React.ComponentType>> = {
+  identity: IdentityModule,
+  brain: BrainModule,
+  memory: MemoryModule,
+  rag: RAGModule,
+  tools: ToolsModule,
+  prompt: PromptModule,
+  orchestration: OrchestrationModule,
+  guardrails: GuardrailsModule,
+  testing: TestingModule,
+  observability: ObservabilityModule,
+  deploy: DeployModule,
+  billing: BillingModule,
+  readiness: ReadinessModule,
+  blueprint: BlueprintModule,
+  settings: SettingsModule,
+};
 
 function ActiveModule({ tabId }: { tabId: string }) {
-  switch (tabId) {
-    case 'identity': return <IdentityModule />;
-    case 'brain': return <BrainModule />;
-    case 'memory': return <MemoryModule />;
-    case 'rag': return <RAGModule />;
-    case 'tools': return <ToolsModule />;
-    case 'prompt': return <PromptModule />;
-    case 'orchestration': return <OrchestrationModule />;
-    case 'guardrails': return <GuardrailsModule />;
-    case 'testing': return <TestingModule />;
-    case 'observability': return <ObservabilityModule />;
-    case 'deploy': return <DeployModule />;
-    case 'billing': return <BillingModule />;
-    case 'readiness': return <ReadinessModule />;
-    case 'blueprint': return <BlueprintModule />;
-    case 'settings': return <SettingsModule />;
-    default: return (
-      <div className="flex flex-col items-center justify-center py-20 text-center">
-        <div className="text-5xl mb-4">🚧</div>
-        <h2 className="text-lg font-semibold text-foreground mb-1">Módulo: {tabId}</h2>
-        <p className="text-sm text-muted-foreground">Este módulo será implementado nas próximas etapas.</p>
-      </div>
-    );
-  }
+  const LazyModule = MODULE_MAP[tabId];
+  if (LazyModule) return <LazyModule />;
+  return (
+    <div className="flex flex-col items-center justify-center py-20 text-center">
+      <div className="text-5xl mb-4">🚧</div>
+      <h2 className="text-lg font-semibold text-foreground mb-1">Módulo: {tabId}</h2>
+      <p className="text-sm text-muted-foreground">Este módulo será implementado nas próximas etapas.</p>
+    </div>
+  );
 }
 
 export default function AgentBuilder() {
@@ -71,12 +91,11 @@ export default function AgentBuilder() {
 
   return (
     <AgentBuilderLayout>
-      <div
-          key={activeTab}
-        >
+      <div key={activeTab} className="animate-page-enter">
+        <Suspense fallback={<ModuleSkeleton />}>
           <ActiveModule tabId={activeTab} />
-        </div>
-      
+        </Suspense>
+      </div>
     </AgentBuilderLayout>
   );
 }
