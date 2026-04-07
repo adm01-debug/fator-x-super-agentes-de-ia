@@ -8,6 +8,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Palette, Globe, Bell, Key, Plus, Trash2, Save, Loader2, RotateCw, Sparkles, Server } from "lucide-react";
 import { MCPServerManager } from "@/components/integrations/MCPServerManager";
+import { AccessControl, DangerousActionDialog } from "@/components/rbac";
 import { toast } from "sonner";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import {
@@ -224,9 +225,26 @@ export default function SettingsPage() {
                        <Button size="icon" variant="ghost" className="h-7 w-7" title="Rotacionar" onClick={() => { setEditingKey(s.id); setEditValue(''); }}>
                          <RotateCw className="h-3.5 w-3.5 text-nexus-amber" />
                        </Button>
-                       <Button size="icon" variant="ghost" className="h-7 w-7 text-destructive" onClick={() => deleteKeyMutation.mutate(s.id)}>
-                         <Trash2 className="h-3.5 w-3.5" />
-                       </Button>
+                       <AccessControl permission="settings.api_keys">
+                         <DangerousActionDialog
+                           trigger={
+                             <Button size="icon" variant="ghost" className="h-7 w-7 text-destructive">
+                               <Trash2 className="h-3.5 w-3.5" />
+                             </Button>
+                           }
+                           title="Revogar API key"
+                           description="A chave será permanentemente removida. Aplicações que dependem dela serão desautorizadas imediatamente."
+                           action="revoke"
+                           resourceType="workspace_secret"
+                           resourceId={s.id}
+                           resourceName={s.key}
+                           minReasonLength={10}
+                           confirmLabel="Revogar"
+                           onConfirm={async () => {
+                             await deleteKeyMutation.mutateAsync(s.id);
+                           }}
+                         />
+                       </AccessControl>
                      </div>
                  ))}
 
@@ -423,9 +441,25 @@ function EnvironmentsManager() {
                 <p className="text-sm font-medium text-foreground">{env.name}</p>
                 <p className="text-[11px] text-muted-foreground">{new Date(String(env.created_at)).toLocaleDateString('pt-BR')}</p>
               </div>
-              <Button variant="ghost" size="icon" className="h-7 w-7 text-destructive" onClick={() => handleDelete(String(env.id))}>
-                <Trash2 className="h-3.5 w-3.5" />
-              </Button>
+              <AccessControl permission="settings.write">
+                <DangerousActionDialog
+                  trigger={
+                    <Button variant="ghost" size="icon" className="h-7 w-7 text-destructive">
+                      <Trash2 className="h-3.5 w-3.5" />
+                    </Button>
+                  }
+                  title="Excluir ambiente"
+                  description="O ambiente será removido. Configurações vinculadas a ele precisarão ser reatribuídas."
+                  action="delete"
+                  resourceType="environment"
+                  resourceId={String(env.id)}
+                  resourceName={env.name}
+                  minReasonLength={8}
+                  onConfirm={async () => {
+                    await handleDelete(String(env.id));
+                  }}
+                />
+              </AccessControl>
             </div>
           ))}
           {environments.length === 0 && <p className="text-xs text-muted-foreground text-center py-4">Nenhum ambiente criado. Padrão: development.</p>}
