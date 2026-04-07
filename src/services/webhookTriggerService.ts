@@ -385,3 +385,51 @@ export const WEBHOOK_TEMPLATES: Record<
       'tracking_code = tracking.code\nstatus = tracking.status\nlocation = tracking.location\nestimated_delivery = tracking.estimated_delivery',
   },
 };
+
+// ============================================================================
+// EDGE FUNCTION INVOKERS — wires the webhook-receiver Edge Function to the UI
+// ============================================================================
+
+export interface WebhookReceiverInvokeInput {
+  /** Webhook path registered in the webhook_endpoints table */
+  path: string;
+  /** Optional payload to deliver as the request body */
+  payload?: Record<string, unknown>;
+  /** Optional HTTP method to simulate (defaults to POST) */
+  method?: WebhookMethod;
+}
+
+export interface WebhookReceiverInvokeResult {
+  status: number;
+  message?: string;
+  data?: unknown;
+}
+
+/**
+ * Triggers the `webhook-receiver` Edge Function for testing/simulation.
+ * Useful for "test now" buttons in the WebhookManagerPanel — invokes the
+ * receiver as if an external client had POSTed to the webhook URL.
+ */
+export async function triggerWebhookViaEF(
+  input: WebhookReceiverInvokeInput
+): Promise<WebhookReceiverInvokeResult> {
+  const { data, error } = await supabase.functions.invoke('webhook-receiver', {
+    body: input.payload ?? { test: true, source: 'frontend-test', ts: Date.now() },
+    method: 'POST',
+    headers: { 'x-webhook-test-path': input.path },
+  });
+
+  if (error) {
+    logger.error('webhook-receiver invoke failed', {
+      path: input.path,
+      error: error.message,
+    });
+    throw new Error(error.message);
+  }
+
+  return {
+    status: 200,
+    message: 'Webhook receiver dispatched',
+    data,
+  };
+}

@@ -462,3 +462,39 @@ export const CRON_PRESETS: Record<
     description: 'Último dia útil do mês',
   },
 };
+
+// ============================================================================
+// EDGE FUNCTION INVOKERS — wires the cron-executor Edge Function to the UI
+// ============================================================================
+
+export interface CronExecutorRunResult {
+  ok: boolean;
+  executed?: number;
+  results?: Array<{
+    schedule_id: string;
+    name: string;
+    status: string;
+    error?: string;
+    duration_ms: number;
+  }>;
+  error?: string;
+}
+
+/**
+ * Invokes the `cron-executor` Edge Function on demand. The cron-executor
+ * scans cron_schedules for any rows where next_run_at <= now() and runs
+ * their target. Operators trigger this from the CronSchedulerPanel via a
+ * "Executar Pendentes" button when they don't want to wait for the next tick.
+ */
+export async function runCronExecutor(): Promise<CronExecutorRunResult> {
+  const { data, error } = await supabase.functions.invoke('cron-executor', {
+    body: { manual: true, source: 'frontend-panel' },
+  });
+
+  if (error) {
+    logger.error('cron-executor invoke failed', { error: error.message });
+    throw new Error(error.message);
+  }
+
+  return (data as CronExecutorRunResult) ?? { ok: true };
+}

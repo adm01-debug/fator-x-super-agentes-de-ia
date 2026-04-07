@@ -459,3 +459,53 @@ export const QUEUE_PRESETS: Record<string, CreateQueueInput> = {
     default_max_retries: 3,
   },
 };
+
+// ============================================================================
+// EDGE FUNCTION INVOKERS — wires the queue-worker Edge Function to the UI
+// ============================================================================
+
+export interface QueueWorkerRunInput {
+  /** Specific queue id to drain. Omit to run worker against all active queues. */
+  queue_id?: string;
+  /** Worker label (defaults to a random "manual-XXXX" id). */
+  worker_id?: string;
+  /** Max items to dequeue in this run (1-20, defaults to 5). */
+  batch_size?: number;
+}
+
+export interface QueueWorkerRunResult {
+  ok: boolean;
+  results?: Array<{
+    queue: string;
+    items_processed: number;
+    successes: number;
+    failures: number;
+  }>;
+  error?: string;
+}
+
+/**
+ * Invokes the `queue-worker` Edge Function on demand. Used by the
+ * QueueMonitorPanel "Run Worker" button so an operator can drain pending
+ * items immediately instead of waiting for the cron tick.
+ */
+export async function runQueueWorker(
+  input: QueueWorkerRunInput = {}
+): Promise<QueueWorkerRunResult> {
+  const workerId = input.worker_id ?? `manual-${crypto.randomUUID().slice(0, 8)}`;
+
+  const { data, error } = await supabase.functions.invoke('queue-worker', {
+    body: {
+      queue_id: input.queue_id,
+      worker_id: workerId,
+      batch_size: Math.min(input.batch_size ?? 5, 20),
+    },
+  });
+
+  if (error) {
+    logger.error('queue-worker invoke failed', { error: error.message });
+    throw new Error(error.message);
+  }
+
+  return (data as QueueWorkerRunResult) ?? { ok: true };
+}

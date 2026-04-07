@@ -468,3 +468,66 @@ export const NOTIFICATION_PRESETS: Record<
     category: 'sistema',
   },
 };
+
+// ============================================================================
+// EDGE FUNCTION INVOKERS — wires the notification-sender Edge Function to UI
+// ============================================================================
+
+export interface NotificationSenderInvokeInput {
+  channel: NotificationChannel;
+  recipient: string;
+  subject?: string;
+  message?: string;
+  template_id?: string;
+  template_vars?: Record<string, string | number | boolean>;
+  priority?: NotificationPriority;
+  metadata?: Record<string, unknown>;
+}
+
+export interface NotificationSenderInvokeResult {
+  ok: boolean;
+  notification_id?: string;
+  channel?: string;
+  status?: string;
+  error?: string;
+}
+
+/**
+ * Invokes the `notification-sender` Edge Function. Used by the
+ * NotificationCenterPanel "Enviar Teste" button so operators can confirm a
+ * channel (email/whatsapp/slack/...) is properly configured before relying on
+ * automated triggers.
+ */
+export async function sendNotificationViaEF(
+  input: NotificationSenderInvokeInput
+): Promise<NotificationSenderInvokeResult> {
+  if (!input.channel || !input.recipient) {
+    throw new Error('channel and recipient are required');
+  }
+  if (!input.message && !input.template_id) {
+    throw new Error('message or template_id is required');
+  }
+
+  const { data, error } = await supabase.functions.invoke('notification-sender', {
+    body: {
+      channel: input.channel,
+      recipient: input.recipient,
+      subject: input.subject ?? '',
+      message: input.message,
+      template_id: input.template_id,
+      template_vars: input.template_vars ?? {},
+      priority: input.priority ?? 'normal',
+      metadata: input.metadata ?? { source: 'frontend-test' },
+    },
+  });
+
+  if (error) {
+    logger.error('notification-sender invoke failed', {
+      channel: input.channel,
+      error: error.message,
+    });
+    throw new Error(error.message);
+  }
+
+  return (data as NotificationSenderInvokeResult) ?? { ok: true };
+}
