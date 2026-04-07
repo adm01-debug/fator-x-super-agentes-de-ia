@@ -1,8 +1,14 @@
 import { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { Webhook } from 'lucide-react';
-import { listWebhooks, WEBHOOK_TEMPLATES, type WebhookEndpoint } from '@/services/webhookTriggerService';
+import { Button } from '@/components/ui/button';
+import { Webhook, Loader2, Send } from 'lucide-react';
+import {
+  listWebhooks,
+  triggerWebhookViaEF,
+  WEBHOOK_TEMPLATES,
+  type WebhookEndpoint,
+} from '@/services/webhookTriggerService';
 import { useToast } from '@/hooks/use-toast';
 
 const AUTH_LABELS: Record<string, string> = {
@@ -13,11 +19,37 @@ const AUTH_LABELS: Record<string, string> = {
 export function WebhookManagerPanel() {
   const [webhooks, setWebhooks] = useState<WebhookEndpoint[]>([]);
   const [loading, setLoading] = useState(true);
+  const [testingId, setTestingId] = useState<string | null>(null);
   const { toast } = useToast();
 
   useEffect(() => {
-    listWebhooks().then(setWebhooks).catch(() => toast({ title: 'Erro ao carregar webhooks', variant: 'destructive' })).finally(() => setLoading(false));
+    listWebhooks()
+      .then(setWebhooks)
+      .catch(() => toast({ title: 'Erro ao carregar webhooks', variant: 'destructive' }))
+      .finally(() => setLoading(false));
   }, []);
+
+  const handleTest = async (w: WebhookEndpoint) => {
+    setTestingId(w.id);
+    try {
+      const result = await triggerWebhookViaEF({
+        path: w.path,
+        payload: { test: true, source: 'webhook-manager-panel', ts: Date.now() },
+      });
+      toast({
+        title: 'Webhook disparado',
+        description: `${w.name} — status ${result.status}`,
+      });
+    } catch (e) {
+      toast({
+        title: 'Falha no teste',
+        description: e instanceof Error ? e.message : 'Erro desconhecido',
+        variant: 'destructive',
+      });
+    } finally {
+      setTestingId(null);
+    }
+  };
 
   return (
     <div className="space-y-6">
@@ -65,18 +97,32 @@ export function WebhookManagerPanel() {
           {webhooks.map((w) => (
             <Card key={w.id} className="bg-[#111122] border-[#222244]">
               <CardContent className="p-4">
-                <div className="flex items-center justify-between">
-                  <div>
+                <div className="flex items-center justify-between gap-4">
+                  <div className="min-w-0 flex-1">
                     <p className="font-medium">{w.name}</p>
                     <code className="text-xs text-gray-500 font-mono">{w.path}</code>
-                    <div className="flex gap-2 mt-1">
+                    <div className="flex gap-2 mt-1 flex-wrap">
                       {w.methods.map(m => <Badge key={m} variant="outline" className="text-[10px] border-[#222244]">{m}</Badge>)}
                       <Badge variant="outline" className="text-[10px] border-[#222244]">{AUTH_LABELS[w.auth_type] ?? w.auth_type}</Badge>
                     </div>
                   </div>
-                  <div className="text-right">
+                  <div className="flex flex-col items-end gap-2 shrink-0">
                     <Badge className={w.status === 'active' ? 'bg-green-500/20 text-green-400' : 'bg-red-500/20 text-red-400'}>{w.status}</Badge>
-                    <p className="text-xs text-gray-500 mt-1">{w.request_count} requests</p>
+                    <p className="text-xs text-gray-500">{w.request_count} requests</p>
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      className="h-7 text-xs gap-1.5 border-[#222244] hover:bg-[#1a1a3e] hover:border-[#4D96FF]"
+                      disabled={testingId === w.id || w.status !== 'active'}
+                      onClick={() => handleTest(w)}
+                    >
+                      {testingId === w.id ? (
+                        <Loader2 className="h-3 w-3 animate-spin" />
+                      ) : (
+                        <Send className="h-3 w-3" />
+                      )}
+                      Testar
+                    </Button>
                   </div>
                 </div>
               </CardContent>
