@@ -191,8 +191,12 @@ function normalizeOpenAIResponse(result: Record<string, unknown>): LLMResult {
   const usage = result.usage as { prompt_tokens?: number; completion_tokens?: number; total_tokens?: number } | undefined;
   const error = result.error as { message?: string } | undefined;
 
+  // Strip <think>...</think> blocks from reasoning models (Qwen3, DeepSeek, etc.)
+  let content = choices?.[0]?.message?.content || error?.message || '';
+  content = content.replace(/<think>[\s\S]*?<\/think>\s*/g, '').trim();
+
   return {
-    content: choices?.[0]?.message?.content || error?.message || '',
+    content,
     usage: {
       prompt_tokens: usage?.prompt_tokens || 0,
       completion_tokens: usage?.completion_tokens || 0,
