@@ -7,12 +7,12 @@ import { listBatchJobs, getBatchStats, type BatchJob } from '@/services/batchPro
 import { useToast } from '@/hooks/use-toast';
 
 const STATUS_CONFIG: Record<string, { color: string; icon: typeof Play }> = {
-  pending: { color: 'bg-gray-500/20 text-gray-400', icon: Layers },
+  pending: { color: 'bg-gray-500/20 text-muted-foreground', icon: Layers },
   running: { color: 'bg-blue-500/20 text-blue-400', icon: Play },
   paused: { color: 'bg-yellow-500/20 text-yellow-400', icon: Pause },
   completed: { color: 'bg-green-500/20 text-green-400', icon: CheckCircle },
   failed: { color: 'bg-red-500/20 text-red-400', icon: XCircle },
-  cancelled: { color: 'bg-gray-500/20 text-gray-400', icon: XCircle },
+  cancelled: { color: 'bg-gray-500/20 text-muted-foreground', icon: XCircle },
   partial: { color: 'bg-orange-500/20 text-orange-400', icon: CheckCircle },
 };
 
@@ -38,20 +38,20 @@ export function BatchProcessorPanel() {
           { label: 'Itens Processados', value: (stats?.total_items_processed ?? 0).toLocaleString(), color: '#9B59B6' },
           { label: 'Taxa Sucesso', value: `${(stats?.success_rate ?? 0).toFixed(1)}%`, color: '#FFD93D' },
         ].map((s, i) => (
-          <Card key={i} className="bg-[#111122] border-[#222244]">
+          <Card key={i} className="bg-card border-border">
             <CardContent className="p-3 text-center">
               <p className="text-xl font-bold" style={{ color: s.color }}>{s.value}</p>
-              <p className="text-[10px] text-gray-400">{s.label}</p>
+              <p className="text-[10px] text-muted-foreground">{s.label}</p>
             </CardContent>
           </Card>
         ))}
       </div>
 
       {loading ? (
-        <div className="text-center py-12 text-gray-400">Carregando batch jobs...</div>
+        <div className="text-center py-12 text-muted-foreground">Carregando batch jobs...</div>
       ) : jobs.length === 0 ? (
-        <Card className="bg-[#111122] border-[#222244]">
-          <CardContent className="py-12 text-center text-gray-400">
+        <Card className="bg-card border-border">
+          <CardContent className="py-12 text-center text-muted-foreground">
             <Layers size={48} className="mx-auto mb-4 opacity-30" />
             <p>Nenhum batch job executado.</p>
             <p className="text-sm mt-1">Use a API processBatch() para processar grandes volumes de dados.</p>
@@ -63,17 +63,17 @@ export function BatchProcessorPanel() {
             const cfg = STATUS_CONFIG[job.status] ?? STATUS_CONFIG.pending;
             const Icon = cfg.icon;
             return (
-              <Card key={job.id} className="bg-[#111122] border-[#222244]">
+              <Card key={job.id} className="bg-card border-border">
                 <CardContent className="p-4">
                   <div className="flex items-center justify-between mb-3">
                     <div className="flex items-center gap-2">
-                      <Icon size={16} className="text-[#4D96FF]" />
+                      <Icon size={16} className="text-primary" />
                       <p className="font-medium text-sm">{job.name}</p>
                     </div>
                     <Badge className={cfg.color}>{job.status}</Badge>
                   </div>
                   <Progress value={job.progress_pct} className="h-2 mb-2" />
-                  <div className="flex items-center justify-between text-xs text-gray-400">
+                  <div className="flex items-center justify-between text-xs text-muted-foreground">
                     <span>{job.processed_items.toLocaleString()} / {job.total_items.toLocaleString()} itens ({job.progress_pct}%)</span>
                     <span>
                       ✅ {job.successful_items} • ❌ {job.failed_items}

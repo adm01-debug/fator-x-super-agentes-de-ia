@@ -47,7 +47,7 @@ export function ProtectedRoute({
       <div className="flex items-center justify-center min-h-screen bg-[#080816]">
         <div className="flex flex-col items-center gap-4">
           <div className="w-8 h-8 border-2 border-[#4D96FF] border-t-transparent rounded-full animate-spin" />
-          <p className="text-[#888888] text-sm">Verificando permissões...</p>
+          <p className="text-muted-foreground text-sm">Verificando permissões...</p>
         </div>
       </div>
     );
@@ -64,14 +64,14 @@ export function ProtectedRoute({
       <div className="flex items-center justify-center min-h-screen bg-[#080816]">
         <div className="text-center max-w-md p-8">
           <div className="text-5xl mb-4">🔒</div>
-          <h2 className="text-xl font-bold text-white mb-2">Acesso Restrito</h2>
-          <p className="text-[#888888] mb-6">
+          <h2 className="text-xl font-bold text-foreground mb-2">Acesso Restrito</h2>
+          <p className="text-muted-foreground mb-6">
             Você não tem permissão para acessar esta página.
             Entre em contato com o administrador do workspace.
           </p>
           <a
             href={redirectTo}
-            className="inline-flex items-center gap-2 px-4 py-2 bg-[#4D96FF] text-white rounded-lg hover:bg-[#3a7de0] transition-colors"
+            className="inline-flex items-center gap-2 px-4 py-2 bg-primary text-foreground rounded-lg hover:bg-[#3a7de0] transition-colors"
           >
             Voltar para Agentes
           </a>

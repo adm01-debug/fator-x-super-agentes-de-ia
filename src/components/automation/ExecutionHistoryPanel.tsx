@@ -6,7 +6,7 @@ import { Input } from '@/components/ui/input';
 import { listExecutions, getExecutionStats, type ExecutionRecord } from '@/services/executionHistoryService';
 import { useToast } from '@/hooks/use-toast';
 
-const STATUS_COLORS: Record<string, string> = { running: 'bg-blue-500/20 text-blue-400', success: 'bg-green-500/20 text-green-400', failed: 'bg-red-500/20 text-red-400', cancelled: 'bg-gray-500/20 text-gray-400', timeout: 'bg-orange-500/20 text-orange-400', waiting: 'bg-yellow-500/20 text-yellow-400' };
+const STATUS_COLORS: Record<string, string> = { running: 'bg-blue-500/20 text-blue-400', success: 'bg-green-500/20 text-green-400', failed: 'bg-red-500/20 text-red-400', cancelled: 'bg-gray-500/20 text-muted-foreground', timeout: 'bg-orange-500/20 text-orange-400', waiting: 'bg-yellow-500/20 text-yellow-400' };
 const TYPE_ICONS: Record<string, string> = { workflow: '🔄', agent: '🤖', automation: '⚡', webhook: '🔗', schedule: '⏰', manual: '👤' };
 
 export function ExecutionHistoryPanel() {
@@ -36,36 +36,36 @@ export function ExecutionHistoryPanel() {
           { label: 'Taxa Sucesso', value: `${(stats?.success_rate ?? 0).toFixed(1)}%`, color: '#9B59B6' },
           { label: 'Custo (BRL)', value: `R$ ${(stats?.total_cost_brl ?? 0).toFixed(2)}`, color: '#FFD93D' },
         ].map((s, i) => (
-          <Card key={i} className="bg-[#111122] border-[#222244]">
+          <Card key={i} className="bg-card border-border">
             <CardContent className="p-3 text-center">
               <p className="text-xl font-bold" style={{ color: s.color }}>{s.value}</p>
-              <p className="text-[10px] text-gray-400">{s.label}</p>
+              <p className="text-[10px] text-muted-foreground">{s.label}</p>
             </CardContent>
           </Card>
         ))}
       </div>
 
       <div className="relative">
-        <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
-        <Input placeholder="Buscar execuções..." value={search} onChange={(e) => setSearch(e.target.value)} className="pl-10 bg-[#0a0a1a] border-[#222244]" />
+        <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
+        <Input placeholder="Buscar execuções..." value={search} onChange={(e) => setSearch(e.target.value)} className="pl-10 bg-background border-border" />
       </div>
 
       {loading ? (
-        <div className="text-center py-12 text-gray-400">Carregando histórico...</div>
+        <div className="text-center py-12 text-muted-foreground">Carregando histórico...</div>
       ) : executions.length === 0 ? (
-        <Card className="bg-[#111122] border-[#222244]"><CardContent className="py-12 text-center text-gray-400"><History size={48} className="mx-auto mb-4 opacity-30" /><p>Nenhuma execução registrada.</p></CardContent></Card>
+        <Card className="bg-card border-border"><CardContent className="py-12 text-center text-muted-foreground"><History size={48} className="mx-auto mb-4 opacity-30" /><p>Nenhuma execução registrada.</p></CardContent></Card>
       ) : (
         <div className="space-y-2">
           {executions.map((e) => (
-            <Card key={e.id} className="bg-[#111122] border-[#222244]">
+            <Card key={e.id} className="bg-card border-border">
               <CardContent className="p-3 flex items-center gap-3">
                 <span className="text-lg">{TYPE_ICONS[e.execution_type] ?? '⚡'}</span>
                 <div className="flex-1 min-w-0">
                   <p className="text-sm font-medium truncate">{e.source_name}</p>
-                  <p className="text-[10px] text-gray-400">{e.trigger} • {e.steps.length} steps • {e.tokens_used} tokens</p>
+                  <p className="text-[10px] text-muted-foreground">{e.trigger} • {e.steps.length} steps • {e.tokens_used} tokens</p>
                 </div>
                 <div className="text-right shrink-0">
-                  <Badge className={STATUS_COLORS[e.status] ?? 'bg-gray-500/20 text-gray-400'}>{e.status}</Badge>
+                  <Badge className={STATUS_COLORS[e.status] ?? 'bg-gray-500/20 text-muted-foreground'}>{e.status}</Badge>
                   <p className="text-[10px] text-gray-500 mt-1">{e.duration_ms ? `${(e.duration_ms / 1000).toFixed(1)}s` : '...'}</p>
                 </div>
               </CardContent>

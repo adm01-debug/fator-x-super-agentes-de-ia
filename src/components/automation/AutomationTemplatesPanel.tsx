@@ -23,7 +23,7 @@ export function AutomationTemplatesPanel() {
 
   if (loading) {
     return (
-      <div className="text-center py-12 text-gray-400">
+      <div className="text-center py-12 text-muted-foreground">
         <LayoutTemplate size={48} className="mx-auto mb-4 animate-pulse opacity-30" />
         <p>Carregando templates...</p>
       </div>
@@ -34,11 +34,11 @@ export function AutomationTemplatesPanel() {
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <h3 className="text-lg font-semibold">Templates de Automação — Promo Brindes</h3>
-        <Badge variant="outline" className="border-[#222244]">{templates.length} disponíveis</Badge>
+        <Badge variant="outline" className="border-border">{templates.length} disponíveis</Badge>
       </div>
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
         {templates.map((tpl) => (
-          <Card key={tpl.slug} className="bg-[#111122] border-[#222244] hover:border-[#4D96FF]/50 transition-colors">
+          <Card key={tpl.slug} className="bg-card border-border hover:border-primary/50 transition-colors">
             <CardContent className="p-5">
               <div className="flex items-center gap-3 mb-3">
                 <span className="text-2xl">{tpl.icon}</span>
@@ -47,22 +47,22 @@ export function AutomationTemplatesPanel() {
                   <Badge className={DIFFICULTY_COLORS[tpl.difficulty] ?? ''} >{tpl.difficulty}</Badge>
                 </div>
               </div>
-              <p className="text-xs text-gray-400 mb-3 line-clamp-2">{tpl.description}</p>
+              <p className="text-xs text-muted-foreground mb-3 line-clamp-2">{tpl.description}</p>
               <div className="flex flex-wrap gap-1 mb-3">
                 {tpl.required_integrations.map((i) => (
-                  <Badge key={i} variant="outline" className="text-[10px] border-[#222244]">{i}</Badge>
+                  <Badge key={i} variant="outline" className="text-[10px] border-border">{i}</Badge>
                 ))}
               </div>
               <div className="flex items-center justify-between text-xs text-gray-500">
                 <span>{tpl.steps.length} etapas</span>
                 <span>~{tpl.estimated_setup_minutes}min setup</span>
               </div>
-              <div className="mt-3 text-xs text-gray-500 border-t border-[#222244] pt-3">
-                <p className="font-medium text-gray-300 mb-1">Fluxo:</p>
+              <div className="mt-3 text-xs text-gray-500 border-t border-border pt-3">
+                <p className="font-medium text-muted-foreground mb-1">Fluxo:</p>
                 {tpl.steps.map((step, i) => (
                   <span key={i} className="inline-flex items-center">
                     {i > 0 && <ArrowRight size={10} className="mx-1 text-gray-600" />}
-                    <span className={step.type === 'trigger' ? 'text-[#4D96FF]' : step.type === 'notification' ? 'text-[#6BCB77]' : 'text-gray-400'}>{step.name}</span>
+                    <span className={step.type === 'trigger' ? 'text-primary' : step.type === 'notification' ? 'text-nexus-emerald' : 'text-muted-foreground'}>{step.name}</span>
                   </span>
                 ))}
               </div>

@@ -357,7 +357,7 @@ export function WorkflowTimeTravelPanel({
           </CardHeader>
           <CardContent>
             <ScrollArea className="h-[200px]">
-              <pre className="text-xs text-gray-300 font-mono whitespace-pre-wrap break-all">
+              <pre className="text-xs text-muted-foreground font-mono whitespace-pre-wrap break-all">
                 {JSON.stringify(inspectedState, null, 2)}
               </pre>
             </ScrollArea>

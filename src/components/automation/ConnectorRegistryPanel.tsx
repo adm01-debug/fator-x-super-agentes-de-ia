@@ -29,10 +29,10 @@ export function ConnectorRegistryPanel() {
           { label: 'Conectados', value: instances.filter(i => i.status === 'connected').length, color: '#6BCB77' },
           { label: 'Uso Total', value: instances.reduce((s, i) => s + i.usage_count, 0), color: '#9B59B6' },
         ].map((s, i) => (
-          <Card key={i} className="bg-[#111122] border-[#222244]">
+          <Card key={i} className="bg-card border-border">
             <CardContent className="p-4 text-center">
               <p className="text-2xl font-bold" style={{ color: s.color }}>{s.value}</p>
-              <p className="text-xs text-gray-400">{s.label}</p>
+              <p className="text-xs text-muted-foreground">{s.label}</p>
             </CardContent>
           </Card>
         ))}
@@ -42,23 +42,23 @@ export function ConnectorRegistryPanel() {
         {displayConnectors.map((conn) => {
           const isConnected = connectedIds.has(conn.id);
           return (
-            <Card key={conn.slug} className="bg-[#111122] border-[#222244] hover:border-[#4D96FF]/50 transition-colors">
+            <Card key={conn.slug} className="bg-card border-border hover:border-primary/50 transition-colors">
               <CardContent className="p-4">
                 <div className="flex items-center justify-between mb-3">
                   <div className="flex items-center gap-2">
                     <span className="text-xl">{conn.icon}</span>
                     <div>
                       <p className="font-semibold text-sm">{conn.name}</p>
-                      <Badge variant="outline" className="text-[10px] border-[#222244]">{conn.category}</Badge>
+                      <Badge variant="outline" className="text-[10px] border-border">{conn.category}</Badge>
                     </div>
                   </div>
                   {isConnected ? <CheckCircle size={18} className="text-green-400" /> : <XCircle size={18} className="text-gray-500" />}
                 </div>
-                <p className="text-xs text-gray-400 mb-3 line-clamp-2">{conn.description}</p>
+                <p className="text-xs text-muted-foreground mb-3 line-clamp-2">{conn.description}</p>
                 <div className="flex items-center justify-between text-xs text-gray-500">
                   <span>{conn.operations.length} operações</span>
                   <span>{conn.auth_type}</span>
-                  {conn.supports_webhooks && <Badge variant="outline" className="text-[10px] border-[#222244]">Webhook</Badge>}
+                  {conn.supports_webhooks && <Badge variant="outline" className="text-[10px] border-border">Webhook</Badge>}
                 </div>
               </CardContent>
             </Card>

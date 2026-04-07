@@ -459,7 +459,7 @@ export function SandboxExecutionPanel({
                 <textarea
                   value={codeInput}
                   onChange={(e) => setCodeInput(e.target.value)}
-                  className="w-full h-40 p-3 bg-background border border-border rounded-lg text-sm font-mono text-gray-300 resize-none focus:border-primary focus:outline-none"
+                  className="w-full h-40 p-3 bg-background border border-border rounded-lg text-sm font-mono text-muted-foreground resize-none focus:border-primary focus:outline-none"
                   placeholder={`# Escreva seu código ${language} aqui...`}
                   spellCheck={false}
                 />
@@ -554,7 +554,7 @@ export function SandboxExecutionPanel({
                                 className="w-4 h-4"
                                 style={{ color: statusColor }}
                               />
-                              <Badge className="bg-[#222244] text-gray-300 text-[10px]">
+                              <Badge className="bg-[#222244] text-muted-foreground text-[10px]">
                                 {exec.language}
                               </Badge>
                               <span className="text-xs text-muted-foreground">
@@ -655,7 +655,7 @@ export function SandboxExecutionPanel({
                         allowedDomains: e.target.value.split('\n').filter(Boolean),
                       })
                     }
-                    className="w-full h-20 p-2 bg-background border border-border rounded text-xs font-mono text-gray-300 resize-none focus:border-primary focus:outline-none"
+                    className="w-full h-20 p-2 bg-background border border-border rounded text-xs font-mono text-muted-foreground resize-none focus:border-primary focus:outline-none"
                     placeholder="api.exemplo.com&#10;github.com&#10;pypi.org"
                   />
                 </div>

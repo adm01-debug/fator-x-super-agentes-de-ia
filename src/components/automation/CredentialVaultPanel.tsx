@@ -30,27 +30,27 @@ export function CredentialVaultPanel() {
           { label: 'Expirando', value: stats?.expiring_soon ?? 0, icon: AlertTriangle, color: '#FFD93D' },
           { label: 'Rotação Pendente', value: stats?.rotation_due ?? 0, icon: RotateCcw, color: '#E67E22' },
         ].map((s, i) => (
-          <Card key={i} className="bg-[#111122] border-[#222244]">
+          <Card key={i} className="bg-card border-border">
             <CardContent className="p-3 text-center">
               <s.icon size={18} className="mx-auto mb-1" style={{ color: s.color }} />
               <p className="text-xl font-bold" style={{ color: s.color }}>{s.value}</p>
-              <p className="text-[10px] text-gray-400">{s.label}</p>
+              <p className="text-[10px] text-muted-foreground">{s.label}</p>
             </CardContent>
           </Card>
         ))}
       </div>
 
-      <Card className="bg-[#111122] border-[#222244]">
+      <Card className="bg-card border-border">
         <CardContent className="p-4">
-          <p className="text-sm text-gray-400 mb-3">Templates de Credencial</p>
+          <p className="text-sm text-muted-foreground mb-3">Templates de Credencial</p>
           <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
             {Object.entries(CREDENTIAL_TEMPLATES).map(([key, tpl]) => (
-              <div key={key} className="p-3 rounded-lg bg-[#0a0a1a] border border-[#222244] hover:border-[#9B59B6]/50 cursor-pointer">
+              <div key={key} className="p-3 rounded-lg bg-background border border-border hover:border-[#9B59B6]/50 cursor-pointer">
                 <div className="flex items-center gap-2 mb-1">
                   <span>{TYPE_ICONS[tpl.type] ?? '🔑'}</span>
                   <p className="font-medium text-sm">{tpl.label}</p>
                 </div>
-                <p className="text-[10px] text-gray-400">{tpl.fields.join(', ')}</p>
+                <p className="text-[10px] text-muted-foreground">{tpl.fields.join(', ')}</p>
               </div>
             ))}
           </div>
@@ -58,10 +58,10 @@ export function CredentialVaultPanel() {
       </Card>
 
       {loading ? (
-        <div className="text-center py-12 text-gray-400">Carregando vault...</div>
+        <div className="text-center py-12 text-muted-foreground">Carregando vault...</div>
       ) : credentials.length === 0 ? (
-        <Card className="bg-[#111122] border-[#222244]">
-          <CardContent className="py-12 text-center text-gray-400">
+        <Card className="bg-card border-border">
+          <CardContent className="py-12 text-center text-muted-foreground">
             <Lock size={48} className="mx-auto mb-4 opacity-30" />
             <p>Nenhuma credencial armazenada.</p>
             <p className="text-sm mt-1">Use os templates acima para adicionar credenciais com segurança.</p>
@@ -70,12 +70,12 @@ export function CredentialVaultPanel() {
       ) : (
         <div className="space-y-2">
           {credentials.map((c) => (
-            <Card key={c.id} className="bg-[#111122] border-[#222244]">
+            <Card key={c.id} className="bg-card border-border">
               <CardContent className="p-3 flex items-center gap-3">
                 <span className="text-lg">{TYPE_ICONS[c.credential_type] ?? '🔑'}</span>
                 <div className="flex-1">
                   <p className="text-sm font-medium">{c.name}</p>
-                  <p className="text-[10px] text-gray-400">{c.service_name} • {c.access_count} acessos</p>
+                  <p className="text-[10px] text-muted-foreground">{c.service_name} • {c.access_count} acessos</p>
                 </div>
                 <Badge className={c.status === 'active' ? 'bg-green-500/20 text-green-400' : c.status === 'expired' ? 'bg-red-500/20 text-red-400' : 'bg-yellow-500/20 text-yellow-400'}>
                   {c.status}
