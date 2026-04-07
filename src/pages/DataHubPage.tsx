@@ -21,6 +21,7 @@ import { DataHubHealthTab } from "@/components/datahub/DataHubHealthTab";
 import { DataHubQueryBuilderTab } from "@/components/datahub/DataHubQueryBuilderTab";
 import { DataHubIdentityResolutionTab } from "@/components/datahub/DataHubIdentityResolutionTab";
 import { DataHubSyncTab } from "@/components/datahub/DataHubSyncTab";
+import { HibernatedDatabasesPanel } from "@/components/datahub/HibernatedDatabasesPanel";
 import { testDatahubConnections, listDatahubEntities } from "@/services/datahubService";
 import { toast } from "sonner";
 
@@ -658,6 +659,7 @@ export default function DataHubPage() {
         {/* ── Health Metrics Tab ── */}
         <TabsContent value="health" className="space-y-4">
           <DataHubHealthTab />
+          <HibernatedDatabasesPanel />
         </TabsContent>
 
         {/* ── Query Builder Tab ── */}
