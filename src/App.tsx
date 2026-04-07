@@ -32,6 +32,7 @@ const PromptEditorPage = lazy(() => import("./pages/PromptEditorPage"));
 const WorkflowsPage = lazy(() => import("./pages/WorkflowsPage"));
 const EvaluationsPage = lazy(() => import("./pages/EvaluationsPage"));
 const DeploymentsPage = lazy(() => import("./pages/DeploymentsPage"));
+const OpenclawDeployPage = lazy(() => import("./pages/OpenclawDeployPage"));
 const MonitoringPage = lazy(() => import("./pages/MonitoringPage"));
 const DataStoragePage = lazy(() => import("./pages/DataStoragePage"));
 const DataHubPage = lazy(() => import("./pages/DataHubPage"));
@@ -114,6 +115,7 @@ const App = () => (
                       <Route path="/automation" element={<SafePage><AutomationCenterPage /></SafePage>} />
                       <Route path="/evaluations" element={<SafePage><EvaluationsPage /></SafePage>} />
                       <Route path="/deployments" element={<SafePage><DeploymentsPage /></SafePage>} />
+                      <Route path="/deploy/openclaw" element={<SafePage><OpenclawDeployPage /></SafePage>} />
                       <Route path="/monitoring" element={<SafePage><MonitoringPage /></SafePage>} />
                       <Route path="/data-storage" element={<SafePage><DataStoragePage /></SafePage>} />
                       <Route path="/datahub" element={<SafePage><DataHubPage /></SafePage>} />
