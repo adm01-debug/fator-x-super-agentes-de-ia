@@ -323,9 +323,12 @@ async function resolveFallbackChain(supabase: SupabaseClient, workspaceId: strin
       }
     }
   }
-  // Last resort: Lovable API key from env
+  // Last resort: Lovable API key from env (strip provider prefix for cross-provider compat)
   const lovableApiKey = Deno.env.get('LOVABLE_API_KEY');
-  if (lovableApiKey) chain.push({ apiKey: lovableApiKey, provider: 'lovable', model: requestedModel, priority: 4 });
+  if (lovableApiKey) {
+    const lovableModel = requestedModel.startsWith('huggingface/') ? requestedModel : requestedModel;
+    chain.push({ apiKey: lovableApiKey, provider: 'lovable', model: lovableModel, priority: 4 });
+  }
 
   return chain.sort((a, b) => a.priority - b.priority);
 }
