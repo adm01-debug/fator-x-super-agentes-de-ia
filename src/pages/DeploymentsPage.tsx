@@ -12,6 +12,7 @@ import { listDeployedAgents } from "@/services/deploymentsService";
 import { toast } from "sonner";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { A2APanel } from '@/components/integrations/A2APanel';
+import { WebWidgetPanel } from '@/components/deployments/WebWidgetPanel';
 
 export default function DeploymentsPage() {
   const { data: deployments = [], isLoading } = useQuery({
@@ -22,6 +23,8 @@ export default function DeploymentsPage() {
   return (
     <div className="p-6 sm:p-8 lg:p-10 space-y-6 max-w-[1400px] mx-auto animate-page-enter">
       <PageHeader title="Implantações" description="Agentes em produção e staging" actions={<EndpointGeneratorButton />} />
+
+      <WebWidgetPanel agentId={deployments[0]?.id} agentName={deployments[0]?.name} />
 
       {isLoading ? (
         <CardGridSkeleton count={6} cols={3} />
