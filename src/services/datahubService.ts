@@ -81,3 +81,105 @@ export async function listDatahubTables() {
   if (error) throw error;
   return data;
 }
+
+// ============================================================================
+// HEALTH METRICS (T09 — DataHub Health tab)
+// ============================================================================
+
+export interface DatahubProjectHealth {
+  project: string;
+  ref: string;
+  reachable: boolean;
+  latency_ms: number | null;
+  table_count: number | null;
+  total_rows: number | null;
+  error?: string;
+  last_checked: string;
+}
+
+export interface DatahubHealthReport {
+  timestamp: string;
+  projects: DatahubProjectHealth[];
+  overall_status: 'healthy' | 'degraded' | 'critical';
+  reachable_count: number;
+  total_count: number;
+}
+
+const DATAHUB_PROJECTS: Array<{ name: string; ref: string }> = [
+  { name: 'bancodadosclientes', ref: 'pgxfvjmuubtbowutlide' },
+  { name: 'supabase-fuchsia-kite', ref: 'doufsxqlfjyuvxuezpln' },
+  { name: 'backupgiftstore', ref: 'rhqfnvvjdwvnulxybmrk' },
+  { name: 'gestao_time_promo', ref: 'hncgwjbzdajfdztqgefe' },
+  { name: 'financeiro_promo', ref: 'xyykivpcdbfukaongpbw' },
+];
+
+/**
+ * Pings each DataHub project via the datahub-query Edge Function and
+ * collects per-project health metrics. Used by the new Health tab.
+ */
+export async function getDatahubHealth(): Promise<DatahubHealthReport> {
+  const projects: DatahubProjectHealth[] = [];
+
+  for (const proj of DATAHUB_PROJECTS) {
+    const start = Date.now();
+    try {
+      const { data, error } = await supabase.functions.invoke('datahub-query', {
+        body: { action: 'health_check', project_ref: proj.ref },
+      });
+      const latency = Date.now() - start;
+
+      if (error) {
+        projects.push({
+          project: proj.name,
+          ref: proj.ref,
+          reachable: false,
+          latency_ms: latency,
+          table_count: null,
+          total_rows: null,
+          error: error.message,
+          last_checked: new Date().toISOString(),
+        });
+        continue;
+      }
+
+      const result = data as Record<string, unknown>;
+      projects.push({
+        project: proj.name,
+        ref: proj.ref,
+        reachable: true,
+        latency_ms: latency,
+        table_count: typeof result?.table_count === 'number' ? result.table_count : null,
+        total_rows: typeof result?.total_rows === 'number' ? result.total_rows : null,
+        last_checked: new Date().toISOString(),
+      });
+    } catch (e) {
+      projects.push({
+        project: proj.name,
+        ref: proj.ref,
+        reachable: false,
+        latency_ms: Date.now() - start,
+        table_count: null,
+        total_rows: null,
+        error: e instanceof Error ? e.message : String(e),
+        last_checked: new Date().toISOString(),
+      });
+    }
+  }
+
+  const reachableCount = projects.filter((p) => p.reachable).length;
+  const totalCount = projects.length;
+  const overallStatus: DatahubHealthReport['overall_status'] =
+    reachableCount === totalCount
+      ? 'healthy'
+      : reachableCount >= totalCount / 2
+        ? 'degraded'
+        : 'critical';
+
+  return {
+    timestamp: new Date().toISOString(),
+    projects,
+    overall_status: overallStatus,
+    reachable_count: reachableCount,
+    total_count: totalCount,
+  };
+}

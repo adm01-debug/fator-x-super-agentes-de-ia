@@ -10,13 +10,14 @@ import {
   Search, Database, ArrowRight, ExternalLink, AlertTriangle,
   Users, Factory, Truck, Package, UserCheck, MessageCircle,
   Link2, Eye, RefreshCcw, Table2, GitBranch, Loader2, CheckCircle2,
-  XCircle, Snowflake, Clock, Server, Copy, Play,
+  XCircle, Snowflake, Clock, Server, Copy, Play, Activity,
 } from "lucide-react";
 import { ENTITY_MAPPINGS, ENTITY_LIST } from "@/config/datahub-entities";
 import type { EntityMapping, SecondaryMapping, CrossDbMapping } from "@/config/datahub-entities";
 import { DATAHUB_TABLE_BLACKLIST } from "@/config/datahub-blacklist";
 import { DataBrowser } from "@/components/datahub/DataBrowser";
 import { DataHubStats } from "@/components/datahub/DataHubStats";
+import { DataHubHealthTab } from "@/components/datahub/DataHubHealthTab";
 import { testDatahubConnections, listDatahubEntities } from "@/services/datahubService";
 import { toast } from "sonner";
 
@@ -390,6 +391,7 @@ export default function DataHubPage() {
           <TabsTrigger value="connections" className="gap-1.5"><Link2 className="h-3.5 w-3.5" /> Conexões</TabsTrigger>
           <TabsTrigger value="schema" className="gap-1.5"><Table2 className="h-3.5 w-3.5" /> Schema</TabsTrigger>
           <TabsTrigger value="mcp" className="gap-1.5"><Server className="h-3.5 w-3.5" /> MCP Server</TabsTrigger>
+          <TabsTrigger value="health" className="gap-1.5"><Activity className="h-3.5 w-3.5" /> Health</TabsTrigger>
         </TabsList>
 
         {/* ── Entities Tab ── */}
@@ -645,6 +647,11 @@ export default function DataHubPage() {
         {/* ── MCP Server Tab ── */}
         <TabsContent value="mcp" className="space-y-4">
           <MCPServerPanel />
+        </TabsContent>
+
+        {/* ── Health Metrics Tab ── */}
+        <TabsContent value="health" className="space-y-4">
+          <DataHubHealthTab />
         </TabsContent>
       </Tabs>
     </div>
