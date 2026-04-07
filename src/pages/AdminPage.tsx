@@ -5,11 +5,11 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
 import { Badge } from "@/components/ui/badge";
 import { Search, Trash2, RefreshCw, Loader2, Database, Bot, Activity, BookOpen, FileText, History, Eye } from "lucide-react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { listAdminRows, deleteAdminRow } from "@/services/adminCrudService";
+import { AccessControl, DangerousActionDialog } from "@/components/rbac";
 import { toast } from "sonner";
 import { format } from "date-fns";
 
@@ -178,30 +178,33 @@ function AdminTable({ config }: { config: typeof TABLE_CONFIG[0] }) {
                       </TableCell>
                     ))}
                     <TableCell className="py-2.5">
-                      <AlertDialog>
-                        <AlertDialogTrigger asChild>
-                          <Button variant="ghost" size="icon" className="h-7 w-7 text-muted-foreground hover:text-destructive">
-                            <Trash2 className="h-3.5 w-3.5" />
-                          </Button>
-                        </AlertDialogTrigger>
-                        <AlertDialogContent>
-                          <AlertDialogHeader>
-                            <AlertDialogTitle>Confirmar exclusão</AlertDialogTitle>
-                            <AlertDialogDescription>
-                              Este registro será removido permanentemente. Essa ação não pode ser desfeita.
-                            </AlertDialogDescription>
-                          </AlertDialogHeader>
-                          <AlertDialogFooter>
-                            <AlertDialogCancel>Cancelar</AlertDialogCancel>
-                            <AlertDialogAction
-                              onClick={() => handleDelete(String(row.id))}
-                              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
-                            >
-                              Excluir
-                            </AlertDialogAction>
-                          </AlertDialogFooter>
-                        </AlertDialogContent>
-                      </AlertDialog>
+                      <AccessControl permission="team.roles">
+                        <DangerousActionDialog
+                          trigger={
+                            <Button variant="ghost" size="icon" className="h-7 w-7 text-muted-foreground hover:text-destructive">
+                              <Trash2 className="h-3.5 w-3.5" />
+                            </Button>
+                          }
+                          title={`Excluir registro de ${config.label}`}
+                          description={
+                            <>
+                              <p>Este registro será removido permanentemente da tabela <code>{config.key}</code>.</p>
+                              <p>Esta ação não pode ser desfeita e pode quebrar referências em outras tabelas.</p>
+                            </>
+                          }
+                          action="delete"
+                          resourceType={config.key}
+                          resourceId={String(row.id)}
+                          resourceName={String((row as Record<string, unknown>).name ?? row.id)}
+                          minReasonLength={10}
+                          requirePassword={true}
+                          confirmLabel="Excluir Registro"
+                          metadata={{ table: config.key }}
+                          onConfirm={async () => {
+                            await handleDelete(String(row.id));
+                          }}
+                        />
+                      </AccessControl>
                     </TableCell>
                   </TableRow>
                 ))}
