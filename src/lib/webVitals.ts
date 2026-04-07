@@ -1,9 +1,9 @@
 import { onCLS, onINP, onLCP, onFCP, onTTFB, type Metric } from 'web-vitals';
+import { logger } from '@/lib/logger';
 
 function reportMetric(metric: Metric) {
-  // Log to console in development, could be sent to analytics in production
   if (import.meta.env.DEV) {
-    console.log(`[WebVitals] ${metric.name}: ${metric.value.toFixed(1)}ms (${metric.rating})`);
+    logger.debug(`[WebVitals] ${metric.name}: ${metric.value.toFixed(1)}ms (${metric.rating})`);
   }
 
   // Production: send to analytics endpoint
@@ -38,13 +38,13 @@ export function initWebVitals() {
           if (entry.entryType === 'resource' && entry.name.endsWith('.js')) {
             const duration = entry.duration;
             if (duration > 500 && import.meta.env.DEV) {
-              console.warn(`[ChunkLoad] Slow chunk: ${entry.name.split('/').pop()} took ${duration.toFixed(0)}ms`);
+              logger.warn(`[ChunkLoad] Slow chunk: ${entry.name.split('/').pop()} took ${duration.toFixed(0)}ms`);
             }
           }
         }
       });
       observer.observe({ type: 'resource', buffered: false });
-    } catch (err) { console.error("Operation failed:", err);
+    } catch (err) { logger.error("PerformanceObserver failed:", err);
       // PerformanceObserver not supported
     }
   }

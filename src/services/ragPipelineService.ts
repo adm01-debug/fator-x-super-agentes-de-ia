@@ -5,7 +5,23 @@
 import { supabase } from '@/integrations/supabase/client';
 import { logger } from '@/lib/logger';
 
-export async function embedTexts(texts: string[], provider = 'qwen3-embedding-8b', dimension = 1024) {
+export interface EmbedResult {
+  embeddings: number[][];
+  model: string;
+  dimension: number;
+  count: number;
+  processing_time_ms: number;
+}
+
+export interface RerankResult {
+  results: Array<{ id: string; content: string; original_score: number; rerank_score: number }>;
+  total_candidates: number;
+  returned: number;
+  model: string;
+  processing_time_ms: number;
+}
+
+export async function embedTexts(texts: string[], provider = 'qwen3-embedding-8b', dimension = 1024): Promise<EmbedResult> {
   const { data, error } = await supabase.functions.invoke('rag-embed-v2', {
     body: { texts, provider, dimension, task: 'retrieval.passage' },
   });
@@ -13,14 +29,14 @@ export async function embedTexts(texts: string[], provider = 'qwen3-embedding-8b
     logger.error('RAG embed failed', { error: error.message });
     throw new Error(`Embed error: ${error.message}`);
   }
-  return data;
+  return data as EmbedResult;
 }
 
 export async function rerankDocuments(
   query: string,
   documents: Array<{ id: string; content: string; score?: number }>,
   topK = 5
-) {
+): Promise<RerankResult> {
   const { data, error } = await supabase.functions.invoke('rag-rerank-v2', {
     body: { query, documents, top_k: topK, model: 'qwen3-reranker-8b' },
   });
@@ -28,12 +44,12 @@ export async function rerankDocuments(
     logger.error('RAG rerank failed', { error: error.message });
     throw new Error(`Rerank error: ${error.message}`);
   }
-  return data;
+  return data as RerankResult;
 }
 
-export async function searchAndRerank(query: string, knowledgeBaseId: string, topK = 5) {
+export async function searchAndRerank(query: string, knowledgeBaseId: string, topK = 5): Promise<RerankResult> {
   const embedResult = await embedTexts([query], 'qwen3-embedding-8b', 1024);
-  const queryEmbedding = (embedResult as Record<string, unknown>)?.embeddings;
+  const queryEmbedding = embedResult.embeddings;
   const firstEmbed = Array.isArray(queryEmbedding) ? queryEmbedding[0] : null;
   if (!firstEmbed) throw new Error('Failed to embed query');
 
@@ -59,5 +75,5 @@ export async function searchAndRerank(query: string, knowledgeBaseId: string, to
       topK
     );
   }
-  return { results: [], total_candidates: 0 };
+  return { results: [], total_candidates: 0, returned: 0, model: 'none', processing_time_ms: 0 };
 }

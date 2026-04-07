@@ -4,52 +4,64 @@
  */
 import { supabase } from '@/integrations/supabase/client';
 
+const DEFAULT_TIMEOUT_MS = 60_000;
+const LLM_TIMEOUT_MS = 120_000;
+
+async function invokeWithTimeout(
+  fnName: string,
+  body: Record<string, unknown>,
+  timeoutMs = DEFAULT_TIMEOUT_MS,
+) {
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), timeoutMs);
+  try {
+    const { data, error } = await supabase.functions.invoke(fnName, {
+      body,
+      signal: controller.signal as AbortSignal,
+    });
+    if (error) throw error;
+    return data;
+  } catch (e) {
+    if (e instanceof DOMException && e.name === 'AbortError') {
+      throw new Error(`${fnName} timeout after ${timeoutMs}ms`);
+    }
+    throw e;
+  } finally {
+    clearTimeout(timer);
+  }
+}
+
 export async function invokeLLMGateway(body: {
   model: string;
   messages: Array<{ role: string; content: string }>;
   temperature?: number;
   max_tokens?: number;
 }) {
-  const { data, error } = await supabase.functions.invoke('llm-gateway', { body });
-  if (error) throw error;
-  return data;
+  return invokeWithTimeout('llm-gateway', body, LLM_TIMEOUT_MS);
 }
 
-
 export async function invokeGuardrailsEngine(body: Record<string, unknown>) {
-  const { data, error } = await supabase.functions.invoke('guardrails-engine', { body });
-  if (error) throw error;
-  return data;
+  return invokeWithTimeout('guardrails-engine', body);
 }
 
 export async function invokeOracleResearch(body: Record<string, unknown>) {
-  const { data, error } = await supabase.functions.invoke('oracle-research', { body });
-  if (error) throw error;
-  return data;
+  return invokeWithTimeout('oracle-research', body, LLM_TIMEOUT_MS);
 }
 
 export async function invokeA2AServer(body: Record<string, unknown>) {
-  const { data, error } = await supabase.functions.invoke('a2a-server', { body });
-  if (error) throw error;
-  return data;
+  return invokeWithTimeout('a2a-server', body);
 }
 
 export async function invokeBitrix24OAuth(body: Record<string, unknown>) {
-  const { data, error } = await supabase.functions.invoke('bitrix24-oauth', { body });
-  if (error) throw error;
-  return data;
+  return invokeWithTimeout('bitrix24-oauth', body);
 }
 
 export async function invokeBitrix24Api(body: Record<string, unknown>) {
-  const { data, error } = await supabase.functions.invoke('bitrix24-api', { body });
-  if (error) throw error;
-  return data;
+  return invokeWithTimeout('bitrix24-api', body);
 }
 
 export async function invokeTestRunner(body: Record<string, unknown>) {
-  const { data, error } = await supabase.functions.invoke('test-runner', { body });
-  if (error) throw error;
-  return data;
+  return invokeWithTimeout('test-runner', body, LLM_TIMEOUT_MS);
 }
 
 export async function saveWorkspaceSecret(wsId: string, keyName: string, value: string, isUpdate: boolean) {

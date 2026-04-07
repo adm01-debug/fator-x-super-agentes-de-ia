@@ -26,7 +26,7 @@ export function SearchTab() {
   const [selectedKbId, setSelectedKbId] = useState<string>('all');
 
   useEffect(() => {
-    listKnowledgeBases().then(kbs => setKnowledgeBases(kbs.map(kb => ({ id: kb.id, name: kb.name })))).catch(() => {});
+    listKnowledgeBases().then(kbs => setKnowledgeBases(kbs.map(kb => ({ id: kb.id, name: kb.name })))).catch(() => { /* KBs are optional filter */ });
   }, []);
 
   const handleSearch = async () => {

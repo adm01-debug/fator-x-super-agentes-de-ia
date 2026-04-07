@@ -1,6 +1,7 @@
 import { create } from 'zustand';
 import { supabase } from '@/integrations/supabase/client';
 import { saveOracleHistory } from '@/lib/oracleHistory';
+import { logger } from '@/lib/logger';
 
 // ═══ TYPES ═══
 
@@ -348,13 +349,16 @@ export const useOracleStore = create<OracleStore>((set, get) => ({
     set({ isRunning: true, currentStage: 1, stageLabel: modeConfig.stages[0], results: null, error: null });
 
     try {
-      // Simulate stage progression
       const stageCount = modeConfig.stages.length;
-      for (let i = 1; i < stageCount; i++) {
-        setTimeout(() => {
+
+      // Progress stages based on expected latency per stage
+      const stageIntervalMs = 3000;
+      const stageTimers: ReturnType<typeof setTimeout>[] = [];
+      for (let i = 1; i < stageCount - 1; i++) {
+        stageTimers.push(setTimeout(() => {
           const { isRunning } = get();
           if (isRunning) set({ currentStage: i + 1, stageLabel: modeConfig.stages[i] });
-        }, i * 4000);
+        }, i * stageIntervalMs));
       }
 
       const { data, error } = await supabase.functions.invoke('oracle-council', {
@@ -369,6 +373,9 @@ export const useOracleStore = create<OracleStore>((set, get) => ({
         },
       });
 
+      // Clear any pending stage timers
+      stageTimers.forEach(clearTimeout);
+
       if (error) throw error;
 
       const results = data as OracleResult;
@@ -381,7 +388,7 @@ export const useOracleStore = create<OracleStore>((set, get) => ({
       });
 
       // Persist to database
-      saveOracleHistory(query, mode, preset.id, preset.name, chairmanModel, enableThinking, results).catch(() => {});
+      saveOracleHistory(query, mode, preset.id, preset.name, chairmanModel, enableThinking, results).catch((e) => { logger.error('Failed to save oracle history', e); });
     } catch (e: unknown) {
       set({ error: e instanceof Error ? e.message : 'Erro ao consultar o Oráculo', isRunning: false, currentStage: 0, stageLabel: '' });
     }

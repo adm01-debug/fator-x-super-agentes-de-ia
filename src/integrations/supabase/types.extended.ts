@@ -137,6 +137,114 @@ export interface ToolPolicy {
   created_at: string;
 }
 
+export interface Role {
+  id: string;
+  key: string;
+  name: string;
+  description: string | null;
+  level: number;
+  color: string;
+  icon: string;
+  is_system: boolean;
+  is_active: boolean;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface Permission {
+  id: string;
+  key: string;
+  name: string;
+  description: string | null;
+  module: string;
+  category: string | null;
+  is_system: boolean;
+  created_at: string;
+}
+
+export interface UserRole {
+  id: string;
+  user_id: string;
+  role_key: string;
+  workspace_id: string;
+  assigned_by: string | null;
+  created_at: string;
+}
+
+export interface MCPServer {
+  id: string;
+  workspace_id: string | null;
+  name: string;
+  url: string;
+  transport: string;
+  auth_type: string;
+  auth_config: Record<string, unknown>;
+  status: string;
+  tools_discovered: unknown[];
+  resources_discovered: unknown[];
+  error: string | null;
+  is_active: boolean;
+  last_connected_at: string | null;
+  created_by: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface SecurityEvent {
+  id: string;
+  event_type: string;
+  severity: string;
+  user_id: string | null;
+  workspace_id: string | null;
+  ip_address: string | null;
+  user_agent: string | null;
+  details: Record<string, unknown>;
+  created_at: string;
+}
+
+export interface CredentialVault {
+  id: string;
+  workspace_id: string | null;
+  name: string;
+  provider: string;
+  encrypted_value: string;
+  metadata: Record<string, unknown>;
+  last_rotated_at: string | null;
+  expires_at: string | null;
+  created_by: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface Notification {
+  id: string;
+  workspace_id: string | null;
+  user_id: string | null;
+  type: string;
+  title: string;
+  body: string | null;
+  is_read: boolean;
+  action_url: string | null;
+  metadata: Record<string, unknown>;
+  created_at: string;
+}
+
+export interface FinetuneJob {
+  id: string;
+  workspace_id: string | null;
+  agent_id: string | null;
+  model_name: string;
+  dataset_path: string | null;
+  config: Record<string, unknown>;
+  status: string;
+  progress: number;
+  result: Record<string, unknown>;
+  error: string | null;
+  started_at: string | null;
+  completed_at: string | null;
+  created_at: string;
+}
+
 /**
  * All new table names for runtime reference.
  */
@@ -144,4 +252,16 @@ export const EXTENDED_TABLES = [
   'agent_memories', 'model_pricing', 'workflow_runs', 'workflow_step_runs',
   'deploy_connections', 'alert_rules', 'prompt_ab_tests', 'environments',
   'vector_indexes', 'tool_policies',
+  'roles', 'permissions', 'role_permissions', 'user_roles', 'agent_permissions',
+  'mcp_servers', 'rate_limit_logs', 'security_events',
+  'credential_vault', 'credential_audit_logs',
+  'notifications', 'notification_templates',
+  'finetune_jobs', 'hf_config',
+  'embedding_configs', 'ragas_scores', 'nlp_extractions',
+  'guardrail_ml_logs', 'model_pricing_v2',
+  'task_queues', 'queue_items', 'dead_letter_queue',
+  'cron_schedules', 'cron_schedule_executions',
+  'webhook_endpoints', 'webhook_events',
+  'batch_jobs', 'installed_templates',
+  'workflow_checkpoints', 'workflow_executions', 'workflow_handoffs',
 ] as const;

@@ -13,6 +13,8 @@ export async function listPendingApprovals() {
 }
 
 export async function approveWorkflowRun(runId: string, workflowId: string, feedback: string) {
+  if (!runId?.trim()) throw new Error('runId is required');
+  if (!workflowId?.trim()) throw new Error('workflowId is required');
   const { data, error } = await supabase.functions.invoke('workflow-engine-v2', {
     body: { workflow_id: workflowId, resume_run_id: runId, input: feedback || 'Approved' },
   });
@@ -21,9 +23,11 @@ export async function approveWorkflowRun(runId: string, workflowId: string, feed
 }
 
 export async function rejectWorkflowRun(runId: string, feedback: string) {
+  if (!runId?.trim()) throw new Error('runId is required');
+  const safeFeedback = (feedback || 'No reason provided').substring(0, 500);
   await supabase.from('workflow_runs').update({
     status: 'failed',
-    error: `Rejected by human: ${feedback || 'No reason provided'}`,
+    error: `Rejected by human: ${safeFeedback}`,
     completed_at: new Date().toISOString(),
   }).eq('id', runId);
 }

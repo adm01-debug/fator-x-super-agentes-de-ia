@@ -100,9 +100,12 @@ export interface QueueMetrics {
 /* ------------------------------------------------------------------ */
 
 export async function createQueue(input: CreateQueueInput): Promise<QueueDefinition> {
+  if (!input.name?.trim()) throw new Error('Queue name is required');
+  if (input.max_concurrency != null && input.max_concurrency < 1) throw new Error('max_concurrency must be >= 1');
+  if (input.max_size != null && input.max_size < 1) throw new Error('max_size must be >= 1');
   const { data, error } = await fromTable('task_queues')
     .insert({
-      name: input.name,
+      name: input.name.trim(),
       description: input.description ?? '',
       strategy: input.strategy ?? 'fifo',
       max_concurrency: input.max_concurrency ?? 5,

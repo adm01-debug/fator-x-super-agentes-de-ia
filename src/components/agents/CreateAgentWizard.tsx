@@ -87,7 +87,9 @@ export function CreateAgentWizard() {
 
   // Load templates from DB, merge with static
   useEffect(() => {
+    let cancelled = false;
     supabase.from('agent_templates').select('*').eq('is_public', true).order('usage_count', { ascending: false }).then(({ data }) => {
+      if (cancelled) return;
       if (data && data.length > 0) {
         const dbTemplates: AgentTemplate[] = data.map((t) => {
           const cfg = t.config as Record<string, unknown> | null;
@@ -115,11 +117,11 @@ export function CreateAgentWizard() {
             memory: memoryTypes,
           };
         });
-        // DB templates first, then static that aren't duplicated
         const dbIds = new Set(dbTemplates.map(t => t.id));
         setAgentTemplates([...dbTemplates, ...STATIC_TEMPLATES.filter(t => !dbIds.has(t.id))]);
       }
-    }).then(undefined, () => {}); // fallback to static on error
+    }).catch(() => { /* fallback to static templates */ });
+    return () => { cancelled = true; };
   }, []);
 
   const [form, setForm] = useState({

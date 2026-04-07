@@ -1,0 +1,18 @@
+{
+  "mcpServers": {
+    "hf-mcp-server": {
+      "type": "http",
+      "url": "https://huggingface.co/mcp?login"
+    },
+    "hostinger-mcp": {
+      "type": "stdio",
+      "command": "npx",
+      "args": [
+        "hostinger-api-mcp@latest"
+      ],
+      "env": {
+        "API_TOKEN": "IV0TxLq6LrKK6HngkBQdcpTMhQbqSMnOm3ToTM0r9631234d"
+      }
+    }
+  }
+}
