@@ -24,6 +24,7 @@ import { MCPServerManager } from '@/components/integrations/MCPServerManager';
 import { Bitrix24Connect } from '@/components/integrations/Bitrix24Connect';
 import { Bitrix24ApiTester } from '@/components/integrations/Bitrix24ApiTester';
 import { ProductMockupPanel } from '@/components/tools/ProductMockupPanel';
+import { ImageAnalysisDialog } from '@/components/tools/ImageAnalysisDialog';
 import { SKILL_CATEGORIES } from '@/services/skillsRegistryService';
 
 const builtInTools = [
@@ -121,7 +122,9 @@ export default function ToolsPage() {
         title="Ferramentas & Integrações"
         description="Ferramentas disponíveis e integrações configuradas"
         actions={
-          <Dialog open={newToolOpen} onOpenChange={setNewToolOpen}>
+          <div className="flex items-center gap-2">
+            <ImageAnalysisDialog />
+            <Dialog open={newToolOpen} onOpenChange={setNewToolOpen}>
             <DialogTrigger asChild>
               <Button className="nexus-gradient-bg text-primary-foreground gap-2 hover:opacity-90">
                 <Plus className="h-4 w-4" /> Nova integração
@@ -150,6 +153,7 @@ export default function ToolsPage() {
               </div>
             </DialogContent>
           </Dialog>
+          </div>
         }
       />
 
