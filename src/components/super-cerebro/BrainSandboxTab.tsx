@@ -3,7 +3,7 @@ import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Loader2, FlaskConical } from "lucide-react";
+import { Loader2, FlaskConical, Layers } from "lucide-react";
 import { invokeCerebroBrain } from "@/services/cerebroService";
 import { toast } from "sonner";
 
@@ -25,6 +25,7 @@ export function BrainSandboxTab() {
   const [query, setQuery] = useState('');
   const [contextMode, setContextMode] = useState('full');
   const [isTesting, setIsTesting] = useState(false);
+  const [isRunningAll, setIsRunningAll] = useState(false);
   const [results, setResults] = useState<SandboxResult[]>([]);
 
   const handleTest = async () => {
@@ -43,6 +44,42 @@ export function BrainSandboxTab() {
     } finally {
       setIsTesting(false);
     }
+  };
+
+  const handleRunAll = async () => {
+    if (!query.trim()) return;
+    setIsRunningAll(true);
+    setResults([]);
+    const modes: Array<'full' | 'facts_only' | 'rag_only' | 'no_context'> = [
+      'full',
+      'facts_only',
+      'rag_only',
+      'no_context',
+    ];
+    const collected: SandboxResult[] = [];
+    for (const mode of modes) {
+      try {
+        const data = await invokeCerebroBrain({ action: 'brain_sandbox', query, context_mode: mode });
+        collected.push({
+          mode,
+          response: data?.response || 'Sem resposta',
+          context_size: data?.context_size || 0,
+          cost: data?.cost_usd || 0,
+        });
+        // Update progressively so user sees results streaming in
+        setResults([...collected]);
+      } catch (e: unknown) {
+        collected.push({
+          mode,
+          response: `[ERRO] ${e instanceof Error ? e.message : 'falhou'}`,
+          context_size: 0,
+          cost: 0,
+        });
+        setResults([...collected]);
+      }
+    }
+    setIsRunningAll(false);
+    toast.success('Comparação completa em todos os modos');
   };
 
   return (
@@ -75,11 +112,21 @@ export function BrainSandboxTab() {
               </SelectContent>
             </Select>
           </div>
-          <Button onClick={handleTest} disabled={isTesting || !query.trim()} className="nexus-gradient-bg text-primary-foreground gap-2">
+          <Button onClick={handleTest} disabled={isTesting || isRunningAll || !query.trim()} className="nexus-gradient-bg text-primary-foreground gap-2">
             {isTesting ? <Loader2 className="h-4 w-4 animate-spin" /> : <FlaskConical className="h-4 w-4" />}
             Testar
           </Button>
-          {results.length > 0 && (
+          <Button
+            variant="outline"
+            onClick={handleRunAll}
+            disabled={isTesting || isRunningAll || !query.trim()}
+            className="gap-2"
+            title="Executa a query nos 4 modos em sequência para comparar"
+          >
+            {isRunningAll ? <Loader2 className="h-4 w-4 animate-spin" /> : <Layers className="h-4 w-4" />}
+            Comparar Todos
+          </Button>
+          {results.length > 0 && !isRunningAll && (
             <Button variant="outline" size="sm" onClick={() => setResults([])} className="text-xs">Limpar</Button>
           )}
         </div>
