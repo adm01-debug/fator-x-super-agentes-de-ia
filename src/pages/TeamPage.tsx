@@ -2,8 +2,8 @@ import { TableSkeleton } from "@/components/shared/PageSkeleton";
 import { PageHeader } from "@/components/shared/PageHeader";
 import { StatusBadge } from "@/components/shared/StatusBadge";
 import { Button } from "@/components/ui/button";
-import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
 import { Users, Trash2, CheckCircle } from "lucide-react";
+import { AccessControl, DangerousActionDialog } from "@/components/rbac";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { getWorkspaceId } from "@/lib/agentService";
 import { useAuth } from "@/contexts/AuthContext";
@@ -119,23 +119,32 @@ export default function TeamPage() {
                   <td className="px-5 py-3"><StatusBadge status={m.accepted_at ? 'active' : 'invited'} /></td>
                   <td className="px-5 py-3 text-right">
                     {m.user_id !== user?.id && (
-                      <AlertDialog>
-                        <AlertDialogTrigger asChild>
-                          <Button variant="ghost" size="sm" className="h-7 text-xs text-destructive gap-1">
-                            <Trash2 className="h-3 w-3" /> Remover
-                          </Button>
-                        </AlertDialogTrigger>
-                        <AlertDialogContent>
-                          <AlertDialogHeader>
-                            <AlertDialogTitle>Remover membro?</AlertDialogTitle>
-                            <AlertDialogDescription>O membro perderá acesso ao workspace.</AlertDialogDescription>
-                          </AlertDialogHeader>
-                          <AlertDialogFooter>
-                            <AlertDialogCancel>Cancelar</AlertDialogCancel>
-                            <AlertDialogAction onClick={() => m.id && handleRemoveMember(m.id)} className="bg-destructive text-destructive-foreground">Remover</AlertDialogAction>
-                          </AlertDialogFooter>
-                        </AlertDialogContent>
-                      </AlertDialog>
+                      <AccessControl permission="team.remove">
+                        <DangerousActionDialog
+                          trigger={
+                            <Button variant="ghost" size="sm" className="h-7 text-xs text-destructive gap-1">
+                              <Trash2 className="h-3 w-3" /> Remover
+                            </Button>
+                          }
+                          title="Remover membro do workspace"
+                          description={
+                            <>
+                              <p>O membro perderá imediatamente todos os acessos a este workspace.</p>
+                              <p>Conteúdo criado por ele permanece, mas não poderá mais acessar agentes, bases ou configurações.</p>
+                            </>
+                          }
+                          action="permission_revoke"
+                          resourceType="workspace_member"
+                          resourceId={m.id ?? undefined}
+                          resourceName={m.email ?? m.user_id ?? 'membro'}
+                          minReasonLength={10}
+                          confirmLabel="Remover Membro"
+                          metadata={{ user_id: m.user_id, role: m.role }}
+                          onConfirm={async () => {
+                            if (m.id) await handleRemoveMember(m.id);
+                          }}
+                        />
+                      </AccessControl>
                     )}
                   </td>
                 </tr>
