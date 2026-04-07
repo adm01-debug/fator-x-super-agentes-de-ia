@@ -19,6 +19,38 @@ export async function getAgentBasic(agentId: string) {
   return data;
 }
 
+/**
+ * Lists all agents in the workspace (id, name, emoji only).
+ * Used by PromptsPage library view.
+ */
+export async function listAgentsBasic() {
+  const { data, error } = await supabase
+    .from('agents')
+    .select('id, name, avatar_emoji');
+  if (error) {
+    logger.error('Failed to list agents', { error: error.message });
+    throw error;
+  }
+  return data ?? [];
+}
+
+/**
+ * Lists ALL prompt versions across all agents in the workspace,
+ * ordered by created_at desc. Used by PromptsPage to show the global
+ * library with the latest version per agent.
+ */
+export async function listAllPromptVersions() {
+  const { data, error } = await supabase
+    .from('prompt_versions')
+    .select('*')
+    .order('created_at', { ascending: false });
+  if (error) {
+    logger.error('Failed to list all prompt versions', { error: error.message });
+    throw error;
+  }
+  return data ?? [];
+}
+
 export async function listPromptVersions(agentId: string) {
   const { data, error } = await supabase
     .from('prompt_versions')

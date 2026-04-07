@@ -4,7 +4,7 @@ import { InfoHint } from "@/components/shared/InfoHint";
 import { FileText, Loader2 } from "lucide-react";
 import { StatusBadge } from "@/components/shared/StatusBadge";
 import { useQuery } from "@tanstack/react-query";
-import { supabase } from "@/integrations/supabase/client";
+import { listAgentsBasic, listAllPromptVersions } from "@/services/promptVersionService";
 import { CreatePromptDialog } from "@/components/dialogs/CreatePromptDialog";
 
 export default function PromptsPage() {
@@ -12,22 +12,12 @@ export default function PromptsPage() {
 
   const { data: agents = [] } = useQuery({
     queryKey: ['agents_for_prompts'],
-    queryFn: async () => {
-      const { data } = await supabase.from('agents').select('id, name, avatar_emoji');
-      return data ?? [];
-    },
+    queryFn: listAgentsBasic,
   });
 
   const { data: prompts = [], isLoading, refetch } = useQuery({
     queryKey: ['prompt_versions'],
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from('prompt_versions')
-        .select('*')
-        .order('created_at', { ascending: false });
-      if (error) throw error;
-      return data ?? [];
-    },
+    queryFn: listAllPromptVersions,
   });
 
   // Group by agent_id, latest version per agent
