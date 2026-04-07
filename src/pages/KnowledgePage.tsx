@@ -13,6 +13,7 @@ import { listKnowledgeBases, deleteKnowledgeBase, listVectorIndexes, getChunkEmb
 import { CreateKnowledgeBaseDialog } from "@/components/dialogs/CreateKnowledgeBaseDialog";
 import { EditKnowledgeBaseDialog } from "@/components/dialogs/EditKnowledgeBaseDialog";
 import { KnowledgeBaseDetail } from "@/components/knowledge/KnowledgeBaseDetail";
+import { AudioUploadDialog } from "@/components/knowledge/AudioUploadDialog";
 import { toast } from "sonner";
 // Context Tiers: available via contextTiersService (tieredSearch)
 
@@ -58,7 +59,12 @@ export default function KnowledgePage() {
       <PageHeader
         title="Conhecimento / RAG"
         description="Gerencie bases de conhecimento, documentos e pipelines de ingestão"
-        actions={<CreateKnowledgeBaseDialog onCreated={() => refetch()} />}
+        actions={
+          <div className="flex items-center gap-2">
+            <AudioUploadDialog />
+            <CreateKnowledgeBaseDialog onCreated={() => refetch()} />
+          </div>
+        }
       />
 
       <QuickActionsBar actions={[

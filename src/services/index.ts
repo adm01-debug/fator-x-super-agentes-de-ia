@@ -25,6 +25,7 @@ export * from './settingsService';
 export * from './toolsService';
 export * from './adminCrudService';
 export * from './healthService';
+export * from './audioService';
 export {
   type AgentSkillDefinition,
   listSkills,
