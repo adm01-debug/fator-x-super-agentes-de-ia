@@ -3,8 +3,6 @@ import {
   Loader2,
   CheckCircle2,
   XCircle,
-  Server,
-  Database,
   Activity,
   RefreshCw,
   AlertTriangle,
