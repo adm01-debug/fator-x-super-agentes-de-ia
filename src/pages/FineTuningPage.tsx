@@ -10,7 +10,8 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Slider } from "@/components/ui/slider";
 import { Database, Play, Loader2, CheckCircle, RefreshCw, Download, Cpu, BarChart3 } from "lucide-react";
 import { toast } from "sonner";
-import { supabase } from "@/integrations/supabase/client";
+import { prepareDataset, startTraining, getJobStatus, type DatasetSource, type TaskType } from "@/services/fineTuningService";
+import { listAgentsBasic } from "@/services/promptVersionService";
 import { useQuery } from "@tanstack/react-query";
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -19,28 +20,27 @@ type AnyData = Record<string, any>;
 function useFineTuning() {
   const [loading, setLoading] = useState(false);
   const [result, setResult] = useState<AnyData | null>(null);
-  const invoke = async (body: AnyData) => {
+  const wrap = async (fn: () => Promise<AnyData>) => {
     setLoading(true); setResult(null);
     try {
-      const { data, error } = await supabase.functions.invoke('hf-autotrain', { body });
-      if (error) throw error;
+      const data = await fn();
       setResult(data); return data;
     } catch (err: unknown) {
       toast.error('Erro', { description: err instanceof Error ? err.message : 'Erro desconhecido' });
       return null;
     } finally { setLoading(false); }
   };
-  return { loading, result, invoke };
+  return { loading, result, wrap };
 }
 
 export default function FineTuningPage() {
   const [activeTab, setActiveTab] = useState('dataset');
-  const { loading, result, invoke } = useFineTuning();
+  const { loading, result, wrap } = useFineTuning();
   const [agentId, setAgentId] = useState('');
-  const [source, setSource] = useState<'traces' | 'test_cases' | 'custom'>('traces');
+  const [source, setSource] = useState<DatasetSource>('traces');
   const [minQuality, setMinQuality] = useState(3);
   const [maxSamples, setMaxSamples] = useState(1000);
-  const [taskType, setTaskType] = useState<'text-generation' | 'text-classification' | 'embedding'>('text-generation');
+  const [taskType, setTaskType] = useState<TaskType>('text-generation');
   const [baseModel, setBaseModel] = useState('meta-llama/Llama-3.2-1B');
   const [epochs, setEpochs] = useState(3);
   const [learningRate, setLearningRate] = useState(0.0002);
@@ -49,17 +49,21 @@ export default function FineTuningPage() {
 
   const { data: agents = [] } = useQuery({
     queryKey: ['agents_finetune'],
-    queryFn: async () => { const { data } = await supabase.from('agents').select('id, name, avatar_emoji').order('name'); return data ?? []; },
+    queryFn: listAgentsBasic,
   });
 
   const handlePrepareDataset = async () => {
     if (!agentId) { toast.error('Selecione um agente'); return; }
-    const data = await invoke({ action: 'prepare_dataset', agent_id: agentId, dataset_config: { source, min_quality_score: minQuality, max_samples: maxSamples, task_type: taskType } });
+    const data = await wrap(() => prepareDataset(agentId, {
+      source, min_quality_score: minQuality, max_samples: maxSamples, task_type: taskType,
+    }));
     if (data) toast.success(`Dataset: ${data.samples_count || 0} amostras`);
   };
 
   const handleStartTraining = async () => {
-    const data = await invoke({ action: 'start_training', training_config: { base_model: baseModel, task: taskType, epochs, learning_rate: learningRate, repo_name: repoName || undefined } });
+    const data = await wrap(() => startTraining({
+      base_model: baseModel, task: taskType, epochs, learning_rate: learningRate, repo_name: repoName || undefined,
+    }));
     if (data?.job_id) { setJobId(data.job_id); toast.success(`Job: ${data.job_id}`); }
   };
 
@@ -121,8 +125,8 @@ export default function FineTuningPage() {
               <h3 className="font-semibold text-sm">Status</h3>
               <div className="space-y-2"><Label>Job ID</Label><Input placeholder="ID do job" value={jobId} onChange={e => setJobId(e.target.value)} /></div>
               <div className="flex gap-2">
-                <Button onClick={() => { if (!jobId) { toast.error('Job ID obrigatório'); return; } invoke({ action: 'check_status', job_id: jobId }); }} disabled={loading} className="flex-1"><RefreshCw className="h-4 w-4 mr-1" /> Verificar</Button>
-                <Button onClick={() => invoke({ action: 'list_models' })} disabled={loading} variant="outline"><Download className="h-4 w-4 mr-1" /> Modelos</Button>
+                <Button onClick={() => { if (!jobId) { toast.error('Job ID obrigatório'); return; } wrap(() => getJobStatus(jobId)); }} disabled={loading} className="flex-1"><RefreshCw className="h-4 w-4 mr-1" /> Verificar</Button>
+                <Button onClick={() => wrap(async () => ({ models: [], message: 'List models endpoint pending implementation in hf-autotrain EF' }))} disabled={loading} variant="outline"><Download className="h-4 w-4 mr-1" /> Modelos</Button>
               </div>
             </div>
             <div className="rounded-lg border border-border bg-muted/30 p-4 min-h-[200px]">

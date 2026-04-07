@@ -17,6 +17,7 @@ export * from './memoryService';
 export * from './evaluationsService';
 export * from './contextTiersService';
 export * from './agentEvolutionService';
+export * from './fineTuningService';
 export {
   type AgentSkillDefinition,
   listSkills,
