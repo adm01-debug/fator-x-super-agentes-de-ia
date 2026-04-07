@@ -4,7 +4,7 @@ import { InfoHint } from "@/components/shared/InfoHint";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
   Brain, Search, Network, BookOpen,
-  Activity, Users, FlaskConical, Zap, Clock, GitMerge
+  Activity, Users, FlaskConical, Zap, Clock, GitMerge, TrendingDown
 } from "lucide-react";
 import { OverviewTab } from "@/components/super-cerebro/OverviewTab";
 import { SearchTab } from "@/components/super-cerebro/SearchTab";
@@ -16,6 +16,7 @@ import { ExpertDiscoveryTab } from "@/components/super-cerebro/ExpertDiscoveryTa
 import { BrainSandboxTab } from "@/components/super-cerebro/BrainSandboxTab";
 import { TemporalGraphTab } from "@/components/super-cerebro/TemporalGraphTab";
 import { EntityResolutionTab } from "@/components/super-cerebro/EntityResolutionTab";
+import { DecayDetectionTab } from "@/components/super-cerebro/DecayDetectionTab";
 
 export default function SuperCerebroPage() {
   const [activeTab, setActiveTab] = useState('overview');
@@ -40,6 +41,7 @@ export default function SuperCerebroPage() {
           <TabsTrigger value="sandbox" className="text-xs gap-1.5"><FlaskConical className="h-3.5 w-3.5" /> Sandbox</TabsTrigger>
           <TabsTrigger value="temporal" className="text-xs gap-1.5"><Clock className="h-3.5 w-3.5" /> Temporal</TabsTrigger>
           <TabsTrigger value="resolution" className="text-xs gap-1.5"><GitMerge className="h-3.5 w-3.5" /> Resolução</TabsTrigger>
+          <TabsTrigger value="decay" className="text-xs gap-1.5"><TrendingDown className="h-3.5 w-3.5" /> Decay</TabsTrigger>
         </TabsList>
 
         <TabsContent value="overview" className="mt-4"><OverviewTab /></TabsContent>
@@ -52,6 +54,7 @@ export default function SuperCerebroPage() {
         <TabsContent value="sandbox" className="mt-4"><BrainSandboxTab /></TabsContent>
         <TabsContent value="temporal" className="mt-4"><TemporalGraphTab /></TabsContent>
         <TabsContent value="resolution" className="mt-4"><EntityResolutionTab /></TabsContent>
+        <TabsContent value="decay" className="mt-4"><DecayDetectionTab /></TabsContent>
       </Tabs>
     </div>
   );
