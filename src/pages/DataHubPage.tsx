@@ -19,6 +19,7 @@ import { DataBrowser } from "@/components/datahub/DataBrowser";
 import { DataHubStats } from "@/components/datahub/DataHubStats";
 import { DataHubHealthTab } from "@/components/datahub/DataHubHealthTab";
 import { DataHubQueryBuilderTab } from "@/components/datahub/DataHubQueryBuilderTab";
+import { DataHubIdentityResolutionTab } from "@/components/datahub/DataHubIdentityResolutionTab";
 import { testDatahubConnections, listDatahubEntities } from "@/services/datahubService";
 import { toast } from "sonner";
 
@@ -394,6 +395,7 @@ export default function DataHubPage() {
           <TabsTrigger value="mcp" className="gap-1.5"><Server className="h-3.5 w-3.5" /> MCP Server</TabsTrigger>
           <TabsTrigger value="health" className="gap-1.5"><Activity className="h-3.5 w-3.5" /> Health</TabsTrigger>
           <TabsTrigger value="query" className="gap-1.5"><Code2 className="h-3.5 w-3.5" /> Query</TabsTrigger>
+          <TabsTrigger value="identity" className="gap-1.5"><Link2 className="h-3.5 w-3.5" /> Identity</TabsTrigger>
         </TabsList>
 
         {/* ── Entities Tab ── */}
@@ -659,6 +661,11 @@ export default function DataHubPage() {
         {/* ── Query Builder Tab ── */}
         <TabsContent value="query" className="space-y-4">
           <DataHubQueryBuilderTab />
+        </TabsContent>
+
+        {/* ── Identity Resolution Tab ── */}
+        <TabsContent value="identity" className="space-y-4">
+          <DataHubIdentityResolutionTab />
         </TabsContent>
       </Tabs>
     </div>
