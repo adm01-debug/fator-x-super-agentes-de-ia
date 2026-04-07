@@ -3,7 +3,7 @@ import { InfoHint } from "@/components/shared/InfoHint";
 import { StatusBadge } from "@/components/shared/StatusBadge";
 import { Database, Server, HardDrive, Cpu, Radio, FileText } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
-import { supabase } from "@/integrations/supabase/client";
+import { getDataStorageStats } from "@/services/dataStorageService";
 
 const stores = [
   { icon: Database, name: 'pgvector', type: 'Vector DB', status: 'active' as const, latency: '12ms', desc: 'Banco vetorial integrado via extensão PostgreSQL' },
@@ -18,23 +18,7 @@ export default function DataStoragePage() {
   // Real counts from db
   const { data: stats } = useQuery({
     queryKey: ['data_storage_stats'],
-    queryFn: async () => {
-      const [agents, kbs, traces, evals, prompts] = await Promise.all([
-        supabase.from('agents').select('id', { count: 'exact', head: true }),
-        supabase.from('knowledge_bases').select('id', { count: 'exact', head: true }),
-        supabase.from('agent_traces').select('id', { count: 'exact', head: true }),
-        supabase.from('evaluation_runs').select('id', { count: 'exact', head: true }),
-        supabase.from('prompt_versions').select('id', { count: 'exact', head: true }),
-      ]);
-      return {
-        agents: agents.count ?? 0,
-        knowledgeBases: kbs.count ?? 0,
-        traces: traces.count ?? 0,
-        evaluations: evals.count ?? 0,
-        prompts: prompts.count ?? 0,
-        total: (agents.count ?? 0) + (kbs.count ?? 0) + (traces.count ?? 0) + (evals.count ?? 0) + (prompts.count ?? 0),
-      };
-    },
+    queryFn: getDataStorageStats,
   });
 
   return (
