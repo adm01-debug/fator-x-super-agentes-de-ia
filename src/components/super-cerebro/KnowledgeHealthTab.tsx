@@ -1,8 +1,10 @@
-import { Loader2, Activity, CheckCircle, Clock, AlertTriangle, Target, RefreshCw } from "lucide-react";
+import { Loader2, Activity, CheckCircle, Clock, AlertTriangle, Target, RefreshCw, Wand2 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { invokeCerebroBrain } from "@/services/cerebroService";
 import { useQuery } from "@tanstack/react-query";
+import { useState } from "react";
+import { toast } from "sonner";
 
 interface HealthItem {
   id: string;
@@ -22,6 +24,7 @@ interface HealthData {
 }
 
 export function KnowledgeHealthTab() {
+  const [reindexingId, setReindexingId] = useState<string | null>(null);
   const { data, isLoading, refetch } = useQuery({
     queryKey: ['cerebro_health'],
     queryFn: async () => {
@@ -29,6 +32,23 @@ export function KnowledgeHealthTab() {
       return data as HealthData;
     },
   });
+
+  const handleReindex = async (item: HealthItem) => {
+    setReindexingId(item.id);
+    try {
+      await invokeCerebroBrain({
+        action: 'reindex_kb',
+        kb_id: item.id,
+        kb_name: item.name,
+      });
+      toast.success(`Reindexação iniciada para "${item.name}"`);
+      await refetch();
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : 'Falha ao reindexar');
+    } finally {
+      setReindexingId(null);
+    }
+  };
 
   const freshnessIcon = (f: string) => {
     if (f === 'fresh') return <CheckCircle className="h-3.5 w-3.5 text-nexus-emerald" />;
@@ -124,6 +144,22 @@ export function KnowledgeHealthTab() {
                     }`}>{freshnessLabel(item.freshness)}</Badge>
                     <p className="text-[11px] text-muted-foreground mt-0.5">{item.daysSinceUpdate}d atrás</p>
                   </div>
+                  {item.type === 'knowledge_base' && item.freshness !== 'fresh' && (
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="h-7 gap-1.5 text-[11px] shrink-0"
+                      disabled={reindexingId === item.id}
+                      onClick={() => handleReindex(item)}
+                    >
+                      {reindexingId === item.id ? (
+                        <Loader2 className="h-3 w-3 animate-spin" />
+                      ) : (
+                        <Wand2 className="h-3 w-3" />
+                      )}
+                      Reindexar
+                    </Button>
+                  )}
                 </div>
               ))}
             </div>
