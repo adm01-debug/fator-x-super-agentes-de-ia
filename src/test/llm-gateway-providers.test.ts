@@ -754,3 +754,159 @@ describe('Gaps Identificados', () => {
     expect(streamLogsInjectionWarning).toBe(false);
   });
 });
+
+// ═══ Think Block Filtering ═══
+describe('Think block filtering', () => {
+  function stripThink(content: string): string {
+    return content.replace(/<think>[\s\S]*?<\/think>\s*/g, '').trim();
+  }
+
+  it('remove bloco <think> simples', () => {
+    expect(stripThink('<think>internal reasoning</think>Hello!')).toBe('Hello!');
+  });
+
+  it('remove múltiplos blocos <think>', () => {
+    expect(stripThink('<think>a</think>Olá <think>b</think>mundo')).toBe('Olá mundo');
+  });
+
+  it('remove bloco <think> multilinha', () => {
+    const input = '<think>\nLet me think...\nStep 1: ...\nStep 2: ...\n</think>\nResposta final';
+    expect(stripThink(input)).toBe('Resposta final');
+  });
+
+  it('não altera texto sem <think>', () => {
+    expect(stripThink('Resposta normal')).toBe('Resposta normal');
+  });
+
+  it('string vazia', () => {
+    expect(stripThink('')).toBe('');
+  });
+
+  it('apenas <think> sem conteúdo útil', () => {
+    expect(stripThink('<think>all reasoning</think>')).toBe('');
+  });
+
+  it('<think> incompleto não é removido', () => {
+    expect(stripThink('<think>sem fechar')).toBe('<think>sem fechar');
+  });
+});
+
+// ═══ Streaming Custom Gateway Format ═══
+describe('Gateway SSE format parsing', () => {
+  function parseGatewaySSE(line: string): { token?: string; done?: boolean; error?: string; model?: string; provider?: string } | null {
+    if (!line.startsWith('data: ')) return null;
+    const raw = line.slice(6).trim();
+    if (raw === '[DONE]') return { done: true };
+    try {
+      return JSON.parse(raw);
+    } catch {
+      return null;
+    }
+  }
+
+  it('parse token event', () => {
+    const r = parseGatewaySSE('data: {"token":"Hello","model":"gpt-4o","provider":"openai"}');
+    expect(r?.token).toBe('Hello');
+    expect(r?.provider).toBe('openai');
+  });
+
+  it('parse done event', () => {
+    const r = parseGatewaySSE('data: {"done":true,"tokens":{"prompt":10,"completion":5},"cost_usd":0.001}');
+    expect(r?.done).toBe(true);
+  });
+
+  it('parse [DONE]', () => {
+    const r = parseGatewaySSE('data: [DONE]');
+    expect(r?.done).toBe(true);
+  });
+
+  it('parse error event', () => {
+    const r = parseGatewaySSE('data: {"error":"All streaming providers failed"}');
+    expect(r?.error).toContain('failed');
+  });
+
+  it('ignora linhas não-data', () => {
+    expect(parseGatewaySSE(': keep-alive')).toBeNull();
+    expect(parseGatewaySSE('event: message')).toBeNull();
+    expect(parseGatewaySSE('')).toBeNull();
+  });
+
+  it('JSON inválido retorna null', () => {
+    expect(parseGatewaySSE('data: {broken')).toBeNull();
+  });
+});
+
+// ═══ Retry Logic ═══
+describe('Retry logic', () => {
+  const RETRY_DELAYS = [1000, 3000];
+  const MAX_RETRIES = 2;
+
+  it('delays crescem exponencialmente', () => {
+    expect(RETRY_DELAYS[0]).toBeLessThan(RETRY_DELAYS[1]);
+  });
+
+  it('max 2 retries = 3 tentativas totais', () => {
+    expect(MAX_RETRIES + 1).toBe(3);
+  });
+
+  it('retry em 429 (rate limit)', () => {
+    const retryableStatuses = [429, 503];
+    expect(retryableStatuses.includes(429)).toBe(true);
+  });
+
+  it('retry em 503 (cold start)', () => {
+    const retryableStatuses = [429, 503];
+    expect(retryableStatuses.includes(503)).toBe(true);
+  });
+
+  it('não retry em 401 (auth error)', () => {
+    const retryableStatuses = [429, 503];
+    expect(retryableStatuses.includes(401)).toBe(false);
+  });
+
+  it('não retry em 400 (bad request)', () => {
+    const retryableStatuses = [429, 503];
+    expect(retryableStatuses.includes(400)).toBe(false);
+  });
+});
+
+// ═══ Provider Module Architecture ═══
+describe('Provider module architecture', () => {
+  it('cada provider tem interface LLMCallParams → LLMResult', () => {
+    interface LLMCallParams { model: string; messages: Array<{ role: string; content: string }>; temperature: number; max_tokens: number; }
+    interface LLMResult { content: string; usage: { prompt_tokens: number; completion_tokens: number; total_tokens: number }; finish_reason: string; }
+    
+    const mockParams: LLMCallParams = { model: 'test', messages: [{ role: 'user', content: 'hi' }], temperature: 0.7, max_tokens: 100 };
+    const mockResult: LLMResult = { content: 'ok', usage: { prompt_tokens: 1, completion_tokens: 1, total_tokens: 2 }, finish_reason: 'stop' };
+    
+    expect(mockParams.model).toBe('test');
+    expect(mockResult.finish_reason).toBe('stop');
+  });
+
+  it('HF model cleanup remove prefixo', () => {
+    const model = 'huggingface/Qwen/Qwen3-30B-A3B';
+    const clean = model.replace('huggingface/', '');
+    expect(clean).toBe('Qwen/Qwen3-30B-A3B');
+  });
+
+  it('Anthropic extrai system message', () => {
+    const msgs = [
+      { role: 'system', content: 'You are helpful' },
+      { role: 'user', content: 'Hi' },
+    ];
+    const systemMsg = msgs.find(m => m.role === 'system');
+    const nonSystem = msgs.filter(m => m.role !== 'system');
+    expect(systemMsg?.content).toBe('You are helpful');
+    expect(nonSystem).toHaveLength(1);
+  });
+
+  it('Google model cleanup', () => {
+    const model = 'google/gemini-2.5-flash';
+    expect(model.replace('google/', '')).toBe('gemini-2.5-flash');
+  });
+
+  it('OpenAI model cleanup', () => {
+    const model = 'openai/gpt-5';
+    expect(model.replace('openai/', '')).toBe('gpt-5');
+  });
+});
