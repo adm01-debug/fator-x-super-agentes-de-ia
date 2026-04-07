@@ -13,6 +13,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { Key, Plus, Trash2, Loader2, Copy } from 'lucide-react';
+import { AccessControl, DangerousActionDialog } from '@/components/rbac';
 import { toast } from 'sonner';
 import { RedTeamingPanel } from '@/components/security/RedTeamingPanel';
 
@@ -108,9 +109,28 @@ function ApiKeysPanel() {
                 </div>
               </div>
               {k.is_active && (
-                <Button variant="ghost" size="sm" className="text-destructive h-7" onClick={() => handleRevoke(k.id)}>
-                  <Trash2 className="w-3 h-3" />
-                </Button>
+                <AccessControl permission="settings.api_keys">
+                  <DangerousActionDialog
+                    trigger={
+                      <Button variant="ghost" size="sm" className="text-destructive h-7">
+                        <Trash2 className="w-3 h-3" />
+                      </Button>
+                    }
+                    title="Revogar API key"
+                    description="A chave será imediatamente revogada. Aplicações que dependem dela perderão acesso instantaneamente."
+                    action="revoke"
+                    resourceType="api_key"
+                    resourceId={k.id}
+                    resourceName={k.name ?? k.key_prefix}
+                    minReasonLength={10}
+                    requirePassword={true}
+                    confirmLabel="Revogar Chave"
+                    metadata={{ key_prefix: k.key_prefix, scopes: k.scopes }}
+                    onConfirm={async () => {
+                      await handleRevoke(k.id);
+                    }}
+                  />
+                </AccessControl>
               )}
             </div>
           ))}
