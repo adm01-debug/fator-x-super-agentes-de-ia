@@ -128,7 +128,7 @@ async function detectInjectionML(text: string): Promise<{ detected: boolean; lab
     const top = Array.isArray(result?.[0]) ? result[0][0] : result?.[0];
     if (!top?.label) return { detected: false, label: 'parse_error', score: 0, method: 'ml' };
     return {
-      detected: top.label === 'INJECTION' && top.score > 0.85,
+      detected: top.label === 'INJECTION' && top.score > 0.95,
       label: top.label,
       score: top.score,
       method: 'ml',
@@ -241,7 +241,7 @@ async function recordTrace(supabase: any, p: {
       const agentId = p.agentId || '00000000-0000-0000-0000-000000000000';
       const { data: existingSession } = await (supabase as any).from('sessions').select('id').eq('id', p.sessionId).maybeSingle();
       if (!existingSession) {
-        await (supabase as any).from('sessions').insert({ id: p.sessionId, agent_id: agentId, user_id: p.userId, status: 'active' }).catch(() => {});
+        await (supabase as any).from('sessions').insert({ id: p.sessionId, agent_id: agentId, user_id: p.userId, status: 'active' }).then(() => {}).catch(() => {});
       }
       // Insert session_trace
       const { data: strace } = await (supabase as any).from('session_traces').insert({
@@ -252,7 +252,7 @@ async function recordTrace(supabase: any, p: {
       }).select('id').single().catch(() => null);
       // Insert trace_event
       if (strace?.data?.id) {
-        await (supabase as any).from('trace_events').insert({ session_trace_id: strace.data.id, event_type: p.event, data: { level: p.level, guardrails: p.guardrailsTriggered } }).catch(() => {});
+        await (supabase as any).from('trace_events').insert({ session_trace_id: strace.data.id, event_type: p.event, data: { level: p.level, guardrails: p.guardrailsTriggered } }).then(() => {}).catch(() => {});
       }
     }
 
@@ -270,7 +270,7 @@ async function recordTrace(supabase: any, p: {
         if (existing) {
           await supabase.from('agent_usage').update({ requests: (existing.requests||0)+1, tokens_input: (existing.tokens_input||0)+p.promptTokens, tokens_output: (existing.tokens_output||0)+p.completionTokens, total_cost_usd: (existing.total_cost_usd||0)+p.costUsd }).eq('id', existing.id);
         } else {
-          await supabase.from('agent_usage').insert({ agent_id: p.agentId || '00000000-0000-0000-0000-000000000000', user_id: p.userId, date: today, requests: 1, tokens_input: p.promptTokens, tokens_output: p.completionTokens, total_cost_usd: p.costUsd }).catch(()=>{});
+          await supabase.from('agent_usage').insert({ agent_id: p.agentId || '00000000-0000-0000-0000-000000000000', user_id: p.userId, date: today, requests: 1, tokens_input: p.promptTokens, tokens_output: p.completionTokens, total_cost_usd: p.costUsd }).then(()=>{}).catch(()=>{});
         }
       }
     }
@@ -323,9 +323,12 @@ async function resolveFallbackChain(supabase: SupabaseClient, workspaceId: strin
       }
     }
   }
-  // Last resort: Lovable API key from env
+  // Last resort: Lovable API key from env (strip provider prefix for cross-provider compat)
   const lovableApiKey = Deno.env.get('LOVABLE_API_KEY');
-  if (lovableApiKey) chain.push({ apiKey: lovableApiKey, provider: 'lovable', model: requestedModel, priority: 4 });
+  if (lovableApiKey) {
+    const lovableModel = requestedModel.startsWith('huggingface/') ? requestedModel : requestedModel;
+    chain.push({ apiKey: lovableApiKey, provider: 'lovable', model: lovableModel, priority: 4 });
+  }
 
   return chain.sort((a, b) => a.priority - b.priority);
 }
@@ -524,82 +527,114 @@ serve(async (req) => {
 
     // ═══ STREAMING SSE BRANCH ═══
     if (stream) {
-      const opt = chain[0]; // Use primary provider for streaming
       const startTime = Date.now();
       const encoder = new TextEncoder();
       const readable = new ReadableStream({
         async start(controller) {
-          try {
-            let fullContent = '';
-            let promptTokens = 0, completionTokens = 0;
-            // Build streaming request to provider
-            const isAnthropic = opt.provider === 'anthropic';
-            const isHuggingFace = opt.provider === 'huggingface';
-            const isLovable = opt.provider === 'lovable';
-            const isGoogle = opt.provider === 'google';
-            const url = isAnthropic ? 'https://api.anthropic.com/v1/messages'
-              : isHuggingFace ? 'https://router.huggingface.co/v1/chat/completions'
-              : isLovable ? 'https://ai.gateway.lovable.dev/v1/chat/completions'
-              : isGoogle ? 'https://generativelanguage.googleapis.com/v1beta/openai/chat/completions'
-              : opt.provider === 'openrouter' ? 'https://openrouter.ai/api/v1/chat/completions'
-              : 'https://api.openai.com/v1/chat/completions';
-            const headers: Record<string, string> = { 'Content-Type': 'application/json' };
-            if (isAnthropic) { headers['x-api-key'] = opt.apiKey; headers['anthropic-version'] = '2023-06-01'; }
-            else { headers['Authorization'] = `Bearer ${opt.apiKey}`; }
-            if (isHuggingFace) { headers['X-Title'] = 'Fator X'; }
-            if (opt.provider === 'openrouter') { headers['HTTP-Referer'] = supabaseUrl; headers['X-Title'] = 'Fator X'; }
-            const streamModel = isHuggingFace ? opt.model.replace('huggingface/', '') : isLovable ? opt.model : isGoogle ? opt.model.replace('google/', '') : opt.model;
-            const body = isAnthropic
-              ? JSON.stringify({ model: opt.model.replace('anthropic/', ''), messages: safeMessages.filter(m => m.role !== 'system'), system: safeMessages.find(m => m.role === 'system')?.content, max_tokens, temperature, stream: true })
-              : JSON.stringify({ model: streamModel, messages: safeMessages, temperature, max_tokens, stream: true });
-            const resp = await fetch(url, { method: 'POST', headers, body });
-            if (!resp.ok || !resp.body) {
-              controller.enqueue(encoder.encode(`data: ${JSON.stringify({ error: `Provider error: ${resp.status}` })}\n\n`));
-              controller.close(); return;
-            }
-            const reader = resp.body.getReader();
-            const decoder = new TextDecoder();
-            let buffer = '';
-            while (true) {
-              const { done, value } = await reader.read();
-              if (done) break;
-              buffer += decoder.decode(value, { stream: true });
-              const lines = buffer.split('\n');
-              buffer = lines.pop() || '';
-              for (const line of lines) {
-                if (!line.startsWith('data: ') || line === 'data: [DONE]') {
-                  if (line === 'data: [DONE]') controller.enqueue(encoder.encode('data: [DONE]\n\n'));
-                  continue;
-                }
-                try {
-                  const parsed = JSON.parse(line.substring(6));
-                  let token = '';
-                  if (isAnthropic) {
-                    if (parsed.type === 'content_block_delta') token = parsed.delta?.text || '';
-                    if (parsed.type === 'message_delta') { completionTokens = parsed.usage?.output_tokens || completionTokens; }
-                    if (parsed.type === 'message_start') { promptTokens = parsed.message?.usage?.input_tokens || 0; }
-                  } else {
-                    token = parsed.choices?.[0]?.delta?.content || '';
-                    if (parsed.usage) { promptTokens = parsed.usage.prompt_tokens || 0; completionTokens = parsed.usage.completion_tokens || 0; }
-                  }
-                  if (token) {
-                    fullContent += token;
-                    controller.enqueue(encoder.encode(`data: ${JSON.stringify({ token, model: opt.model, provider: opt.provider })}\n\n`));
-                  }
-                } catch { /* skip unparseable lines */ }
+          let streamSuccess = false;
+          // Try each provider in the chain for streaming (fallback support)
+          for (let ci = 0; ci < chain.length && !streamSuccess; ci++) {
+            const opt = chain[ci];
+            try {
+              let fullContent = '';
+              let insideThinkBlock = false; // Track <think> blocks for filtering
+              let promptTokens = 0, completionTokens = 0;
+              const isAnthropic = opt.provider === 'anthropic';
+              const isHuggingFace = opt.provider === 'huggingface';
+              const isLovable = opt.provider === 'lovable';
+              const isGoogle = opt.provider === 'google';
+              const url = isAnthropic ? 'https://api.anthropic.com/v1/messages'
+                : isHuggingFace ? 'https://router.huggingface.co/v1/chat/completions'
+                : isLovable ? 'https://ai.gateway.lovable.dev/v1/chat/completions'
+                : isGoogle ? 'https://generativelanguage.googleapis.com/v1beta/openai/chat/completions'
+                : opt.provider === 'openrouter' ? 'https://openrouter.ai/api/v1/chat/completions'
+                : 'https://api.openai.com/v1/chat/completions';
+              const headers: Record<string, string> = { 'Content-Type': 'application/json' };
+              if (isAnthropic) { headers['x-api-key'] = opt.apiKey; headers['anthropic-version'] = '2023-06-01'; }
+              else { headers['Authorization'] = `Bearer ${opt.apiKey}`; }
+              if (isHuggingFace) { headers['X-Title'] = 'Fator X'; }
+              if (opt.provider === 'openrouter') { headers['HTTP-Referer'] = supabaseUrl; headers['X-Title'] = 'Fator X'; }
+              const streamModel = isHuggingFace ? opt.model.replace('huggingface/', '') : isLovable ? opt.model : isGoogle ? opt.model.replace('google/', '') : opt.model;
+              const streamBody: Record<string, unknown> = { model: streamModel, messages: safeMessages, temperature, max_tokens, stream: true };
+              // Disable thinking for Qwen3/DeepSeek to save tokens
+              if (isHuggingFace && (streamModel.includes('Qwen3') || streamModel.includes('DeepSeek'))) {
+                streamBody.chat_template_kwargs = { enable_thinking: false };
               }
+              const body = isAnthropic
+                ? JSON.stringify({ model: opt.model.replace('anthropic/', ''), messages: safeMessages.filter(m => m.role !== 'system'), system: safeMessages.find(m => m.role === 'system')?.content, max_tokens, temperature, stream: true })
+                : JSON.stringify(streamBody);
+              // Timeout for streaming connection (90s)
+              const streamController = new AbortController();
+              const streamTimeout = setTimeout(() => streamController.abort(), 90_000);
+              const resp = await fetch(url, { method: 'POST', headers, body, signal: streamController.signal });
+              if (!resp.ok || !resp.body) {
+                clearTimeout(streamTimeout);
+                const errText = resp.body ? await resp.text().catch(() => '') : '';
+                console.error(`Stream provider ${opt.provider} failed (${resp.status}): ${errText.substring(0, 200)}`);
+                continue; // Try next provider
+              }
+              streamSuccess = true;
+              const reader = resp.body.getReader();
+              const decoder = new TextDecoder();
+              let buffer = '';
+              while (true) {
+                const { done, value } = await reader.read();
+                if (done) break;
+                buffer += decoder.decode(value, { stream: true });
+                const lines = buffer.split('\n');
+                buffer = lines.pop() || '';
+                for (const line of lines) {
+                  if (!line.startsWith('data: ') || line === 'data: [DONE]') {
+                    if (line === 'data: [DONE]') controller.enqueue(encoder.encode('data: [DONE]\n\n'));
+                    continue;
+                  }
+                  try {
+                    const parsed = JSON.parse(line.substring(6));
+                    let token = '';
+                    if (isAnthropic) {
+                      if (parsed.type === 'content_block_delta') token = parsed.delta?.text || '';
+                      if (parsed.type === 'message_delta') { completionTokens = parsed.usage?.output_tokens || completionTokens; }
+                      if (parsed.type === 'message_start') { promptTokens = parsed.message?.usage?.input_tokens || 0; }
+                    } else {
+                      token = parsed.choices?.[0]?.delta?.content || '';
+                      if (parsed.usage) { promptTokens = parsed.usage.prompt_tokens || 0; completionTokens = parsed.usage.completion_tokens || 0; }
+                    }
+                    if (token) {
+                      fullContent += token;
+                      // Filter out <think>...</think> blocks from streaming output
+                      if (token.includes('<think>')) { insideThinkBlock = true; continue; }
+                      if (insideThinkBlock) {
+                        if (token.includes('</think>')) { insideThinkBlock = false; }
+                        continue; // Skip tokens inside think block
+                      }
+                      controller.enqueue(encoder.encode(`data: ${JSON.stringify({ token, model: opt.model, provider: opt.provider })}\n\n`));
+                    }
+                  } catch { /* skip unparseable lines */ }
+                }
+              }
+              clearTimeout(streamTimeout);
+              // Strip <think> tags from Qwen models
+              const cleanContent = fullContent.replace(/<think>[\s\S]*?<\/think>\s*/g, '').trim();
+              // Final summary event
+              const latencyMs = Date.now() - startTime;
+              const totalTokens = promptTokens + completionTokens;
+              const costUsd = await calculateCost(supabase, opt.model, promptTokens, completionTokens);
+              controller.enqueue(encoder.encode(`data: ${JSON.stringify({ done: true, model: opt.model, provider: opt.provider, tokens: { prompt: promptTokens, completion: completionTokens, total: totalTokens }, cost_usd: costUsd, latency_ms: latencyMs })}\n\n`));
+              controller.enqueue(encoder.encode('data: [DONE]\n\n'));
+              controller.close();
+              recordTrace(supabase, { workspaceId, agentId: agent_id, sessionId: session_id, userId: user.id, userInput: userMessage, assistantOutput: cleanContent, model: opt.model, provider: opt.provider, promptTokens, completionTokens, totalTokens, costUsd, latencyMs, guardrailsTriggered: gr.triggered, event: 'llm_call_stream', level: injection.detected ? 'warning' : 'info' });
+            } catch (err) {
+              console.error(`Stream fallback ${ci + 1} (${chain[ci].provider}) failed:`, err instanceof Error ? err.message : err);
+              if (ci === chain.length - 1) {
+                // Last provider failed
+                controller.enqueue(encoder.encode(`data: ${JSON.stringify({ error: err instanceof Error ? err.message : 'Stream error' })}\n\n`));
+                controller.close();
+              }
+              // Otherwise continue to next provider
             }
-            // Final summary event
-            const latencyMs = Date.now() - startTime;
-            const totalTokens = promptTokens + completionTokens;
-            const costUsd = await calculateCost(supabase, opt.model, promptTokens, completionTokens);
-            controller.enqueue(encoder.encode(`data: ${JSON.stringify({ done: true, model: opt.model, provider: opt.provider, tokens: { prompt: promptTokens, completion: completionTokens, total: totalTokens }, cost_usd: costUsd, latency_ms: latencyMs })}\n\n`));
-            controller.enqueue(encoder.encode('data: [DONE]\n\n'));
-            controller.close();
-            // Record trace (non-blocking)
-            recordTrace(supabase, { workspaceId, agentId: agent_id, sessionId: session_id, userId: user.id, userInput: userMessage, assistantOutput: fullContent, model: opt.model, provider: opt.provider, promptTokens, completionTokens, totalTokens, costUsd, latencyMs, guardrailsTriggered: gr.triggered, event: 'llm_call_stream', level: 'info' });
-          } catch (err) {
-            controller.enqueue(encoder.encode(`data: ${JSON.stringify({ error: err instanceof Error ? err.message : 'Stream error' })}\n\n`));
+          }
+          if (!streamSuccess) {
+            controller.enqueue(encoder.encode(`data: ${JSON.stringify({ error: 'All streaming providers failed' })}\n\n`));
             controller.close();
           }
         }
@@ -610,12 +645,10 @@ serve(async (req) => {
     // ═══ NON-STREAMING LLM CALL — with fallback chain ═══
     const tPreCall = Date.now();
     const guardrailMs = tPreCall - t0; // includes injection + PII + guardrails + budget
-    const chain2 = await resolveFallbackChain(supabase, workspaceId ?? undefined, model);
-    if (chain2.length === 0) return new Response(JSON.stringify({ error: 'No API key configured for any provider' }), { status: 400, headers: { ...getCorsHeaders(req), 'Content-Type': 'application/json' } });
 
     const startTime = Date.now();
     const callParams: LLMCallParams = { model, messages: safeMessages, temperature, max_tokens };
-    const { result, provider, model: usedModel, attempt, errors: fallbackErrors } = await callWithFallback(chain2, callParams, supabaseUrl);
+    const { result, provider, model: usedModel, attempt, errors: fallbackErrors } = await callWithFallback(chain, callParams, supabaseUrl);
 
     const latencyMs = Date.now() - startTime;
     const llmMs = latencyMs; // LLM call time

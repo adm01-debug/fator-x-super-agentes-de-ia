@@ -17,10 +17,10 @@ export interface LLMResult {
 // HuggingFace free model fallback pool — tried in order on cold start / rate limit
 const HF_FREE_MODELS = [
   'Qwen/Qwen3-30B-A3B',
-  'mistralai/Mistral-Small-24B-Instruct-2501',
   'meta-llama/Llama-4-Scout-17B-16E-Instruct',
   'google/gemma-3-12b-it',
   'deepseek-ai/DeepSeek-V3',
+  'mistralai/Mistral-Small-3.1-24B-Instruct-2503',
 ];
 
 async function callHuggingFaceSingle(model: string, params: LLMCallParams, apiKey: string): Promise<{ result?: LLMResult; retryable: boolean; status: number; errorMsg: string }> {
@@ -31,6 +31,10 @@ async function callHuggingFaceSingle(model: string, params: LLMCallParams, apiKe
     max_tokens: params.max_tokens,
   };
   if (params.response_format) body.response_format = params.response_format;
+  // Disable thinking/reasoning for models that support it (Qwen3, DeepSeek) to save tokens
+  if (model.includes('Qwen3') || model.includes('DeepSeek')) {
+    body.chat_template_kwargs = { enable_thinking: false };
+  }
 
   const controller = new AbortController();
   const timeout = setTimeout(() => controller.abort(), 60_000);
@@ -191,8 +195,12 @@ function normalizeOpenAIResponse(result: Record<string, unknown>): LLMResult {
   const usage = result.usage as { prompt_tokens?: number; completion_tokens?: number; total_tokens?: number } | undefined;
   const error = result.error as { message?: string } | undefined;
 
+  // Strip <think>...</think> blocks from reasoning models (Qwen3, DeepSeek, etc.)
+  let content = choices?.[0]?.message?.content || error?.message || '';
+  content = content.replace(/<think>[\s\S]*?<\/think>\s*/g, '').trim();
+
   return {
-    content: choices?.[0]?.message?.content || error?.message || '',
+    content,
     usage: {
       prompt_tokens: usage?.prompt_tokens || 0,
       completion_tokens: usage?.completion_tokens || 0,
@@ -203,10 +211,13 @@ function normalizeOpenAIResponse(result: Record<string, unknown>): LLMResult {
 }
 
 function mapToLovableModel(model: string): string {
-  if (model.includes('gemini-2.5-flash')) return 'google/gemini-2.5-flash';
-  if (model.includes('gemini-2.5-pro')) return 'google/gemini-2.5-pro';
-  if (model.includes('gemini-3')) return 'google/gemini-3-flash-preview';
-  if (model.includes('gpt-5')) return 'openai/gpt-5';
-  if (model.includes('gpt-4o')) return 'openai/gpt-5-mini';
+  // Strip provider prefixes
+  const clean = model.replace(/^(huggingface|openai|anthropic|google)\//, '');
+  if (clean.includes('gemini-2.5-flash')) return 'google/gemini-2.5-flash';
+  if (clean.includes('gemini-2.5-pro')) return 'google/gemini-2.5-pro';
+  if (clean.includes('gemini-3')) return 'google/gemini-3-flash-preview';
+  if (clean.includes('gpt-5')) return 'openai/gpt-5';
+  if (clean.includes('gpt-4o')) return 'openai/gpt-5-mini';
+  // HuggingFace or unknown models → use a good general-purpose model
   return 'google/gemini-2.5-flash';
 }
