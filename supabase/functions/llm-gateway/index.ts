@@ -241,7 +241,7 @@ async function recordTrace(supabase: any, p: {
       const agentId = p.agentId || '00000000-0000-0000-0000-000000000000';
       const { data: existingSession } = await (supabase as any).from('sessions').select('id').eq('id', p.sessionId).maybeSingle();
       if (!existingSession) {
-        await (supabase as any).from('sessions').insert({ id: p.sessionId, agent_id: agentId, user_id: p.userId, status: 'active' }).catch(() => {});
+        await (supabase as any).from('sessions').insert({ id: p.sessionId, agent_id: agentId, user_id: p.userId, status: 'active' }).then(() => {}).catch(() => {});
       }
       // Insert session_trace
       const { data: strace } = await (supabase as any).from('session_traces').insert({
@@ -252,7 +252,7 @@ async function recordTrace(supabase: any, p: {
       }).select('id').single().catch(() => null);
       // Insert trace_event
       if (strace?.data?.id) {
-        await (supabase as any).from('trace_events').insert({ session_trace_id: strace.data.id, event_type: p.event, data: { level: p.level, guardrails: p.guardrailsTriggered } }).catch(() => {});
+        await (supabase as any).from('trace_events').insert({ session_trace_id: strace.data.id, event_type: p.event, data: { level: p.level, guardrails: p.guardrailsTriggered } }).then(() => {}).catch(() => {});
       }
     }
 
@@ -270,7 +270,7 @@ async function recordTrace(supabase: any, p: {
         if (existing) {
           await supabase.from('agent_usage').update({ requests: (existing.requests||0)+1, tokens_input: (existing.tokens_input||0)+p.promptTokens, tokens_output: (existing.tokens_output||0)+p.completionTokens, total_cost_usd: (existing.total_cost_usd||0)+p.costUsd }).eq('id', existing.id);
         } else {
-          await supabase.from('agent_usage').insert({ agent_id: p.agentId || '00000000-0000-0000-0000-000000000000', user_id: p.userId, date: today, requests: 1, tokens_input: p.promptTokens, tokens_output: p.completionTokens, total_cost_usd: p.costUsd }).catch(()=>{});
+          await supabase.from('agent_usage').insert({ agent_id: p.agentId || '00000000-0000-0000-0000-000000000000', user_id: p.userId, date: today, requests: 1, tokens_input: p.promptTokens, tokens_output: p.completionTokens, total_cost_usd: p.costUsd }).then(()=>{}).catch(()=>{});
         }
       }
     }
