@@ -4,7 +4,7 @@ import { InfoHint } from "@/components/shared/InfoHint";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
   Brain, Search, Network, BookOpen,
-  Activity, Users, FlaskConical, Zap, Clock
+  Activity, Users, FlaskConical, Zap, Clock, GitMerge
 } from "lucide-react";
 import { OverviewTab } from "@/components/super-cerebro/OverviewTab";
 import { SearchTab } from "@/components/super-cerebro/SearchTab";
@@ -15,6 +15,7 @@ import { AutoExtractionTab } from "@/components/super-cerebro/AutoExtractionTab"
 import { ExpertDiscoveryTab } from "@/components/super-cerebro/ExpertDiscoveryTab";
 import { BrainSandboxTab } from "@/components/super-cerebro/BrainSandboxTab";
 import { TemporalGraphTab } from "@/components/super-cerebro/TemporalGraphTab";
+import { EntityResolutionTab } from "@/components/super-cerebro/EntityResolutionTab";
 
 export default function SuperCerebroPage() {
   const [activeTab, setActiveTab] = useState('overview');
@@ -38,6 +39,7 @@ export default function SuperCerebroPage() {
           <TabsTrigger value="experts" className="text-xs gap-1.5"><Users className="h-3.5 w-3.5" /> Especialistas</TabsTrigger>
           <TabsTrigger value="sandbox" className="text-xs gap-1.5"><FlaskConical className="h-3.5 w-3.5" /> Sandbox</TabsTrigger>
           <TabsTrigger value="temporal" className="text-xs gap-1.5"><Clock className="h-3.5 w-3.5" /> Temporal</TabsTrigger>
+          <TabsTrigger value="resolution" className="text-xs gap-1.5"><GitMerge className="h-3.5 w-3.5" /> Resolução</TabsTrigger>
         </TabsList>
 
         <TabsContent value="overview" className="mt-4"><OverviewTab /></TabsContent>
@@ -49,6 +51,7 @@ export default function SuperCerebroPage() {
         <TabsContent value="experts" className="mt-4"><ExpertDiscoveryTab /></TabsContent>
         <TabsContent value="sandbox" className="mt-4"><BrainSandboxTab /></TabsContent>
         <TabsContent value="temporal" className="mt-4"><TemporalGraphTab /></TabsContent>
+        <TabsContent value="resolution" className="mt-4"><EntityResolutionTab /></TabsContent>
       </Tabs>
     </div>
   );
