@@ -3,7 +3,7 @@
  * Tests para callHuggingFace, fallback, normalizeOpenAIResponse, mapToLovableModel
  * e tratamento de erros HF (503, 429, 500, 502, timeout, queue).
  */
-import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
+import { describe, it, expect } from 'vitest';
 
 // ═══ Provider logic is in edge function, so we test the pure logic patterns ═══
 
