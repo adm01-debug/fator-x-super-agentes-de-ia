@@ -207,10 +207,13 @@ function normalizeOpenAIResponse(result: Record<string, unknown>): LLMResult {
 }
 
 function mapToLovableModel(model: string): string {
-  if (model.includes('gemini-2.5-flash')) return 'google/gemini-2.5-flash';
-  if (model.includes('gemini-2.5-pro')) return 'google/gemini-2.5-pro';
-  if (model.includes('gemini-3')) return 'google/gemini-3-flash-preview';
-  if (model.includes('gpt-5')) return 'openai/gpt-5';
-  if (model.includes('gpt-4o')) return 'openai/gpt-5-mini';
+  // Strip provider prefixes
+  const clean = model.replace(/^(huggingface|openai|anthropic|google)\//, '');
+  if (clean.includes('gemini-2.5-flash')) return 'google/gemini-2.5-flash';
+  if (clean.includes('gemini-2.5-pro')) return 'google/gemini-2.5-pro';
+  if (clean.includes('gemini-3')) return 'google/gemini-3-flash-preview';
+  if (clean.includes('gpt-5')) return 'openai/gpt-5';
+  if (clean.includes('gpt-4o')) return 'openai/gpt-5-mini';
+  // HuggingFace or unknown models → use a good general-purpose model
   return 'google/gemini-2.5-flash';
 }
