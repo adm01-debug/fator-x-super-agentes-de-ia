@@ -4,6 +4,7 @@
  */
 import { supabase } from '@/integrations/supabase/client';
 import { fromTable } from '@/lib/supabaseExtended';
+import { logger } from '@/lib/logger';
 
 // ═══ Agent Traces ═══
 
@@ -153,4 +154,26 @@ export async function getDashboardMetrics() {
     activeAlerts: alertsResult.count || 0,
     dailyCost,
   };
+}
+
+// ═══ Trace Events ═══
+
+export interface TraceEvent {
+  id: string;
+  event_type: string;
+  data: Record<string, unknown>;
+  created_at: string;
+}
+
+export async function getRecentTraceEvents(limit = 50): Promise<TraceEvent[]> {
+  const { data, error } = await supabase
+    .from('trace_events')
+    .select('*')
+    .order('created_at', { ascending: false })
+    .limit(limit);
+  if (error) {
+    logger.error('Failed to fetch trace events', { error: error.message });
+    throw error;
+  }
+  return (data ?? []) as TraceEvent[];
 }

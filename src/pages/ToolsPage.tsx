@@ -11,7 +11,12 @@ import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, 
 import { Search, Loader2, Wrench, Globe, Database, Mail, FileSearch, Code, Webhook, Plus, Trash2 } from "lucide-react";
 import { useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { supabase } from "@/integrations/supabase/client";
+import {
+  listToolIntegrations,
+  createToolIntegration,
+  toggleToolIntegration,
+  deleteToolIntegration,
+} from "@/services/toolsService";
 import { getWorkspaceId } from "@/lib/agentService";
 
 import { toast } from "sonner";
@@ -45,14 +50,7 @@ export default function ToolsPage() {
   // Tool integrations from DB
   const { data: toolIntegrations = [], isLoading } = useQuery({
     queryKey: ['tool_integrations'],
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from('tool_integrations')
-        .select('*')
-        .order('created_at', { ascending: false });
-      if (error) throw error;
-      return data ?? [];
-    },
+    queryFn: listToolIntegrations,
   });
 
   const handleCreateTool = async () => {
@@ -60,13 +58,12 @@ export default function ToolsPage() {
     setSaving(true);
     try {
       const wsId = await getWorkspaceId();
-      const { error } = await supabase.from('tool_integrations').insert({
-        name: toolName.trim(),
-        description: toolDesc.trim(),
+      await createToolIntegration({
+        workspaceId: wsId,
+        name: toolName,
+        description: toolDesc,
         type: toolType,
-        workspace_id: wsId,
       });
-      if (error) throw error;
       toast.success('Integração criada!');
       setNewToolOpen(false);
       setToolName(''); setToolDesc('');
@@ -79,16 +76,22 @@ export default function ToolsPage() {
   };
 
   const handleToggleTool = async (id: string, enabled: boolean) => {
-    const { error } = await supabase.from('tool_integrations').update({ is_enabled: enabled }).eq('id', id);
-    if (error) { toast.error(error.message); return; }
-    queryClient.invalidateQueries({ queryKey: ['tool_integrations'] });
+    try {
+      await toggleToolIntegration(id, enabled);
+      queryClient.invalidateQueries({ queryKey: ['tool_integrations'] });
+    } catch (e: unknown) {
+      toast.error(e instanceof Error ? e.message : 'Erro ao atualizar');
+    }
   };
 
   const handleDeleteTool = async (id: string) => {
-    const { error } = await supabase.from('tool_integrations').delete().eq('id', id);
-    if (error) { toast.error(error.message); return; }
-    toast.success('Integração removida');
-    queryClient.invalidateQueries({ queryKey: ['tool_integrations'] });
+    try {
+      await deleteToolIntegration(id);
+      toast.success('Integração removida');
+      queryClient.invalidateQueries({ queryKey: ['tool_integrations'] });
+    } catch (e: unknown) {
+      toast.error(e instanceof Error ? e.message : 'Erro ao remover');
+    }
   };
 
   const allItems = [

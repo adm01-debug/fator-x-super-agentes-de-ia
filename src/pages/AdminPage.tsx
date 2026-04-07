@@ -9,7 +9,7 @@ import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, 
 import { Badge } from "@/components/ui/badge";
 import { Search, Trash2, RefreshCw, Loader2, Database, Bot, Activity, BookOpen, FileText, History, Eye } from "lucide-react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { supabase } from "@/integrations/supabase/client";
+import { listAdminRows, deleteAdminRow } from "@/services/adminCrudService";
 import { toast } from "sonner";
 import { format } from "date-fns";
 
@@ -94,15 +94,7 @@ function AdminTable({ config }: { config: typeof TABLE_CONFIG[0] }) {
 
   const { data: rows = [], isLoading, refetch } = useQuery({
     queryKey: ["admin", config.key],
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from(config.key)
-        .select("*")
-        .order("created_at", { ascending: false })
-        .limit(200);
-      if (error) throw error;
-      return data ?? [];
-    },
+    queryFn: () => listAdminRows(config.key, 200),
   });
 
   const filtered = rows.filter((row: Record<string, unknown>) =>
@@ -113,13 +105,14 @@ function AdminTable({ config }: { config: typeof TABLE_CONFIG[0] }) {
   );
 
   const handleDelete = async (id: string) => {
-    const { error } = await supabase.from(config.key).delete().eq("id", id);
-    if (error) {
-      toast.error(`Erro ao deletar: ${error.message}`);
-    } else {
+    try {
+      await deleteAdminRow(config.key, id);
       toast.success("Registro removido");
       refetch();
       queryClient.invalidateQueries({ queryKey: [config.key] });
+    } catch (e: unknown) {
+      const msg = e instanceof Error ? e.message : "Erro desconhecido";
+      toast.error(`Erro ao deletar: ${msg}`);
     }
   };
 

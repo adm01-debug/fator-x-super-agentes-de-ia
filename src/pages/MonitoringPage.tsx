@@ -372,9 +372,8 @@ function TracingPanel() {
   const { data: traceData = [], isLoading } = useQuery({
     queryKey: ['trace_events_tracing'],
     queryFn: async () => {
-      const { supabase } = await import("@/integrations/supabase/client");
-      const { data } = await supabase.from('trace_events').select('*').order('created_at', { ascending: false }).limit(50);
-      return (data ?? []) as Array<{ id: string; event_type: string; data: Record<string, unknown>; created_at: string }>;
+      const { getRecentTraceEvents } = await import("@/services/monitoringService");
+      return await getRecentTraceEvents(50);
     },
   });
 
