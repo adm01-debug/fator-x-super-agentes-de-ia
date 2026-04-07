@@ -23,10 +23,7 @@ import { AccessControl } from "@/components/rbac/AccessControl";
 import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from "@/components/ui/select";
-import {
-  AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
-  AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
-} from "@/components/ui/alert-dialog";
+import { AccessControl, DangerousActionDialog } from "@/components/rbac";
 
 type AgentRow = Tables<"agents">;
 
@@ -51,7 +48,6 @@ export default function AgentsPage() {
   const [cloning, setCloning] = useState<string | null>(null);
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [bulkLoading, setBulkLoading] = useState(false);
-  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const selectionMode = selectedIds.size > 0;
@@ -156,7 +152,6 @@ export default function AgentsPage() {
       await bulkDelete(Array.from(selectedIds));
       toast.success(`${selectedIds.size} agente(s) removido(s)`);
       setSelectedIds(new Set());
-      setDeleteDialogOpen(false);
       queryClient.invalidateQueries({ queryKey: ['agents'] });
     } catch (err: unknown) {
       toast.error(err instanceof Error ? err.message : 'Erro');
@@ -233,9 +228,32 @@ export default function AgentsPage() {
           <Button variant="outline" size="sm" className="gap-1.5 h-7 text-xs" onClick={handleBulkArchive} disabled={bulkLoading}>
             <Archive className="h-3 w-3" /> Arquivar
           </Button>
-          <Button variant="destructive" size="sm" className="gap-1.5 h-7 text-xs" onClick={() => setDeleteDialogOpen(true)} disabled={bulkLoading}>
-            <Trash2 className="h-3 w-3" /> Excluir
-          </Button>
+          <AccessControl permission="agents.delete">
+            <DangerousActionDialog
+              trigger={
+                <Button variant="destructive" size="sm" className="gap-1.5 h-7 text-xs" disabled={bulkLoading}>
+                  <Trash2 className="h-3 w-3" /> Excluir
+                </Button>
+              }
+              title={`Excluir ${selectedIds.size} agente(s)`}
+              description={
+                <>
+                  <p>Esta ação é irreversível. Todos os dados, traces, deployments e configurações serão removidos permanentemente.</p>
+                  <p>Conversas e logs históricos ficarão órfãos.</p>
+                </>
+              }
+              action="bulk_delete"
+              resourceType="agents"
+              resourceName={`${selectedIds.size} agente(s)`}
+              minReasonLength={15}
+              requirePassword={true}
+              confirmLabel="Excluir Permanentemente"
+              metadata={{ count: selectedIds.size, ids: Array.from(selectedIds) }}
+              onConfirm={async () => {
+                await handleBulkDelete();
+              }}
+            />
+          </AccessControl>
           <Button variant="ghost" size="icon" className="h-7 w-7" onClick={clearSelection}>
             <X className="h-3.5 w-3.5" />
           </Button>
@@ -444,24 +462,7 @@ export default function AgentsPage() {
         </div>
       )}
 
-      {/* Delete confirmation */}
-      <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>Excluir {selectedIds.size} agente(s)?</AlertDialogTitle>
-            <AlertDialogDescription>
-              Esta ação é irreversível. Todos os dados, traces e configurações serão removidos permanentemente.
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel>Cancelar</AlertDialogCancel>
-            <AlertDialogAction onClick={handleBulkDelete} className="bg-destructive text-destructive-foreground hover:bg-destructive/90" disabled={bulkLoading}>
-              {bulkLoading ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <Trash2 className="h-4 w-4 mr-2" />}
-              Excluir permanentemente
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
+      {/* Delete confirmation handled inline via DangerousActionDialog */}
     </div>
   );
 }
