@@ -5,7 +5,7 @@ import { StatusBadge } from "@/components/shared/StatusBadge";
 import { Button } from "@/components/ui/button";
 import { Bot, Loader2, GitCompare } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
-import { supabase } from "@/integrations/supabase/client";
+import { getAgentById, getAgentDetailTraces, getAgentUsage, getAgentRecentAlerts, getAgentVersions } from "@/services/agentsService";
 import { VersionDiffDialog } from "@/components/agents/VersionDiffDialog";
 // Self-Evolution: available via agentEvolutionService (getSkillbook, buildSkillbookPrompt)
 
@@ -15,11 +15,7 @@ export default function AgentDetailPage() {
 
   const { data: agent, isLoading, error } = useQuery({
     queryKey: ['agent', id],
-    queryFn: async () => {
-      const { data, error } = await supabase.from('agents').select('*').eq('id', id!).maybeSingle();
-      if (error) throw error;
-      return data;
-    },
+    queryFn: () => getAgentById(id!),
     enabled: !!id,
   });
 
@@ -100,27 +96,17 @@ export default function AgentDetailPage() {
 function AgentMetrics({ agentId }: { agentId: string }) {
   const { data: traces = [] } = useQuery({
     queryKey: ['agent_detail_traces', agentId],
-    queryFn: async () => {
-      const { data } = await supabase.from('agent_traces').select('latency_ms, tokens_used, cost_usd, level, created_at').eq('agent_id', agentId).order('created_at', { ascending: false }).limit(50);
-      return data ?? [];
-    },
+    queryFn: () => getAgentDetailTraces(agentId, 50),
   });
 
   const { data: usage = [] } = useQuery({
     queryKey: ['agent_detail_usage', agentId],
-    queryFn: async () => {
-      const sevenDays = new Date(); sevenDays.setDate(sevenDays.getDate() - 7);
-      const { data } = await supabase.from('agent_usage').select('*').eq('agent_id', agentId).gte('date', sevenDays.toISOString().split('T')[0]).order('date');
-      return data ?? [];
-    },
+    queryFn: () => getAgentUsage(agentId, 7),
   });
 
   const { data: recentAlerts = [] } = useQuery({
     queryKey: ['agent_detail_alerts', agentId],
-    queryFn: async () => {
-      const { data } = await supabase.from('alerts').select('title, severity, created_at, is_resolved').eq('agent_id', agentId).order('created_at', { ascending: false }).limit(5);
-      return data ?? [];
-    },
+    queryFn: () => getAgentRecentAlerts(agentId, 5),
   });
 
   const totalRequests = usage.reduce((s, u) => s + (u.requests || 0), 0);
@@ -186,10 +172,7 @@ function VersionHistory({ agentId }: { agentId: string }) {
   const [diffOpen, setDiffOpen] = useState(false);
   const { data: versions = [], isLoading } = useQuery({
     queryKey: ['agent_versions', agentId],
-    queryFn: async () => {
-      const { data } = await supabase.from('agent_versions').select('*').eq('agent_id', agentId).order('version', { ascending: false }).limit(20);
-      return data ?? [];
-    },
+    queryFn: () => getAgentVersions(agentId, 20),
   });
 
   if (isLoading || versions.length === 0) return null;
