@@ -6,10 +6,11 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
-import { Search, Trash2, RefreshCw, Loader2, Database, Bot, Activity, BookOpen, FileText, History, Eye } from "lucide-react";
+import { Search, Trash2, RefreshCw, Loader2, Database, Bot, Activity, BookOpen, FileText, History, Eye, Shield } from "lucide-react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { listAdminRows, deleteAdminRow } from "@/services/adminCrudService";
 import { AccessControl, DangerousActionDialog } from "@/components/rbac";
+import { AuditTrailPanel } from "@/components/admin/AuditTrailPanel";
 import { toast } from "sonner";
 import { format } from "date-fns";
 
@@ -234,6 +235,10 @@ export default function AdminPage() {
                 {t.label}
               </TabsTrigger>
             ))}
+            <TabsTrigger value="audit_trail" className="gap-1.5 text-xs data-[state=active]:bg-primary/10 data-[state=active]:text-primary">
+              <Shield className="h-3.5 w-3.5" />
+              Audit Trail
+            </TabsTrigger>
           </TabsList>
 
           {TABLE_CONFIG.map((t) => (
@@ -241,6 +246,9 @@ export default function AdminPage() {
               <AdminTable config={t} />
             </TabsContent>
           ))}
+          <TabsContent value="audit_trail">
+            <AuditTrailPanel />
+          </TabsContent>
         </Tabs>
       </div>
     </div>
