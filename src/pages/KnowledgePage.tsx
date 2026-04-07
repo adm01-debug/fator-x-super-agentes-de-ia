@@ -15,6 +15,7 @@ import { EditKnowledgeBaseDialog } from "@/components/dialogs/EditKnowledgeBaseD
 import { KnowledgeBaseDetail } from "@/components/knowledge/KnowledgeBaseDetail";
 import { AudioUploadDialog } from "@/components/knowledge/AudioUploadDialog";
 import { DocOcrDialog } from "@/components/knowledge/DocOcrDialog";
+import { RagRerankTestDialog } from "@/components/knowledge/RagRerankTestDialog";
 import { toast } from "sonner";
 // Context Tiers: available via contextTiersService (tieredSearch)
 
@@ -64,6 +65,7 @@ export default function KnowledgePage() {
           <div className="flex items-center gap-2">
             <AudioUploadDialog />
             <DocOcrDialog />
+            <RagRerankTestDialog />
             <CreateKnowledgeBaseDialog onCreated={() => refetch()} />
           </div>
         }
