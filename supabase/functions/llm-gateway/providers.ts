@@ -31,6 +31,10 @@ async function callHuggingFaceSingle(model: string, params: LLMCallParams, apiKe
     max_tokens: params.max_tokens,
   };
   if (params.response_format) body.response_format = params.response_format;
+  // Disable thinking/reasoning for models that support it (Qwen3, DeepSeek) to save tokens
+  if (model.includes('Qwen3') || model.includes('DeepSeek')) {
+    body.chat_template_kwargs = { enable_thinking: false };
+  }
 
   const controller = new AbortController();
   const timeout = setTimeout(() => controller.abort(), 60_000);
