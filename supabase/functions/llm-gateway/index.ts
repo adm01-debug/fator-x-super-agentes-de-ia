@@ -534,15 +534,24 @@ serve(async (req) => {
             let promptTokens = 0, completionTokens = 0;
             // Build streaming request to provider
             const isAnthropic = opt.provider === 'anthropic';
+            const isHuggingFace = opt.provider === 'huggingface';
+            const isLovable = opt.provider === 'lovable';
+            const isGoogle = opt.provider === 'google';
             const url = isAnthropic ? 'https://api.anthropic.com/v1/messages'
+              : isHuggingFace ? 'https://router.huggingface.co/v1/chat/completions'
+              : isLovable ? 'https://ai.gateway.lovable.dev/v1/chat/completions'
+              : isGoogle ? 'https://generativelanguage.googleapis.com/v1beta/openai/chat/completions'
               : opt.provider === 'openrouter' ? 'https://openrouter.ai/api/v1/chat/completions'
               : 'https://api.openai.com/v1/chat/completions';
             const headers: Record<string, string> = { 'Content-Type': 'application/json' };
             if (isAnthropic) { headers['x-api-key'] = opt.apiKey; headers['anthropic-version'] = '2023-06-01'; }
             else { headers['Authorization'] = `Bearer ${opt.apiKey}`; }
+            if (isHuggingFace) { headers['X-Title'] = 'Fator X'; }
+            if (opt.provider === 'openrouter') { headers['HTTP-Referer'] = supabaseUrl; headers['X-Title'] = 'Fator X'; }
+            const streamModel = isHuggingFace ? opt.model.replace('huggingface/', '') : isLovable ? opt.model : isGoogle ? opt.model.replace('google/', '') : opt.model;
             const body = isAnthropic
-              ? JSON.stringify({ model: opt.model, messages: safeMessages.filter(m => m.role !== 'system'), system: safeMessages.find(m => m.role === 'system')?.content, max_tokens, temperature, stream: true })
-              : JSON.stringify({ model: opt.model, messages: safeMessages, temperature, max_tokens, stream: true });
+              ? JSON.stringify({ model: opt.model.replace('anthropic/', ''), messages: safeMessages.filter(m => m.role !== 'system'), system: safeMessages.find(m => m.role === 'system')?.content, max_tokens, temperature, stream: true })
+              : JSON.stringify({ model: streamModel, messages: safeMessages, temperature, max_tokens, stream: true });
             const resp = await fetch(url, { method: 'POST', headers, body });
             if (!resp.ok || !resp.body) {
               controller.enqueue(encoder.encode(`data: ${JSON.stringify({ error: `Provider error: ${resp.status}` })}\n\n`));
