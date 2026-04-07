@@ -73,3 +73,104 @@ export async function invokeCerebroQuery(body: Record<string, unknown>) {
   if (error) throw error;
   return data;
 }
+
+// ============================================================================
+// KNOWLEDGE AREAS — domain breakdown for SuperCerebro KnowledgeAreasTab
+// ============================================================================
+
+export interface KnowledgeAreaStats {
+  domain: string;
+  documents: number;
+  chunks: number;
+  knowledge_bases: number;
+  last_updated_at: string | null;
+}
+
+/**
+ * Aggregates documents/chunks/KBs by domain (knowledge area) so the
+ * SuperCerebro KnowledgeAreasTab shows real numbers instead of static
+ * placeholders. Maps the 8 canonical Promo Brindes domains.
+ *
+ * Resilient to missing tables/columns: returns zeros instead of throwing
+ * because Super Cérebro tabs render even when the underlying schema is
+ * partially set up.
+ */
+export async function getKnowledgeAreaStats(): Promise<Record<string, KnowledgeAreaStats>> {
+  const domains = [
+    'processos',
+    'dados',
+    'rh',
+    'financeiro',
+    'compras',
+    'produtos',
+    'comercial',
+    'juridico',
+  ];
+
+  const result: Record<string, KnowledgeAreaStats> = {};
+
+  for (const domain of domains) {
+    const empty: KnowledgeAreaStats = {
+      domain,
+      documents: 0,
+      chunks: 0,
+      knowledge_bases: 0,
+      last_updated_at: null,
+    };
+
+    try {
+      // Count knowledge bases tagged with this domain
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const { count: kbCount } = await (supabase.from('knowledge_bases' as any) as any)
+        .select('*', { count: 'exact', head: true })
+        .eq('domain', domain);
+
+      // Count documents linked to KBs in this domain (best-effort)
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const { data: kbsInDomain } = await (supabase.from('knowledge_bases' as any) as any)
+        .select('id')
+        .eq('domain', domain);
+
+      const kbIds = ((kbsInDomain ?? []) as Array<{ id: string }>).map((r) => r.id);
+
+      let docCount = 0;
+      let chunkCount = 0;
+      let lastUpdated: string | null = null;
+
+      if (kbIds.length > 0) {
+        const { count: dCount } = await supabase
+          .from('documents')
+          .select('*', { count: 'exact', head: true })
+          .in('knowledge_base_id', kbIds);
+        docCount = dCount ?? 0;
+
+        const { count: cCount } = await supabase
+          .from('chunks')
+          .select('*', { count: 'exact', head: true })
+          .in('knowledge_base_id', kbIds);
+        chunkCount = cCount ?? 0;
+
+        const { data: latestDoc } = await supabase
+          .from('documents')
+          .select('updated_at')
+          .in('knowledge_base_id', kbIds)
+          .order('updated_at', { ascending: false })
+          .limit(1)
+          .maybeSingle();
+        lastUpdated = (latestDoc as { updated_at?: string } | null)?.updated_at ?? null;
+      }
+
+      result[domain] = {
+        domain,
+        documents: docCount,
+        chunks: chunkCount,
+        knowledge_bases: kbCount ?? 0,
+        last_updated_at: lastUpdated,
+      };
+    } catch {
+      result[domain] = empty;
+    }
+  }
+
+  return result;
+}
