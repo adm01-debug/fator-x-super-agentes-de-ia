@@ -7,8 +7,8 @@ import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
 import { Search, Loader2, Wrench, Globe, Database, Mail, FileSearch, Code, Webhook, Plus, Trash2 } from "lucide-react";
+import { AccessControl, DangerousActionDialog } from "@/components/rbac";
 import { useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import {
@@ -194,17 +194,26 @@ export default function ToolsPage() {
               <p className="text-xs text-muted-foreground">{tool.desc}</p>
               {!tool.built_in && (
                 <div className="mt-3 pt-2 border-t border-border/30">
-                  <AlertDialog>
-                    <AlertDialogTrigger asChild>
-                      <Button variant="ghost" size="sm" className="gap-1 text-xs text-destructive h-7 opacity-0 group-hover:opacity-100">
-                        <Trash2 className="h-3 w-3" /> Remover
-                      </Button>
-                    </AlertDialogTrigger>
-                    <AlertDialogContent>
-                      <AlertDialogHeader><AlertDialogTitle>Remover integração?</AlertDialogTitle><AlertDialogDescription>Essa ação não pode ser desfeita.</AlertDialogDescription></AlertDialogHeader>
-                      <AlertDialogFooter><AlertDialogCancel>Cancelar</AlertDialogCancel><AlertDialogAction onClick={() => handleDeleteTool(tool.id)} className="bg-destructive text-destructive-foreground">Remover</AlertDialogAction></AlertDialogFooter>
-                    </AlertDialogContent>
-                  </AlertDialog>
+                  <AccessControl permission="agents.delete">
+                    <DangerousActionDialog
+                      trigger={
+                        <Button variant="ghost" size="sm" className="gap-1 text-xs text-destructive h-7 opacity-0 group-hover:opacity-100">
+                          <Trash2 className="h-3 w-3" /> Remover
+                        </Button>
+                      }
+                      title="Remover integração de ferramenta"
+                      description="A integração será desconectada e todos os agentes que dependem dela perderão acesso. Essa ação não pode ser desfeita."
+                      action="delete"
+                      resourceType="tool_integration"
+                      resourceId={tool.id}
+                      resourceName={tool.name}
+                      minReasonLength={8}
+                      confirmLabel="Remover Integração"
+                      onConfirm={async () => {
+                        await handleDeleteTool(tool.id);
+                      }}
+                    />
+                  </AccessControl>
                 </div>
               )}
             </div>
