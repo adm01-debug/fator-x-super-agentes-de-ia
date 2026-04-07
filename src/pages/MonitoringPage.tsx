@@ -1,5 +1,6 @@
 import { PageHeader } from "@/components/shared/PageHeader";
 import { StatusBadge } from "@/components/shared/StatusBadge";
+import { SystemHealthBanner } from "@/components/shared/SystemHealthBanner";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Clock, DollarSign, Wrench, Activity, Loader2, Bell, CheckCircle, Trash2, Layers, Zap } from "lucide-react";
@@ -102,6 +103,8 @@ export default function MonitoringPage() {
   return (
     <div className="p-6 sm:p-8 lg:p-10 space-y-6 max-w-[1400px] mx-auto animate-page-enter">
       <PageHeader title="Monitoramento" description="Traces, sessões, alertas e observabilidade em tempo real" />
+
+      <SystemHealthBanner />
 
       {/* Agent filter */}
       <div className="flex items-center gap-3">
