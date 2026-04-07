@@ -5,11 +5,11 @@ import { InfoHint } from "@/components/shared/InfoHint";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
-import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
 import { Brain, Clock, Globe, User, Users, Database, Plus, Trash2, Search, Loader2, Zap, Archive, Sparkles } from "lucide-react";
 import { toast } from "sonner";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { addMemory, searchMemory, forgetMemory, listMemories, compactMemories, promoteMemoryToFact } from "@/services/memoryService";
+import { AccessControl, DangerousActionDialog } from "@/components/rbac";
 import { memorySchema } from "@/lib/validations/agentSchema";
 
 const memoryTypes = [
@@ -170,23 +170,26 @@ export default function MemoryPage() {
               >
                 <Sparkles className="h-3.5 w-3.5 text-nexus-amber" />
               </Button>
-              <AlertDialog>
-                <AlertDialogTrigger asChild>
-                  <Button variant="ghost" size="icon" className="h-7 w-7 shrink-0">
-                    <Trash2 className="h-3.5 w-3.5 text-destructive" />
-                  </Button>
-                </AlertDialogTrigger>
-                <AlertDialogContent>
-                  <AlertDialogHeader>
-                    <AlertDialogTitle>Remover memória?</AlertDialogTitle>
-                    <AlertDialogDescription>Esta ação não pode ser desfeita.</AlertDialogDescription>
-                  </AlertDialogHeader>
-                  <AlertDialogFooter>
-                    <AlertDialogCancel>Cancelar</AlertDialogCancel>
-                    <AlertDialogAction onClick={() => handleDelete(entry.id)}>Remover</AlertDialogAction>
-                  </AlertDialogFooter>
-                </AlertDialogContent>
-              </AlertDialog>
+              <AccessControl permission="knowledge.delete">
+                <DangerousActionDialog
+                  trigger={
+                    <Button variant="ghost" size="icon" className="h-7 w-7 shrink-0">
+                      <Trash2 className="h-3.5 w-3.5 text-destructive" />
+                    </Button>
+                  }
+                  title="Remover memória"
+                  description="Esta ação não pode ser desfeita. A memória será apagada permanentemente do agente."
+                  action="delete"
+                  resourceType="agent_memory"
+                  resourceId={entry.id}
+                  resourceName={entry.content.slice(0, 60)}
+                  minReasonLength={8}
+                  confirmLabel="Remover"
+                  onConfirm={async () => {
+                    await handleDelete(entry.id);
+                  }}
+                />
+              </AccessControl>
             </div>
           ))}
         </div>
