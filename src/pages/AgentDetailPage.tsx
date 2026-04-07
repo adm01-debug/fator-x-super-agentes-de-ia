@@ -56,11 +56,11 @@ export default function AgentDetailPage() {
             <StatusBadge status={agent.status || 'draft'} />
           </div>
           <div className="flex items-center gap-3 mt-2 text-xs text-muted-foreground">
-            <span>{agent.model}</span>
+            <span>{String(agent.model ?? '')}</span>
             <span>•</span>
-            <span>{agent.persona}</span>
+            <span>{String(agent.persona ?? '')}</span>
             <span>•</span>
-            <span>v{agent.version}</span>
+            <span>v{String(agent.version ?? '')}</span>
           </div>
         </div>
       </div>
@@ -69,10 +69,10 @@ export default function AgentDetailPage() {
         <div className="nexus-card">
           <h3 className="text-sm font-heading font-semibold text-foreground mb-3">Configuração</h3>
           <div className="space-y-2 text-xs">
-            <div className="flex justify-between"><span className="text-muted-foreground">Modelo</span><span className="text-foreground">{agent.model}</span></div>
-            <div className="flex justify-between"><span className="text-muted-foreground">Persona</span><span className="text-foreground">{agent.persona}</span></div>
-            <div className="flex justify-between"><span className="text-muted-foreground">Raciocínio</span><span className="text-foreground">{agent.reasoning}</span></div>
-            <div className="flex justify-between"><span className="text-muted-foreground">Versão</span><span className="text-foreground">v{agent.version}</span></div>
+            <div className="flex justify-between"><span className="text-muted-foreground">Modelo</span><span className="text-foreground">{String(agent.model ?? '')}</span></div>
+            <div className="flex justify-between"><span className="text-muted-foreground">Persona</span><span className="text-foreground">{String(agent.persona ?? '')}</span></div>
+            <div className="flex justify-between"><span className="text-muted-foreground">Raciocínio</span><span className="text-foreground">{String(agent.reasoning ?? '')}</span></div>
+            <div className="flex justify-between"><span className="text-muted-foreground">Versão</span><span className="text-foreground">v{String(agent.version ?? '')}</span></div>
           </div>
         </div>
         <div className="nexus-card">

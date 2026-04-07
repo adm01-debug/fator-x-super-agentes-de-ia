@@ -19,7 +19,6 @@ import { useAuth } from "@/contexts/AuthContext";
 import type { Tables } from "@/integrations/supabase/types";
 import { exportAgentToJSON, downloadJSON, importAgentFromJSON, readFileAsText } from "@/lib/agentExportImport";
 import { bulkUpdateStatus, bulkDelete } from "@/lib/agentBulkActions";
-import { AccessControl } from "@/components/rbac/AccessControl";
 import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from "@/components/ui/select";

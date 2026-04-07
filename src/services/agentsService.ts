@@ -49,6 +49,11 @@ export interface AgentVersion {
   id: string;
   agent_id: string;
   version: number;
+  model: string | null;
+  persona: string | null;
+  mission: string | null;
+  config: Record<string, unknown>;
+  change_summary: string | null;
   changes: string | null;
   created_at: string;
   [key: string]: unknown;
