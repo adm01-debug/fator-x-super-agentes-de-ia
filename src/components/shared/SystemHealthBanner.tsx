@@ -40,7 +40,7 @@ export function SystemHealthBanner() {
 
   if (isLoading) {
     return (
-      <div className="bg-[#111122] rounded-xl border border-[#222244] p-4 flex items-center gap-3">
+      <div className="bg-card rounded-xl border border-border p-4 flex items-center gap-3">
         <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
         <span className="text-sm text-muted-foreground">Verificando saúde do sistema…</span>
       </div>
@@ -49,8 +49,8 @@ export function SystemHealthBanner() {
 
   if (isError || !data) {
     return (
-      <div className="bg-[#111122] rounded-xl border border-[#FF6B6B]/40 p-4 flex items-center gap-3">
-        <XCircle className="h-5 w-5 text-[#FF6B6B]" />
+      <div className="bg-card rounded-xl border border-[#FF6B6B]/40 p-4 flex items-center gap-3">
+        <XCircle className="h-5 w-5 text-destructive" />
         <div className="flex-1">
           <p className="text-sm font-medium text-foreground">Health-check indisponível</p>
           <p className="text-xs text-muted-foreground">
@@ -59,7 +59,7 @@ export function SystemHealthBanner() {
         </div>
         <button
           onClick={() => refetch()}
-          className="text-xs px-3 py-1 rounded-md border border-[#222244] hover:bg-[#0a0a1a] transition"
+          className="text-xs px-3 py-1 rounded-md border border-border hover:bg-background transition"
         >
           Tentar novamente
         </button>
@@ -71,7 +71,7 @@ export function SystemHealthBanner() {
   const checkEntries = Object.entries(data.checks);
 
   return (
-    <div className="bg-[#111122] rounded-xl border border-[#222244] p-4">
+    <div className="bg-card rounded-xl border border-border p-4">
       <div className="flex items-center justify-between gap-3 mb-3">
         <div className="flex items-center gap-3">
           <StatusIcon status={overall} />
@@ -98,7 +98,7 @@ export function SystemHealthBanner() {
         {checkEntries.map(([name, info]) => (
           <div
             key={name}
-            className="bg-[#0a0a1a] rounded-lg border border-[#222244] px-3 py-2"
+            className="bg-background rounded-lg border border-border px-3 py-2"
           >
             <div className="flex items-center justify-between mb-1">
               <span className="text-xs font-medium text-muted-foreground capitalize">
@@ -113,7 +113,7 @@ export function SystemHealthBanner() {
               {info.latency_ms != null ? `${info.latency_ms}ms` : statusLabel(info.status as HealthStatus)}
             </p>
             {info.error && (
-              <p className="text-[10px] text-[#FF6B6B] truncate" title={info.error}>
+              <p className="text-[10px] text-destructive truncate" title={info.error}>
                 {info.error}
               </p>
             )}

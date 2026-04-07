@@ -150,10 +150,10 @@ export function WorkflowTimeTravelPanel({
 
   if (loading) {
     return (
-      <Card className="bg-[#111122] border-[#222244]">
+      <Card className="bg-card border-border">
         <CardContent className="flex items-center justify-center py-12">
-          <Loader2 className="w-6 h-6 animate-spin text-[#4D96FF]" />
-          <span className="ml-2 text-sm text-gray-400">Carregando timeline...</span>
+          <Loader2 className="w-6 h-6 animate-spin text-primary" />
+          <span className="ml-2 text-sm text-muted-foreground">Carregando timeline...</span>
         </CardContent>
       </Card>
     );
@@ -162,12 +162,12 @@ export function WorkflowTimeTravelPanel({
   return (
     <div className="space-y-4">
       {/* Header Stats */}
-      <Card className="bg-[#111122] border-[#222244]">
+      <Card className="bg-card border-border">
         <CardHeader className="pb-3">
-          <CardTitle className="flex items-center gap-2 text-base text-white">
-            <Clock className="w-4 h-4 text-[#4D96FF]" />
+          <CardTitle className="flex items-center gap-2 text-base text-foreground">
+            <Clock className="w-4 h-4 text-primary" />
             Time-Travel Debugger
-            <Badge className="bg-[#4D96FF]/20 text-[#4D96FF] text-[10px] ml-2">
+            <Badge className="bg-primary/20 text-primary text-[10px] ml-2">
               {timeline.length} checkpoints
             </Badge>
           </CardTitle>
@@ -175,24 +175,24 @@ export function WorkflowTimeTravelPanel({
         <CardContent>
           <div className="grid grid-cols-3 gap-4">
             <div className="flex items-center gap-2">
-              <DollarSign className="w-4 h-4 text-[#6BCB77]" />
+              <DollarSign className="w-4 h-4 text-nexus-emerald" />
               <div>
-                <p className="text-xs text-gray-400">Custo Total</p>
-                <p className="text-sm font-medium text-white">{formatCost(totalCost)}</p>
+                <p className="text-xs text-muted-foreground">Custo Total</p>
+                <p className="text-sm font-medium text-foreground">{formatCost(totalCost)}</p>
               </div>
             </div>
             <div className="flex items-center gap-2">
-              <Zap className="w-4 h-4 text-[#FFD93D]" />
+              <Zap className="w-4 h-4 text-nexus-amber" />
               <div>
-                <p className="text-xs text-gray-400">Tokens</p>
-                <p className="text-sm font-medium text-white">{formatTokens(totalTokens)}</p>
+                <p className="text-xs text-muted-foreground">Tokens</p>
+                <p className="text-sm font-medium text-foreground">{formatTokens(totalTokens)}</p>
               </div>
             </div>
             <div className="flex items-center gap-2">
-              <Clock className="w-4 h-4 text-[#9B59B6]" />
+              <Clock className="w-4 h-4 text-nexus-purple" />
               <div>
-                <p className="text-xs text-gray-400">Duração</p>
-                <p className="text-sm font-medium text-white">{formatDuration(totalDuration)}</p>
+                <p className="text-xs text-muted-foreground">Duração</p>
+                <p className="text-sm font-medium text-foreground">{formatDuration(totalDuration)}</p>
               </div>
             </div>
           </div>
@@ -201,14 +201,14 @@ export function WorkflowTimeTravelPanel({
 
       {/* Error Banner */}
       {error && (
-        <div className="flex items-center gap-2 p-3 rounded-lg bg-[#FF6B6B]/10 border border-[#FF6B6B]/30">
-          <AlertCircle className="w-4 h-4 text-[#FF6B6B]" />
-          <span className="text-sm text-[#FF6B6B]">{error}</span>
+        <div className="flex items-center gap-2 p-3 rounded-lg bg-destructive/10 border border-[#FF6B6B]/30">
+          <AlertCircle className="w-4 h-4 text-destructive" />
+          <span className="text-sm text-destructive">{error}</span>
         </div>
       )}
 
       {/* Timeline */}
-      <Card className="bg-[#111122] border-[#222244]">
+      <Card className="bg-card border-border">
         <CardContent className="p-0">
           <ScrollArea className="h-[400px]">
             <div className="p-4 space-y-1">
@@ -245,23 +245,23 @@ export function WorkflowTimeTravelPanel({
                     {/* Content */}
                     <div
                       className={`flex-1 pb-4 rounded-lg transition-colors cursor-pointer ${
-                        isSelected ? 'bg-[#0a0a2a] p-3' : 'hover:bg-[#0a0a1a] p-3'
+                        isSelected ? 'bg-[#0a0a2a] p-3' : 'hover:bg-background p-3'
                       }`}
                       onClick={() => handleInspect(entry.id)}
                     >
                       <div className="flex items-start justify-between">
                         <div>
-                          <p className="text-sm font-medium text-white">
+                          <p className="text-sm font-medium text-foreground">
                             #{entry.step_index} · {entry.node_type}
                           </p>
-                          <p className="text-xs text-gray-400 mt-0.5">
+                          <p className="text-xs text-muted-foreground mt-0.5">
                             Node: {entry.node_id}
                           </p>
                         </div>
                         <div className="flex items-center gap-1">
                           <Badge
                             variant="outline"
-                            className="text-[10px] border-[#222244]"
+                            className="text-[10px] border-border"
                             style={{ color: statusCfg.color }}
                           >
                             {statusCfg.label}
@@ -270,7 +270,7 @@ export function WorkflowTimeTravelPanel({
                       </div>
 
                       {/* Metrics */}
-                      <div className="flex items-center gap-3 mt-2 text-xs text-gray-500">
+                      <div className="flex items-center gap-3 mt-2 text-xs text-muted-foreground">
                         <span>{formatCost(entry.cost_usd)}</span>
                         <span>·</span>
                         <span>{formatTokens(entry.tokens_used)} tokens</span>
@@ -280,7 +280,7 @@ export function WorkflowTimeTravelPanel({
 
                       {/* Error message */}
                       {entry.error && (
-                        <p className="text-xs text-[#FF6B6B] mt-1 truncate">
+                        <p className="text-xs text-destructive mt-1 truncate">
                           ⚠ {entry.error}
                         </p>
                       )}
@@ -291,7 +291,7 @@ export function WorkflowTimeTravelPanel({
                           <Button
                             size="sm"
                             variant="outline"
-                            className="h-7 text-xs border-[#222244] hover:bg-[#4D96FF]/20 hover:text-[#4D96FF]"
+                            className="h-7 text-xs border-border hover:bg-primary/20 hover:text-primary"
                             onClick={(e) => {
                               e.stopPropagation();
                               handleInspect(entry.id);
@@ -303,7 +303,7 @@ export function WorkflowTimeTravelPanel({
                           <Button
                             size="sm"
                             variant="outline"
-                            className="h-7 text-xs border-[#222244] hover:bg-[#9B59B6]/20 hover:text-[#9B59B6]"
+                            className="h-7 text-xs border-border hover:bg-[#9B59B6]/20 hover:text-nexus-purple"
                             disabled={forking}
                             onClick={(e) => {
                               e.stopPropagation();
@@ -316,7 +316,7 @@ export function WorkflowTimeTravelPanel({
                           <Button
                             size="sm"
                             variant="outline"
-                            className="h-7 text-xs border-[#222244] hover:bg-[#6BCB77]/20 hover:text-[#6BCB77]"
+                            className="h-7 text-xs border-border hover:bg-nexus-emerald/20 hover:text-nexus-emerald"
                             onClick={(e) => {
                               e.stopPropagation();
                               handleResume(entry.id);
@@ -338,9 +338,9 @@ export function WorkflowTimeTravelPanel({
 
       {/* State Inspector */}
       {inspectedState && (
-        <Card className="bg-[#111122] border-[#222244]">
+        <Card className="bg-card border-border">
           <CardHeader className="pb-2">
-            <CardTitle className="flex items-center justify-between text-sm text-white">
+            <CardTitle className="flex items-center justify-between text-sm text-foreground">
               <span className="flex items-center gap-2">
                 <Eye className="w-4 h-4 text-[#E67E22]" />
                 Estado do Checkpoint
@@ -348,7 +348,7 @@ export function WorkflowTimeTravelPanel({
               <Button
                 size="sm"
                 variant="ghost"
-                className="h-6 text-xs text-gray-400"
+                className="h-6 text-xs text-muted-foreground"
                 onClick={() => setInspectedState(null)}
               >
                 Fechar

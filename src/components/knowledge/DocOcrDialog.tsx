@@ -130,10 +130,10 @@ export function DocOcrDialog() {
           OCR de documento
         </Button>
       </DialogTrigger>
-      <DialogContent className="bg-[#111122] border-[#222244] max-w-2xl">
+      <DialogContent className="bg-card border-border max-w-2xl">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
-            <FileSearch className="h-5 w-5 text-[#6BCB77]" />
+            <FileSearch className="h-5 w-5 text-nexus-emerald" />
             OCR de documento
           </DialogTitle>
           <DialogDescription>
@@ -150,7 +150,7 @@ export function DocOcrDialog() {
                 type="file"
                 accept="image/*"
                 onChange={handleFile}
-                className="flex-1 text-xs file:mr-3 file:px-3 file:py-1.5 file:rounded-md file:border-0 file:bg-[#0a0a1a] file:text-foreground hover:file:bg-[#222244]"
+                className="flex-1 text-xs file:mr-3 file:px-3 file:py-1.5 file:rounded-md file:border-0 file:bg-background file:text-foreground hover:file:bg-[#222244]"
               />
               <Upload className="h-4 w-4 text-muted-foreground" />
             </div>
@@ -158,7 +158,7 @@ export function DocOcrDialog() {
               <img
                 src={preview}
                 alt="preview"
-                className="max-h-48 rounded-lg border border-[#222244] object-contain bg-[#0a0a1a] mx-auto"
+                className="max-h-48 rounded-lg border border-border object-contain bg-background mx-auto"
               />
             )}
           </div>
@@ -166,7 +166,7 @@ export function DocOcrDialog() {
           <div className="space-y-2">
             <Label>Ação</Label>
             <Select value={action} onValueChange={(v) => setAction(v as DocOcrAction)}>
-              <SelectTrigger className="bg-[#0a0a1a] border-[#222244]">
+              <SelectTrigger className="bg-background border-border">
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
@@ -187,7 +187,7 @@ export function DocOcrDialog() {
                 onChange={(e) => setPrompt(e.target.value)}
                 rows={3}
                 placeholder="Descreva o conteúdo deste documento em detalhes."
-                className="bg-[#0a0a1a] border-[#222244]"
+                className="bg-background border-border"
               />
             </div>
           )}
@@ -206,7 +206,7 @@ export function DocOcrDialog() {
                     }
                   }}
                   placeholder="Ex.: nome do cliente, CNPJ, valor total"
-                  className="bg-[#0a0a1a] border-[#222244]"
+                  className="bg-background border-border"
                 />
                 <Button type="button" variant="outline" size="sm" onClick={addField}>
                   <Plus className="h-3.5 w-3.5" />
@@ -230,7 +230,7 @@ export function DocOcrDialog() {
           <Button
             onClick={handleRun}
             disabled={!file || loading}
-            className="w-full bg-[#6BCB77] hover:bg-[#6BCB77]/90 text-[#050510]"
+            className="w-full bg-nexus-emerald hover:bg-nexus-emerald/90 text-[#050510]"
           >
             {loading ? (
               <>
@@ -249,7 +249,7 @@ export function DocOcrDialog() {
                 value={result}
                 readOnly
                 rows={10}
-                className="bg-[#0a0a1a] border-[#222244] font-mono text-xs"
+                className="bg-background border-border font-mono text-xs"
               />
               <div className="flex gap-2">
                 <Button variant="outline" size="sm" onClick={handleCopy} className="gap-1.5">

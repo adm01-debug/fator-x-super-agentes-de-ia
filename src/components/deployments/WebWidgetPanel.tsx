@@ -77,12 +77,12 @@ export function WebWidgetPanel({ agentId: initialAgentId, agentName }: WebWidget
   };
 
   return (
-    <Card className="bg-[#111122] border-[#222244]">
+    <Card className="bg-card border-border">
       <CardHeader>
         <CardTitle className="flex items-center gap-2 text-base">
-          <Globe className="h-4 w-4 text-[#4D96FF]" />
+          <Globe className="h-4 w-4 text-primary" />
           Web Widget Embed
-          {agentName && <Badge variant="outline" className="text-[10px] border-[#222244]">{agentName}</Badge>}
+          {agentName && <Badge variant="outline" className="text-[10px] border-border">{agentName}</Badge>}
         </CardTitle>
       </CardHeader>
       <CardContent className="space-y-4">
@@ -94,14 +94,14 @@ export function WebWidgetPanel({ agentId: initialAgentId, agentName }: WebWidget
               value={agentId}
               onChange={(e) => setAgentId(e.target.value)}
               placeholder="uuid do agente"
-              className="bg-[#0a0a1a] border-[#222244] font-mono text-xs"
+              className="bg-background border-border font-mono text-xs"
             />
             <Button
               variant="outline"
               size="sm"
               onClick={handlePing}
               disabled={pingLoading || !agentId.trim()}
-              className="border-[#222244] gap-1.5 shrink-0"
+              className="border-border gap-1.5 shrink-0"
             >
               {pingLoading ? (
                 <Loader2 className="h-3.5 w-3.5 animate-spin" />
@@ -131,7 +131,7 @@ export function WebWidgetPanel({ agentId: initialAgentId, agentName }: WebWidget
                   <Copy className="h-3 w-3" /> Copiar
                 </Button>
               </div>
-              <pre className="p-3 rounded-lg bg-[#0a0a1a] border border-[#222244] text-[11px] font-mono text-gray-300 overflow-x-auto">
+              <pre className="p-3 rounded-lg bg-background border border-border text-[11px] font-mono text-gray-300 overflow-x-auto">
                 {snippet.htmlSnippet}
               </pre>
             </div>
@@ -148,33 +148,33 @@ export function WebWidgetPanel({ agentId: initialAgentId, agentName }: WebWidget
                   <Copy className="h-3 w-3" /> Copiar
                 </Button>
               </div>
-              <code className="block p-2 rounded bg-[#0a0a1a] border border-[#222244] text-[10px] font-mono text-gray-400 break-all">
+              <code className="block p-2 rounded bg-background border border-border text-[10px] font-mono text-muted-foreground break-all">
                 {snippet.scriptUrl}
               </code>
             </div>
 
-            <div className="pt-3 border-t border-[#222244] space-y-2">
+            <div className="pt-3 border-t border-border space-y-2">
               <Label htmlFor="widget-test-msg">Testar chat do widget</Label>
               <Textarea
                 id="widget-test-msg"
                 value={testMessage}
                 onChange={(e) => setTestMessage(e.target.value)}
                 rows={2}
-                className="bg-[#0a0a1a] border-[#222244] text-xs resize-none"
+                className="bg-background border-border text-xs resize-none"
               />
               <Button
                 onClick={handleTestChat}
                 disabled={chatLoading}
                 size="sm"
-                className="bg-[#4D96FF] hover:bg-[#4D96FF]/90 text-white gap-1.5"
+                className="bg-primary hover:bg-primary/90 text-foreground gap-1.5"
               >
                 {chatLoading ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Send className="h-3.5 w-3.5" />}
                 Enviar Teste
               </Button>
 
               {chatReply && (
-                <div className="mt-3 p-3 rounded-lg bg-[#0a0a1a] border border-[#4D96FF]/30">
-                  <p className="text-[10px] text-[#4D96FF] uppercase tracking-wider mb-1">Resposta do Agent</p>
+                <div className="mt-3 p-3 rounded-lg bg-background border border-[#4D96FF]/30">
+                  <p className="text-[10px] text-primary uppercase tracking-wider mb-1">Resposta do Agent</p>
                   <p className="text-xs text-gray-200 whitespace-pre-wrap">{chatReply}</p>
                 </div>
               )}
@@ -183,7 +183,7 @@ export function WebWidgetPanel({ agentId: initialAgentId, agentName }: WebWidget
         )}
 
         {!snippet && (
-          <p className="text-xs text-gray-500 italic">
+          <p className="text-xs text-muted-foreground italic">
             Informe o Agent ID acima para gerar o snippet de embed e testar o widget.
           </p>
         )}

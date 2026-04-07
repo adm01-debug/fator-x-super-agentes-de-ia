@@ -99,18 +99,18 @@ export function HealthTab() {
     : 0;
 
   if (loading) {
-    return <div className="flex items-center justify-center h-64"><span className="text-[#888888]">Analisando saúde do conhecimento...</span></div>;
+    return <div className="flex items-center justify-center h-64"><span className="text-muted-foreground">Analisando saúde do conhecimento...</span></div>;
   }
 
   return (
     <div className="space-y-6">
       {/* Overall Score */}
-      <div className="bg-[#111122] rounded-xl border border-[#222244] p-8 text-center">
+      <div className="bg-card rounded-xl border border-border p-8 text-center">
         <div className="text-6xl font-bold mb-2" style={{ color: overallScore > 75 ? '#6BCB77' : overallScore > 50 ? '#FFD93D' : '#FF6B6B' }}>
           {overallScore}
         </div>
-        <div className="text-sm text-[#888888]">Health Score Geral</div>
-        <div className="text-xs text-[#555555] mt-1">
+        <div className="text-sm text-muted-foreground">Health Score Geral</div>
+        <div className="text-xs text-muted-foreground mt-1">
           {overallScore > 75 ? 'Saudável' : overallScore > 50 ? 'Atenção necessária' : 'Crítico — ação urgente'}
         </div>
       </div>
@@ -118,20 +118,20 @@ export function HealthTab() {
       {/* Metric Cards */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
         {metrics.map(m => (
-          <div key={m.category} className="bg-[#111122] rounded-xl border border-[#222244] p-5">
+          <div key={m.category} className="bg-card rounded-xl border border-border p-5">
             <div className="flex items-center justify-between mb-3">
               <div className="flex items-center gap-2">
                 <span className="text-lg">{m.icon}</span>
-                <span className="text-sm font-semibold text-white">{m.category}</span>
+                <span className="text-sm font-semibold text-foreground">{m.category}</span>
               </div>
               <span className="text-lg font-bold" style={{ color: m.color }}>{m.score}%</span>
             </div>
             <div className="h-2 bg-[#222244] rounded-full mb-2">
               <div className="h-full rounded-full transition-all" style={{ width: `${m.score}%`, backgroundColor: m.color }} />
             </div>
-            <p className="text-xs text-[#888888]">{m.description}</p>
+            <p className="text-xs text-muted-foreground">{m.description}</p>
             {m.issues > 0 && (
-              <p className="text-xs text-[#FF6B6B] mt-1">⚠️ {m.issues} itens precisam de atenção</p>
+              <p className="text-xs text-destructive mt-1">⚠️ {m.issues} itens precisam de atenção</p>
             )}
           </div>
         ))}

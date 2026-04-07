@@ -49,7 +49,7 @@ function FilePicker({
             const f = e.target.files?.[0];
             if (f) onFile(f);
           }}
-          className="flex-1 text-xs file:mr-3 file:px-3 file:py-1.5 file:rounded-md file:border-0 file:bg-[#0a0a1a] file:text-foreground hover:file:bg-[#222244]"
+          className="flex-1 text-xs file:mr-3 file:px-3 file:py-1.5 file:rounded-md file:border-0 file:bg-background file:text-foreground hover:file:bg-[#222244]"
         />
         <Upload className="h-4 w-4 text-muted-foreground" />
       </div>
@@ -57,7 +57,7 @@ function FilePicker({
         <img
           src={preview}
           alt={label}
-          className="max-h-32 rounded-lg border border-[#222244] object-contain bg-[#0a0a1a]"
+          className="max-h-32 rounded-lg border border-border object-contain bg-background"
         />
       )}
     </div>
@@ -77,7 +77,7 @@ function ResultImage({ src, label }: { src: string; label: string }) {
       <img
         src={src}
         alt={label}
-        className="max-h-80 rounded-lg border border-[#222244] object-contain bg-[#0a0a1a] mx-auto"
+        className="max-h-80 rounded-lg border border-border object-contain bg-background mx-auto"
       />
       <Button variant="outline" size="sm" onClick={handleDownload} className="gap-1.5">
         <Download className="h-3.5 w-3.5" />
@@ -141,7 +141,7 @@ function MockupTab() {
             value={productName}
             onChange={(e) => setProductName(e.target.value)}
             placeholder="Ex.: caneca branca personalizada"
-            className="bg-[#0a0a1a] border-[#222244]"
+            className="bg-background border-border"
           />
         </div>
         <div className="space-y-2">
@@ -151,11 +151,11 @@ function MockupTab() {
             value={bgPrompt}
             onChange={(e) => setBgPrompt(e.target.value)}
             placeholder="Ex.: studio lighting, white gradient"
-            className="bg-[#0a0a1a] border-[#222244]"
+            className="bg-background border-border"
           />
         </div>
       </div>
-      <Button onClick={handleGenerate} disabled={!productFile || loading} className="w-full bg-[#4D96FF] hover:bg-[#4D96FF]/90">
+      <Button onClick={handleGenerate} disabled={!productFile || loading} className="w-full bg-primary hover:bg-primary/90">
         {loading ? <><Loader2 className="h-4 w-4 animate-spin mr-2" />Processando…</> : "Gerar mockup"}
       </Button>
       {steps.length > 0 && (
@@ -218,7 +218,7 @@ function UpscaleTab() {
   return (
     <div className="space-y-4">
       <FilePicker id="upscale-file" label="Imagem (até 10MB)" onFile={handleFile} preview={preview} />
-      <Button onClick={handleUpscale} disabled={!file || loading} className="w-full bg-[#4D96FF] hover:bg-[#4D96FF]/90">
+      <Button onClick={handleUpscale} disabled={!file || loading} className="w-full bg-primary hover:bg-primary/90">
         {loading ? <><Loader2 className="h-4 w-4 animate-spin mr-2" />Aumentando resolução…</> : "Upscale 2x"}
       </Button>
       {resultUrl && <ResultImage src={resultUrl} label="Imagem-upscale" />}
@@ -290,13 +290,13 @@ function InpaintTab() {
           onChange={(e) => setPrompt(e.target.value)}
           rows={3}
           placeholder="Ex.: substituir o fundo por um céu azul"
-          className="bg-[#0a0a1a] border-[#222244]"
+          className="bg-background border-border"
         />
       </div>
       <Button
         onClick={handleInpaint}
         disabled={!imageFile || !maskFile || !prompt.trim() || loading}
-        className="w-full bg-[#4D96FF] hover:bg-[#4D96FF]/90"
+        className="w-full bg-primary hover:bg-primary/90"
       >
         {loading ? <><Loader2 className="h-4 w-4 animate-spin mr-2" />Editando…</> : "Inpaint"}
       </Button>
@@ -343,13 +343,13 @@ function SegmentTab() {
         }}
         preview={preview}
       />
-      <Button onClick={handleSegment} disabled={!file || loading} className="w-full bg-[#4D96FF] hover:bg-[#4D96FF]/90">
+      <Button onClick={handleSegment} disabled={!file || loading} className="w-full bg-primary hover:bg-primary/90">
         {loading ? <><Loader2 className="h-4 w-4 animate-spin mr-2" />Analisando…</> : "Segmentar"}
       </Button>
       {segments.length > 0 && (
         <div className="space-y-2">
           <Label>Objetos detectados</Label>
-          <div className="bg-[#0a0a1a] rounded-lg border border-[#222244] p-3 space-y-1">
+          <div className="bg-background rounded-lg border border-border p-3 space-y-1">
             {segments.map((s, i) => (
               <div key={i} className="flex items-center justify-between text-xs">
                 <span className="text-foreground">{s.label}</span>
@@ -371,7 +371,7 @@ function SegmentTab() {
 
 export function ProductMockupPanel() {
   return (
-    <div className="bg-[#111122] rounded-xl border border-[#222244] p-6 space-y-4">
+    <div className="bg-card rounded-xl border border-border p-6 space-y-4">
       <div className="flex items-center gap-3">
         <div className="h-10 w-10 rounded-lg bg-[#E67E22]/10 flex items-center justify-center">
           <ImageIcon className="h-5 w-5 text-[#E67E22]" />
@@ -384,7 +384,7 @@ export function ProductMockupPanel() {
         </div>
       </div>
       <Tabs defaultValue="mockup" className="space-y-4">
-        <TabsList className="bg-[#0a0a1a]">
+        <TabsList className="bg-background">
           <TabsTrigger value="mockup" className="gap-1.5">
             <Sparkles className="h-3.5 w-3.5" />
             Mockup

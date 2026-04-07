@@ -111,10 +111,10 @@ export function ImageAnalysisDialog() {
           Análise de imagem
         </Button>
       </DialogTrigger>
-      <DialogContent className="bg-[#111122] border-[#222244] max-w-2xl">
+      <DialogContent className="bg-card border-border max-w-2xl">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
-            <Eye className="h-5 w-5 text-[#9B59B6]" />
+            <Eye className="h-5 w-5 text-nexus-purple" />
             Análise de imagem
           </DialogTitle>
           <DialogDescription>
@@ -131,7 +131,7 @@ export function ImageAnalysisDialog() {
                 type="file"
                 accept="image/*"
                 onChange={handleFile}
-                className="flex-1 text-xs file:mr-3 file:px-3 file:py-1.5 file:rounded-md file:border-0 file:bg-[#0a0a1a] file:text-foreground hover:file:bg-[#222244]"
+                className="flex-1 text-xs file:mr-3 file:px-3 file:py-1.5 file:rounded-md file:border-0 file:bg-background file:text-foreground hover:file:bg-[#222244]"
               />
               <Upload className="h-4 w-4 text-muted-foreground" />
             </div>
@@ -139,7 +139,7 @@ export function ImageAnalysisDialog() {
               <img
                 src={preview}
                 alt="preview"
-                className="max-h-48 rounded-lg border border-[#222244] object-contain bg-[#0a0a1a] mx-auto"
+                className="max-h-48 rounded-lg border border-border object-contain bg-background mx-auto"
               />
             )}
           </div>
@@ -147,7 +147,7 @@ export function ImageAnalysisDialog() {
           <div className="space-y-2">
             <Label>Modo</Label>
             <Select value={mode} onValueChange={(v) => setMode(v as Mode)}>
-              <SelectTrigger className="bg-[#0a0a1a] border-[#222244]">
+              <SelectTrigger className="bg-background border-border">
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
@@ -178,7 +178,7 @@ export function ImageAnalysisDialog() {
                 value={prompt}
                 onChange={(e) => setPrompt(e.target.value)}
                 rows={3}
-                className="bg-[#0a0a1a] border-[#222244]"
+                className="bg-background border-border"
               />
             </div>
           )}
@@ -201,7 +201,7 @@ export function ImageAnalysisDialog() {
           {analysis && (
             <div className="space-y-2">
               <Label>Resultado</Label>
-              <div className="bg-[#0a0a1a] rounded-lg border border-[#222244] p-3 text-xs text-foreground whitespace-pre-wrap max-h-64 overflow-y-auto">
+              <div className="bg-background rounded-lg border border-border p-3 text-xs text-foreground whitespace-pre-wrap max-h-64 overflow-y-auto">
                 {analysis}
               </div>
             </div>
@@ -228,7 +228,7 @@ export function ImageAnalysisDialog() {
           {classes.length > 0 && (
             <div className="space-y-2">
               <Label>Classes / scores</Label>
-              <div className="bg-[#0a0a1a] rounded-lg border border-[#222244] p-3 space-y-1 max-h-48 overflow-y-auto">
+              <div className="bg-background rounded-lg border border-border p-3 space-y-1 max-h-48 overflow-y-auto">
                 {classes.map((c, i) => (
                   <div key={i} className="flex items-center justify-between text-xs">
                     <span className="text-foreground">{c.label}</span>

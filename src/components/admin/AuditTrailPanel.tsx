@@ -100,22 +100,22 @@ export function AuditTrailPanel() {
   };
 
   return (
-    <Card className="bg-[#111122] border-[#222244]">
+    <Card className="bg-card border-border">
       <CardHeader>
         <div className="flex items-center justify-between gap-4 flex-wrap">
           <CardTitle className="flex items-center gap-2 text-base">
-            <Shield className="h-4 w-4 text-[#9B59B6]" />
+            <Shield className="h-4 w-4 text-nexus-purple" />
             Audit Trail
-            <Badge variant="outline" className="text-[10px] border-[#222244]">
+            <Badge variant="outline" className="text-[10px] border-border">
               últimas 200 entradas
             </Badge>
           </CardTitle>
           <div className="flex items-center gap-2">
             <Select value={actionFilter} onValueChange={(v) => setActionFilter(v as AuditAction | 'all')}>
-              <SelectTrigger className="bg-[#0a0a1a] border-[#222244] h-8 text-xs w-[180px]">
+              <SelectTrigger className="bg-background border-border h-8 text-xs w-[180px]">
                 <SelectValue />
               </SelectTrigger>
-              <SelectContent className="bg-[#111122] border-[#222244]">
+              <SelectContent className="bg-card border-border">
                 <SelectItem value="all">Todas as ações</SelectItem>
                 {Object.entries(ACTION_LABELS).map(([k, label]) => (
                   <SelectItem key={k} value={k}>
@@ -128,7 +128,7 @@ export function AuditTrailPanel() {
               variant="outline"
               size="sm"
               onClick={() => refetch()}
-              className="h-8 border-[#222244]"
+              className="h-8 border-border"
               disabled={isLoading}
             >
               {isLoading ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <RefreshCw className="h-3.5 w-3.5" />}
@@ -137,7 +137,7 @@ export function AuditTrailPanel() {
               variant="outline"
               size="sm"
               onClick={exportCsv}
-              className="h-8 border-[#222244] gap-1.5"
+              className="h-8 border-border gap-1.5"
               disabled={entries.length === 0}
             >
               <Download className="h-3.5 w-3.5" /> CSV
@@ -147,30 +147,30 @@ export function AuditTrailPanel() {
       </CardHeader>
       <CardContent className="space-y-4">
         <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-          <div className="p-3 rounded-lg bg-[#0a0a1a] border border-[#222244]">
-            <p className="text-[10px] text-gray-500 uppercase tracking-wider">Total</p>
-            <p className="text-xl font-bold text-[#4D96FF] mt-1">{stats.total}</p>
+          <div className="p-3 rounded-lg bg-background border border-border">
+            <p className="text-[10px] text-muted-foreground uppercase tracking-wider">Total</p>
+            <p className="text-xl font-bold text-primary mt-1">{stats.total}</p>
           </div>
-          <div className="p-3 rounded-lg bg-[#0a0a1a] border border-[#222244]">
-            <p className="text-[10px] text-gray-500 uppercase tracking-wider">Sucessos</p>
+          <div className="p-3 rounded-lg bg-background border border-border">
+            <p className="text-[10px] text-muted-foreground uppercase tracking-wider">Sucessos</p>
             <p className="text-xl font-bold text-green-400 mt-1">{stats.success}</p>
           </div>
-          <div className="p-3 rounded-lg bg-[#0a0a1a] border border-[#222244]">
-            <p className="text-[10px] text-gray-500 uppercase tracking-wider">Falhas</p>
+          <div className="p-3 rounded-lg bg-background border border-border">
+            <p className="text-[10px] text-muted-foreground uppercase tracking-wider">Falhas</p>
             <p className="text-xl font-bold text-red-400 mt-1">{stats.failed}</p>
           </div>
-          <div className="p-3 rounded-lg bg-[#0a0a1a] border border-[#222244]">
-            <p className="text-[10px] text-gray-500 uppercase tracking-wider">Negadas</p>
+          <div className="p-3 rounded-lg bg-background border border-border">
+            <p className="text-[10px] text-muted-foreground uppercase tracking-wider">Negadas</p>
             <p className="text-xl font-bold text-yellow-400 mt-1">{stats.denied}</p>
           </div>
         </div>
 
         {isLoading ? (
-          <div className="flex items-center justify-center py-12 text-gray-400">
+          <div className="flex items-center justify-center py-12 text-muted-foreground">
             <Loader2 className="h-5 w-5 animate-spin mr-2" /> Carregando audit trail...
           </div>
         ) : entries.length === 0 ? (
-          <div className="text-center py-12 text-gray-400">
+          <div className="text-center py-12 text-muted-foreground">
             <Shield className="h-10 w-10 mx-auto mb-3 opacity-30" />
             <p className="text-sm">Nenhuma entrada de audit ainda.</p>
             <p className="text-xs mt-1 opacity-70">Ações sensíveis serão registradas aqui automaticamente.</p>
@@ -183,7 +183,7 @@ export function AuditTrailPanel() {
               return (
                 <div
                   key={e.id ?? idx}
-                  className="p-3 rounded-lg bg-[#0a0a1a] border border-[#222244] hover:border-[#4D96FF]/50 transition-colors"
+                  className="p-3 rounded-lg bg-background border border-border hover:border-primary/50 transition-colors"
                 >
                   <div className="flex items-start justify-between gap-3">
                     <div className="flex items-center gap-2 min-w-0 flex-1">
@@ -192,22 +192,22 @@ export function AuditTrailPanel() {
                         e.status === 'failed' ? 'text-red-400' :
                         'text-yellow-400'
                       }`} />
-                      <Badge variant="outline" className="text-[10px] border-[#222244] font-mono shrink-0">
+                      <Badge variant="outline" className="text-[10px] border-border font-mono shrink-0">
                         {ACTION_LABELS[e.action] ?? e.action}
                       </Badge>
                       <span className="text-xs text-gray-300 truncate">
                         {e.resource_type}
                         {e.resource_name && (
-                          <>: <span className="font-mono text-gray-400">{e.resource_name}</span></>
+                          <>: <span className="font-mono text-muted-foreground">{e.resource_name}</span></>
                         )}
                       </span>
                     </div>
-                    <span className="text-[10px] text-gray-500 shrink-0">
+                    <span className="text-[10px] text-muted-foreground shrink-0">
                       {e.created_at ? new Date(e.created_at).toLocaleString('pt-BR') : '—'}
                     </span>
                   </div>
                   {e.reason && (
-                    <p className="text-[11px] text-gray-400 mt-1.5 italic line-clamp-2 pl-5">
+                    <p className="text-[11px] text-muted-foreground mt-1.5 italic line-clamp-2 pl-5">
                       "{e.reason}"
                     </p>
                   )}

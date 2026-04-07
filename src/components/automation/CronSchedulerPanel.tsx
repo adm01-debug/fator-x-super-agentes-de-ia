@@ -11,7 +11,7 @@ const STATUS_COLORS: Record<string, string> = {
   paused: 'bg-yellow-500/20 text-yellow-400',
   completed: 'bg-blue-500/20 text-blue-400',
   failed: 'bg-red-500/20 text-red-400',
-  expired: 'bg-gray-500/20 text-gray-400',
+  expired: 'bg-gray-500/20 text-muted-foreground',
 };
 
 export function CronSchedulerPanel() {
@@ -73,10 +73,10 @@ export function CronSchedulerPanel() {
           { label: 'Pausados', value: stats?.paused_schedules ?? 0, color: '#FFD93D' },
           { label: 'Taxa Sucesso', value: `${(stats?.success_rate ?? 0).toFixed(1)}%`, color: '#9B59B6' },
         ].map((s, i) => (
-          <Card key={i} className="bg-[#111122] border-[#222244]">
+          <Card key={i} className="bg-card border-border">
             <CardContent className="p-4 text-center">
               <p className="text-2xl font-bold" style={{ color: s.color }}>{s.value}</p>
-              <p className="text-xs text-gray-400">{s.label}</p>
+              <p className="text-xs text-muted-foreground">{s.label}</p>
             </CardContent>
           </Card>
         ))}
@@ -91,7 +91,7 @@ export function CronSchedulerPanel() {
             size="sm"
             onClick={handleRunPending}
             disabled={running}
-            className="border-[#222244] hover:border-[#4D96FF]"
+            className="border-border hover:border-primary"
           >
             {running ? (
               <Loader2 size={14} className="mr-1 animate-spin" />
@@ -100,20 +100,20 @@ export function CronSchedulerPanel() {
             )}
             Executar Pendentes
           </Button>
-          <Button variant="outline" size="sm" onClick={loadData} className="border-[#222244]">
+          <Button variant="outline" size="sm" onClick={loadData} className="border-border">
             <RefreshCw size={14} className="mr-1" /> Atualizar
           </Button>
         </div>
       </div>
 
       {/* Presets */}
-      <Card className="bg-[#111122] border-[#222244]">
-        <CardHeader className="pb-3"><CardTitle className="text-sm text-gray-400">Presets Disponíveis</CardTitle></CardHeader>
+      <Card className="bg-card border-border">
+        <CardHeader className="pb-3"><CardTitle className="text-sm text-muted-foreground">Presets Disponíveis</CardTitle></CardHeader>
         <CardContent>
           <div className="flex flex-wrap gap-2">
             {Object.entries(CRON_PRESETS).map(([key, preset]) => (
-              <Badge key={key} variant="outline" className="border-[#222244] text-xs cursor-pointer hover:bg-[#1a1a3e]" title={preset.description}>
-                <Clock size={10} className="mr-1 text-[#4D96FF]" />
+              <Badge key={key} variant="outline" className="border-border text-xs cursor-pointer hover:bg-accent" title={preset.description}>
+                <Clock size={10} className="mr-1 text-primary" />
                 {preset.label}
               </Badge>
             ))}
@@ -123,10 +123,10 @@ export function CronSchedulerPanel() {
 
       {/* Schedules List */}
       {loading ? (
-        <div className="text-center py-12 text-gray-400">Carregando agendamentos...</div>
+        <div className="text-center py-12 text-muted-foreground">Carregando agendamentos...</div>
       ) : schedules.length === 0 ? (
-        <Card className="bg-[#111122] border-[#222244]">
-          <CardContent className="py-12 text-center text-gray-400">
+        <Card className="bg-card border-border">
+          <CardContent className="py-12 text-center text-muted-foreground">
             <Clock size={48} className="mx-auto mb-4 opacity-30" />
             <p>Nenhum agendamento criado ainda.</p>
             <p className="text-sm mt-1">Use os presets acima ou crie um agendamento personalizado.</p>
@@ -135,24 +135,24 @@ export function CronSchedulerPanel() {
       ) : (
         <div className="space-y-3">
           {schedules.map((s) => (
-            <Card key={s.id} className="bg-[#111122] border-[#222244]">
+            <Card key={s.id} className="bg-card border-border">
               <CardContent className="p-4">
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-3">
-                    <Clock size={18} className="text-[#4D96FF]" />
+                    <Clock size={18} className="text-primary" />
                     <div>
                       <p className="font-medium">{s.name}</p>
-                      <p className="text-xs text-gray-400">
+                      <p className="text-xs text-muted-foreground">
                         {s.cron_expression ? describeCronExpression(s.cron_expression) : s.frequency}
                         {s.next_run_at && ` • Próx: ${new Date(s.next_run_at).toLocaleString('pt-BR')}`}
                       </p>
                     </div>
                   </div>
                   <div className="flex items-center gap-2">
-                    <Badge className={STATUS_COLORS[s.status] ?? 'bg-gray-500/20 text-gray-400'}>
+                    <Badge className={STATUS_COLORS[s.status] ?? 'bg-gray-500/20 text-muted-foreground'}>
                       {s.status}
                     </Badge>
-                    <span className="text-xs text-gray-500">{s.run_count} runs</span>
+                    <span className="text-xs text-muted-foreground">{s.run_count} runs</span>
                   </div>
                 </div>
               </CardContent>

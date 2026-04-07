@@ -78,22 +78,22 @@ export function SandboxTab() {
   return (
     <div className="space-y-6">
       {/* Input */}
-      <div className="bg-[#111122] rounded-xl border border-[#222244] p-6">
-        <h3 className="text-sm font-bold text-white mb-3">🧪 Perguntas para testar</h3>
-        <p className="text-xs text-[#888888] mb-3">Uma pergunta por linha. O cérebro responderá cada uma.</p>
+      <div className="bg-card rounded-xl border border-border p-6">
+        <h3 className="text-sm font-bold text-foreground mb-3">🧪 Perguntas para testar</h3>
+        <p className="text-xs text-muted-foreground mb-3">Uma pergunta por linha. O cérebro responderá cada uma.</p>
         <textarea
           value={questions}
           onChange={(e) => setQuestions(e.target.value)}
           placeholder={`Qual fornecedor de canetas atende SP com prazo < 5 dias?\nQuem é o vendedor responsável pela empresa X?\nQual o prazo médio de entrega do fornecedor Y?`}
           rows={6}
-          className="w-full bg-[#0a0a1a] border border-[#222244] rounded-lg p-3 text-sm text-white placeholder-[#555555] resize-none focus:border-[#4D96FF] focus:outline-none"
+          className="w-full bg-background border border-border rounded-lg p-3 text-sm text-foreground placeholder-[#555555] resize-none focus:border-primary focus:outline-none"
         />
         <div className="flex items-center justify-between mt-3">
-          <span className="text-xs text-[#888888]">{questions.split('\n').filter(l => l.trim()).length} perguntas</span>
+          <span className="text-xs text-muted-foreground">{questions.split('\n').filter(l => l.trim()).length} perguntas</span>
           <button
             onClick={runTest}
             disabled={isRunning || !questions.trim()}
-            className="px-4 py-2 text-sm text-white bg-gradient-to-r from-[#4D96FF] to-[#6BCB77] rounded-lg hover:opacity-90 disabled:opacity-50 transition-opacity"
+            className="px-4 py-2 text-sm text-foreground bg-gradient-to-r from-[#4D96FF] to-[#6BCB77] rounded-lg hover:opacity-90 disabled:opacity-50 transition-opacity"
           >
             {isRunning ? `⏳ Testando... ${progress}%` : '▶️ Executar Teste'}
           </button>
@@ -115,9 +115,9 @@ export function SandboxTab() {
             { label: 'Latência Média', value: `${Math.round(avgLatency)}ms`, color: avgLatency < 2000 ? '#6BCB77' : '#FF6B6B' },
             { label: 'Taxa de Sucesso', value: `${Math.round(successRate)}%`, color: successRate > 80 ? '#6BCB77' : '#FF6B6B' },
           ].map(m => (
-            <div key={m.label} className="bg-[#111122] rounded-xl border border-[#222244] p-4 text-center">
+            <div key={m.label} className="bg-card rounded-xl border border-border p-4 text-center">
               <div className="text-2xl font-bold" style={{ color: m.color }}>{m.value}</div>
-              <div className="text-xs text-[#888888] mt-1">{m.label}</div>
+              <div className="text-xs text-muted-foreground mt-1">{m.label}</div>
             </div>
           ))}
         </div>
@@ -125,31 +125,31 @@ export function SandboxTab() {
 
       {/* Results Table */}
       {results.length > 0 && (
-        <div className="bg-[#111122] rounded-xl border border-[#222244] overflow-hidden">
+        <div className="bg-card rounded-xl border border-border overflow-hidden">
           <div className="overflow-x-auto">
             <table className="w-full text-sm">
               <thead>
-                <tr className="border-b border-[#222244]">
-                  <th className="text-left p-3 text-[#888888] font-medium">#</th>
-                  <th className="text-left p-3 text-[#888888] font-medium">Pergunta</th>
-                  <th className="text-left p-3 text-[#888888] font-medium">Resposta</th>
-                  <th className="text-center p-3 text-[#888888] font-medium">Confiança</th>
-                  <th className="text-center p-3 text-[#888888] font-medium">Latência</th>
-                  <th className="text-center p-3 text-[#888888] font-medium">Status</th>
+                <tr className="border-b border-border">
+                  <th className="text-left p-3 text-muted-foreground font-medium">#</th>
+                  <th className="text-left p-3 text-muted-foreground font-medium">Pergunta</th>
+                  <th className="text-left p-3 text-muted-foreground font-medium">Resposta</th>
+                  <th className="text-center p-3 text-muted-foreground font-medium">Confiança</th>
+                  <th className="text-center p-3 text-muted-foreground font-medium">Latência</th>
+                  <th className="text-center p-3 text-muted-foreground font-medium">Status</th>
                 </tr>
               </thead>
               <tbody>
                 {results.map((r, i) => (
-                  <tr key={i} className="border-b border-[#222244] hover:bg-[#16162a]">
-                    <td className="p-3 text-[#888888]">{i + 1}</td>
-                    <td className="p-3 text-white max-w-[200px] truncate">{r.question}</td>
-                    <td className="p-3 text-[#E0E0E0] max-w-[300px] truncate">{r.answer}</td>
+                  <tr key={i} className="border-b border-border hover:bg-[#16162a]">
+                    <td className="p-3 text-muted-foreground">{i + 1}</td>
+                    <td className="p-3 text-foreground max-w-[200px] truncate">{r.question}</td>
+                    <td className="p-3 text-foreground max-w-[300px] truncate">{r.answer}</td>
                     <td className="p-3 text-center">
-                      <span className={`px-2 py-0.5 rounded-full text-xs ${r.confidence > 0.7 ? 'bg-[#6BCB7722] text-[#6BCB77]' : r.confidence > 0.4 ? 'bg-[#FFD93D22] text-[#FFD93D]' : 'bg-[#FF6B6B22] text-[#FF6B6B]'}`}>
+                      <span className={`px-2 py-0.5 rounded-full text-xs ${r.confidence > 0.7 ? 'bg-[#6BCB7722] text-nexus-emerald' : r.confidence > 0.4 ? 'bg-[#FFD93D22] text-nexus-amber' : 'bg-[#FF6B6B22] text-destructive'}`}>
                         {Math.round(r.confidence * 100)}%
                       </span>
                     </td>
-                    <td className="p-3 text-center text-[#888888]">{r.latencyMs}ms</td>
+                    <td className="p-3 text-center text-muted-foreground">{r.latencyMs}ms</td>
                     <td className="p-3 text-center">
                       {r.status === 'success' ? '✅' : r.status === 'error' ? '❌' : '⚠️'}
                     </td>

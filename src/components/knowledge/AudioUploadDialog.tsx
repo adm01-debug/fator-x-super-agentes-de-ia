@@ -110,10 +110,10 @@ export function AudioUploadDialog() {
           Transcrever áudio
         </Button>
       </DialogTrigger>
-      <DialogContent className="bg-[#111122] border-[#222244] max-w-2xl">
+      <DialogContent className="bg-card border-border max-w-2xl">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
-            <Mic className="h-5 w-5 text-[#4D96FF]" />
+            <Mic className="h-5 w-5 text-primary" />
             Transcrever áudio
           </DialogTitle>
           <DialogDescription>
@@ -130,7 +130,7 @@ export function AudioUploadDialog() {
                 type="file"
                 accept="audio/*"
                 onChange={handleFileChange}
-                className="flex-1 text-xs file:mr-3 file:px-3 file:py-1.5 file:rounded-md file:border-0 file:bg-[#0a0a1a] file:text-foreground hover:file:bg-[#222244]"
+                className="flex-1 text-xs file:mr-3 file:px-3 file:py-1.5 file:rounded-md file:border-0 file:bg-background file:text-foreground hover:file:bg-[#222244]"
               />
               <Upload className="h-4 w-4 text-muted-foreground" />
             </div>
@@ -145,7 +145,7 @@ export function AudioUploadDialog() {
             <div className="space-y-2">
               <Label>Idioma</Label>
               <Select value={language} onValueChange={setLanguage}>
-                <SelectTrigger className="bg-[#0a0a1a] border-[#222244]">
+                <SelectTrigger className="bg-background border-border">
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
@@ -160,7 +160,7 @@ export function AudioUploadDialog() {
             <div className="space-y-2">
               <Label>Ação</Label>
               <Select value={action} onValueChange={(v) => setAction(v as "transcribe" | "translate")}>
-                <SelectTrigger className="bg-[#0a0a1a] border-[#222244]">
+                <SelectTrigger className="bg-background border-border">
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
@@ -174,7 +174,7 @@ export function AudioUploadDialog() {
           <Button
             onClick={handleTranscribe}
             disabled={!file || loading}
-            className="w-full bg-[#4D96FF] hover:bg-[#4D96FF]/90"
+            className="w-full bg-primary hover:bg-primary/90"
           >
             {loading ? (
               <>
@@ -193,7 +193,7 @@ export function AudioUploadDialog() {
                 value={result}
                 readOnly
                 rows={8}
-                className="bg-[#0a0a1a] border-[#222244] font-mono text-xs"
+                className="bg-background border-border font-mono text-xs"
               />
               <div className="flex gap-2">
                 <Button variant="outline" size="sm" onClick={handleCopy} className="gap-1.5">

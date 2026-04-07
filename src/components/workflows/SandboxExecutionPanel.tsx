@@ -181,8 +181,8 @@ function SliderField({
   return (
     <div className="space-y-1">
       <div className="flex items-center justify-between">
-        <label className="text-xs text-gray-400">{label}</label>
-        <span className="text-xs font-medium text-white">
+        <label className="text-xs text-muted-foreground">{label}</label>
+        <span className="text-xs font-medium text-foreground">
           {value} {unit}
         </span>
       </div>
@@ -214,19 +214,19 @@ function ToggleField({
 }) {
   return (
     <div
-      className="flex items-center justify-between p-3 rounded-lg bg-[#0a0a1a] border border-[#222244] cursor-pointer hover:border-[#4D96FF]/30 transition-colors"
+      className="flex items-center justify-between p-3 rounded-lg bg-background border border-border cursor-pointer hover:border-primary/30 transition-colors"
       onClick={() => onChange(!checked)}
     >
       <div className="flex items-center gap-3">
-        {Icon && <Icon className="w-4 h-4 text-gray-500" />}
+        {Icon && <Icon className="w-4 h-4 text-muted-foreground" />}
         <div>
-          <p className="text-sm text-white">{label}</p>
-          {description && <p className="text-xs text-gray-500">{description}</p>}
+          <p className="text-sm text-foreground">{label}</p>
+          {description && <p className="text-xs text-muted-foreground">{description}</p>}
         </div>
       </div>
       <div
         className={`w-10 h-5 rounded-full flex items-center transition-colors ${
-          checked ? 'bg-[#4D96FF]' : 'bg-[#222244]'
+          checked ? 'bg-primary' : 'bg-[#222244]'
         }`}
       >
         <div
@@ -296,14 +296,14 @@ export function SandboxExecutionPanel({
   return (
     <div className="space-y-4">
       {/* Header */}
-      <Card className="bg-[#111122] border-[#222244]">
+      <Card className="bg-card border-border">
         <CardHeader className="pb-3">
-          <CardTitle className="flex items-center justify-between text-base text-white">
+          <CardTitle className="flex items-center justify-between text-base text-foreground">
             <span className="flex items-center gap-2">
-              <Shield className="w-4 h-4 text-[#6BCB77]" />
+              <Shield className="w-4 h-4 text-nexus-emerald" />
               Sandboxed Execution
               {agentId && (
-                <Badge className="bg-[#4D96FF]/20 text-[#4D96FF] text-[10px] ml-1">
+                <Badge className="bg-primary/20 text-primary text-[10px] ml-1">
                   Agent Config
                 </Badge>
               )}
@@ -329,7 +329,7 @@ export function SandboxExecutionPanel({
 
       {/* Tabs */}
       <Tabs value={activeTab} onValueChange={setActiveTab}>
-        <TabsList className="bg-[#0a0a1a] border border-[#222244]">
+        <TabsList className="bg-background border border-border">
           <TabsTrigger value="config" className="data-[state=active]:bg-[#222244]">
             <Settings className="w-3 h-3 mr-1" />
             Configuração
@@ -342,7 +342,7 @@ export function SandboxExecutionPanel({
             <FileText className="w-3 h-3 mr-1" />
             Saída
             {executions.length > 0 && (
-              <Badge className="ml-1 bg-[#4D96FF]/20 text-[#4D96FF] text-[9px]">
+              <Badge className="ml-1 bg-primary/20 text-primary text-[9px]">
                 {executions.length}
               </Badge>
             )}
@@ -355,30 +355,30 @@ export function SandboxExecutionPanel({
 
         {/* ──── Config Tab ──── */}
         <TabsContent value="config">
-          <Card className="bg-[#111122] border-[#222244]">
+          <Card className="bg-card border-border">
             <CardContent className="pt-4 space-y-4">
               {/* Runtime Selection */}
               <div className="space-y-2">
-                <label className="text-xs text-gray-400 font-medium">Runtime</label>
+                <label className="text-xs text-muted-foreground font-medium">Runtime</label>
                 <div className="grid grid-cols-2 gap-2">
                   {RUNTIME_OPTIONS.map((rt) => (
                     <div
                       key={rt.id}
                       className={`p-3 rounded-lg border cursor-pointer transition-all ${
                         config.runtime === rt.id
-                          ? 'border-[#4D96FF] bg-[#4D96FF]/10'
-                          : 'border-[#222244] bg-[#0a0a1a] hover:border-[#333366]'
+                          ? 'border-[#4D96FF] bg-primary/10'
+                          : 'border-border bg-background hover:border-[#333366]'
                       }`}
                       onClick={() => updateConfig({ runtime: rt.id })}
                     >
                       <div className="flex items-center justify-between mb-1">
-                        <span className="text-sm font-medium text-white">{rt.name}</span>
+                        <span className="text-sm font-medium text-foreground">{rt.name}</span>
                         <div
                           className="w-2 h-2 rounded-full"
                           style={{ backgroundColor: SECURITY_LEVEL_COLORS[rt.securityLevel] }}
                         />
                       </div>
-                      <p className="text-xs text-gray-500">{rt.description}</p>
+                      <p className="text-xs text-muted-foreground">{rt.description}</p>
                     </div>
                   ))}
                 </div>
@@ -387,7 +387,7 @@ export function SandboxExecutionPanel({
               {/* Resource Limits */}
               {config.runtime !== 'none' && (
                 <div className="space-y-3">
-                  <label className="text-xs text-gray-400 font-medium">Limites de Recursos</label>
+                  <label className="text-xs text-muted-foreground font-medium">Limites de Recursos</label>
                   <SliderField
                     label="CPU"
                     value={config.cpuLimit}
@@ -432,19 +432,19 @@ export function SandboxExecutionPanel({
 
         {/* ──── Execute Tab ──── */}
         <TabsContent value="execute">
-          <Card className="bg-[#111122] border-[#222244]">
+          <Card className="bg-card border-border">
             <CardContent className="pt-4 space-y-3">
               {/* Language selector */}
               <div className="flex items-center gap-2">
-                <label className="text-xs text-gray-400">Linguagem:</label>
+                <label className="text-xs text-muted-foreground">Linguagem:</label>
                 <div className="flex gap-1">
                   {config.allowedLanguages.map((lang) => (
                     <Badge
                       key={lang}
                       className={`cursor-pointer text-[10px] ${
                         language === lang
-                          ? 'bg-[#4D96FF] text-white'
-                          : 'bg-[#222244] text-gray-400 hover:bg-[#333366]'
+                          ? 'bg-primary text-foreground'
+                          : 'bg-[#222244] text-muted-foreground hover:bg-[#333366]'
                       }`}
                       onClick={() => setLanguage(lang)}
                     >
@@ -459,7 +459,7 @@ export function SandboxExecutionPanel({
                 <textarea
                   value={codeInput}
                   onChange={(e) => setCodeInput(e.target.value)}
-                  className="w-full h-40 p-3 bg-[#0a0a1a] border border-[#222244] rounded-lg text-sm font-mono text-gray-300 resize-none focus:border-[#4D96FF] focus:outline-none"
+                  className="w-full h-40 p-3 bg-background border border-border rounded-lg text-sm font-mono text-gray-300 resize-none focus:border-primary focus:outline-none"
                   placeholder={`# Escreva seu código ${language} aqui...`}
                   spellCheck={false}
                 />
@@ -470,7 +470,7 @@ export function SandboxExecutionPanel({
                 <Button
                   onClick={handleExecute}
                   disabled={isRunning || config.runtime === 'none' || !codeInput.trim()}
-                  className="bg-[#6BCB77] hover:bg-[#5ab568] text-white"
+                  className="bg-nexus-emerald hover:bg-[#5ab568] text-foreground"
                 >
                   {isRunning ? (
                     <>
@@ -488,7 +488,7 @@ export function SandboxExecutionPanel({
                   <Button
                     variant="outline"
                     onClick={() => setIsRunning(false)}
-                    className="border-[#FF6B6B] text-[#FF6B6B] hover:bg-[#FF6B6B]/10"
+                    className="border-[#FF6B6B] text-destructive hover:bg-destructive/10"
                   >
                     <Square className="w-4 h-4 mr-1" />
                     Parar
@@ -497,7 +497,7 @@ export function SandboxExecutionPanel({
                 <Button
                   variant="ghost"
                   onClick={() => setCodeInput('')}
-                  className="text-gray-400 hover:text-white"
+                  className="text-muted-foreground hover:text-foreground"
                 >
                   <RotateCcw className="w-4 h-4 mr-1" />
                   Limpar
@@ -506,8 +506,8 @@ export function SandboxExecutionPanel({
 
               {config.runtime === 'none' && (
                 <div className="flex items-center gap-2 p-3 rounded-lg bg-[#FFD93D]/10 border border-[#FFD93D]/30">
-                  <AlertTriangle className="w-4 h-4 text-[#FFD93D]" />
-                  <span className="text-xs text-[#FFD93D]">
+                  <AlertTriangle className="w-4 h-4 text-nexus-amber" />
+                  <span className="text-xs text-nexus-amber">
                     Execução de código está desabilitada. Selecione um runtime na aba Configuração.
                   </span>
                 </div>
@@ -518,11 +518,11 @@ export function SandboxExecutionPanel({
 
         {/* ──── Output Tab ──── */}
         <TabsContent value="output">
-          <Card className="bg-[#111122] border-[#222244]">
+          <Card className="bg-card border-border">
             <CardContent className="p-0">
               <ScrollArea className="h-[400px]">
                 {executions.length === 0 ? (
-                  <div className="flex flex-col items-center justify-center py-16 text-gray-500">
+                  <div className="flex flex-col items-center justify-center py-16 text-muted-foreground">
                     <Terminal className="w-8 h-8 mb-2 opacity-50" />
                     <p className="text-sm">Nenhuma execução ainda</p>
                     <p className="text-xs">Execute código na aba anterior</p>
@@ -557,11 +557,11 @@ export function SandboxExecutionPanel({
                               <Badge className="bg-[#222244] text-gray-300 text-[10px]">
                                 {exec.language}
                               </Badge>
-                              <span className="text-xs text-gray-500">
+                              <span className="text-xs text-muted-foreground">
                                 {exec.durationMs}ms
                               </span>
                             </div>
-                            <div className="flex items-center gap-2 text-xs text-gray-500">
+                            <div className="flex items-center gap-2 text-xs text-muted-foreground">
                               <Cpu className="w-3 h-3" />
                               <span>{exec.resourceUsage.cpuPercent.toFixed(1)}%</span>
                               <HardDrive className="w-3 h-3 ml-1" />
@@ -570,14 +570,14 @@ export function SandboxExecutionPanel({
                           </div>
 
                           {/* Code */}
-                          <pre className="p-2 bg-[#0a0a1a] rounded text-xs font-mono text-gray-400 overflow-x-auto max-h-20 overflow-y-auto">
+                          <pre className="p-2 bg-background rounded text-xs font-mono text-muted-foreground overflow-x-auto max-h-20 overflow-y-auto">
                             {exec.code}
                           </pre>
 
                           {/* Output */}
                           {exec.output && (
-                            <div className="p-2 bg-[#0a0a1a] rounded border-l-2 border-[#6BCB77]">
-                              <pre className="text-xs font-mono text-[#6BCB77] whitespace-pre-wrap">
+                            <div className="p-2 bg-background rounded border-l-2 border-[#6BCB77]">
+                              <pre className="text-xs font-mono text-nexus-emerald whitespace-pre-wrap">
                                 {exec.output}
                               </pre>
                             </div>
@@ -585,8 +585,8 @@ export function SandboxExecutionPanel({
 
                           {/* Error */}
                           {exec.error && (
-                            <div className="p-2 bg-[#0a0a1a] rounded border-l-2 border-[#FF6B6B]">
-                              <pre className="text-xs font-mono text-[#FF6B6B] whitespace-pre-wrap">
+                            <div className="p-2 bg-background rounded border-l-2 border-[#FF6B6B]">
+                              <pre className="text-xs font-mono text-destructive whitespace-pre-wrap">
                                 {exec.error}
                               </pre>
                             </div>
@@ -618,7 +618,7 @@ export function SandboxExecutionPanel({
 
         {/* ──── Security Policies Tab ──── */}
         <TabsContent value="security">
-          <Card className="bg-[#111122] border-[#222244]">
+          <Card className="bg-card border-border">
             <CardContent className="pt-4 space-y-3">
               <ToggleField
                 label="Acesso à Rede"
@@ -647,7 +647,7 @@ export function SandboxExecutionPanel({
               {/* Allowed Domains */}
               {config.networkEnabled && (
                 <div className="space-y-1">
-                  <label className="text-xs text-gray-400">Domínios Permitidos</label>
+                  <label className="text-xs text-muted-foreground">Domínios Permitidos</label>
                   <textarea
                     value={config.allowedDomains.join('\n')}
                     onChange={(e) =>
@@ -655,22 +655,22 @@ export function SandboxExecutionPanel({
                         allowedDomains: e.target.value.split('\n').filter(Boolean),
                       })
                     }
-                    className="w-full h-20 p-2 bg-[#0a0a1a] border border-[#222244] rounded text-xs font-mono text-gray-300 resize-none focus:border-[#4D96FF] focus:outline-none"
+                    className="w-full h-20 p-2 bg-background border border-border rounded text-xs font-mono text-gray-300 resize-none focus:border-primary focus:outline-none"
                     placeholder="api.exemplo.com&#10;github.com&#10;pypi.org"
                   />
                 </div>
               )}
 
               {/* Security Summary */}
-              <div className="p-3 rounded-lg bg-[#0a0a1a] border border-[#222244]">
-                <p className="text-xs font-medium text-white mb-2">Resumo de Segurança</p>
+              <div className="p-3 rounded-lg bg-background border border-border">
+                <p className="text-xs font-medium text-foreground mb-2">Resumo de Segurança</p>
                 <div className="space-y-1 text-xs">
                   <div className="flex items-center justify-between">
-                    <span className="text-gray-400">Runtime</span>
-                    <span className="text-white">{selectedRuntime?.name ?? 'N/A'}</span>
+                    <span className="text-muted-foreground">Runtime</span>
+                    <span className="text-foreground">{selectedRuntime?.name ?? 'N/A'}</span>
                   </div>
                   <div className="flex items-center justify-between">
-                    <span className="text-gray-400">Isolamento</span>
+                    <span className="text-muted-foreground">Isolamento</span>
                     <Badge
                       className="text-[9px]"
                       style={{
@@ -682,31 +682,31 @@ export function SandboxExecutionPanel({
                     </Badge>
                   </div>
                   <div className="flex items-center justify-between">
-                    <span className="text-gray-400">Rede</span>
-                    <span className={config.networkEnabled ? 'text-[#FFD93D]' : 'text-[#6BCB77]'}>
+                    <span className="text-muted-foreground">Rede</span>
+                    <span className={config.networkEnabled ? 'text-nexus-amber' : 'text-nexus-emerald'}>
                       {config.networkEnabled ? `Habilitada (${config.allowedDomains.length} domínios)` : 'Bloqueada'}
                     </span>
                   </div>
                   <div className="flex items-center justify-between">
-                    <span className="text-gray-400">Shell</span>
-                    <span className={config.shellAccess ? 'text-[#FF6B6B]' : 'text-[#6BCB77]'}>
+                    <span className="text-muted-foreground">Shell</span>
+                    <span className={config.shellAccess ? 'text-destructive' : 'text-nexus-emerald'}>
                       {config.shellAccess ? 'Habilitado ⚠️' : 'Bloqueado'}
                     </span>
                   </div>
                   <div className="flex items-center justify-between">
-                    <span className="text-gray-400">Linguagens</span>
-                    <span className="text-white">{config.allowedLanguages.join(', ')}</span>
+                    <span className="text-muted-foreground">Linguagens</span>
+                    <span className="text-foreground">{config.allowedLanguages.join(', ')}</span>
                   </div>
                 </div>
               </div>
 
               {/* Warning for low security */}
               {(config.shellAccess || config.runtime === 'local') && (
-                <div className="flex items-start gap-2 p-3 rounded-lg bg-[#FF6B6B]/10 border border-[#FF6B6B]/30">
-                  <AlertTriangle className="w-4 h-4 text-[#FF6B6B] shrink-0 mt-0.5" />
+                <div className="flex items-start gap-2 p-3 rounded-lg bg-destructive/10 border border-[#FF6B6B]/30">
+                  <AlertTriangle className="w-4 h-4 text-destructive shrink-0 mt-0.5" />
                   <div>
-                    <p className="text-xs font-medium text-[#FF6B6B]">Atenção: Configuração de Risco</p>
-                    <p className="text-xs text-[#FF6B6B]/80 mt-1">
+                    <p className="text-xs font-medium text-destructive">Atenção: Configuração de Risco</p>
+                    <p className="text-xs text-destructive/80 mt-1">
                       {config.runtime === 'local'
                         ? 'Runtime local não tem isolamento. Use apenas em ambiente de desenvolvimento.'
                         : 'Acesso ao shell permite execução arbitrária de comandos. Use com cautela.'}
