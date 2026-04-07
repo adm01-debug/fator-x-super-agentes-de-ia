@@ -192,8 +192,8 @@ function VersionHistory({ agentId }: { agentId: string }) {
           <div key={v.id} className={`flex items-center justify-between py-2 px-3 rounded-lg text-xs ${i === 0 ? 'bg-primary/10 border border-primary/20' : 'bg-secondary/30'}`}>
             <div className="flex items-center gap-3">
               <span className="font-mono font-bold text-foreground">v{v.version}</span>
-              <span className="text-muted-foreground">{v.model}</span>
-              {v.change_summary && <span className="text-muted-foreground truncate max-w-[200px]">{v.change_summary}</span>}
+              <span className="text-muted-foreground">{String(v.model ?? '')}</span>
+              {v.change_summary && <span className="text-muted-foreground truncate max-w-[200px]">{String(v.change_summary)}</span>}
             </div>
             <div className="flex items-center gap-2">
               <span className="text-muted-foreground text-[11px]">{new Date(v.created_at).toLocaleDateString('pt-BR')}</span>
@@ -201,7 +201,7 @@ function VersionHistory({ agentId }: { agentId: string }) {
           </div>
         ))}
       </div>
-      <VersionDiffDialog open={diffOpen} onOpenChange={setDiffOpen} agentId={agentId} versions={versions as Array<{ id: string; version: number; model: string | null; persona: string | null; mission: string | null; config: Record<string, unknown>; change_summary: string | null; created_at: string }>} />
+      <VersionDiffDialog open={diffOpen} onOpenChange={setDiffOpen} agentId={agentId} versions={versions as unknown as Array<{ id: string; version: number; model: string | null; persona: string | null; mission: string | null; config: Record<string, unknown>; change_summary: string | null; created_at: string }>} />
     </div>
   );
 }

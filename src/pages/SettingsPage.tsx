@@ -108,7 +108,7 @@ export default function SettingsPage() {
               </div>
               <div className="space-y-1.5">
                 <Label className="text-xs">Plano</Label>
-                <Input value={workspace?.plan || 'free'} disabled className="bg-secondary/50 capitalize" />
+                <Input value={String(workspace?.plan || 'free')} disabled className="bg-secondary/50 capitalize" />
               </div>
             </div>
             <div className="grid grid-cols-2 gap-4">
@@ -237,7 +237,7 @@ export default function SettingsPage() {
                            action="revoke"
                            resourceType="workspace_secret"
                            resourceId={s.id}
-                           resourceName={s.key}
+                           resourceName={s.key_name}
                            minReasonLength={10}
                            confirmLabel="Revogar"
                            onConfirm={async () => {

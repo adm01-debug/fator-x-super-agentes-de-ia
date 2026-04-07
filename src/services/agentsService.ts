@@ -142,5 +142,5 @@ export async function getAgentVersions(agentId: string, limit = 20): Promise<Age
     logger.error('Failed to fetch agent versions', { agentId, error: error.message });
     throw error;
   }
-  return (data ?? []) as AgentVersion[];
+  return (data ?? []) as unknown as AgentVersion[];
 }

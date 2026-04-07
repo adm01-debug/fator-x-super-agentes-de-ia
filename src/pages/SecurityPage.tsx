@@ -125,7 +125,7 @@ function ApiKeysPanel() {
                     minReasonLength={10}
                     requirePassword={true}
                     confirmLabel="Revogar Chave"
-                    metadata={{ key_prefix: k.key_prefix, scopes: k.scopes }}
+                    metadata={{ key_prefix: k.key_prefix }}
                     onConfirm={async () => {
                       await handleRevoke(k.id);
                     }}

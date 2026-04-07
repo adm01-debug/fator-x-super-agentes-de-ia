@@ -245,7 +245,7 @@ export default function PromptEditorPage() {
                         action="delete"
                         resourceType="prompt_version"
                         resourceId={v.id}
-                        resourceName={`v${v.version_number ?? v.id.slice(0, 8)}`}
+                        resourceName={`v${v.version ?? v.id.slice(0, 8)}`}
                         minReasonLength={8}
                         confirmLabel="Excluir Versão"
                         onConfirm={async () => {

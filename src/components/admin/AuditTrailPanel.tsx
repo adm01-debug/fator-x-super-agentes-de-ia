@@ -79,7 +79,7 @@ export function AuditTrailPanel() {
       return /[",\n]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s;
     };
     const rows = entries.map((e) =>
-      headers.map((h) => escape((e as Record<string, unknown>)[h])).join(',')
+      headers.map((h) => escape((e as unknown as Record<string, unknown>)[h])).join(',')
     );
     const csv = [headers.join(','), ...rows].join('\n');
     const blob = new Blob([csv], { type: 'text/csv;charset=utf-8' });

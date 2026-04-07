@@ -10,7 +10,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { useNavigate } from "react-router-dom";
 import { useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { supabase } from "@/integrations/supabase/client";
+
 import { listAgentsForDashboard, getUsageInRange, getRecentDashboardTraces, getUnresolvedAlerts, subscribeToAlerts } from "@/services/dashboardService";
 import { UsageCharts } from "@/components/dashboard/UsageCharts";
 import { ActivityFeed } from "@/components/dashboard/ActivityFeed";
@@ -291,7 +291,7 @@ export default function DashboardPage() {
 
           {/* Analytics Charts */}
           <div className="animate-chart-reveal">
-            <UsageCharts data={usageData} />
+            <UsageCharts data={(usageData as any) ?? []} />
           </div>
 
           <div className="grid lg:grid-cols-2 gap-3 sm:gap-4">
