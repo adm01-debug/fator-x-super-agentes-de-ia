@@ -26,6 +26,7 @@ export * from './toolsService';
 export * from './adminCrudService';
 export * from './healthService';
 export * from './audioService';
+export * from './productMockupService';
 export {
   type AgentSkillDefinition,
   listSkills,
