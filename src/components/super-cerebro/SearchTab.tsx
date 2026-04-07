@@ -4,15 +4,35 @@ import { Textarea } from "@/components/ui/textarea";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Loader2, MessageSquare, Sparkles, ArrowUpDown, Search } from "lucide-react";
+import { Loader2, MessageSquare, Sparkles, ArrowUpDown, Search, History, X } from "lucide-react";
 import { invokeCerebroQuery } from "@/services/cerebroService";
 import { toast } from "sonner";
 import { rerankChunks, listKnowledgeBases, fetchChunksForRerank, type RerankResult } from "@/services/knowledgeService";
+
+const HISTORY_KEY = "nexus-cerebro-search-history";
+const HISTORY_MAX = 10;
+
+function loadHistory(): string[] {
+  try {
+    return JSON.parse(localStorage.getItem(HISTORY_KEY) || "[]");
+  } catch {
+    return [];
+  }
+}
+
+function saveHistory(items: string[]) {
+  try {
+    localStorage.setItem(HISTORY_KEY, JSON.stringify(items.slice(0, HISTORY_MAX)));
+  } catch {
+    /* ignore */
+  }
+}
 
 export function SearchTab() {
   const [query, setQuery] = useState('');
   const [isSearching, setIsSearching] = useState(false);
   const [searchResults, setSearchResults] = useState<string | null>(null);
+  const [history, setHistory] = useState<string[]>(() => loadHistory());
 
   // Rerank state
   const [rerankQuery, setRerankQuery] = useState('');
@@ -41,6 +61,11 @@ export function SearchTab() {
       if (data?.external_facts > 0) meta.push(`${data.external_facts} fatos externos`);
       const metaLine = meta.length > 0 ? `\n\n---\n_${meta.join(' • ')} • Custo: $${data?.cost_usd?.toFixed(6) || '0'}_` : '';
       setSearchResults((data?.response || 'Sem resposta') + metaLine);
+      // Persist to history (dedupe + cap to HISTORY_MAX)
+      const trimmed = query.trim();
+      const next = [trimmed, ...history.filter((h) => h !== trimmed)].slice(0, HISTORY_MAX);
+      setHistory(next);
+      saveHistory(next);
     } catch (e: unknown) {
       toast.error(e instanceof Error ? e.message : 'Erro na consulta');
     } finally {
@@ -108,6 +133,33 @@ export function SearchTab() {
           className="bg-secondary/50 min-h-[80px] text-sm"
           onKeyDown={e => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); handleSearch(); } }}
         />
+        {history.length > 0 && (
+          <div className="space-y-1.5">
+            <div className="flex items-center justify-between">
+              <p className="text-[10px] text-muted-foreground flex items-center gap-1">
+                <History className="h-3 w-3" /> Histórico recente
+              </p>
+              <button
+                onClick={() => { setHistory([]); saveHistory([]); }}
+                className="text-[10px] text-muted-foreground hover:text-destructive flex items-center gap-0.5"
+              >
+                <X className="h-2.5 w-2.5" /> Limpar
+              </button>
+            </div>
+            <div className="flex flex-wrap gap-1.5">
+              {history.map((h, i) => (
+                <button
+                  key={i}
+                  onClick={() => setQuery(h)}
+                  className="px-2 py-1 text-[10px] rounded-md bg-secondary/40 border border-border/30 text-muted-foreground hover:text-foreground hover:border-primary/40 transition-colors max-w-[200px] truncate"
+                  title={h}
+                >
+                  {h}
+                </button>
+              ))}
+            </div>
+          </div>
+        )}
         <div className="flex justify-between items-center">
           <p className="text-[11px] text-muted-foreground">Consulta semântica ao conhecimento da empresa (fatos + RAG + bancos externos)</p>
           <Button onClick={handleSearch} disabled={isSearching || !query.trim()} className="nexus-gradient-bg text-primary-foreground gap-2">
