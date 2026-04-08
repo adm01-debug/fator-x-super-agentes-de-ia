@@ -150,10 +150,10 @@ export default function OpenclawDeployPage() {
         </TabsList>
 
         <TabsContent value="overview" className="mt-6">
-          <Card className="bg-[#111122] border-[#222244]">
+          <Card className="bg-card border-border">
             <CardHeader>
               <CardTitle className="flex items-center gap-2 text-base">
-                <Server className="h-4 w-4 text-[#4D96FF]" /> Status do Runtime
+                <Server className="h-4 w-4 text-primary" /> Status do Runtime
               </CardTitle>
             </CardHeader>
             <CardContent>
@@ -167,15 +167,15 @@ export default function OpenclawDeployPage() {
                 </div>
               ) : (
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                  <div className="p-3 rounded-lg bg-[#0a0a1a] border border-[#222244]">
+                  <div className="p-3 rounded-lg bg-background border border-border">
                     <p className="text-[10px] text-gray-500 uppercase tracking-wider">Status</p>
                     <p className="text-sm font-mono mt-1">{health?.status ?? "—"}</p>
                   </div>
-                  <div className="p-3 rounded-lg bg-[#0a0a1a] border border-[#222244]">
+                  <div className="p-3 rounded-lg bg-background border border-border">
                     <p className="text-[10px] text-gray-500 uppercase tracking-wider">Versão</p>
                     <p className="text-sm font-mono mt-1">{health?.version ?? "—"}</p>
                   </div>
-                  <div className="p-3 rounded-lg bg-[#0a0a1a] border border-[#222244]">
+                  <div className="p-3 rounded-lg bg-background border border-border">
                     <p className="text-[10px] text-gray-500 uppercase tracking-wider">Uptime</p>
                     <p className="text-sm font-mono mt-1">
                       {typeof health?.uptime === "number" ? `${Math.round(health.uptime)}s` : "—"}
@@ -193,7 +193,7 @@ export default function OpenclawDeployPage() {
               <Loader2 className="h-5 w-5 animate-spin mx-auto mb-2" /> Carregando agents...
             </div>
           ) : agents.length === 0 ? (
-            <Card className="bg-[#111122] border-[#222244]">
+            <Card className="bg-card border-border">
               <CardContent className="py-12 text-center text-gray-400">
                 <Bot className="h-10 w-10 mx-auto mb-3 opacity-30" />
                 <p>Nenhum agent encontrado no runtime OpenClaw.</p>
@@ -202,15 +202,15 @@ export default function OpenclawDeployPage() {
           ) : (
             <div className="space-y-2">
               {agents.map((a) => (
-                <Card key={a.id} className="bg-[#111122] border-[#222244]">
+                <Card key={a.id} className="bg-card border-border">
                   <CardContent className="p-3 flex items-center gap-3">
-                    <Bot className="h-4 w-4 text-[#4D96FF]" />
+                    <Bot className="h-4 w-4 text-primary" />
                     <div className="flex-1 min-w-0">
                       <p className="text-sm font-medium">{a.name}</p>
                       {a.description && <p className="text-xs text-gray-400 truncate">{a.description}</p>}
                     </div>
                     {a.status && (
-                      <Badge variant="outline" className="text-[10px] border-[#222244]">
+                      <Badge variant="outline" className="text-[10px] border-border">
                         {a.status}
                       </Badge>
                     )}
@@ -227,7 +227,7 @@ export default function OpenclawDeployPage() {
               <Loader2 className="h-5 w-5 animate-spin mx-auto mb-2" /> Carregando skills...
             </div>
           ) : skills.length === 0 ? (
-            <Card className="bg-[#111122] border-[#222244]">
+            <Card className="bg-card border-border">
               <CardContent className="py-12 text-center text-gray-400">
                 <Package className="h-10 w-10 mx-auto mb-3 opacity-30" />
                 <p>Nenhum SKILL.md instalado.</p>
@@ -236,15 +236,15 @@ export default function OpenclawDeployPage() {
           ) : (
             <div className="space-y-2">
               {skills.map((s) => (
-                <Card key={s.id} className="bg-[#111122] border-[#222244]">
+                <Card key={s.id} className="bg-card border-border">
                   <CardContent className="p-3 flex items-center gap-3">
-                    <Package className="h-4 w-4 text-[#9B59B6]" />
+                    <Package className="h-4 w-4 text-nexus-purple" />
                     <div className="flex-1 min-w-0">
                       <p className="text-sm font-medium">{s.name}</p>
                       {s.description && <p className="text-xs text-gray-400 truncate">{s.description}</p>}
                     </div>
                     {s.version && (
-                      <Badge variant="outline" className="text-[10px] border-[#222244] font-mono">
+                      <Badge variant="outline" className="text-[10px] border-border font-mono">
                         v{s.version}
                       </Badge>
                     )}
@@ -256,10 +256,10 @@ export default function OpenclawDeployPage() {
         </TabsContent>
 
         <TabsContent value="deploy" className="mt-6">
-          <Card className="bg-[#111122] border-[#222244]">
+          <Card className="bg-card border-border">
             <CardHeader>
               <CardTitle className="flex items-center gap-2 text-base">
-                <Upload className="h-4 w-4 text-[#6BCB77]" /> Deploy de SKILL.md
+                <Upload className="h-4 w-4 text-nexus-emerald" /> Deploy de SKILL.md
               </CardTitle>
             </CardHeader>
             <CardContent className="space-y-4">
@@ -271,7 +271,7 @@ export default function OpenclawDeployPage() {
                     value={skillName}
                     onChange={(e) => setSkillName(e.target.value)}
                     placeholder="product-search"
-                    className="bg-[#0a0a1a] border-[#222244]"
+                    className="bg-background border-border"
                   />
                 </div>
                 <div className="space-y-2">
@@ -281,7 +281,7 @@ export default function OpenclawDeployPage() {
                     value={skillVersion}
                     onChange={(e) => setSkillVersion(e.target.value)}
                     placeholder="1.0.0"
-                    className="bg-[#0a0a1a] border-[#222244] font-mono"
+                    className="bg-background border-border font-mono"
                   />
                 </div>
               </div>
@@ -292,7 +292,7 @@ export default function OpenclawDeployPage() {
                   value={skillDescription}
                   onChange={(e) => setSkillDescription(e.target.value)}
                   placeholder="O que este skill faz?"
-                  className="bg-[#0a0a1a] border-[#222244]"
+                  className="bg-background border-border"
                 />
               </div>
               <div className="space-y-2">
@@ -302,14 +302,14 @@ export default function OpenclawDeployPage() {
                   value={skillContent}
                   onChange={(e) => setSkillContent(e.target.value)}
                   rows={12}
-                  className="bg-[#0a0a1a] border-[#222244] font-mono text-xs resize-none"
+                  className="bg-background border-border font-mono text-xs resize-none"
                 />
               </div>
               <div className="flex justify-end">
                 <Button
                   onClick={handleDeploy}
                   disabled={deploying || !healthOk}
-                  className="bg-[#6BCB77] hover:bg-[#6BCB77]/90 text-white gap-1.5"
+                  className="bg-nexus-emerald hover:bg-nexus-emerald/90 text-white gap-1.5"
                 >
                   {deploying ? <Loader2 className="h-4 w-4 animate-spin" /> : <Upload className="h-4 w-4" />}
                   Deploy no OpenClaw
