@@ -57,7 +57,7 @@ export function AutomationOverviewWidget() {
       sub: data.vault?.rotation_due
         ? `${data.vault.rotation_due} rotação pendente`
         : 'Tudo em dia',
-      color: data.vault?.rotation_due ? '#FFD93D' : '#6BCB77',
+      color: data.vault?.rotation_due ? 'hsl(var(--nexus-yellow))' : 'hsl(var(--nexus-emerald))',
     },
   ];
 

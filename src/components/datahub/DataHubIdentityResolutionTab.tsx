@@ -51,11 +51,11 @@ const QUERY_TYPES = [
 ];
 
 const DB_LABELS: Record<string, { label: string; color: string }> = {
-  bancodadosclientes: { label: 'CRM', color: '#4D96FF' },
-  'supabase-fuchsia-kite': { label: 'Catálogo', color: '#9B59B6' },
-  backupgiftstore: { label: 'WhatsApp', color: '#6BCB77' },
-  gestao_time_promo: { label: 'HR', color: '#FFD93D' },
-  financeiro_promo: { label: 'Financeiro', color: '#E67E22' },
+  bancodadosclientes: { label: 'CRM', color: 'hsl(var(--nexus-blue))' },
+  'supabase-fuchsia-kite': { label: 'Catálogo', color: 'hsl(var(--nexus-purple))' },
+  backupgiftstore: { label: 'WhatsApp', color: 'hsl(var(--nexus-emerald))' },
+  gestao_time_promo: { label: 'HR', color: 'hsl(var(--nexus-yellow))' },
+  financeiro_promo: { label: 'Financeiro', color: 'hsl(var(--nexus-orange))' },
 };
 
 function detectQueryType(q: string): 'cnpj' | 'cpf' | 'email' | 'phone' | 'name' {
@@ -216,7 +216,7 @@ export function DataHubIdentityResolutionTab() {
       ) : result && result.total_matches > 0 ? (
         <div className="space-y-3">
           {Object.entries(groupedByDb).map(([db, matches]) => {
-            const dbCfg = DB_LABELS[db] ?? { label: db, color: '#9ca3af' };
+            const dbCfg = DB_LABELS[db] ?? { label: db, color: 'hsl(var(--muted-foreground))' };
             return (
               <div key={db} className="nexus-card">
                 <div className="flex items-center gap-2 mb-3 pb-2 border-b border-border/30">
@@ -239,12 +239,12 @@ export function DataHubIdentityResolutionTab() {
                           variant="outline"
                           className="text-[9px] shrink-0"
                           style={{
-                            borderColor: m.confidence >= 0.9 ? '#6BCB7780' :
-                                         m.confidence >= 0.7 ? '#FFD93D80' :
-                                         '#E67E2280',
-                            color: m.confidence >= 0.9 ? '#6BCB77' :
-                                   m.confidence >= 0.7 ? '#FFD93D' :
-                                   '#E67E22',
+                            borderColor: m.confidence >= 0.9 ? 'hsl(var(--nexus-emerald) / 0.5)' :
+                                         m.confidence >= 0.7 ? 'hsl(var(--nexus-yellow) / 0.5)' :
+                                         'hsl(var(--nexus-orange) / 0.5)',
+                            color: m.confidence >= 0.9 ? 'hsl(var(--nexus-emerald))' :
+                                   m.confidence >= 0.7 ? 'hsl(var(--nexus-yellow))' :
+                                   'hsl(var(--nexus-orange))',
                           }}
                         >
                           {(m.confidence * 100).toFixed(0)}%

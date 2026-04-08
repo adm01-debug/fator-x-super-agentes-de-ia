@@ -153,10 +153,10 @@ const RUNTIME_OPTIONS: Array<{
 ];
 
 const SECURITY_LEVEL_COLORS: Record<string, string> = {
-  high: '#6BCB77',
-  medium: '#FFD93D',
-  low: '#FF6B6B',
-  none: '#666',
+  high: 'hsl(var(--nexus-emerald))',
+  medium: 'hsl(var(--nexus-yellow))',
+  low: 'hsl(var(--nexus-red))',
+  none: 'hsl(var(--muted-foreground))',
 };
 
 // ──────── Helper Components ────────
@@ -540,10 +540,10 @@ export function SandboxExecutionPanel({
                             ? Loader2
                             : Clock;
                       const statusColor = isSuccess
-                        ? '#6BCB77'
+                        ? 'hsl(var(--nexus-emerald))'
                         : isFailed
-                          ? '#FF6B6B'
-                          : '#FFD93D';
+                          ? 'hsl(var(--nexus-red))'
+                          : 'hsl(var(--nexus-yellow))';
 
                       return (
                         <div key={exec.id} className="p-4 space-y-2">

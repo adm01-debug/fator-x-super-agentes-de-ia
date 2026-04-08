@@ -15,9 +15,9 @@ import {
 } from "@/services/datahubService";
 
 const STATUS_STYLES = {
-  healthy: { color: '#6BCB77', label: 'Saudável', icon: CheckCircle2 },
-  degraded: { color: '#FFD93D', label: 'Degradado', icon: AlertTriangle },
-  critical: { color: '#FF6B6B', label: 'Crítico', icon: XCircle },
+  healthy: { color: 'hsl(var(--nexus-emerald))', label: 'Saudável', icon: CheckCircle2 },
+  degraded: { color: 'hsl(var(--nexus-yellow))', label: 'Degradado', icon: AlertTriangle },
+  critical: { color: 'hsl(var(--nexus-red))', label: 'Crítico', icon: XCircle },
 } as const;
 
 function formatLatency(ms: number | null): string {
@@ -28,11 +28,11 @@ function formatLatency(ms: number | null): string {
 }
 
 function latencyColor(ms: number | null): string {
-  if (ms == null) return '#9ca3af';
-  if (ms < 200) return '#6BCB77';
-  if (ms < 500) return '#FFD93D';
-  if (ms < 1500) return '#E67E22';
-  return '#FF6B6B';
+  if (ms == null) return 'hsl(var(--muted-foreground))';
+  if (ms < 200) return 'hsl(var(--nexus-emerald))';
+  if (ms < 500) return 'hsl(var(--nexus-yellow))';
+  if (ms < 1500) return 'hsl(var(--nexus-orange))';
+  return 'hsl(var(--nexus-red))';
 }
 
 export function DataHubHealthTab() {
@@ -125,8 +125,8 @@ export function DataHubHealthTab() {
                   variant="outline"
                   className="text-[9px] shrink-0"
                   style={{
-                    borderColor: p.reachable ? '#6BCB7780' : '#FF6B6B80',
-                    color: p.reachable ? '#6BCB77' : '#FF6B6B',
+                    borderColor: p.reachable ? 'hsl(var(--nexus-emerald) / 0.5)' : 'hsl(var(--nexus-red) / 0.5)',
+                    color: p.reachable ? 'hsl(var(--nexus-emerald))' : 'hsl(var(--nexus-red))',
                   }}
                 >
                   {p.reachable ? 'Online' : 'Offline'}

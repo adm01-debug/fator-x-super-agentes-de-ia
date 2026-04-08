@@ -52,11 +52,11 @@ type TimelineEntry = WorkflowCheckpoint & {
 // ──────── Status Helpers ────────
 
 const STATUS_CONFIG: Record<string, { icon: typeof CheckCircle2; color: string; label: string }> = {
-  completed: { icon: CheckCircle2, color: '#6BCB77', label: 'Concluído' },
-  running: { icon: Loader2, color: '#4D96FF', label: 'Executando' },
-  failed: { icon: XCircle, color: '#FF6B6B', label: 'Falhou' },
-  pending: { icon: Clock, color: '#FFD93D', label: 'Pendente' },
-  skipped: { icon: ChevronRight, color: '#666', label: 'Pulado' },
+  completed: { icon: CheckCircle2, color: 'hsl(var(--nexus-emerald))', label: 'Concluído' },
+  running: { icon: Loader2, color: 'hsl(var(--nexus-blue))', label: 'Executando' },
+  failed: { icon: XCircle, color: 'hsl(var(--nexus-red))', label: 'Falhou' },
+  pending: { icon: Clock, color: 'hsl(var(--nexus-yellow))', label: 'Pendente' },
+  skipped: { icon: ChevronRight, color: 'hsl(var(--muted-foreground))', label: 'Pulado' },
 };
 
 function formatDuration(ms: number): string {

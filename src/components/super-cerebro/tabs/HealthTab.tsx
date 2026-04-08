@@ -36,7 +36,7 @@ export function HealthTab() {
             total: docCount || 0,
             issues: 0,
             description: `${docCount || 0} documentos em ${collCount || 0} coleções`,
-            color: '#4D96FF',
+            color: 'hsl(var(--nexus-blue))',
           },
           {
             category: 'Chunks Vetorizados',
@@ -45,7 +45,7 @@ export function HealthTab() {
             total: chunkCount || 0,
             issues: 0,
             description: `${chunkCount || 0} chunks prontos para busca`,
-            color: '#6BCB77',
+            color: 'hsl(var(--nexus-emerald))',
           },
           {
             category: 'Frescor do Conhecimento',
@@ -54,7 +54,7 @@ export function HealthTab() {
             total: docCount || 0,
             issues: Math.round((docCount || 0) * 0.15),
             description: 'Documentos não atualizados há >90 dias',
-            color: '#FFD93D',
+            color: 'hsl(var(--nexus-yellow))',
           },
           {
             category: 'Duplicatas Detectadas',
@@ -63,7 +63,7 @@ export function HealthTab() {
             total: docCount || 0,
             issues: Math.round((docCount || 0) * 0.03),
             description: 'Possíveis entidades duplicadas',
-            color: '#9B59B6',
+            color: 'hsl(var(--nexus-purple))',
           },
           {
             category: 'Cobertura de Gaps',
@@ -72,7 +72,7 @@ export function HealthTab() {
             total: 100,
             issues: 12,
             description: 'Tópicos sem documentação suficiente',
-            color: '#FF6B6B',
+            color: 'hsl(var(--nexus-red))',
           },
           {
             category: 'Confiança dos Fatos',
@@ -81,7 +81,7 @@ export function HealthTab() {
             total: 50,
             issues: 5,
             description: 'Fatos com confidence score < 0.7',
-            color: '#E67E22',
+            color: 'hsl(var(--nexus-orange))',
           },
         ]);
       } catch (err: unknown) {
@@ -106,7 +106,7 @@ export function HealthTab() {
     <div className="space-y-6">
       {/* Overall Score */}
       <div className="bg-card rounded-xl border border-border p-8 text-center">
-        <div className="text-6xl font-bold mb-2" style={{ color: overallScore > 75 ? '#6BCB77' : overallScore > 50 ? '#FFD93D' : '#FF6B6B' }}>
+        <div className="text-6xl font-bold mb-2" style={{ color: overallScore > 75 ? 'hsl(var(--nexus-emerald))' : overallScore > 50 ? 'hsl(var(--nexus-yellow))' : 'hsl(var(--nexus-red))' }}>
           {overallScore}
         </div>
         <div className="text-sm text-muted-foreground">Health Score Geral</div>

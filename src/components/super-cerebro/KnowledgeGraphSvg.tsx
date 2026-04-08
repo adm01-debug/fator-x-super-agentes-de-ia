@@ -21,10 +21,10 @@ interface KnowledgeGraphSvgProps {
 }
 
 const TYPE_COLORS: Record<string, string> = {
-  agent: '#4D96FF',
-  knowledge_base: '#6BCB77',
-  tool: '#FFD93D',
-  workflow: '#06b6d4',
+  agent: 'hsl(var(--nexus-blue))',
+  knowledge_base: 'hsl(var(--nexus-emerald))',
+  tool: 'hsl(var(--nexus-yellow))',
+  workflow: 'hsl(var(--nexus-cyan))',
 };
 
 interface PositionedNode extends GraphNode {
@@ -144,7 +144,7 @@ export function KnowledgeGraphSvg({
 
         {/* Nodes */}
         {positioned.map((n) => {
-          const color = TYPE_COLORS[n.type] ?? '#9B59B6';
+          const color = TYPE_COLORS[n.type] ?? 'hsl(var(--nexus-purple))';
           const truncatedLabel = n.label.length > 14 ? n.label.slice(0, 13) + '…' : n.label;
           return (
             <g key={n.id}>

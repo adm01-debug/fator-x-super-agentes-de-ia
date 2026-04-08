@@ -37,11 +37,11 @@ interface SyncReport {
 }
 
 const STATUS_CFG: Record<SyncStatus['status'], { color: string; label: string; icon: typeof CheckCircle2 }> = {
-  pending: { color: '#9ca3af', label: 'Pendente', icon: Clock },
-  syncing: { color: '#4D96FF', label: 'Sincronizando', icon: Loader2 },
-  synced: { color: '#6BCB77', label: 'Sincronizado', icon: CheckCircle2 },
-  failed: { color: '#FF6B6B', label: 'Falhou', icon: AlertTriangle },
-  partial: { color: '#FFD93D', label: 'Parcial', icon: AlertTriangle },
+  pending: { color: 'hsl(var(--muted-foreground))', label: 'Pendente', icon: Clock },
+  syncing: { color: 'hsl(var(--nexus-blue))', label: 'Sincronizando', icon: Loader2 },
+  synced: { color: 'hsl(var(--nexus-emerald))', label: 'Sincronizado', icon: CheckCircle2 },
+  failed: { color: 'hsl(var(--nexus-red))', label: 'Falhou', icon: AlertTriangle },
+  partial: { color: 'hsl(var(--nexus-yellow))', label: 'Parcial', icon: AlertTriangle },
 };
 
 const DB_LABELS: Record<string, string> = {
