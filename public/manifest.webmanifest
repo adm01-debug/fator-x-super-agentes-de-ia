@@ -1,0 +1,55 @@
+{
+  "name": "Nexus Agents Studio - Fator X",
+  "short_name": "Fator X",
+  "description": "Plataforma proprietária de criação e gestão de agentes de IA empresariais para Promo Brindes",
+  "start_url": "/",
+  "display": "standalone",
+  "orientation": "portrait-primary",
+  "background_color": "#0a0a1a",
+  "theme_color": "#4D96FF",
+  "scope": "/",
+  "lang": "pt-BR",
+  "categories": ["business", "productivity", "developer-tools"],
+  "icons": [
+    {
+      "src": "/favicon.ico",
+      "sizes": "64x64 32x32 24x24 16x16",
+      "type": "image/x-icon"
+    },
+    {
+      "src": "/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ],
+  "shortcuts": [
+    {
+      "name": "Dashboard",
+      "url": "/dashboard",
+      "description": "Visão geral dos agentes e métricas"
+    },
+    {
+      "name": "Agentes",
+      "url": "/agents",
+      "description": "Gerenciar agentes de IA"
+    },
+    {
+      "name": "Workflows",
+      "url": "/workflows",
+      "description": "Criar e editar workflows"
+    },
+    {
+      "name": "Oráculo",
+      "url": "/oracle",
+      "description": "Consultar conselho de modelos"
+    }
+  ],
+  "prefer_related_applications": false
+}

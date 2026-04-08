@@ -16,3 +16,22 @@ createRoot(document.getElementById("root")!).render(
 
 // Initialize Web Vitals monitoring
 initWebVitals();
+
+// Register Service Worker for PWA support (T15)
+if ('serviceWorker' in navigator && import.meta.env.PROD) {
+  window.addEventListener('load', () => {
+    navigator.serviceWorker
+      .register('/sw.js', { scope: '/' })
+      .then((registration) => {
+        // Check for updates every hour while the app is open
+        setInterval(() => {
+          registration.update().catch(() => {
+            /* noop */
+          });
+        }, 60 * 60 * 1000);
+      })
+      .catch(() => {
+        // SW registration is best-effort; app must work without it
+      });
+  });
+}
