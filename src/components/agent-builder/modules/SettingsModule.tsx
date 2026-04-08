@@ -9,6 +9,7 @@ import { Button } from '@/components/ui/button';
 import { Check, AlertTriangle, Loader2 } from 'lucide-react';
 
 const API_KEYS = [
+  { key_name: 'hf_api_token', label: 'HuggingFace API Token', placeholder: 'hf_...', description: 'Para todos os 26 modelos HF: LLMs, RAG, NLP, Visão, Áudio, Guardrails e Geração de Imagens' },
   { key_name: 'anthropic_api_key', label: 'Anthropic API Key', placeholder: 'sk-ant-...', description: 'Para modelos Claude (Opus, Sonnet, Haiku)' },
   { key_name: 'openai_api_key', label: 'OpenAI API Key', placeholder: 'sk-...', description: 'Para modelos GPT' },
   { key_name: 'openrouter_api_key', label: 'OpenRouter API Key', placeholder: 'sk-or-...', description: 'Acesso a 200+ modelos com uma única key. Recomendado para o ORÁCULO.' },
