@@ -3,6 +3,7 @@
  * Centralized access to llm-gateway edge function.
  */
 import { supabase } from '@/integrations/supabase/client';
+import { logger } from '@/lib/logger';
 
 export async function invokeLLMGateway(body: {
   model: string;

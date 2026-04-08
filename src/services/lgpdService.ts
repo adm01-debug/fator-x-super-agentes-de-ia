@@ -2,6 +2,7 @@
  * Nexus Agents Studio — LGPD Compliance Service
  */
 import { supabase } from '@/integrations/supabase/client';
+import { logger } from '@/lib/logger';
 
 export async function listConsentRecords() {
   const { data } = await supabase.from('consent_records').select('*').order('created_at', { ascending: false });

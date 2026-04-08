@@ -3,6 +3,7 @@
  * Persistent memory management (MemGPT/Letta-style via memory-tools edge function).
  */
 import { supabase } from '@/integrations/supabase/client';
+import { logger } from '@/lib/logger';
 
 export type MemoryType = 'episodic' | 'semantic' | 'procedural' | 'short_term' | 'user_profile' | 'team' | 'external';
 export type MemoryScope = 'session' | 'user' | 'agent' | 'org';

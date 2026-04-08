@@ -9,6 +9,7 @@
  */
 
 import { fromTable } from '@/lib/supabaseExtended';
+import { logger } from '@/lib/logger';
 
 // ──────── Types ────────
 
