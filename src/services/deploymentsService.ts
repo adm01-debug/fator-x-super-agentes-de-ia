@@ -3,7 +3,6 @@
  * Multi-channel deploy: Widget, WhatsApp, Slack, API, Bitrix24
  */
 import { supabase } from '@/integrations/supabase/client';
-import { logger } from '@/lib/logger';
 
 export type DeployChannel = 'widget' | 'api' | 'whatsapp' | 'slack' | 'bitrix24' | 'telegram';
 

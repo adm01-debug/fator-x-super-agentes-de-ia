@@ -240,11 +240,11 @@ export function OracleComparisonPanel() {
                 {run.status === 'success' && run.result && (
                   <div className="space-y-2">
                     <div className="text-xs text-foreground whitespace-pre-wrap leading-relaxed max-h-[300px] overflow-y-auto pr-1">
-                      {run.result.synthesis ?? run.result.summary ?? 'Sem síntese'}
+                      {(run.result as any).synthesis ?? (run.result as any).summary ?? 'Sem síntese'}
                     </div>
-                    {(run.result.responses?.length ?? 0) > 0 && (
+                    {((run.result as any).responses?.length ?? 0) > 0 && (
                       <div className="pt-2 border-t border-border/30 text-[10px] text-muted-foreground">
-                        {run.result.responses.length} modelos consultados
+                        {(run.result as any).responses.length} modelos consultados
                       </div>
                     )}
                   </div>

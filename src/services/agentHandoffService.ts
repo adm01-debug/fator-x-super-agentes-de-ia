@@ -14,7 +14,6 @@
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 import { fromTable } from '@/lib/supabaseExtended';
-import { logger } from '@/lib/logger';
 
 // ──────── Types ────────
 
