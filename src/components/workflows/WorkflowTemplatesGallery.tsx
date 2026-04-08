@@ -6,7 +6,6 @@ import { Layers, Clock, Sparkles, Check } from "lucide-react";
 import { toast } from "sonner";
 import { useWorkflowStore } from "@/stores/workflowStore";
 import {
-  WORKFLOW_TEMPLATES,
   TEMPLATE_CATEGORIES,
   getTemplatesByCategory,
   type WorkflowTemplate,

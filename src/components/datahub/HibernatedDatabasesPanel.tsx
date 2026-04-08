@@ -5,7 +5,6 @@ import {
   Snowflake,
   Power,
   CheckCircle2,
-  AlertTriangle,
   RefreshCw,
   Database,
   Clock,
