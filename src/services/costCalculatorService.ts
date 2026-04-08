@@ -1,6 +1,6 @@
 /**
  * Nexus Agents Studio — Cost Calculator Service
- * 
+ *
  * Tracks and estimates costs for LLM usage across all providers.
  * Features:
  * - Pre-execution cost estimation
@@ -10,6 +10,8 @@
  * - Provider/model pricing database
  * - BRL conversion support
  */
+
+import { logger } from '@/lib/logger';
 
 // ──────── Types ────────
 

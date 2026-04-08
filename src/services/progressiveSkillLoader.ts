@@ -15,6 +15,8 @@
  * - Skill usage analytics
  */
 
+import { logger } from '@/lib/logger';
+
 // ──────── Types ────────
 
 export interface Skill {
