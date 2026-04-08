@@ -24,6 +24,7 @@ import { MCPServerManager } from '@/components/integrations/MCPServerManager';
 import { Bitrix24Connect } from '@/components/integrations/Bitrix24Connect';
 import { Bitrix24ApiTester } from '@/components/integrations/Bitrix24ApiTester';
 import { Bitrix24WebhookPanel } from '@/components/integrations/Bitrix24WebhookPanel';
+import { WhatsAppWebhookPanel } from '@/components/integrations/WhatsAppWebhookPanel';
 import { ProductMockupPanel } from '@/components/tools/ProductMockupPanel';
 import { ImageAnalysisDialog } from '@/components/tools/ImageAnalysisDialog';
 import { SKILL_CATEGORIES } from '@/services/skillsRegistryService';
@@ -228,6 +229,7 @@ export default function ToolsPage() {
         <Bitrix24Connect />
         <Bitrix24ApiTester />
         <Bitrix24WebhookPanel />
+        <WhatsAppWebhookPanel />
       </div>
 
       {/* MCP Servers */}
