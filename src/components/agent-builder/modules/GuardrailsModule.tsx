@@ -137,6 +137,7 @@ export function GuardrailsModule() {
                     </div>
                   </div>
                   <select
+                    aria-label={`Severidade de ${g.name}`}
                     value={g.severity}
                     onChange={(e) => updateGuardrail(g.id, { severity: e.target.value as GuardrailConfig['severity'] })}
                     className="ml-3 rounded-md border border-border bg-muted/30 px-2 py-1 text-xs text-foreground"
@@ -199,6 +200,7 @@ export function GuardrailsModule() {
           {agent.blocked_topics.map((topic, idx) => (
             <div key={idx} className="flex items-center gap-2">
               <input
+                aria-label={`Tópico bloqueado ${idx + 1}`}
                 className="flex-1 rounded-lg border border-border bg-muted/30 px-3 py-2 text-sm text-foreground placeholder:text-muted-foreground"
                 value={topic}
                 onChange={(e) => updateBlockedTopic(idx, e.target.value)}
@@ -227,6 +229,7 @@ export function GuardrailsModule() {
           {agent.allowed_domains.map((domain, idx) => (
             <div key={idx} className="flex items-center gap-2">
               <input
+                aria-label={`Domínio permitido ${idx + 1}`}
                 className="flex-1 rounded-lg border border-border bg-muted/30 px-3 py-2 text-sm text-foreground placeholder:text-muted-foreground"
                 value={domain}
                 onChange={(e) => updateDomain(idx, e.target.value)}

@@ -171,6 +171,7 @@ export function PromptModule() {
                 <div className="space-y-3">
                   <div className="grid grid-cols-2 gap-3">
                     <select
+                      aria-label="Selecionar versão A para comparação"
                       className="w-full rounded-md border border-border bg-muted/30 px-3 py-2 text-sm"
                       value={diffVersionA || ''}
                       onChange={(e) => setDiffVersionA(e.target.value || null)}
@@ -179,6 +180,7 @@ export function PromptModule() {
                       {promptVersions.map(v => <option key={v.id} value={v.id}>v{v.version}</option>)}
                     </select>
                     <select
+                      aria-label="Selecionar versão B para comparação"
                       className="w-full rounded-md border border-border bg-muted/30 px-3 py-2 text-sm"
                       value={diffVersionB || ''}
                       onChange={(e) => setDiffVersionB(e.target.value || null)}
