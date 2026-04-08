@@ -119,17 +119,21 @@ export function useBillingData(agentId?: string): BillingData {
         const projection: WeeklyProjection[] = [];
         for (let w = 0; w < 4; w++) {
           const weekStart = new Date(monthAgo.getTime() + w * 7 * 24 * 60 * 60 * 1000);
+          const weekEnd = new Date(weekStart.getTime() + 7 * 24 * 60 * 60 * 1000);
           const isFuture = weekStart > now;
 
           if (isFuture) {
             projection.push({ week: `S${w + 1}`, real: null, projetado: Math.round(avgDaily * 7) });
           } else {
-            const weekTotal = dailyUsage
-              .filter(() => true) // All current week data
-              .reduce((s, d) => s + d.total, 0);
+            // Filter records that fall within this specific week
+            const weekRecords = (records ?? []).filter((r) => {
+              const d = new Date(r.created_at as string);
+              return d >= weekStart && d < weekEnd;
+            });
+            const weekCost = weekRecords.reduce((s, r) => s + (Number(r.cost_usd) || 0), 0);
             projection.push({
               week: `S${w + 1}`,
-              real: Math.round(weekTotal / (w + 1) * (w + 1)),
+              real: Math.round(weekCost * 100) / 100,
               projetado: Math.round(avgDaily * 7),
             });
           }
@@ -150,7 +154,7 @@ export function useBillingData(agentId?: string): BillingData {
       } catch (err) {
         if (!cancelled) {
           // Fallback to zeros instead of crashing
-          setData(prev => ({
+          setData((prev) => ({
             ...prev,
             loading: false,
             error: err instanceof Error ? err.message : 'Failed to load billing data',
@@ -160,7 +164,9 @@ export function useBillingData(agentId?: string): BillingData {
     }
 
     fetchData();
-    return () => { cancelled = true; };
+    return () => {
+      cancelled = true;
+    };
   }, [agentId]);
 
   return data;
