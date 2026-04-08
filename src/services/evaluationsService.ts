@@ -163,55 +163,126 @@ export interface CLEARScore {
   overall: number; // 0-100 composite score
 }
 
-// Deterministic checks
+/**
+ * Deterministic scoring — checks structural/content correctness.
+ * Multiple criteria: containment, exact match, JSON structure, length.
+ */
 function scoreDeterministic(expected: string, actual: string): number {
   if (!expected || !actual) return 0;
 
-  let score = 0;
-  let checks = 0;
+  const weights: Array<{ score: number; weight: number }> = [];
 
-  // Exact match (case-insensitive)
-  checks++;
-  if (actual.toLowerCase().includes(expected.toLowerCase())) score++;
+  // 1. Case-insensitive containment (weak)
+  const containsExpected = actual.toLowerCase().includes(expected.toLowerCase().substring(0, 200));
+  weights.push({ score: containsExpected ? 1 : 0, weight: 0.15 });
 
-  // Format check (JSON if expected is JSON)
+  // 2. Normalized exact match (strong — strip whitespace, lowercase)
+  const normExpected = expected.trim().toLowerCase().replace(/\s+/g, ' ');
+  const normActual = actual.trim().toLowerCase().replace(/\s+/g, ' ');
+  const exactMatch = normExpected === normActual;
+  weights.push({ score: exactMatch ? 1 : 0, weight: 0.3 });
+
+  // 3. JSON structure matching (if applicable)
   try {
-    JSON.parse(expected);
-    checks++;
+    const expObj = JSON.parse(expected);
     try {
-      JSON.parse(actual);
-      score++;
-    } catch (err) {
-      logger.error('Operation failed:', err); /* not JSON */
+      const actObj = JSON.parse(actual);
+      // Check key overlap
+      const expKeys = new Set(Object.keys(expObj));
+      const actKeys = new Set(Object.keys(actObj));
+      const commonKeys = [...expKeys].filter((k) => actKeys.has(k));
+      const keyOverlap = expKeys.size > 0 ? commonKeys.length / expKeys.size : 0;
+      weights.push({ score: keyOverlap, weight: 0.3 });
+    } catch {
+      weights.push({ score: 0, weight: 0.3 });
     }
-  } catch (err) {
-    logger.error('Operation failed:', err); /* expected is not JSON */
+  } catch {
+    // Expected is not JSON — skip JSON checks and redistribute weight
+    // Check key phrase containment instead
+    const phrases = expected.split(/[.!?\n]/).filter((p) => p.trim().length > 10);
+    if (phrases.length > 0) {
+      const matched = phrases.filter((p) =>
+        actual.toLowerCase().includes(p.trim().toLowerCase().substring(0, 80)),
+      );
+      weights.push({ score: matched.length / phrases.length, weight: 0.3 });
+    }
   }
 
-  // Length sanity (not too short, not too long)
-  checks++;
-  if (actual.length > 10 && actual.length < expected.length * 5) score++;
+  // 4. Length sanity (response should be reasonable length relative to expected)
+  const ratio = actual.length / Math.max(expected.length, 1);
+  const lengthScore = ratio >= 0.3 && ratio <= 5 ? 1 : ratio >= 0.1 && ratio <= 10 ? 0.5 : 0;
+  weights.push({ score: lengthScore, weight: 0.25 });
 
-  return checks > 0 ? score / checks : 0;
+  // Weighted average
+  const totalWeight = weights.reduce((s, w) => s + w.weight, 0);
+  return totalWeight > 0 ? weights.reduce((s, w) => s + w.score * w.weight, 0) / totalWeight : 0;
 }
 
-// Statistical similarity (simplified ROUGE-like)
+/**
+ * Statistical scoring — ROUGE-L based on Longest Common Subsequence.
+ * More robust than simple word overlap: captures ordering and sequence.
+ */
 function scoreStatistical(expected: string, actual: string): number {
   if (!expected || !actual) return 0;
 
-  const expectedWords = new Set(expected.toLowerCase().split(/\s+/));
-  const actualWords = new Set(actual.toLowerCase().split(/\s+/));
+  const expTokens = expected
+    .toLowerCase()
+    .split(/\s+/)
+    .filter((w) => w.length > 1);
+  const actTokens = actual
+    .toLowerCase()
+    .split(/\s+/)
+    .filter((w) => w.length > 1);
 
-  let overlap = 0;
-  expectedWords.forEach((w) => {
-    if (actualWords.has(w)) overlap++;
+  if (expTokens.length === 0 || actTokens.length === 0) return 0;
+
+  // Compute LCS length (ROUGE-L)
+  const lcsLen = lcsLength(expTokens, actTokens);
+
+  const precision = lcsLen / actTokens.length;
+  const recall = lcsLen / expTokens.length;
+
+  // F1 of ROUGE-L
+  const rougeL = precision + recall > 0 ? (2 * precision * recall) / (precision + recall) : 0;
+
+  // Also compute unigram F1 (ROUGE-1) for robustness
+  const expSet = new Set(expTokens);
+  const actSet = new Set(actTokens);
+  let unigramOverlap = 0;
+  expSet.forEach((w) => {
+    if (actSet.has(w)) unigramOverlap++;
   });
+  const uniPrecision = actSet.size > 0 ? unigramOverlap / actSet.size : 0;
+  const uniRecall = expSet.size > 0 ? unigramOverlap / expSet.size : 0;
+  const rouge1 =
+    uniPrecision + uniRecall > 0 ? (2 * uniPrecision * uniRecall) / (uniPrecision + uniRecall) : 0;
 
-  const precision = actualWords.size > 0 ? overlap / actualWords.size : 0;
-  const recall = expectedWords.size > 0 ? overlap / expectedWords.size : 0;
+  // Blend ROUGE-L (60%) with ROUGE-1 (40%)
+  return rougeL * 0.6 + rouge1 * 0.4;
+}
 
-  // F1 score
-  return precision + recall > 0 ? (2 * precision * recall) / (precision + recall) : 0;
+/** Longest Common Subsequence length — O(m*n) DP */
+function lcsLength(a: string[], b: string[]): number {
+  const m = a.length;
+  const n = b.length;
+  // Use single-row optimization for memory efficiency
+  const prev = new Array<number>(n + 1).fill(0);
+  const curr = new Array<number>(n + 1).fill(0);
+
+  for (let i = 1; i <= m; i++) {
+    for (let j = 1; j <= n; j++) {
+      if (a[i - 1] === b[j - 1]) {
+        curr[j] = prev[j - 1] + 1;
+      } else {
+        curr[j] = Math.max(prev[j], curr[j - 1]);
+      }
+    }
+    for (let j = 0; j <= n; j++) {
+      prev[j] = curr[j];
+      curr[j] = 0;
+    }
+  }
+  return prev[n];
 }
 
 export async function runEvaluation(

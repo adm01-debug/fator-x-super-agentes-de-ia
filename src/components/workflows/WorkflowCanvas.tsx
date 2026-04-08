@@ -208,7 +208,7 @@ export function WorkflowCanvas() {
     store.setExecuting(store.nodes[0]?.id || null);
     try {
       const steps = store.nodes.map((n) => n.data.label);
-      const result = await executeWorkflow(workflowId, steps, {});
+      const result = await executeWorkflow(workflowId, store.workflowName, steps);
       toast.success(`Workflow executado: ${result?.status || 'concluído'}`);
     } catch (e: unknown) {
       toast.error(e instanceof Error ? e.message : 'Erro ao executar workflow');
@@ -264,6 +264,42 @@ export function WorkflowCanvas() {
             }
           }}
         >
+          {/* SVG layer for edge connections */}
+          <svg
+            className="absolute inset-0 pointer-events-none"
+            style={{ width: '100%', height: '100%', overflow: 'visible' }}
+          >
+            {store.edges.map((edge) => {
+              const sourceNode = store.nodes.find((n) => n.id === edge.source);
+              const targetNode = store.nodes.find((n) => n.id === edge.target);
+              if (!sourceNode || !targetNode) return null;
+
+              const sx = (sourceNode.position.x + 100) * zoom; // center of node (approx 200px wide / 2)
+              const sy = (sourceNode.position.y + 40) * zoom; // bottom of node
+              const tx = (targetNode.position.x + 100) * zoom;
+              const ty = targetNode.position.y * zoom; // top of node
+              const cy1 = sy + 40 * zoom;
+              const cy2 = ty - 40 * zoom;
+
+              return (
+                <g key={edge.id}>
+                  <path
+                    d={`M ${sx} ${sy} C ${sx} ${cy1}, ${tx} ${cy2}, ${tx} ${ty}`}
+                    fill="none"
+                    stroke="hsl(var(--primary) / 0.4)"
+                    strokeWidth={2}
+                    strokeDasharray={store.isExecuting ? '6 3' : 'none'}
+                  />
+                  {/* Arrow head */}
+                  <polygon
+                    points={`${tx - 4},${ty - 8} ${tx + 4},${ty - 8} ${tx},${ty}`}
+                    fill="hsl(var(--primary) / 0.5)"
+                  />
+                </g>
+              );
+            })}
+          </svg>
+
           {store.nodes.map((node) => (
             <div
               key={node.id}
