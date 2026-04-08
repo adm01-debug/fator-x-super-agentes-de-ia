@@ -144,6 +144,7 @@ export function DeployModule() {
                       <div key={key}>
                         <label className="text-[11px] text-muted-foreground uppercase">{key.replace(/_/g, ' ')}</label>
                         <input
+                          aria-label={`${meta.label} — ${key.replace(/_/g, ' ')}`}
                           className="w-full rounded-lg border border-border bg-muted/30 px-3 py-1.5 text-xs text-foreground"
                           value={value}
                           onChange={(e) =>
@@ -208,6 +209,7 @@ export function DeployModule() {
           <div>
             <label className="text-xs text-muted-foreground mb-1 block">Budget Mensal (USD)</label>
             <input
+              aria-label="Budget Mensal (USD)"
               type="number"
               className="w-full rounded-lg border border-border bg-muted/30 px-3 py-2 text-sm text-foreground"
               value={agent.monthly_budget ?? ''}
@@ -218,6 +220,7 @@ export function DeployModule() {
           <div>
             <label className="text-xs text-muted-foreground mb-1 block">Alerta em (%)</label>
             <input
+              aria-label="Alerta de budget em porcentagem"
               type="number"
               className="w-full rounded-lg border border-border bg-muted/30 px-3 py-2 text-sm text-foreground"
               value={agent.budget_alert_threshold}
