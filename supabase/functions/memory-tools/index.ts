@@ -1,9 +1,7 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.49.4";
 import { z } from "https://esm.sh/zod@3.23.8";
-import { getCorsHeaders, handleCorsPreflight, jsonResponse, errorResponse, checkRateLimit, getRateLimitIdentifier, createRateLimitResponse, RATE_LIMITS } from "../_shared/mod.ts";
-
-// CORS handled by _shared/cors.ts — dynamic origin whitelist
+import { handleCorsPreflight, jsonResponse, errorResponse } from "../_shared/mod.ts";
 
 // ═══ Zod Schemas ═══
 const toolEnum = z.enum(['memory_save', 'memory_search', 'memory_update', 'memory_forget', 'memory_compact']);
@@ -35,13 +33,13 @@ serve(async (req) => {
     const supabase = createClient(supabaseUrl, supabaseKey, { global: { headers: { Authorization: authHeader } } });
 
     const { data: { user } } = await supabase.auth.getUser();
-    if (!user) return new Response(JSON.stringify({ error: 'Unauthorized' }), { status: 401, headers: jsonHeaders });
+    if (!user) return errorResponse(req, 'Unauthorized', 401);
 
     // Validate top-level body
     const rawBody = await req.json();
     const bodyResult = bodySchema.safeParse(rawBody);
     if (!bodyResult.success) {
-      return new Response(JSON.stringify({ error: 'Invalid request', details: bodyResult.error.flatten().fieldErrors }), { status: 400, headers: jsonHeaders });
+      return errorResponse(req, 'Invalid request', 400, { details: bodyResult.error.flatten().fieldErrors });
     }
     const { tool, params, agent_id } = bodyResult.data;
 
@@ -50,10 +48,10 @@ serve(async (req) => {
 
     if (tool === 'memory_save') {
       const parsed = saveParams.safeParse(params);
-      if (!parsed.success) return new Response(JSON.stringify({ error: parsed.error.flatten().fieldErrors }), { status: 400, headers: jsonHeaders });
+      if (!parsed.success) return errorResponse(req, 'Validation failed', 400, { details: parsed.error.flatten().fieldErrors });
       const { content, memory_type, importance } = parsed.data;
 
-      const { data: mem, error } = await (supabase as unknown as { from: (t: string) => any }).from('agent_memories').insert({
+      const { data: mem, error } = await (supabase as unknown as { from: (t: string) => unknown }).from('agent_memories').insert({
         agent_id: agent_id || null,
         workspace_id: wsId,
         memory_type,
@@ -61,60 +59,60 @@ serve(async (req) => {
         relevance_score: importance,
         source: 'self_edit',
         metadata: { created_by: 'agent', importance },
-      }).select('id').single();
-      if (error) throw error;
+      }).select('id').single() as { data: { id: string } | null; error: { message: string } | null };
+      if (error) throw new Error(error.message);
 
-      return new Response(JSON.stringify({ success: true, memory_id: mem.id, message: `Memória salva (${memory_type})` }), { headers: jsonHeaders });
+      return jsonResponse(req, { success: true, memory_id: mem?.id, message: `Memória salva (${memory_type})` });
     }
 
     if (tool === 'memory_search') {
       const parsed = searchParams.safeParse(params);
-      if (!parsed.success) return new Response(JSON.stringify({ error: parsed.error.flatten().fieldErrors }), { status: 400, headers: jsonHeaders });
+      if (!parsed.success) return errorResponse(req, 'Validation failed', 400, { details: parsed.error.flatten().fieldErrors });
       const { query, memory_type, limit } = parsed.data;
 
-      let q = (supabase as unknown as { from: (t: string) => any }).from('agent_memories').select('id, content, memory_type, relevance_score, created_at, metadata')
+      let q = (supabase as unknown as { from: (t: string) => unknown }).from('agent_memories').select('id, content, memory_type, relevance_score, created_at, metadata')
         .or(`agent_id.eq.${agent_id || '00000000-0000-0000-0000-000000000000'},agent_id.is.null`)
         .eq('workspace_id', wsId)
         .order('relevance_score', { ascending: false })
-        .limit(limit);
+        .limit(limit) as unknown as { eq: (k: string, v: string) => unknown; ilike: (k: string, v: string) => unknown };
 
-      if (memory_type) q = q.eq('memory_type', memory_type);
-      q = q.ilike('content', `%${query}%`);
+      if (memory_type) q = q.eq('memory_type', memory_type) as typeof q;
+      q = q.ilike('content', `%${query}%`) as typeof q;
 
-      const { data: memories } = await q;
-      return new Response(JSON.stringify({ memories: memories || [], count: memories?.length || 0 }), { headers: jsonHeaders });
+      const { data: memories } = await (q as unknown as Promise<{ data: unknown[] | null }>);
+      return jsonResponse(req, { memories: memories || [], count: (memories as unknown[])?.length || 0 });
     }
 
     if (tool === 'memory_update') {
       const parsed = updateParams.safeParse(params);
-      if (!parsed.success) return new Response(JSON.stringify({ error: parsed.error.flatten().fieldErrors }), { status: 400, headers: jsonHeaders });
+      if (!parsed.success) return errorResponse(req, 'Validation failed', 400, { details: parsed.error.flatten().fieldErrors });
       const { memory_id, new_content } = parsed.data;
 
-      await (supabase as unknown as { from: (t: string) => any }).from('agent_memories').update({ content: new_content, updated_at: new Date().toISOString() }).eq('id', memory_id);
-      return new Response(JSON.stringify({ success: true, message: 'Memória atualizada' }), { headers: jsonHeaders });
+      await (supabase as unknown as { from: (t: string) => unknown }).from('agent_memories').update({ content: new_content, updated_at: new Date().toISOString() }).eq('id', memory_id);
+      return jsonResponse(req, { success: true, message: 'Memória atualizada' });
     }
 
     if (tool === 'memory_forget') {
       const parsed = forgetParams.safeParse(params);
-      if (!parsed.success) return new Response(JSON.stringify({ error: parsed.error.flatten().fieldErrors }), { status: 400, headers: jsonHeaders });
+      if (!parsed.success) return errorResponse(req, 'Validation failed', 400, { details: parsed.error.flatten().fieldErrors });
 
-      await (supabase as unknown as { from: (t: string) => any }).from('agent_memories').delete().eq('id', parsed.data.memory_id);
-      return new Response(JSON.stringify({ success: true, message: 'Memória removida' }), { headers: jsonHeaders });
+      await (supabase as unknown as { from: (t: string) => unknown }).from('agent_memories').delete().eq('id', parsed.data.memory_id);
+      return jsonResponse(req, { success: true, message: 'Memória removida' });
     }
 
     if (tool === 'memory_compact') {
       const parsed = compactParams.safeParse(params);
-      if (!parsed.success) return new Response(JSON.stringify({ error: parsed.error.flatten().fieldErrors }), { status: 400, headers: jsonHeaders });
+      if (!parsed.success) return errorResponse(req, 'Validation failed', 400, { details: parsed.error.flatten().fieldErrors });
 
-      const { data: episodic } = await (supabase as unknown as { from: (t: string) => any }).from('agent_memories')
+      const { data: episodic } = await (supabase as unknown as { from: (t: string) => unknown }).from('agent_memories')
         .select('id, content, created_at')
         .eq('agent_id', agent_id)
         .eq('memory_type', 'episodic')
         .order('created_at', { ascending: true })
-        .limit(20);
+        .limit(20) as unknown as { data: Array<{ id: string; content: string; created_at: string }> | null };
 
       if (!episodic || episodic.length < 5) {
-        return new Response(JSON.stringify({ success: false, message: 'Not enough memories to compact (need 5+)' }), { headers: jsonHeaders });
+        return jsonResponse(req, { success: false, message: 'Not enough memories to compact (need 5+)' });
       }
 
       const summaryResp = await fetch(`${supabaseUrl}/functions/v1/llm-gateway`, {
@@ -133,7 +131,7 @@ serve(async (req) => {
       const summary = summaryData.content || '';
 
       if (summary) {
-        await (supabase as unknown as { from: (t: string) => any }).from('agent_memories').insert({
+        await (supabase as unknown as { from: (t: string) => unknown }).from('agent_memories').insert({
           agent_id, workspace_id: wsId,
           memory_type: 'semantic',
           content: summary,
@@ -142,15 +140,15 @@ serve(async (req) => {
           metadata: { compacted_from: episodic.map((m: { id: string }) => m.id), original_count: episodic.length },
         });
         const idsToDelete = episodic.map((m: { id: string }) => m.id);
-        await (supabase as unknown as { from: (t: string) => any }).from('agent_memories').delete().in('id', idsToDelete);
+        await (supabase as unknown as { from: (t: string) => unknown }).from('agent_memories').delete().in('id', idsToDelete);
       }
 
-      return new Response(JSON.stringify({ success: true, compacted: episodic.length, summary_preview: summary.substring(0, 200) }), { headers: jsonHeaders });
+      return jsonResponse(req, { success: true, compacted: episodic.length, summary_preview: summary.substring(0, 200) });
     }
 
-    return new Response(JSON.stringify({ error: 'Unknown tool. Valid: memory_save, memory_search, memory_update, memory_forget, memory_compact' }), { status: 400, headers: jsonHeaders });
+    return errorResponse(req, 'Unknown tool. Valid: memory_save, memory_search, memory_update, memory_forget, memory_compact', 400);
 
   } catch (error: unknown) {
-    return new Response(JSON.stringify({ error: error instanceof Error ? error.message : 'Internal error' }), { status: 500, headers: jsonHeaders });
+    return errorResponse(req, error instanceof Error ? error.message : 'Internal error', 500);
   }
 });
