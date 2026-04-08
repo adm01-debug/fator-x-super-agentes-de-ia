@@ -13,6 +13,7 @@ import { getWorkspaceId } from "@/lib/agentService";
 import { getAgentUsage, listBudgets, createBudget, deleteBudget, getUsageRecords, getModelPricing } from "@/services/billingService";
 import { LightBarChart } from "@/components/charts";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { RealTimeCostStream } from "@/components/billing/RealTimeCostStream";
 import { toast } from "sonner";
 
 export default function BillingPage() {
@@ -84,6 +85,7 @@ export default function BillingPage() {
       <Tabs defaultValue="overview" className="space-y-4">
         <TabsList>
           <TabsTrigger value="overview">Visão geral</TabsTrigger>
+          <TabsTrigger value="stream">Stream ao vivo</TabsTrigger>
           <TabsTrigger value="budgets">Orçamentos</TabsTrigger>
           <TabsTrigger value="records">Registros de uso</TabsTrigger>
           <TabsTrigger value="pricing">Preços por modelo</TabsTrigger>
@@ -119,6 +121,10 @@ export default function BillingPage() {
               </div>
             </>
           )}
+        </TabsContent>
+
+        <TabsContent value="stream">
+          <RealTimeCostStream />
         </TabsContent>
 
         <TabsContent value="budgets">
