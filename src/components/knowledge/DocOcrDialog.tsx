@@ -230,7 +230,7 @@ export function DocOcrDialog() {
           <Button
             onClick={handleRun}
             disabled={!file || loading}
-            className="w-full bg-nexus-emerald hover:bg-nexus-emerald/90 text-[#050510]"
+            className="w-full bg-nexus-emerald hover:bg-nexus-emerald/90 text-background"
           >
             {loading ? (
               <>

@@ -505,7 +505,7 @@ export function SandboxExecutionPanel({
               </div>
 
               {config.runtime === 'none' && (
-                <div className="flex items-center gap-2 p-3 rounded-lg bg-[#FFD93D]/10 border border-[#FFD93D]/30">
+                <div className="flex items-center gap-2 p-3 rounded-lg bg-nexus-amber/10 border border-nexus-amber/30">
                   <AlertTriangle className="w-4 h-4 text-nexus-amber" />
                   <span className="text-xs text-nexus-amber">
                     Execução de código está desabilitada. Selecione um runtime na aba Configuração.
