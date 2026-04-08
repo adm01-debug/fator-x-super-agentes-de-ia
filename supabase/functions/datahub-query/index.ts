@@ -687,6 +687,69 @@ serve(async (req) => {
       }), { headers: { ...getCorsHeaders(req), 'Content-Type': 'application/json' } });
     }
 
+    // ═══ ACTION: list_rls_policies ═══
+    // Reads pg_policies from each connected database via the
+    // exec_sql RPC (assumes a SECURITY DEFINER function exists on each
+    // remote project). Returns the live RLS contract so the
+    // PermissionsTab can diff declared vs real policies.
+    if (action === 'list_rls_policies') {
+      const { connection: filterConn } = body as { connection?: string };
+      const conns = filterConn
+        ? [filterConn].filter((c) => c in CONNECTION_REGISTRY)
+        : Object.keys(CONNECTION_REGISTRY);
+
+      const result: Record<string, {
+        ok: boolean;
+        policies?: Array<{ table: string; name: string; cmd: string; roles: string[]; using?: string; with_check?: string }>;
+        error?: string;
+        count?: number;
+      }> = {};
+
+      const sql = `
+        SELECT tablename AS table,
+               policyname AS name,
+               cmd,
+               roles,
+               qual AS using_expr,
+               with_check
+        FROM pg_policies
+        WHERE schemaname = 'public'
+        ORDER BY tablename, policyname
+      `;
+
+      for (const connId of conns) {
+        try {
+          const client = getExternalClient(connId);
+          // Try the exec_sql RPC convention. Falls back to a graceful error
+          // when the helper RPC is not deployed in that project.
+          const { data, error } = await client.rpc('exec_sql', { sql });
+          if (error) {
+            result[connId] = {
+              ok: false,
+              error: `${error.message} (deploy exec_sql RPC SECURITY DEFINER on this project to enable)`,
+            };
+            continue;
+          }
+          const policies = Array.isArray(data) ? data.map((row: Record<string, unknown>) => ({
+            table: String(row.table ?? row.tablename ?? ''),
+            name: String(row.name ?? row.policyname ?? ''),
+            cmd: String(row.cmd ?? '*'),
+            roles: Array.isArray(row.roles) ? row.roles as string[] : [],
+            using: row.using_expr ? String(row.using_expr) : undefined,
+            with_check: row.with_check ? String(row.with_check) : undefined,
+          })) : [];
+          result[connId] = { ok: true, policies, count: policies.length };
+        } catch (e: unknown) {
+          result[connId] = { ok: false, error: e instanceof Error ? e.message : String(e) };
+        }
+      }
+
+      return new Response(JSON.stringify({
+        timestamp: new Date().toISOString(),
+        connections: result,
+      }), { headers: { ...getCorsHeaders(req), 'Content-Type': 'application/json' } });
+    }
+
     return new Response(JSON.stringify({ error: 'Invalid action' }), { status: 400, headers: { ...getCorsHeaders(req), 'Content-Type': 'application/json' } });
   } catch (error: unknown) {
     console.error('datahub-query error:', error);

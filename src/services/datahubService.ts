@@ -124,6 +124,55 @@ const DATAHUB_PROJECTS: Array<{ name: string; ref: string }> = [
  * Pings each DataHub project via the datahub-query Edge Function and
  * collects per-project health metrics. Used by the new Health tab.
  */
+// ============================================================================
+// LIVE RLS POLICIES (next-frontier #5 — Permissions tab)
+// ============================================================================
+
+export interface RlsPolicy {
+  table: string;
+  name: string;
+  cmd: string;
+  roles: string[];
+  using?: string;
+  with_check?: string;
+}
+
+export interface RlsPolicyConnectionResult {
+  ok: boolean;
+  policies?: RlsPolicy[];
+  error?: string;
+  count?: number;
+}
+
+export interface RlsPolicyReport {
+  timestamp: string;
+  connections: Record<string, RlsPolicyConnectionResult>;
+}
+
+/**
+ * Pulls live RLS policies from each external Supabase project via the
+ * datahub-query Edge Function (action=list_rls_policies).
+ *
+ * Requires an `exec_sql` RPC with SECURITY DEFINER deployed on each
+ * remote project that allows reading pg_policies. Connections without
+ * the RPC return ok=false with a descriptive error — the UI handles
+ * that gracefully.
+ */
+export async function getDatahubRlsPolicies(connection?: string): Promise<RlsPolicyReport> {
+  const { data, error } = await supabase.functions.invoke('datahub-query', {
+    body: { action: 'list_rls_policies', connection },
+  });
+  if (error) {
+    logger.error('list_rls_policies failed', { error: error.message });
+    throw error;
+  }
+  return data as RlsPolicyReport;
+}
+
+/**
+ * Pings each DataHub project via the datahub-query Edge Function and
+ * collects per-project health metrics. Used by the Health tab.
+ */
 export async function getDatahubHealth(): Promise<DatahubHealthReport> {
   const projects: DatahubProjectHealth[] = [];
 
