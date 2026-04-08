@@ -180,6 +180,7 @@ export function PromptModule() {
                       {promptVersions.map(v => <option key={v.id} value={v.id}>v{v.version}</option>)}
                     </select>
                     <select
+                      aria-label="Selecionar versão B para comparação"
                       className="w-full rounded-md border border-border bg-muted/30 px-3 py-2 text-sm"
                       value={diffVersionB || ''}
                       onChange={(e) => setDiffVersionB(e.target.value || null)}
