@@ -3,6 +3,7 @@
  * Collections, documents, chunks management for Super Cérebro.
  */
 import { supabase } from '@/integrations/supabase/client';
+import { invokeTracedFunction } from '@/services/llmGatewayService';
 
 export async function listCollections() {
   const { data, error } = await supabase
@@ -212,9 +213,7 @@ export async function createDocument(doc: { title: string; collection_id: string
 }
 
 export async function invokeRagIngest(body: Record<string, unknown>) {
-  const { data, error } = await supabase.functions.invoke('rag-ingest', { body });
-  if (error) throw error;
-  return data;
+  return invokeTracedFunction('rag-ingest', body, { spanKind: 'rag' });
 }
 
 export async function getDocumentCount(collectionId: string) {
@@ -286,11 +285,10 @@ export async function createDocumentWithIngest(doc: { title: string; collection_
 
   let ingestResult = null;
   if (content?.trim()) {
-    const { data: ir, error: ie } = await supabase.functions.invoke('rag-ingest', {
-      body: { document_id: data.id, content: content.trim(), chunk_size: 1000, chunk_overlap: 200 },
-    });
-    if (ie) throw ie;
-    ingestResult = ir;
+    ingestResult = await invokeTracedFunction('rag-ingest',
+      { document_id: data.id, content: content.trim(), chunk_size: 1000, chunk_overlap: 200 },
+      { spanKind: 'rag' }
+    );
   }
   return { docId: data.id, ingestResult };
 }
@@ -328,15 +326,14 @@ export async function runDocOcr(opts: DocOcrOptions): Promise<DocOcrResult> {
   if (!opts.imageBase64 && !opts.imageUrl) {
     throw new Error('Forneça imageBase64 ou imageUrl');
   }
-  const { data, error } = await supabase.functions.invoke('doc-ocr', {
-    body: {
-      action: opts.action ?? 'ocr',
-      image_base64: opts.imageBase64,
-      image_url: opts.imageUrl,
-      prompt: opts.prompt,
-      fields: opts.fields,
-    },
+  return invokeTracedFunction<DocOcrResult>('doc-ocr', {
+    action: opts.action ?? 'ocr',
+    image_base64: opts.imageBase64,
+    image_url: opts.imageUrl,
+    prompt: opts.prompt,
+    fields: opts.fields,
+  }, {
+    spanKind: 'tool',
+    extractModel: () => 'ibm-granite-vision-3.3-2b',
   });
-  if (error) throw error;
-  return data as DocOcrResult;
 }

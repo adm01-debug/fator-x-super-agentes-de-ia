@@ -4,6 +4,7 @@
  */
 import { supabase } from '@/integrations/supabase/client';
 import { logger } from '@/lib/logger';
+import { invokeTracedFunction } from '@/services/llmGatewayService';
 
 export async function listApiKeys() {
   const { data, error } = await supabase
@@ -79,11 +80,9 @@ export async function getAuditLog(options?: { userId?: string; limit?: number })
 }
 
 export async function invokeGuardrailsCheck(text: string) {
-  const { data, error } = await supabase.functions.invoke('guardrails-engine', {
-    body: { action: 'check_full', text },
+  return invokeTracedFunction('guardrails-engine', { action: 'check_full', text }, {
+    spanKind: 'guardrail',
   });
-  if (error) throw error;
-  return data;
 }
 
 
@@ -124,9 +123,9 @@ export async function deleteGuardrailPolicy(id: string) {
 }
 
 export async function testGuardrails(text: string, checks: string[] = ['pii', 'injection', 'toxicity', 'content']) {
-  const { data, error } = await supabase.functions.invoke('guardrails-engine', { body: { text, checks } });
-  if (error) { logger.error('testGuardrails failed', { error: error.message }); throw error; }
-  return data;
+  return invokeTracedFunction('guardrails-engine', { text, checks }, {
+    spanKind: 'guardrail',
+  });
 }
 
 // ──────── Session Management ────────
