@@ -239,10 +239,10 @@ export default function ToolsPage() {
       {/* Skills Marketplace Preview */}
       <div className="nexus-card p-6 space-y-3">
         <h3 className="text-sm font-bold text-white">Skills Marketplace</h3>
-        <p className="text-xs text-[#888888]">Instale habilidades pré-construídas nos seus agentes</p>
+        <p className="text-xs text-muted-foreground">Instale habilidades pré-construídas nos seus agentes</p>
         <div className="grid grid-cols-5 gap-2">
           {SKILL_CATEGORIES.map(cat => (
-            <div key={cat.id} className="bg-[#0a0a1a] rounded-lg p-3 text-center cursor-pointer hover:border-[#4D96FF] border border-[#222244] transition-colors">
+            <div key={cat.id} className="bg-background rounded-lg p-3 text-center cursor-pointer hover:border-primary border border-border transition-colors">
               <div className="text-2xl mb-1">{cat.icon}</div>
               <div className="text-[10px] font-medium text-white">{cat.name}</div>
             </div>

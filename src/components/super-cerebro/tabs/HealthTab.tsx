@@ -126,7 +126,7 @@ export function HealthTab() {
               </div>
               <span className="text-lg font-bold" style={{ color: m.color }}>{m.score}%</span>
             </div>
-            <div className="h-2 bg-[#222244] rounded-full mb-2">
+            <div className="h-2 bg-muted rounded-full mb-2">
               <div className="h-full rounded-full transition-all" style={{ width: `${m.score}%`, backgroundColor: m.color }} />
             </div>
             <p className="text-xs text-muted-foreground">{m.description}</p>

@@ -86,22 +86,22 @@ export function SandboxTab() {
           onChange={(e) => setQuestions(e.target.value)}
           placeholder={`Qual fornecedor de canetas atende SP com prazo < 5 dias?\nQuem é o vendedor responsável pela empresa X?\nQual o prazo médio de entrega do fornecedor Y?`}
           rows={6}
-          className="w-full bg-background border border-border rounded-lg p-3 text-sm text-foreground placeholder-[#555555] resize-none focus:border-primary focus:outline-none"
+          className="w-full bg-background border border-border rounded-lg p-3 text-sm text-foreground placeholder-muted-foreground resize-none focus:border-primary focus:outline-none"
         />
         <div className="flex items-center justify-between mt-3">
           <span className="text-xs text-muted-foreground">{questions.split('\n').filter(l => l.trim()).length} perguntas</span>
           <button
             onClick={runTest}
             disabled={isRunning || !questions.trim()}
-            className="px-4 py-2 text-sm text-foreground bg-gradient-to-r from-[#4D96FF] to-[#6BCB77] rounded-lg hover:opacity-90 disabled:opacity-50 transition-opacity"
+            className="px-4 py-2 text-sm text-foreground bg-gradient-to-r from-primary to-nexus-emerald rounded-lg hover:opacity-90 disabled:opacity-50 transition-opacity"
           >
             {isRunning ? `⏳ Testando... ${progress}%` : '▶️ Executar Teste'}
           </button>
         </div>
 
         {isRunning && (
-          <div className="mt-3 h-2 bg-[#222244] rounded-full overflow-hidden">
-            <div className="h-full bg-gradient-to-r from-[#4D96FF] to-[#6BCB77] transition-all" style={{ width: `${progress}%` }} />
+          <div className="mt-3 h-2 bg-muted rounded-full overflow-hidden">
+            <div className="h-full bg-gradient-to-r from-primary to-nexus-emerald transition-all" style={{ width: `${progress}%` }} />
           </div>
         )}
       </div>
@@ -140,12 +140,12 @@ export function SandboxTab() {
               </thead>
               <tbody>
                 {results.map((r, i) => (
-                  <tr key={i} className="border-b border-border hover:bg-[#16162a]">
+                  <tr key={i} className="border-b border-border hover:bg-muted/50">
                     <td className="p-3 text-muted-foreground">{i + 1}</td>
                     <td className="p-3 text-foreground max-w-[200px] truncate">{r.question}</td>
                     <td className="p-3 text-foreground max-w-[300px] truncate">{r.answer}</td>
                     <td className="p-3 text-center">
-                      <span className={`px-2 py-0.5 rounded-full text-xs ${r.confidence > 0.7 ? 'bg-[#6BCB7722] text-nexus-emerald' : r.confidence > 0.4 ? 'bg-[#FFD93D22] text-nexus-amber' : 'bg-[#FF6B6B22] text-destructive'}`}>
+                      <span className={`px-2 py-0.5 rounded-full text-xs ${r.confidence > 0.7 ? 'bg-nexus-emerald/10 text-nexus-emerald' : r.confidence > 0.4 ? 'bg-nexus-amber/10 text-nexus-amber' : 'bg-destructive/10 text-destructive'}`}>
                         {Math.round(r.confidence * 100)}%
                       </span>
                     </td>

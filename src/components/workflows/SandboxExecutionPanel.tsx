@@ -193,7 +193,7 @@ function SliderField({
         step={step}
         value={value}
         onChange={(e) => onChange(Number(e.target.value))}
-        className="w-full h-1.5 bg-[#222244] rounded-lg appearance-none cursor-pointer accent-[#4D96FF]"
+        className="w-full h-1.5 bg-muted rounded-lg appearance-none cursor-pointer accent-primary"
       />
     </div>
   );
@@ -226,7 +226,7 @@ function ToggleField({
       </div>
       <div
         className={`w-10 h-5 rounded-full flex items-center transition-colors ${
-          checked ? 'bg-primary' : 'bg-[#222244]'
+          checked ? 'bg-primary' : 'bg-muted'
         }`}
       >
         <div
@@ -330,15 +330,15 @@ export function SandboxExecutionPanel({
       {/* Tabs */}
       <Tabs value={activeTab} onValueChange={setActiveTab}>
         <TabsList className="bg-background border border-border">
-          <TabsTrigger value="config" className="data-[state=active]:bg-[#222244]">
+          <TabsTrigger value="config" className="data-[state=active]:bg-muted">
             <Settings className="w-3 h-3 mr-1" />
             Configuração
           </TabsTrigger>
-          <TabsTrigger value="execute" className="data-[state=active]:bg-[#222244]">
+          <TabsTrigger value="execute" className="data-[state=active]:bg-muted">
             <Terminal className="w-3 h-3 mr-1" />
             Executar
           </TabsTrigger>
-          <TabsTrigger value="output" className="data-[state=active]:bg-[#222244]">
+          <TabsTrigger value="output" className="data-[state=active]:bg-muted">
             <FileText className="w-3 h-3 mr-1" />
             Saída
             {executions.length > 0 && (
@@ -347,7 +347,7 @@ export function SandboxExecutionPanel({
               </Badge>
             )}
           </TabsTrigger>
-          <TabsTrigger value="security" className="data-[state=active]:bg-[#222244]">
+          <TabsTrigger value="security" className="data-[state=active]:bg-muted">
             <Lock className="w-3 h-3 mr-1" />
             Políticas
           </TabsTrigger>
@@ -366,8 +366,8 @@ export function SandboxExecutionPanel({
                       key={rt.id}
                       className={`p-3 rounded-lg border cursor-pointer transition-all ${
                         config.runtime === rt.id
-                          ? 'border-[#4D96FF] bg-primary/10'
-                          : 'border-border bg-background hover:border-[#333366]'
+                          ? 'border-primary bg-primary/10'
+                          : 'border-border bg-background hover:border-border'
                       }`}
                       onClick={() => updateConfig({ runtime: rt.id })}
                     >
@@ -444,7 +444,7 @@ export function SandboxExecutionPanel({
                       className={`cursor-pointer text-[10px] ${
                         language === lang
                           ? 'bg-primary text-foreground'
-                          : 'bg-[#222244] text-muted-foreground hover:bg-[#333366]'
+                          : 'bg-muted text-muted-foreground hover:bg-muted'
                       }`}
                       onClick={() => setLanguage(lang)}
                     >
@@ -470,7 +470,7 @@ export function SandboxExecutionPanel({
                 <Button
                   onClick={handleExecute}
                   disabled={isRunning || config.runtime === 'none' || !codeInput.trim()}
-                  className="bg-nexus-emerald hover:bg-[#5ab568] text-foreground"
+                  className="bg-nexus-emerald hover:bg-nexus-emerald/80 text-foreground"
                 >
                   {isRunning ? (
                     <>
@@ -488,7 +488,7 @@ export function SandboxExecutionPanel({
                   <Button
                     variant="outline"
                     onClick={() => setIsRunning(false)}
-                    className="border-[#FF6B6B] text-destructive hover:bg-destructive/10"
+                    className="border-destructive text-destructive hover:bg-destructive/10"
                   >
                     <Square className="w-4 h-4 mr-1" />
                     Parar
@@ -505,7 +505,7 @@ export function SandboxExecutionPanel({
               </div>
 
               {config.runtime === 'none' && (
-                <div className="flex items-center gap-2 p-3 rounded-lg bg-[#FFD93D]/10 border border-[#FFD93D]/30">
+                <div className="flex items-center gap-2 p-3 rounded-lg bg-nexus-amber/10 border border-nexus-amber/30">
                   <AlertTriangle className="w-4 h-4 text-nexus-amber" />
                   <span className="text-xs text-nexus-amber">
                     Execução de código está desabilitada. Selecione um runtime na aba Configuração.
@@ -554,7 +554,7 @@ export function SandboxExecutionPanel({
                                 className="w-4 h-4"
                                 style={{ color: statusColor }}
                               />
-                              <Badge className="bg-[#222244] text-muted-foreground text-[10px]">
+                              <Badge className="bg-muted text-muted-foreground text-[10px]">
                                 {exec.language}
                               </Badge>
                               <span className="text-xs text-muted-foreground">
@@ -576,7 +576,7 @@ export function SandboxExecutionPanel({
 
                           {/* Output */}
                           {exec.output && (
-                            <div className="p-2 bg-background rounded border-l-2 border-[#6BCB77]">
+                            <div className="p-2 bg-background rounded border-l-2 border-nexus-emerald">
                               <pre className="text-xs font-mono text-nexus-emerald whitespace-pre-wrap">
                                 {exec.output}
                               </pre>
@@ -585,7 +585,7 @@ export function SandboxExecutionPanel({
 
                           {/* Error */}
                           {exec.error && (
-                            <div className="p-2 bg-background rounded border-l-2 border-[#FF6B6B]">
+                            <div className="p-2 bg-background rounded border-l-2 border-destructive">
                               <pre className="text-xs font-mono text-destructive whitespace-pre-wrap">
                                 {exec.error}
                               </pre>
@@ -598,7 +598,7 @@ export function SandboxExecutionPanel({
                               {exec.artifacts.map((art, idx) => (
                                 <Badge
                                   key={idx}
-                                  className="bg-[#E67E22]/20 text-[#E67E22] text-[10px] cursor-pointer hover:bg-[#E67E22]/30"
+                                  className="bg-orange-500/20 text-orange-500 text-[10px] cursor-pointer hover:bg-orange-500/30"
                                 >
                                   <Download className="w-3 h-3 mr-1" />
                                   {art.name} ({(art.size / 1024).toFixed(1)}KB)
@@ -702,7 +702,7 @@ export function SandboxExecutionPanel({
 
               {/* Warning for low security */}
               {(config.shellAccess || config.runtime === 'local') && (
-                <div className="flex items-start gap-2 p-3 rounded-lg bg-destructive/10 border border-[#FF6B6B]/30">
+                <div className="flex items-start gap-2 p-3 rounded-lg bg-destructive/10 border border-destructive/30">
                   <AlertTriangle className="w-4 h-4 text-destructive shrink-0 mt-0.5" />
                   <div>
                     <p className="text-xs font-medium text-destructive">Atenção: Configuração de Risco</p>

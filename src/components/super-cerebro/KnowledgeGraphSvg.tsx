@@ -106,7 +106,7 @@ export function KnowledgeGraphSvg({
         height={height}
         viewBox={`0 0 ${width} ${height}`}
         xmlns="http://www.w3.org/2000/svg"
-        className="rounded-lg bg-[#0a0a1a]/40"
+        className="rounded-lg bg-background/40"
       >
         <defs>
           <marker

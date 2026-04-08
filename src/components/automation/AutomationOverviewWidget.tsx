@@ -19,7 +19,7 @@ export function AutomationOverviewWidget() {
 
   if (loading) {
     return (
-      <Card className="bg-[#111122] border-[#222244]">
+      <Card className="bg-card border-border">
         <CardContent className="p-6 text-center text-gray-400">
           <Zap size={20} className="mx-auto mb-2 animate-pulse" />
           <p className="text-sm">Carregando automações...</p>
@@ -68,13 +68,13 @@ export function AutomationOverviewWidget() {
 
   return (
     <Card
-      className="bg-[#111122] border-[#222244] cursor-pointer hover:border-[#4D96FF]/50 transition-colors"
+      className="bg-card border-border cursor-pointer hover:border-primary/50 transition-colors"
       onClick={() => navigate('/automation')}
     >
       <CardHeader className="pb-2">
         <CardTitle className="text-sm flex items-center justify-between">
           <span className="flex items-center gap-2">
-            <Zap size={16} className="text-[#FFD93D]" />
+            <Zap size={16} className="text-nexus-amber" />
             Automation Center
           </span>
           {hasAlerts && (

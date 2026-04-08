@@ -173,7 +173,7 @@ export function WebWidgetPanel({ agentId: initialAgentId, agentName }: WebWidget
               </Button>
 
               {chatReply && (
-                <div className="mt-3 p-3 rounded-lg bg-background border border-[#4D96FF]/30">
+                <div className="mt-3 p-3 rounded-lg bg-background border border-primary/30">
                   <p className="text-[10px] text-primary uppercase tracking-wider mb-1">Resposta do Agent</p>
                   <p className="text-xs text-gray-200 whitespace-pre-wrap">{chatReply}</p>
                 </div>

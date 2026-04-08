@@ -45,7 +45,7 @@ export function CredentialVaultPanel() {
           <p className="text-sm text-muted-foreground mb-3">Templates de Credencial</p>
           <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
             {Object.entries(CREDENTIAL_TEMPLATES).map(([key, tpl]) => (
-              <div key={key} className="p-3 rounded-lg bg-background border border-border hover:border-[#9B59B6]/50 cursor-pointer">
+              <div key={key} className="p-3 rounded-lg bg-background border border-border hover:border-nexus-purple/50 cursor-pointer">
                 <div className="flex items-center gap-2 mb-1">
                   <span>{TYPE_ICONS[tpl.type] ?? '🔑'}</span>
                   <p className="font-medium text-sm">{tpl.label}</p>

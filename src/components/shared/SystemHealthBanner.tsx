@@ -49,7 +49,7 @@ export function SystemHealthBanner() {
 
   if (isError || !data) {
     return (
-      <div className="bg-card rounded-xl border border-[#FF6B6B]/40 p-4 flex items-center gap-3">
+      <div className="bg-card rounded-xl border border-destructive/40 p-4 flex items-center gap-3">
         <XCircle className="h-5 w-5 text-destructive" />
         <div className="flex-1">
           <p className="text-sm font-medium text-foreground">Health-check indisponível</p>

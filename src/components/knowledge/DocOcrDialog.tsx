@@ -150,7 +150,7 @@ export function DocOcrDialog() {
                 type="file"
                 accept="image/*"
                 onChange={handleFile}
-                className="flex-1 text-xs file:mr-3 file:px-3 file:py-1.5 file:rounded-md file:border-0 file:bg-background file:text-foreground hover:file:bg-[#222244]"
+                className="flex-1 text-xs file:mr-3 file:px-3 file:py-1.5 file:rounded-md file:border-0 file:bg-background file:text-foreground hover:file:bg-muted"
               />
               <Upload className="h-4 w-4 text-muted-foreground" />
             </div>
@@ -230,7 +230,7 @@ export function DocOcrDialog() {
           <Button
             onClick={handleRun}
             disabled={!file || loading}
-            className="w-full bg-nexus-emerald hover:bg-nexus-emerald/90 text-[#050510]"
+            className="w-full bg-nexus-emerald hover:bg-nexus-emerald/90 text-background"
           >
             {loading ? (
               <>
