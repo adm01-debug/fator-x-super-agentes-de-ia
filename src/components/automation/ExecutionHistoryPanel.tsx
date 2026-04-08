@@ -30,11 +30,11 @@ export function ExecutionHistoryPanel() {
     <div className="space-y-6">
       <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
         {[
-          { label: 'Total (24h)', value: stats?.total ?? 0, color: '#4D96FF' },
-          { label: 'Sucesso', value: stats?.success ?? 0, color: '#6BCB77' },
-          { label: 'Falhas', value: stats?.failed ?? 0, color: '#FF6B6B' },
-          { label: 'Taxa Sucesso', value: `${(stats?.success_rate ?? 0).toFixed(1)}%`, color: '#9B59B6' },
-          { label: 'Custo (BRL)', value: `R$ ${(stats?.total_cost_brl ?? 0).toFixed(2)}`, color: '#FFD93D' },
+          { label: 'Total (24h)', value: stats?.total ?? 0, color: 'hsl(var(--nexus-blue))' },
+          { label: 'Sucesso', value: stats?.success ?? 0, color: 'hsl(var(--nexus-emerald))' },
+          { label: 'Falhas', value: stats?.failed ?? 0, color: 'hsl(var(--nexus-red))' },
+          { label: 'Taxa Sucesso', value: `${(stats?.success_rate ?? 0).toFixed(1)}%`, color: 'hsl(var(--nexus-purple))' },
+          { label: 'Custo (BRL)', value: `R$ ${(stats?.total_cost_brl ?? 0).toFixed(2)}`, color: 'hsl(var(--nexus-yellow))' },
         ].map((s, i) => (
           <Card key={i} className="bg-card border-border">
             <CardContent className="p-3 text-center">

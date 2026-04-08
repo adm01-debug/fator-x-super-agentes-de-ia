@@ -25,9 +25,9 @@ export function ConnectorRegistryPanel() {
     <div className="space-y-6">
       <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
         {[
-          { label: 'Conectores', value: displayConnectors.length, color: '#4D96FF' },
-          { label: 'Conectados', value: instances.filter(i => i.status === 'connected').length, color: '#6BCB77' },
-          { label: 'Uso Total', value: instances.reduce((s, i) => s + i.usage_count, 0), color: '#9B59B6' },
+          { label: 'Conectores', value: displayConnectors.length, color: 'hsl(var(--nexus-blue))' },
+          { label: 'Conectados', value: instances.filter(i => i.status === 'connected').length, color: 'hsl(var(--nexus-emerald))' },
+          { label: 'Uso Total', value: instances.reduce((s, i) => s + i.usage_count, 0), color: 'hsl(var(--nexus-purple))' },
         ].map((s, i) => (
           <Card key={i} className="bg-card border-border">
             <CardContent className="p-4 text-center">

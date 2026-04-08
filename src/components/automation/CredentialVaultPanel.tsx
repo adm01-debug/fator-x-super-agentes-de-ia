@@ -24,11 +24,11 @@ export function CredentialVaultPanel() {
     <div className="space-y-6">
       <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
         {[
-          { label: 'Total', value: stats?.total_credentials ?? 0, icon: Key, color: '#9B59B6' },
-          { label: 'Ativas', value: stats?.active ?? 0, icon: ShieldCheck, color: '#6BCB77' },
-          { label: 'Expiradas', value: stats?.expired ?? 0, icon: AlertTriangle, color: '#FF6B6B' },
-          { label: 'Expirando', value: stats?.expiring_soon ?? 0, icon: AlertTriangle, color: '#FFD93D' },
-          { label: 'Rotação Pendente', value: stats?.rotation_due ?? 0, icon: RotateCcw, color: '#E67E22' },
+          { label: 'Total', value: stats?.total_credentials ?? 0, icon: Key, color: 'hsl(var(--nexus-purple))' },
+          { label: 'Ativas', value: stats?.active ?? 0, icon: ShieldCheck, color: 'hsl(var(--nexus-emerald))' },
+          { label: 'Expiradas', value: stats?.expired ?? 0, icon: AlertTriangle, color: 'hsl(var(--nexus-red))' },
+          { label: 'Expirando', value: stats?.expiring_soon ?? 0, icon: AlertTriangle, color: 'hsl(var(--nexus-yellow))' },
+          { label: 'Rotação Pendente', value: stats?.rotation_due ?? 0, icon: RotateCcw, color: 'hsl(var(--nexus-orange))' },
         ].map((s, i) => (
           <Card key={i} className="bg-card border-border">
             <CardContent className="p-3 text-center">
