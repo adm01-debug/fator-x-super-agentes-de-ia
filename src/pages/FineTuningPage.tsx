@@ -14,7 +14,8 @@ import { prepareDataset, startTraining, getJobStatus, type DatasetSource, type T
 import { listAgentsBasic } from "@/services/promptVersionService";
 import { useQuery } from "@tanstack/react-query";
 
-type AnyData = Record<string, unknown>;
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+type AnyData = Record<string, any>;
 
 function useFineTuning() {
   const [loading, setLoading] = useState(false);
