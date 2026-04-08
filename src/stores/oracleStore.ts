@@ -83,7 +83,13 @@ interface OracleStore {
   stageLabel: string;
   results: OracleResult | null;
   error: string | null;
-  history: Array<{ query: string; results: OracleResult; timestamp: string; preset: string; mode: OracleMode }>;
+  history: Array<{
+    query: string;
+    results: OracleResult;
+    timestamp: string;
+    preset: string;
+    mode: OracleMode;
+  }>;
   enableThinking: boolean;
   chairmanModel: string;
   chairmanSelection: 'auto' | 'manual';
@@ -100,7 +106,10 @@ interface OracleStore {
 
 // ═══ MODE DEFINITIONS ═══
 
-export const ORACLE_MODES: Record<OracleMode, { label: string; icon: string; description: string; stages: string[] }> = {
+export const ORACLE_MODES: Record<
+  OracleMode,
+  { label: string; icon: string; description: string; stages: string[] }
+> = {
   council: {
     label: 'Conselho',
     icon: '🏛️',
@@ -324,7 +333,7 @@ export const useOracleStore = create<OracleStore>((set, get) => ({
   setQuery: (query) => set({ query }),
   setMode: (mode) => set({ mode }),
   setSelectedPreset: (selectedPreset) => {
-    const preset = ORACLE_PRESETS.find(p => p.id === selectedPreset);
+    const preset = ORACLE_PRESETS.find((p) => p.id === selectedPreset);
     if (preset) {
       set({
         selectedPreset,
@@ -342,38 +351,54 @@ export const useOracleStore = create<OracleStore>((set, get) => ({
     const { query, selectedPreset, mode, enableThinking, chairmanModel } = get();
     if (!query.trim()) return;
 
-    const preset = ORACLE_PRESETS.find(p => p.id === selectedPreset) || ORACLE_PRESETS[0];
+    const preset = ORACLE_PRESETS.find((p) => p.id === selectedPreset) || ORACLE_PRESETS[0];
     const modeConfig = ORACLE_MODES[mode];
 
-    set({ isRunning: true, currentStage: 1, stageLabel: modeConfig.stages[0], results: null, error: null });
+    set({
+      isRunning: true,
+      currentStage: 1,
+      stageLabel: modeConfig.stages[0],
+      results: null,
+      error: null,
+    });
 
     try {
-      // Simulate stage progression
+      // Progressive stage tracking while API processes
       const stageCount = modeConfig.stages.length;
-      for (let i = 1; i < stageCount; i++) {
-        setTimeout(() => {
-          const { isRunning } = get();
-          if (isRunning) set({ currentStage: i + 1, stageLabel: modeConfig.stages[i] });
-        }, i * 4000);
+      const stageTimers: ReturnType<typeof setTimeout>[] = [];
+      for (let i = 1; i < stageCount - 1; i++) {
+        stageTimers.push(
+          setTimeout(() => {
+            const { isRunning } = get();
+            if (isRunning) set({ currentStage: i + 1, stageLabel: modeConfig.stages[i] });
+          }, i * 4000),
+        );
       }
 
-      const data = await invokeTracedFunction<OracleResult>('oracle-council', {
-        query,
-        mode,
-        members: preset.members,
-        chairman_model: chairmanModel,
-        enable_peer_review: preset.enablePeerReview,
-        enable_thinking: enableThinking,
-        preset_id: preset.id,
-      }, {
-        spanKind: 'llm',
-        extractCostUsd: (d) => (d as OracleResult)?.metrics?.total_cost_usd,
-        extractTokens: (d) => {
-          const m = (d as OracleResult)?.metrics;
-          return m ? { input: m.total_tokens, output: 0 } : undefined;
+      const data = await invokeTracedFunction<OracleResult>(
+        'oracle-council',
+        {
+          query,
+          mode,
+          members: preset.members,
+          chairman_model: chairmanModel,
+          enable_peer_review: preset.enablePeerReview,
+          enable_thinking: enableThinking,
+          preset_id: preset.id,
         },
-        extractModel: (b) => (b as { chairman_model?: string }).chairman_model,
-      });
+        {
+          spanKind: 'llm',
+          extractCostUsd: (d) => (d as OracleResult)?.metrics?.total_cost_usd,
+          extractTokens: (d) => {
+            const m = (d as OracleResult)?.metrics;
+            return m ? { input: m.total_tokens, output: 0 } : undefined;
+          },
+          extractModel: (b) => (b as { chairman_model?: string }).chairman_model,
+        },
+      );
+
+      // Clear stage timers since API completed
+      stageTimers.forEach(clearTimeout);
 
       const results = data;
       set({
@@ -381,13 +406,29 @@ export const useOracleStore = create<OracleStore>((set, get) => ({
         currentStage: stageCount,
         stageLabel: modeConfig.stages[stageCount - 1],
         isRunning: false,
-        history: [...get().history, { query, results, timestamp: new Date().toISOString(), preset: preset.id, mode }],
+        history: [
+          ...get().history,
+          { query, results, timestamp: new Date().toISOString(), preset: preset.id, mode },
+        ],
       });
 
       // Persist to database
-      saveOracleHistory(query, mode, preset.id, preset.name, chairmanModel, enableThinking, results).catch(() => {});
+      saveOracleHistory(
+        query,
+        mode,
+        preset.id,
+        preset.name,
+        chairmanModel,
+        enableThinking,
+        results,
+      ).catch(() => {});
     } catch (e: unknown) {
-      set({ error: e instanceof Error ? e.message : 'Erro ao consultar o Oráculo', isRunning: false, currentStage: 0, stageLabel: '' });
+      set({
+        error: e instanceof Error ? e.message : 'Erro ao consultar o Oráculo',
+        isRunning: false,
+        currentStage: 0,
+        stageLabel: '',
+      });
     }
   },
 

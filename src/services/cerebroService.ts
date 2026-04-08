@@ -28,15 +28,17 @@ export async function getHealthScore() {
 }
 
 export async function queryBrain(query: string, options?: Record<string, unknown>) {
-  const { data: { session } } = await supabase.auth.getSession();
+  const {
+    data: { session },
+  } = await supabase.auth.getSession();
   if (!session) throw new Error('Not authenticated');
 
   const resp = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/cerebro-brain`, {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
-      'Authorization': `Bearer ${session.access_token}`,
-      'apikey': import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY,
+      Authorization: `Bearer ${session.access_token}`,
+      apikey: import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY,
     },
     body: JSON.stringify({ query, ...options }),
   });
@@ -55,7 +57,6 @@ export async function getMemories(options?: { type?: string; limit?: number }) {
   if (options?.type) query = query.eq('memory_type', options.type);
 
   const { data, error } = await query;
-  if (error) throw error;
   if (error) throw error;
   return data ?? [];
 }

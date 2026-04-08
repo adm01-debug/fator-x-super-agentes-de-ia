@@ -1,11 +1,11 @@
 /**
  * Nexus Agents Studio — Progressive Skill Loading Service
- * 
+ *
  * Inspired by DeerFlow 2.0's progressive skill system.
  * Instead of injecting ALL skills into the LLM context at once,
  * this service loads only relevant skills based on the current task,
  * saving tokens and improving response quality.
- * 
+ *
  * Key features:
  * - Semantic skill matching based on task description
  * - Dependency resolution (skill A requires skill B)
@@ -13,8 +13,11 @@
  * - Skill priority ranking
  * - Hot-loading during conversation
  * - Skill usage analytics
+ * - Supabase persistence (hydrate on load, sync on changes)
  */
 
+import { fromTable } from '@/lib/supabaseExtended';
+import { logger } from '@/lib/logger';
 
 // ──────── Types ────────
 
@@ -152,14 +155,17 @@ export function estimateTokens(text: string): number {
  */
 export function matchSkills(
   taskDescription: string,
-  options?: SkillLoadOptions
+  options?: SkillLoadOptions,
 ): SkillMatchScore[] {
   const allSkills = getAllSkills();
   const minScore = options?.minScore ?? 0.1;
   const excludeSet = new Set(options?.exclude ?? []);
   const categoryFilter = options?.categories ? new Set(options.categories) : null;
 
-  const taskWords = taskDescription.toLowerCase().split(/\s+/).filter((w) => w.length > 2);
+  const taskWords = taskDescription
+    .toLowerCase()
+    .split(/\s+/)
+    .filter((w) => w.length > 2);
   const taskSet = new Set(taskWords);
 
   const scores: SkillMatchScore[] = [];
@@ -204,7 +210,10 @@ export function matchSkills(
 
     // Name/description matching
     const nameWords = skill.name.toLowerCase().split(/\s+/);
-    const descWords = skill.description.toLowerCase().split(/\s+/).filter((w) => w.length > 3);
+    const descWords = skill.description
+      .toLowerCase()
+      .split(/\s+/)
+      .filter((w) => w.length > 3);
 
     const nameOverlap = nameWords.filter((w) => taskSet.has(w)).length;
     const descOverlap = descWords.filter((w) => taskSet.has(w)).length;
@@ -220,7 +229,7 @@ export function matchSkills(
 
     const totalScore = Math.min(
       1.0,
-      keywordScore * 0.5 + nameScore * 0.2 + descScore * 0.15 + recencyBoost + priorityBoost
+      keywordScore * 0.5 + nameScore * 0.2 + descScore * 0.15 + recencyBoost + priorityBoost,
     );
 
     if (totalScore >= minScore) {
@@ -228,9 +237,10 @@ export function matchSkills(
         skill,
         score: totalScore,
         matchedKeywords,
-        matchReason: matchedKeywords.length > 0
-          ? `Matched keywords: ${matchedKeywords.join(', ')}`
-          : `Semantic match (name/description overlap)`,
+        matchReason:
+          matchedKeywords.length > 0
+            ? `Matched keywords: ${matchedKeywords.join(', ')}`
+            : `Semantic match (name/description overlap)`,
       });
     }
   }
@@ -282,7 +292,7 @@ export function resolveDependencies(skillIds: string[]): string[] {
  */
 export function loadSkillsForTask(
   taskDescription: string,
-  options?: SkillLoadOptions
+  options?: SkillLoadOptions,
 ): SkillLoadResult {
   const tokenBudget = options?.tokenBudget ?? 4000;
   const maxSkills = options?.maxSkills ?? 10;
@@ -348,9 +358,7 @@ export function loadSkillsForTask(
 export function generateSkillPrompt(loadResult: SkillLoadResult): string {
   if (loadResult.loaded.length === 0) return '';
 
-  const sections = loadResult.loaded.map((skill) =>
-    `## Skill: ${skill.name}\n${skill.content}`
-  );
+  const sections = loadResult.loaded.map((skill) => `## Skill: ${skill.name}\n${skill.content}`);
 
   return [
     '# Active Skills',
@@ -367,13 +375,13 @@ export function generateSkillPrompt(loadResult: SkillLoadResult): string {
 export function hotLoadSkills(
   currentLoadedIds: string[],
   newTaskDescription: string,
-  tokenBudgetRemaining: number
+  tokenBudgetRemaining: number,
 ): SkillLoadResult {
   return loadSkillsForTask(newTaskDescription, {
     tokenBudget: tokenBudgetRemaining,
     exclude: currentLoadedIds,
-    minScore: 0.2,  // Higher threshold for hot-loading
-    maxSkills: 3,    // Limit hot-loaded skills
+    minScore: 0.2, // Higher threshold for hot-loading
+    maxSkills: 3, // Limit hot-loaded skills
   });
 }
 
@@ -400,4 +408,72 @@ export function getSkillAnalytics(): Array<{
       tokenCount: s.tokenCount,
     }))
     .sort((a, b) => b.useCount - a.useCount);
+}
+
+// ──────── Supabase Persistence ────────
+
+/**
+ * Hydrate the in-memory registry from the skills table in Supabase.
+ * Call this once on app startup to load previously registered skills.
+ */
+export async function hydrateSkillsFromDB(): Promise<number> {
+  try {
+    const { data, error } = await fromTable('agent_skills').select('*').eq('is_active', true);
+
+    if (error) {
+      logger.warn('Failed to hydrate skills from DB — running in-memory only', {
+        error: error.message,
+      });
+      return 0;
+    }
+
+    const rows = (data ?? []) as Array<Record<string, unknown>>;
+    for (const row of rows) {
+      const skill: Skill = {
+        id: String(row.id),
+        name: String(row.name ?? ''),
+        description: String(row.description ?? ''),
+        content: String(row.content ?? ''),
+        tokenCount: Number(row.token_count ?? 0) || estimateTokens(String(row.content ?? '')),
+        keywords: Array.isArray(row.keywords) ? (row.keywords as string[]) : [],
+        category: String(row.category ?? 'custom') as SkillCategory,
+        priority: Number(row.priority ?? 5),
+        dependencies: Array.isArray(row.dependencies) ? (row.dependencies as string[]) : [],
+        alwaysLoad: Boolean(row.always_load),
+        lastUsed: row.last_used_at ? String(row.last_used_at) : undefined,
+        useCount: Number(row.use_count ?? 0),
+      };
+      registerSkill(skill);
+    }
+
+    return rows.length;
+  } catch (e) {
+    logger.warn('Skills hydration failed — running in-memory only', { error: e });
+    return 0;
+  }
+}
+
+/**
+ * Persist a skill to the database after registration or usage update.
+ */
+export async function syncSkillToDB(skill: Skill): Promise<void> {
+  try {
+    await fromTable('agent_skills').upsert({
+      id: skill.id,
+      name: skill.name,
+      description: skill.description,
+      content: skill.content,
+      token_count: skill.tokenCount,
+      keywords: skill.keywords,
+      category: skill.category,
+      priority: skill.priority,
+      dependencies: skill.dependencies,
+      always_load: skill.alwaysLoad,
+      last_used_at: skill.lastUsed ?? null,
+      use_count: skill.useCount,
+      is_active: true,
+    });
+  } catch {
+    // Best-effort persistence — in-memory registry is the source of truth
+  }
 }

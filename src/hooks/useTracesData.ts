@@ -36,7 +36,7 @@ interface TracesState {
 
 export function useTracesData(
   agentId?: string,
-  options: { limit?: number; offset?: number } = {}
+  options: { limit?: number; offset?: number } = {},
 ): TracesState {
   const { limit = 20, offset = 0 } = options;
   const [state, setState] = useState<TracesState>({
@@ -61,7 +61,7 @@ export function useTracesData(
           .range(offset, offset + limit - 1);
 
         if (agentId) {
-          query = query.eq('session_trace_id', agentId);
+          query = query.eq('agent_id', agentId);
         }
 
         const { data, error, count } = await query;
@@ -83,16 +83,12 @@ export function useTracesData(
           created_at: String(t.created_at),
         })) as ExecutionTrace[];
 
-        const successful = traces.filter(t => t.status === 'success');
-        const avgLatency = traces.length > 0
-          ? traces.reduce((s, t) => s + t.latency_ms, 0) / traces.length
-          : 0;
-        const avgCost = traces.length > 0
-          ? traces.reduce((s, t) => s + t.total_cost, 0) / traces.length
-          : 0;
-        const successRate = traces.length > 0
-          ? (successful.length / traces.length) * 100
-          : 100;
+        const successful = traces.filter((t) => t.status === 'success');
+        const avgLatency =
+          traces.length > 0 ? traces.reduce((s, t) => s + t.latency_ms, 0) / traces.length : 0;
+        const avgCost =
+          traces.length > 0 ? traces.reduce((s, t) => s + t.total_cost, 0) / traces.length : 0;
+        const successRate = traces.length > 0 ? (successful.length / traces.length) * 100 : 100;
 
         if (!cancelled) {
           setState({
@@ -107,7 +103,7 @@ export function useTracesData(
         }
       } catch (err) {
         if (!cancelled) {
-          setState(prev => ({
+          setState((prev) => ({
             ...prev,
             loading: false,
             error: err instanceof Error ? err.message : 'Failed to load traces',
@@ -117,7 +113,9 @@ export function useTracesData(
     }
 
     fetchTraces();
-    return () => { cancelled = true; };
+    return () => {
+      cancelled = true;
+    };
   }, [agentId, limit, offset]);
 
   return state;
