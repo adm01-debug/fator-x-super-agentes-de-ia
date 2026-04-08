@@ -168,11 +168,11 @@ async function checkGuardrails(supabase: SupabaseClient, agentId: string | undef
     const config = agent.config as Record<string, unknown>;
     const guardrails = (config.guardrails || []) as Array<{ enabled: boolean; name: string; category: string; severity: string; config?: Record<string, unknown> }>;
     const blockedTopics = (config.blocked_topics || []) as string[];
-    const inputMaxLength = config.input_max_length || 10000;
+    const inputMaxLength = (config.input_max_length as number) || 10000;
     const triggered: Array<{ name: string; severity: string; reason: string }> = [];
     const lowerMsg = userMessage.toLowerCase();
 
-    if (userMessage.length > inputMaxLength) triggered.push({ name: 'Input Max Length', severity: 'block', reason: `Exceeds ${inputMaxLength} chars` });
+    if (userMessage.length > (inputMaxLength as number)) triggered.push({ name: 'Input Max Length', severity: 'block', reason: `Exceeds ${inputMaxLength} chars` });
     for (const topic of blockedTopics) {
       if (topic && lowerMsg.includes(topic.toLowerCase())) triggered.push({ name: 'Blocked Topic', severity: 'block', reason: `Contains: "${topic}"` });
     }

@@ -11,7 +11,6 @@
  * - BRL conversion support
  */
 
-import { logger } from '@/lib/logger';
 
 // ──────── Types ────────
 

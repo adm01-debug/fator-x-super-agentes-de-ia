@@ -113,15 +113,15 @@ serve(async (req) => {
       }
 
       case 'forget_all': {
-        const { count, error } = await supabaseAdmin
+        const { error } = await supabaseAdmin
           .from('agent_memories')
           .delete()
           .eq('workspace_id', workspaceId)
           .eq('memory_type', memory_type);
-        const count = 0;
+        const deletedCount = 0;
 
         if (error) return errorResponse(req, error.message, 500);
-        return jsonResponse(req, { deleted_count: count || 0, memory_type, message: 'All memories of this type forgotten' });
+        return jsonResponse(req, { deleted_count: deletedCount, memory_type, message: 'All memories of this type forgotten' });
       }
 
       case 'promote_to_fact': {

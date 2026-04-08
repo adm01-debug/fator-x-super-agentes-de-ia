@@ -12,7 +12,8 @@ import { Mic, Volume2, FileText, ImageIcon, PackageOpen, Loader2, Download, Play
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 
-type AnyData = Record<string, unknown>;
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+type AnyData = Record<string, any>;
 
 type ToolResult = { data: AnyData | null; loading: boolean; error: string | null };
 

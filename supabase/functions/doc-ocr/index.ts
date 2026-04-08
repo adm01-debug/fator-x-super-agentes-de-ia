@@ -39,7 +39,7 @@ serve(async (req) => {
     if (!hfToken) return errorResponse(req, 'HF_API_TOKEN not configured', 503);
 
     // Build prompt based on action
-    let systemPrompt: string;
+    let systemPrompt = '';
     switch (action) {
       case 'ocr':
         systemPrompt = 'Extract ALL text from this document image. Preserve the original layout and formatting.';

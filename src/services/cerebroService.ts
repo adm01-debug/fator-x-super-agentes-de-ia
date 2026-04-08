@@ -3,7 +3,6 @@
  * Enterprise Memory Layer: collections, graph, facts, health.
  */
 import { supabase } from '@/integrations/supabase/client';
-import { logger } from '@/lib/logger';
 
 export async function getHealthScore() {
   const [docsResult, chunksResult, collectionsResult] = await Promise.all([

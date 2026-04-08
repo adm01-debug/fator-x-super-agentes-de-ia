@@ -3,7 +3,6 @@
  * Budget management, cost tracking, pricing.
  */
 import { fromTable } from '@/lib/supabaseExtended';
-import { logger } from '@/lib/logger';
 import { supabase } from '@/integrations/supabase/client';
 
 // ═══ Usage ═══
