@@ -15,12 +15,24 @@ import { logger } from '@/lib/logger';
 interface I18nContextValue {
   locale: Locale;
   setLocale: (locale: Locale) => void;
-  t: (key: string) => string;
+  t: (key: string, vars?: Record<string, string | number>) => string;
 }
 
 const I18nContext = createContext<I18nContextValue | null>(null);
 
 const STORAGE_KEY = 'nexus-locale';
+
+/**
+ * Replace {placeholder} tokens in a string with values from `vars`.
+ * Used by t() to support keys like 'time.seconds_ago' = '{n}s ago'.
+ */
+function interpolate(template: string, vars?: Record<string, string | number>): string {
+  if (!vars) return template;
+  return template.replace(/\{(\w+)\}/g, (match, key) => {
+    const v = vars[key];
+    return v === undefined || v === null ? match : String(v);
+  });
+}
 
 export function I18nProvider({ children }: { children: ReactNode }) {
   const [locale, setLocaleState] = useState<Locale>(() => {
@@ -47,12 +59,12 @@ export function I18nProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const t = useCallback(
-    (key: string): string => {
-      return (
+    (key: string, vars?: Record<string, string | number>): string => {
+      const template =
         translations[locale]?.[key] ??
         translations[DEFAULT_LOCALE]?.[key] ??
-        key
-      );
+        key;
+      return interpolate(template, vars);
     },
     [locale]
   );
@@ -75,8 +87,8 @@ export function useI18nContext(): I18nContextValue {
     return {
       locale: DEFAULT_LOCALE,
       setLocale: () => {},
-      t: (key: string) =>
-        translations[DEFAULT_LOCALE]?.[key] ?? key,
+      t: (key: string, vars?: Record<string, string | number>) =>
+        interpolate(translations[DEFAULT_LOCALE]?.[key] ?? key, vars),
     };
   }
   return ctx;
