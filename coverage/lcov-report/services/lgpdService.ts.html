@@ -23,30 +23,30 @@
         <div class='clearfix'>
             
             <div class='fl pad1y space-right2'>
-                <span class="strong">24.13% </span>
+                <span class="strong">0% </span>
                 <span class="quiet">Statements</span>
-                <span class='fraction'>7/29</span>
+                <span class='fraction'>0/29</span>
             </div>
         
             
             <div class='fl pad1y space-right2'>
-                <span class="strong">100% </span>
+                <span class="strong">0% </span>
                 <span class="quiet">Branches</span>
-                <span class='fraction'>0/0</span>
+                <span class='fraction'>0/1</span>
             </div>
         
             
             <div class='fl pad1y space-right2'>
                 <span class="strong">0% </span>
                 <span class="quiet">Functions</span>
-                <span class='fraction'>0/5</span>
+                <span class='fraction'>0/1</span>
             </div>
         
             
             <div class='fl pad1y space-right2'>
-                <span class="strong">24.13% </span>
+                <span class="strong">0% </span>
                 <span class="quiet">Lines</span>
-                <span class='fraction'>7/29</span>
+                <span class='fraction'>0/29</span>
             </div>
         
             
@@ -99,30 +99,22 @@
 <a name='L34'></a><a href='#L34'>34</a>
 <a name='L35'></a><a href='#L35'>35</a>
 <a name='L36'></a><a href='#L36'>36</a>
-<a name='L37'></a><a href='#L37'>37</a></td><td class="line-coverage quiet"><span class="cline-any cline-yes">1x</span>
+<a name='L37'></a><a href='#L37'>37</a></td><td class="line-coverage quiet"><span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-yes">1x</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-yes">1x</span>
-<span class="cline-any cline-no">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-yes">1x</span>
-<span class="cline-any cline-no">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-yes">1x</span>
-<span class="cline-any cline-no">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-yes">1x</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
@@ -130,27 +122,35 @@
 <span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-yes">1x</span>
 <span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span></td><td class="text"><pre class="prettyprint lang-js">/**
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span></td><td class="text"><pre class="prettyprint lang-js"><span class="cstat-no" title="statement not covered" ><span class="fstat-no" title="function not covered" ><span class="branch-0 cbranch-no" title="branch not covered" >/**</span></span></span>
  * Nexus Agents Studio — LGPD Compliance Service
- */
+<span class="cstat-no" title="statement not covered" > */</span>
 import { supabase } from '@/integrations/supabase/client';
 &nbsp;
-export <span class="fstat-no" title="function not covered" >async function listConsentRecords() {</span>
+<span class="cstat-no" title="statement not covered" >export async function listConsentRecords() {</span>
 <span class="cstat-no" title="statement not covered" >  const { data } = await supabase.from('consent_records').select('*').order('created_at', { ascending: false });</span>
 <span class="cstat-no" title="statement not covered" >  return data ?? [];</span>
 <span class="cstat-no" title="statement not covered" >}</span>
 &nbsp;
-export <span class="fstat-no" title="function not covered" >async function listDeletionRequests() {</span>
+<span class="cstat-no" title="statement not covered" >export async function listDeletionRequests() {</span>
 <span class="cstat-no" title="statement not covered" >  const { data } = await supabase.from('data_deletion_requests').select('*').order('requested_at', { ascending: false });</span>
 <span class="cstat-no" title="statement not covered" >  return data ?? [];</span>
 <span class="cstat-no" title="statement not covered" >}</span>
 &nbsp;
-export <span class="fstat-no" title="function not covered" >async function exportMyData() {</span>
+<span class="cstat-no" title="statement not covered" >export async function exportMyData() {</span>
 <span class="cstat-no" title="statement not covered" >  const { data, error } = await supabase.functions.invoke('lgpd-manager', {</span>
 <span class="cstat-no" title="statement not covered" >    body: { action: 'get_my_data' },</span>
 <span class="cstat-no" title="statement not covered" >  });</span>
@@ -158,7 +158,7 @@ export <span class="fstat-no" title="function not covered" >async function expor
 <span class="cstat-no" title="statement not covered" >  return data;</span>
 <span class="cstat-no" title="statement not covered" >}</span>
 &nbsp;
-export <span class="fstat-no" title="function not covered" >async function requestDeletion(scope: string) {</span>
+<span class="cstat-no" title="statement not covered" >export async function requestDeletion(scope: string) {</span>
 <span class="cstat-no" title="statement not covered" >  const { data, error } = await supabase.functions.invoke('lgpd-manager', {</span>
 <span class="cstat-no" title="statement not covered" >    body: { action: 'request_deletion', scope },</span>
 <span class="cstat-no" title="statement not covered" >  });</span>
@@ -166,7 +166,7 @@ export <span class="fstat-no" title="function not covered" >async function reque
 <span class="cstat-no" title="statement not covered" >  return data;</span>
 <span class="cstat-no" title="statement not covered" >}</span>
 &nbsp;
-export <span class="fstat-no" title="function not covered" >async function manageConsent(purpose: string, grant: boolean) {</span>
+<span class="cstat-no" title="statement not covered" >export async function manageConsent(purpose: string, grant: boolean) {</span>
 <span class="cstat-no" title="statement not covered" >  await supabase.functions.invoke('lgpd-manager', {</span>
 <span class="cstat-no" title="statement not covered" >    body: { action: grant ? 'consent_grant' : 'consent_revoke', purpose, legal_basis: 'consent' },</span>
 <span class="cstat-no" title="statement not covered" >  });</span>
@@ -178,7 +178,7 @@ export <span class="fstat-no" title="function not covered" >async function manag
             <div class='footer quiet pad2 space-top1 center small'>
                 Code coverage generated by
                 <a href="https://istanbul.js.org/" target="_blank" rel="noopener noreferrer">istanbul</a>
-                at 2026-04-08T16:32:10.814Z
+                at 2026-04-08T17:17:49.601Z
             </div>
         <script src="../prettify.js"></script>
         <script>
