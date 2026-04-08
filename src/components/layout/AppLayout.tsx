@@ -232,9 +232,11 @@ export function AppLayout({ children }: AppLayoutProps) {
             </main>
           </div>
         </div>
-        <CommandPalette />
-        <KeyboardShortcutsDialog />
-        <OnboardingTour />
+        <Suspense fallback={null}>
+          <CommandPalette />
+          <KeyboardShortcutsDialog />
+          <OnboardingTour />
+        </Suspense>
       </SidebarProvider>
     </UnsavedChangesProvider>
   );
