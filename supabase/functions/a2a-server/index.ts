@@ -196,7 +196,7 @@ serve(async (req) => {
     }
 
     // ═══ Send Task ═══
-    if (req.method === 'POST' && (path === '/tasks/send' || path === '/tasks')) {
+    if (req.method === 'POST' && (path === '/tasks/send' || path === '/tasks' || path === '/')) {
       const body = await req.json() as Record<string, unknown>;
       const message = body.message as Record<string, unknown>;
       const textPart = (message?.parts as Array<Record<string, string>>)?.find(p => p.type === 'text');
