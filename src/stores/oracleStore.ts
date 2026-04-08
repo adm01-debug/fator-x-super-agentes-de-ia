@@ -1,6 +1,6 @@
 import { create } from 'zustand';
-import { supabase } from '@/integrations/supabase/client';
 import { saveOracleHistory } from '@/lib/oracleHistory';
+import { invokeTracedFunction } from '@/services/llmGatewayService';
 
 // ═══ TYPES ═══
 
@@ -357,21 +357,25 @@ export const useOracleStore = create<OracleStore>((set, get) => ({
         }, i * 4000);
       }
 
-      const { data, error } = await supabase.functions.invoke('oracle-council', {
-        body: {
-          query,
-          mode,
-          members: preset.members,
-          chairman_model: chairmanModel,
-          enable_peer_review: preset.enablePeerReview,
-          enable_thinking: enableThinking,
-          preset_id: preset.id,
+      const data = await invokeTracedFunction<OracleResult>('oracle-council', {
+        query,
+        mode,
+        members: preset.members,
+        chairman_model: chairmanModel,
+        enable_peer_review: preset.enablePeerReview,
+        enable_thinking: enableThinking,
+        preset_id: preset.id,
+      }, {
+        spanKind: 'llm',
+        extractCostUsd: (d) => (d as OracleResult)?.metrics?.total_cost_usd,
+        extractTokens: (d) => {
+          const m = (d as OracleResult)?.metrics;
+          return m ? { input: m.total_tokens, output: 0 } : undefined;
         },
+        extractModel: (b) => (b as { chairman_model?: string }).chairman_model,
       });
 
-      if (error) throw error;
-
-      const results = data as OracleResult;
+      const results = data;
       set({
         results,
         currentStage: stageCount,

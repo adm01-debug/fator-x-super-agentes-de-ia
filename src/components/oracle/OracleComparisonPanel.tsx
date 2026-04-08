@@ -17,7 +17,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { Checkbox } from "@/components/ui/checkbox";
 import { toast } from "sonner";
-import { supabase } from "@/integrations/supabase/client";
+import { invokeTracedFunction } from "@/services/llmGatewayService";
 import { ORACLE_MODES, ORACLE_PRESETS, type OracleMode, type OracleResult } from "@/stores/oracleStore";
 
 interface ComparisonRun {
@@ -80,25 +80,25 @@ export function OracleComparisonPanel() {
 
       try {
         const preset = ORACLE_PRESETS.find((p) => p.id === cfg.preset_id) || ORACLE_PRESETS[0];
-        const { data, error } = await supabase.functions.invoke('oracle-council', {
-          body: {
-            query,
-            mode: cfg.mode,
-            members: preset.members,
-            chairman_model: preset.chairman,
-            enable_peer_review: preset.enablePeerReview,
-            enable_thinking: preset.enableThinking,
-            preset_id: preset.id,
-          },
+        const data = await invokeTracedFunction<OracleResult>('oracle-council', {
+          query,
+          mode: cfg.mode,
+          members: preset.members,
+          chairman_model: preset.chairman,
+          enable_peer_review: preset.enablePeerReview,
+          enable_thinking: preset.enableThinking,
+          preset_id: preset.id,
+        }, {
+          spanKind: 'llm',
+          extractCostUsd: (d) => (d as OracleResult)?.metrics?.total_cost_usd,
+          extractModel: (b) => (b as { chairman_model?: string }).chairman_model,
         });
-
-        if (error) throw new Error(error.message);
 
         const idx = collected.findIndex((c) => c.mode === cfg.mode);
         if (idx >= 0) {
           collected[idx] = {
             ...collected[idx],
-            result: data as OracleResult,
+            result: data,
             duration_ms: Date.now() - start,
             status: 'success',
           };
