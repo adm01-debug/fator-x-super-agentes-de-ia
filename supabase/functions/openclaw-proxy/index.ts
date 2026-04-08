@@ -1,12 +1,13 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
-import { handleCorsPreflight, getCorsHeaders, checkRateLimit } from "../_shared/mod.ts";
+import { handleCorsPreflight, getCorsHeaders, getRateLimitIdentifier, checkRateLimit, createRateLimitResponse, RATE_LIMITS } from "../_shared/mod.ts";
 
 serve(async (req) => {
   if (req.method === 'OPTIONS') return handleCorsPreflight(req);
   const corsHeaders = getCorsHeaders(req);
 
-  const rateLimitResult = await checkRateLimit(req, { preset: "standard" });
-  if (rateLimitResult) return rateLimitResult;
+  const identifier = getRateLimitIdentifier(req);
+  const rateCheck = checkRateLimit(identifier, RATE_LIMITS.standard);
+  if (!rateCheck.allowed) return createRateLimitResponse(rateCheck, corsHeaders);
 
   try {
     const openclawUrl = Deno.env.get('OPENCLAW_URL') ?? 'http://187.77.151.129:3000';
@@ -54,7 +55,7 @@ serve(async (req) => {
     }
 
     const response = await fetch(`${openclawUrl}${endpoint.path}`, fetchOptions);
-    const data = await response.json().catch(() => ({ raw: await response.text() }));
+    const data = await response.json().catch(async () => ({ raw: await response.text() }));
 
     return new Response(
       JSON.stringify({
