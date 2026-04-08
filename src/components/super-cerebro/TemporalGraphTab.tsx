@@ -201,7 +201,7 @@ export function TemporalGraphTab() {
                   <div className="flex-1 min-w-0">
                     <p className="text-xs text-foreground line-clamp-2">{content}</p>
                     <div className="flex items-center gap-2 mt-1">
-                      <Badge variant="outline" className="text-[9px] border-[#222244]">{memType}</Badge>
+                      <Badge variant="outline" className="text-[9px] border-border">{memType}</Badge>
                       {source && <span className="text-[10px] text-muted-foreground">{source}</span>}
                       {relevance != null && (
                         <span className="text-[10px] text-nexus-amber">

@@ -201,7 +201,7 @@ export function WorkflowTimeTravelPanel({
 
       {/* Error Banner */}
       {error && (
-        <div className="flex items-center gap-2 p-3 rounded-lg bg-destructive/10 border border-[#FF6B6B]/30">
+        <div className="flex items-center gap-2 p-3 rounded-lg bg-destructive/10 border border-destructive/30">
           <AlertCircle className="w-4 h-4 text-destructive" />
           <span className="text-sm text-destructive">{error}</span>
         </div>
@@ -245,7 +245,7 @@ export function WorkflowTimeTravelPanel({
                     {/* Content */}
                     <div
                       className={`flex-1 pb-4 rounded-lg transition-colors cursor-pointer ${
-                        isSelected ? 'bg-[#0a0a2a] p-3' : 'hover:bg-background p-3'
+                        isSelected ? 'bg-muted p-3' : 'hover:bg-background p-3'
                       }`}
                       onClick={() => handleInspect(entry.id)}
                     >
@@ -303,7 +303,7 @@ export function WorkflowTimeTravelPanel({
                           <Button
                             size="sm"
                             variant="outline"
-                            className="h-7 text-xs border-border hover:bg-[#9B59B6]/20 hover:text-nexus-purple"
+                            className="h-7 text-xs border-border hover:bg-nexus-purple/20 hover:text-nexus-purple"
                             disabled={forking}
                             onClick={(e) => {
                               e.stopPropagation();
@@ -342,7 +342,7 @@ export function WorkflowTimeTravelPanel({
           <CardHeader className="pb-2">
             <CardTitle className="flex items-center justify-between text-sm text-foreground">
               <span className="flex items-center gap-2">
-                <Eye className="w-4 h-4 text-[#E67E22]" />
+                <Eye className="w-4 h-4 text-orange-500" />
                 Estado do Checkpoint
               </span>
               <Button

@@ -188,7 +188,7 @@ export function DataHubQueryBuilderTab() {
           onChange={(e) => setQuery(e.target.value)}
           rows={8}
           placeholder="SELECT * FROM ..."
-          className="bg-[#0a0a1a] border-[#222244] font-mono text-xs resize-none"
+          className="bg-background border-border font-mono text-xs resize-none"
           spellCheck={false}
         />
 

@@ -49,7 +49,7 @@ function FilePicker({
             const f = e.target.files?.[0];
             if (f) onFile(f);
           }}
-          className="flex-1 text-xs file:mr-3 file:px-3 file:py-1.5 file:rounded-md file:border-0 file:bg-background file:text-foreground hover:file:bg-[#222244]"
+          className="flex-1 text-xs file:mr-3 file:px-3 file:py-1.5 file:rounded-md file:border-0 file:bg-background file:text-foreground hover:file:bg-muted"
         />
         <Upload className="h-4 w-4 text-muted-foreground" />
       </div>
@@ -373,8 +373,8 @@ export function ProductMockupPanel() {
   return (
     <div className="bg-card rounded-xl border border-border p-6 space-y-4">
       <div className="flex items-center gap-3">
-        <div className="h-10 w-10 rounded-lg bg-[#E67E22]/10 flex items-center justify-center">
-          <ImageIcon className="h-5 w-5 text-[#E67E22]" />
+        <div className="h-10 w-10 rounded-lg bg-orange-500/10 flex items-center justify-center">
+          <ImageIcon className="h-5 w-5 text-orange-500" />
         </div>
         <div>
           <h3 className="text-sm font-semibold text-foreground">Promo Brindes — Estúdio de Imagens</h3>

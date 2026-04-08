@@ -44,7 +44,7 @@ export function AccessControl({
   if (loading) {
     if (showLoading) {
       return (
-        <div className="animate-pulse bg-[#111122] rounded-lg h-8 w-24" />
+        <div className="animate-pulse bg-card rounded-lg h-8 w-24" />
       );
     }
     return null;

@@ -20,7 +20,7 @@ export function CerebroTabNav() {
   const { activeTab, setActiveTab } = useCerebroStore();
 
   return (
-    <div className="flex gap-1 overflow-x-auto pb-2 border-b border-[#222244] mb-6">
+    <div className="flex gap-1 overflow-x-auto pb-2 border-b border-border mb-6">
       {CEREBRO_TABS.map(tab => (
         <button
           key={tab.id}
@@ -28,8 +28,8 @@ export function CerebroTabNav() {
           className={`
             flex items-center gap-2 px-4 py-2.5 rounded-lg text-sm whitespace-nowrap transition-all
             ${activeTab === tab.id
-              ? 'bg-[#4D96FF11] text-[#4D96FF] border border-[#4D96FF44]'
-              : 'text-[#888888] hover:text-white hover:bg-[#111122]'
+              ? 'bg-primary/5 text-primary border border-primary/25'
+              : 'text-muted-foreground hover:text-white hover:bg-card'
             }
           `}
           title={tab.description}

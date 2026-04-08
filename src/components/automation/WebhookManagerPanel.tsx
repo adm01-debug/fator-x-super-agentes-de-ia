@@ -73,7 +73,7 @@ export function WebhookManagerPanel() {
         <CardContent>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
             {Object.entries(WEBHOOK_TEMPLATES).map(([key, tpl]) => (
-              <div key={key} className="p-3 rounded-lg bg-background border border-border hover:border-[#9B59B6]/50 cursor-pointer">
+              <div key={key} className="p-3 rounded-lg bg-background border border-border hover:border-nexus-purple/50 cursor-pointer">
                 <p className="font-medium text-sm">{tpl.name}</p>
                 <p className="text-xs text-muted-foreground mt-1">{tpl.description}</p>
                 <Badge variant="outline" className="mt-2 text-[10px] border-border">{tpl.auth_type ? AUTH_LABELS[tpl.auth_type] ?? tpl.auth_type : 'N/A'}</Badge>
