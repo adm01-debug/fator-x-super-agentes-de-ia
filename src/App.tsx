@@ -8,6 +8,7 @@ import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { AppLayout } from "@/components/layout/AppLayout";
 import { PageLoading } from "@/components/shared/PageLoading";
+import { HealthAlertsMounter } from "@/components/shared/HealthAlertsMounter";
 import { ErrorBoundary } from "@/components/shared/ErrorBoundary";
 import { AuthProvider } from "@/contexts/AuthContext";
 import { I18nProvider } from "@/i18n/I18nProvider";
@@ -87,6 +88,7 @@ const App = () => (
     <ThemeProvider attribute="class" defaultTheme="dark" enableSystem={false}>
       <I18nProvider>
         <AuthProvider>
+          <HealthAlertsMounter />
           <TooltipProvider>
           <Toaster />
           <Sonner />
