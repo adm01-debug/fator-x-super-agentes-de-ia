@@ -385,7 +385,7 @@ function TracingPanel() {
     <div className="flex flex-col items-center justify-center py-20 text-center">
       <Zap className="h-12 w-12 text-muted-foreground mb-4" />
       <h2 className="text-lg font-semibold text-foreground mb-1">Nenhum trace registrado</h2>
-      <p className="text-sm text-muted-foreground">Traces OpenTelemetry aparecerao quando agentes executarem via NexusTracer.</p>
+      <p className="text-sm text-muted-foreground">Traces OpenTelemetry aparecerão quando agentes executarem com tracing instrumentado.</p>
     </div>
   );
 
