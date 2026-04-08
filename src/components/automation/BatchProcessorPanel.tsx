@@ -33,10 +33,10 @@ export function BatchProcessorPanel() {
     <div className="space-y-6">
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
         {[
-          { label: 'Total Jobs', value: stats?.total_jobs ?? 0, color: '#4D96FF' },
-          { label: 'Concluídos', value: stats?.completed ?? 0, color: '#6BCB77' },
-          { label: 'Itens Processados', value: (stats?.total_items_processed ?? 0).toLocaleString(), color: '#9B59B6' },
-          { label: 'Taxa Sucesso', value: `${(stats?.success_rate ?? 0).toFixed(1)}%`, color: '#FFD93D' },
+          { label: 'Total Jobs', value: stats?.total_jobs ?? 0, color: 'hsl(var(--nexus-blue))' },
+          { label: 'Concluídos', value: stats?.completed ?? 0, color: 'hsl(var(--nexus-emerald))' },
+          { label: 'Itens Processados', value: (stats?.total_items_processed ?? 0).toLocaleString(), color: 'hsl(var(--nexus-purple))' },
+          { label: 'Taxa Sucesso', value: `${(stats?.success_rate ?? 0).toFixed(1)}%`, color: 'hsl(var(--nexus-yellow))' },
         ].map((s, i) => (
           <Card key={i} className="bg-card border-border">
             <CardContent className="p-3 text-center">

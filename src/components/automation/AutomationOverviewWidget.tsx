@@ -34,21 +34,21 @@ export function AutomationOverviewWidget() {
       label: 'Agendamentos',
       value: data.schedules?.active_schedules ?? 0,
       sub: `${data.schedules?.total_executions ?? 0} execuções`,
-      color: '#4D96FF',
+      color: 'hsl(var(--nexus-blue))',
     },
     {
       icon: Activity,
       label: 'Execuções (24h)',
       value: data.executions?.total ?? 0,
       sub: `${(data.executions?.success_rate ?? 0).toFixed(0)}% sucesso`,
-      color: '#6BCB77',
+      color: 'hsl(var(--nexus-emerald))',
     },
     {
       icon: Bell,
       label: 'Notificações',
       value: data.notifications?.total_sent ?? 0,
       sub: `${(data.notifications?.delivery_rate ?? 0).toFixed(0)}% entregues`,
-      color: '#9B59B6',
+      color: 'hsl(var(--nexus-purple))',
     },
     {
       icon: Shield,
@@ -57,7 +57,7 @@ export function AutomationOverviewWidget() {
       sub: data.vault?.rotation_due
         ? `${data.vault.rotation_due} rotação pendente`
         : 'Tudo em dia',
-      color: data.vault?.rotation_due ? '#FFD93D' : '#6BCB77',
+      color: data.vault?.rotation_due ? 'hsl(var(--nexus-yellow))' : 'hsl(var(--nexus-emerald))',
     },
   ];
 

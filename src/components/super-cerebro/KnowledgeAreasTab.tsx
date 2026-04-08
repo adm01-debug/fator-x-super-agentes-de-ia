@@ -13,14 +13,14 @@ interface AreaMeta {
 }
 
 const KNOWLEDGE_AREAS: AreaMeta[] = [
-  { icon: '📋', title: 'Processos & SOPs', desc: 'Procedimentos operacionais padrão da empresa', domain: 'processos', color: '#4D96FF' },
-  { icon: '📊', title: 'Relatórios & Dados', desc: 'Relatórios financeiros, KPIs e dashboards', domain: 'dados', color: '#9B59B6' },
-  { icon: '👥', title: 'RH & Pessoas', desc: 'Políticas de RH, benefícios e cultura', domain: 'rh', color: '#6BCB77' },
-  { icon: '💰', title: 'Financeiro', desc: 'Orçamentos, projeções e fluxo de caixa', domain: 'financeiro', color: '#FFD93D' },
-  { icon: '🏭', title: 'Fornecedores', desc: 'Catálogo, preços e avaliações de fornecedores', domain: 'compras', color: '#E67E22' },
-  { icon: '🛒', title: 'Produtos & Catálogo', desc: 'Produtos, especificações e preços', domain: 'produtos', color: '#FF6B6B' },
-  { icon: '📞', title: 'Clientes & CRM', desc: 'Base de clientes, histórico e segmentação', domain: 'comercial', color: '#06b6d4' },
-  { icon: '⚖️', title: 'Jurídico & Compliance', desc: 'Contratos, termos e regulamentações', domain: 'juridico', color: '#a855f7' },
+  { icon: '📋', title: 'Processos & SOPs', desc: 'Procedimentos operacionais padrão da empresa', domain: 'processos', color: 'hsl(var(--nexus-blue))' },
+  { icon: '📊', title: 'Relatórios & Dados', desc: 'Relatórios financeiros, KPIs e dashboards', domain: 'dados', color: 'hsl(var(--nexus-purple))' },
+  { icon: '👥', title: 'RH & Pessoas', desc: 'Políticas de RH, benefícios e cultura', domain: 'rh', color: 'hsl(var(--nexus-emerald))' },
+  { icon: '💰', title: 'Financeiro', desc: 'Orçamentos, projeções e fluxo de caixa', domain: 'financeiro', color: 'hsl(var(--nexus-yellow))' },
+  { icon: '🏭', title: 'Fornecedores', desc: 'Catálogo, preços e avaliações de fornecedores', domain: 'compras', color: 'hsl(var(--nexus-orange))' },
+  { icon: '🛒', title: 'Produtos & Catálogo', desc: 'Produtos, especificações e preços', domain: 'produtos', color: 'hsl(var(--nexus-red))' },
+  { icon: '📞', title: 'Clientes & CRM', desc: 'Base de clientes, histórico e segmentação', domain: 'comercial', color: 'hsl(var(--nexus-cyan))' },
+  { icon: '⚖️', title: 'Jurídico & Compliance', desc: 'Contratos, termos e regulamentações', domain: 'juridico', color: 'hsl(var(--nexus-purple))' },
 ];
 
 function formatRelative(iso: string | null): string {

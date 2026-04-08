@@ -188,11 +188,11 @@ export function OracleAnalyticsPanel() {
                             className="text-[9px]"
                             style={{
                               borderColor:
-                                m.avg_confidence >= 80 ? '#6BCB7780' :
-                                m.avg_confidence >= 60 ? '#FFD93D80' : '#FF6B6B80',
+                                m.avg_confidence >= 80 ? 'hsl(var(--nexus-emerald) / 0.5)' :
+                                m.avg_confidence >= 60 ? 'hsl(var(--nexus-yellow) / 0.5)' : 'hsl(var(--nexus-red) / 0.5)',
                               color:
-                                m.avg_confidence >= 80 ? '#6BCB77' :
-                                m.avg_confidence >= 60 ? '#FFD93D' : '#FF6B6B',
+                                m.avg_confidence >= 80 ? 'hsl(var(--nexus-emerald))' :
+                                m.avg_confidence >= 60 ? 'hsl(var(--nexus-yellow))' : 'hsl(var(--nexus-red))',
                             }}
                           >
                             {m.avg_confidence.toFixed(0)}%

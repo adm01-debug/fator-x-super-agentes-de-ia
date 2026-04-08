@@ -110,10 +110,10 @@ export function SandboxTab() {
       {results.length > 0 && (
         <div className="grid grid-cols-4 gap-4">
           {[
-            { label: 'Perguntas', value: results.length, color: '#4D96FF' },
-            { label: 'Confiança Média', value: `${Math.round(avgConfidence * 100)}%`, color: avgConfidence > 0.7 ? '#6BCB77' : '#FFD93D' },
-            { label: 'Latência Média', value: `${Math.round(avgLatency)}ms`, color: avgLatency < 2000 ? '#6BCB77' : '#FF6B6B' },
-            { label: 'Taxa de Sucesso', value: `${Math.round(successRate)}%`, color: successRate > 80 ? '#6BCB77' : '#FF6B6B' },
+            { label: 'Perguntas', value: results.length, color: 'hsl(var(--nexus-blue))' },
+            { label: 'Confiança Média', value: `${Math.round(avgConfidence * 100)}%`, color: avgConfidence > 0.7 ? 'hsl(var(--nexus-emerald))' : 'hsl(var(--nexus-yellow))' },
+            { label: 'Latência Média', value: `${Math.round(avgLatency)}ms`, color: avgLatency < 2000 ? 'hsl(var(--nexus-emerald))' : 'hsl(var(--nexus-red))' },
+            { label: 'Taxa de Sucesso', value: `${Math.round(successRate)}%`, color: successRate > 80 ? 'hsl(var(--nexus-emerald))' : 'hsl(var(--nexus-red))' },
           ].map(m => (
             <div key={m.label} className="bg-card rounded-xl border border-border p-4 text-center">
               <div className="text-2xl font-bold" style={{ color: m.color }}>{m.value}</div>

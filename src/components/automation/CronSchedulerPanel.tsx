@@ -68,10 +68,10 @@ export function CronSchedulerPanel() {
       {/* Stats */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
         {[
-          { label: 'Total', value: stats?.total_schedules ?? 0, color: '#4D96FF' },
-          { label: 'Ativos', value: stats?.active_schedules ?? 0, color: '#6BCB77' },
-          { label: 'Pausados', value: stats?.paused_schedules ?? 0, color: '#FFD93D' },
-          { label: 'Taxa Sucesso', value: `${(stats?.success_rate ?? 0).toFixed(1)}%`, color: '#9B59B6' },
+          { label: 'Total', value: stats?.total_schedules ?? 0, color: 'hsl(var(--nexus-blue))' },
+          { label: 'Ativos', value: stats?.active_schedules ?? 0, color: 'hsl(var(--nexus-emerald))' },
+          { label: 'Pausados', value: stats?.paused_schedules ?? 0, color: 'hsl(var(--nexus-yellow))' },
+          { label: 'Taxa Sucesso', value: `${(stats?.success_rate ?? 0).toFixed(1)}%`, color: 'hsl(var(--nexus-purple))' },
         ].map((s, i) => (
           <Card key={i} className="bg-card border-border">
             <CardContent className="p-4 text-center">

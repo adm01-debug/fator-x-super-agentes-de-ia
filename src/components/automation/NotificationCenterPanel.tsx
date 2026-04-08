@@ -107,10 +107,10 @@ export function NotificationCenterPanel() {
       <div className="flex items-center justify-between">
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4 flex-1">
           {[
-            { label: 'Enviadas', value: stats?.total_sent ?? 0, color: '#4D96FF' },
-            { label: 'Entregues', value: stats?.total_delivered ?? 0, color: '#6BCB77' },
-            { label: 'Lidas', value: stats?.total_read ?? 0, color: '#9B59B6' },
-            { label: 'Taxa Entrega', value: `${(stats?.delivery_rate ?? 0).toFixed(1)}%`, color: '#FFD93D' },
+            { label: 'Enviadas', value: stats?.total_sent ?? 0, color: 'hsl(var(--nexus-blue))' },
+            { label: 'Entregues', value: stats?.total_delivered ?? 0, color: 'hsl(var(--nexus-emerald))' },
+            { label: 'Lidas', value: stats?.total_read ?? 0, color: 'hsl(var(--nexus-purple))' },
+            { label: 'Taxa Entrega', value: `${(stats?.delivery_rate ?? 0).toFixed(1)}%`, color: 'hsl(var(--nexus-yellow))' },
           ].map((s, i) => (
             <Card key={i} className="bg-card border-border">
               <CardContent className="p-4 text-center">

@@ -55,9 +55,9 @@ export function WebhookManagerPanel() {
     <div className="space-y-6">
       <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
         {[
-          { label: 'Total Webhooks', value: webhooks.length, color: '#9B59B6' },
-          { label: 'Ativos', value: webhooks.filter(w => w.status === 'active').length, color: '#6BCB77' },
-          { label: 'Requests Total', value: webhooks.reduce((s, w) => s + w.request_count, 0), color: '#4D96FF' },
+          { label: 'Total Webhooks', value: webhooks.length, color: 'hsl(var(--nexus-purple))' },
+          { label: 'Ativos', value: webhooks.filter(w => w.status === 'active').length, color: 'hsl(var(--nexus-emerald))' },
+          { label: 'Requests Total', value: webhooks.reduce((s, w) => s + w.request_count, 0), color: 'hsl(var(--nexus-blue))' },
         ].map((s, i) => (
           <Card key={i} className="bg-card border-border">
             <CardContent className="p-4 text-center">

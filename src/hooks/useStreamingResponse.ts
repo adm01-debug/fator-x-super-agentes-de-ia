@@ -13,6 +13,7 @@
  */
 
 import { useState, useCallback, useRef } from 'react';
+import { logger } from '@/lib/logger';
 import { supabase } from '@/integrations/supabase/client';
 
 // AG-UI compatible event types
@@ -152,7 +153,7 @@ export function useStreamingResponse() {
           const errMsg = (err as Record<string, string>).error || `HTTP ${response.status}`;
           // Retry on 429 (rate limit) and 503 (cold start)
           if ((response.status === 429 || response.status === 503) && attempt < maxRetries) {
-            console.warn(`Stream attempt ${attempt + 1} failed (${response.status}), retrying...`);
+            logger.warn(`Stream attempt ${attempt + 1} failed (${response.status}), retrying...`);
             continue;
           }
           throw new Error(errMsg);
@@ -298,7 +299,7 @@ export function useStreamingResponse() {
       } catch (err) {
         if ((err as Error).name === 'AbortError') return;
         if (attempt < maxRetries) {
-          console.warn(`Stream attempt ${attempt + 1} failed, retrying...`, (err as Error).message);
+          logger.warn(`Stream attempt ${attempt + 1} failed, retrying...`, (err as Error).message);
           continue;
         }
         const errorMsg = err instanceof Error ? err.message : 'Erro de streaming';
