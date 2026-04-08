@@ -1,24 +1,26 @@
 import { logger } from '@/lib/logger';
-import { useState, useMemo } from "react";
+import { useState, useMemo, lazy, Suspense } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import { SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
 import { AppSidebar } from "./AppSidebar";
 import { Search, Command } from "lucide-react";
 import { NotificationsDrawer } from "@/components/shared/NotificationsDrawer";
 import { ThemeToggle } from "@/components/shared/ThemeToggle";
-import { CommandPalette } from "@/components/shared/CommandPalette";
 import { DirectionalTransition } from "@/components/shared/DirectionalTransition";
 import { NavigationProgress } from "@/components/shared/NavigationProgress";
 import { ScrollRestoration } from "@/components/shared/ScrollRestoration";
 import { ErrorBoundary } from "@/components/shared/ErrorBoundary";
-import { KeyboardShortcutsDialog } from "@/components/shared/KeyboardShortcutsDialog";
 import { SwipeNavigation } from "@/components/shared/SwipeNavigation";
-import { OnboardingTour } from "@/components/shared/OnboardingTour";
 import { UnsavedChangesProvider } from "@/hooks/use-unsaved-changes";
 import { useNetworkStatus } from "@/hooks/use-network-status";
 import { useKeyboardShortcuts } from "@/hooks/use-keyboard-shortcuts";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { useDocumentTitle } from "@/hooks/use-document-title";
+
+// Lazy-load dialogs only shown on interaction
+const CommandPalette = lazy(() => import("@/components/shared/CommandPalette").then(m => ({ default: m.CommandPalette })));
+const KeyboardShortcutsDialog = lazy(() => import("@/components/shared/KeyboardShortcutsDialog").then(m => ({ default: m.KeyboardShortcutsDialog })));
+const OnboardingTour = lazy(() => import("@/components/shared/OnboardingTour").then(m => ({ default: m.OnboardingTour })));
 import { useAuth } from "@/contexts/AuthContext";
 import {
   DropdownMenu, DropdownMenuContent, DropdownMenuItem,
