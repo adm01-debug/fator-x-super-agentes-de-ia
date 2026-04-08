@@ -130,7 +130,7 @@ async function processTask(
     const body = task.agentId
       ? { action: 'run', task: task.message, agent_id: task.agentId }
       : {
-          model: 'claude-sonnet-4-6',
+          model: 'google/gemini-2.5-flash',
           messages: [{ role: 'user', content: task.message }],
           temperature: 0.7,
           max_tokens: 4096,
