@@ -3,7 +3,7 @@ import { StatusBadge } from "@/components/shared/StatusBadge";
 import { SystemHealthBanner } from "@/components/shared/SystemHealthBanner";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Clock, DollarSign, Wrench, Activity, Loader2, Bell, CheckCircle, Trash2, Layers, Zap } from "lucide-react";
+import { Clock, DollarSign, Wrench, Activity, Loader2, Bell, CheckCircle, Trash2, Layers, Zap, ChevronDown, ChevronRight } from "lucide-react";
 import { useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { alertRuleSchema } from "@/lib/validations/agentSchema";
@@ -12,6 +12,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { toast } from "sonner";
 import { getAgentTraces, getSessions, getSessionTraces, getTraceEvents, getAlerts, resolveAlert, getAgentsForFilter, listAlertRules, createAlertRule, deleteAlertRule, toggleAlertRule } from "@/services/monitoringService";
+import { SpanTreeView, type SpanLike } from "@/components/monitoring/SpanTreeView";
 
 
 const PIE_COLORS = ['hsl(var(--primary))', 'hsl(var(--nexus-emerald, 142 71% 45%))', 'hsl(var(--nexus-amber, 38 92% 50%))', 'hsl(var(--nexus-cyan, 190 90% 50%))', 'hsl(var(--destructive))'];
@@ -371,6 +372,57 @@ export default function MonitoringPage() {
   );
 }
 
+function TraceCard({ trace }: { trace: { id: string; event_type: string; created_at: string; data: Record<string, unknown> } }) {
+  const [open, setOpen] = useState(false);
+  const d = (trace.data || {}) as Record<string, unknown>;
+  const spans = Array.isArray(d.spans) ? (d.spans as SpanLike[]) : [];
+  const status = String(d.status || 'unknown');
+  const traceId = String(d.trace_id || trace.id);
+
+  return (
+    <div className="nexus-card p-3">
+      <button
+        type="button"
+        className="w-full text-left"
+        onClick={() => setOpen((o) => !o)}
+        aria-expanded={open}
+      >
+        <div className="flex items-center justify-between mb-2">
+          <div className="flex items-center gap-2 min-w-0">
+            {spans.length > 0 ? (
+              open ? <ChevronDown className="h-3.5 w-3.5 text-muted-foreground shrink-0" /> : <ChevronRight className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
+            ) : (
+              <span className="w-3.5 shrink-0" />
+            )}
+            <Zap className={`h-4 w-4 shrink-0 ${status === 'error' ? 'text-destructive' : 'text-nexus-emerald'}`} />
+            <span className="text-xs font-medium text-foreground truncate">{trace.event_type}</span>
+            <Badge variant="outline" className="text-[10px]">{status}</Badge>
+            <code className="text-[10px] text-muted-foreground font-mono truncate hidden sm:inline">
+              {traceId.slice(0, 8)}
+            </code>
+          </div>
+          <span className="text-[11px] text-muted-foreground shrink-0 ml-2">{new Date(trace.created_at).toLocaleString('pt-BR')}</span>
+        </div>
+        <div className="grid grid-cols-4 gap-2 text-center">
+          <div className="p-2 rounded bg-secondary/30"><p className="text-sm font-bold text-foreground">{d.duration_ms ? `${Number(d.duration_ms)}ms` : '-'}</p><p className="text-[10px] text-muted-foreground">Duração</p></div>
+          <div className="p-2 rounded bg-secondary/30"><p className="text-sm font-bold text-foreground">{typeof d.token_count === 'number' ? (d.token_count as number).toLocaleString() : '-'}</p><p className="text-[10px] text-muted-foreground">Tokens</p></div>
+          <div className="p-2 rounded bg-secondary/30"><p className="text-sm font-bold text-foreground">{d.cost_usd ? `$${Number(d.cost_usd).toFixed(4)}` : '-'}</p><p className="text-[10px] text-muted-foreground">Custo</p></div>
+          <div className="p-2 rounded bg-secondary/30"><p className="text-sm font-bold text-foreground">{spans.length || '-'}</p><p className="text-[10px] text-muted-foreground">Spans</p></div>
+        </div>
+      </button>
+
+      {open && spans.length > 0 && (
+        <div className="mt-3 pt-3 border-t border-border/30">
+          <SpanTreeView
+            spans={spans}
+            traceDurationMs={typeof d.duration_ms === 'number' ? d.duration_ms : undefined}
+          />
+        </div>
+      )}
+    </div>
+  );
+}
+
 function TracingPanel() {
   const { data: traceData = [], isLoading } = useQuery({
     queryKey: ['trace_events_tracing'],
@@ -395,27 +447,10 @@ function TracingPanel() {
         <h3 className="text-sm font-heading font-semibold text-foreground">Trace Events ({traceData.length})</h3>
         <Badge variant="outline" className="text-[10px]">OTel GenAI</Badge>
       </div>
-      {traceData.map(trace => {
-        const d = trace.data || {};
-        return (
-          <div key={trace.id} className="nexus-card p-3">
-            <div className="flex items-center justify-between mb-2">
-              <div className="flex items-center gap-2">
-                <Zap className={`h-4 w-4 ${d.status === 'error' ? 'text-destructive' : 'text-nexus-emerald'}`} />
-                <span className="text-xs font-medium text-foreground">{trace.event_type}</span>
-                <Badge variant="outline" className="text-[10px]">{String(d.status || 'unknown')}</Badge>
-              </div>
-              <span className="text-[11px] text-muted-foreground">{new Date(trace.created_at).toLocaleString('pt-BR')}</span>
-            </div>
-            <div className="grid grid-cols-4 gap-2 text-center">
-              <div className="p-2 rounded bg-secondary/30"><p className="text-sm font-bold text-foreground">{d.duration_ms ? `${Number(d.duration_ms)}ms` : '-'}</p><p className="text-[10px] text-muted-foreground">Duracao</p></div>
-              <div className="p-2 rounded bg-secondary/30"><p className="text-sm font-bold text-foreground">{typeof d.token_count === 'number' ? d.token_count.toLocaleString() : '-'}</p><p className="text-[10px] text-muted-foreground">Tokens</p></div>
-              <div className="p-2 rounded bg-secondary/30"><p className="text-sm font-bold text-foreground">{d.cost_usd ? `$${Number(d.cost_usd).toFixed(4)}` : '-'}</p><p className="text-[10px] text-muted-foreground">Custo</p></div>
-              <div className="p-2 rounded bg-secondary/30"><p className="text-sm font-bold text-foreground">{Array.isArray(d.spans) ? d.spans.length : '-'}</p><p className="text-[10px] text-muted-foreground">Spans</p></div>
-            </div>
-          </div>
-        );
-      })}
+      <p className="text-[11px] text-muted-foreground">Clique em um trace para expandir a árvore de spans.</p>
+      {traceData.map(trace => (
+        <TraceCard key={trace.id} trace={trace as { id: string; event_type: string; created_at: string; data: Record<string, unknown> }} />
+      ))}
     </div>
   );
 }
