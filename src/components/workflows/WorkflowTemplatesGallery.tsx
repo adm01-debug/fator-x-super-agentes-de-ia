@@ -10,6 +10,7 @@ import {
   getTemplatesByCategory,
   type WorkflowTemplate,
 } from "@/config/workflow-templates";
+import { TemplateCanvasPreview } from "@/components/workflows/TemplateCanvasPreview";
 
 export function WorkflowTemplatesGallery() {
   const [open, setOpen] = useState(false);
@@ -122,28 +123,36 @@ export function WorkflowTemplatesGallery() {
                     </Button>
                   </div>
 
-                  {/* Preview: node list when expanded */}
+                  {/* Preview: mini canvas + node list when expanded */}
                   {isPreviewing && (
-                    <div className="mt-3 pt-3 border-t border-border/30">
-                      <p className="text-[10px] text-muted-foreground uppercase tracking-wider mb-2">
-                        Etapas do workflow
-                      </p>
-                      <div className="space-y-1">
-                        {tpl.nodes.map((n, i) => (
-                          <div key={n.id} className="flex items-start gap-2 text-[11px]">
-                            <span className="text-muted-foreground font-mono shrink-0 w-5">
-                              {String(i + 1).padStart(2, '0')}
-                            </span>
-                            <div className="flex-1 min-w-0">
-                              <span className="text-foreground font-medium">
-                                {String(n.data.label ?? n.type)}
+                    <div className="mt-3 pt-3 border-t border-border/30 space-y-3">
+                      <div>
+                        <p className="text-[10px] text-muted-foreground uppercase tracking-wider mb-2">
+                          Pré-visualização do canvas
+                        </p>
+                        <TemplateCanvasPreview nodes={tpl.nodes} edges={tpl.edges} height={130} />
+                      </div>
+                      <div>
+                        <p className="text-[10px] text-muted-foreground uppercase tracking-wider mb-2">
+                          Etapas do workflow
+                        </p>
+                        <div className="space-y-1">
+                          {tpl.nodes.map((n, i) => (
+                            <div key={n.id} className="flex items-start gap-2 text-[11px]">
+                              <span className="text-muted-foreground font-mono shrink-0 w-5">
+                                {String(i + 1).padStart(2, '0')}
                               </span>
-                              {n.data.description != null && (
-                                <span className="text-muted-foreground"> — {String(n.data.description)}</span>
-                              )}
+                              <div className="flex-1 min-w-0">
+                                <span className="text-foreground font-medium">
+                                  {String(n.data.label ?? n.type)}
+                                </span>
+                                {n.data.description != null && (
+                                  <span className="text-muted-foreground"> — {String(n.data.description)}</span>
+                                )}
+                              </div>
                             </div>
-                          </div>
-                        ))}
+                          ))}
+                        </div>
                       </div>
                     </div>
                   )}
