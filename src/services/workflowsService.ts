@@ -6,6 +6,7 @@
 import { logger } from '@/lib/logger';
 import { supabase } from '@/integrations/supabase/client';
 import { fromTable } from '@/lib/supabaseExtended';
+import { withTrace } from '@/lib/tracing';
 import type { Json } from '@/integrations/supabase/types';
 
 export interface WorkflowNode {
@@ -158,33 +159,71 @@ export async function listWorkflowRuns(limit = 30) {
 
 /* ── Execute workflow ── */
 export async function executeWorkflow(workflowId: string, workflowName: string, steps: string[]): Promise<{ stepsExecuted: number; cost: number }> {
-  // Try workflow-engine for DB workflows
-  try {
-    const { data, error } = await supabase.functions.invoke('workflow-engine-v2', {
-      body: { workflow_id: workflowId, input: `Execute o workflow "${workflowName}"` },
-    });
-    if (!error && data?.status === 'completed') {
-      return { stepsExecuted: data.steps_executed, cost: data.total_cost_usd || 0 };
-    }
-  } catch { /* fallback below */ }
+  // Wrap the entire execution in a trace so each engine call and each
+  // step becomes a span. The tree shows up automatically in
+  // MonitoringPage > Traces > SpanTreeView via parent_span_id chains.
+  return withTrace(`workflow.${workflowName}`, async (_addSpan, ctx) => {
+    // Try workflow-engine for DB workflows
+    try {
+      const engineResult = await ctx.withSpan('workflow.engine_invoke', 'tool', async (span) => {
+        span.setAttribute('workflow.id', workflowId);
+        span.setAttribute('workflow.name', workflowName);
+        span.setAttribute('workflow.engine', 'workflow-engine-v2');
+        span.setAttribute('workflow.steps_count', steps.length);
 
-  // Fallback: execute step-by-step via Gateway
-  let previousOutput = `Workflow: "${workflowName}". Etapas: ${steps.join(' → ')}`;
-  for (const step of steps) {
-    const { data, error } = await supabase.functions.invoke('llm-gateway', {
-      body: {
-        model: 'claude-sonnet-4.6',
-        messages: [
-          { role: 'system', content: `Você é o agente "${step}" em um workflow multi-agente. Execute sua função.` },
-          { role: 'user', content: `Contexto anterior:\n${previousOutput}\n\nExecute seu papel como "${step}".` },
-        ],
-        temperature: 0.7, max_tokens: 2000,
-      },
-    });
-    if (error) throw error;
-    previousOutput = data?.content || '';
-  }
-  return { stepsExecuted: steps.length, cost: 0 };
+        const { data, error } = await supabase.functions.invoke('workflow-engine-v2', {
+          body: { workflow_id: workflowId, input: `Execute o workflow "${workflowName}"` },
+        });
+        if (error) throw new Error(error.message);
+        if (data?.status === 'completed') {
+          span.setAttribute('workflow.steps_executed', data.steps_executed ?? 0);
+          span.setAttribute('cost.usd', data.total_cost_usd ?? 0);
+          return { stepsExecuted: data.steps_executed as number, cost: (data.total_cost_usd as number) ?? 0 };
+        }
+        // Engine returned a non-completed status — surface as error so
+        // the catch falls through to the step-by-step fallback path.
+        throw new Error(`workflow-engine status ${data?.status ?? 'unknown'}`);
+      });
+      return engineResult;
+    } catch {
+      // Fallback: execute step-by-step via Gateway, one span per step
+      let previousOutput = `Workflow: "${workflowName}". Etapas: ${steps.join(' → ')}`;
+      let totalCost = 0;
+      let executed = 0;
+
+      for (let i = 0; i < steps.length; i++) {
+        const step = steps[i];
+        await ctx.withSpan(`workflow.step.${step}`, 'agent', async (span) => {
+          span.setAttribute('workflow.id', workflowId);
+          span.setAttribute('workflow.step_index', i);
+          span.setAttribute('workflow.step_name', step);
+          span.setAttribute('gen_ai.request.model', 'claude-sonnet-4.6');
+          span.setAttribute('workflow.engine', 'fallback-llm-gateway');
+
+          const { data, error } = await supabase.functions.invoke('llm-gateway', {
+            body: {
+              model: 'claude-sonnet-4.6',
+              messages: [
+                { role: 'system', content: `Você é o agente "${step}" em um workflow multi-agente. Execute sua função.` },
+                { role: 'user', content: `Contexto anterior:\n${previousOutput}\n\nExecute seu papel como "${step}".` },
+              ],
+              temperature: 0.7, max_tokens: 2000,
+            },
+          });
+          if (error) throw error;
+          previousOutput = data?.content || '';
+          if (typeof data?.cost_usd === 'number') {
+            totalCost += data.cost_usd;
+            span.setAttribute('cost.usd', data.cost_usd);
+          }
+          if (typeof data?.input_tokens === 'number') span.setAttribute('gen_ai.usage.input_tokens', data.input_tokens);
+          if (typeof data?.output_tokens === 'number') span.setAttribute('gen_ai.usage.output_tokens', data.output_tokens);
+          executed += 1;
+        });
+      }
+      return { stepsExecuted: executed, cost: totalCost };
+    }
+  }, { workflowId });
 }
 
 /* ── Duplicate ── */
