@@ -5,16 +5,22 @@
 import { supabase } from '@/integrations/supabase/client';
 import { logger } from '@/lib/logger';
 
-export async function queryEntity(entityType: string, filters?: Record<string, unknown>, limit = 20) {
-  const { data: { session } } = await supabase.auth.getSession();
+export async function queryEntity(
+  entityType: string,
+  filters?: Record<string, unknown>,
+  limit = 20,
+) {
+  const {
+    data: { session },
+  } = await supabase.auth.getSession();
   if (!session) throw new Error('Not authenticated');
 
   const resp = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/datahub-query`, {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
-      'Authorization': `Bearer ${session.access_token}`,
-      'apikey': import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY,
+      Authorization: `Bearer ${session.access_token}`,
+      apikey: import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY,
     },
     body: JSON.stringify({ entity: entityType, filters, limit }),
   });
@@ -27,15 +33,17 @@ export async function queryEntity(entityType: string, filters?: Record<string, u
 }
 
 export async function getEntityDetail(entityType: string, entityId: string) {
-  const { data: { session } } = await supabase.auth.getSession();
+  const {
+    data: { session },
+  } = await supabase.auth.getSession();
   if (!session) throw new Error('Not authenticated');
 
   const resp = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/datahub-query`, {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
-      'Authorization': `Bearer ${session.access_token}`,
-      'apikey': import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY,
+      Authorization: `Bearer ${session.access_token}`,
+      apikey: import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY,
     },
     body: JSON.stringify({ entity: entityType, id: entityId, action: 'detail' }),
   });
@@ -48,15 +56,17 @@ export async function getEntityDetail(entityType: string, entityId: string) {
 }
 
 export async function getDatahubStats() {
-  const { data: { session } } = await supabase.auth.getSession();
+  const {
+    data: { session },
+  } = await supabase.auth.getSession();
   if (!session) throw new Error('Not authenticated');
 
   const resp = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/datahub-query`, {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
-      'Authorization': `Bearer ${session.access_token}`,
-      'apikey': import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY,
+      Authorization: `Bearer ${session.access_token}`,
+      apikey: import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY,
     },
     body: JSON.stringify({ action: 'stats' }),
   });
@@ -238,4 +248,25 @@ export async function getDatahubHealth(): Promise<DatahubHealthReport> {
     reachable_count: reachableCount,
     total_count: totalCount,
   };
+}
+
+/**
+ * Invoke a tool on the datahub-mcp-server Edge Function.
+ * Extracted from DataHubPage to keep supabase calls in the service layer.
+ */
+export async function invokeDatahubMCPTool(
+  toolName: string,
+  args: Record<string, unknown> = {},
+): Promise<Record<string, unknown>> {
+  const { data, error } = await supabase.functions.invoke('datahub-mcp-server', {
+    body: {
+      jsonrpc: '2.0',
+      id: 1,
+      method: 'tools/call',
+      params: { name: toolName, arguments: args },
+    },
+  });
+
+  if (error) throw error;
+  return data as Record<string, unknown>;
 }

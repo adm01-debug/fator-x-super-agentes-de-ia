@@ -1,20 +1,31 @@
-import { useState, useEffect } from "react";
-import { Button } from "@/components/ui/button";
-import { Textarea } from "@/components/ui/textarea";
-import { Input } from "@/components/ui/input";
-import { Badge } from "@/components/ui/badge";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Loader2, MessageSquare, Sparkles, ArrowUpDown, Search, History, X } from "lucide-react";
-import { invokeCerebroQuery } from "@/services/cerebroService";
-import { toast } from "sonner";
-import { rerankChunks, listKnowledgeBases, fetchChunksForRerank, type RerankResult } from "@/services/knowledgeService";
+import { useState, useEffect } from 'react';
+import { Button } from '@/components/ui/button';
+import { Textarea } from '@/components/ui/textarea';
+import { Input } from '@/components/ui/input';
+import { Badge } from '@/components/ui/badge';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
+import { Loader2, MessageSquare, Sparkles, ArrowUpDown, Search, History, X } from 'lucide-react';
+import { invokeCerebroQuery } from '@/services/cerebroService';
+import { toast } from 'sonner';
+import {
+  rerankChunks,
+  listKnowledgeBases,
+  fetchChunksForRerank,
+  type RerankResult,
+} from '@/services/knowledgeService';
 
-const HISTORY_KEY = "nexus-cerebro-search-history";
+const HISTORY_KEY = 'nexus-cerebro-search-history';
 const HISTORY_MAX = 10;
 
 function loadHistory(): string[] {
   try {
-    return JSON.parse(localStorage.getItem(HISTORY_KEY) || "[]");
+    return JSON.parse(localStorage.getItem(HISTORY_KEY) || '[]');
   } catch {
     return [];
   }
@@ -46,7 +57,11 @@ export function SearchTab() {
   const [selectedKbId, setSelectedKbId] = useState<string>('all');
 
   useEffect(() => {
-    listKnowledgeBases().then(kbs => setKnowledgeBases(kbs.map(kb => ({ id: kb.id, name: kb.name })))).catch(() => {});
+    listKnowledgeBases()
+      .then((kbs) => setKnowledgeBases(kbs.map((kb) => ({ id: kb.id, name: kb.name }))))
+      .catch(() => {
+        /* KBs unavailable — search still works without filter */
+      });
   }, []);
 
   const handleSearch = async () => {
@@ -59,7 +74,10 @@ export function SearchTab() {
       if (data?.facts_loaded > 0) meta.push(`${data.facts_loaded} fatos`);
       if (data?.rag_chunks_used) meta.push(data.rag_reranked ? 'RAG reranked' : 'RAG ativo');
       if (data?.external_facts > 0) meta.push(`${data.external_facts} fatos externos`);
-      const metaLine = meta.length > 0 ? `\n\n---\n_${meta.join(' • ')} • Custo: $${data?.cost_usd?.toFixed(6) || '0'}_` : '';
+      const metaLine =
+        meta.length > 0
+          ? `\n\n---\n_${meta.join(' • ')} • Custo: $${data?.cost_usd?.toFixed(6) || '0'}_`
+          : '';
       setSearchResults((data?.response || 'Sem resposta') + metaLine);
       // Persist to history (dedupe + cap to HISTORY_MAX)
       const trimmed = query.trim();
@@ -74,7 +92,10 @@ export function SearchTab() {
   };
 
   const handleRerank = async () => {
-    if (!rerankQuery.trim()) { toast.error('Digite uma query para reranking'); return; }
+    if (!rerankQuery.trim()) {
+      toast.error('Digite uma query para reranking');
+      return;
+    }
     setIsReranking(true);
     setRerankResults(null);
     setRerankMethod(null);
@@ -82,7 +103,7 @@ export function SearchTab() {
     try {
       const chunks = await fetchChunksForRerank(
         selectedKbId !== 'all' ? selectedKbId : undefined,
-        50
+        50,
       );
 
       if (chunks.length === 0) {
@@ -94,12 +115,14 @@ export function SearchTab() {
       const result = await rerankChunks(
         rerankQuery,
         chunks.map((c: Record<string, unknown>) => ({ ...c })),
-        { topK: rerankTopK, knowledgeBaseId: selectedKbId !== 'all' ? selectedKbId : undefined }
+        { topK: rerankTopK, knowledgeBaseId: selectedKbId !== 'all' ? selectedKbId : undefined },
       );
 
       setRerankResults(result.reranked);
       setRerankMethod(result.method);
-      toast.success(`Re-ranking concluído! Método: ${result.method} • ${result.total_input} chunks → top ${result.top_k}`);
+      toast.success(
+        `Re-ranking concluído! Método: ${result.method} • ${result.total_input} chunks → top ${result.top_k}`,
+      );
     } catch (e: unknown) {
       toast.error(e instanceof Error ? e.message : 'Erro no re-ranking');
     } finally {
@@ -128,10 +151,15 @@ export function SearchTab() {
         </h3>
         <Textarea
           value={query}
-          onChange={e => setQuery(e.target.value)}
+          onChange={(e) => setQuery(e.target.value)}
           placeholder="Pergunte ao Super Cérebro... Ex: Quais são nossos principais fornecedores?"
           className="bg-secondary/50 min-h-[80px] text-sm"
-          onKeyDown={e => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); handleSearch(); } }}
+          onKeyDown={(e) => {
+            if (e.key === 'Enter' && !e.shiftKey) {
+              e.preventDefault();
+              handleSearch();
+            }
+          }}
         />
         {history.length > 0 && (
           <div className="space-y-1.5">
@@ -140,7 +168,10 @@ export function SearchTab() {
                 <History className="h-3 w-3" /> Histórico recente
               </p>
               <button
-                onClick={() => { setHistory([]); saveHistory([]); }}
+                onClick={() => {
+                  setHistory([]);
+                  saveHistory([]);
+                }}
                 className="text-[10px] text-muted-foreground hover:text-destructive flex items-center gap-0.5"
               >
                 <X className="h-2.5 w-2.5" /> Limpar
@@ -161,16 +192,28 @@ export function SearchTab() {
           </div>
         )}
         <div className="flex justify-between items-center">
-          <p className="text-[11px] text-muted-foreground">Consulta semântica ao conhecimento da empresa (fatos + RAG + bancos externos)</p>
-          <Button onClick={handleSearch} disabled={isSearching || !query.trim()} className="nexus-gradient-bg text-primary-foreground gap-2">
-            {isSearching ? <Loader2 className="h-4 w-4 animate-spin" /> : <Sparkles className="h-4 w-4" />}
+          <p className="text-[11px] text-muted-foreground">
+            Consulta semântica ao conhecimento da empresa (fatos + RAG + bancos externos)
+          </p>
+          <Button
+            onClick={handleSearch}
+            disabled={isSearching || !query.trim()}
+            className="nexus-gradient-bg text-primary-foreground gap-2"
+          >
+            {isSearching ? (
+              <Loader2 className="h-4 w-4 animate-spin" />
+            ) : (
+              <Sparkles className="h-4 w-4" />
+            )}
             {isSearching ? 'Buscando...' : '🧠 Consultar'}
           </Button>
         </div>
         {searchResults && (
           <div className="p-4 rounded-lg bg-secondary/30 border border-border/30">
             <p className="text-xs font-semibold text-foreground mb-2">Resposta do Super Cérebro:</p>
-            <div className="text-sm text-foreground whitespace-pre-wrap leading-relaxed">{searchResults}</div>
+            <div className="text-sm text-foreground whitespace-pre-wrap leading-relaxed">
+              {searchResults}
+            </div>
           </div>
         )}
       </div>
@@ -181,50 +224,71 @@ export function SearchTab() {
           <ArrowUpDown className="h-4 w-4 text-primary" /> Re-Ranking Manual de Chunks
         </h3>
         <p className="text-[11px] text-muted-foreground">
-          Reordene os chunks da base de conhecimento por relevância usando Cohere, HuggingFace BGE ou LLM fallback.
+          Reordene os chunks da base de conhecimento por relevância usando Cohere, HuggingFace BGE
+          ou LLM fallback.
         </p>
 
         <div className="flex gap-3 items-end flex-wrap">
           <div className="flex-1 min-w-[200px] space-y-1">
-            <label className="text-xs text-muted-foreground">Query de referência</label>
+            <label htmlFor="rerank-query" className="text-xs text-muted-foreground">
+              Query de referência
+            </label>
             <div className="relative">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground" />
               <Input
+                id="rerank-query"
                 value={rerankQuery}
-                onChange={e => setRerankQuery(e.target.value)}
+                onChange={(e) => setRerankQuery(e.target.value)}
                 placeholder="Ex: política de devoluções"
                 className="bg-secondary/50 pl-9 text-sm"
-                onKeyDown={e => { if (e.key === 'Enter') handleRerank(); }}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter') handleRerank();
+                }}
               />
             </div>
           </div>
           <div className="w-48 space-y-1">
-            <label className="text-xs text-muted-foreground">Knowledge Base</label>
+            <label htmlFor="rerank-kb" className="text-xs text-muted-foreground">
+              Knowledge Base
+            </label>
             <Select value={selectedKbId} onValueChange={setSelectedKbId}>
               <SelectTrigger className="bg-secondary/50 text-sm">
                 <SelectValue placeholder="Todas" />
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="all">Todas as bases</SelectItem>
-                {knowledgeBases.map(kb => (
-                  <SelectItem key={kb.id} value={kb.id}>{kb.name}</SelectItem>
+                {knowledgeBases.map((kb) => (
+                  <SelectItem key={kb.id} value={kb.id}>
+                    {kb.name}
+                  </SelectItem>
                 ))}
               </SelectContent>
             </Select>
           </div>
           <div className="w-24 space-y-1">
-            <label className="text-xs text-muted-foreground">Top K</label>
+            <label htmlFor="rerank-topk" className="text-xs text-muted-foreground">
+              Top K
+            </label>
             <Input
+              id="rerank-topk"
               type="number"
               min={1}
               max={50}
               value={rerankTopK}
-              onChange={e => setRerankTopK(Number(e.target.value) || 5)}
+              onChange={(e) => setRerankTopK(Number(e.target.value) || 5)}
               className="bg-secondary/50 text-sm"
             />
           </div>
-          <Button onClick={handleRerank} disabled={isReranking || !rerankQuery.trim()} className="nexus-gradient-bg text-primary-foreground gap-2">
-            {isReranking ? <Loader2 className="h-4 w-4 animate-spin" /> : <ArrowUpDown className="h-4 w-4" />}
+          <Button
+            onClick={handleRerank}
+            disabled={isReranking || !rerankQuery.trim()}
+            className="nexus-gradient-bg text-primary-foreground gap-2"
+          >
+            {isReranking ? (
+              <Loader2 className="h-4 w-4 animate-spin" />
+            ) : (
+              <ArrowUpDown className="h-4 w-4" />
+            )}
             {isReranking ? 'Reranking...' : 'Re-Rank'}
           </Button>
         </div>
@@ -234,7 +298,10 @@ export function SearchTab() {
             <div className="flex items-center gap-2">
               <p className="text-xs font-semibold text-foreground">Resultados re-rankeados</p>
               {rerankMethod && (
-                <Badge variant="outline" className={`text-[11px] ${methodColors[rerankMethod] || 'border-border'}`}>
+                <Badge
+                  variant="outline"
+                  className={`text-[11px] ${methodColors[rerankMethod] || 'border-border'}`}
+                >
                   {methodLabels[rerankMethod] || rerankMethod}
                 </Badge>
               )}
@@ -247,7 +314,12 @@ export function SearchTab() {
               {rerankResults.map((item, idx) => {
                 const chunk = item.chunk as Record<string, unknown>;
                 const score = item.relevance_score;
-                const scoreColor = score >= 0.8 ? 'text-nexus-emerald' : score >= 0.5 ? 'text-nexus-amber' : 'text-muted-foreground';
+                const scoreColor =
+                  score >= 0.8
+                    ? 'text-nexus-emerald'
+                    : score >= 0.5
+                      ? 'text-nexus-amber'
+                      : 'text-muted-foreground';
                 return (
                   <div key={idx} className="nexus-card p-3">
                     <div className="flex items-center justify-between mb-1.5">
@@ -259,7 +331,9 @@ export function SearchTab() {
                           </Badge>
                         )}
                         {chunk.token_count != null && (
-                          <span className="text-[11px] text-muted-foreground">{String(chunk.token_count)} tokens</span>
+                          <span className="text-[11px] text-muted-foreground">
+                            {String(chunk.token_count)} tokens
+                          </span>
                         )}
                       </div>
                       <div className="flex items-center gap-1">
@@ -270,7 +344,9 @@ export function SearchTab() {
                       </div>
                     </div>
                     <p className="text-xs text-muted-foreground line-clamp-3">
-                      {String(chunk.content || chunk.text || JSON.stringify(chunk).substring(0, 300))}
+                      {String(
+                        chunk.content || chunk.text || JSON.stringify(chunk).substring(0, 300),
+                      )}
                     </p>
                   </div>
                 );
@@ -281,7 +357,9 @@ export function SearchTab() {
 
         {rerankResults && rerankResults.length === 0 && (
           <div className="text-center py-6">
-            <p className="text-xs text-muted-foreground">Nenhum resultado encontrado para reranking.</p>
+            <p className="text-xs text-muted-foreground">
+              Nenhum resultado encontrado para reranking.
+            </p>
           </div>
         )}
       </div>

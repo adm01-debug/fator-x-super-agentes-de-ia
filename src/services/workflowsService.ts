@@ -61,7 +61,7 @@ export async function listWorkflows(): Promise<Workflow[]> {
 
   if (error) throw error;
 
-  const workflowIds = (data ?? []).map(w => w.id);
+  const workflowIds = (data ?? []).map((w) => w.id);
 
   // Fetch all steps for these workflows in one query
   let allSteps: WorkflowStep[] = [];
@@ -74,8 +74,8 @@ export async function listWorkflows(): Promise<Workflow[]> {
     allSteps = (stepsData ?? []) as unknown as WorkflowStep[];
   }
 
-  return (data ?? []).map(row => {
-    const steps = allSteps.filter(s => s.workflow_id === row.id);
+  return (data ?? []).map((row) => {
+    const steps = allSteps.filter((s) => s.workflow_id === row.id);
     return mapWorkflow(row, steps);
   });
 }
@@ -84,7 +84,10 @@ export async function listWorkflows(): Promise<Workflow[]> {
 export async function getWorkflow(id: string): Promise<Workflow> {
   const [workflowRes, stepsRes] = await Promise.all([
     fromTable('workflows').select('*').eq('id', id).single(),
-    fromTable('workflow_steps').select('*').eq('workflow_id', id).order('step_order', { ascending: true }),
+    fromTable('workflow_steps')
+      .select('*')
+      .eq('workflow_id', id)
+      .order('step_order', { ascending: true }),
   ]);
 
   if (workflowRes.error) throw workflowRes.error;
@@ -92,8 +95,12 @@ export async function getWorkflow(id: string): Promise<Workflow> {
 }
 
 /* ── Save (upsert workflow + sync steps) ── */
-export async function saveWorkflow(workflow: Partial<Workflow> & { name: string }): Promise<Workflow> {
-  const { data: { user } } = await supabase.auth.getUser();
+export async function saveWorkflow(
+  workflow: Partial<Workflow> & { name: string },
+): Promise<Workflow> {
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
   if (!user) throw new Error('Not authenticated');
 
   const row = {
@@ -107,11 +114,7 @@ export async function saveWorkflow(workflow: Partial<Workflow> & { name: string 
     ...(workflow.id ? { id: workflow.id } : {}),
   };
 
-  const { data, error } = await supabase
-    .from('workflows')
-    .upsert(row)
-    .select()
-    .single();
+  const { data, error } = await supabase.from('workflows').upsert(row).select().single();
 
   if (error) throw error;
 
@@ -158,72 +161,103 @@ export async function listWorkflowRuns(limit = 30) {
 }
 
 /* ── Execute workflow ── */
-export async function executeWorkflow(workflowId: string, workflowName: string, steps: string[]): Promise<{ stepsExecuted: number; cost: number }> {
+export async function executeWorkflow(
+  workflowId: string,
+  workflowName: string,
+  steps: string[],
+): Promise<{ stepsExecuted: number; cost: number }> {
   // Wrap the entire execution in a trace so each engine call and each
   // step becomes a span. The tree shows up automatically in
   // MonitoringPage > Traces > SpanTreeView via parent_span_id chains.
-  return withTrace(`workflow.${workflowName}`, async (_addSpan, ctx) => {
-    // Try workflow-engine for DB workflows
-    try {
-      const engineResult = await ctx.withSpan('workflow.engine_invoke', 'tool', async (span) => {
-        span.setAttribute('workflow.id', workflowId);
-        span.setAttribute('workflow.name', workflowName);
-        span.setAttribute('workflow.engine', 'workflow-engine-v2');
-        span.setAttribute('workflow.steps_count', steps.length);
-
-        const { data, error } = await supabase.functions.invoke('workflow-engine-v2', {
-          body: { workflow_id: workflowId, input: `Execute o workflow "${workflowName}"` },
-        });
-        if (error) throw new Error(error.message);
-        if (data?.status === 'completed') {
-          span.setAttribute('workflow.steps_executed', data.steps_executed ?? 0);
-          span.setAttribute('cost.usd', data.total_cost_usd ?? 0);
-          return { stepsExecuted: data.steps_executed as number, cost: (data.total_cost_usd as number) ?? 0 };
-        }
-        // Engine returned a non-completed status — surface as error so
-        // the catch falls through to the step-by-step fallback path.
-        throw new Error(`workflow-engine status ${data?.status ?? 'unknown'}`);
-      });
-      return engineResult;
-    } catch {
-      // Fallback: execute step-by-step via Gateway, one span per step
-      let previousOutput = `Workflow: "${workflowName}". Etapas: ${steps.join(' → ')}`;
-      let totalCost = 0;
-      let executed = 0;
-
-      for (let i = 0; i < steps.length; i++) {
-        const step = steps[i];
-        await ctx.withSpan(`workflow.step.${step}`, 'agent', async (span) => {
+  return withTrace(
+    `workflow.${workflowName}`,
+    async (_addSpan, ctx) => {
+      // Try workflow-engine for DB workflows
+      try {
+        const engineResult = await ctx.withSpan('workflow.engine_invoke', 'tool', async (span) => {
           span.setAttribute('workflow.id', workflowId);
-          span.setAttribute('workflow.step_index', i);
-          span.setAttribute('workflow.step_name', step);
-          span.setAttribute('gen_ai.request.model', 'claude-sonnet-4.6');
-          span.setAttribute('workflow.engine', 'fallback-llm-gateway');
+          span.setAttribute('workflow.name', workflowName);
+          span.setAttribute('workflow.engine', 'workflow-engine-v2');
+          span.setAttribute('workflow.steps_count', steps.length);
 
-          const { data, error } = await supabase.functions.invoke('llm-gateway', {
-            body: {
-              model: 'claude-sonnet-4.6',
-              messages: [
-                { role: 'system', content: `Você é o agente "${step}" em um workflow multi-agente. Execute sua função.` },
-                { role: 'user', content: `Contexto anterior:\n${previousOutput}\n\nExecute seu papel como "${step}".` },
-              ],
-              temperature: 0.7, max_tokens: 2000,
-            },
+          const { data, error } = await supabase.functions.invoke('workflow-engine-v2', {
+            body: { workflow_id: workflowId, input: `Execute o workflow "${workflowName}"` },
           });
-          if (error) throw error;
-          previousOutput = data?.content || '';
-          if (typeof data?.cost_usd === 'number') {
-            totalCost += data.cost_usd;
-            span.setAttribute('cost.usd', data.cost_usd);
+          if (error) throw new Error(error.message);
+          if (data?.status === 'completed') {
+            span.setAttribute('workflow.steps_executed', data.steps_executed ?? 0);
+            span.setAttribute('cost.usd', data.total_cost_usd ?? 0);
+            return {
+              stepsExecuted: data.steps_executed as number,
+              cost: (data.total_cost_usd as number) ?? 0,
+            };
           }
-          if (typeof data?.input_tokens === 'number') span.setAttribute('gen_ai.usage.input_tokens', data.input_tokens);
-          if (typeof data?.output_tokens === 'number') span.setAttribute('gen_ai.usage.output_tokens', data.output_tokens);
-          executed += 1;
+          // Engine returned a non-completed status — surface as error so
+          // the catch falls through to the step-by-step fallback path.
+          throw new Error(`workflow-engine status ${data?.status ?? 'unknown'}`);
         });
+        return engineResult;
+      } catch {
+        // Fallback: execute step-by-step via LLM Gateway, one span per step.
+        // Each step receives the full pipeline context so it understands its
+        // role in the sequence. Not a true workflow engine, but produces
+        // meaningful output when workflow-engine-v2 is unavailable.
+        const pipelineContext = steps.map((s, i) => `${i + 1}. ${s}`).join('\n');
+        let previousOutput = '';
+        let totalCost = 0;
+        let executed = 0;
+
+        for (let i = 0; i < steps.length; i++) {
+          const step = steps[i];
+          await ctx.withSpan(`workflow.step.${step}`, 'agent', async (span) => {
+            span.setAttribute('workflow.id', workflowId);
+            span.setAttribute('workflow.step_index', i);
+            span.setAttribute('workflow.step_name', step);
+            span.setAttribute('gen_ai.request.model', 'claude-sonnet-4.6');
+            span.setAttribute('workflow.engine', 'fallback-llm-gateway');
+
+            const systemPrompt = [
+              `Você é o agente "${step}", etapa ${i + 1} de ${steps.length} no workflow "${workflowName}".`,
+              `Pipeline completo:\n${pipelineContext}`,
+              `Sua responsabilidade: executar APENAS a etapa "${step}".`,
+              previousOutput
+                ? `A etapa anterior (${steps[i - 1]}) produziu:\n---\n${previousOutput.substring(0, 2000)}\n---`
+                : 'Você é a primeira etapa. Inicie o pipeline.',
+              `Retorne apenas o resultado da sua etapa de forma estruturada e objetiva.`,
+            ].join('\n\n');
+
+            const { data, error } = await supabase.functions.invoke('llm-gateway', {
+              body: {
+                model: 'claude-sonnet-4.6',
+                messages: [
+                  { role: 'system', content: systemPrompt },
+                  {
+                    role: 'user',
+                    content: `Execute a etapa "${step}" do workflow "${workflowName}".`,
+                  },
+                ],
+                temperature: 0.4,
+                max_tokens: 2000,
+              },
+            });
+            if (error) throw error;
+            previousOutput = data?.content || '';
+            if (typeof data?.cost_usd === 'number') {
+              totalCost += data.cost_usd;
+              span.setAttribute('cost.usd', data.cost_usd);
+            }
+            if (typeof data?.input_tokens === 'number')
+              span.setAttribute('gen_ai.usage.input_tokens', data.input_tokens);
+            if (typeof data?.output_tokens === 'number')
+              span.setAttribute('gen_ai.usage.output_tokens', data.output_tokens);
+            executed += 1;
+          });
+        }
+        return { stepsExecuted: executed, cost: totalCost };
       }
-      return { stepsExecuted: executed, cost: totalCost };
-    }
-  }, { workflowId });
+    },
+    { workflowId },
+  );
 }
 
 /* ── Duplicate ── */
@@ -285,12 +319,15 @@ function mapWorkflow(row: Record<string, unknown>, steps: WorkflowStep[] = []): 
   // If we have normalized steps, build nodes from them; otherwise fallback to config JSON
   let nodes: WorkflowNode[];
   if (steps.length > 0) {
-    nodes = steps.map(step => {
+    nodes = steps.map((step) => {
       const stepConfig = (step.config || {}) as Record<string, unknown>;
       return {
         id: String(stepConfig.node_id || `step_${step.step_order}`),
         type: String(stepConfig.type || step.role || 'executor'),
-        position: (stepConfig.position as { x: number; y: number }) || { x: step.step_order * 240, y: 100 },
+        position: (stepConfig.position as { x: number; y: number }) || {
+          x: step.step_order * 240,
+          y: 100,
+        },
         data: {
           label: step.name,
           agent_id: step.agent_id,
@@ -299,10 +336,10 @@ function mapWorkflow(row: Record<string, unknown>, steps: WorkflowStep[] = []): 
       };
     });
   } else {
-    nodes = Array.isArray(config.nodes) ? config.nodes as WorkflowNode[] : [];
+    nodes = Array.isArray(config.nodes) ? (config.nodes as WorkflowNode[]) : [];
   }
 
-  const edges = Array.isArray(config.edges) ? config.edges as WorkflowEdge[] : [];
+  const edges = Array.isArray(config.edges) ? (config.edges as WorkflowEdge[]) : [];
 
   return {
     id: String(row.id),
