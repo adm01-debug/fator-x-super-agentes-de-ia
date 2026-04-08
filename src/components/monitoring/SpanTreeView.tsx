@@ -176,8 +176,8 @@ function SpanRow({ node, traceStart, traceDuration, expanded, onToggle }: SpanRo
         />
       ))}
 
-      {/* Error message inline */}
-      {isExpanded && node.status === 'error' && node.status_message && (
+      {/* Error message inline — always visible (not gated by expansion) */}
+      {node.status === 'error' && node.status_message && (
         <div
           className="text-[11px] text-destructive italic py-1 px-2 border-b border-border/20 bg-destructive/5"
           style={{ paddingLeft: `${node.depth * 16 + 32}px` }}
