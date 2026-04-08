@@ -150,7 +150,8 @@ export function OrchestrationModule() {
               <p className="text-xs font-medium text-foreground">Gatilhos de aprovação</p>
               {agent.human_in_loop_triggers.map((trigger, idx) => (
                 <div key={idx} className="flex items-center gap-2">
-                  <input
+                   <input
+                    aria-label={`Gatilho de aprovação ${idx + 1}`}
                     className="flex-1 rounded-lg border border-border bg-muted/30 px-3 py-2 text-sm text-foreground placeholder:text-muted-foreground"
                     value={trigger}
                     onChange={(e) => updateTrigger(idx, e.target.value)}

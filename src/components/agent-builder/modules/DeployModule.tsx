@@ -190,6 +190,7 @@ export function DeployModule() {
               </div>
               {kpi.enabled && (
                 <input
+                  aria-label={`Meta KPI ${kpi.label}`}
                   className="w-24 rounded-lg border border-border bg-muted/30 px-2 py-1 text-xs text-foreground text-right"
                   value={kpi.target}
                   onChange={(e) => updateKPI(kpi.id, { target: e.target.value })}
