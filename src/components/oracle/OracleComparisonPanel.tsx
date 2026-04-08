@@ -6,6 +6,10 @@ import {
   CheckCircle2,
   XCircle,
   Trophy,
+  Download,
+  DollarSign,
+  Hash,
+  Gauge,
 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -123,11 +127,55 @@ export function OracleComparisonPanel() {
     }
   };
 
-  // Find the "winner" by shortest finished response (proxy for confidence/certainty)
-  const successfulRuns = runs.filter((r) => r.status === 'success');
-  const fastestId = successfulRuns.length > 0
-    ? successfulRuns.reduce((min, r) => (r.duration_ms < min.duration_ms ? r : min)).mode
+  // "Winner" = highest confidence_score among successful runs (more meaningful than fastest)
+  const successfulRuns = runs.filter((r) => r.status === 'success' && r.result);
+  const winnerMode = successfulRuns.length > 0
+    ? successfulRuns.reduce((best, r) =>
+        (r.result!.confidence_score ?? 0) > (best.result!.confidence_score ?? 0) ? r : best
+      ).mode
     : null;
+
+  const aggregate = successfulRuns.reduce(
+    (acc, r) => ({
+      cost: acc.cost + (r.result?.metrics?.total_cost_usd ?? 0),
+      tokens: acc.tokens + (r.result?.metrics?.total_tokens ?? 0),
+      avgLatency: acc.avgLatency + r.duration_ms,
+    }),
+    { cost: 0, tokens: 0, avgLatency: 0 }
+  );
+  if (successfulRuns.length > 0) {
+    aggregate.avgLatency = aggregate.avgLatency / successfulRuns.length;
+  }
+
+  const handleExport = () => {
+    if (runs.length === 0) {
+      toast.error('Nada para exportar');
+      return;
+    }
+    const payload = {
+      query,
+      timestamp: new Date().toISOString(),
+      runs: runs.map((r) => ({
+        mode: r.mode,
+        preset_id: r.preset_id,
+        status: r.status,
+        duration_ms: r.duration_ms,
+        error: r.error,
+        confidence_score: r.result?.confidence_score,
+        consensus_degree: r.result?.consensus_degree,
+        final_response: r.result?.final_response,
+        metrics: r.result?.metrics,
+      })),
+    };
+    const blob = new Blob([JSON.stringify(payload, null, 2)], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `oracle-comparison-${Date.now()}.json`;
+    a.click();
+    URL.revokeObjectURL(url);
+    toast.success('Comparação exportada');
+  };
 
   return (
     <div className="space-y-4">
@@ -197,24 +245,77 @@ export function OracleComparisonPanel() {
         </div>
       </div>
 
+      {/* Summary metrics + export */}
+      {successfulRuns.length > 0 && (
+        <div className="nexus-card">
+          <div className="flex items-center justify-between mb-3">
+            <h4 className="text-[11px] uppercase tracking-wider text-muted-foreground">
+              Comparação agregada
+            </h4>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={handleExport}
+              className="h-7 gap-1.5 text-xs"
+            >
+              <Download className="h-3 w-3" /> Exportar JSON
+            </Button>
+          </div>
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+            <div>
+              <div className="flex items-center gap-1.5 text-[10px] uppercase tracking-wider text-muted-foreground mb-1">
+                <DollarSign className="h-3 w-3" /> Custo total
+              </div>
+              <p className="text-sm font-heading font-bold tabular-nums">
+                ${aggregate.cost.toFixed(4)}
+              </p>
+            </div>
+            <div>
+              <div className="flex items-center gap-1.5 text-[10px] uppercase tracking-wider text-muted-foreground mb-1">
+                <Hash className="h-3 w-3" /> Tokens totais
+              </div>
+              <p className="text-sm font-heading font-bold tabular-nums">
+                {aggregate.tokens.toLocaleString()}
+              </p>
+            </div>
+            <div>
+              <div className="flex items-center gap-1.5 text-[10px] uppercase tracking-wider text-muted-foreground mb-1">
+                <Loader2 className="h-3 w-3" /> Latência média
+              </div>
+              <p className="text-sm font-heading font-bold tabular-nums">
+                {(aggregate.avgLatency / 1000).toFixed(1)}s
+              </p>
+            </div>
+            <div>
+              <div className="flex items-center gap-1.5 text-[10px] uppercase tracking-wider text-muted-foreground mb-1">
+                <Trophy className="h-3 w-3 text-nexus-amber" /> Vencedor
+              </div>
+              <p className="text-sm font-heading font-bold">
+                {winnerMode ? ORACLE_MODES[winnerMode].label : '—'}
+              </p>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Results grid */}
       {runs.length > 0 && (
         <div className={`grid gap-3 ${runs.length === 2 ? 'md:grid-cols-2' : 'md:grid-cols-3'}`}>
           {runs.map((run) => {
             const modeInfo = ORACLE_MODES[run.mode];
-            const isFastest = fastestId === run.mode && run.status === 'success';
+            const isWinner = winnerMode === run.mode && run.status === 'success';
             return (
               <div
                 key={run.mode}
                 className={`nexus-card space-y-3 ${
-                  isFastest ? 'ring-1 ring-nexus-amber/50' : ''
+                  isWinner ? 'ring-1 ring-nexus-amber/50' : ''
                 }`}
               >
                 <div className="flex items-center justify-between gap-2 pb-2 border-b border-border/30">
                   <div className="flex items-center gap-2 min-w-0">
                     <span className="text-lg">{modeInfo.icon}</span>
                     <p className="text-xs font-semibold truncate">{modeInfo.label}</p>
-                    {isFastest && (
+                    {isWinner && (
                       <Trophy className="h-3.5 w-3.5 text-nexus-amber shrink-0" />
                     )}
                   </div>
@@ -239,12 +340,34 @@ export function OracleComparisonPanel() {
 
                 {run.status === 'success' && run.result && (
                   <div className="space-y-2">
-                    <div className="text-xs text-foreground whitespace-pre-wrap leading-relaxed max-h-[300px] overflow-y-auto pr-1">
-                      {(run.result as any).synthesis ?? (run.result as any).summary ?? 'Sem síntese'}
+                    {/* Per-run metrics row */}
+                    <div className="grid grid-cols-3 gap-2 text-[10px]">
+                      <div className="flex items-center gap-1 text-muted-foreground">
+                        <Gauge className="h-2.5 w-2.5" />
+                        <span className="tabular-nums text-foreground">
+                          {((run.result.confidence_score ?? 0) * 100).toFixed(0)}%
+                        </span>
+                      </div>
+                      <div className="flex items-center gap-1 text-muted-foreground">
+                        <DollarSign className="h-2.5 w-2.5" />
+                        <span className="tabular-nums text-foreground">
+                          ${(run.result.metrics?.total_cost_usd ?? 0).toFixed(4)}
+                        </span>
+                      </div>
+                      <div className="flex items-center gap-1 text-muted-foreground">
+                        <Hash className="h-2.5 w-2.5" />
+                        <span className="tabular-nums text-foreground">
+                          {(run.result.metrics?.total_tokens ?? 0).toLocaleString()}
+                        </span>
+                      </div>
                     </div>
-                    {((run.result as any).responses?.length ?? 0) > 0 && (
+
+                    <div className="text-xs text-foreground whitespace-pre-wrap leading-relaxed max-h-[280px] overflow-y-auto pr-1 pt-2 border-t border-border/30">
+                      {run.result.final_response ?? 'Sem resposta'}
+                    </div>
+                    {(run.result.metrics?.models_used ?? 0) > 0 && (
                       <div className="pt-2 border-t border-border/30 text-[10px] text-muted-foreground">
-                        {(run.result as any).responses.length} modelos consultados
+                        {run.result.metrics.models_used} modelos · consenso {((run.result.consensus_degree ?? 0) * 100).toFixed(0)}%
                       </div>
                     )}
                   </div>
