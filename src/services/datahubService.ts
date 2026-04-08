@@ -19,7 +19,10 @@ export async function queryEntity(entityType: string, filters?: Record<string, u
     body: JSON.stringify({ entity: entityType, filters, limit }),
   });
 
-  if (!resp.ok) throw new Error('DataHub query failed');
+  if (!resp.ok) {
+    logger.error('DataHub query failed', { status: resp.status, entity: entityType });
+    throw new Error(`DataHub query failed: ${resp.status}`);
+  }
   return resp.json();
 }
 
@@ -37,7 +40,10 @@ export async function getEntityDetail(entityType: string, entityId: string) {
     body: JSON.stringify({ entity: entityType, id: entityId, action: 'detail' }),
   });
 
-  if (!resp.ok) throw new Error('Entity detail failed');
+  if (!resp.ok) {
+    logger.error('Entity detail failed', { status: resp.status, entity: entityType, entityId });
+    throw new Error(`Entity detail failed: ${resp.status}`);
+  }
   return resp.json();
 }
 
