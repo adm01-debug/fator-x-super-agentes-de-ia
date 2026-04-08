@@ -21,6 +21,8 @@ import { DataHubHealthTab } from "@/components/datahub/DataHubHealthTab";
 import { DataHubQueryBuilderTab } from "@/components/datahub/DataHubQueryBuilderTab";
 import { DataHubIdentityResolutionTab } from "@/components/datahub/DataHubIdentityResolutionTab";
 import { DataHubSyncTab } from "@/components/datahub/DataHubSyncTab";
+import { DataHubExplorerTab } from "@/components/datahub/DataHubExplorerTab";
+import { DataHubPermissionsTab } from "@/components/datahub/DataHubPermissionsTab";
 import { HibernatedDatabasesPanel } from "@/components/datahub/HibernatedDatabasesPanel";
 import { testDatahubConnections, listDatahubEntities } from "@/services/datahubService";
 import { toast } from "sonner";
@@ -392,6 +394,7 @@ export default function DataHubPage() {
       <Tabs defaultValue="entities" className="space-y-4">
         <TabsList className="bg-secondary/50">
           <TabsTrigger value="entities" className="gap-1.5"><Database className="h-3.5 w-3.5" /> Entidades</TabsTrigger>
+          <TabsTrigger value="explorer" className="gap-1.5"><Eye className="h-3.5 w-3.5" /> Explorer</TabsTrigger>
           <TabsTrigger value="connections" className="gap-1.5"><Link2 className="h-3.5 w-3.5" /> Conexões</TabsTrigger>
           <TabsTrigger value="schema" className="gap-1.5"><Table2 className="h-3.5 w-3.5" /> Schema</TabsTrigger>
           <TabsTrigger value="mcp" className="gap-1.5"><Server className="h-3.5 w-3.5" /> MCP Server</TabsTrigger>
@@ -399,6 +402,7 @@ export default function DataHubPage() {
           <TabsTrigger value="query" className="gap-1.5"><Code2 className="h-3.5 w-3.5" /> Query</TabsTrigger>
           <TabsTrigger value="identity" className="gap-1.5"><Link2 className="h-3.5 w-3.5" /> Identity</TabsTrigger>
           <TabsTrigger value="sync" className="gap-1.5"><Brain className="h-3.5 w-3.5" /> Sync</TabsTrigger>
+          <TabsTrigger value="permissions" className="gap-1.5"><GitBranch className="h-3.5 w-3.5" /> Permissions</TabsTrigger>
         </TabsList>
 
         {/* ── Entities Tab ── */}
@@ -675,6 +679,14 @@ export default function DataHubPage() {
         {/* ── Sync to Cerebro Tab ── */}
         <TabsContent value="sync" className="space-y-4">
           <DataHubSyncTab />
+        </TabsContent>
+
+        <TabsContent value="explorer" className="space-y-4">
+          <DataHubExplorerTab />
+        </TabsContent>
+
+        <TabsContent value="permissions" className="space-y-4">
+          <DataHubPermissionsTab />
         </TabsContent>
       </Tabs>
     </div>
