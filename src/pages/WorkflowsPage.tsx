@@ -17,6 +17,8 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { WorkflowCanvas, type CanvasNode, type CanvasEdge } from "@/components/workflows/WorkflowCanvas";
 import { WorkflowTemplatesGallery } from "@/components/workflows/WorkflowTemplatesGallery";
 import { useWorkflowPersistence } from "@/hooks/use-workflow-persistence";
+import { useWorkflowKeyboard } from "@/hooks/useWorkflowKeyboard";
+import { useWorkflowAutosave } from "@/hooks/useWorkflowAutosave";
 import { workflowSchema } from "@/lib/validations/agentSchema";
 import { listWorkflows as listWorkflowsService, saveWorkflow as saveWorkflowService, deleteWorkflow as deleteWorkflowService, toggleWorkflowStatus, executeWorkflow, listWorkflowRuns } from "@/services/workflowsService";
 import { AccessControl } from "@/components/rbac/AccessControl";
@@ -87,6 +89,20 @@ export default function WorkflowsPage() {
     const id = await persistence.saveCanvas(canvasName, canvasNodes, canvasEdges, persistence.selectedId);
     if (id) persistence.setSelectedId(id);
   };
+
+  // Global keyboard shortcuts: Cmd/Ctrl+S to save
+  useWorkflowKeyboard({
+    onSave: handleSave,
+  });
+
+  // Debounced autosave (3s after last change) — only when an existing
+  // workflow is loaded so we don't create accidental drafts
+  const { lastSavedAt: autosavedAt, isSaving: autoSaving } = useWorkflowAutosave({
+    watchValue: { nodes: canvasNodes, edges: canvasEdges, name: canvasName },
+    enabled: !!persistence.selectedId,
+    delay: 3000,
+    onSave: handleSave,
+  });
 
   const handleLoad = async (workflowId: string) => {
     const data = await persistence.loadCanvas(workflowId);
@@ -213,6 +229,17 @@ export default function WorkflowsPage() {
               {persistence.saving ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Save className="h-3.5 w-3.5" />}
               {persistence.selectedId ? 'Atualizar' : 'Salvar'}
             </Button>
+            {persistence.selectedId && (
+              <span className="text-[10px] text-muted-foreground flex items-center gap-1">
+                {autoSaving ? (
+                  <><Loader2 className="h-3 w-3 animate-spin" /> Salvando...</>
+                ) : autosavedAt ? (
+                  <><CheckCircle className="h-3 w-3 text-nexus-emerald" /> Auto-salvo {new Date(autosavedAt).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}</>
+                ) : (
+                  <span className="opacity-50">⌘S salva · auto-save 3s</span>
+                )}
+              </span>
+            )}
 
             {persistence.workflows.length > 0 && (
               <Select onValueChange={handleLoad} value={persistence.selectedId ?? undefined}>
