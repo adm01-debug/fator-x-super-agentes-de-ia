@@ -52,10 +52,10 @@ export function ConnectorRegistryPanel() {
                       <Badge variant="outline" className="text-[10px] border-border">{conn.category}</Badge>
                     </div>
                   </div>
-                  {isConnected ? <CheckCircle size={18} className="text-green-400" /> : <XCircle size={18} className="text-gray-500" />}
+                  {isConnected ? <CheckCircle size={18} className="text-nexus-emerald" /> : <XCircle size={18} className="text-muted-foreground" />}
                 </div>
                 <p className="text-xs text-muted-foreground mb-3 line-clamp-2">{conn.description}</p>
-                <div className="flex items-center justify-between text-xs text-gray-500">
+                <div className="flex items-center justify-between text-xs text-muted-foreground">
                   <span>{conn.operations.length} operações</span>
                   <span>{conn.auth_type}</span>
                   {conn.supports_webhooks && <Badge variant="outline" className="text-[10px] border-border">Webhook</Badge>}

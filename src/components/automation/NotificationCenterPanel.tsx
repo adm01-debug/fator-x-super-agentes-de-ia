@@ -36,8 +36,8 @@ const CHANNEL_ICONS: Record<string, typeof Bell> = {
   email: Mail, whatsapp: MessageSquare, slack: Hash, push: Smartphone, sms: Send, in_app: Bell, webhook: Globe,
 };
 const STATUS_COLORS: Record<string, string> = {
-  pending: 'text-yellow-400', sent: 'text-blue-400', delivered: 'text-green-400',
-  read: 'text-emerald-400', failed: 'text-red-400', cancelled: 'text-muted-foreground',
+  pending: 'text-nexus-amber', sent: 'text-nexus-blue', delivered: 'text-nexus-emerald',
+  read: 'text-nexus-teal', failed: 'text-destructive', cancelled: 'text-muted-foreground',
 };
 
 const CHANNELS: NotificationChannel[] = ['email', 'whatsapp', 'slack', 'push', 'sms', 'in_app', 'webhook'];

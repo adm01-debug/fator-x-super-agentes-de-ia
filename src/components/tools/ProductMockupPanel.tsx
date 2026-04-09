@@ -373,8 +373,8 @@ export function ProductMockupPanel() {
   return (
     <div className="bg-card rounded-xl border border-border p-6 space-y-4">
       <div className="flex items-center gap-3">
-        <div className="h-10 w-10 rounded-lg bg-orange-500/10 flex items-center justify-center">
-          <ImageIcon className="h-5 w-5 text-orange-500" />
+        <div className="h-10 w-10 rounded-lg bg-nexus-orange/10 flex items-center justify-center">
+          <ImageIcon className="h-5 w-5 text-nexus-orange" />
         </div>
         <div>
           <h3 className="text-sm font-semibold text-foreground">Promo Brindes — Estúdio de Imagens</h3>

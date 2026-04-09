@@ -41,9 +41,9 @@ const ACTION_LABELS: Record<string, string> = {
 };
 
 const STATUS_STYLES: Record<AuditStatus, { color: string; icon: typeof CheckCircle2 }> = {
-  success: { color: 'bg-green-500/20 text-green-400 border-green-500/30', icon: CheckCircle2 },
-  failed: { color: 'bg-red-500/20 text-red-400 border-red-500/30', icon: AlertTriangle },
-  denied: { color: 'bg-yellow-500/20 text-yellow-400 border-yellow-500/30', icon: Ban },
+  success: { color: 'bg-nexus-emerald/20 text-nexus-emerald border-nexus-emerald/30', icon: CheckCircle2 },
+  failed: { color: 'bg-destructive/20 text-destructive border-destructive/30', icon: AlertTriangle },
+  denied: { color: 'bg-nexus-amber/20 text-nexus-amber border-nexus-amber/30', icon: Ban },
 };
 
 export function AuditTrailPanel() {
@@ -153,15 +153,15 @@ export function AuditTrailPanel() {
           </div>
           <div className="p-3 rounded-lg bg-background border border-border">
             <p className="text-[10px] text-muted-foreground uppercase tracking-wider">Sucessos</p>
-            <p className="text-xl font-bold text-green-400 mt-1">{stats.success}</p>
+            <p className="text-xl font-bold text-nexus-emerald mt-1">{stats.success}</p>
           </div>
           <div className="p-3 rounded-lg bg-background border border-border">
             <p className="text-[10px] text-muted-foreground uppercase tracking-wider">Falhas</p>
-            <p className="text-xl font-bold text-red-400 mt-1">{stats.failed}</p>
+            <p className="text-xl font-bold text-destructive mt-1">{stats.failed}</p>
           </div>
           <div className="p-3 rounded-lg bg-background border border-border">
             <p className="text-[10px] text-muted-foreground uppercase tracking-wider">Negadas</p>
-            <p className="text-xl font-bold text-yellow-400 mt-1">{stats.denied}</p>
+            <p className="text-xl font-bold text-nexus-amber mt-1">{stats.denied}</p>
           </div>
         </div>
 
@@ -188,14 +188,14 @@ export function AuditTrailPanel() {
                   <div className="flex items-start justify-between gap-3">
                     <div className="flex items-center gap-2 min-w-0 flex-1">
                       <StatusIcon className={`h-3.5 w-3.5 shrink-0 ${
-                        e.status === 'success' ? 'text-green-400' :
-                        e.status === 'failed' ? 'text-red-400' :
-                        'text-yellow-400'
+                        e.status === 'success' ? 'text-nexus-emerald' :
+                        e.status === 'failed' ? 'text-destructive' :
+                        'text-nexus-amber'
                       }`} />
                       <Badge variant="outline" className="text-[10px] border-border font-mono shrink-0">
                         {ACTION_LABELS[e.action] ?? e.action}
                       </Badge>
-                      <span className="text-xs text-gray-300 truncate">
+                      <span className="text-xs text-foreground/80 truncate">
                         {e.resource_type}
                         {e.resource_name && (
                           <>: <span className="font-mono text-muted-foreground">{e.resource_name}</span></>
@@ -212,7 +212,7 @@ export function AuditTrailPanel() {
                     </p>
                   )}
                   {e.user_id && (
-                    <p className="text-[10px] text-gray-600 mt-1 pl-5 font-mono">
+                    <p className="text-[10px] text-muted-foreground/70 mt-1 pl-5 font-mono">
                       user: {e.user_id.slice(0, 8)}…
                     </p>
                   )}
