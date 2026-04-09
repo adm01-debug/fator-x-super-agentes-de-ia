@@ -342,7 +342,7 @@ export function WorkflowTimeTravelPanel({
           <CardHeader className="pb-2">
             <CardTitle className="flex items-center justify-between text-sm text-foreground">
               <span className="flex items-center gap-2">
-                <Eye className="w-4 h-4 text-orange-500" />
+                <Eye className="w-4 h-4 text-nexus-orange" />
                 Estado do Checkpoint
               </span>
               <Button
