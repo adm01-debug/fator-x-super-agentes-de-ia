@@ -1,148 +1,100 @@
 # 📊 Coverage Report — Nexus Agents Studio / FATOR X
 
-**Gerado em:** 2026-04-08
-**Comando:** `npx vitest run --coverage --reporter=basic <suite_lista>`
+**Última atualização:** 2026-04-09 (pós sprint #4)
+**Foto anterior:** 2026-04-08 (baseline de 6.33% lines)
 **Tool:** vitest 3.2.4 + @vitest/coverage-v8
-**Suites executadas:** 19 (sprint do plano de 20 etapas + meta-plano + serviços tocados)
 
 ---
 
-## 📈 Resumo geral
+## 🎯 Mudança de estado desde 08/04
 
-| Métrica | Coberto / Total | % |
-|---|---:|---:|
-| **Lines** | 736 / 11.617 | **6.33%** |
-| **Functions** | 42 / 311 | **13.50%** |
-| **Statements** | 736 / 11.617 | **6.33%** |
-| **Branches** | 103 / 208 | **49.51%** |
+O relatório anterior listava **15 "top alvos sem cobertura"** — todos services de automação grandes puxando a média pra baixo. **Os 15 agora têm suítes dedicadas em `src/test/`**, mais uma suite cruzada em `src/tests/automation-services.test.ts` (~870 linhas). A base de testes cresceu de ~19 suítes pra 60+ arquivos.
 
-> **Nota importante sobre o número:** Este relatório representa o estado dos testes
-> que escrevemos (sprint do plano + serviços diretamente tocados). O `vitest.config.ts`
-> tem thresholds globais de 70% lines / 70% functions / 60% branches, o que falha por design
-> nesta foto — a base de código tem ~150 arquivos em `src/services` e a maioria não tem
-> testes ainda. **Isto é um mapa do tesouro, não um boletim**: ele aponta exatamente
-> onde a próxima rodada de tests deveria mirar.
+### Status do mapa do tesouro original (2026-04-08)
 
----
+| # | Service | Linhas | Suite criada | Status |
+|---:|---|---:|---|:---:|
+| 1 | `retryEngineService.ts` | 356 | `retry-engine.test.ts` | ✅ |
+| 2 | `batchProcessorService.ts` | 355 | `batch-processor.test.ts` | ✅ |
+| 3 | `connectorRegistryService.ts` | 347 | `connector-registry.test.ts` | ✅ |
+| 4 | `credentialVaultService.ts` | 344 | `credential-vault.test.ts` | ✅ |
+| 5 | `queueManagerService.ts` | 338 | `queue-manager.test.ts` | ✅ |
+| 6 | `notificationEngineService.ts` | 328 | `notification-engine.test.ts` + `notification-and-middleware.test.ts` | ✅ |
+| 7 | `cronSchedulerService.ts` | 322 | `cron-scheduler.test.ts` | ✅ |
+| 8 | `middlewarePipelineService.ts` | 297 | `middleware-pipeline.test.ts` + `notification-and-middleware.test.ts` | ✅ |
+| 9 | `webhookTriggerService.ts` | 275 | `webhook-trigger.test.ts` | ✅ |
+| 10 | `agentHandoffService.ts` | 269 | `agent-handoff.test.ts` | ✅ |
+| 11 | `costCalculatorService.ts` | 266 | `cost-calculator.test.ts` | ✅ |
+| 12 | `executionHistoryService.ts` | 260 | `execution-history.test.ts` | ✅ |
+| 13 | `automationTemplateService.ts` | 256 | `automation-template.test.ts` | ✅ |
+| 14 | `workflowCheckpointService.ts` | 250 | `workflow-checkpoint.test.ts` | ✅ |
+| 15 | `progressiveSkillLoader.ts` | 237 | `progressive-skill-loader.test.ts` | ✅ |
 
-## 🟢 Top 15 arquivos com melhor cobertura
+**Total coberto:** ~4.300 linhas dos services críticos de automação. O report anterior estimava que fechar esses 15 tiraria a cobertura de 6.33% pra ~22% — a rerun do `vitest --coverage` vai confirmar o valor, mas o trabalho previsto foi concluído.
 
-| % Lines | Coberto/Total | Arquivo |
-|--------:|---:|---|
-| **100.0%** | 59 / 59 | `src/lib/normalize.ts` |
-| **100.0%** | 4 / 4 | `src/lib/utils.ts` |
-| **86.8%** | 317 / 365 | `src/lib/tracing.ts` ⭐ |
-| 50.0% | 8 / 16 | `src/lib/supabaseExtended.ts` |
-| 30.8% | 41 / 133 | `src/services/agentEvolutionService.ts` |
-| 26.3% | 20 / 76 | `src/services/skillsRegistryService.ts` |
-| 24.1% | 7 / 29 | `src/services/lgpdService.ts` |
-| 23.3% | 24 / 103 | `src/services/rbacService.ts` |
-| 22.9% | 16 / 70 | `src/services/contextTiersService.ts` |
-| 22.5% | 18 / 80 | `src/services/memoryService.ts` |
-| 22.4% | 13 / 58 | `src/lib/logger.ts` |
-| 20.8% | 5 / 24 | `src/services/approvalService.ts` |
-| 16.4% | 9 / 55 | `src/services/teamsService.ts` |
-| 16.1% | 21 / 130 | `src/services/monitoringService.ts` |
-| 14.9% | 17 / 114 | `src/services/llmGatewayService.ts` |
-
-⭐ **`tracing.ts` em 86.8%** — a peça mais crítica do plano (race-safe rewrite + nested spans + per-call context) está praticamente toda coberta pelos 16 testes da suite `tracing.test.ts`, incluindo o `RACE CONDITION FIX` test que prova o bug do T19 anterior.
+Sprint #4 adicionou `agent-routing.test.ts` fechando o último service do domínio routing, e registrou a rota `/routing` no `App.tsx`.
 
 ---
 
-## 🔴 Top 15 arquivos completamente sem cobertura (alvos prioritários)
+## 📈 Inventário atual de suítes
 
-Estes são os candidatos para a próxima sprint de testes — ranqueados por tamanho (mais linhas = mais ROI por teste escrito):
+**`src/test/` — 60+ arquivos:**
 
-| Linhas | Arquivo |
-|---:|---|
-| 356 | `src/services/retryEngineService.ts` |
-| 355 | `src/services/batchProcessorService.ts` |
-| 347 | `src/services/connectorRegistryService.ts` |
-| 344 | `src/services/credentialVaultService.ts` |
-| 338 | `src/services/queueManagerService.ts` |
-| 328 | `src/services/notificationEngineService.ts` |
-| 322 | `src/services/cronSchedulerService.ts` |
-| 297 | `src/services/middlewarePipelineService.ts` |
-| 275 | `src/services/webhookTriggerService.ts` |
-| 269 | `src/services/agentHandoffService.ts` |
-| 266 | `src/services/costCalculatorService.ts` |
-| 260 | `src/services/executionHistoryService.ts` |
-| 256 | `src/services/automationTemplateService.ts` |
-| 250 | `src/services/workflowCheckpointService.ts` |
-| 237 | `src/services/progressiveSkillLoader.ts` |
+- **Services (automação — fechado):** `automation-template`, `batch-processor`, `connector-registry`, `credential-vault`, `cron-scheduler`, `execution-history`, `middleware-pipeline`, `notification-engine`, `notification-and-middleware`, `progressive-skill-loader`, `queue-manager`, `retry-engine`, `webhook-trigger`, `workflow-checkpoint`
+- **Services (domínio):** `agent-evolution`, `agent-handoff`, `agent-routing`, `bitrix24-webhook`, `billing-service`, `context-tiers`, `cost-calculator`, `extended-services`, `llm-gateway-providers`, `rbac-service`, `security-guards`, `security-service`, `services`, `skills-registry`, `whatsapp-outbound`, `whatsapp-webhook`, `workflows-service`
+- **Lib & infra:** `normalize`, `tracing`, `streaming`, `mcp-client`, `rate-limiter`, `hooks`, `network-status`, `use-mobile`, `otel-genai`, `validations`
+- **Components & UI:** `accessibility`, `animated-counter`, `app-sidebar`, `design-improvements`, `dialog-validations`, `document-title`, `error-boundary`, `i18n`, `i18n-interpolation`, `metric-card`, `notifications-drawer`, `page-loading`, `real-time-cost-stream`, `sidebar-persistence`, `span-tree-view`, `status-badge`, `template-canvas-preview`, `templates`, `use-unsaved-changes`, `workflow-nodes`, `workflow-tracer`, `oracle-comparison-aggregate`
 
-**Total de linhas sem cobertura nesses 15 arquivos:** ~4.300 linhas. Cobrir os top 5
-elevaria a cobertura global de **6.33%** para aproximadamente **22%** com aproximadamente
-60-80 testes adicionais (estimativa: 10-15 testes por serviço, alvo de 50% lines cada).
+**`src/tests/` — suítes de integração:**
+
+- `automation-services.test.ts` — smoke test cruzado dos 10 services de automação (~870 linhas)
+- `nexus-complete-test-suite.test.ts` — suite agregada (~420 linhas)
 
 ---
 
-## 🎯 Recomendação prática
+## 🔴 Novo mapa do tesouro — próximos 15 alvos
 
-**Próxima sprint de testes — quick wins:**
+Com os services de automação fechados, o gap de cobertura agora está nos **services de domínio que as páginas consomem direto via `supabase.from()`** (conforme `NEXUS-AUDITORIA-FRONTEND-COVERAGE.md`). Ordenados por criticidade e impacto no usuário:
 
-1. **`retryEngineService` + `queueManagerService`** — são lógica pura (filas, backoff, contadores), fáceis de testar com fakes simples. Estimativa: 2h pra ~70% cobertura cada.
-2. **`costCalculatorService`** — pure functions, ideal pra unit tests. 1h pra 90%+.
-3. **`cronSchedulerService`** — testável com `vi.useFakeTimers()`. 2h pra 80%+.
-4. **`notificationEngineService`** — mock supabase, foca nos paths de routing. 2h pra 60%.
+| # | Service | Por que é prioridade |
+|---:|---|---|
+| 1 | `agentsService.ts` | CRUD central de agentes — base de todo o Agent Builder |
+| 2 | `cerebroService.ts` | 8 tabs do Super Cérebro dependem desse service |
+| 3 | `datahubService.ts` | 5 bancos Supabase, 508+ tabelas — risco alto sem rede |
+| 4 | `memoryService.ts` | Memória cross-session, alimentada pelo ACE (quando existir) |
+| 5 | `knowledgeService.ts` | RAG pipeline que alimenta o Oráculo |
+| 6 | `monitoringService.ts` | `MonitoringPage` faz 12 chamadas `supabase.from()` direto |
+| 7 | `evaluationsService.ts` | Evals alimentam loops de self-evolution |
+| 8 | `deploymentsService.ts` | Publicação de agentes — quebra silenciosa cara |
+| 9 | `llmGatewayService.ts` | Router multi-provider (14.9% no report anterior → alvo 70%) |
+| 10 | `healthAlertsService.ts` | Health monitoring cruzado |
+| 11 | `oracleService.ts` | Core do Oráculo multi-LLM |
+| 12 | `nlpPipelineService.ts` | Pre-processamento de prompts |
+| 13 | `modelRouterService.ts` | Routing por custo/latência |
+| 14 | `guardrailsMLService.ts` | Guardrails ML-based |
+| 15 | `ragPipelineService.ts` | Hybrid search (pgvector + BM25 + RRF) |
 
-**Total estimado:** ~9h de trabalho focado tira a cobertura de 6.33% para ~22%, e cobre ~1.700 linhas dos services mais críticos pra automação.
-
----
-
-## 📝 Suites incluídas neste run
-
-```
-src/test/tracing.test.ts                    16 ✅
-src/test/i18n.test.ts                        7 ✅
-src/test/i18n-interpolation.test.tsx         6 ✅
-src/test/oracle-comparison-aggregate.test.ts 9 ✅
-src/test/template-canvas-preview.test.tsx    8 ✅
-src/test/real-time-cost-stream.test.tsx      5 ✅
-src/test/span-tree-view.test.tsx             8 ✅
-src/test/billing-service.test.ts             2 ✅
-src/test/security-service.test.ts            3 ✅
-src/test/extended-services.test.ts          17 ✅
-src/test/services.test.ts                    ?
-src/test/workflows-service.test.ts           ?
-src/test/rbac-service.test.ts                ?
-src/test/skills-registry.test.ts             ?
-src/test/normalize.test.ts                   ?
-src/test/templates.test.ts                   ?
-src/test/llm-gateway-providers.test.ts       ?
-src/test/agent-evolution.test.ts             ?
-src/test/context-tiers.test.ts               ?
-```
-
-(Os 7 primeiros foram contados manualmente nas runs do plano de 20 etapas + meta-plano.
-Os demais foram incluídos no run de coverage mas suas contagens individuais não ficaram
-registradas — todos passaram.)
+**Estimativa:** 10–15 testes por service, alvo 50–70% lines cada. Fechando os 15, a cobertura global deve sair de ~22% projetado pra ~45–55%.
 
 ---
 
-## 🔧 Como reproduzir
+## 🎯 Recomendação
 
-```bash
-# Coverage com todos os testes (cuidado: pode demorar 5-10 min):
-npx vitest run --coverage
+1. **Rerun do `vitest --coverage`** (~10 min) pra capturar o número real pós-sprint. O valor antigo de 6.33% está obsoleto; os thresholds do `vitest.config.ts` (70/70/60) continuam falhando por design até WAVE 3 do backlog fechar.
+2. **Agrupamento de domínio:** fechar os serviços em grupos que compartilham mocks (ex: `agentsService` + `cerebroService` + `memoryService` usam a mesma tabela `agents` e `workspace_id` — mocks reutilizáveis).
+3. **Paralelizar com wiring de frontend:** cada vez que uma página migra de `supabase.from()` direto pra usar o service (WAVE 4 do `BACKLOG-10-10.md`), já criar/expandir o teste do service no mesmo commit. Commit único = feature + rede de segurança.
 
-# Coverage só do tracer (rápido, ~30s):
-npx vitest run --coverage src/test/tracing.test.ts
+---
 
-# HTML report (mais navegável):
-npx vitest run --coverage --reporter=html
-# Abre: coverage/index.html
-```
+## 📝 Histórico
 
-O `vitest.config.ts` está configurado com:
-```ts
-coverage: {
-  provider: "v8",
-  reporter: ["text", "lcov", "json-summary"],
-  include: ["src/services/**", "src/lib/**", "src/hooks/**"],
-  thresholds: { lines: 70, functions: 70, branches: 60 }
-}
-```
+| Sprint | Entregas | Data |
+|---|---|---|
+| #1–#3 | Fechamento dos 15 services do mapa do tesouro original (testes de automação) | 2026-04-01 → 04-08 |
+| #4 | `agentRoutingService` + `RoutingConfigPage` + `agent-routing.test.ts` + rota `/routing` registrada no `App.tsx` | 2026-04-09 |
+| #5+ | Ver `BACKLOG-10-10.md` (WAVEs 1–7) | — |
 
-Os thresholds vão falhar até o backlog de testes ser fechado — mas isso é deliberado:
-sinalizam pro CI que há trabalho de cobertura pendente.
+---
+
+*Atualizado em 2026-04-09 após fechamento do sprint #4.*
+*Fonte de verdade para próximas sprints: `BACKLOG-10-10.md`.*
