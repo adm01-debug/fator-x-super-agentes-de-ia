@@ -296,7 +296,7 @@ export default function SettingsPage() {
         <TabsContent value="huggingface" className="space-y-4 mt-4">
           <div className="rounded-lg border bg-card p-4 space-y-4">
             <div className="flex items-center gap-2">
-              <Sparkles className="h-5 w-5 text-yellow-500" />
+              <Sparkles className="h-5 w-5 text-nexus-amber" />
               <h3 className="font-semibold">HuggingFace Integration</h3>
             </div>
             <p className="text-sm text-muted-foreground">
@@ -313,7 +313,7 @@ export default function SettingsPage() {
                     <p className="text-sm font-medium">Injection Detection ML</p>
                     <p className="text-xs text-muted-foreground">ProtectAI deberta-v3 · Detecta prompt injection com 99.9% precisão</p>
                   </div>
-                  <span className="text-xs bg-green-500/20 text-green-400 px-2 py-0.5 rounded">Ativo</span>
+                  <span className="text-xs bg-nexus-emerald/12 text-nexus-emerald px-2 py-0.5 rounded">Ativo</span>
                 </div>
 
                 <div className="flex items-center justify-between p-3 rounded-md bg-muted/50">
@@ -321,7 +321,7 @@ export default function SettingsPage() {
                     <p className="text-sm font-medium">RAG Reranker</p>
                     <p className="text-xs text-muted-foreground">BAAI/bge-reranker-v2-m3 · Cross-encoder multilingual gratuito</p>
                   </div>
-                  <span className="text-xs bg-green-500/20 text-green-400 px-2 py-0.5 rounded">Ativo</span>
+                  <span className="text-xs bg-nexus-emerald/12 text-nexus-emerald px-2 py-0.5 rounded">Ativo</span>
                 </div>
 
                 <div className="flex items-center justify-between p-3 rounded-md bg-muted/50">
@@ -329,7 +329,7 @@ export default function SettingsPage() {
                     <p className="text-sm font-medium">Auto-Classificação de Traces</p>
                     <p className="text-xs text-muted-foreground">xlm-roberta-large-xnli · 8 categorias zero-shot em PT</p>
                   </div>
-                  <span className="text-xs bg-green-500/20 text-green-400 px-2 py-0.5 rounded">Ativo</span>
+                  <span className="text-xs bg-nexus-emerald/12 text-nexus-emerald px-2 py-0.5 rounded">Ativo</span>
                 </div>
 
                 <div className="flex items-center justify-between p-3 rounded-md bg-muted/50">
@@ -337,7 +337,7 @@ export default function SettingsPage() {
                     <p className="text-sm font-medium">NER no Super Cérebro</p>
                     <p className="text-xs text-muted-foreground">bert-base-NER · Extração de entidades 10x mais rápida</p>
                   </div>
-                  <span className="text-xs bg-green-500/20 text-green-400 px-2 py-0.5 rounded">Ativo</span>
+                  <span className="text-xs bg-nexus-emerald/12 text-nexus-emerald px-2 py-0.5 rounded">Ativo</span>
                 </div>
 
                 <div className="flex items-center justify-between p-3 rounded-md bg-muted/50">
@@ -345,7 +345,7 @@ export default function SettingsPage() {
                     <p className="text-sm font-medium">Sentiment Analysis (WhatsApp)</p>
                     <p className="text-xs text-muted-foreground">twitter-roberta-base-sentiment · Análise de sentimento no DataHub</p>
                   </div>
-                  <span className="text-xs bg-green-500/20 text-green-400 px-2 py-0.5 rounded">Ativo</span>
+                  <span className="text-xs bg-nexus-emerald/12 text-nexus-emerald px-2 py-0.5 rounded">Ativo</span>
                 </div>
 
                 <div className="flex items-center justify-between p-3 rounded-md bg-muted/50">
@@ -353,7 +353,7 @@ export default function SettingsPage() {
                     <p className="text-sm font-medium">LLM Provider (Inference API)</p>
                     <p className="text-xs text-muted-foreground">Qwen3, Mistral Small, Llama 4 Scout · Modelos gratuitos no Agent Builder</p>
                   </div>
-                  <span className="text-xs bg-green-500/20 text-green-400 px-2 py-0.5 rounded">Ativo</span>
+                  <span className="text-xs bg-nexus-emerald/12 text-nexus-emerald px-2 py-0.5 rounded">Ativo</span>
                 </div>
 
                 <div className="flex items-center justify-between p-3 rounded-md bg-muted/50">
@@ -361,7 +361,7 @@ export default function SettingsPage() {
                     <p className="text-sm font-medium">Fine-tuning (AutoTrain)</p>
                     <p className="text-xs text-muted-foreground">Treine modelos custom com dados dos seus agentes</p>
                   </div>
-                  <span className="text-xs bg-blue-500/20 text-blue-400 px-2 py-0.5 rounded">Disponível</span>
+                  <span className="text-xs bg-primary/12 text-primary px-2 py-0.5 rounded">Disponível</span>
                 </div>
               </div>
             </div>

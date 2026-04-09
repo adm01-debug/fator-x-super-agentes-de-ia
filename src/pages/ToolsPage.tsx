@@ -341,7 +341,7 @@ export default function ToolsPage() {
 
       {/* Integrações */}
       <div className="nexus-card p-6 space-y-4">
-        <h3 className="text-sm font-bold text-white">Integrações Externas</h3>
+        <h3 className="text-sm font-bold text-primary-foreground">Integrações Externas</h3>
         <AccessControl permission="integrations.write">
           <Bitrix24Connect />
         </AccessControl>
@@ -364,7 +364,7 @@ export default function ToolsPage() {
 
       {/* Skills Marketplace Preview */}
       <div className="nexus-card p-6 space-y-3">
-        <h3 className="text-sm font-bold text-white">Skills Marketplace</h3>
+        <h3 className="text-sm font-bold text-primary-foreground">Skills Marketplace</h3>
         <p className="text-xs text-muted-foreground">
           Instale habilidades pré-construídas nos seus agentes
         </p>
@@ -375,7 +375,7 @@ export default function ToolsPage() {
               className="bg-background rounded-lg p-3 text-center cursor-pointer hover:border-primary border border-border transition-colors"
             >
               <div className="text-2xl mb-1">{cat.icon}</div>
-              <div className="text-[10px] font-medium text-white">{cat.name}</div>
+              <div className="text-[10px] font-medium text-primary-foreground">{cat.name}</div>
             </div>
           ))}
         </div>
