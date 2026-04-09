@@ -6,8 +6,9 @@ import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Palette, Globe, Bell, Key, Plus, Trash2, Save, Loader2, RotateCw, Sparkles, Server } from "lucide-react";
+import { Palette, Globe, Bell, Key, Plus, Trash2, Save, Loader2, RotateCw, Sparkles, Server, Building2 } from "lucide-react";
 import { MCPServerManager } from "@/components/integrations/MCPServerManager";
+import { Bitrix24Connect } from "@/components/integrations/Bitrix24Connect";
 import { AccessControl, DangerousActionDialog } from "@/components/rbac";
 import { toast } from "sonner";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
@@ -95,6 +96,7 @@ export default function SettingsPage() {
           <TabsTrigger value="environments" className="text-xs gap-1.5"><Globe className="h-3.5 w-3.5" /> Ambientes</TabsTrigger>
           <TabsTrigger value="huggingface" className="text-xs gap-1.5"><Sparkles className="h-3.5 w-3.5" /> HuggingFace</TabsTrigger>
           <TabsTrigger value="mcp" className="text-xs gap-1.5"><Server className="h-3.5 w-3.5" /> MCP Servers</TabsTrigger>
+          <TabsTrigger value="integrations" className="text-xs gap-1.5"><Building2 className="h-3.5 w-3.5" /> Integrações</TabsTrigger>
         </TabsList>
 
         {/* General */}
@@ -388,6 +390,14 @@ docker run --gpus all -p 8081:80 -v tei-data:/data \\
 
         <TabsContent value="mcp" className="mt-4">
           <MCPServerManager />
+        </TabsContent>
+
+        <TabsContent value="integrations" className="mt-4 space-y-4">
+          <div className="nexus-card space-y-4">
+            <h3 className="text-sm font-semibold text-foreground">Bitrix24 CRM</h3>
+            <p className="text-xs text-muted-foreground">Conecte sua conta Bitrix24 para sincronizar contatos, deals e atividades com seus agentes.</p>
+            <Bitrix24Connect />
+          </div>
         </TabsContent>
       </Tabs>
     </div>
