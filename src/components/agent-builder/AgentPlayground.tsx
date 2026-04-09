@@ -90,8 +90,8 @@ export function AgentPlayground() {
         const res = data as Record<string, unknown>;
         setMessages(prev => [...prev, {
           role: 'assistant' as const, content: (res.content as string) || 'Sem resposta',
-          metadata: { model: res.model as string, tokens: res.tokens as ChatMessage['metadata'] extends undefined ? never : { prompt: number; completion: number; total: number }, latency_ms: res.latency_ms as number, cost_usd: res.cost_usd as number, provider: res.provider as string },
-        } satisfies ChatMessage]);
+          metadata: { model: res.model as string, tokens: res.tokens as { prompt: number; completion: number; total: number } | undefined, latency_ms: res.latency_ms as number, cost_usd: res.cost_usd as number, provider: res.provider as string },
+        }]);
       } catch (e: unknown) {
         setMessages(prev => [...prev, { role: 'assistant', content: `❌ Erro: ${e instanceof Error ? e.message : 'Falha na chamada'}` }]);
       } finally { setLoading(false); }
