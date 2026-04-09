@@ -194,8 +194,8 @@ describe('middlewarePipelineService — execute (onion model)', () => {
   it('runs middlewares in priority order (onion entry)', async () => {
     const p = new MiddlewarePipeline();
     const order: string[] = [];
-    p.use({ name: 'b', enabled: true, priority: 20, description: '', fn: async (_ctx, next) => { order.push('b-in'); await next(); order.push('b-out'); } });
-    p.use({ name: 'a', enabled: true, priority: 10, description: '', fn: async (_ctx, next) => { order.push('a-in'); await next(); order.push('a-out'); } });
+    p.use({ name: 'b', enabled: true, priority: 20, description: '', fn: async (_ctx, next) => { order.push('b-in'); const r = await next(); order.push('b-out'); return r; } });
+    p.use({ name: 'a', enabled: true, priority: 10, description: '', fn: async (_ctx, next) => { order.push('a-in'); const r = await next(); order.push('a-out'); return r; } });
     await p.execute(fakeRequest, vi.fn().mockResolvedValue(fakeResponse));
     expect(order).toEqual(['a-in', 'b-in', 'b-out', 'a-out']);
   });
@@ -233,7 +233,7 @@ describe('middlewarePipelineService — execute (onion model)', () => {
       priority: 1,
       description: '',
       fn: async (_ctx, next) => {
-        ctx.request._cachedResponse = { content: 'from cache', inputTokens: 0, outputTokens: 0, totalCostUsd: 0 };
+        _ctx.request._cachedResponse = { content: 'from cache', inputTokens: 0, outputTokens: 0, costUsd: 0 } as unknown as LLMResponse;
         return next();
       },
     });
