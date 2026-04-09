@@ -96,6 +96,7 @@ export default function SettingsPage() {
           <TabsTrigger value="environments" className="text-xs gap-1.5"><Globe className="h-3.5 w-3.5" /> Ambientes</TabsTrigger>
           <TabsTrigger value="huggingface" className="text-xs gap-1.5"><Sparkles className="h-3.5 w-3.5" /> HuggingFace</TabsTrigger>
           <TabsTrigger value="mcp" className="text-xs gap-1.5"><Server className="h-3.5 w-3.5" /> MCP Servers</TabsTrigger>
+          <TabsTrigger value="integrations" className="text-xs gap-1.5"><Building2 className="h-3.5 w-3.5" /> Integrações</TabsTrigger>
         </TabsList>
 
         {/* General */}
