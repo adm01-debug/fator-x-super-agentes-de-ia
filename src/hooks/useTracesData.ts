@@ -61,7 +61,7 @@ export function useTracesData(
           .range(offset, offset + limit - 1);
 
         if (agentId) {
-          query = query.eq('agent_id', agentId);
+          query = query.eq('data->>agent_id' as any, agentId);
         }
 
         const { data, error, count } = await query;

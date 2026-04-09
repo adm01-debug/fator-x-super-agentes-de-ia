@@ -248,7 +248,7 @@ export function DataHubPermissionsTab() {
                   Papel
                 </th>
                 {ENTITY_LIST.map((e) => (
-                  <th key={e.key} className="px-2 py-2 font-medium text-[10px] uppercase tracking-wider text-muted-foreground text-center">
+                  <th key={e.id} className="px-2 py-2 font-medium text-[10px] uppercase tracking-wider text-muted-foreground text-center">
                     <div className="flex flex-col items-center gap-0.5">
                       <span className="text-base">{e.icon}</span>
                       <span className="text-[9px]">{e.name}</span>
@@ -276,8 +276,8 @@ export function DataHubPermissionsTab() {
                       </div>
                     </td>
                     {ENTITY_LIST.map((e) => (
-                      <td key={e.key} className="px-2 py-2">
-                        <AccessCell level={role.permissions[e.key] ?? 'none'} />
+                      <td key={e.id} className="px-2 py-2">
+                        <AccessCell level={role.permissions[e.id] ?? 'none'} />
                       </td>
                     ))}
                   </tr>

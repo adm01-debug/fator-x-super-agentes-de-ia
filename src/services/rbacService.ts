@@ -48,11 +48,13 @@ export type PermissionKey =
   | 'agents.create' | 'agents.read' | 'agents.update' | 'agents.delete' | 'agents.deploy' | 'agents.test'
   | 'workflows.create' | 'workflows.read' | 'workflows.update' | 'workflows.delete' | 'workflows.execute'
   | 'knowledge.read' | 'knowledge.write' | 'knowledge.delete' | 'knowledge.manage'
-  | 'oracle.query' | 'oracle.configure' | 'oracle.history'
+  | 'oracle.query' | 'oracle.configure' | 'oracle.history' | 'oracle.write'
   | 'datahub.read' | 'datahub.write' | 'datahub.connections'
   | 'team.read' | 'team.invite' | 'team.remove' | 'team.roles'
   | 'settings.read' | 'settings.write' | 'settings.api_keys' | 'settings.billing'
-  | 'monitoring.read' | 'monitoring.traces' | 'monitoring.audit';
+  | 'monitoring.read' | 'monitoring.traces' | 'monitoring.audit'
+  | 'tools.read' | 'tools.write'
+  | 'integrations.read' | 'integrations.write';
 
 export type RoleKey = 'workspace_admin' | 'agent_editor' | 'agent_viewer' | 'operator' | 'auditor';
 

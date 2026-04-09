@@ -247,7 +247,7 @@ export async function getSecurityPosture() {
   // PII Masking — verify guardrail policy exists for PII
   try {
     const guardrails = await listGuardrailPolicies();
-    const piiPolicy = guardrails.find((g) => g.policy_type === 'pii_detection' && g.is_enabled);
+    const piiPolicy = guardrails.find((g) => (g as any).policy_type === 'pii_detection' && g.is_enabled);
     checks.push({
       id: 'pii',
       title: 'Mascaramento de PII',
@@ -267,7 +267,7 @@ export async function getSecurityPosture() {
   try {
     const guardrails = await listGuardrailPolicies();
     const injectionPolicy = guardrails.find(
-      (g) => g.policy_type === 'prompt_injection' && g.is_enabled,
+      (g) => (g as any).policy_type === 'prompt_injection' && g.is_enabled,
     );
     checks.push({
       id: 'jailbreak',

@@ -711,6 +711,7 @@ function WorkflowScheduler({ workflows }: { workflows: Array<Record<string, unkn
     try {
       await createSchedule({
         name: `Agendamento: ${String(wf?.name || 'Workflow')}`,
+        frequency: selCron as any,
         cron_expression: cronInfo.cron,
         timezone: 'America/Sao_Paulo',
         target_type: 'workflow',
@@ -794,7 +795,7 @@ function WorkflowScheduler({ workflows }: { workflows: Array<Record<string, unkn
 
       {schedules.length > 0 && (
         <div className="space-y-2">
-          {schedules.map((s: Record<string, unknown>) => {
+          {schedules.map((s: any) => {
             const isActive = s.status === 'active';
             const wf = workflows.find((w) => String(w.id) === String(s.target_id));
             const nextRun = s.next_run_at

@@ -121,7 +121,7 @@ describe('middlewarePipelineService — MiddlewarePipeline registration', () => 
       enabled: true,
       priority: 10,
       description: 'logs requests',
-      fn: async (ctx, next) => next(),
+      fn: async (_ctx, next) => next(),
     });
     expect(result).toBe(p);
     expect(p.list().length).toBe(1);
@@ -130,29 +130,29 @@ describe('middlewarePipelineService — MiddlewarePipeline registration', () => 
 
   it('sorts middlewares by priority on insertion', () => {
     const p = new MiddlewarePipeline();
-    p.use({ name: 'c', enabled: true, priority: 30, description: '', fn: async (ctx, next) => next() });
-    p.use({ name: 'a', enabled: true, priority: 10, description: '', fn: async (ctx, next) => next() });
-    p.use({ name: 'b', enabled: true, priority: 20, description: '', fn: async (ctx, next) => next() });
+    p.use({ name: 'c', enabled: true, priority: 30, description: '', fn: async (_ctx, next) => next() });
+    p.use({ name: 'a', enabled: true, priority: 10, description: '', fn: async (_ctx, next) => next() });
+    p.use({ name: 'b', enabled: true, priority: 20, description: '', fn: async (_ctx, next) => next() });
     expect(p.list().map((m) => m.name)).toEqual(['a', 'b', 'c']);
   });
 
   it('remove() deletes by name', () => {
     const p = new MiddlewarePipeline();
-    p.use({ name: 'temp', enabled: true, priority: 1, description: '', fn: async (ctx, next) => next() });
+    p.use({ name: 'temp', enabled: true, priority: 1, description: '', fn: async (_ctx, next) => next() });
     p.remove('temp');
     expect(p.list().length).toBe(0);
   });
 
   it('remove() is a no-op for unknown names', () => {
     const p = new MiddlewarePipeline();
-    p.use({ name: 'keep', enabled: true, priority: 1, description: '', fn: async (ctx, next) => next() });
+    p.use({ name: 'keep', enabled: true, priority: 1, description: '', fn: async (_ctx, next) => next() });
     p.remove('unknown');
     expect(p.list().length).toBe(1);
   });
 
   it('toggle() flips enabled flag', () => {
     const p = new MiddlewarePipeline();
-    p.use({ name: 'mw', enabled: true, priority: 1, description: '', fn: async (ctx, next) => next() });
+    p.use({ name: 'mw', enabled: true, priority: 1, description: '', fn: async (_ctx, next) => next() });
     p.toggle('mw', false);
     expect(p.list()[0].enabled).toBe(false);
     p.toggle('mw', true);
@@ -161,17 +161,19 @@ describe('middlewarePipelineService — MiddlewarePipeline registration', () => 
 });
 
 describe('middlewarePipelineService — execute (onion model)', () => {
-  const fakeRequest: LLMRequest = {
+  const fakeRequest = {
+    id: 'req-1',
+    provider: 'openai',
     model: 'sonnet',
-    messages: [{ role: 'user', content: 'hi' }],
-  };
+    messages: [{ role: 'user' as const, content: 'hi' }],
+  } satisfies LLMRequest;
 
-  const fakeResponse: LLMResponse = {
+  const fakeResponse = {
     content: 'hello',
     inputTokens: 5,
     outputTokens: 3,
-    totalCostUsd: 0.001,
-  };
+    costUsd: 0.001,
+  } as unknown as LLMResponse;
 
   it('runs the executor when no middlewares present', async () => {
     const p = new MiddlewarePipeline();
@@ -183,7 +185,7 @@ describe('middlewarePipelineService — execute (onion model)', () => {
 
   it('skips disabled middlewares', async () => {
     const p = new MiddlewarePipeline();
-    const mwSpy = vi.fn(async (ctx, next) => next());
+    const mwSpy = vi.fn(async (_ctx, next) => next());
     p.use({ name: 'off', enabled: false, priority: 1, description: '', fn: mwSpy });
     await p.execute(fakeRequest, vi.fn().mockResolvedValue(fakeResponse));
     expect(mwSpy).not.toHaveBeenCalled();
@@ -192,8 +194,8 @@ describe('middlewarePipelineService — execute (onion model)', () => {
   it('runs middlewares in priority order (onion entry)', async () => {
     const p = new MiddlewarePipeline();
     const order: string[] = [];
-    p.use({ name: 'b', enabled: true, priority: 20, description: '', fn: async (ctx, next) => { order.push('b-in'); await next(); order.push('b-out'); } });
-    p.use({ name: 'a', enabled: true, priority: 10, description: '', fn: async (ctx, next) => { order.push('a-in'); await next(); order.push('a-out'); } });
+    p.use({ name: 'b', enabled: true, priority: 20, description: '', fn: async (_ctx, next) => { order.push('b-in'); const r = await next(); order.push('b-out'); return r; } });
+    p.use({ name: 'a', enabled: true, priority: 10, description: '', fn: async (_ctx, next) => { order.push('a-in'); const r = await next(); order.push('a-out'); return r; } });
     await p.execute(fakeRequest, vi.fn().mockResolvedValue(fakeResponse));
     expect(order).toEqual(['a-in', 'b-in', 'b-out', 'a-out']);
   });
@@ -212,8 +214,8 @@ describe('middlewarePipelineService — execute (onion model)', () => {
       enabled: true,
       priority: 1,
       description: '',
-      fn: async (ctx, next) => {
-        ctx.request._skipExecution = true;
+      fn: async (_ctx, next) => {
+        _ctx.request._skipExecution = true;
         return next();
       },
     });
@@ -230,8 +232,8 @@ describe('middlewarePipelineService — execute (onion model)', () => {
       enabled: true,
       priority: 1,
       description: '',
-      fn: async (ctx, next) => {
-        ctx.request._cachedResponse = { content: 'from cache', inputTokens: 0, outputTokens: 0, totalCostUsd: 0 };
+      fn: async (_ctx, next) => {
+        _ctx.request._cachedResponse = { content: 'from cache', inputTokens: 0, outputTokens: 0, costUsd: 0 } as unknown as LLMResponse;
         return next();
       },
     });

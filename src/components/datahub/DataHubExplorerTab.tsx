@@ -58,7 +58,7 @@ function downloadCsv(rows: Row[], columns: string[], filename: string) {
 }
 
 export function DataHubExplorerTab() {
-  const [entityKey, setEntityKey] = useState<string>(ENTITY_LIST[0]?.key ?? "cliente");
+  const [entityKey, setEntityKey] = useState<string>(ENTITY_LIST[0]?.id ?? "cliente");
   const [search, setSearch] = useState("");
   const [sortKey, setSortKey] = useState<string | null>(null);
   const [sortDir, setSortDir] = useState<"asc" | "desc">("asc");
@@ -184,7 +184,7 @@ export function DataHubExplorerTab() {
           </SelectTrigger>
           <SelectContent>
             {ENTITY_LIST.map((e) => (
-              <SelectItem key={e.key} value={e.key} className="text-xs">
+              <SelectItem key={e.id} value={e.id} className="text-xs">
                 {e.icon} {e.name}
               </SelectItem>
             ))}

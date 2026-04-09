@@ -11,7 +11,7 @@
  * webhook panels — they encapsulate the event-type catalog for that
  * source. This service is the cross-cutting view.
  */
-import { supabase } from '@/integrations/supabase/client';
+import { fromTable } from '@/lib/supabaseExtended';
 import { logger } from '@/lib/logger';
 import { getWorkspaceId } from '@/lib/agentService';
 
@@ -43,8 +43,7 @@ export interface RoutingSummary {
  */
 export async function listAllRoutes(): Promise<AgentRoutingRow[]> {
   const wsId = await getWorkspaceId();
-  const { data, error } = await supabase
-    .from('agent_routing_config')
+  const { data, error } = await fromTable('agent_routing_config')
     .select('*')
     .eq('workspace_id', wsId)
     .order('source', { ascending: true })
@@ -61,8 +60,7 @@ export async function listAllRoutes(): Promise<AgentRoutingRow[]> {
  */
 export async function listRoutesBySource(source: RoutingSource): Promise<AgentRoutingRow[]> {
   const wsId = await getWorkspaceId();
-  const { data, error } = await supabase
-    .from('agent_routing_config')
+  const { data, error } = await fromTable('agent_routing_config')
     .select('*')
     .eq('workspace_id', wsId)
     .eq('source', source)
@@ -109,8 +107,7 @@ export function summarizeRoutes(rows: AgentRoutingRow[]): RoutingSummary[] {
  */
 export async function bulkToggleSource(source: RoutingSource, isEnabled: boolean): Promise<number> {
   const wsId = await getWorkspaceId();
-  const { data, error } = await supabase
-    .from('agent_routing_config')
+  const { data, error } = await fromTable('agent_routing_config')
     .update({ is_enabled: isEnabled })
     .eq('workspace_id', wsId)
     .eq('source', source)
@@ -126,8 +123,7 @@ export async function bulkToggleSource(source: RoutingSource, isEnabled: boolean
  * Generic toggle by id (works for any source).
  */
 export async function toggleRoute(id: string, isEnabled: boolean): Promise<void> {
-  const { error } = await supabase
-    .from('agent_routing_config')
+  const { error } = await fromTable('agent_routing_config')
     .update({ is_enabled: isEnabled })
     .eq('id', id);
   if (error) {
@@ -140,8 +136,7 @@ export async function toggleRoute(id: string, isEnabled: boolean): Promise<void>
  * Generic delete by id.
  */
 export async function deleteRoute(id: string): Promise<void> {
-  const { error } = await supabase
-    .from('agent_routing_config')
+  const { error } = await fromTable('agent_routing_config')
     .delete()
     .eq('id', id);
   if (error) {

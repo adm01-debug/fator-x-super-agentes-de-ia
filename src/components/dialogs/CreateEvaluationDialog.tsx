@@ -71,7 +71,8 @@ export function CreateEvaluationDialog({ onCreated }: CreateEvaluationDialogProp
           toast.info('Executando testes via test-runner...');
           try {
             const runResult = await invokeTestRunner({ agent_id: result.data.agentId, dataset_id: result.data.datasetId, evaluation_run_id: evalRun.id });
-            toast.success(`Testes concluídos: ${runResult?.passed || 0}/${runResult?.total || 0} aprovados (${((runResult?.pass_rate || 0) * 100).toFixed(0)}%)`);
+            const r = runResult as Record<string, unknown> | undefined;
+            toast.success(`Testes concluídos: ${r?.passed || 0}/${r?.total || 0} aprovados (${(((r?.pass_rate as number) || 0) * 100).toFixed(0)}%)`);
           } catch (runErr: unknown) {
             toast.warning(`Avaliação criada mas execução falhou: ${runErr instanceof Error ? runErr.message : 'Erro'}`);
             await updateEvaluationRun(evalRun.id, { status: 'failed' });
