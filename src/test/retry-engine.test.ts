@@ -10,7 +10,7 @@ import { describe, it, expect, beforeEach, vi } from 'vitest';
 
 // Mock supabaseExtended.fromTable for the dead letter functions
 const mockInsert = vi.fn().mockResolvedValue({ data: { id: 'dlq-1' }, error: null });
-const _mockSelect = vi.fn().mockResolvedValue({ data: [], error: null });
+const mockSelect = vi.fn().mockResolvedValue({ data: [], error: null }); void mockSelect;
 
 vi.mock('@/lib/supabaseExtended', () => ({
   fromTable: vi.fn(() => ({

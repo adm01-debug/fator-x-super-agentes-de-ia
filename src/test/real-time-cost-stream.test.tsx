@@ -10,7 +10,7 @@
 import { describe, it, expect, vi } from 'vitest';
 import { render, screen, fireEvent } from '@testing-library/react';
 
-let _capturedSubscribeCallback: ((status: string) => void) | null = null;
+let capturedSubscribeCallback: ((status: string) => void) | null = null;
 
 vi.mock('@/integrations/supabase/client', () => {
   const channel = {

@@ -161,17 +161,19 @@ describe('middlewarePipelineService — MiddlewarePipeline registration', () => 
 });
 
 describe('middlewarePipelineService — execute (onion model)', () => {
-  const fakeRequest: LLMRequest = {
+  const fakeRequest = {
+    id: 'req-1',
+    provider: 'openai',
     model: 'sonnet',
-    messages: [{ role: 'user', content: 'hi' }],
-  };
+    messages: [{ role: 'user' as const, content: 'hi' }],
+  } satisfies LLMRequest;
 
-  const fakeResponse: LLMResponse = {
+  const fakeResponse = {
     content: 'hello',
     inputTokens: 5,
     outputTokens: 3,
-    totalCostUsd: 0.001,
-  };
+    costUsd: 0.001,
+  } as unknown as LLMResponse;
 
   it('runs the executor when no middlewares present', async () => {
     const p = new MiddlewarePipeline();
@@ -213,7 +215,7 @@ describe('middlewarePipelineService — execute (onion model)', () => {
       priority: 1,
       description: '',
       fn: async (_ctx, next) => {
-        ctx.request._skipExecution = true;
+        _ctx.request._skipExecution = true;
         return next();
       },
     });

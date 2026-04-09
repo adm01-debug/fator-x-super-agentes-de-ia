@@ -358,7 +358,7 @@ describe('createTokenCounterMiddleware', () => {
       enabled: true,
       priority: 1,
       fn: async (_ctx, next) => {
-        ctx.request._skipExecution = true;
+        _ctx.request._skipExecution = true;
         return next();
       },
     });
