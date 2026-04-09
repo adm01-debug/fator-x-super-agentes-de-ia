@@ -49,6 +49,7 @@ const ApprovalQueuePage = lazy(() => import("./pages/ApprovalQueuePage"));
 const AIStudioPage = lazy(() => import("./pages/AIStudioPage"));
 const FineTuningPage = lazy(() => import("./pages/FineTuningPage"));
 const SmolagentPage = lazy(() => import("./pages/SmolagentPage"));
+const SkillsMarketplacePage = lazy(() => import("./pages/SkillsMarketplacePage"));
 const AutomationCenterPage = lazy(() => import("./pages/AutomationCenterPage"));
 const NotFound = lazy(() => import("./pages/NotFound"));
 
@@ -135,6 +136,7 @@ const App = () => (
                       <Route path="/ai-studio" element={<SafePage><AIStudioPage /></SafePage>} />
                       <Route path="/fine-tuning" element={<SafePage><FineTuningPage /></SafePage>} />
                       <Route path="/smolagent" element={<SafePage><SmolagentPage /></SafePage>} />
+                      <Route path="/skills" element={<SafePage><SkillsMarketplacePage /></SafePage>} />
                       <Route path="*" element={<SafePage><NotFound /></SafePage>} />
                     </Routes>
                   </AppLayout>

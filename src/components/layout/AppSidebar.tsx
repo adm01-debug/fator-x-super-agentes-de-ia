@@ -45,6 +45,7 @@ const navSections = [
       { title: "Roteamento", url: "/routing", icon: RouteIcon },
       { title: "Fine-tuning", url: "/fine-tuning", icon: Dna },
       { title: "Smolagent", url: "/smolagent", icon: Workflow },
+      { title: "Skills Marketplace", url: "/skills", icon: Package },
     ],
   },
   {
