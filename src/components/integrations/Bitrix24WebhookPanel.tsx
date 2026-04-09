@@ -9,7 +9,7 @@ import { useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import {
   Webhook, Copy, CheckCircle2, XCircle, AlertCircle, Loader2,
-  Plus, Trash2, Power, ExternalLink,
+  Plus, Trash2,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";

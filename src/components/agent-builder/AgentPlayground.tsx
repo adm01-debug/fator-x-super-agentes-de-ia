@@ -87,9 +87,10 @@ export function AgentPlayground() {
           temperature: agent.temperature ?? 0.7,
           max_tokens: agent.max_tokens ?? 4000,
         });
+        const res = data as Record<string, unknown>;
         setMessages(prev => [...prev, {
-          role: 'assistant', content: data.content || 'Sem resposta',
-          metadata: { model: data.model, tokens: data.tokens, latency_ms: data.latency_ms, cost_usd: data.cost_usd, provider: data.provider },
+          role: 'assistant', content: (res.content as string) || 'Sem resposta',
+          metadata: { model: res.model as string, tokens: res.tokens as number, latency_ms: res.latency_ms as number, cost_usd: res.cost_usd as number, provider: res.provider as string },
         }]);
       } catch (e: unknown) {
         setMessages(prev => [...prev, { role: 'assistant', content: `❌ Erro: ${e instanceof Error ? e.message : 'Falha na chamada'}` }]);

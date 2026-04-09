@@ -207,9 +207,9 @@ export function WorkflowCanvas() {
 
     store.setExecuting(store.nodes[0]?.id || null);
     try {
-      const steps = store.nodes.map((n) => n.data.label);
+      const steps = store.nodes.map((n) => n.data.label) as string[];
       const result = await executeWorkflow(workflowId, store.workflowName, steps);
-      toast.success(`Workflow executado: ${result?.status || 'concluído'}`);
+      toast.success(`Workflow executado: ${result?.stepsExecuted ?? 0} steps concluídos`);
     } catch (e: unknown) {
       toast.error(e instanceof Error ? e.message : 'Erro ao executar workflow');
     } finally {

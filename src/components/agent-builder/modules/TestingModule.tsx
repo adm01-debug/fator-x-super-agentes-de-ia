@@ -359,7 +359,7 @@ function TestExecutionPanel({ testCases }: { testCases: TestCase[] }) {
     setRunning(true);
     setResults([]);
     try {
-      const config = agent as Record<string, unknown>;
+      const config = agent as unknown as Record<string, unknown>;
       const systemPrompt =
         (config.system_prompt as string) || `You are ${agent.name}. ${agent.mission}`;
       const model = agent.model || 'claude-haiku-4-5-20251001';
