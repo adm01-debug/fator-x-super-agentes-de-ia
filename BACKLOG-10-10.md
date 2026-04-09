@@ -34,9 +34,9 @@ O sprint #4 pushou a rota mas deixou pendências de acesso e polimento.
 
 | # | Item | Fonte | Status |
 |---:|---|---|:---:|
-| 4 | Item "Routing" no sidebar apontando pra `/routing` (com ícone `GitBranch`) | FRONTEND-COVERAGE | ⬜ |
-| 5 | Título + breadcrumb consistente na `RoutingConfigPage` | polimento | ⬜ |
-| 6 | i18n keys PT/EN da `RoutingConfigPage` | FRONTEND-COVERAGE (useI18n) | ⬜ |
+| 4 | Item "Routing" no sidebar apontando pra `/routing` (com ícone `Route`) | FRONTEND-COVERAGE | ✅ |
+| 5 | Título + breadcrumb consistente na `RoutingConfigPage` | polimento | ✅ |
+| 6 | i18n keys PT/EN da `RoutingConfigPage` | FRONTEND-COVERAGE (useI18n) | ✅ |
 
 ## WAVE 3 — Testes de domínio (novo mapa do tesouro)
 
@@ -44,16 +44,16 @@ Do "novo top 15 sem cobertura" do COVERAGE-REPORT atualizado. ROI alto: cobertur
 
 | # | Item | Fonte | Status |
 |---:|---|---|:---:|
-| 7 | `src/test/agents-service.test.ts` | COVERAGE-REPORT #1 | ⬜ |
-| 8 | `src/test/cerebro-service.test.ts` | COVERAGE-REPORT #2 | ⬜ |
-| 9 | `src/test/datahub-service.test.ts` | COVERAGE-REPORT #3 | ⬜ |
-| 10 | `src/test/memory-service.test.ts` | COVERAGE-REPORT #4 | ⬜ |
-| 11 | `src/test/knowledge-service.test.ts` | COVERAGE-REPORT #5 | ⬜ |
-| 12 | `src/test/monitoring-service.test.ts` | COVERAGE-REPORT #6 | ⬜ |
-| 13 | `src/test/evaluations-service.test.ts` | COVERAGE-REPORT #7 | ⬜ |
-| 14 | `src/test/deployments-service.test.ts` | COVERAGE-REPORT #8 | ⬜ |
-| 15 | `src/test/llm-gateway-service.test.ts` (ampliar) | COVERAGE-REPORT #9 | ⬜ |
-| 16 | `src/test/oracle-service.test.ts` | COVERAGE-REPORT #11 | ⬜ |
+| 7 | `src/test/agents-service.test.ts` | COVERAGE-REPORT #1 | ✅ |
+| 8 | `src/test/cerebro-service.test.ts` | COVERAGE-REPORT #2 | ✅ |
+| 9 | `src/test/datahub-service.test.ts` | COVERAGE-REPORT #3 | ✅ |
+| 10 | `src/test/memory-service.test.ts` | COVERAGE-REPORT #4 | ✅ |
+| 11 | `src/test/knowledge-service.test.ts` | COVERAGE-REPORT #5 | ✅ |
+| 12 | `src/test/monitoring-service.test.ts` | COVERAGE-REPORT #6 | ✅ |
+| 13 | `src/test/evaluations-service.test.ts` | COVERAGE-REPORT #7 | ✅ |
+| 14 | `src/test/deployments-service.test.ts` | COVERAGE-REPORT #8 | ✅ |
+| 15 | `src/test/llm-gateway-service.test.ts` (ampliar) | COVERAGE-REPORT #9 | ✅ |
+| 16 | `src/test/oracle-service.test.ts` | COVERAGE-REPORT #11 | ✅ |
 
 ## WAVE 4 — Frontend wiring (services ignorados)
 
@@ -152,8 +152,8 @@ Do `NEXUS-GAP-ANALYSIS-AUTOMATION.md`, vantagens únicas que **não fazem parte 
 | WAVE | Items | Início | Fim | Status |
 |---|---|---|---|:---:|
 | 1 | #1–#3 | 2026-04-09 | em execução | 🟡 |
-| 2 | #4–#6 | — | — | ⬜ |
-| 3 | #7–#16 | — | — | ⬜ |
+| 2 | #4–#6 | 2026-04-09 | 2026-04-09 | ✅ |
+| 3 | #7–#16 | 2026-04-09 | 2026-04-09 | ✅ |
 | 4 | #17–#28 | — | — | ⬜ |
 | 5 | #29–#40 | — | — | ⬜ |
 | 6 | #41–#47 | — | — | ⬜ |
