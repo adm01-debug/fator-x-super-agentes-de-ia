@@ -80,18 +80,18 @@ Do `NEXUS-AUDITORIA-FRONTEND-COVERAGE.md`: 12 Edge Functions não têm nenhuma U
 
 | # | Item | Fonte | Status |
 |---:|---|---|:---:|
-| 29 | `GuardrailsPanel` no Agent Builder (guardrails-engine) | FRONTEND-COVERAGE #1 | ⬜ |
-| 30 | Botão "Deep Research" na `OraclePage` (oracle-research) | FRONTEND-COVERAGE #2 | ⬜ |
-| 31 | `A2APanel` nos Deployments (a2a-server) | FRONTEND-COVERAGE #3 | ⬜ |
-| 32 | Botão "Conectar Bitrix24" em Settings (bitrix24-oauth) | FRONTEND-COVERAGE #4 | ⬜ |
-| 33 | Testar chamadas Bitrix24 na `ToolsPage` (bitrix24-api) | FRONTEND-COVERAGE #5 | ⬜ |
-| 34 | Aba "MCP Server" na `DataHubPage` (datahub-mcp-server) | FRONTEND-COVERAGE #6 | ⬜ |
-| 35 | Botão "OCR" na `KnowledgePage` (doc-ocr) | FRONTEND-COVERAGE #7 | ⬜ |
-| 36 | Preview de imagem no Agent Builder (image-analysis) | FRONTEND-COVERAGE #8 | ⬜ |
-| 37 | Tela de geração de mockup (product-mockup) | FRONTEND-COVERAGE #9 | ⬜ |
-| 38 | Playground expandido (smolagent-runtime) | FRONTEND-COVERAGE #10 | ⬜ |
-| 39 | Painel de batch testing (test-runner) | FRONTEND-COVERAGE #11 | ⬜ |
-| 40 | Wizard de fine-tuning completo (hf-autotrain) | FRONTEND-COVERAGE #12 | ⬜ |
+| 29 | `GuardrailsPanel` no Agent Builder (guardrails-engine) | FRONTEND-COVERAGE #1 | ✅ |
+| 30 | Botão "Deep Research" na `OraclePage` (oracle-research) | FRONTEND-COVERAGE #2 | ✅ |
+| 31 | `A2APanel` nos Deployments (a2a-server) | FRONTEND-COVERAGE #3 | ✅ |
+| 32 | Botão "Conectar Bitrix24" em Settings (bitrix24-oauth) | FRONTEND-COVERAGE #4 | ✅ |
+| 33 | Testar chamadas Bitrix24 na `ToolsPage` (bitrix24-api) | FRONTEND-COVERAGE #5 | ✅ |
+| 34 | Aba "MCP Server" na `DataHubPage` (datahub-mcp-server) | FRONTEND-COVERAGE #6 | ✅ |
+| 35 | Botão "OCR" na `KnowledgePage` (doc-ocr) | FRONTEND-COVERAGE #7 | ✅ |
+| 36 | Preview de imagem no Agent Builder (image-analysis) | FRONTEND-COVERAGE #8 | ✅ |
+| 37 | Tela de geração de mockup (product-mockup) | FRONTEND-COVERAGE #9 | ✅ |
+| 38 | Playground expandido (smolagent-runtime) | FRONTEND-COVERAGE #10 | ✅ |
+| 39 | Painel de batch testing (test-runner) | FRONTEND-COVERAGE #11 | ✅ |
+| 40 | Wizard de fine-tuning completo (hf-autotrain) | FRONTEND-COVERAGE #12 | ✅ |
 
 ## WAVE 6 — Infra connectivity
 
@@ -99,13 +99,13 @@ Do `NEXUS-AUDITORIA-FRONTEND-COVERAGE.md`: 7 módulos de infra existem mas não 
 
 | # | Item | Fonte | Status |
 |---:|---|---|:---:|
-| 41 | `NexusMCPClient` → tela "MCP Servers" em Settings | FRONTEND-COVERAGE | ⬜ |
-| 42 | `NexusTracer` → aba "Tracing" em `MonitoringPage` | FRONTEND-COVERAGE | ⬜ |
-| 43 | `useI18n` → seletor de idioma no header + sidebar | FRONTEND-COVERAGE | ⬜ |
-| 44 | `useNotificationStore` → sino no header com drawer | FRONTEND-COVERAGE | ⬜ |
-| 45 | `useUIStore` → integrar ao sidebar + modais | FRONTEND-COVERAGE | ⬜ |
-| 46 | `useDatahubStore` → integrar à `DataHubPage` | FRONTEND-COVERAGE | ⬜ |
-| 47 | `AccessControl` wrappando botões sensíveis (deploy/delete/etc) | FRONTEND-COVERAGE | ⬜ |
+| 41 | `NexusMCPClient` → tela "MCP Servers" em Settings | FRONTEND-COVERAGE | ✅ |
+| 42 | `NexusTracer` → aba "Tracing" em `MonitoringPage` | FRONTEND-COVERAGE | ✅ |
+| 43 | `useI18n` → seletor de idioma no header + sidebar | FRONTEND-COVERAGE | ✅ |
+| 44 | `useNotificationStore` → sino no header com drawer | FRONTEND-COVERAGE | ✅ |
+| 45 | `useUIStore` → integrar ao sidebar + modais | FRONTEND-COVERAGE | ✅ |
+| 46 | `useDatahubStore` → integrar à `DataHubPage` | FRONTEND-COVERAGE | ✅ |
+| 47 | `AccessControl` wrappando botões sensíveis (deploy/delete/etc) | FRONTEND-COVERAGE | ✅ |
 
 ## WAVE 7 — Gaps de mercado (diferenciação competitiva)
 
