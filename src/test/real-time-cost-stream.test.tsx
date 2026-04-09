@@ -10,6 +10,7 @@
 import { describe, it, expect, vi } from 'vitest';
 import { render, screen, fireEvent } from '@testing-library/react';
 
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 let capturedSubscribeCallback: ((status: string) => void) | null = null;
 
 vi.mock('@/integrations/supabase/client', () => {
