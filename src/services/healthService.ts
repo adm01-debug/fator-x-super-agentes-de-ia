@@ -21,9 +21,21 @@ export interface SystemHealth {
   version: string;
 }
 
+/** Track consecutive failures to suppress repetitive logs */
+let consecutiveFailures = 0;
+
+const DOWN_SNAPSHOT = (error: string): SystemHealth => ({
+  status: 'down',
+  checks: { gateway: { status: 'down', error } },
+  uptime_ms: 0,
+  timestamp: new Date().toISOString(),
+  version: 'unknown',
+});
+
 /**
  * Invokes the health-check edge function and returns the system health snapshot.
- * Throws on transport errors; returns a `down` snapshot if the EF itself fails.
+ * Never throws — returns a `down` snapshot on any failure.
+ * Suppresses repetitive error logs after the first failure.
  */
 export async function getSystemHealth(): Promise<SystemHealth> {
   try {
@@ -31,26 +43,28 @@ export async function getSystemHealth(): Promise<SystemHealth> {
       method: 'GET',
     });
     if (error) {
-      logger.error('health-check invoke failed', { error: error.message });
-      return {
-        status: 'down',
-        checks: { gateway: { status: 'down', error: error.message } },
-        uptime_ms: 0,
-        timestamp: new Date().toISOString(),
-        version: 'unknown',
-      };
+      consecutiveFailures++;
+      // Only log the first failure and then every 10th to avoid console spam
+      if (consecutiveFailures === 1) {
+        logger.warn('health-check unavailable (will suppress further logs)', { error: error.message });
+      } else if (consecutiveFailures % 10 === 0) {
+        logger.warn(`health-check still unavailable (${consecutiveFailures} consecutive failures)`);
+      }
+      return DOWN_SNAPSHOT(error.message);
+    }
+    // Reset on success
+    if (consecutiveFailures > 0) {
+      logger.info('health-check recovered after ' + consecutiveFailures + ' failures');
+      consecutiveFailures = 0;
     }
     return data as SystemHealth;
   } catch (e: unknown) {
     const message = e instanceof Error ? e.message : String(e);
-    logger.error('health-check transport error', { error: message });
-    return {
-      status: 'down',
-      checks: { transport: { status: 'down', error: message } },
-      uptime_ms: 0,
-      timestamp: new Date().toISOString(),
-      version: 'unknown',
-    };
+    consecutiveFailures++;
+    if (consecutiveFailures === 1) {
+      logger.warn('health-check transport error (will suppress further logs)', { error: message });
+    }
+    return DOWN_SNAPSHOT(message);
   }
 }
 
@@ -61,13 +75,13 @@ export async function getSystemHealth(): Promise<SystemHealth> {
 export function statusColor(status: HealthStatus): string {
   switch (status) {
     case 'healthy':
-      return '#6BCB77';
+      return 'hsl(var(--nexus-emerald))';
     case 'degraded':
-      return '#FFD93D';
+      return 'hsl(var(--nexus-amber))';
     case 'down':
-      return '#FF6B6B';
+      return 'hsl(var(--nexus-rose))';
     default:
-      return '#9B59B6';
+      return 'hsl(var(--nexus-purple))';
   }
 }
 

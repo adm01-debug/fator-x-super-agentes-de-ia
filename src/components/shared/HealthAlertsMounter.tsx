@@ -20,7 +20,7 @@ export function HealthAlertsMounter() {
       stop();
       return;
     }
-    start(120_000); // every 2 minutes
+    start(300_000); // every 5 minutes (avoids excessive polling)
     return () => stop();
   }, [user]);
 
