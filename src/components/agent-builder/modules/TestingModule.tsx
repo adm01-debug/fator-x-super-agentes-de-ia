@@ -3,8 +3,17 @@ import { useAgentBuilderStore } from '@/stores/agentBuilderStore';
 import { SectionTitle, NexusBadge, InputField, TextAreaField, SelectField } from '../ui';
 import { CollapsibleCard } from '../ui/CollapsibleCard';
 import { Button } from '@/components/ui/button';
-import { Plus, Trash2, Play, CheckCircle2, XCircle, Clock, SkipForward, Loader2 } from 'lucide-react';
-import { invokeLLMGateway } from '@/services/llmGatewayService';
+import {
+  Plus,
+  Trash2,
+  Play,
+  CheckCircle2,
+  XCircle,
+  Clock,
+  SkipForward,
+  Loader2,
+} from 'lucide-react';
+import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import type { TestCase, EvalMetric } from '@/types/agentTypes';
 
@@ -17,10 +26,22 @@ const TEST_CATEGORIES = [
 ];
 
 const STATUS_META: Record<string, { icon: React.ReactNode; label: string; color: string }> = {
-  pending: { icon: <Clock className="h-3.5 w-3.5" />, label: 'Pendente', color: 'text-muted-foreground' },
-  passed: { icon: <CheckCircle2 className="h-3.5 w-3.5" />, label: 'Aprovado', color: 'text-nexus-emerald' },
+  pending: {
+    icon: <Clock className="h-3.5 w-3.5" />,
+    label: 'Pendente',
+    color: 'text-muted-foreground',
+  },
+  passed: {
+    icon: <CheckCircle2 className="h-3.5 w-3.5" />,
+    label: 'Aprovado',
+    color: 'text-nexus-emerald',
+  },
   failed: { icon: <XCircle className="h-3.5 w-3.5" />, label: 'Falhou', color: 'text-nexus-rose' },
-  skipped: { icon: <SkipForward className="h-3.5 w-3.5" />, label: 'Pulado', color: 'text-nexus-amber' },
+  skipped: {
+    icon: <SkipForward className="h-3.5 w-3.5" />,
+    label: 'Pulado',
+    color: 'text-nexus-amber',
+  },
 };
 
 const DEFAULT_EVAL_METRICS: EvalMetric[] = [
@@ -28,9 +49,30 @@ const DEFAULT_EVAL_METRICS: EvalMetric[] = [
   { id: 'relevance', name: 'Relevância', target: 85, unit: '%', weight: 15, is_blocker: true },
   { id: 'latency', name: 'Latência P95', target: 3000, unit: 'ms', weight: 10, is_blocker: false },
   { id: 'safety', name: 'Safety Score', target: 95, unit: '%', weight: 20, is_blocker: true },
-  { id: 'hallucination', name: 'Taxa de Alucinação', target: 5, unit: '%', weight: 15, is_blocker: true },
-  { id: 'groundedness', name: 'Groundedness', target: 90, unit: '%', weight: 10, is_blocker: false },
-  { id: 'cost', name: 'Custo por Interação', target: 0.05, unit: 'USD', weight: 10, is_blocker: false },
+  {
+    id: 'hallucination',
+    name: 'Taxa de Alucinação',
+    target: 5,
+    unit: '%',
+    weight: 15,
+    is_blocker: true,
+  },
+  {
+    id: 'groundedness',
+    name: 'Groundedness',
+    target: 90,
+    unit: '%',
+    weight: 10,
+    is_blocker: false,
+  },
+  {
+    id: 'cost',
+    name: 'Custo por Interação',
+    target: 0.05,
+    unit: 'USD',
+    weight: 10,
+    is_blocker: false,
+  },
 ];
 
 export function TestingModule() {
@@ -89,7 +131,10 @@ export function TestingModule() {
             {Object.entries(statusCounts).map(([status, count]) => {
               const meta = STATUS_META[status];
               return (
-                <div key={status} className="rounded-xl border border-border bg-card p-4 text-center">
+                <div
+                  key={status}
+                  className="rounded-xl border border-border bg-card p-4 text-center"
+                >
                   <div className={`flex justify-center mb-2 ${meta.color}`}>{meta.icon}</div>
                   <p className="text-lg font-bold text-foreground">{count}</p>
                   <p className="text-[11px] text-muted-foreground">{meta.label}</p>
@@ -118,7 +163,11 @@ export function TestingModule() {
                 subtitle={
                   <span className={`flex items-center gap-1 ${statusMeta.color}`}>
                     {statusMeta.icon} {statusMeta.label}
-                    {tc.category && <span className="text-muted-foreground ml-2">· {TEST_CATEGORIES.find((c) => c.value === tc.category)?.label}</span>}
+                    {tc.category && (
+                      <span className="text-muted-foreground ml-2">
+                        · {TEST_CATEGORIES.find((c) => c.value === tc.category)?.label}
+                      </span>
+                    )}
                   </span>
                 }
               >
@@ -133,7 +182,9 @@ export function TestingModule() {
                     <SelectField
                       label="Categoria"
                       value={tc.category}
-                      onChange={(v) => updateTestCase(tc.id, { category: v as TestCase['category'] })}
+                      onChange={(v) =>
+                        updateTestCase(tc.id, { category: v as TestCase['category'] })
+                      }
                       options={TEST_CATEGORIES}
                     />
                   </div>
@@ -155,7 +206,12 @@ export function TestingModule() {
                     label="Tags"
                     value={tc.tags.join(', ')}
                     onChange={(v) =>
-                      updateTestCase(tc.id, { tags: v.split(',').map((t) => t.trim()).filter(Boolean) })
+                      updateTestCase(tc.id, {
+                        tags: v
+                          .split(',')
+                          .map((t) => t.trim())
+                          .filter(Boolean),
+                      })
                     }
                     placeholder="funcional, crítico, edge-case"
                     hint="Separe tags por vírgula."
@@ -164,7 +220,9 @@ export function TestingModule() {
                     <div className="flex items-center gap-2">
                       <select
                         value={tc.status}
-                        onChange={(e) => updateTestCase(tc.id, { status: e.target.value as TestCase['status'] })}
+                        onChange={(e) =>
+                          updateTestCase(tc.id, { status: e.target.value as TestCase['status'] })
+                        }
                         className="rounded-md border border-border bg-muted/30 px-2 py-1 text-xs text-foreground"
                       >
                         <option value="pending">⏳ Pendente</option>
@@ -186,7 +244,12 @@ export function TestingModule() {
               </CollapsibleCard>
             );
           })}
-          <Button variant="outline" size="sm" onClick={addTestCase} className="w-full border-dashed">
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={addTestCase}
+            className="w-full border-dashed"
+          >
             <Plus className="h-4 w-4 mr-2" /> Adicionar Caso de Teste
           </Button>
         </div>
@@ -221,7 +284,8 @@ export function TestingModule() {
                     )}
                   </div>
                   <p className="text-[11px] text-muted-foreground">
-                    Target: {metric.target}{metric.unit} · Peso: {metric.weight}%
+                    Target: {metric.target}
+                    {metric.unit} · Peso: {metric.weight}%
                   </p>
                 </div>
               </div>
@@ -242,16 +306,26 @@ export function TestingModule() {
       {/* Últimos Resultados */}
       {agent.last_test_results && (
         <section>
-          <SectionTitle icon="📈" title="Últimos Resultados" subtitle={`Executado em ${agent.last_test_results.timestamp}`} />
+          <SectionTitle
+            icon="📈"
+            title="Últimos Resultados"
+            subtitle={`Executado em ${agent.last_test_results.timestamp}`}
+          />
           <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3">
             {[
               { label: 'Acurácia', value: `${agent.last_test_results.accuracy}%` },
               { label: 'Safety', value: `${agent.last_test_results.safety_score}%` },
               { label: 'Latência P95', value: `${agent.last_test_results.latency_p95}ms` },
               { label: 'Alucinação', value: `${agent.last_test_results.hallucination_rate}%` },
-              { label: 'Custo/Interação', value: `$${agent.last_test_results.cost_per_interaction}` },
+              {
+                label: 'Custo/Interação',
+                value: `$${agent.last_test_results.cost_per_interaction}`,
+              },
             ].map((item) => (
-              <div key={item.label} className="rounded-xl border border-border bg-card p-4 text-center">
+              <div
+                key={item.label}
+                className="rounded-xl border border-border bg-card p-4 text-center"
+              >
                 <p className="text-lg font-bold text-foreground">{item.value}</p>
                 <p className="text-[11px] text-muted-foreground">{item.label}</p>
               </div>
@@ -269,31 +343,75 @@ export function TestingModule() {
 function TestExecutionPanel({ testCases }: { testCases: TestCase[] }) {
   const agent = useAgentBuilderStore((s) => s.agent);
   const [running, setRunning] = useState(false);
-  const [results, setResults] = useState<Array<{ input: string; expected: string; actual: string; passed: boolean; latency_ms: number }>>([]);
+  const [results, setResults] = useState<
+    Array<{ input: string; expected: string; actual: string; passed: boolean; latency_ms: number }>
+  >([]);
 
   const handleRun = async () => {
-    if (!agent.id) { toast.error('Salve o agente antes de testar'); return; }
-    if (testCases.length === 0) { toast.error('Adicione test cases primeiro'); return; }
-    setRunning(true); setResults([]);
+    if (!agent.id) {
+      toast.error('Salve o agente antes de testar');
+      return;
+    }
+    if (testCases.length === 0) {
+      toast.error('Adicione test cases primeiro');
+      return;
+    }
+    setRunning(true);
+    setResults([]);
     try {
-      const config = agent as Record<string, any>;
-      const systemPrompt = config.system_prompt || `You are ${agent.name}. ${agent.mission}`;
-      const model = agent.model || 'claude-sonnet-4.6';
-      const newResults: typeof results = [];
+      const config = agent as Record<string, unknown>;
+      const systemPrompt =
+        (config.system_prompt as string) || `You are ${agent.name}. ${agent.mission}`;
+      const model = agent.model || 'claude-haiku-4-5-20251001';
 
-      for (const tc of testCases) {
-        const start = Date.now();
-        const data = await invokeLLMGateway({
-          model, messages: [{ role: 'system', content: systemPrompt }, { role: 'user', content: tc.input }], temperature: 0.3, max_tokens: 2000,
-        });
-        const actual = data?.content || data?.error || '';
-        const passed = tc.expected_behavior ? actual.toLowerCase().includes(tc.expected_behavior.toLowerCase().substring(0, 100)) : true;
-        newResults.push({ input: tc.input, expected: tc.expected_behavior, actual, passed, latency_ms: Date.now() - start });
-        setResults([...newResults]);
-      }
-      const passRate = newResults.filter(r => r.passed).length / newResults.length;
-      toast.success(`Testes concluídos: ${(passRate * 100).toFixed(0)}% aprovados`);
-    } catch (e: unknown) { toast.error(e instanceof Error ? e.message : "Erro inesperado"); } finally { setRunning(false); }
+      // Use the test-runner Edge Function for batch execution
+      const { data, error } = await supabase.functions.invoke('test-runner', {
+        body: {
+          agent_id: agent.id,
+          test_cases: testCases.map((tc) => ({
+            input: tc.input,
+            expected_output: tc.expected_behavior || undefined,
+            tags: tc.tags || [],
+          })),
+          model,
+          system_prompt: systemPrompt,
+        },
+      });
+
+      if (error) throw error;
+
+      const batchResults = (data?.results ?? []) as Array<{
+        input: string;
+        expected: string | null;
+        actual: string | null;
+        latency_ms: number;
+        status: string;
+        error?: string;
+      }>;
+
+      const mapped = batchResults.map((r) => ({
+        input: r.input,
+        expected: r.expected ?? '',
+        actual: r.actual ?? r.error ?? '',
+        passed:
+          r.status === 'success' &&
+          (!r.expected ||
+            (r.actual ?? '').toLowerCase().includes(r.expected.toLowerCase().substring(0, 100))),
+        latency_ms: r.latency_ms,
+      }));
+
+      setResults(mapped);
+      const passRate =
+        data?.pass_rate ??
+        Math.round((mapped.filter((r) => r.passed).length / mapped.length) * 100);
+      toast.success(
+        `Testes concluídos: ${passRate}% aprovados (${data?.passed ?? 0}/${data?.total ?? mapped.length}) • Latência média: ${data?.avg_latency_ms ?? 0}ms`,
+      );
+    } catch (e: unknown) {
+      toast.error(e instanceof Error ? e.message : 'Erro inesperado');
+    } finally {
+      setRunning(false);
+    }
   };
 
   return (
@@ -304,22 +422,53 @@ function TestExecutionPanel({ testCases }: { testCases: TestCase[] }) {
         <p className="text-xs text-muted-foreground mb-4">
           {testCases.length} test cases • Modelo: {agent.model}
         </p>
-        <Button variant="default" size="sm" onClick={handleRun} disabled={running || testCases.length === 0}>
-          {running ? <><Loader2 className="h-4 w-4 mr-2 animate-spin" /> Executando ({results.length}/{testCases.length})...</> : <><Play className="h-4 w-4 mr-2" /> Executar Testes</>}
+        <Button
+          variant="default"
+          size="sm"
+          onClick={handleRun}
+          disabled={running || testCases.length === 0}
+        >
+          {running ? (
+            <>
+              <Loader2 className="h-4 w-4 mr-2 animate-spin" /> Executando ({results.length}/
+              {testCases.length})...
+            </>
+          ) : (
+            <>
+              <Play className="h-4 w-4 mr-2" /> Executar Testes
+            </>
+          )}
         </Button>
       </div>
       {results.length > 0 && (
         <div className="space-y-2">
-          <p className="text-xs font-semibold text-foreground">Resultados: {results.filter(r=>r.passed).length}/{results.length} aprovados</p>
+          <p className="text-xs font-semibold text-foreground">
+            Resultados: {results.filter((r) => r.passed).length}/{results.length} aprovados
+          </p>
           {results.map((r, i) => (
-            <div key={i} className={`nexus-card text-xs ${r.passed ? 'border-nexus-emerald/30' : 'border-nexus-rose/30'}`}>
+            <div
+              key={i}
+              className={`nexus-card text-xs ${r.passed ? 'border-nexus-emerald/30' : 'border-nexus-rose/30'}`}
+            >
               <div className="flex items-center gap-2 mb-1">
-                {r.passed ? <CheckCircle2 className="h-3.5 w-3.5 text-nexus-emerald" /> : <XCircle className="h-3.5 w-3.5 text-nexus-rose" />}
+                {r.passed ? (
+                  <CheckCircle2 className="h-3.5 w-3.5 text-nexus-emerald" />
+                ) : (
+                  <XCircle className="h-3.5 w-3.5 text-nexus-rose" />
+                )}
                 <span className="font-mono text-muted-foreground">{r.latency_ms}ms</span>
               </div>
-              <p className="text-foreground"><strong>Input:</strong> {r.input.substring(0, 100)}</p>
-              {r.expected && <p className="text-muted-foreground mt-0.5"><strong>Expected:</strong> {r.expected.substring(0, 100)}</p>}
-              <p className="text-muted-foreground mt-0.5"><strong>Output:</strong> {r.actual.substring(0, 200)}</p>
+              <p className="text-foreground">
+                <strong>Input:</strong> {r.input.substring(0, 100)}
+              </p>
+              {r.expected && (
+                <p className="text-muted-foreground mt-0.5">
+                  <strong>Expected:</strong> {r.expected.substring(0, 100)}
+                </p>
+              )}
+              <p className="text-muted-foreground mt-0.5">
+                <strong>Output:</strong> {r.actual.substring(0, 200)}
+              </p>
             </div>
           ))}
         </div>

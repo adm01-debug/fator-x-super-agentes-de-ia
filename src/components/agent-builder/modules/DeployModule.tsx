@@ -7,8 +7,16 @@ import { getWorkspaceId } from '@/lib/agentService';
 import type { DeployChannelConfig, MonitoringKPI, DeployChannel } from '@/types/agentTypes';
 
 const ENVIRONMENT_OPTIONS = [
-  { value: 'cloud_api', label: '☁️ Cloud API', description: 'API gerenciada na nuvem com auto-scaling.' },
-  { value: 'self_hosted', label: '🏠 Self-Hosted', description: 'Deploy em infraestrutura própria.' },
+  {
+    value: 'cloud_api',
+    label: '☁️ Cloud API',
+    description: 'API gerenciada na nuvem com auto-scaling.',
+  },
+  {
+    value: 'self_hosted',
+    label: '🏠 Self-Hosted',
+    description: 'Deploy em infraestrutura própria.',
+  },
   { value: 'hybrid', label: '🔄 Híbrido', description: 'Combinação de cloud e on-premises.' },
 ];
 
@@ -25,23 +33,83 @@ const CHANNEL_META: Record<DeployChannel, { icon: React.ReactNode; label: string
 };
 
 const DEFAULT_CHANNELS: DeployChannelConfig[] = [
-  { id: 'ch-api', channel: 'api', enabled: true, config: { endpoint: '/v1/chat' }, status: 'active' },
-  { id: 'ch-web', channel: 'web_chat', enabled: false, config: { widget_color: '#3B82F6' }, status: 'inactive' },
-  { id: 'ch-whatsapp', channel: 'whatsapp', enabled: false, config: { phone: '' }, status: 'inactive' },
-  { id: 'ch-slack', channel: 'slack', enabled: false, config: { workspace: '' }, status: 'inactive' },
-  { id: 'ch-telegram', channel: 'telegram', enabled: false, config: { bot_token: '' }, status: 'inactive' },
+  {
+    id: 'ch-api',
+    channel: 'api',
+    enabled: true,
+    config: { endpoint: '/v1/chat' },
+    status: 'active',
+  },
+  {
+    id: 'ch-web',
+    channel: 'web_chat',
+    enabled: false,
+    config: { widget_color: '#3B82F6' },
+    status: 'inactive',
+  },
+  {
+    id: 'ch-whatsapp',
+    channel: 'whatsapp',
+    enabled: false,
+    config: { phone: '' },
+    status: 'inactive',
+  },
+  {
+    id: 'ch-slack',
+    channel: 'slack',
+    enabled: false,
+    config: { workspace: '' },
+    status: 'inactive',
+  },
+  {
+    id: 'ch-telegram',
+    channel: 'telegram',
+    enabled: false,
+    config: { bot_token: '' },
+    status: 'inactive',
+  },
   { id: 'ch-email', channel: 'email', enabled: false, config: { address: '' }, status: 'inactive' },
-  { id: 'ch-discord', channel: 'discord', enabled: false, config: { server_id: '' }, status: 'inactive' },
-  { id: 'ch-bitrix', channel: 'bitrix24', enabled: false, config: { webhook_url: '' }, status: 'inactive' },
-  { id: 'ch-hfspace', channel: 'huggingface_space', enabled: false, config: { repo_id: '', visibility: 'public' }, status: 'inactive' },
+  {
+    id: 'ch-discord',
+    channel: 'discord',
+    enabled: false,
+    config: { server_id: '' },
+    status: 'inactive',
+  },
+  {
+    id: 'ch-bitrix',
+    channel: 'bitrix24',
+    enabled: false,
+    config: { webhook_url: '' },
+    status: 'inactive',
+  },
+  {
+    id: 'ch-hfspace',
+    channel: 'huggingface_space',
+    enabled: false,
+    config: { repo_id: '', visibility: 'public' },
+    status: 'inactive',
+  },
 ];
 
 const DEFAULT_KPIS: MonitoringKPI[] = [
   { id: 'kpi-latency', name: 'Latência P95', target: '< 3s', icon: '⏱️', enabled: true },
   { id: 'kpi-success', name: 'Taxa de Sucesso', target: '> 95%', icon: '✅', enabled: true },
-  { id: 'kpi-satisfaction', name: 'Satisfação do Usuário', target: '> 4.0/5', icon: '⭐', enabled: true },
+  {
+    id: 'kpi-satisfaction',
+    name: 'Satisfação do Usuário',
+    target: '> 4.0/5',
+    icon: '⭐',
+    enabled: true,
+  },
   { id: 'kpi-cost', name: 'Custo por Interação', target: '< $0.05', icon: '💰', enabled: false },
-  { id: 'kpi-hallucination', name: 'Taxa de Alucinação', target: '< 5%', icon: '🎭', enabled: true },
+  {
+    id: 'kpi-hallucination',
+    name: 'Taxa de Alucinação',
+    target: '< 5%',
+    icon: '🎭',
+    enabled: true,
+  },
   { id: 'kpi-uptime', name: 'Uptime', target: '99.9%', icon: '🟢', enabled: true },
 ];
 
@@ -57,14 +125,21 @@ export function DeployModule() {
     updateAgent({ deploy_channels: updated });
     // Sync to deploy_connections table (non-blocking)
     if (agent.id) {
-      const ch = updated.find(c => c.id === id);
+      const ch = updated.find((c) => c.id === id);
       if (ch) {
-        getWorkspaceId().then(wsId => {
-          void fromTable('deploy_connections').upsert({
-            agent_id: agent.id, workspace_id: wsId, channel: ch.channel,
-            status: ch.enabled ? 'active' : 'inactive', config: ch.config,
+        getWorkspaceId()
+          .then((wsId) => {
+            void fromTable('deploy_connections').upsert({
+              agent_id: agent.id,
+              workspace_id: wsId,
+              channel: ch.channel,
+              status: ch.enabled ? 'active' : 'inactive',
+              config: ch.config,
+            });
+          })
+          .catch(() => {
+            /* deploy_connections sync is best-effort */
           });
-        }).catch(() => {});
       }
     }
   };
@@ -90,7 +165,9 @@ export function DeployModule() {
           {ENVIRONMENT_OPTIONS.map((env) => (
             <button
               key={env.value}
-              onClick={() => updateAgent({ deploy_environment: env.value as typeof agent.deploy_environment })}
+              onClick={() =>
+                updateAgent({ deploy_environment: env.value as typeof agent.deploy_environment })
+              }
               className={`rounded-xl border p-4 text-left transition-all ${
                 agent.deploy_environment === env.value
                   ? 'border-primary bg-primary/5 ring-1 ring-primary/30'
@@ -104,8 +181,16 @@ export function DeployModule() {
         </div>
 
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-          <ToggleField label="Auto Scaling" checked={agent.auto_scaling} onCheckedChange={(v) => updateAgent({ auto_scaling: v })} />
-          <ToggleField label="Logging Habilitado" checked={agent.logging_enabled} onCheckedChange={(v) => updateAgent({ logging_enabled: v })} />
+          <ToggleField
+            label="Auto Scaling"
+            checked={agent.auto_scaling}
+            onCheckedChange={(v) => updateAgent({ auto_scaling: v })}
+          />
+          <ToggleField
+            label="Logging Habilitado"
+            checked={agent.logging_enabled}
+            onCheckedChange={(v) => updateAgent({ logging_enabled: v })}
+          />
         </div>
       </section>
 
@@ -115,7 +200,11 @@ export function DeployModule() {
           icon="📡"
           title="Canais de Deploy"
           subtitle="Ative os canais onde o agente estará disponível."
-          badge={<NexusBadge color="blue">{activeChannels}/{channels.length} ativos</NexusBadge>}
+          badge={
+            <NexusBadge color="blue">
+              {activeChannels}/{channels.length} ativos
+            </NexusBadge>
+          }
         />
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
           {channels.map((ch) => {
@@ -135,27 +224,37 @@ export function DeployModule() {
                   <ToggleField
                     label=""
                     checked={ch.enabled}
-                    onCheckedChange={(v) => updateChannel(ch.id, { enabled: v, status: v ? 'active' : 'inactive' })}
+                    onCheckedChange={(v) =>
+                      updateChannel(ch.id, { enabled: v, status: v ? 'active' : 'inactive' })
+                    }
                   />
                 </div>
                 {ch.enabled && (
                   <div className="space-y-2">
                     {Object.entries(ch.config).map(([key, value]) => (
                       <div key={key}>
-                        <label className="text-[11px] text-muted-foreground uppercase">{key.replace(/_/g, ' ')}</label>
+                        <label className="text-[11px] text-muted-foreground uppercase">
+                          {key.replace(/_/g, ' ')}
+                        </label>
                         <input
                           aria-label={`${meta.label} — ${key.replace(/_/g, ' ')}`}
                           className="w-full rounded-lg border border-border bg-muted/30 px-3 py-1.5 text-xs text-foreground"
                           value={value}
                           onChange={(e) =>
-                            updateChannel(ch.id, { config: { ...ch.config, [key]: e.target.value } })
+                            updateChannel(ch.id, {
+                              config: { ...ch.config, [key]: e.target.value },
+                            })
                           }
                         />
                       </div>
                     ))}
                     <div className="flex items-center gap-1.5">
-                      <span className={`h-2 w-2 rounded-full ${ch.status === 'active' ? 'bg-nexus-emerald' : ch.status === 'error' ? 'bg-destructive' : 'bg-muted-foreground'}`} />
-                      <span className="text-[11px] text-muted-foreground capitalize">{ch.status}</span>
+                      <span
+                        className={`h-2 w-2 rounded-full ${ch.status === 'active' ? 'bg-nexus-emerald' : ch.status === 'error' ? 'bg-destructive' : 'bg-muted-foreground'}`}
+                      />
+                      <span className="text-[11px] text-muted-foreground capitalize">
+                        {ch.status}
+                      </span>
                     </div>
                   </div>
                 )}
@@ -171,7 +270,11 @@ export function DeployModule() {
           icon="📈"
           title="KPIs de Monitoramento"
           subtitle="Defina os indicadores que serão acompanhados em produção."
-          badge={<NexusBadge color="green">{activeKPIs}/{kpis.length} ativos</NexusBadge>}
+          badge={
+            <NexusBadge color="green">
+              {activeKPIs}/{kpis.length} ativos
+            </NexusBadge>
+          }
         />
         <div className="space-y-2">
           {kpis.map((kpi) => (
@@ -182,7 +285,11 @@ export function DeployModule() {
               }`}
             >
               <div className="flex items-center gap-3 flex-1 min-w-0">
-                <ToggleField label="" checked={kpi.enabled} onCheckedChange={(v) => updateKPI(kpi.id, { enabled: v })} />
+                <ToggleField
+                  label=""
+                  checked={kpi.enabled}
+                  onCheckedChange={(v) => updateKPI(kpi.id, { enabled: v })}
+                />
                 <span className="text-lg">{kpi.icon}</span>
                 <div className="min-w-0">
                   <p className="text-sm font-medium text-foreground">{kpi.name}</p>
@@ -204,23 +311,33 @@ export function DeployModule() {
 
       {/* Budget */}
       <section>
-        <SectionTitle icon="💸" title="Orçamento & Alertas" subtitle="Controle de custos e alertas de budget." />
+        <SectionTitle
+          icon="💸"
+          title="Orçamento & Alertas"
+          subtitle="Controle de custos e alertas de budget."
+        />
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
           <div>
-            <label className="text-xs text-muted-foreground mb-1 block">Budget Mensal (USD)</label>
+            <label htmlFor="deploy-budget" className="text-xs text-muted-foreground mb-1 block">
+              Budget Mensal (USD)
+            </label>
             <input
-              aria-label="Budget Mensal (USD)"
+              id="deploy-budget"
               type="number"
               className="w-full rounded-lg border border-border bg-muted/30 px-3 py-2 text-sm text-foreground"
               value={agent.monthly_budget ?? ''}
-              onChange={(e) => updateAgent({ monthly_budget: e.target.value ? Number(e.target.value) : undefined })}
+              onChange={(e) =>
+                updateAgent({ monthly_budget: e.target.value ? Number(e.target.value) : undefined })
+              }
               placeholder="Ex: 500"
             />
           </div>
           <div>
-            <label className="text-xs text-muted-foreground mb-1 block">Alerta em (%)</label>
+            <label htmlFor="deploy-alert-pct" className="text-xs text-muted-foreground mb-1 block">
+              Alerta em (%)
+            </label>
             <input
-              aria-label="Alerta de budget em porcentagem"
+              id="deploy-alert-pct"
               type="number"
               className="w-full rounded-lg border border-border bg-muted/30 px-3 py-2 text-sm text-foreground"
               value={agent.budget_alert_threshold}

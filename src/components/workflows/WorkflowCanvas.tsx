@@ -8,7 +8,15 @@
 
 import { useState, useCallback, useRef } from 'react';
 import { useWorkflowStore } from '@/stores/workflowStore';
-import { NODE_TYPES, NODE_CATEGORIES, NODE_DEFAULTS, type NodeType, type WorkflowNodeData } from './nodes';
+import {
+  NODE_TYPES,
+  NODE_CATEGORIES,
+  NODE_DEFAULTS,
+  type NodeType,
+  type WorkflowNodeData,
+} from './nodes';
+import { executeWorkflow } from '@/services/workflowsService';
+import { toast } from 'sonner';
 
 // ═══ Custom Node Component ═══
 function WorkflowNode({ data, selected }: { data: WorkflowNodeData; selected: boolean }) {
@@ -30,7 +38,9 @@ function WorkflowNode({ data, selected }: { data: WorkflowNodeData; selected: bo
     >
       <div className="flex items-center gap-2 mb-1">
         <span className="text-lg">{nodeInfo.icon}</span>
-        <span className="text-sm font-semibold text-foreground truncate">{data.label || nodeInfo.label}</span>
+        <span className="text-sm font-semibold text-foreground truncate">
+          {data.label || nodeInfo.label}
+        </span>
       </div>
 
       <div className="flex items-center gap-2">
@@ -46,9 +56,7 @@ function WorkflowNode({ data, selected }: { data: WorkflowNodeData; selected: bo
         {data.status === 'success' && (
           <span className="text-[10px] text-nexus-emerald">✓ Concluído</span>
         )}
-        {data.status === 'error' && (
-          <span className="text-[10px] text-destructive">✗ Erro</span>
-        )}
+        {data.status === 'error' && <span className="text-[10px] text-destructive">✗ Erro</span>}
       </div>
 
       {data.type !== 'start' && (
@@ -57,8 +65,14 @@ function WorkflowNode({ data, selected }: { data: WorkflowNodeData; selected: bo
 
       {data.type === 'condition' ? (
         <>
-          <div className="absolute -bottom-2 left-1/3 -translate-x-1/2 w-4 h-4 bg-card border-2 border-nexus-emerald rounded-full cursor-pointer hover:bg-nexus-emerald transition-colors" title="Sim" />
-          <div className="absolute -bottom-2 left-2/3 -translate-x-1/2 w-4 h-4 bg-card border-2 border-destructive rounded-full cursor-pointer hover:bg-destructive transition-colors" title="Não" />
+          <div
+            className="absolute -bottom-2 left-1/3 -translate-x-1/2 w-4 h-4 bg-card border-2 border-nexus-emerald rounded-full cursor-pointer hover:bg-nexus-emerald transition-colors"
+            title="Sim"
+          />
+          <div
+            className="absolute -bottom-2 left-2/3 -translate-x-1/2 w-4 h-4 bg-card border-2 border-destructive rounded-full cursor-pointer hover:bg-destructive transition-colors"
+            title="Não"
+          />
         </>
       ) : data.type !== 'output' ? (
         <div className="absolute -bottom-2 left-1/2 -translate-x-1/2 w-4 h-4 bg-card border-2 border-nexus-emerald rounded-full cursor-pointer hover:bg-nexus-emerald transition-colors" />
@@ -72,11 +86,13 @@ function NodePalette({ onAddNode }: { onAddNode: (type: NodeType) => void }) {
   return (
     <div className="w-64 bg-background border-r border-border p-4 overflow-y-auto">
       <h3 className="text-sm font-bold text-foreground mb-4">Blocos Disponíveis</h3>
-      {NODE_CATEGORIES.map(cat => (
+      {NODE_CATEGORIES.map((cat) => (
         <div key={cat.id} className="mb-4">
-          <h4 className="text-xs text-muted-foreground uppercase tracking-wider mb-2">{cat.label}</h4>
+          <h4 className="text-xs text-muted-foreground uppercase tracking-wider mb-2">
+            {cat.label}
+          </h4>
           <div className="space-y-1">
-            {cat.nodes.map(nodeType => {
+            {cat.nodes.map((nodeType) => {
               const info = NODE_TYPES[nodeType as NodeType];
               return (
                 <button
@@ -87,7 +103,9 @@ function NodePalette({ onAddNode }: { onAddNode: (type: NodeType) => void }) {
                   onDragStart={(e) => e.dataTransfer.setData('nodeType', nodeType)}
                 >
                   <span className="text-base">{info.icon}</span>
-                  <span className="text-xs text-muted-foreground group-hover:text-foreground">{info.label}</span>
+                  <span className="text-xs text-muted-foreground group-hover:text-foreground">
+                    {info.label}
+                  </span>
                 </button>
               );
             })}
@@ -153,24 +171,27 @@ export function WorkflowCanvas() {
   const canvasRef = useRef<HTMLDivElement>(null);
   const [zoom, setZoom] = useState(1);
 
-  const addNode = useCallback((type: NodeType) => {
-    const nodeInfo = NODE_TYPES[type];
-    const newNode = {
-      id: `node_${crypto.randomUUID().slice(0, 8)}`,
-      type,
-      position: {
-        x: 300 + Math.random() * 200,
-        y: 100 + store.nodes.length * 120,
-      },
-      data: {
-        label: nodeInfo.label,
+  const addNode = useCallback(
+    (type: NodeType) => {
+      const nodeInfo = NODE_TYPES[type];
+      const newNode = {
+        id: `node_${crypto.randomUUID().slice(0, 8)}`,
         type,
-        config: { ...NODE_DEFAULTS[type] },
-        status: 'idle' as const,
-      },
-    };
-    store.addNode(newNode);
-  }, [store]);
+        position: {
+          x: 300 + Math.random() * 200,
+          y: 100 + store.nodes.length * 120,
+        },
+        data: {
+          label: nodeInfo.label,
+          type,
+          config: { ...NODE_DEFAULTS[type] },
+          status: 'idle' as const,
+        },
+      };
+      store.addNode(newNode);
+    },
+    [store],
+  );
 
   const handleSave = useCallback(async () => {
     store.markClean();
@@ -178,8 +199,22 @@ export function WorkflowCanvas() {
 
   const handleExecute = useCallback(async () => {
     if (store.nodes.length === 0) return;
+    const workflowId = store.workflowId;
+    if (!workflowId) {
+      toast.error('Salve o workflow antes de executar');
+      return;
+    }
+
     store.setExecuting(store.nodes[0]?.id || null);
-    setTimeout(() => store.setExecuting(null), 2000);
+    try {
+      const steps = store.nodes.map((n) => n.data.label);
+      const result = await executeWorkflow(workflowId, store.workflowName, steps);
+      toast.success(`Workflow executado: ${result?.status || 'concluído'}`);
+    } catch (e: unknown) {
+      toast.error(e instanceof Error ? e.message : 'Erro ao executar workflow');
+    } finally {
+      store.setExecuting(null);
+    }
   }, [store]);
 
   const handleClear = useCallback(() => {
@@ -219,14 +254,60 @@ export function WorkflowCanvas() {
                 id: `node_${crypto.randomUUID().slice(0, 8)}`,
                 type,
                 position: { x, y },
-                data: { label: nodeInfo.label, type, config: { ...NODE_DEFAULTS[type] }, status: 'idle' },
+                data: {
+                  label: nodeInfo.label,
+                  type,
+                  config: { ...NODE_DEFAULTS[type] },
+                  status: 'idle',
+                },
               });
             }
           }}
         >
-          {store.nodes.map(node => (
+          {/* SVG layer for edge connections */}
+          <svg
+            className="absolute inset-0 pointer-events-none"
+            style={{ width: '100%', height: '100%', overflow: 'visible' }}
+          >
+            {store.edges.map((edge) => {
+              const sourceNode = store.nodes.find((n) => n.id === edge.source);
+              const targetNode = store.nodes.find((n) => n.id === edge.target);
+              if (!sourceNode || !targetNode) return null;
+
+              const sx = (sourceNode.position.x + 100) * zoom; // center of node (approx 200px wide / 2)
+              const sy = (sourceNode.position.y + 40) * zoom; // bottom of node
+              const tx = (targetNode.position.x + 100) * zoom;
+              const ty = targetNode.position.y * zoom; // top of node
+              const cy1 = sy + 40 * zoom;
+              const cy2 = ty - 40 * zoom;
+
+              return (
+                <g key={edge.id}>
+                  <path
+                    d={`M ${sx} ${sy} C ${sx} ${cy1}, ${tx} ${cy2}, ${tx} ${ty}`}
+                    fill="none"
+                    stroke="hsl(var(--primary) / 0.4)"
+                    strokeWidth={2}
+                    strokeDasharray={store.isExecuting ? '6 3' : 'none'}
+                  />
+                  {/* Arrow head */}
+                  <polygon
+                    points={`${tx - 4},${ty - 8} ${tx + 4},${ty - 8} ${tx},${ty}`}
+                    fill="hsl(var(--primary) / 0.5)"
+                  />
+                </g>
+              );
+            })}
+          </svg>
+
+          {store.nodes.map((node) => (
             <div
               key={node.id}
+              role="button"
+              tabIndex={0}
+              onKeyDown={(e) => {
+                if (e.key === 'Delete') store.removeNode(node.id);
+              }}
               className="absolute cursor-move"
               style={{
                 left: node.position.x * zoom,
@@ -247,15 +328,19 @@ export function WorkflowCanvas() {
             <div className="absolute inset-0 flex items-center justify-center">
               <div className="text-center max-w-sm">
                 <div className="relative mx-auto mb-6 h-24 w-24 rounded-2xl bg-gradient-to-br from-primary/10 to-accent/10 border border-dashed border-primary/30 flex items-center justify-center">
-                  <span className="text-5xl" aria-hidden="true">🔀</span>
+                  <span className="text-5xl" aria-hidden="true">
+                    🔀
+                  </span>
                   <div className="absolute -bottom-2 -right-2 h-8 w-8 rounded-lg bg-card border border-border flex items-center justify-center shadow-md">
                     <span className="text-sm">➕</span>
                   </div>
                 </div>
-                <h3 className="text-lg font-heading font-bold text-foreground mb-2">Canvas Vazio</h3>
+                <h3 className="text-lg font-heading font-bold text-foreground mb-2">
+                  Canvas Vazio
+                </h3>
                 <p className="text-sm text-muted-foreground leading-relaxed">
-                  Arraste blocos da barra lateral ou clique para adicionar ao canvas.
-                  Conecte-os para criar seu pipeline de automação.
+                  Arraste blocos da barra lateral ou clique para adicionar ao canvas. Conecte-os
+                  para criar seu pipeline de automação.
                 </p>
                 <p className="text-[11px] text-primary/60 mt-3">
                   💡 Dica: comece com "Início / Trigger" para definir o ponto de partida
@@ -265,10 +350,27 @@ export function WorkflowCanvas() {
           )}
 
           <div className="absolute bottom-4 right-4 flex items-center gap-2 bg-card border border-border rounded-lg px-3 py-2 shadow-md">
-            <button onClick={() => setZoom(z => Math.max(0.25, z - 0.1))} className="text-muted-foreground hover:text-foreground transition-colors">−</button>
-            <span className="text-xs text-muted-foreground w-12 text-center">{Math.round(zoom * 100)}%</span>
-            <button onClick={() => setZoom(z => Math.min(2, z + 0.1))} className="text-muted-foreground hover:text-foreground transition-colors">+</button>
-            <button onClick={() => setZoom(1)} className="text-xs text-primary ml-1 hover:underline">Reset</button>
+            <button
+              onClick={() => setZoom((z) => Math.max(0.25, z - 0.1))}
+              className="text-muted-foreground hover:text-foreground transition-colors"
+            >
+              −
+            </button>
+            <span className="text-xs text-muted-foreground w-12 text-center">
+              {Math.round(zoom * 100)}%
+            </span>
+            <button
+              onClick={() => setZoom((z) => Math.min(2, z + 0.1))}
+              className="text-muted-foreground hover:text-foreground transition-colors"
+            >
+              +
+            </button>
+            <button
+              onClick={() => setZoom(1)}
+              className="text-xs text-primary ml-1 hover:underline"
+            >
+              Reset
+            </button>
           </div>
         </div>
       </div>
