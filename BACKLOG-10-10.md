@@ -113,15 +113,15 @@ Do `GAP-ANALYSIS-GITHUB-TOPICS-AGENT-2026-04-05.md`. Cada um é sprint inteiro. 
 
 | # | Item | Fonte | Prioridade | Esforço | Status |
 |---:|---|---|:---:|:---:|:---:|
-| 48 | Streaming SSE nativo (refactor `llm-gateway` + hook React) | GAP-AGENT P0 #5 | 🔴 P0 | Médio | ⬜ |
-| 49 | AG-UI Protocol (`@copilotkit/react` + 16 tipos de evento) | GAP-AGENT P0 #1 | 🔴 P0 | Alto | ⬜ |
-| 50 | Context Tiers L0/L1/L2 (migration + trigger + RAG refactor) | GAP-AGENT P1 #3 | 🟠 P1 | Médio | ⬜ |
-| 51 | Agent Self-Evolution / ACE (`agent_skills` table + Reflector + injection) | GAP-AGENT P1 #4 | 🟠 P1 | Alto | ⬜ |
-| 52 | A2UI Generative UI (JSONL renderer + widget library) | GAP-AGENT P2 #2 | 🟡 P2 | Alto | ⬜ |
-| 53 | Red Teaming / Prompt Pentesting (Promptfoo integration) | GAP-AGENT P2 #6 | 🟡 P2 | Baixo | ⬜ |
-| 54 | AI Sandbox Isolado (containers p/ smolagent) | GAP-AGENT P3 #7 | 🟡 P3 | Médio | ⬜ |
-| 55 | Skills Marketplace (buscável, instalável, community) | GAP-AGENT P3 #8 | 🟡 P3 | Alto | ⬜ |
-| 56 | OpenTelemetry GenAI completo (conectar `NexusTracer` a collector) | GAP-AGENT P3 #10 | 🟡 P3 | Médio | ⬜ |
+| 48 | Streaming SSE nativo (refactor `llm-gateway` + hook React) | GAP-AGENT P0 #5 | 🔴 P0 | Médio | ✅ |
+| 49 | AG-UI Protocol (`@copilotkit/react` + 16 tipos de evento) | GAP-AGENT P0 #1 | 🔴 P0 | Alto | ✅ |
+| 50 | Context Tiers L0/L1/L2 (migration + trigger + RAG refactor) | GAP-AGENT P1 #3 | 🟠 P1 | Médio | ✅ |
+| 51 | Agent Self-Evolution / ACE (`agent_skills` table + Reflector + injection) | GAP-AGENT P1 #4 | 🟠 P1 | Alto | ✅ |
+| 52 | A2UI Generative UI (JSONL renderer + widget library) | GAP-AGENT P2 #2 | 🟡 P2 | Alto | ✅ |
+| 53 | Red Teaming / Prompt Pentesting (Promptfoo integration) | GAP-AGENT P2 #6 | 🟡 P2 | Baixo | ✅ |
+| 54 | AI Sandbox Isolado (containers p/ smolagent) | GAP-AGENT P3 #7 | 🟡 P3 | Médio | ✅ |
+| 55 | Skills Marketplace (buscável, instalável, community) | GAP-AGENT P3 #8 | 🟡 P3 | Alto | ✅ |
+| 56 | OpenTelemetry GenAI completo (conectar `NexusTracer` a collector) | GAP-AGENT P3 #10 | 🟡 P3 | Médio | ✅ |
 
 ---
 
@@ -157,7 +157,7 @@ Do `NEXUS-GAP-ANALYSIS-AUTOMATION.md`, vantagens únicas que **não fazem parte 
 | 4 | #17–#28 | 2026-04-09 | 2026-04-09 | ✅ |
 | 5 | #29–#40 | 2026-04-09 | 2026-04-09 | ✅ |
 | 6 | #41–#47 | 2026-04-09 | 2026-04-09 | ✅ |
-| 7 | #48–#56 | — | — | ⬜ |
+| 7 | #48–#56 | 2026-04-09 | 2026-04-09 | ✅ |
 
 ---
 
