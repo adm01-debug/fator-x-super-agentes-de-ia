@@ -69,7 +69,7 @@ export type Database = {
           relevance_score: number | null
           source: string | null
           updated_at: string
-          workspace_id: string | null
+          workspace_id: string
         }
         Insert: {
           content: string
@@ -79,7 +79,7 @@ export type Database = {
           relevance_score?: number | null
           source?: string | null
           updated_at?: string
-          workspace_id?: string | null
+          workspace_id: string
         }
         Update: {
           content?: string
@@ -89,7 +89,7 @@ export type Database = {
           relevance_score?: number | null
           source?: string | null
           updated_at?: string
-          workspace_id?: string | null
+          workspace_id?: string
         }
         Relationships: [
           {
