@@ -7,11 +7,11 @@ import { listSchedules, runCronExecutor, CRON_PRESETS, getScheduleStats, describ
 import { useToast } from '@/hooks/use-toast';
 
 const STATUS_COLORS: Record<string, string> = {
-  active: 'bg-green-500/20 text-green-400',
-  paused: 'bg-yellow-500/20 text-yellow-400',
-  completed: 'bg-blue-500/20 text-blue-400',
-  failed: 'bg-red-500/20 text-red-400',
-  expired: 'bg-gray-500/20 text-muted-foreground',
+  active: 'bg-nexus-emerald/20 text-nexus-emerald',
+  paused: 'bg-nexus-amber/20 text-nexus-amber',
+  completed: 'bg-nexus-blue/20 text-nexus-blue',
+  failed: 'bg-destructive/20 text-destructive',
+  expired: 'bg-muted text-muted-foreground',
 };
 
 export function CronSchedulerPanel() {
@@ -149,7 +149,7 @@ export function CronSchedulerPanel() {
                     </div>
                   </div>
                   <div className="flex items-center gap-2">
-                    <Badge className={STATUS_COLORS[s.status] ?? 'bg-gray-500/20 text-muted-foreground'}>
+                    <Badge className={STATUS_COLORS[s.status] ?? 'bg-muted text-muted-foreground'}>
                       {s.status}
                     </Badge>
                     <span className="text-xs text-muted-foreground">{s.run_count} runs</span>

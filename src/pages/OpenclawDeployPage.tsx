@@ -105,7 +105,7 @@ export default function OpenclawDeployPage() {
           <div className="flex items-center gap-2">
             <Badge
               variant="outline"
-              className={`gap-1.5 ${healthOk ? "border-green-500/50 text-green-400" : "border-red-500/50 text-red-400"}`}
+              className={`gap-1.5 ${healthOk ? "border-nexus-emerald/50 text-nexus-emerald" : "border-destructive/50 text-destructive"}`}
             >
               {healthLoading ? (
                 <Loader2 className="h-3 w-3 animate-spin" />
@@ -162,21 +162,21 @@ export default function OpenclawDeployPage() {
                   <Loader2 className="h-4 w-4 animate-spin" /> Verificando saúde do OpenClaw...
                 </div>
               ) : healthError ? (
-                <div className="p-4 rounded-lg bg-red-500/10 border border-red-500/30 text-sm text-red-400">
+                <div className="p-4 rounded-lg bg-destructive/10 border border-destructive/30 text-sm text-destructive">
                   Falha ao contatar OpenClaw: {healthError instanceof Error ? healthError.message : "erro desconhecido"}
                 </div>
               ) : (
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                   <div className="p-3 rounded-lg bg-background border border-border">
-                    <p className="text-[10px] text-gray-500 uppercase tracking-wider">Status</p>
+                    <p className="text-[10px] text-muted-foreground uppercase tracking-wider">Status</p>
                     <p className="text-sm font-mono mt-1">{health?.status ?? "—"}</p>
                   </div>
                   <div className="p-3 rounded-lg bg-background border border-border">
-                    <p className="text-[10px] text-gray-500 uppercase tracking-wider">Versão</p>
+                    <p className="text-[10px] text-muted-foreground uppercase tracking-wider">Versão</p>
                     <p className="text-sm font-mono mt-1">{health?.version ?? "—"}</p>
                   </div>
                   <div className="p-3 rounded-lg bg-background border border-border">
-                    <p className="text-[10px] text-gray-500 uppercase tracking-wider">Uptime</p>
+                    <p className="text-[10px] text-muted-foreground uppercase tracking-wider">Uptime</p>
                     <p className="text-sm font-mono mt-1">
                       {typeof health?.uptime === "number" ? `${Math.round(health.uptime)}s` : "—"}
                     </p>
@@ -189,12 +189,12 @@ export default function OpenclawDeployPage() {
 
         <TabsContent value="agents" className="mt-6">
           {agentsLoading ? (
-            <div className="text-center py-12 text-gray-400">
+            <div className="text-center py-12 text-muted-foreground">
               <Loader2 className="h-5 w-5 animate-spin mx-auto mb-2" /> Carregando agents...
             </div>
           ) : agents.length === 0 ? (
             <Card className="bg-card border-border">
-              <CardContent className="py-12 text-center text-gray-400">
+              <CardContent className="py-12 text-center text-muted-foreground">
                 <Bot className="h-10 w-10 mx-auto mb-3 opacity-30" />
                 <p>Nenhum agent encontrado no runtime OpenClaw.</p>
               </CardContent>
@@ -207,7 +207,7 @@ export default function OpenclawDeployPage() {
                     <Bot className="h-4 w-4 text-primary" />
                     <div className="flex-1 min-w-0">
                       <p className="text-sm font-medium">{a.name}</p>
-                      {a.description && <p className="text-xs text-gray-400 truncate">{a.description}</p>}
+                      {a.description && <p className="text-xs text-muted-foreground truncate">{a.description}</p>}
                     </div>
                     {a.status && (
                       <Badge variant="outline" className="text-[10px] border-border">
@@ -223,12 +223,12 @@ export default function OpenclawDeployPage() {
 
         <TabsContent value="skills" className="mt-6">
           {skillsLoading ? (
-            <div className="text-center py-12 text-gray-400">
+            <div className="text-center py-12 text-muted-foreground">
               <Loader2 className="h-5 w-5 animate-spin mx-auto mb-2" /> Carregando skills...
             </div>
           ) : skills.length === 0 ? (
             <Card className="bg-card border-border">
-              <CardContent className="py-12 text-center text-gray-400">
+              <CardContent className="py-12 text-center text-muted-foreground">
                 <Package className="h-10 w-10 mx-auto mb-3 opacity-30" />
                 <p>Nenhum SKILL.md instalado.</p>
               </CardContent>
@@ -241,7 +241,7 @@ export default function OpenclawDeployPage() {
                     <Package className="h-4 w-4 text-nexus-purple" />
                     <div className="flex-1 min-w-0">
                       <p className="text-sm font-medium">{s.name}</p>
-                      {s.description && <p className="text-xs text-gray-400 truncate">{s.description}</p>}
+                      {s.description && <p className="text-xs text-muted-foreground truncate">{s.description}</p>}
                     </div>
                     {s.version && (
                       <Badge variant="outline" className="text-[10px] border-border font-mono">
@@ -309,14 +309,14 @@ export default function OpenclawDeployPage() {
                 <Button
                   onClick={handleDeploy}
                   disabled={deploying || !healthOk}
-                  className="bg-nexus-emerald hover:bg-nexus-emerald/90 text-white gap-1.5"
+                  className="bg-nexus-emerald hover:bg-nexus-emerald/90 text-primary-foreground gap-1.5"
                 >
                   {deploying ? <Loader2 className="h-4 w-4 animate-spin" /> : <Upload className="h-4 w-4" />}
                   Deploy no OpenClaw
                 </Button>
               </div>
               {!healthOk && (
-                <p className="text-xs text-red-400 text-right">
+                <p className="text-xs text-destructive text-right">
                   ⚠ OpenClaw offline — verifique o VPS antes de tentar deploy.
                 </p>
               )}

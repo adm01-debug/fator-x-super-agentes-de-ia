@@ -107,7 +107,7 @@ export function WebhookManagerPanel() {
                     </div>
                   </div>
                   <div className="flex flex-col items-end gap-2 shrink-0">
-                    <Badge className={w.status === 'active' ? 'bg-green-500/20 text-green-400' : 'bg-red-500/20 text-red-400'}>{w.status}</Badge>
+                    <Badge className={w.status === 'active' ? 'bg-nexus-emerald/20 text-nexus-emerald' : 'bg-destructive/20 text-destructive'}>{w.status}</Badge>
                     <p className="text-xs text-muted-foreground">{w.request_count} requests</p>
                     <Button
                       size="sm"

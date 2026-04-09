@@ -45,7 +45,7 @@ export function OverviewTab() {
   const healthColor =
     healthScore >= 80 ? 'text-nexus-emerald' :
     healthScore >= 60 ? 'text-nexus-amber' :
-    healthScore >= 40 ? 'text-orange-500' :
+    healthScore >= 40 ? 'text-nexus-orange' :
     'text-destructive';
   const healthLabel =
     healthScore >= 80 ? 'Excelente' :
