@@ -26,7 +26,7 @@ Commits rápidos, zero risco, desbloqueiam visibilidade do estado real do projet
 |---:|---|---|:---:|
 | 1 | Atualizar `COVERAGE-REPORT.md` (15 alvos antigos fechados, novo top-15) | COVERAGE-REPORT | ✅ |
 | 2 | Criar `BACKLOG-10-10.md` (este arquivo) | meta | ✅ |
-| 3 | Criar `DESIGN.md` (design tokens, componentes, layouts — referência pra coding agents) | GAP-AGENT P3 #9 | ⬜ |
+| 3 | Criar `DESIGN.md` (design tokens, componentes, layouts — referência pra coding agents) | GAP-AGENT P3 #9 | ✅ |
 
 ## WAVE 2 — Sprint #4 cleanup (fecha a tampa do routing)
 
@@ -61,18 +61,18 @@ Do `NEXUS-AUDITORIA-FRONTEND-COVERAGE.md`: **12/13 services não consumidos pela
 
 | # | Item | Fonte | Status |
 |---:|---|---|:---:|
-| 17 | `BillingPage` → `billingService` | FRONTEND-COVERAGE | ⬜ |
-| 18 | `DeploymentsPage` → `deploymentsService` | FRONTEND-COVERAGE | ⬜ |
-| 19 | `TeamPage` → `teamsService` | FRONTEND-COVERAGE | ⬜ |
-| 20 | `EvaluationsPage` → `evaluationsService` | FRONTEND-COVERAGE | ⬜ |
-| 21 | `MemoryPage` → `memoryService` | FRONTEND-COVERAGE | ⬜ |
-| 22 | `KnowledgePage` → `knowledgeService` (+ fetch) | FRONTEND-COVERAGE | ⬜ |
-| 23 | `SuperCerebroPage` tabs → `cerebroService` | FRONTEND-COVERAGE | ⬜ |
-| 24 | `DataHubPage` → `datahubService` | FRONTEND-COVERAGE | ⬜ |
-| 25 | `MonitoringPage` → `monitoringService` (12 chamadas a migrar) | FRONTEND-COVERAGE | ⬜ |
-| 26 | `WorkflowsPage` → `workflowsService` (11 chamadas a migrar) | FRONTEND-COVERAGE | ⬜ |
-| 27 | `OraclePage` → `oracleService` via `oracleStore` | FRONTEND-COVERAGE | ⬜ |
-| 28 | `SecurityPage` → `securityService` (page é placeholder de 30L!) | FRONTEND-COVERAGE | ⬜ |
+| 17 | `BillingPage` → `billingService` | FRONTEND-COVERAGE | ✅ |
+| 18 | `DeploymentsPage` → `deploymentsService` | FRONTEND-COVERAGE | ✅ |
+| 19 | `TeamPage` → `teamsService` | FRONTEND-COVERAGE | ✅ |
+| 20 | `EvaluationsPage` → `evaluationsService` | FRONTEND-COVERAGE | ✅ |
+| 21 | `MemoryPage` → `memoryService` | FRONTEND-COVERAGE | ✅ |
+| 22 | `KnowledgePage` → `knowledgeService` (+ fetch) | FRONTEND-COVERAGE | ✅ |
+| 23 | `SuperCerebroPage` tabs → `cerebroService` | FRONTEND-COVERAGE | ✅ |
+| 24 | `DataHubPage` → `datahubService` | FRONTEND-COVERAGE | ✅ |
+| 25 | `MonitoringPage` → `monitoringService` (12 chamadas a migrar) | FRONTEND-COVERAGE | ✅ |
+| 26 | `WorkflowsPage` → `workflowsService` (11 chamadas a migrar) | FRONTEND-COVERAGE | ✅ |
+| 27 | `OraclePage` → `oracleService` via `oracleStore` | FRONTEND-COVERAGE | ✅ |
+| 28 | `SecurityPage` → `securityService` (page é placeholder de 30L!) | FRONTEND-COVERAGE | ✅ |
 
 ## WAVE 5 — UIs faltantes (12 Edge Functions órfãs)
 
@@ -151,10 +151,10 @@ Do `NEXUS-GAP-ANALYSIS-AUTOMATION.md`, vantagens únicas que **não fazem parte 
 
 | WAVE | Items | Início | Fim | Status |
 |---|---|---|---|:---:|
-| 1 | #1–#3 | 2026-04-09 | em execução | 🟡 |
+| 1 | #1–#3 | 2026-04-09 | 2026-04-09 | ✅ |
 | 2 | #4–#6 | 2026-04-09 | 2026-04-09 | ✅ |
 | 3 | #7–#16 | 2026-04-09 | 2026-04-09 | ✅ |
-| 4 | #17–#28 | — | — | ⬜ |
+| 4 | #17–#28 | 2026-04-09 | 2026-04-09 | ✅ |
 | 5 | #29–#40 | — | — | ⬜ |
 | 6 | #41–#47 | — | — | ⬜ |
 | 7 | #48–#56 | — | — | ⬜ |
