@@ -71,14 +71,14 @@ describe('MiddlewarePipeline — basic operations', () => {
       description: '',
       enabled: true,
       priority: 20,
-      fn: async (ctx, next) => next(),
+      fn: async (_ctx, next) => next(),
     });
     pipeline.use({
       name: 'first',
       description: '',
       enabled: true,
       priority: 10,
-      fn: async (ctx, next) => next(),
+      fn: async (_ctx, next) => next(),
     });
     const list = pipeline.list();
     expect(list[0].name).toBe('first');
@@ -91,7 +91,7 @@ describe('MiddlewarePipeline — basic operations', () => {
       description: '',
       enabled: true,
       priority: 1,
-      fn: async (ctx, next) => next(),
+      fn: async (_ctx, next) => next(),
     });
     pipeline.remove('to-remove');
     expect(pipeline.list()).toHaveLength(0);
@@ -103,7 +103,7 @@ describe('MiddlewarePipeline — basic operations', () => {
       description: '',
       enabled: true,
       priority: 1,
-      fn: async (ctx, next) => next(),
+      fn: async (_ctx, next) => next(),
     });
     pipeline.toggle('toggler', false);
     expect(pipeline.list()[0].enabled).toBe(false);
@@ -122,7 +122,7 @@ describe('MiddlewarePipeline — basic operations', () => {
       description: '',
       enabled: true,
       priority: 1,
-      fn: async (ctx, next) => next(),
+      fn: async (_ctx, next) => next(),
     });
     expect(result).toBe(pipeline);
   });
@@ -146,7 +146,7 @@ describe('MiddlewarePipeline — execute', () => {
       description: '',
       enabled: false,
       priority: 1,
-      fn: async (ctx, next) => {
+      fn: async (_ctx, next) => {
         spy();
         return next();
       },
@@ -164,7 +164,7 @@ describe('MiddlewarePipeline — execute', () => {
       description: '',
       enabled: true,
       priority: 10,
-      fn: async (ctx, next) => {
+      fn: async (_ctx, next) => {
         order.push('first-pre');
         const result = await next();
         order.push('first-post');
@@ -176,7 +176,7 @@ describe('MiddlewarePipeline — execute', () => {
       description: '',
       enabled: true,
       priority: 20,
-      fn: async (ctx, next) => {
+      fn: async (_ctx, next) => {
         order.push('second-pre');
         const result = await next();
         order.push('second-post');
@@ -208,7 +208,7 @@ describe('MiddlewarePipeline — execute', () => {
       description: '',
       enabled: true,
       priority: 1,
-      fn: async (ctx, next) => {
+      fn: async (_ctx, next) => {
         ctx.request._cachedResponse = cachedResp;
         return next();
       },
@@ -228,7 +228,7 @@ describe('MiddlewarePipeline — execute', () => {
       description: '',
       enabled: true,
       priority: 1,
-      fn: async (ctx, next) => {
+      fn: async (_ctx, next) => {
         ctx.request._skipExecution = true;
         return next();
       },
@@ -267,7 +267,7 @@ describe('createLoggingMiddleware', () => {
       description: '',
       enabled: true,
       priority: 20,
-      fn: async (ctx, next) => {
+      fn: async (_ctx, next) => {
         const result = await next();
         result.error = new Error('test error');
         return result;
@@ -357,7 +357,7 @@ describe('createTokenCounterMiddleware', () => {
       description: '',
       enabled: true,
       priority: 1,
-      fn: async (ctx, next) => {
+      fn: async (_ctx, next) => {
         ctx.request._skipExecution = true;
         return next();
       },
