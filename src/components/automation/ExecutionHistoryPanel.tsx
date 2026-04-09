@@ -6,7 +6,7 @@ import { Input } from '@/components/ui/input';
 import { listExecutions, getExecutionStats, type ExecutionRecord } from '@/services/executionHistoryService';
 import { useToast } from '@/hooks/use-toast';
 
-const STATUS_COLORS: Record<string, string> = { running: 'bg-blue-500/20 text-blue-400', success: 'bg-green-500/20 text-green-400', failed: 'bg-red-500/20 text-red-400', cancelled: 'bg-gray-500/20 text-muted-foreground', timeout: 'bg-orange-500/20 text-orange-400', waiting: 'bg-yellow-500/20 text-yellow-400' };
+const STATUS_COLORS: Record<string, string> = { running: 'bg-nexus-blue/20 text-nexus-blue', success: 'bg-nexus-emerald/20 text-nexus-emerald', failed: 'bg-destructive/20 text-destructive', cancelled: 'bg-muted text-muted-foreground', timeout: 'bg-nexus-orange/20 text-nexus-orange', waiting: 'bg-nexus-amber/20 text-nexus-amber' };
 const TYPE_ICONS: Record<string, string> = { workflow: '🔄', agent: '🤖', automation: '⚡', webhook: '🔗', schedule: '⏰', manual: '👤' };
 
 export function ExecutionHistoryPanel() {
@@ -65,13 +65,13 @@ export function ExecutionHistoryPanel() {
                   <p className="text-[10px] text-muted-foreground">{e.trigger} • {e.steps.length} steps • {e.tokens_used} tokens</p>
                 </div>
                 <div className="text-right shrink-0">
-                  <Badge className={STATUS_COLORS[e.status] ?? 'bg-gray-500/20 text-muted-foreground'}>{e.status}</Badge>
-                  <p className="text-[10px] text-gray-500 mt-1">{e.duration_ms ? `${(e.duration_ms / 1000).toFixed(1)}s` : '...'}</p>
+                  <Badge className={STATUS_COLORS[e.status] ?? 'bg-muted text-muted-foreground'}>{e.status}</Badge>
+                  <p className="text-[10px] text-muted-foreground mt-1">{e.duration_ms ? `${(e.duration_ms / 1000).toFixed(1)}s` : '...'}</p>
                 </div>
               </CardContent>
             </Card>
           ))}
-          <p className="text-xs text-gray-500 text-center">Mostrando {executions.length} de {total} execuções</p>
+          <p className="text-xs text-muted-foreground text-center">Mostrando {executions.length} de {total} execuções</p>
         </div>
       )}
     </div>

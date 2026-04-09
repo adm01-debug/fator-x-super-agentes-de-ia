@@ -184,7 +184,7 @@ export function DataHubHealthTab() {
             <div className="h-2 w-2 rounded-full bg-nexus-amber" /> 200-500ms (bom)
           </span>
           <span className="flex items-center gap-1">
-            <div className="h-2 w-2 rounded-full bg-orange-500" /> 500-1500ms (lento)
+            <div className="h-2 w-2 rounded-full bg-nexus-orange" /> 500-1500ms (lento)
           </span>
           <span className="flex items-center gap-1">
             <div className="h-2 w-2 rounded-full bg-destructive" /> &gt; 1500ms (crítico)

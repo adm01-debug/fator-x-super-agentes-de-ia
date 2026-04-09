@@ -106,9 +106,9 @@ export function WebWidgetPanel({ agentId: initialAgentId, agentName }: WebWidget
               {pingLoading ? (
                 <Loader2 className="h-3.5 w-3.5 animate-spin" />
               ) : pingResult === true ? (
-                <CheckCircle2 className="h-3.5 w-3.5 text-green-400" />
+                <CheckCircle2 className="h-3.5 w-3.5 text-nexus-emerald" />
               ) : pingResult === false ? (
-                <XCircle className="h-3.5 w-3.5 text-red-400" />
+                <XCircle className="h-3.5 w-3.5 text-destructive" />
               ) : (
                 <Send className="h-3.5 w-3.5" />
               )}
@@ -131,7 +131,7 @@ export function WebWidgetPanel({ agentId: initialAgentId, agentName }: WebWidget
                   <Copy className="h-3 w-3" /> Copiar
                 </Button>
               </div>
-              <pre className="p-3 rounded-lg bg-background border border-border text-[11px] font-mono text-gray-300 overflow-x-auto">
+              <pre className="p-3 rounded-lg bg-background border border-border text-[11px] font-mono text-foreground/80 overflow-x-auto">
                 {snippet.htmlSnippet}
               </pre>
             </div>
@@ -175,7 +175,7 @@ export function WebWidgetPanel({ agentId: initialAgentId, agentName }: WebWidget
               {chatReply && (
                 <div className="mt-3 p-3 rounded-lg bg-background border border-primary/30">
                   <p className="text-[10px] text-primary uppercase tracking-wider mb-1">Resposta do Agent</p>
-                  <p className="text-xs text-gray-200 whitespace-pre-wrap">{chatReply}</p>
+                  <p className="text-xs text-foreground/90 whitespace-pre-wrap">{chatReply}</p>
                 </div>
               )}
             </div>

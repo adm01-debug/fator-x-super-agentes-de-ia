@@ -93,7 +93,7 @@ export function QueueMonitorPanel() {
                     <Badge variant="outline" className="text-[10px] border-border">{STRATEGY_LABELS[q.strategy]}</Badge>
                   </div>
                   <div className="flex items-center gap-2">
-                    <Badge className={q.is_paused ? 'bg-yellow-500/20 text-yellow-400' : 'bg-green-500/20 text-green-400'}>
+                    <Badge className={q.is_paused ? 'bg-nexus-amber/20 text-nexus-amber' : 'bg-nexus-emerald/20 text-nexus-emerald'}>
                       {q.is_paused ? 'Pausada' : 'Ativa'}
                     </Badge>
                     <Button

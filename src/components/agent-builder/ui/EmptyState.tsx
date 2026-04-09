@@ -17,7 +17,7 @@ export function EmptyState({ icon = '📭', title, description, actionLabel, onA
       <h3 className="text-sm font-semibold text-foreground mb-1">{title}</h3>
       {description && <p className="text-xs text-muted-foreground max-w-xs mb-4">{description}</p>}
       {actionLabel && onAction && (
-        <Button size="sm" onClick={onAction} className="nexus-gradient-bg text-white">
+        <Button size="sm" onClick={onAction} className="nexus-gradient-bg text-primary-foreground">
           {actionLabel}
         </Button>
       )}

@@ -598,7 +598,7 @@ export function SandboxExecutionPanel({
                               {exec.artifacts.map((art, idx) => (
                                 <Badge
                                   key={idx}
-                                  className="bg-orange-500/20 text-orange-500 text-[10px] cursor-pointer hover:bg-orange-500/30"
+                                  className="bg-nexus-orange/20 text-nexus-orange text-[10px] cursor-pointer hover:bg-nexus-orange/30"
                                 >
                                   <Download className="w-3 h-3 mr-1" />
                                   {art.name} ({(art.size / 1024).toFixed(1)}KB)

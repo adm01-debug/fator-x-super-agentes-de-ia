@@ -20,7 +20,7 @@ export function AutomationOverviewWidget() {
   if (loading) {
     return (
       <Card className="bg-card border-border">
-        <CardContent className="p-6 text-center text-gray-400">
+        <CardContent className="p-6 text-center text-muted-foreground">
           <Zap size={20} className="mx-auto mb-2 animate-pulse" />
           <p className="text-sm">Carregando automações...</p>
         </CardContent>
@@ -78,7 +78,7 @@ export function AutomationOverviewWidget() {
             Automation Center
           </span>
           {hasAlerts && (
-            <Badge className="bg-yellow-500/20 text-yellow-400 text-[10px]">
+            <Badge className="bg-nexus-amber/20 text-nexus-amber text-[10px]">
               <AlertTriangle size={10} className="mr-1" />
               Atenção
             </Badge>
@@ -94,14 +94,14 @@ export function AutomationOverviewWidget() {
                 <p className="text-sm font-bold" style={{ color: m.color }}>
                   {m.value}
                 </p>
-                <p className="text-[10px] text-gray-400">{m.sub}</p>
+                <p className="text-[10px] text-muted-foreground">{m.sub}</p>
               </div>
             </div>
           ))}
         </div>
         {data.circuitBreakers.filter((cb) => cb.state === 'open').length > 0 && (
-          <div className="mt-3 p-2 rounded bg-red-500/10 border border-red-500/20">
-            <p className="text-xs text-red-400">
+          <div className="mt-3 p-2 rounded bg-destructive/10 border border-destructive/20">
+            <p className="text-xs text-destructive">
               ⚠️ {data.circuitBreakers.filter((cb) => cb.state === 'open').length} circuit
               breaker(s) aberto(s)
             </p>

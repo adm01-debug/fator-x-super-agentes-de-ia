@@ -74,13 +74,13 @@ export function GuardrailsConfig() {
         <div className="space-y-2">
           {results.map((r, i) => (
             <div key={i} className={`rounded-lg p-3 text-xs ${
-              r.action === 'block' ? 'bg-red-500/10 border border-red-500/30' :
-              r.action === 'warn' ? 'bg-yellow-500/10 border border-yellow-500/30' :
-              'bg-green-500/10 border border-green-500/30'
+              r.action === 'block' ? 'bg-destructive/10 border border-destructive/30' :
+              r.action === 'warn' ? 'bg-nexus-amber/10 border border-nexus-amber/30' :
+              'bg-nexus-emerald/10 border border-nexus-emerald/30'
             }`}>
               <div className="flex items-center justify-between">
                 <span className="font-bold">{r.rail}</span>
-                <Badge className={r.action === 'block' ? 'bg-red-500' : r.action === 'warn' ? 'bg-yellow-500' : 'bg-green-500'}>
+                <Badge className={r.action === 'block' ? 'bg-destructive' : r.action === 'warn' ? 'bg-nexus-amber' : 'bg-nexus-emerald'}>
                   {r.action === 'block' ? '🚫 Bloqueado' : r.action === 'warn' ? '⚠️ Alerta' : '✅ Permitido'}
                 </Badge>
               </div>

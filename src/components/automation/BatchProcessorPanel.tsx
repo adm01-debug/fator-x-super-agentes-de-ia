@@ -7,13 +7,13 @@ import { listBatchJobs, getBatchStats, type BatchJob } from '@/services/batchPro
 import { useToast } from '@/hooks/use-toast';
 
 const STATUS_CONFIG: Record<string, { color: string; icon: typeof Play }> = {
-  pending: { color: 'bg-gray-500/20 text-muted-foreground', icon: Layers },
-  running: { color: 'bg-blue-500/20 text-blue-400', icon: Play },
-  paused: { color: 'bg-yellow-500/20 text-yellow-400', icon: Pause },
-  completed: { color: 'bg-green-500/20 text-green-400', icon: CheckCircle },
-  failed: { color: 'bg-red-500/20 text-red-400', icon: XCircle },
-  cancelled: { color: 'bg-gray-500/20 text-muted-foreground', icon: XCircle },
-  partial: { color: 'bg-orange-500/20 text-orange-400', icon: CheckCircle },
+  pending: { color: 'bg-muted text-muted-foreground', icon: Layers },
+  running: { color: 'bg-nexus-blue/20 text-nexus-blue', icon: Play },
+  paused: { color: 'bg-nexus-amber/20 text-nexus-amber', icon: Pause },
+  completed: { color: 'bg-nexus-emerald/20 text-nexus-emerald', icon: CheckCircle },
+  failed: { color: 'bg-destructive/20 text-destructive', icon: XCircle },
+  cancelled: { color: 'bg-muted text-muted-foreground', icon: XCircle },
+  partial: { color: 'bg-nexus-orange/20 text-nexus-orange', icon: CheckCircle },
 };
 
 export function BatchProcessorPanel() {
@@ -81,7 +81,7 @@ export function BatchProcessorPanel() {
                     </span>
                   </div>
                   {job.errors.length > 0 && (
-                    <p className="text-[10px] text-red-400 mt-2">{job.errors.length} erros registrados</p>
+                    <p className="text-[10px] text-destructive mt-2">{job.errors.length} erros registrados</p>
                   )}
                 </CardContent>
               </Card>

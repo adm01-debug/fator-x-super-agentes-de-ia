@@ -25,7 +25,7 @@ import { AccessControl, DangerousActionDialog } from "@/components/rbac";
 const LEVEL_CONFIG: Record<DecayLevel, { label: string; color: string; bgClass: string; icon: typeof CheckCircle2 }> = {
   fresh: { label: 'Fresco', color: 'hsl(var(--nexus-emerald))', bgClass: 'bg-nexus-emerald/10 border-nexus-emerald/30', icon: CheckCircle2 },
   review: { label: 'Revisar', color: 'hsl(var(--nexus-yellow))', bgClass: 'bg-nexus-amber/10 border-nexus-amber/30', icon: Clock },
-  refresh: { label: 'Atualizar', color: 'hsl(var(--nexus-orange))', bgClass: 'bg-orange-500/10 border-orange-500/30', icon: RefreshCw },
+  refresh: { label: 'Atualizar', color: 'hsl(var(--nexus-orange))', bgClass: 'bg-nexus-orange/10 border-nexus-orange/30', icon: RefreshCw },
   archive: { label: 'Arquivar', color: 'hsl(var(--nexus-red))', bgClass: 'bg-destructive/10 border-destructive/30', icon: Archive },
 };
 

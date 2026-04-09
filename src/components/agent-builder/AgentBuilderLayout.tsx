@@ -132,7 +132,7 @@ export function AgentBuilderLayout({ children }: AgentBuilderLayoutProps) {
           size="sm"
           onClick={nextTab}
           disabled={isLast}
-          className="nexus-gradient-bg text-white hover:opacity-90"
+          className="nexus-gradient-bg text-primary-foreground hover:opacity-90"
           aria-label="Próxima tab"
         >
           <span className="hidden sm:inline">Próximo</span>

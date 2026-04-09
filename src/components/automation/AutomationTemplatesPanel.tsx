@@ -6,7 +6,7 @@ import { LayoutTemplate, ArrowRight } from 'lucide-react';
 import { BUILTIN_TEMPLATES, type AutomationTemplate } from '@/services/automationTemplateService';
 import { listAutomationTemplates } from '@/services';
 
-const DIFFICULTY_COLORS: Record<string, string> = { beginner: 'bg-green-500/20 text-green-400', intermediate: 'bg-yellow-500/20 text-yellow-400', advanced: 'bg-red-500/20 text-red-400' };
+const DIFFICULTY_COLORS: Record<string, string> = { beginner: 'bg-nexus-emerald/20 text-nexus-emerald', intermediate: 'bg-nexus-amber/20 text-nexus-amber', advanced: 'bg-destructive/20 text-destructive' };
 
 export function AutomationTemplatesPanel() {
   const [dbTemplates, setDbTemplates] = useState<AutomationTemplate[]>([]);
@@ -53,15 +53,15 @@ export function AutomationTemplatesPanel() {
                   <Badge key={i} variant="outline" className="text-[10px] border-border">{i}</Badge>
                 ))}
               </div>
-              <div className="flex items-center justify-between text-xs text-gray-500">
+              <div className="flex items-center justify-between text-xs text-muted-foreground">
                 <span>{tpl.steps.length} etapas</span>
                 <span>~{tpl.estimated_setup_minutes}min setup</span>
               </div>
-              <div className="mt-3 text-xs text-gray-500 border-t border-border pt-3">
+              <div className="mt-3 text-xs text-muted-foreground border-t border-border pt-3">
                 <p className="font-medium text-muted-foreground mb-1">Fluxo:</p>
                 {tpl.steps.map((step, i) => (
                   <span key={i} className="inline-flex items-center">
-                    {i > 0 && <ArrowRight size={10} className="mx-1 text-gray-600" />}
+                    {i > 0 && <ArrowRight size={10} className="mx-1 text-muted-foreground/50" />}
                     <span className={step.type === 'trigger' ? 'text-primary' : step.type === 'notification' ? 'text-nexus-emerald' : 'text-muted-foreground'}>{step.name}</span>
                   </span>
                 ))}
