@@ -77,7 +77,7 @@ export function CredentialVaultPanel() {
                   <p className="text-sm font-medium">{c.name}</p>
                   <p className="text-[10px] text-muted-foreground">{c.service_name} • {c.access_count} acessos</p>
                 </div>
-                <Badge className={c.status === 'active' ? 'bg-green-500/20 text-green-400' : c.status === 'expired' ? 'bg-red-500/20 text-red-400' : 'bg-yellow-500/20 text-yellow-400'}>
+                <Badge className={c.status === 'active' ? 'bg-nexus-emerald/20 text-nexus-emerald' : c.status === 'expired' ? 'bg-destructive/20 text-destructive' : 'bg-nexus-amber/20 text-nexus-amber'}>
                   {c.status}
                 </Badge>
               </CardContent>
