@@ -67,14 +67,14 @@ async function loadActiveProviderConfig(): Promise<ProviderSecrets> {
   const wsId = await getWorkspaceId();
   const { data, error } = await supabase
     .from('workspace_secrets')
-    .select('key_name, key_value')
+    .select('key_name, encrypted_value')
     .eq('workspace_id', wsId)
     .like('key_name', 'whatsapp_outbound_%');
   if (error) throw error;
 
   const map: Record<string, string> = {};
-  for (const row of (data ?? []) as Array<{ key_name: string; key_value: string }>) {
-    map[row.key_name] = row.key_value;
+  for (const row of (data ?? []) as unknown as Array<{ key_name: string; encrypted_value: string }>) {
+    map[row.key_name] = row.encrypted_value;
   }
 
   const provider = (map['whatsapp_outbound_active_provider'] ?? 'meta') as WhatsAppProvider;

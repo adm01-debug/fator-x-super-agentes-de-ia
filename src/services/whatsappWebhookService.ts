@@ -4,7 +4,7 @@
  * Manages agent_routing_config rows for source='whatsapp' and reads
  * whatsapp_webhook_events for the audit panel UI.
  */
-import { supabase } from '@/integrations/supabase/client';
+import { fromTable } from '@/lib/supabaseExtended';
 import { logger } from '@/lib/logger';
 import { getWorkspaceId } from '@/lib/agentService';
 
@@ -61,8 +61,7 @@ export interface WhatsAppEventRow {
 
 export async function listWhatsAppRoutes(): Promise<WhatsAppRoutingRow[]> {
   const wsId = await getWorkspaceId();
-  const { data, error } = await supabase
-    .from('agent_routing_config')
+  const { data, error } = await fromTable('agent_routing_config')
     .select('*')
     .eq('workspace_id', wsId)
     .eq('source', 'whatsapp')
@@ -80,8 +79,7 @@ export async function upsertWhatsAppRoute(
   isEnabled: boolean = true,
 ): Promise<void> {
   const wsId = await getWorkspaceId();
-  const { error } = await supabase
-    .from('agent_routing_config')
+  const { error } = await fromTable('agent_routing_config')
     .upsert({
       workspace_id: wsId,
       source: 'whatsapp',
@@ -98,8 +96,7 @@ export async function upsertWhatsAppRoute(
 }
 
 export async function deleteWhatsAppRoute(id: string): Promise<void> {
-  const { error } = await supabase
-    .from('agent_routing_config')
+  const { error } = await fromTable('agent_routing_config')
     .delete()
     .eq('id', id);
   if (error) {
@@ -109,8 +106,7 @@ export async function deleteWhatsAppRoute(id: string): Promise<void> {
 }
 
 export async function toggleWhatsAppRoute(id: string, isEnabled: boolean): Promise<void> {
-  const { error } = await supabase
-    .from('agent_routing_config')
+  const { error } = await fromTable('agent_routing_config')
     .update({ is_enabled: isEnabled })
     .eq('id', id);
   if (error) {
@@ -123,8 +119,7 @@ export async function toggleWhatsAppRoute(id: string, isEnabled: boolean): Promi
 
 export async function listRecentWhatsAppEvents(limit: number = 50): Promise<WhatsAppEventRow[]> {
   const wsId = await getWorkspaceId();
-  const { data, error } = await supabase
-    .from('whatsapp_webhook_events')
+  const { data, error } = await fromTable('whatsapp_webhook_events')
     .select('*')
     .eq('workspace_id', wsId)
     .order('received_at', { ascending: false })
