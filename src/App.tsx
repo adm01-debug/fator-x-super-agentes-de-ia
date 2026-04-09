@@ -114,6 +114,7 @@ const App = () => (
                       <Route path="/knowledge" element={<SafePage><KnowledgePage /></SafePage>} />
                       <Route path="/memory" element={<SafePage><MemoryPage /></SafePage>} />
                       <Route path="/tools" element={<SafePage><ToolsPage /></SafePage>} />
+                      <Route path="/routing" element={<SafePage><RoutingConfigPage /></SafePage>} />
                       <Route path="/prompts" element={<SafePage><PromptsPage /></SafePage>} />
                       <Route path="/prompts/:id" element={<SafePage><PromptEditorPage /></SafePage>} />
                       <Route path="/workflows" element={<SafePage><WorkflowsPage /></SafePage>} />
