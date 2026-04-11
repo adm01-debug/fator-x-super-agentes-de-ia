@@ -152,7 +152,7 @@ async function writeAudit(
   client: ReturnType<typeof createClient>,
   row: AuditRow
 ): Promise<void> {
-  const { error } = await client.from("bitrix24_webhook_events").insert(row);
+  const { error } = await client.from("bitrix24_webhook_events").insert(row as Record<string, unknown>);
   if (error) {
     console.error("Audit write failed:", error.message);
   }
