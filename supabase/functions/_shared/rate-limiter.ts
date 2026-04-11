@@ -1,14 +1,8 @@
 /**
- * Nexus Agents Studio — Shared Rate Limiter (HARDENED)
- * FIX P0-01: Postgres-backed sliding window (was in-memory Map)
- * 
- * Usage:
- *   import { checkRateLimit, RATE_LIMITS } from "../_shared/rate-limiter.ts";
- *   const result = await checkRateLimit(supabase, identifier, RATE_LIMITS.standard, workspaceId);
- *   if (!result.allowed) return createRateLimitResponse(result, corsHeaders);
+ * Nexus Agents Studio — Shared Rate Limiter
+ * In-memory sliding window rate limiter for Edge Functions.
+ * Each function instance has its own state — good enough for single-instance Deno Deploy.
  */
-
-import { SupabaseClient } from "https://esm.sh/@supabase/supabase-js@2";
 
 export interface RateLimitConfig {
   windowMs: number;
@@ -26,17 +20,31 @@ export interface RateLimitResult {
 
 export const RATE_LIMITS = {
   standard: { windowMs: 60_000, maxRequests: 30, name: 'standard' } as RateLimitConfig,
-  llm: { windowMs: 60_000, maxRequests: 15, name: 'llm' } as RateLimitConfig,
-  heavy: { windowMs: 60_000, maxRequests: 5, name: 'heavy' } as RateLimitConfig,
-  auth: { windowMs: 300_000, maxRequests: 10, name: 'auth' } as RateLimitConfig,
-  webhook: { windowMs: 60_000, maxRequests: 60, name: 'webhook' } as RateLimitConfig,
-  datahub: { windowMs: 60_000, maxRequests: 20, name: 'datahub' } as RateLimitConfig,
-  oracle: { windowMs: 60_000, maxRequests: 3, name: 'oracle' } as RateLimitConfig,
+  llm:      { windowMs: 60_000, maxRequests: 15, name: 'llm' } as RateLimitConfig,
+  heavy:    { windowMs: 60_000, maxRequests: 5,  name: 'heavy' } as RateLimitConfig,
+  auth:     { windowMs: 300_000, maxRequests: 10, name: 'auth' } as RateLimitConfig,
+  webhook:  { windowMs: 60_000, maxRequests: 60, name: 'webhook' } as RateLimitConfig,
+  datahub:  { windowMs: 60_000, maxRequests: 20, name: 'datahub' } as RateLimitConfig,
+  oracle:   { windowMs: 60_000, maxRequests: 3,  name: 'oracle' } as RateLimitConfig,
 } as const;
+
+// In-memory store: identifier -> timestamps[]
+const store = new Map<string, number[]>();
+const CLEANUP_INTERVAL = 60_000;
+let lastCleanup = Date.now();
+
+function cleanup(now: number) {
+  if (now - lastCleanup < CLEANUP_INTERVAL) return;
+  lastCleanup = now;
+  for (const [key, timestamps] of store) {
+    const filtered = timestamps.filter(t => now - t < 300_000);
+    if (filtered.length === 0) store.delete(key);
+    else store.set(key, filtered);
+  }
+}
 
 /**
  * Extract rate limit identifier from request.
- * Priority: user_id > API key > IP > 'anonymous'
  */
 export function getRateLimitIdentifier(req: Request, userId?: string | null): string {
   if (userId) return `user:${userId}`;
@@ -48,65 +56,45 @@ export function getRateLimitIdentifier(req: Request, userId?: string | null): st
 }
 
 /**
- * Check rate limit using Postgres RPC (distributed, persistent).
- * Falls back to allow-with-warning if DB unavailable.
+ * Check rate limit (synchronous, in-memory sliding window).
  */
-export async function checkRateLimit(
-  supabase: SupabaseClient,
+export function checkRateLimit(
   identifier: string,
-  config: RateLimitConfig = RATE_LIMITS.standard,
-  workspaceId?: string
-): Promise<RateLimitResult> {
+  config: RateLimitConfig = RATE_LIMITS.standard
+): RateLimitResult {
   const now = Date.now();
-  const windowSeconds = Math.ceil(config.windowMs / 1000);
+  cleanup(now);
 
-  try {
-    const { data, error } = await supabase.rpc('check_rate_limit', {
-      p_identifier: identifier,
-      p_window_seconds: windowSeconds,
-      p_max_requests: config.maxRequests,
-      p_workspace_id: workspaceId || null,
-      p_limit_name: config.name || 'default'
-    });
+  const timestamps = store.get(identifier) || [];
+  const windowStart = now - config.windowMs;
+  const recent = timestamps.filter(t => t > windowStart);
 
-    if (error) throw error;
-
-    const result = data as { allowed: boolean; current_count: number; oldest_timestamp: string | null };
-    
-    if (!result.allowed) {
-      const oldest = result.oldest_timestamp ? new Date(result.oldest_timestamp).getTime() : now;
-      const resetAt = oldest + config.windowMs;
-      return {
-        allowed: false,
-        remaining: 0,
-        resetAt,
-        limit: config.maxRequests,
-        retryAfterMs: Math.max(0, resetAt - now),
-      };
-    }
-
+  if (recent.length >= config.maxRequests) {
+    const oldest = recent[0];
+    const resetAt = oldest + config.windowMs;
     return {
-      allowed: true,
-      remaining: config.maxRequests - result.current_count,
-      resetAt: now + config.windowMs,
+      allowed: false,
+      remaining: 0,
+      resetAt,
       limit: config.maxRequests,
-      retryAfterMs: 0,
-    };
-  } catch (err) {
-    // Fail-open with warning (better than blocking all traffic on DB issues)
-    console.warn('[rate-limiter] DB error, allowing request:', err);
-    return {
-      allowed: true,
-      remaining: config.maxRequests,
-      resetAt: now + config.windowMs,
-      limit: config.maxRequests,
-      retryAfterMs: 0,
+      retryAfterMs: Math.max(0, resetAt - now),
     };
   }
+
+  recent.push(now);
+  store.set(identifier, recent);
+
+  return {
+    allowed: true,
+    remaining: config.maxRequests - recent.length,
+    resetAt: now + config.windowMs,
+    limit: config.maxRequests,
+    retryAfterMs: 0,
+  };
 }
 
 /**
- * Create 429 response with standard headers (RFC 6585).
+ * Create 429 response with standard headers.
  */
 export function createRateLimitResponse(
   result: RateLimitResult,
