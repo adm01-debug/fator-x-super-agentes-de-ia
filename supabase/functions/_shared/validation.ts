@@ -1,50 +1,65 @@
 /**
- * ═══════════════════════════════════════════════════════════════
- * Nexus Agents Studio — Shared Validation (Zod)
- * ═══════════════════════════════════════════════════════════════
- * Common Zod schemas and validation helpers for Edge Functions.
- * Ensures every input is validated before processing.
- *
- * Usage:
- *   import { parseBody, CommonSchemas } from "../_shared/validation.ts";
- *
- *   const parsed = await parseBody(req, MySchema);
- *   if (parsed.error) return parsed.error; // Returns 400 Response
- *   const { data } = parsed;
- *
- * Pattern: Mastra (Zod-first validation) + OpenAI SDK input schemas
- * ═══════════════════════════════════════════════════════════════
+ * Nexus Agents Studio — Shared Validation (HARDENED)
+ * FIX P2-03: max length constraints on all string fields
+ * FIX P2-04: body size guard before parsing
  */
 
 import { z, type ZodSchema, type ZodError } from "https://esm.sh/zod@3.23.8";
 import { errorResponse } from "./cors.ts";
 
-// ═══ Parse + Validate Request Body ═══
+// Max request body size (10MB)
+const MAX_BODY_SIZE = 10 * 1024 * 1024;
 
 export interface ParseSuccess<T> {
   data: T;
+  rawBody?: string;
   error: null;
 }
 
 export interface ParseFailure {
   data: null;
+  rawBody?: string;
   error: Response;
 }
 
 export type ParseResult<T> = ParseSuccess<T> | ParseFailure;
 
 /**
- * Parse and validate the request body against a Zod schema.
- * Returns a 400 error response if validation fails with detailed field errors.
+ * P2-04: Check Content-Length before parsing body.
+ */
+function checkBodySize(req: Request): Response | null {
+  const contentLength = req.headers.get('content-length');
+  if (contentLength && parseInt(contentLength, 10) > MAX_BODY_SIZE) {
+    return errorResponse(req, `Request body too large (max ${MAX_BODY_SIZE / 1024 / 1024}MB)`, 413);
+  }
+  return null;
+}
+
+/**
+ * Parse and validate request body with size guard.
+ * Returns raw body string for HMAC validation if needed.
  */
 export async function parseBody<T>(
   req: Request,
   schema: ZodSchema<T>,
+  options: { returnRawBody?: boolean } = {}
 ): Promise<ParseResult<T>> {
+  // P2-04: Size guard
+  const sizeError = checkBodySize(req);
+  if (sizeError) return { data: null, error: sizeError };
+
+  let rawBody: string;
   let raw: unknown;
 
   try {
-    raw = await req.json();
+    rawBody = await req.text();
+    if (rawBody.length > MAX_BODY_SIZE) {
+      return {
+        data: null,
+        error: errorResponse(req, `Request body too large (max ${MAX_BODY_SIZE / 1024 / 1024}MB)`, 413),
+      };
+    }
+    raw = JSON.parse(rawBody);
   } catch {
     return {
       data: null,
@@ -57,18 +72,38 @@ export async function parseBody<T>(
   if (!result.success) {
     return {
       data: null,
+      rawBody: options.returnRawBody ? rawBody : undefined,
       error: errorResponse(req, 'Validation failed', 400, {
         issues: formatZodErrors(result.error),
       }),
     };
   }
 
-  return { data: result.data, error: null };
+  return {
+    data: result.data,
+    rawBody: options.returnRawBody ? rawBody : undefined,
+    error: null,
+  };
 }
 
 /**
- * Format Zod errors into human-readable field-level messages.
+ * Parse raw body without JSON parsing (for webhook HMAC validation).
  */
+export async function getRawBody(req: Request): Promise<{ body: string; error: Response | null }> {
+  const sizeError = checkBodySize(req);
+  if (sizeError) return { body: '', error: sizeError };
+
+  try {
+    const body = await req.text();
+    if (body.length > MAX_BODY_SIZE) {
+      return { body: '', error: errorResponse(req, 'Request body too large', 413) };
+    }
+    return { body, error: null };
+  } catch {
+    return { body: '', error: errorResponse(req, 'Failed to read request body', 400) };
+  }
+}
+
 function formatZodErrors(error: ZodError): Array<{ field: string; message: string }> {
   return error.issues.map(issue => ({
     field: issue.path.join('.') || '(root)',
@@ -76,70 +111,72 @@ function formatZodErrors(error: ZodError): Array<{ field: string; message: strin
   }));
 }
 
-// ═══ Common Schemas (reusable across functions) ═══
+// P2-03: String length limits
+const MAX_SHORT_STRING = 500;
+const MAX_MEDIUM_STRING = 5000;
+const MAX_LONG_STRING = 50000;
+const MAX_MESSAGE_CONTENT = 100000;
 
 export const CommonSchemas = {
-  /** UUID v4 string */
   uuid: z.string().uuid(),
 
-  /** Non-empty trimmed string */
-  nonEmpty: z.string().min(1).trim(),
+  // P2-03: All strings have max length
+  nonEmpty: z.string().min(1).max(MAX_SHORT_STRING).trim(),
+  shortString: z.string().max(MAX_SHORT_STRING),
+  mediumString: z.string().max(MAX_MEDIUM_STRING),
+  longString: z.string().max(MAX_LONG_STRING),
 
-  /** Pagination params */
   pagination: z.object({
-    page: z.number().int().min(1).default(1),
+    page: z.number().int().min(1).max(10000).default(1),
     limit: z.number().int().min(1).max(100).default(20),
   }),
 
-  /** Sort params */
   sort: z.object({
-    field: z.string().min(1),
+    field: z.string().min(1).max(100),
     direction: z.enum(['asc', 'desc']).default('desc'),
   }).optional(),
 
-  /** Date range filter */
   dateRange: z.object({
     from: z.string().datetime().optional(),
     to: z.string().datetime().optional(),
   }).optional(),
 
-  /** Agent ID reference */
   agentId: z.string().uuid().describe('Agent configuration ID'),
-
-  /** Workspace ID reference */
   workspaceId: z.string().uuid().describe('Workspace ID'),
+  sessionId: z.string().uuid().optional().describe('Session ID'),
 
-  /** LLM model identifier */
-  model: z.string().min(1).max(200).describe('LLM model identifier (e.g. claude-sonnet-4-6)'),
-
-  /** Temperature (0-2) */
+  // P2-03: Model name limited
+  model: z.string().min(1).max(200).describe('LLM model identifier'),
   temperature: z.number().min(0).max(2).default(0.7),
-
-  /** Max tokens */
   maxTokens: z.number().int().min(1).max(200000).default(4096),
 
-  /** Chat messages array */
+  // P2-03: Message content has explicit max
   messages: z.array(z.object({
     role: z.enum(['system', 'user', 'assistant', 'tool']),
-    content: z.string().min(1),
-    name: z.string().optional(),
-    tool_call_id: z.string().optional(),
-  })).min(1),
+    content: z.string().min(1).max(MAX_MESSAGE_CONTENT),
+    name: z.string().max(100).optional(),
+    tool_call_id: z.string().max(100).optional(),
+  })).min(1).max(100),
 
-  /** Knowledge base query */
   knowledgeQuery: z.object({
     query: z.string().min(1).max(2000),
-    collection_ids: z.array(z.string().uuid()).optional(),
+    collection_ids: z.array(z.string().uuid()).max(20).optional(),
     top_k: z.number().int().min(1).max(50).default(10),
     threshold: z.number().min(0).max(1).default(0.7),
   }),
 
-  /** Memory operation */
   memoryType: z.enum([
     'short_term', 'episodic', 'semantic',
     'user_profile', 'team', 'external',
   ]),
+
+  // Webhook event
+  webhookEvent: z.object({
+    event_type: z.string().min(1).max(100),
+    payload: z.record(z.unknown()).optional(),
+    timestamp: z.string().datetime().optional(),
+  }),
 } as const;
 
-// Re-export Zod for convenience so functions don't need separate import
 export { z };
+export { MAX_BODY_SIZE, MAX_SHORT_STRING, MAX_MEDIUM_STRING, MAX_LONG_STRING };
