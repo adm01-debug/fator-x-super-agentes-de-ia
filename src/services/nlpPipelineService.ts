@@ -5,6 +5,21 @@
 import { supabase } from '@/integrations/supabase/client';
 import { logger } from '@/lib/logger';
 
+const TIMEOUT_MS = 30_000;
+
+async function invokeEdgeFn(name: string, body: Record<string, unknown>) {
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), TIMEOUT_MS);
+  try {
+    const { data, error } = await supabase.functions.invoke(name, { body, signal: controller.signal as AbortSignal });
+    if (error) throw new Error(error.message);
+    return data;
+  } catch (e) {
+    if (e instanceof DOMException && e.name === 'AbortError') throw new Error(`${name} timeout after ${TIMEOUT_MS}ms`);
+    throw e;
+  } finally { clearTimeout(timer); }
+}
+
 export interface NLPEntity {
   type: string;
   value: string;
@@ -43,14 +58,12 @@ export interface NLPResult {
 }
 
 export async function analyzeText(text: string, pipeline: ('ner' | 'sentiment')[] = ['ner', 'sentiment']): Promise<NLPResult> {
-  const { data, error } = await supabase.functions.invoke('nlp-pipeline', {
-    body: { text, pipeline },
-  });
-  if (error) {
-    logger.error('NLP Pipeline failed', { error: error.message });
-    throw new Error(`NLP Pipeline error: ${error.message}`);
+  try {
+    return await invokeEdgeFn('nlp-pipeline', { text, pipeline }) as NLPResult;
+  } catch (e) {
+    logger.error('NLP Pipeline failed', e);
+    throw e;
   }
-  return data as NLPResult;
 }
 
 export async function analyzeWhatsAppMessage(text: string) {

@@ -5,6 +5,21 @@
 import { supabase } from '@/integrations/supabase/client';
 import { logger } from '@/lib/logger';
 
+const TIMEOUT_MS = 30_000;
+
+async function invokeGuardrails(body: Record<string, unknown>) {
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), TIMEOUT_MS);
+  try {
+    const { data, error } = await supabase.functions.invoke('guardrails-ml', { body, signal: controller.signal as AbortSignal });
+    if (error) throw new Error(error.message);
+    return data;
+  } catch (e) {
+    if (e instanceof DOMException && e.name === 'AbortError') throw new Error(`guardrails-ml timeout after ${TIMEOUT_MS}ms`);
+    throw e;
+  } finally { clearTimeout(timer); }
+}
+
 export interface GuardrailResult {
   passed: boolean;
   layer: string;
@@ -21,25 +36,15 @@ export interface GuardrailResponse {
 }
 
 export async function checkInput(text: string): Promise<GuardrailResponse> {
-  const { data, error } = await supabase.functions.invoke('guardrails-ml', {
-    body: { text, direction: 'input' },
-  });
-  if (error) {
-    logger.error('Guardrails ML input check failed', { error: error.message });
-    throw new Error(`Guardrails error: ${error.message}`);
-  }
-  return data as GuardrailResponse;
+  try {
+    return await invokeGuardrails({ text, direction: 'input' }) as GuardrailResponse;
+  } catch (e) { logger.error('Guardrails input failed', e); throw e; }
 }
 
 export async function checkOutput(text: string): Promise<GuardrailResponse> {
-  const { data, error } = await supabase.functions.invoke('guardrails-ml', {
-    body: { text, direction: 'output' },
-  });
-  if (error) {
-    logger.error('Guardrails ML output check failed', { error: error.message });
-    throw new Error(`Guardrails error: ${error.message}`);
-  }
-  return data as GuardrailResponse;
+  try {
+    return await invokeGuardrails({ text, direction: 'output' }) as GuardrailResponse;
+  } catch (e) { logger.error('Guardrails output failed', e); throw e; }
 }
 
 export async function isTextSafe(text: string, direction: 'input' | 'output' = 'input'): Promise<boolean> {

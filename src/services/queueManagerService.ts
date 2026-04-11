@@ -13,6 +13,19 @@
 import { fromTable } from '@/lib/supabaseExtended';
 
 /* ------------------------------------------------------------------ */
+/*  Constants                                                          */
+/* ------------------------------------------------------------------ */
+
+const DEFAULTS = {
+  MAX_CONCURRENCY: 5,
+  MAX_SIZE: 10_000,
+  RATE_LIMIT_PER_SECOND: 10,
+  TIMEOUT_MS: 30_000,
+  MAX_RETRIES: 3,
+  BATCH_SIZE: 100,
+} as const;
+
+/* ------------------------------------------------------------------ */
 /*  Types                                                              */
 /* ------------------------------------------------------------------ */
 
@@ -108,11 +121,11 @@ export async function createQueue(input: CreateQueueInput): Promise<QueueDefinit
       name: input.name.trim(),
       description: input.description ?? '',
       strategy: input.strategy ?? 'fifo',
-      max_concurrency: input.max_concurrency ?? 5,
-      max_size: input.max_size ?? 10000,
-      rate_limit_per_second: input.rate_limit_per_second ?? 10,
-      default_timeout_ms: input.default_timeout_ms ?? 30000,
-      default_max_retries: input.default_max_retries ?? 3,
+      max_concurrency: input.max_concurrency ?? DEFAULTS.MAX_CONCURRENCY,
+      max_size: input.max_size ?? DEFAULTS.MAX_SIZE,
+      rate_limit_per_second: input.rate_limit_per_second ?? DEFAULTS.RATE_LIMIT_PER_SECOND,
+      default_timeout_ms: input.default_timeout_ms ?? DEFAULTS.TIMEOUT_MS,
+      default_max_retries: input.default_max_retries ?? DEFAULTS.MAX_RETRIES,
       dead_letter_queue_id: input.dead_letter_queue_id ?? null,
       is_paused: false,
       current_size: 0,

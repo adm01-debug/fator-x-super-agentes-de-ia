@@ -60,16 +60,27 @@ export async function getMemories(options?: { type?: string; limit?: number }) {
   return data ?? [];
 }
 
+const CEREBRO_TIMEOUT = 60_000;
+
+async function invokeWithTimeout(fn: string, body: Record<string, unknown>) {
+  const ctrl = new AbortController();
+  const t = setTimeout(() => ctrl.abort(), CEREBRO_TIMEOUT);
+  try {
+    const { data, error } = await supabase.functions.invoke(fn, { body, signal: ctrl.signal as AbortSignal });
+    if (error) throw error;
+    return data;
+  } catch (e) {
+    if (e instanceof DOMException && e.name === 'AbortError') throw new Error(`${fn} timeout`);
+    throw e;
+  } finally { clearTimeout(t); }
+}
+
 /** Invoke cerebro-brain edge function */
 export async function invokeCerebroBrain(body: Record<string, unknown>) {
-  const { data, error } = await supabase.functions.invoke('cerebro-brain', { body });
-  if (error) throw error;
-  return data;
+  return invokeWithTimeout('cerebro-brain', body);
 }
 
 /** Invoke cerebro-query edge function */
 export async function invokeCerebroQuery(body: Record<string, unknown>) {
-  const { data, error } = await supabase.functions.invoke('cerebro-query', { body });
-  if (error) throw error;
-  return data;
+  return invokeWithTimeout('cerebro-query', body);
 }

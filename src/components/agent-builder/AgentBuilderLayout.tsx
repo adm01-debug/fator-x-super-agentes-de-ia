@@ -35,18 +35,11 @@ export function AgentBuilderLayout({ children }: AgentBuilderLayoutProps) {
     <div className="flex flex-col h-full min-h-0">
       {/* ═══ HEADER ═══ */}
       <header
-        className="shrink-0 px-5 py-4 flex items-center justify-between border-b"
-        style={{
-          background: 'linear-gradient(180deg, hsl(var(--nexus-surface-1)) 0%, hsl(var(--background)) 100%)',
-          borderColor: 'hsl(var(--nexus-border, var(--border)))',
-        }}
+        className="shrink-0 px-5 py-4 flex items-center justify-between border-b border-border bg-gradient-to-b from-secondary/50 to-background"
       >
         <div className="flex items-center gap-3 min-w-0">
           <h1
-            className="text-lg font-bold tracking-tight bg-clip-text text-transparent shrink-0"
-            style={{
-              backgroundImage: 'linear-gradient(135deg, hsl(var(--primary)), hsl(var(--accent)), hsl(var(--nexus-amber)))',
-            }}
+            className="text-lg font-bold tracking-tight bg-clip-text text-transparent shrink-0 nexus-gradient-bg bg-gradient-to-br from-primary via-accent to-amber-500"
           >
             ⚡ Fator X
           </h1>
