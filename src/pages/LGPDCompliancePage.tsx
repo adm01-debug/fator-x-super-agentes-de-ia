@@ -163,6 +163,32 @@ export default function LGPDCompliancePage() {
           )}
         </TabsContent>
       </Tabs>
+
+      {/* Confirmation dialog for data deletion */}
+      <AlertDialog open={!!pendingScope} onOpenChange={(open) => { if (!open) setPendingScope(null); }}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Confirmar exclusão de dados</AlertDialogTitle>
+            <AlertDialogDescription>
+              {pendingScope === 'all'
+                ? 'Isso irá deletar TODOS os seus dados permanentemente. Esta ação é irreversível.'
+                : `Isso irá deletar seus dados de ${pendingScope} permanentemente. Esta ação é irreversível.`}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+            <AlertDialogAction
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+              onClick={() => {
+                if (pendingScope) handleRequestDeletion(pendingScope);
+                setPendingScope(null);
+              }}
+            >
+              Deletar permanentemente
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }
