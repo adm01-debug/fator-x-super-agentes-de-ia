@@ -3,6 +3,10 @@ import { PageHeader } from '@/components/shared/PageHeader';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import {
+  AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
+  AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
 import { Shield, Trash2, Download, AlertTriangle, Loader2, FileText } from 'lucide-react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { listConsentRecords, listDeletionRequests, exportMyData, requestDeletion, manageConsent } from '@/services/lgpdService';
@@ -13,6 +17,7 @@ export default function LGPDCompliancePage() {
   const queryClient = useQueryClient();
   const [deleting, setDeleting] = useState(false);
   const [exporting, setExporting] = useState(false);
+  const [pendingScope, setPendingScope] = useState<string | null>(null);
 
   // Consent records
   const { data: consents = [] } = useQuery({
@@ -39,7 +44,7 @@ export default function LGPDCompliancePage() {
   };
 
   const handleRequestDeletion = async (scope: string) => {
-    if (!confirm(`Tem certeza? Isso irá deletar ${scope === 'all' ? 'TODOS os seus dados' : `seus dados de ${scope}`} permanentemente.`)) return;
+    // Confirmation handled by AlertDialog via pendingScope state
     setDeleting(true);
     try {
       const data = await requestDeletion(scope);
