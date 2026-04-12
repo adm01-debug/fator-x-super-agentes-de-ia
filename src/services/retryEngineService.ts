@@ -199,11 +199,11 @@ export function calculateDelay(
 /* ------------------------------------------------------------------ */
 
 function isRetryable(error: string, policy: RetryPolicy): boolean {
-  if (policy.non_retryable_errors.some((e: any) => error.includes(e))) {
+  if (policy.non_retryable_errors.some((e: string) => error.includes(e))) {
     return false;
   }
   if (policy.retryable_errors.length === 0) return true;
-  return policy.retryable_errors.some((e: any) => error.includes(e));
+  return policy.retryable_errors.some((e: string) => error.includes(e));
 }
 
 function sleep(ms: number): Promise<void> {
@@ -503,9 +503,9 @@ export async function getDeadLetterStats(): Promise<{
   const items = data ?? [];
   return {
     total: items.length,
-    pending: items.filter((i: any) => i.status === 'pending').length,
-    resolved: items.filter((i: any) => i.status === 'resolved').length,
-    retried: items.filter((i: any) => i.status === 'retried').length,
-    discarded: items.filter((i: any) => i.status === 'discarded').length,
+    pending: items.filter((i: Record<string, unknown>) => i.status === 'pending').length,
+    resolved: items.filter((i: Record<string, unknown>) => i.status === 'resolved').length,
+    retried: items.filter((i: Record<string, unknown>) => i.status === 'retried').length,
+    discarded: items.filter((i: Record<string, unknown>) => i.status === 'discarded').length,
   };
 }

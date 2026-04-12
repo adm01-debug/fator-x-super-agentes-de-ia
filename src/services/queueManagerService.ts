@@ -389,25 +389,25 @@ export async function getQueueMetrics(queueId: string): Promise<QueueMetrics> {
 
   const all = items ?? [];
   const now = Date.now();
-  const pending = all.filter((i: any) => i.status === 'pending');
-  const processing = all.filter((i: any) => i.status === 'processing');
-  const completed = all.filter((i: any) => i.status === 'completed');
-  const failed = all.filter((i: any) => i.status === 'failed');
-  const deadLetter = all.filter((i: any) => i.status === 'dead_letter');
+  const pending = all.filter((i: Record<string, unknown>) => i.status === 'pending');
+  const processing = all.filter((i: Record<string, unknown>) => i.status === 'processing');
+  const completed = all.filter((i: Record<string, unknown>) => i.status === 'completed');
+  const failed = all.filter((i: Record<string, unknown>) => i.status === 'failed');
+  const deadLetter = all.filter((i: Record<string, unknown>) => i.status === 'dead_letter');
 
   // Throughput: completed items in last minute
   const oneMinuteAgo = new Date(now - 60000).toISOString();
-  const recentCompleted = completed.filter((i: any) => i.completed_at && i.completed_at >= oneMinuteAgo);
+  const recentCompleted = completed.filter((i: Record<string, unknown>) => i.completed_at && i.completed_at >= oneMinuteAgo);
 
   // Wait time
   const waitTimes = processing
-    .filter((i: any) => i.created_at && i.started_at)
-    .map((i: any) => new Date(i.started_at!).getTime() - new Date(i.created_at).getTime());
+    .filter((i: Record<string, unknown>) => i.created_at && i.started_at)
+    .map((i: Record<string, unknown>) => new Date(i.started_at!).getTime() - new Date(i.created_at).getTime());
 
   // Processing time
   const processingTimes = completed
-    .filter((i: any) => i.started_at && i.completed_at)
-    .map((i: any) => new Date(i.completed_at!).getTime() - new Date(i.started_at!).getTime());
+    .filter((i: Record<string, unknown>) => i.started_at && i.completed_at)
+    .map((i: Record<string, unknown>) => new Date(i.completed_at!).getTime() - new Date(i.started_at!).getTime());
 
   // Oldest pending
   const oldestPending = pending.length > 0
@@ -423,8 +423,8 @@ export async function getQueueMetrics(queueId: string): Promise<QueueMetrics> {
     failed: failed.length,
     dead_letter: deadLetter.length,
     throughput_per_minute: recentCompleted.length,
-    avg_wait_time_ms: waitTimes.length > 0 ? waitTimes.reduce((a: any, b: any) => a + b, 0) / waitTimes.length : 0,
-    avg_processing_time_ms: processingTimes.length > 0 ? processingTimes.reduce((a: any, b: any) => a + b, 0) / processingTimes.length : 0,
+    avg_wait_time_ms: waitTimes.length > 0 ? waitTimes.reduce((a: number, b: number) => a + b, 0) / waitTimes.length : 0,
+    avg_processing_time_ms: processingTimes.length > 0 ? processingTimes.reduce((a: number, b: number) => a + b, 0) / processingTimes.length : 0,
     oldest_pending_age_ms: oldestPending,
   };
 }
