@@ -159,13 +159,20 @@ export function SettingsModule() {
             <p className="text-sm font-semibold text-destructive">Resetar agente atual</p>
             <p className="text-xs text-muted-foreground">Limpar todas as configurações do agente em edição</p>
           </div>
-          <button
-            onClick={() => {
-              if (confirm('Tem certeza? Esta ação não pode ser desfeita.')) {
-                resetAgent();
-                toast.success('Agente resetado');
-              }
+          <ConfirmDialog
+            trigger={
+              <button className="px-4 py-2 rounded-lg bg-destructive text-destructive-foreground text-sm hover:opacity-90 transition-all">
+                🗑️ Resetar
+              </button>
+            }
+            title="Resetar agente?"
+            description="Todas as configurações do agente em edição serão perdidas. Esta ação não pode ser desfeita."
+            confirmLabel="Resetar"
+            onConfirm={() => {
+              resetAgent();
+              toast.success('Agente resetado');
             }}
+          />
             className="px-4 py-2 rounded-lg bg-destructive text-destructive-foreground text-sm hover:opacity-90 transition-all"
           >
             🗑️ Resetar
