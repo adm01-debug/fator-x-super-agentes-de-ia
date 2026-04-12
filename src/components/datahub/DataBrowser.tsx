@@ -248,7 +248,7 @@ export function DataBrowser({ entityId, onClose }: { entityId: string; onClose: 
                 <Pencil className="h-3.5 w-3.5" />
                 Editar {selectedIds.size}
               </Button>
-              <Button size="sm" variant="destructive" className="gap-1.5 text-xs" onClick={handleBulkDelete}>
+              <Button size="sm" variant="destructive" className="gap-1.5 text-xs" onClick={() => setConfirmDeleteOpen(true)}>
                 <Trash2 className="h-3.5 w-3.5" />
                 Excluir {selectedIds.size}
               </Button>
