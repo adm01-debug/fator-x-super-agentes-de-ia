@@ -61,7 +61,8 @@ export function useTracesData(
           .range(offset, offset + limit - 1);
 
         if (agentId) {
-          query = query.eq('data->>agent_id' as any, agentId);
+          // Filter by agent_id inside JSONB data column
+          query = query.filter('data->>agent_id', 'eq', agentId);
         }
 
         const { data, error, count } = await query;

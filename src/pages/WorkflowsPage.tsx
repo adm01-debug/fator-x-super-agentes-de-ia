@@ -711,7 +711,7 @@ function WorkflowScheduler({ workflows }: { workflows: Array<Record<string, unkn
     try {
       await createSchedule({
         name: `Agendamento: ${String(wf?.name || 'Workflow')}`,
-        frequency: selCron as any,
+        frequency: selCron as import('@/services/cronSchedulerService').ScheduleFrequency,
         cron_expression: cronInfo.cron,
         timezone: 'America/Sao_Paulo',
         target_type: 'workflow',
