@@ -1,3 +1,4 @@
+import { ConfirmDialog } from '@/components/shared/ConfirmDialog';
 import { logger } from '@/lib/logger';
 import { useState, useEffect } from 'react';
 import { SectionTitle } from '../ui';
@@ -173,10 +174,6 @@ export function SettingsModule() {
               toast.success('Agente resetado');
             }}
           />
-            className="px-4 py-2 rounded-lg bg-destructive text-destructive-foreground text-sm hover:opacity-90 transition-all"
-          >
-            🗑️ Resetar
-          </button>
         </div>
       </div>
     </div>
