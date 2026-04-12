@@ -10,7 +10,7 @@ interface UsageRow {
   tokens_output: number | null;
   total_cost_usd: number | null;
   avg_latency_ms: number | null;
-  error_count: number | null;
+  error_count?: number | null;
 }
 
 interface UsageChartsProps {
