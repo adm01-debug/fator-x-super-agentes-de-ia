@@ -3,6 +3,10 @@ import { PageHeader } from '@/components/shared/PageHeader';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import {
+  AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
+  AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
 import { Shield, Trash2, Download, AlertTriangle, Loader2, FileText } from 'lucide-react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { listConsentRecords, listDeletionRequests, exportMyData, requestDeletion, manageConsent } from '@/services/lgpdService';
@@ -13,6 +17,7 @@ export default function LGPDCompliancePage() {
   const queryClient = useQueryClient();
   const [deleting, setDeleting] = useState(false);
   const [exporting, setExporting] = useState(false);
+  const [pendingScope, setPendingScope] = useState<string | null>(null);
 
   // Consent records
   const { data: consents = [] } = useQuery({
@@ -39,7 +44,7 @@ export default function LGPDCompliancePage() {
   };
 
   const handleRequestDeletion = async (scope: string) => {
-    if (!confirm(`Tem certeza? Isso irá deletar ${scope === 'all' ? 'TODOS os seus dados' : `seus dados de ${scope}`} permanentemente.`)) return;
+    // Confirmation handled by AlertDialog via pendingScope state
     setDeleting(true);
     try {
       const data = await requestDeletion(scope);
@@ -122,7 +127,7 @@ export default function LGPDCompliancePage() {
             <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
               {['traces', 'sessions', 'memories', 'all'].map(scope => (
                 <Button key={scope} variant={scope === 'all' ? 'destructive' : 'outline'} size="sm" className="text-xs"
-                  onClick={() => handleRequestDeletion(scope)} disabled={deleting}>
+                  onClick={() => setPendingScope(scope)} disabled={deleting}>
                   {deleting ? <Loader2 className="h-3 w-3 animate-spin mr-1" /> : <Trash2 className="h-3 w-3 mr-1" />}
                   {scope === 'all' ? 'Deletar TUDO' : `Deletar ${scope}`}
                 </Button>
@@ -158,6 +163,32 @@ export default function LGPDCompliancePage() {
           )}
         </TabsContent>
       </Tabs>
+
+      {/* Confirmation dialog for data deletion */}
+      <AlertDialog open={!!pendingScope} onOpenChange={(open) => { if (!open) setPendingScope(null); }}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Confirmar exclusão de dados</AlertDialogTitle>
+            <AlertDialogDescription>
+              {pendingScope === 'all'
+                ? 'Isso irá deletar TODOS os seus dados permanentemente. Esta ação é irreversível.'
+                : `Isso irá deletar seus dados de ${pendingScope} permanentemente. Esta ação é irreversível.`}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+            <AlertDialogAction
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+              onClick={() => {
+                if (pendingScope) handleRequestDeletion(pendingScope);
+                setPendingScope(null);
+              }}
+            >
+              Deletar permanentemente
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }

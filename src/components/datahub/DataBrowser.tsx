@@ -1,4 +1,8 @@
 import { useState, useEffect, useCallback } from "react";
+import {
+  AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
+  AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
@@ -70,6 +74,7 @@ export function DataBrowser({ entityId, onClose }: { entityId: string; onClose: 
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [bulkEditOpen, setBulkEditOpen] = useState(false);
   const [createOpen, setCreateOpen] = useState(false);
+  const [confirmDeleteOpen, setConfirmDeleteOpen] = useState(false);
 
   const fetchData = useCallback(async () => {
     setLoading(true);
@@ -176,7 +181,7 @@ export function DataBrowser({ entityId, onClose }: { entityId: string; onClose: 
   };
 
   const handleBulkDelete = async () => {
-    if (!confirm(`Tem certeza que deseja excluir ${selectedIds.size} registro(s)? Esta ação não pode ser desfeita.`)) return;
+    if (selectedIds.size === 0) return;
     try {
       let deleted = 0;
       for (const id of selectedIds) {
@@ -247,7 +252,7 @@ export function DataBrowser({ entityId, onClose }: { entityId: string; onClose: 
                 <Pencil className="h-3.5 w-3.5" />
                 Editar {selectedIds.size}
               </Button>
-              <Button size="sm" variant="destructive" className="gap-1.5 text-xs" onClick={handleBulkDelete}>
+              <Button size="sm" variant="destructive" className="gap-1.5 text-xs" onClick={() => setConfirmDeleteOpen(true)}>
                 <Trash2 className="h-3.5 w-3.5" />
                 Excluir {selectedIds.size}
               </Button>
@@ -537,6 +542,27 @@ export function DataBrowser({ entityId, onClose }: { entityId: string; onClose: 
         entityName={mapping?.name ?? entityId}
         onSuccess={fetchData}
       />
+
+      {/* Confirm delete dialog */}
+      <AlertDialog open={confirmDeleteOpen} onOpenChange={setConfirmDeleteOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Excluir registros</AlertDialogTitle>
+            <AlertDialogDescription>
+              Tem certeza que deseja excluir {selectedIds.size} registro(s)? Esta ação não pode ser desfeita.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+            <AlertDialogAction
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+              onClick={() => { setConfirmDeleteOpen(false); handleBulkDelete(); }}
+            >
+              Excluir
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }

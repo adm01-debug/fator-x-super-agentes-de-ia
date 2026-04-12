@@ -162,6 +162,7 @@ export const useAgentBuilderStore = create<AgentBuilderStore>((set, get) => ({
 
       if (current && current.version !== agent.version) {
         set({ isSaving: false });
+        // Version conflict — use window.confirm since Zustand stores cannot render UI
         const overwrite = window.confirm(
           `⚠️ Conflito de versão detectado!\n\nVocê está na versão ${agent.version}, mas o banco tem a versão ${current.version}.\nAlguém pode ter salvo mudanças depois de você.\n\nDeseja sobrescrever mesmo assim?`
         );
