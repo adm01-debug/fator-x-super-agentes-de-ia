@@ -127,7 +127,7 @@ export default function LGPDCompliancePage() {
             <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
               {['traces', 'sessions', 'memories', 'all'].map(scope => (
                 <Button key={scope} variant={scope === 'all' ? 'destructive' : 'outline'} size="sm" className="text-xs"
-                  onClick={() => handleRequestDeletion(scope)} disabled={deleting}>
+                  onClick={() => setPendingScope(scope)} disabled={deleting}>
                   {deleting ? <Loader2 className="h-3 w-3 animate-spin mr-1" /> : <Trash2 className="h-3 w-3 mr-1" />}
                   {scope === 'all' ? 'Deletar TUDO' : `Deletar ${scope}`}
                 </Button>
