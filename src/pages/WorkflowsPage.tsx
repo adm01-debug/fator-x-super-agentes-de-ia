@@ -77,6 +77,7 @@ import {
   listSchedules,
   deleteSchedule,
   updateSchedule,
+  type ScheduleFrequency,
 } from '@/services/cronSchedulerService';
 import { AccessControl } from '@/components/rbac/AccessControl';
 
