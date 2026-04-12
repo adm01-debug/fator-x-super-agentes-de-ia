@@ -2,7 +2,7 @@ name: Nexus CI
 
 on:
   push:
-    branches: [main]
+    branches: [main, 'claude/**']
   pull_request:
     branches: [main]
 
