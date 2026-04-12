@@ -9,6 +9,7 @@
  */
 import { supabase } from '@/integrations/supabase/client';
 import { logger } from '@/lib/logger';
+import { fromTable } from '@/lib/supabaseExtended';
 
 export type AuditAction =
   | 'delete'
@@ -90,10 +91,7 @@ export async function logAudit(input: LogAuditInput): Promise<void> {
       user_agent: typeof navigator !== 'undefined' ? navigator.userAgent : null,
     };
 
-    // Use `as any` cast because audit_log table typing is not always in the
-    // generated Database type — this is intentional for a write-only log.
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const { error } = await (supabase.from('audit_log' as any) as any).insert(entry);
+    const { error } = await fromTable('audit_log').insert(entry);
 
     if (error) {
       logger.error('audit log insert failed', {
@@ -114,8 +112,7 @@ export async function logAudit(input: LogAuditInput): Promise<void> {
  * AdminPage Audit Trail tab.
  */
 export async function listAuditEntries(limit = 100): Promise<AuditLogEntry[]> {
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const { data, error } = await (supabase.from('audit_log_safe' as any) as any)
+  const { data, error } = await fromTable('audit_log_safe')
     .select('*')
     .order('created_at', { ascending: false })
     .limit(limit);
@@ -135,8 +132,7 @@ export async function listAuditEntriesByAction(
   action: AuditAction,
   limit = 100
 ): Promise<AuditLogEntry[]> {
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const { data, error } = await (supabase.from('audit_log_safe' as any) as any)
+  const { data, error } = await fromTable('audit_log_safe')
     .select('*')
     .eq('action', action)
     .order('created_at', { ascending: false })

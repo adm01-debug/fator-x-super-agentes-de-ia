@@ -3,6 +3,7 @@
  * Enterprise Memory Layer: collections, graph, facts, health.
  */
 import { supabase } from '@/integrations/supabase/client';
+import { fromTable } from '@/lib/supabaseExtended';
 
 export async function getHealthScore() {
   const [docsResult, chunksResult, collectionsResult] = await Promise.all([
@@ -121,14 +122,12 @@ export async function getKnowledgeAreaStats(): Promise<Record<string, KnowledgeA
 
     try {
       // Count knowledge bases tagged with this domain
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const { count: kbCount } = await (supabase.from('knowledge_bases' as any) as any)
+      const { count: kbCount } = await fromTable('knowledge_bases')
         .select('*', { count: 'exact', head: true })
         .eq('domain', domain);
 
       // Count documents linked to KBs in this domain (best-effort)
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const { data: kbsInDomain } = await (supabase.from('knowledge_bases' as any) as any)
+      const { data: kbsInDomain } = await fromTable('knowledge_bases')
         .select('id')
         .eq('domain', domain);
 

@@ -291,7 +291,7 @@ export default function DashboardPage() {
 
           {/* Analytics Charts */}
           <div className="animate-chart-reveal">
-            <UsageCharts data={(usageData as any) ?? []} />
+            <UsageCharts data={usageData ?? []} />
           </div>
 
           <div className="grid lg:grid-cols-2 gap-3 sm:gap-4">

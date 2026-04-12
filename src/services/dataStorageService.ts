@@ -3,7 +3,7 @@
  * Aggregates real-time row counts across the main domain tables.
  * Used by DataStoragePage to show storage utilization at a glance.
  */
-import { supabase } from '@/integrations/supabase/client';
+import { fromTable } from '@/lib/supabaseExtended';
 import { logger } from '@/lib/logger';
 
 export interface DataStorageStats {
@@ -16,8 +16,7 @@ export interface DataStorageStats {
 }
 
 async function countTable(tableName: string): Promise<number> {
-  const { count, error } = await (supabase
-    .from(tableName as any) as any)
+  const { count, error } = await fromTable(tableName)
     .select('id', { count: 'exact', head: true });
   if (error) {
     logger.error(`Failed to count ${tableName}`, { error: error.message });

@@ -77,6 +77,7 @@ import {
   listSchedules,
   deleteSchedule,
   updateSchedule,
+  type ScheduleFrequency,
 } from '@/services/cronSchedulerService';
 import { AccessControl } from '@/components/rbac/AccessControl';
 
@@ -711,7 +712,7 @@ function WorkflowScheduler({ workflows }: { workflows: Array<Record<string, unkn
     try {
       await createSchedule({
         name: `Agendamento: ${String(wf?.name || 'Workflow')}`,
-        frequency: selCron as any,
+        frequency: selCron as ScheduleFrequency,
         cron_expression: cronInfo.cron,
         timezone: 'America/Sao_Paulo',
         target_type: 'workflow',
