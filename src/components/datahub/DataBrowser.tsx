@@ -70,6 +70,7 @@ export function DataBrowser({ entityId, onClose }: { entityId: string; onClose: 
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [bulkEditOpen, setBulkEditOpen] = useState(false);
   const [createOpen, setCreateOpen] = useState(false);
+  const [confirmDeleteOpen, setConfirmDeleteOpen] = useState(false);
 
   const fetchData = useCallback(async () => {
     setLoading(true);
@@ -176,7 +177,7 @@ export function DataBrowser({ entityId, onClose }: { entityId: string; onClose: 
   };
 
   const handleBulkDelete = async () => {
-    if (!confirm(`Tem certeza que deseja excluir ${selectedIds.size} registro(s)? Esta ação não pode ser desfeita.`)) return;
+    if (selectedIds.size === 0) return;
     try {
       let deleted = 0;
       for (const id of selectedIds) {
