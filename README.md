@@ -60,7 +60,43 @@ npm install
 npm run dev
 ```
 
-## Licença
+## Arquitetura
+
+```
+Frontend (React 18 + TypeScript + Vite + Tailwind)
+    │
+    ├── src/services/ ──→ Supabase Edge Functions (39 deployed)
+    │                        ├── llm-gateway (multi-provider LLM)
+    │                        ├── guardrails-ml (5-layer DeBERTa + toxic-bert)
+    │                        ├── nlp-pipeline (NER + sentiment PT-BR)
+    │                        ├── smart-model-router (complexity-based routing)
+    │                        ├── rag-embed-v2 / rag-rerank-v2
+    │                        ├── eval-engine-v2 (RAGAS metrics)
+    │                        └── +32 more (see docs/EDGE-FUNCTIONS.md)
+    │
+    ├── Supabase DB ──→ 75 tables, 8 views, 4 RPCs, pgvector, pg_trgm
+    │                    ├── RBAC: 5 roles, 32 permissions
+    │                    ├── RLS: 80 policies
+    │                    └── Seed: 13 HF models, 12 pricing patterns
+    │
+    └── OpenClaw VPS ──→ Qwen3-30B (HuggingFace free tier)
+                          └── Hostinger KVM 4 (187.77.151.129)
+```
+
+## Stack
+
+| Camada | Tecnologia |
+|---|---|
+| Frontend | React 18, TypeScript (strict), Vite, Tailwind CSS |
+| State | Zustand, TanStack Query |
+| Backend | Supabase Edge Functions (Deno) |
+| Database | PostgreSQL 17 + pgvector + pg_trgm |
+| Auth | Supabase Auth (JWT + RLS) |
+| AI/ML | HuggingFace Inference API, DeBERTa, toxic-bert |
+| CI/CD | GitHub Actions (lint + tsc + vitest + playwright) |
+| VPS | Hostinger KVM 4 + Docker + OpenClaw |
+
+## Licenca
 
 Proprietário — Promo Brindes © 2026
 
