@@ -9,7 +9,6 @@ import { Badge } from "@/components/ui/badge";
 import {
   Search, ChevronLeft, Loader2, Download, Filter, Plus,
   Users, Factory, Truck, Package, UserCheck, MessageCircle, Pencil,
-  Users, Factory, Truck, Package, UserCheck, MessageCircle, Pencil,
   FileJson, Keyboard, Trash2, Database,
 } from "lucide-react";
 import { DataBrowserFilters, type ActiveFilter } from "./DataBrowserFilters";
