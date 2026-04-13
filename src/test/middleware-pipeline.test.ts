@@ -209,7 +209,7 @@ describe('MiddlewarePipeline — execute', () => {
       enabled: true,
       priority: 1,
       fn: async (_ctx, next) => {
-        ctx.request._cachedResponse = cachedResp;
+        _ctx.request._cachedResponse = cachedResp;
         return next();
       },
     });
