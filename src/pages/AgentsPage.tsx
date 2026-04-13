@@ -1,13 +1,11 @@
 import { logger } from '@/lib/logger';
 import { PageHeader } from "@/components/shared/PageHeader";
-import { StatusBadge } from "@/components/shared/StatusBadge";
 import { QuickActionsBar } from "@/components/shared/QuickActionsBar";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Checkbox } from "@/components/ui/checkbox";
 import {
-  Bot, Plus, Search, Filter, ArrowRight, Loader2, BookOpen, GitBranch, Activity,
-  Star, Copy, Wand2, Download, Upload, Trash2, Archive, CheckSquare, X,
+  Bot, Plus, Search, Filter, BookOpen, GitBranch, Activity,
+  Download, Upload, Trash2, Archive, CheckSquare, X,
 } from "lucide-react";
 import { toast } from "sonner";
 import { useQueryClient } from "@tanstack/react-query";
@@ -23,6 +21,7 @@ import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from "@/components/ui/select";
 import { AccessControl, DangerousActionDialog } from "@/components/rbac";
+import { AgentCard } from "@/components/agents/AgentCard";
 
 type AgentRow = Tables<"agents">;
 
@@ -88,7 +87,6 @@ export default function AgentsPage() {
     }
   }, [queryClient]);
 
-  // ═══ Export ═══
   const handleExport = useCallback((e: React.MouseEvent, agent: AgentRow) => {
     e.stopPropagation();
     const json = exportAgentToJSON(agent);
@@ -97,7 +95,6 @@ export default function AgentsPage() {
     toast.success(`"${agent.name}" exportado com sucesso`);
   }, []);
 
-  // ═══ Import ═══
   const handleImport = useCallback(async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
@@ -114,7 +111,6 @@ export default function AgentsPage() {
     }
   }, [queryClient, navigate]);
 
-  // ═══ Selection ═══
   const toggleSelect = useCallback((e: React.MouseEvent, id: string) => {
     e.stopPropagation();
     setSelectedIds(prev => {
@@ -130,7 +126,6 @@ export default function AgentsPage() {
 
   const clearSelection = useCallback(() => setSelectedIds(new Set()), []);
 
-  // ═══ Bulk Actions ═══
   const handleBulkArchive = useCallback(async () => {
     setBulkLoading(true);
     try {
@@ -181,11 +176,6 @@ export default function AgentsPage() {
     return 0;
   });
 
-  const getConfig = (agent: AgentRow) => {
-    const config = agent.config as Record<string, unknown> | null;
-    return config ?? {};
-  };
-
   return (
     <div className="p-6 sm:p-8 lg:p-10 space-y-6 max-w-[1400px] mx-auto animate-page-enter">
       <PageHeader
@@ -218,9 +208,7 @@ export default function AgentsPage() {
           <CheckSquare className="h-4 w-4 text-primary" />
           <span className="text-sm font-medium text-foreground">{selectedIds.size} selecionado(s)</span>
           <div className="flex-1" />
-          <Button variant="outline" size="sm" className="gap-1.5 h-7 text-xs" onClick={selectAll}>
-            Selecionar todos
-          </Button>
+          <Button variant="outline" size="sm" className="gap-1.5 h-7 text-xs" onClick={selectAll}>Selecionar todos</Button>
           <Button variant="outline" size="sm" className="gap-1.5 h-7 text-xs" onClick={handleBulkExport} disabled={bulkLoading}>
             <Download className="h-3 w-3" /> Exportar
           </Button>
@@ -235,12 +223,7 @@ export default function AgentsPage() {
                 </Button>
               }
               title={`Excluir ${selectedIds.size} agente(s)`}
-              description={
-                <>
-                  <p>Esta ação é irreversível. Todos os dados, traces, deployments e configurações serão removidos permanentemente.</p>
-                  <p>Conversas e logs históricos ficarão órfãos.</p>
-                </>
-              }
+              description={<><p>Esta ação é irreversível.</p><p>Conversas e logs históricos ficarão órfãos.</p></>}
               action="bulk_delete"
               resourceType="agents"
               resourceName={`${selectedIds.size} agente(s)`}
@@ -248,9 +231,7 @@ export default function AgentsPage() {
               requirePassword={true}
               confirmLabel="Excluir Permanentemente"
               metadata={{ count: selectedIds.size, ids: Array.from(selectedIds) }}
-              onConfirm={async () => {
-                await handleBulkDelete();
-              }}
+              onConfirm={async () => { await handleBulkDelete(); }}
             />
           </AccessControl>
           <Button variant="ghost" size="icon" className="h-7 w-7" onClick={clearSelection}>
@@ -309,9 +290,7 @@ export default function AgentsPage() {
           </div>
           <h2 className="text-lg font-heading font-semibold text-foreground mb-1">Faça login para ver seus agentes</h2>
           <p className="text-sm text-muted-foreground mb-6 max-w-md">Seus agentes são salvos na nuvem e vinculados à sua conta.</p>
-          <Button onClick={() => navigate("/auth")} className="nexus-gradient-bg text-primary-foreground gap-2">
-            Entrar
-          </Button>
+          <Button onClick={() => navigate("/auth")} className="nexus-gradient-bg text-primary-foreground gap-2">Entrar</Button>
         </div>
       ) : sorted.length === 0 ? (
         <div className="flex flex-col items-center justify-center py-20 text-center animate-fade-in-up">
@@ -324,9 +303,7 @@ export default function AgentsPage() {
               </div>
               <h2 className="text-lg font-heading font-semibold text-foreground mb-1">Nenhum agente encontrado</h2>
               <p className="text-sm text-muted-foreground mb-4 max-w-sm">Tente ajustar os filtros ou o termo de busca.</p>
-              <Button variant="outline" size="sm" onClick={() => { setSearch(''); setStatusFilter('all'); }}>
-                Limpar filtros
-              </Button>
+              <Button variant="outline" size="sm" onClick={() => { setSearch(''); setStatusFilter('all'); }}>Limpar filtros</Button>
             </>
           ) : (
             <>
@@ -355,113 +332,24 @@ export default function AgentsPage() {
         </div>
       ) : (
         <div className="grid gap-5 md:grid-cols-2 lg:grid-cols-3 stagger-children">
-          {sorted.map((agent) => {
-            const config = getConfig(agent);
-            const isFav = favorites.includes(agent.id);
-            const isSelected = selectedIds.has(agent.id);
-            return (
-              <div
-                key={agent.id}
-                className={`nexus-card nexus-card-interactive cursor-pointer group relative overflow-hidden min-h-[180px] flex flex-col ${isSelected ? 'ring-2 ring-primary border-primary/40' : ''}`}
-                onClick={() => selectionMode ? toggleSelect({stopPropagation: () => {}} as React.MouseEvent, agent.id) : navigate(`/builder/${agent.id}`)}
-              >
-                {/* Selection checkbox */}
-                <div
-                  className={`absolute top-3 left-3 z-10 transition-opacity ${selectionMode || 'opacity-0 group-hover:opacity-100'}`}
-                  onClick={(e) => toggleSelect(e, agent.id)}
-                >
-                  <Checkbox checked={isSelected} className="h-4 w-4" />
-                </div>
-
-                <div className={`flex items-start justify-between mb-3 ${selectionMode ? 'ml-7' : ''}`}>
-                  <div className="flex items-center gap-3">
-                    <div className="relative">
-                      <div className="h-12 w-12 rounded-xl bg-gradient-to-br from-primary/15 to-accent/10 flex items-center justify-center text-xl shadow-sm group-hover:shadow-md transition-shadow">
-                        {agent.avatar_emoji || "🤖"}
-                      </div>
-                      <span
-                        className={`absolute -top-0.5 -right-0.5 h-2.5 w-2.5 rounded-full border-2 border-card ${
-                          agent.status === 'production' || agent.status === 'monitoring'
-                            ? 'bg-nexus-emerald animate-glow-pulse'
-                            : agent.status === 'deprecated' || agent.status === 'archived'
-                            ? 'bg-destructive'
-                            : agent.status === 'draft'
-                            ? 'bg-muted-foreground/40'
-                            : 'bg-nexus-amber'
-                        }`}
-                        aria-hidden="true"
-                      />
-                    </div>
-                    <div>
-                      <h3 className="text-sm font-bold text-foreground group-hover:text-primary transition-colors">{agent.name}</h3>
-                      <p className="text-[11px] text-muted-foreground">
-                        {(config as Record<string, unknown>).type as string || agent.persona} • {agent.model}
-                      </p>
-                    </div>
-                  </div>
-                  <div className="flex items-center gap-1.5">
-                    <button
-                      onClick={(e) => handleExport(e, agent)}
-                      className="h-7 w-7 rounded-md flex items-center justify-center text-muted-foreground/40 hover:text-nexus-cyan hover:bg-nexus-cyan/10 opacity-0 group-hover:opacity-100 transition-all"
-                      aria-label="Exportar agente"
-                      title="Exportar JSON"
-                    >
-                      <Download className="h-3.5 w-3.5" />
-                    </button>
-                    <button
-                      onClick={(e) => handleAutoTag(e, agent)}
-                      className="h-7 w-7 rounded-md flex items-center justify-center text-muted-foreground/40 hover:text-nexus-purple hover:bg-nexus-purple/10 opacity-0 group-hover:opacity-100 transition-all"
-                      aria-label="Auto-tag com IA"
-                      title="Auto-tag"
-                    >
-                      <Wand2 className="h-3.5 w-3.5" />
-                    </button>
-                    <button
-                      onClick={(e) => handleClone(e, agent)}
-                      className="h-7 w-7 rounded-md flex items-center justify-center text-muted-foreground/40 hover:text-muted-foreground hover:bg-secondary/50 opacity-0 group-hover:opacity-100 transition-all"
-                      aria-label="Clonar agente"
-                      disabled={cloning === agent.id}
-                    >
-                      {cloning === agent.id ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Copy className="h-3.5 w-3.5" />}
-                    </button>
-                    <button
-                      onClick={(e) => handleToggleFav(e, agent.id)}
-                      className={`h-7 w-7 rounded-md flex items-center justify-center transition-colors ${
-                        isFav 
-                          ? 'text-nexus-amber hover:bg-nexus-amber/10' 
-                          : 'text-muted-foreground/40 hover:text-muted-foreground hover:bg-secondary/50 opacity-0 group-hover:opacity-100'
-                      }`}
-                      aria-label={isFav ? 'Remover dos favoritos' : 'Adicionar aos favoritos'}
-                    >
-                      <Star className={`h-3.5 w-3.5 ${isFav ? 'fill-current' : ''}`} />
-                    </button>
-                    <StatusBadge status={agent.status || "draft"} />
-                  </div>
-                </div>
-                <p className="text-xs text-muted-foreground line-clamp-2 mb-3">
-                  {agent.mission || (config as Record<string, unknown>).description as string || "Sem descrição"}
-                </p>
-                <div className="flex gap-1.5 mt-1 flex-wrap">
-                  {(agent.tags ?? []).slice(0, 3).map(tag => (
-                    <span key={tag} className="nexus-badge-primary">{tag}</span>
-                  ))}
-                  {(agent.tags ?? []).length > 3 && (
-                    <span className="nexus-badge-muted">+{(agent.tags ?? []).length - 3}</span>
-                  )}
-                </div>
-                <div className="flex items-center justify-between mt-auto pt-3 border-t border-border/50">
-                  <p className="text-[11px] text-muted-foreground">
-                    v{agent.version} • {new Date(agent.updated_at).toLocaleDateString("pt-BR")}
-                  </p>
-                  <ArrowRight className="h-4 w-4 text-muted-foreground group-hover:text-primary group-hover:translate-x-0.5 transition-all" />
-                </div>
-              </div>
-            );
-          })}
+          {sorted.map((agent) => (
+            <AgentCard
+              key={agent.id}
+              agent={agent}
+              isFav={favorites.includes(agent.id)}
+              isSelected={selectedIds.has(agent.id)}
+              selectionMode={selectionMode}
+              cloning={cloning === agent.id}
+              onToggleFav={handleToggleFav}
+              onClone={handleClone}
+              onAutoTag={handleAutoTag}
+              onExport={handleExport}
+              onToggleSelect={toggleSelect}
+              onNavigate={() => navigate(`/builder/${agent.id}`)}
+            />
+          ))}
         </div>
       )}
-
-      {/* Delete confirmation handled inline via DangerousActionDialog */}
     </div>
   );
 }

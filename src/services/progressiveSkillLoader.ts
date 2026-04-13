@@ -18,9 +18,78 @@
 
 import { fromTable } from '@/lib/supabaseExtended';
 import { logger } from '@/lib/logger';
-import type { Skill, SkillCategory, SkillLoadResult, SkillMatchScore, SkillLoadOptions } from './types/progressiveSkillTypes';
 
-export type { Skill, SkillCategory, SkillLoadResult, SkillMatchScore, SkillLoadOptions } from './types/progressiveSkillTypes';
+// ──────── Types ────────
+
+export interface Skill {
+  id: string;
+  name: string;
+  description: string;
+  /** The actual skill content (system prompt addition, tool definition, etc.) */
+  content: string;
+  /** Estimated token count of the skill content */
+  tokenCount: number;
+  /** Keywords for matching */
+  keywords: string[];
+  /** Category for grouping */
+  category: SkillCategory;
+  /** Priority (1=lowest, 10=highest) */
+  priority: number;
+  /** IDs of skills this one depends on */
+  dependencies: string[];
+  /** Whether this skill is always loaded (core skills) */
+  alwaysLoad: boolean;
+  /** Timestamp of last use */
+  lastUsed?: string;
+  /** Number of times this skill has been used */
+  useCount: number;
+}
+
+export type SkillCategory =
+  | 'core'
+  | 'data'
+  | 'communication'
+  | 'analysis'
+  | 'automation'
+  | 'integration'
+  | 'creative'
+  | 'security'
+  | 'custom';
+
+export interface SkillLoadResult {
+  /** Skills that were loaded */
+  loaded: Skill[];
+  /** Skills that were skipped (over token budget) */
+  skipped: Skill[];
+  /** Total tokens used by loaded skills */
+  totalTokens: number;
+  /** Remaining token budget */
+  remainingBudget: number;
+  /** Loading strategy used */
+  strategy: 'exact' | 'semantic' | 'priority' | 'dependency';
+}
+
+export interface SkillMatchScore {
+  skill: Skill;
+  score: number;
+  matchedKeywords: string[];
+  matchReason: string;
+}
+
+export interface SkillLoadOptions {
+  /** Maximum tokens to allocate for skills */
+  tokenBudget?: number;
+  /** Force-include these skill IDs regardless of matching */
+  forceInclude?: string[];
+  /** Exclude these skill IDs */
+  exclude?: string[];
+  /** Only load skills from these categories */
+  categories?: SkillCategory[];
+  /** Minimum match score to include (0-1) */
+  minScore?: number;
+  /** Maximum number of skills to load */
+  maxSkills?: number;
+}
 
 // ──────── Skill Registry (In-Memory) ────────
 
