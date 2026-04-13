@@ -15,7 +15,7 @@
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 import { fromTable } from '@/lib/supabaseExtended';
 
-import type { HandoffReason, HandoffStatus, HandoffContext, HandoffRequest, HandoffRecord, HandoffRule, HandoffCondition } from './types/agentHandoffTypes';
+import type { HandoffContext, HandoffRequest, HandoffRecord, HandoffRule, HandoffCondition } from './types/agentHandoffTypes';
 
 export type { HandoffReason, HandoffStatus, HandoffContext, HandoffRequest, HandoffRecord, HandoffRule, HandoffCondition } from './types/agentHandoffTypes';
 

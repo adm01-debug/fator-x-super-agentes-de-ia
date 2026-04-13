@@ -87,4 +87,8 @@ export interface HandoffCondition {
   threshold?: number;
   cronExpression?: string;
   customFn?: string;
+  field?: string;
+  operator?: 'gt' | 'lt' | 'eq' | 'gte' | 'lte' | 'contains';
+  value?: string | number;
+  expression?: string;
 }
