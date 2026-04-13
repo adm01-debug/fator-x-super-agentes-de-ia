@@ -127,7 +127,7 @@ export async function listAgentsForSelect() {
 }
 
 export type { TestCase, EvalResult, CLEARScore } from './types/evaluationsTypes';
-import type { EvalResult, CLEARScore } from './types/evaluationsTypes';
+import type { TestCase, EvalResult, CLEARScore } from './types/evaluationsTypes';
 
 /**
  * Deterministic scoring — checks structural/content correctness.
