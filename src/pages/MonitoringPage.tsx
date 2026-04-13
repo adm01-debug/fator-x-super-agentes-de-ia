@@ -3,7 +3,7 @@ import { StatusBadge } from "@/components/shared/StatusBadge";
 import { SystemHealthBanner } from "@/components/shared/SystemHealthBanner";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Clock, DollarSign, Wrench, Activity, Loader2, Bell, CheckCircle, Layers, Zap, ChevronDown, ChevronRight } from "lucide-react";
+import { Clock, DollarSign, Wrench, Activity, Loader2, Bell, CheckCircle, Layers, Zap } from "lucide-react";
 import { useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { LightBarChart, LightPieChart } from "@/components/charts";
@@ -83,7 +83,7 @@ export default function MonitoringPage() {
                       <div className="flex items-center gap-3 mt-2 text-[11px] text-muted-foreground">
                         {trace.latency_ms && <span className="flex items-center gap-1"><Clock className="h-3 w-3" /> {(trace.latency_ms / 1000).toFixed(1)}s</span>}
                         {trace.cost_usd != null && <span className="flex items-center gap-1"><DollarSign className="h-3 w-3" /> ${Number(trace.cost_usd).toFixed(3)}</span>}
-                        {trace.tokens_used && <span className="flex items-center gap-1"><Wrench className="h-3 w-3" /> {trace.tokens_used}</span>}
+                        {trace.tokens_used && <span className="flex items-center gap-1"><Wrench className="h-3 w-3" /> {String(trace.tokens_used)}</span>}
                       </div>
                     </div>
                   ))}

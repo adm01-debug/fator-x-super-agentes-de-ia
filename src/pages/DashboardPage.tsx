@@ -1,4 +1,4 @@
-import { useEffect } from "react";
+
 import { PageHeader } from "@/components/shared/PageHeader";
 import { StatusBadge } from "@/components/shared/StatusBadge";
 import { InfoHint } from "@/components/shared/InfoHint";
@@ -9,7 +9,7 @@ import { Bot, Plus, ArrowRight, TrendingUp, DollarSign, Clock, Zap, Sparkles, Bo
 import { useAuth } from "@/contexts/AuthContext";
 import { useNavigate } from "react-router-dom";
 import { useState } from "react";
-import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { useQuery } from "@tanstack/react-query";
 import { listAgentsForDashboard, getUsageInRange, getRecentDashboardTraces } from "@/services/dashboardService";
 import { UsageCharts } from "@/components/dashboard/UsageCharts";
 import { ActivityFeed } from "@/components/dashboard/ActivityFeed";
