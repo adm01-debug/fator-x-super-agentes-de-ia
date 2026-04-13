@@ -17,75 +17,8 @@ import { logger } from '@/lib/logger';
  * - PII redaction
  */
 
-// ──────── Types ────────
-
-export interface LLMRequest {
-  id: string;
-  provider: string;
-  model: string;
-  messages: Array<{
-    role: 'system' | 'user' | 'assistant';
-    content: string;
-  }>;
-  temperature?: number;
-  maxTokens?: number;
-  tools?: Array<Record<string, unknown>>;
-  metadata?: Record<string, unknown>;
-  /** Internal: set by middleware */
-  _startTime?: number;
-  _cachedResponse?: LLMResponse;
-  _skipExecution?: boolean;
-  _retryCount?: number;
-}
-
-export interface LLMResponse {
-  id: string;
-  requestId: string;
-  content: string;
-  role: 'assistant';
-  provider: string;
-  model: string;
-  inputTokens: number;
-  outputTokens: number;
-  totalTokens: number;
-  costUsd: number;
-  durationMs: number;
-  finishReason: 'stop' | 'length' | 'tool_calls' | 'error';
-  toolCalls?: Array<Record<string, unknown>>;
-  metadata?: Record<string, unknown>;
-  /** Internal: set by middleware */
-  _cached?: boolean;
-  _filtered?: boolean;
-  _retried?: boolean;
-}
-
-export interface MiddlewareContext {
-  request: LLMRequest;
-  response?: LLMResponse;
-  error?: Error;
-  aborted: boolean;
-  metadata: Record<string, unknown>;
-  /** Set by middleware to skip remaining pre-middlewares */
-  skipRemaining: boolean;
-}
-
-/**
- * A middleware function that can process requests before and after LLM execution.
- * Returns a modified context or throws to abort the pipeline.
- */
-export type MiddlewareFn = (
-  ctx: MiddlewareContext,
-  next: () => Promise<MiddlewareContext>
-) => Promise<MiddlewareContext>;
-
-export interface MiddlewareConfig {
-  name: string;
-  description: string;
-  enabled: boolean;
-  priority: number;  // Lower = runs first
-  fn: MiddlewareFn;
-  options?: Record<string, unknown>;
-}
+export type { LLMRequest, LLMResponse, MiddlewareContext, MiddlewareFn, MiddlewareConfig } from './types/middlewarePipelineTypes';
+import type { LLMRequest, LLMResponse, MiddlewareContext, MiddlewareConfig } from './types/middlewarePipelineTypes';
 
 // ──────── Pipeline Class ────────
 

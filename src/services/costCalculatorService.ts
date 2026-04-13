@@ -12,75 +12,8 @@
  */
 
 
-// ──────── Types ────────
-
-export interface ModelPricing {
-  provider: string;
-  model: string;
-  inputPricePerMToken: number;   // USD per 1M input tokens
-  outputPricePerMToken: number;  // USD per 1M output tokens
-  cachePricePerMToken?: number;  // USD per 1M cached tokens (if supported)
-  imagePricePerUnit?: number;    // USD per image
-  audioPricePerMinute?: number;  // USD per minute of audio
-  lastUpdated: string;
-}
-
-export interface CostEstimate {
-  provider: string;
-  model: string;
-  estimatedInputTokens: number;
-  estimatedOutputTokens: number;
-  inputCostUsd: number;
-  outputCostUsd: number;
-  totalCostUsd: number;
-  totalCostBrl: number;
-  confidence: 'low' | 'medium' | 'high';
-  breakdown?: CostBreakdownItem[];
-}
-
-export interface CostBreakdownItem {
-  label: string;
-  nodeId?: string;
-  nodeType?: string;
-  inputTokens: number;
-  outputTokens: number;
-  costUsd: number;
-  provider: string;
-  model: string;
-}
-
-export interface ActualCost {
-  inputTokens: number;
-  outputTokens: number;
-  totalTokens: number;
-  inputCostUsd: number;
-  outputCostUsd: number;
-  totalCostUsd: number;
-  totalCostBrl: number;
-  durationMs: number;
-  provider: string;
-  model: string;
-  timestamp: string;
-}
-
-export interface BudgetConfig {
-  maxCostPerRequestUsd: number;
-  maxCostPerDayUsd: number;
-  maxCostPerMonthUsd: number;
-  alertThresholdPercent: number;  // Alert when usage exceeds this % of budget
-}
-
-export interface BudgetStatus {
-  dailySpentUsd: number;
-  monthlySpentUsd: number;
-  dailyBudgetUsd: number;
-  monthlyBudgetUsd: number;
-  dailyPercent: number;
-  monthlyPercent: number;
-  isOverDailyBudget: boolean;
-  isOverMonthlyBudget: boolean;
-  shouldAlert: boolean;
-}
+export type { ModelPricing, CostEstimate, CostBreakdownItem, ActualCost, BudgetConfig, BudgetStatus } from './types/costCalculatorTypes';
+import type { ModelPricing, CostEstimate, CostBreakdownItem, ActualCost, BudgetConfig, BudgetStatus } from './types/costCalculatorTypes';
 
 // ──────── Pricing Database (updated April 2026) ────────
 

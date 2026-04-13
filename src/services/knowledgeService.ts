@@ -144,18 +144,8 @@ export async function getChunkEmbeddingStats() {
   return { done: done.count ?? 0, pending: pending.count ?? 0, failed: failed.count ?? 0 };
 }
 
-export interface RerankResult {
-  chunk: Record<string, unknown>;
-  relevance_score: number;
-}
-
-export interface RerankResponse {
-  reranked: RerankResult[];
-  method: string;
-  query: string;
-  total_input: number;
-  top_k: number;
-}
+export type { RerankResult, RerankResponse, DocOcrAction, DocOcrOptions, DocOcrResult } from './types/knowledgeTypes';
+import type { RerankResponse, DocOcrOptions, DocOcrResult } from './types/knowledgeTypes';
 
 /**
  * Rerank chunks using the rag-rerank edge function.
@@ -389,21 +379,6 @@ export async function updateKBCounts(kbId: string, docCount: number, chunkCount:
 // Document OCR (doc-ocr Edge Function)
 // ─────────────────────────────────────────────
 
-export type DocOcrAction = 'ocr' | 'describe' | 'extract_table' | 'extract_fields';
-
-export interface DocOcrOptions {
-  action?: DocOcrAction;
-  imageBase64?: string;
-  imageUrl?: string;
-  prompt?: string;
-  fields?: string[];
-}
-
-export interface DocOcrResult {
-  text: string;
-  action: DocOcrAction;
-  model: string;
-}
 
 /**
  * Invokes the doc-ocr Edge Function (IBM Granite Vision 3.3-2b).
