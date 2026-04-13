@@ -1,15 +1,14 @@
 import { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
-import { Badge } from '@/components/ui/badge';
 import { Switch } from '@/components/ui/switch';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { InfoHint } from '@/components/shared/InfoHint';
-import { Plus, Clock, Calendar, Trash2, Loader2 } from 'lucide-react';
+import { Plus, Clock, Calendar, Trash2 } from 'lucide-react';
 import { toast } from 'sonner';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import {
-  createSchedule, listSchedules, deleteSchedule, updateSchedule, type ScheduleFrequency,
+  createSchedule, listSchedules, deleteSchedule, updateSchedule, type ScheduleFrequency, type CronSchedule,
 } from '@/services/cronSchedulerService';
 
 interface WorkflowSchedulerTabProps {
@@ -127,7 +126,7 @@ export function WorkflowSchedulerTab({ workflows }: WorkflowSchedulerTabProps) {
 
       {schedules.length > 0 && (
         <div className="space-y-2">
-          {schedules.map((s: Record<string, unknown>) => {
+          {schedules.map((s: CronSchedule) => {
             const isActive = s.status === 'active';
             const wf = workflows.find((w) => w.id === String(s.target_id));
             const nextRun = s.next_run_at ? new Date(String(s.next_run_at)).toLocaleString('pt-BR') : '—';
