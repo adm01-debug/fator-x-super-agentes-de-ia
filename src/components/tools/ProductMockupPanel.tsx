@@ -1,5 +1,4 @@
-import { useState } from "react";
-import { Loader2, Sparkles, Maximize2, Eraser, Scissors, Download, Upload, Image as ImageIcon } from "lucide-react";
+import { Sparkles, Maximize2, Eraser, Scissors, Image as ImageIcon } from "lucide-react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { MockupTab } from "./mockup/MockupTab";
 import { UpscaleTab } from "./mockup/UpscaleTab";
