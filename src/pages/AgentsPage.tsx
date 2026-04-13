@@ -192,7 +192,6 @@ export default function AgentsPage() {
                 <Plus className="h-4 w-4" /> Criar agente
               </Button>
             </AccessControl>
-            </AccessControl>
           </div>
         }
       />
