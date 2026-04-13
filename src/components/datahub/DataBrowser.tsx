@@ -9,18 +9,18 @@ import { Badge } from "@/components/ui/badge";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import {
-  Search, ChevronLeft, ChevronRight, Loader2, Eye, Database,
-  ArrowUpDown, ArrowUp, ArrowDown, Download, Filter, X, Plus,
+  Search, ChevronLeft, Loader2, Download, Filter, X, Plus,
   Users, Factory, Truck, Package, UserCheck, MessageCircle, Pencil,
-  FileJson, ChevronsLeft, ChevronsRight, Keyboard, Trash2,
+  FileJson, Keyboard, Trash2, Database,
 } from "lucide-react";
+import { DataBrowserTable } from "./DataBrowserTable";
+import { DataBrowserPagination } from "./DataBrowserPagination";
 import { ENTITY_MAPPINGS } from "@/config/datahub-entities";
 import {
   ENTITY_DISPLAY_COLUMNS, ENTITY_FILTER_OPTIONS,
   exportToCSV, exportToJSON,
 } from "@/config/datahub-columns";
 import { RecordDetail } from "./RecordDetail";
-import { InlineEditCell } from "./InlineEditCell";
 import { BulkEditDialog } from "./BulkEditDialog";
 import { CreateRecordDialog } from "./CreateRecordDialog";
 import { supabase } from "@/integrations/supabase/client";
@@ -37,8 +37,6 @@ const ENTITY_ICONS: Record<string, React.ElementType> = {
   cliente: Users, fornecedor: Factory, transportadora: Truck,
   produto: Package, colaborador: UserCheck, conversa_whatsapp: MessageCircle,
 };
-
-const PAGE_SIZE_OPTIONS = [25, 50, 100] as const;
 
 interface ActiveFilter {
   column: string;
@@ -396,117 +394,31 @@ export function DataBrowser({ entityId, onClose }: { entityId: string; onClose: 
         <div className="flex items-center justify-center py-12"><Loader2 className="h-6 w-6 animate-spin text-muted-foreground" /></div>
       ) : (
         <>
-          <div className="rounded-lg border border-border overflow-hidden">
-            <div className="overflow-x-auto max-h-[500px]">
-              <table className="w-full text-xs">
-                <thead className="bg-secondary/50 sticky top-0 z-10">
-                  <tr>
-                    <th className="p-2 w-[36px]">
-                      <Checkbox
-                        checked={allSelected}
-                        onCheckedChange={toggleSelectAll}
-                        aria-label="Selecionar todos"
-                      />
-                    </th>
-                    {columns.map(col => (
-                      <th
-                        key={col.key}
-                        className={`text-left p-2 font-medium text-muted-foreground select-none ${col.width ?? ''} ${col.sortable ? 'cursor-pointer hover:text-foreground' : ''}`}
-                        onClick={() => col.sortable && handleSort(col.key)}
-                      >
-                        <div className="flex items-center gap-1">
-                          {col.label}
-                          {col.sortable && (
-                            sortColumn === col.key ? (
-                              sortDirection === 'asc'
-                                ? <ArrowUp className="h-3 w-3 text-primary" />
-                                : <ArrowDown className="h-3 w-3 text-primary" />
-                            ) : <ArrowUpDown className="h-3 w-3 text-muted-foreground/40" />
-                          )}
-                        </div>
-                      </th>
-                    ))}
-                    <th className="text-left p-2 font-medium text-muted-foreground w-[60px]">Ações</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {data.map((row, i) => (
-                    <tr
-                      key={row.id ?? i}
-                      className={`border-t border-border/30 hover:bg-secondary/20 transition-colors ${
-                        selectedIds.has(row.id) ? 'bg-primary/5' : ''
-                      }`}
-                    >
-                      <td className="p-2">
-                        <Checkbox
-                          checked={selectedIds.has(row.id)}
-                          onCheckedChange={() => toggleSelect(row.id)}
-                          aria-label={`Selecionar ${row[displayCol] || row.id}`}
-                        />
-                      </td>
-                      {columns.map(col => (
-                        <td key={col.key} className={`p-2 ${col.width ?? ''}`}>
-                          <InlineEditCell
-                            row={row}
-                            col={col}
-                            entityId={entityId}
-                            onUpdate={handleInlineUpdate}
-                          />
-                        </td>
-                      ))}
-                      <td className="p-2">
-                        <Button size="sm" variant="ghost" className="h-6 text-[11px] gap-1" onClick={() => fetchRecord(row.id)}>
-                          <Eye className="h-3 w-3" /> Ver
-                        </Button>
-                      </td>
-                    </tr>
-                  ))}
-                  {data.length === 0 && (
-                    <tr><td colSpan={columns.length + 2} className="p-8 text-center text-muted-foreground">Nenhum registro encontrado</td></tr>
-                  )}
-                </tbody>
-              </table>
-            </div>
-          </div>
+          <DataBrowserTable
+            data={data}
+            columns={columns}
+            displayCol={displayCol}
+            selectedIds={selectedIds}
+            allSelected={allSelected}
+            sortColumn={sortColumn}
+            sortDirection={sortDirection}
+            entityId={entityId}
+            onToggleSelectAll={toggleSelectAll}
+            onToggleSelect={toggleSelect}
+            onSort={handleSort}
+            onInlineUpdate={handleInlineUpdate}
+            onViewRecord={fetchRecord}
+          />
 
-          {/* Pagination */}
-          <div className="flex items-center justify-between flex-wrap gap-2">
-            <div className="flex items-center gap-3">
-              <p className="text-[11px] text-muted-foreground">
-                Mostrando {data.length > 0 ? page * pageSize + 1 : 0}–{Math.min((page + 1) * pageSize, total)} de {total.toLocaleString()}
-              </p>
-              <div className="flex items-center gap-1.5">
-                <span className="text-[11px] text-muted-foreground">Por página:</span>
-                <Select value={String(pageSize)} onValueChange={v => setPageSize(Number(v))}>
-                  <SelectTrigger className="h-7 w-[65px] text-[11px]">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {PAGE_SIZE_OPTIONS.map(size => (
-                      <SelectItem key={size} value={String(size)}>{size}</SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-            </div>
-            <div className="flex items-center gap-1">
-              <Button size="sm" variant="outline" className="h-7 w-7 p-0" disabled={page === 0} onClick={() => setPage(0)}>
-                <ChevronsLeft className="h-3.5 w-3.5" />
-              </Button>
-              <Button size="sm" variant="outline" className="h-7 w-7 p-0" disabled={page === 0} onClick={() => setPage(p => p - 1)}>
-                <ChevronLeft className="h-3.5 w-3.5" />
-              </Button>
-              <span className="text-[11px] text-muted-foreground px-2 min-w-[60px] text-center">
-                {page + 1} / {totalPages || 1}
-              </span>
-              <Button size="sm" variant="outline" className="h-7 w-7 p-0" disabled={page >= totalPages - 1} onClick={() => setPage(p => p + 1)}>
-                <ChevronRight className="h-3.5 w-3.5" />
-              </Button>
-              <Button size="sm" variant="outline" className="h-7 w-7 p-0" disabled={page >= totalPages - 1} onClick={() => setPage(totalPages - 1)}>
-                <ChevronsRight className="h-3.5 w-3.5" />
-              </Button>
-            </div>
-          </div>
+          <DataBrowserPagination
+            page={page}
+            pageSize={pageSize}
+            total={total}
+            totalPages={totalPages}
+            dataLength={data.length}
+            onPageChange={setPage}
+            onPageSizeChange={setPageSize}
+          />
         </>
       )}
 
