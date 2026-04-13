@@ -56,7 +56,7 @@ export function RecordDetail({ record, enrichedData, entityId, onClose, onRecord
       <div className="flex items-center justify-between">
         <h4 className="text-sm font-semibold text-foreground flex items-center gap-2">
           📋 {String(currentRecord[displayCol] || 'Registro')}
-          {currentRecord.id && <span className="text-[11px] font-mono text-muted-foreground">#{String(currentRecord.id).slice(0, 8)}</span>}
+          {currentRecord.id ? <span className="text-[11px] font-mono text-muted-foreground">#{String(currentRecord.id).slice(0, 8)}</span> : null}
         </h4>
         <div className="flex items-center gap-2">
           <Badge variant="outline" className="text-[11px] gap-1 text-primary border-primary/30"><Pencil className="h-3 w-3" /> Clique para editar</Badge>
@@ -72,7 +72,7 @@ export function RecordDetail({ record, enrichedData, entityId, onClose, onRecord
               editable={isEditable(key)} onSave={(newValue) => handleFieldSave(key, newValue)} />
           ))}
         </div>
-        {currentRecord.created_at && (
+        {currentRecord.created_at ? (
           <p className="text-[11px] text-muted-foreground mt-2 border-t border-border/10 pt-1">
             Criado: {formatDate(String(currentRecord.created_at))} · Atualizado: {formatDate(String(currentRecord.updated_at))}
           </p>
