@@ -274,7 +274,7 @@ export function GroupMembers({ entityId, grupoId, excludeId }: { entityId: strin
         {members.map((m, i) => (
           <div key={i} className="flex items-center justify-between py-1 text-[11px]">
             <span className="text-foreground">{String(m[displayCol] || m.id)}</span>
-            {m.cnpj && <span className="text-muted-foreground font-mono">{formatCNPJ(String(m.cnpj))}</span>}
+            {m.cnpj ? <span className="text-muted-foreground font-mono">{formatCNPJ(String(m.cnpj))}</span> : null}
           </div>
         ))}
       </div>
