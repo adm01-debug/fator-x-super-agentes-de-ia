@@ -3,118 +3,50 @@ import { StatusBadge } from "@/components/shared/StatusBadge";
 import { SystemHealthBanner } from "@/components/shared/SystemHealthBanner";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Clock, DollarSign, Wrench, Activity, Loader2, Bell, CheckCircle, Trash2, Layers, Zap, ChevronDown, ChevronRight } from "lucide-react";
+import { Clock, DollarSign, Wrench, Activity, Loader2, Bell, CheckCircle, Layers, Zap } from "lucide-react";
 import { useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { alertRuleSchema } from "@/lib/validations/agentSchema";
 import { LightBarChart, LightPieChart } from "@/components/charts";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { toast } from "sonner";
-import { getAgentTraces, getSessions, getSessionTraces, getTraceEvents, getAlerts, resolveAlert, getAgentsForFilter, listAlertRules, createAlertRule, deleteAlertRule, toggleAlertRule } from "@/services/monitoringService";
-import { SpanTreeView, type SpanLike } from "@/components/monitoring/SpanTreeView";
-
+import { getAgentTraces, getSessions, getSessionTraces, getTraceEvents, getAlerts, resolveAlert, getAgentsForFilter } from "@/services/monitoringService";
+import { TracingPanel } from "@/components/monitoring/TracingPanel";
+import { AlertRulesPanel } from "@/components/monitoring/AlertRulesPanel";
 
 const PIE_COLORS = ['hsl(var(--primary))', 'hsl(var(--nexus-emerald, 142 71% 45%))', 'hsl(var(--nexus-amber, 38 92% 50%))', 'hsl(var(--nexus-cyan, 190 90% 50%))', 'hsl(var(--destructive))'];
-const PIE_COLOR_ARRAY = PIE_COLORS;
 
 export default function MonitoringPage() {
   const queryClient = useQueryClient();
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [agentFilter, setAgentFilter] = useState<string>('all');
-
-  // Load agents for filter
-  const { data: agentsList = [] } = useQuery({
-    queryKey: ['agents_list_monitoring'],
-    queryFn: getAgentsForFilter,
-  });
-
-  const { data: traces = [], isLoading } = useQuery({
-    queryKey: ['agent_traces', agentFilter],
-    queryFn: () => getAgentTraces({ agentId: agentFilter !== 'all' ? agentFilter : undefined }),
-  });
-
-  // ═══ Real sessions from sessions table ═══
-  const { data: sessions = [], isLoading: loadingSessions } = useQuery({
-    queryKey: ['sessions_real', agentFilter],
-    queryFn: () => getSessions({ agentId: agentFilter !== 'all' ? agentFilter : undefined }),
-  });
-
-  // ═══ Session traces for expanded session ═══
+  const { data: agentsList = [] } = useQuery({ queryKey: ['agents_list_monitoring'], queryFn: getAgentsForFilter });
+  const { data: traces = [], isLoading } = useQuery({ queryKey: ['agent_traces', agentFilter], queryFn: () => getAgentTraces({ agentId: agentFilter !== 'all' ? agentFilter : undefined }) });
+  const { data: sessions = [], isLoading: loadingSessions } = useQuery({ queryKey: ['sessions_real', agentFilter], queryFn: () => getSessions({ agentId: agentFilter !== 'all' ? agentFilter : undefined }) });
   const [expandedSessionId, setExpandedSessionId] = useState<string | null>(null);
-  const { data: sessionTraces = [] } = useQuery({
-    queryKey: ['session_traces', expandedSessionId],
-    enabled: !!expandedSessionId,
-    queryFn: () => expandedSessionId ? getSessionTraces(expandedSessionId) : Promise.resolve([]),
-  });
-
-  // ═══ Trace events for expanded session trace ═══
+  const { data: sessionTraces = [] } = useQuery({ queryKey: ['session_traces', expandedSessionId], enabled: !!expandedSessionId, queryFn: () => expandedSessionId ? getSessionTraces(expandedSessionId) : Promise.resolve([]) });
   const [expandedTraceId, setExpandedTraceId] = useState<string | null>(null);
-  const { data: traceEvents = [] } = useQuery({
-    queryKey: ['trace_events', expandedTraceId],
-    enabled: !!expandedTraceId,
-    queryFn: () => expandedTraceId ? getTraceEvents(expandedTraceId) : Promise.resolve([]),
-  });
-
-  // Alerts
-  const { data: alerts = [], isLoading: loadingAlerts } = useQuery({
-    queryKey: ['alerts'],
-    queryFn: () => getAlerts({}),
-  });
+  const { data: traceEvents = [] } = useQuery({ queryKey: ['trace_events', expandedTraceId], enabled: !!expandedTraceId, queryFn: () => expandedTraceId ? getTraceEvents(expandedTraceId) : Promise.resolve([]) });
+  const { data: alerts = [], isLoading: loadingAlerts } = useQuery({ queryKey: ['alerts'], queryFn: () => getAlerts({}) });
 
   const selected = traces.find(t => t.id === selectedId) || traces[0];
-
-  const stats = {
-    total: traces.length,
-    errors: traces.filter(t => t.level === 'error' || t.level === 'critical').length,
-    avgLatency: traces.length ? Math.round(traces.reduce((s, t) => s + (t.latency_ms || 0), 0) / traces.length) : 0,
-    totalCost: traces.reduce((s, t) => s + Number(t.cost_usd || 0), 0),
-  };
-
-  const levelCounts = traces.reduce((acc, t) => {
-    const level = t.level || 'info';
-    acc[level] = (acc[level] || 0) + 1;
-    return acc;
-  }, {} as Record<string, number>);
+  const stats = { total: traces.length, errors: traces.filter(t => t.level === 'error' || t.level === 'critical').length, avgLatency: traces.length ? Math.round(traces.reduce((s, t) => s + (t.latency_ms || 0), 0) / traces.length) : 0, totalCost: traces.reduce((s, t) => s + Number(t.cost_usd || 0), 0) };
+  const levelCounts = traces.reduce((acc, t) => { const level = t.level || 'info'; acc[level] = (acc[level] || 0) + 1; return acc; }, {} as Record<string, number>);
   const pieData = Object.entries(levelCounts).map(([name, value]) => ({ name, value }));
-
-  const latencyData = traces.slice(0, 20).reverse().map(t => ({
-    time: new Date(t.created_at).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' }),
-    latency: t.latency_ms || 0,
-  }));
-
-  const handleResolveAlert = async (id: string) => {
-    try {
-      await resolveAlert(id);
-      toast.success('Alerta resolvido');
-      queryClient.invalidateQueries({ queryKey: ['alerts'] });
-    } catch (e: unknown) {
-      toast.error(e instanceof Error ? e.message : 'Erro inesperado');
-    }
-  };
-
+  const latencyData = traces.slice(0, 20).reverse().map(t => ({ time: new Date(t.created_at).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' }), latency: t.latency_ms || 0 }));
   const unresolvedCount = alerts.filter(a => !a.is_resolved).length;
+  const agentName = (id: string | null) => { if (!id) return '—'; const a = agentsList.find((ag) => ag.id === id); return a ? a.name : id.substring(0, 8); };
 
-  const agentName = (id: string | null) => {
-    if (!id) return '—';
-    const a = agentsList.find((ag) => ag.id === id);
-    return a ? a.name : id.substring(0, 8);
-  };
+  const handleResolveAlert = async (id: string) => { try { await resolveAlert(id); toast.success('Alerta resolvido'); queryClient.invalidateQueries({ queryKey: ['alerts'] }); } catch (e: unknown) { toast.error(e instanceof Error ? e.message : 'Erro inesperado'); } };
 
   return (
     <div className="p-6 sm:p-8 lg:p-10 space-y-6 max-w-[1400px] mx-auto animate-page-enter">
       <PageHeader title="Monitoramento" description="Traces, sessões, alertas e observabilidade em tempo real" />
-
       <SystemHealthBanner />
-
-      {/* Agent filter */}
       <div className="flex items-center gap-3">
         <Select value={agentFilter} onValueChange={setAgentFilter}>
           <SelectTrigger className="w-[220px] bg-secondary/50 text-xs"><SelectValue placeholder="Filtrar por agente" /></SelectTrigger>
-          <SelectContent>
-            <SelectItem value="all">Todos os agentes</SelectItem>
-            {agentsList.map((a) => <SelectItem key={a.id} value={String(a.id)}>{String(a.name)}</SelectItem>)}
-          </SelectContent>
+          <SelectContent><SelectItem value="all">Todos os agentes</SelectItem>{agentsList.map((a) => <SelectItem key={a.id} value={String(a.id)}>{String(a.name)}</SelectItem>)}</SelectContent>
         </Select>
         {agentFilter !== 'all' && <Badge variant="outline" className="text-[11px]">Filtrado</Badge>}
       </div>
@@ -122,98 +54,50 @@ export default function MonitoringPage() {
       <Tabs defaultValue="traces" className="space-y-4">
         <TabsList>
           <TabsTrigger value="traces">Traces</TabsTrigger>
-          <TabsTrigger value="sessions" className="gap-1.5">
-            <Layers className="h-3.5 w-3.5" /> Sessões
-            {sessions.length > 0 && <Badge variant="secondary" className="text-[11px] h-4 px-1 ml-1">{sessions.length}</Badge>}
-          </TabsTrigger>
-          <TabsTrigger value="alerts" className="gap-1.5">
-            Alertas {unresolvedCount > 0 && <Badge variant="destructive" className="text-[11px] h-4 px-1">{unresolvedCount}</Badge>}
-          </TabsTrigger>
+          <TabsTrigger value="sessions" className="gap-1.5"><Layers className="h-3.5 w-3.5" /> Sessões {sessions.length > 0 && <Badge variant="secondary" className="text-[11px] h-4 px-1 ml-1">{sessions.length}</Badge>}</TabsTrigger>
+          <TabsTrigger value="alerts" className="gap-1.5">Alertas {unresolvedCount > 0 && <Badge variant="destructive" className="text-[11px] h-4 px-1">{unresolvedCount}</Badge>}</TabsTrigger>
           <TabsTrigger value="tracing" className="gap-1.5"><Zap className="h-3.5 w-3.5" /> Tracing</TabsTrigger>
         </TabsList>
 
         <TabsContent value="traces">
-          {isLoading ? (
-            <div className="flex items-center justify-center py-20"><Loader2 className="h-6 w-6 animate-spin text-muted-foreground" /></div>
-          ) : traces.length === 0 ? (
-            <div className="flex flex-col items-center justify-center py-20 text-center">
-              <Activity className="h-12 w-12 text-muted-foreground mb-4" />
-              <h2 className="text-lg font-semibold text-foreground mb-1">Nenhum trace registrado</h2>
-              <p className="text-sm text-muted-foreground">Traces aparecerão aqui quando agentes estiverem em produção.</p>
-            </div>
-          ) : (
-            <>
+          {isLoading ? <div className="flex items-center justify-center py-20"><Loader2 className="h-6 w-6 animate-spin text-muted-foreground" /></div>
+          : traces.length === 0 ? <div className="flex flex-col items-center justify-center py-20 text-center"><Activity className="h-12 w-12 text-muted-foreground mb-4" /><h2 className="text-lg font-semibold text-foreground mb-1">Nenhum trace registrado</h2><p className="text-sm text-muted-foreground">Traces aparecerão aqui quando agentes estiverem em produção.</p></div>
+          : <>
               <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
                 <div className="nexus-card text-center py-3"><p className="text-xl font-heading font-bold text-foreground">{stats.total}</p><p className="text-[11px] text-muted-foreground">Total de traces</p></div>
                 <div className="nexus-card text-center py-3"><p className="text-xl font-heading font-bold text-destructive">{stats.errors}</p><p className="text-[11px] text-muted-foreground">Erros</p></div>
                 <div className="nexus-card text-center py-3"><p className="text-xl font-heading font-bold text-foreground">{stats.avgLatency}ms</p><p className="text-[11px] text-muted-foreground">Latência média</p></div>
                 <div className="nexus-card text-center py-3"><p className="text-xl font-heading font-bold text-foreground">${stats.totalCost.toFixed(3)}</p><p className="text-[11px] text-muted-foreground">Custo total</p></div>
               </div>
-
               <div className="grid lg:grid-cols-2 gap-4">
-                <div className="nexus-card">
-                  <h3 className="text-sm font-heading font-semibold text-foreground mb-3">Latência por evento</h3>
-                  <LightBarChart
-                    data={latencyData}
-                    xKey="time"
-                    height={180}
-                    yFormatter={(v) => `${v}ms`}
-                    tooltipFormatter={(v) => `${v}ms`}
-                    series={[{ dataKey: 'latency', name: 'Latência', color: 'hsl(var(--primary))', radius: 3 }]}
-                  />
-                </div>
-                <div className="nexus-card">
-                  <h3 className="text-sm font-heading font-semibold text-foreground mb-3">Distribuição por nível</h3>
-                  <LightPieChart
-                    data={pieData.map((p, i) => ({ ...p, color: PIE_COLOR_ARRAY[i % PIE_COLOR_ARRAY.length] }))}
-                    height={180}
-                    innerRadius={40}
-                    outerRadius={70}
-                  />
-                </div>
+                <div className="nexus-card"><h3 className="text-sm font-heading font-semibold text-foreground mb-3">Latência por evento</h3><LightBarChart data={latencyData} xKey="time" height={180} yFormatter={(v) => `${v}ms`} tooltipFormatter={(v) => `${v}ms`} series={[{ dataKey: 'latency', name: 'Latência', color: 'hsl(var(--primary))', radius: 3 }]} /></div>
+                <div className="nexus-card"><h3 className="text-sm font-heading font-semibold text-foreground mb-3">Distribuição por nível</h3><LightPieChart data={pieData.map((p, i) => ({ ...p, color: PIE_COLORS[i % PIE_COLORS.length] }))} height={180} innerRadius={40} outerRadius={70} /></div>
               </div>
-
               <div className="grid lg:grid-cols-3 gap-4">
                 <div className="space-y-2 max-h-[500px] overflow-y-auto">
                   <h3 className="text-xs font-heading font-semibold text-muted-foreground uppercase tracking-wider mb-2">Eventos recentes</h3>
                   {traces.map(trace => (
-                    <div key={trace.id}
-                      className={`nexus-card cursor-pointer p-3 ${selected?.id === trace.id ? 'border-primary/40 nexus-glow-sm' : ''}`}
-                      onClick={() => setSelectedId(trace.id)}
-                    >
-                      <div className="flex items-center justify-between mb-1.5">
-                        <p className="text-xs font-medium text-foreground truncate">{trace.event}</p>
-                        <StatusBadge status={trace.level || 'info'} />
-                      </div>
+                    <div key={trace.id} className={`nexus-card cursor-pointer p-3 ${selected?.id === trace.id ? 'border-primary/40 nexus-glow-sm' : ''}`} onClick={() => setSelectedId(trace.id)}>
+                      <div className="flex items-center justify-between mb-1.5"><p className="text-xs font-medium text-foreground truncate">{trace.event}</p><StatusBadge status={trace.level || 'info'} /></div>
                       <p className="text-[11px] text-muted-foreground">{trace.session_id || trace.id.slice(0, 8)}</p>
                       <div className="flex items-center gap-3 mt-2 text-[11px] text-muted-foreground">
                         {trace.latency_ms && <span className="flex items-center gap-1"><Clock className="h-3 w-3" /> {(trace.latency_ms / 1000).toFixed(1)}s</span>}
                         {trace.cost_usd != null && <span className="flex items-center gap-1"><DollarSign className="h-3 w-3" /> ${Number(trace.cost_usd).toFixed(3)}</span>}
-                        {trace.tokens_used && <span className="flex items-center gap-1"><Wrench className="h-3 w-3" /> {trace.tokens_used}</span>}
+                        {trace.tokens_used && <span className="flex items-center gap-1"><Wrench className="h-3 w-3" /> {String(trace.tokens_used)}</span>}
                       </div>
                     </div>
                   ))}
                 </div>
-
                 {selected && (
                   <div className="lg:col-span-2 nexus-card">
                     <div className="flex items-center justify-between mb-4 pb-3 border-b border-border/50">
-                      <div>
-                        <h3 className="text-sm font-heading font-semibold text-foreground">{selected.event}</h3>
-                        <p className="text-[11px] text-muted-foreground mt-0.5">{selected.session_id} • {new Date(selected.created_at).toLocaleString('pt-BR')}</p>
-                      </div>
+                      <div><h3 className="text-sm font-heading font-semibold text-foreground">{selected.event}</h3><p className="text-[11px] text-muted-foreground mt-0.5">{selected.session_id} • {new Date(selected.created_at).toLocaleString('pt-BR')}</p></div>
                       <StatusBadge status={selected.level || 'info'} />
                     </div>
                     <div className="space-y-3">
-                      {selected.input && (
-                        <div><p className="text-xs font-semibold text-foreground mb-1">Input</p><pre className="text-[11px] text-muted-foreground bg-secondary/30 p-3 rounded-lg overflow-x-auto max-h-[200px]">{JSON.stringify(selected.input, null, 2)}</pre></div>
-                      )}
-                      {selected.output && (
-                        <div><p className="text-xs font-semibold text-foreground mb-1">Output</p><pre className="text-[11px] text-muted-foreground bg-secondary/30 p-3 rounded-lg overflow-x-auto max-h-[200px]">{JSON.stringify(selected.output, null, 2)}</pre></div>
-                      )}
-                      {selected.metadata && Object.keys(selected.metadata as object).length > 0 && (
-                        <div><p className="text-xs font-semibold text-foreground mb-1">Metadata</p><pre className="text-[11px] text-muted-foreground bg-secondary/30 p-3 rounded-lg overflow-x-auto max-h-[200px]">{JSON.stringify(selected.metadata, null, 2)}</pre></div>
-                      )}
+                      {selected.input && <div><p className="text-xs font-semibold text-foreground mb-1">Input</p><pre className="text-[11px] text-muted-foreground bg-secondary/30 p-3 rounded-lg overflow-x-auto max-h-[200px]">{JSON.stringify(selected.input, null, 2)}</pre></div>}
+                      {selected.output && <div><p className="text-xs font-semibold text-foreground mb-1">Output</p><pre className="text-[11px] text-muted-foreground bg-secondary/30 p-3 rounded-lg overflow-x-auto max-h-[200px]">{JSON.stringify(selected.output, null, 2)}</pre></div>}
+                      {selected.metadata && Object.keys(selected.metadata as object).length > 0 && <div><p className="text-xs font-semibold text-foreground mb-1">Metadata</p><pre className="text-[11px] text-muted-foreground bg-secondary/30 p-3 rounded-lg overflow-x-auto max-h-[200px]">{JSON.stringify(selected.metadata, null, 2)}</pre></div>}
                     </div>
                     <div className="mt-4 pt-4 border-t border-border/50 grid grid-cols-3 gap-4 text-center">
                       <div><p className="text-lg font-heading font-bold text-foreground">{selected.latency_ms ? (selected.latency_ms / 1000).toFixed(1) + 's' : '—'}</p><p className="text-[11px] text-muted-foreground">Latência</p></div>
@@ -223,328 +107,82 @@ export default function MonitoringPage() {
                   </div>
                 )}
               </div>
-            </>
-          )}
+            </>}
         </TabsContent>
 
-        {/* ═══ REAL SESSIONS from sessions table ═══ */}
         <TabsContent value="sessions">
-          {loadingSessions ? (
-            <div className="flex items-center justify-center py-20"><Loader2 className="h-6 w-6 animate-spin text-muted-foreground" /></div>
-          ) : sessions.length === 0 ? (
-            <div className="flex flex-col items-center justify-center py-20 text-center">
-              <Layers className="h-12 w-12 text-muted-foreground mb-4" />
-              <h2 className="text-lg font-semibold text-foreground mb-1">Nenhuma sessão registrada</h2>
-              <p className="text-sm text-muted-foreground">Sessões são criadas quando agentes interagem com usuários.</p>
-            </div>
-          ) : (
-            <div className="space-y-3">
+          {loadingSessions ? <div className="flex items-center justify-center py-20"><Loader2 className="h-6 w-6 animate-spin text-muted-foreground" /></div>
+          : sessions.length === 0 ? <div className="flex flex-col items-center justify-center py-20 text-center"><Layers className="h-12 w-12 text-muted-foreground mb-4" /><h2 className="text-lg font-semibold text-foreground mb-1">Nenhuma sessão registrada</h2></div>
+          : <div className="space-y-3">
               {sessions.map((session) => (
                 <div key={session.id} className="nexus-card">
-                  <div
-                    className="flex items-center justify-between cursor-pointer"
-                    onClick={() => setExpandedSessionId(expandedSessionId === session.id ? null : session.id)}
-                  >
+                  <div className="flex items-center justify-between cursor-pointer" onClick={() => setExpandedSessionId(expandedSessionId === session.id ? null : session.id)}>
                     <div>
                       <div className="flex items-center gap-2">
                         <p className="text-sm font-semibold text-foreground font-mono">{session.id.substring(0, 12)}...</p>
-                        <Badge variant={session.status === 'active' ? 'default' : 'secondary'} className="text-[11px]">
-                          {session.status}
-                        </Badge>
+                        <Badge variant={session.status === 'active' ? 'default' : 'secondary'} className="text-[11px]">{session.status}</Badge>
                       </div>
-                      <p className="text-[11px] text-muted-foreground mt-0.5">
-                        Agente: {agentName(session.agent_id)} • Início: {session.started_at ? new Date(session.started_at).toLocaleString('pt-BR') : '—'}
-                        {session.ended_at && ` • Fim: ${new Date(session.ended_at).toLocaleString('pt-BR')}`}
-                      </p>
-                    </div>
-                    <div className="text-xs text-muted-foreground">
-                      {session.started_at ? new Date(session.started_at).toLocaleDateString('pt-BR') : ''}
+                      <p className="text-[11px] text-muted-foreground mt-0.5">Agente: {agentName(session.agent_id)} • Início: {session.started_at ? new Date(session.started_at).toLocaleString('pt-BR') : '—'}</p>
                     </div>
                   </div>
-
-                  {/* Session Traces (granular) */}
                   {expandedSessionId === session.id && (
                     <div className="mt-3 pt-3 border-t border-border/30 space-y-2">
-                      {sessionTraces.length === 0 ? (
-                        <p className="text-xs text-muted-foreground text-center py-4">Nenhum trace nesta sessão</p>
-                      ) : (
-                        sessionTraces.map((st) => (
-                          <div key={st.id} className="rounded-lg bg-secondary/20 p-2.5">
-                            <div
-                              className="flex items-center gap-3 text-xs cursor-pointer"
-                              onClick={() => setExpandedTraceId(expandedTraceId === st.id ? null : st.id)}
-                            >
-                              <Badge variant="outline" className="text-[11px] shrink-0">{st.trace_type}</Badge>
-                              <span className="text-foreground truncate flex-1">
-                                {st.latency_ms ? `${st.latency_ms}ms` : ''} {st.tokens_used ? `• ${st.tokens_used}t` : ''} {st.cost_usd ? `• $${Number(st.cost_usd).toFixed(4)}` : ''}
-                              </span>
-                              <span className="text-muted-foreground shrink-0 font-mono">
-                                {new Date(st.created_at || '').toLocaleTimeString('pt-BR')}
-                              </span>
-                            </div>
-
-                            {/* Trace Events (most granular level) */}
-                            {expandedTraceId === st.id && traceEvents.length > 0 && (
-                              <div className="mt-2 pt-2 border-t border-border/20 space-y-1 pl-4">
-                                <p className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider mb-1">Eventos</p>
-                                {traceEvents.map((ev) => (
-                                  <div key={ev.id} className="flex items-center gap-2 text-[11px]">
-                                    <span className="text-muted-foreground font-mono w-[55px] shrink-0">
-                                      {new Date(ev.created_at || '').toLocaleTimeString('pt-BR')}
-                                    </span>
-                                    <Badge variant="outline" className="text-[8px] shrink-0">{ev.event_type}</Badge>
-                                    {ev.data && (
-                                      <span className="text-muted-foreground truncate">{JSON.stringify(ev.data).substring(0, 80)}</span>
-                                    )}
-                                  </div>
-                                ))}
-                              </div>
-                            )}
-
-                            {/* Input/Output for session trace */}
-                            {expandedTraceId === st.id && (
-                              <div className="mt-2 space-y-2">
-                                {st.input ? (
-                                  <div><p className="text-[11px] font-semibold text-foreground">Input</p><pre className="text-[11px] text-muted-foreground bg-secondary/30 p-2 rounded max-h-[120px] overflow-auto">{String(typeof st.input === 'string' ? st.input : JSON.stringify(st.input, null, 2))}</pre></div>
-                                ) : null}
-                                {st.output ? (
-                                  <div><p className="text-[11px] font-semibold text-foreground">Output</p><pre className="text-[11px] text-muted-foreground bg-secondary/30 p-2 rounded max-h-[120px] overflow-auto">{String(typeof st.output === 'string' ? st.output : JSON.stringify(st.output, null, 2))}</pre></div>
-                                ) : null}
-                              </div>
-                            )}
+                      {sessionTraces.length === 0 ? <p className="text-xs text-muted-foreground text-center py-4">Nenhum trace nesta sessão</p>
+                      : sessionTraces.map((st) => (
+                        <div key={st.id} className="rounded-lg bg-secondary/20 p-2.5">
+                          <div className="flex items-center gap-3 text-xs cursor-pointer" onClick={() => setExpandedTraceId(expandedTraceId === st.id ? null : st.id)}>
+                            <Badge variant="outline" className="text-[11px] shrink-0">{st.trace_type}</Badge>
+                            <span className="text-foreground truncate flex-1">{st.latency_ms ? `${st.latency_ms}ms` : ''} {st.tokens_used ? `• ${st.tokens_used}t` : ''}</span>
+                            <span className="text-muted-foreground shrink-0 font-mono">{new Date(st.created_at || '').toLocaleTimeString('pt-BR')}</span>
                           </div>
-                        ))
-                      )}
+                          {expandedTraceId === st.id && traceEvents.length > 0 && (
+                            <div className="mt-2 pt-2 border-t border-border/20 space-y-1 pl-4">
+                              {traceEvents.map((ev) => (
+                                <div key={ev.id} className="flex items-center gap-2 text-[11px]">
+                                  <span className="text-muted-foreground font-mono w-[55px] shrink-0">{new Date(ev.created_at || '').toLocaleTimeString('pt-BR')}</span>
+                                  <Badge variant="outline" className="text-[8px] shrink-0">{ev.event_type}</Badge>
+                                  {ev.data && <span className="text-muted-foreground truncate">{JSON.stringify(ev.data).substring(0, 80)}</span>}
+                                </div>
+                              ))}
+                            </div>
+                          )}
+                          {expandedTraceId === st.id && (
+                            <div className="mt-2 space-y-2">
+                              {st.input && <div><p className="text-[11px] font-semibold text-foreground">Input</p><pre className="text-[11px] text-muted-foreground bg-secondary/30 p-2 rounded max-h-[120px] overflow-auto">{String(typeof st.input === 'string' ? st.input : JSON.stringify(st.input, null, 2))}</pre></div>}
+                              {st.output && <div><p className="text-[11px] font-semibold text-foreground">Output</p><pre className="text-[11px] text-muted-foreground bg-secondary/30 p-2 rounded max-h-[120px] overflow-auto">{String(typeof st.output === 'string' ? st.output : JSON.stringify(st.output, null, 2))}</pre></div>}
+                            </div>
+                          )}
+                        </div>
+                      ))}
                     </div>
                   )}
                 </div>
               ))}
-            </div>
-          )}
+            </div>}
         </TabsContent>
 
         <TabsContent value="alerts">
-          {loadingAlerts ? (
-            <div className="flex justify-center py-12"><Loader2 className="h-5 w-5 animate-spin text-muted-foreground" /></div>
-          ) : alerts.length === 0 ? (
-            <div className="flex flex-col items-center justify-center py-20 text-center">
-              <Bell className="h-12 w-12 text-muted-foreground mb-4" />
-              <h2 className="text-lg font-semibold text-foreground mb-1">Nenhum alerta</h2>
-              <p className="text-sm text-muted-foreground">Alertas aparecerão quando limites forem ultrapassados.</p>
-            </div>
-          ) : (
-            <div className="space-y-3">
+          {loadingAlerts ? <div className="flex justify-center py-12"><Loader2 className="h-5 w-5 animate-spin text-muted-foreground" /></div>
+          : alerts.length === 0 ? <div className="flex flex-col items-center justify-center py-20 text-center"><Bell className="h-12 w-12 text-muted-foreground mb-4" /><h2 className="text-lg font-semibold text-foreground mb-1">Nenhum alerta</h2></div>
+          : <div className="space-y-3">
               {alerts.map((alert) => (
-                <div key={alert.id}
-                  className={`nexus-card flex items-start gap-3 ${alert.is_resolved ? 'opacity-60' : ''}`}
-                >
+                <div key={alert.id} className={`nexus-card flex items-start gap-3 ${alert.is_resolved ? 'opacity-60' : ''}`}>
                   <div className={`h-8 w-8 rounded-lg flex items-center justify-center shrink-0 ${alert.severity === 'critical' ? 'bg-destructive/10' : alert.severity === 'warning' ? 'bg-nexus-amber/10' : 'bg-primary/10'}`}>
                     <Bell className={`h-4 w-4 ${alert.severity === 'critical' ? 'text-destructive' : alert.severity === 'warning' ? 'text-nexus-amber' : 'text-primary'}`} />
                   </div>
                   <div className="flex-1 min-w-0">
-                    <div className="flex items-center gap-2 mb-1">
-                      <p className="text-sm font-medium text-foreground">{alert.title}</p>
-                      <Badge variant={alert.severity === 'critical' ? 'destructive' : 'outline'} className="text-[11px]">{alert.severity}</Badge>
-                      {alert.is_resolved && <Badge variant="secondary" className="text-[11px] gap-1"><CheckCircle className="h-2.5 w-2.5" /> Resolvido</Badge>}
-                    </div>
+                    <div className="flex items-center gap-2 mb-1"><p className="text-sm font-medium text-foreground">{alert.title}</p><Badge variant={alert.severity === 'critical' ? 'destructive' : 'outline'} className="text-[11px]">{alert.severity}</Badge>{alert.is_resolved && <Badge variant="secondary" className="text-[11px] gap-1"><CheckCircle className="h-2.5 w-2.5" /> Resolvido</Badge>}</div>
                     {alert.message && <p className="text-xs text-muted-foreground">{alert.message}</p>}
-                    <p className="text-[11px] text-muted-foreground mt-1">{alert.created_at ? new Date(alert.created_at).toLocaleString('pt-BR') : ''}</p>
                   </div>
-                  {!alert.is_resolved && (
-                    <Button variant="outline" size="sm" className="text-xs shrink-0" onClick={() => handleResolveAlert(alert.id)}>
-                      Resolver
-                    </Button>
-                  )}
+                  {!alert.is_resolved && <Button variant="outline" size="sm" className="text-xs shrink-0" onClick={() => handleResolveAlert(alert.id)}>Resolver</Button>}
                 </div>
               ))}
-            </div>
-          )}
-
-          {/* Alert Rules Management */}
+            </div>}
           <AlertRulesPanel />
         </TabsContent>
 
-        <TabsContent value="tracing">
-          <TracingPanel />
-        </TabsContent>
+        <TabsContent value="tracing"><TracingPanel /></TabsContent>
       </Tabs>
-    </div>
-  );
-}
-
-function TraceCard({ trace }: { trace: { id: string; event_type: string; created_at: string; data: Record<string, unknown> } }) {
-  const [open, setOpen] = useState(false);
-  const d = (trace.data || {}) as Record<string, unknown>;
-  const spans = Array.isArray(d.spans) ? (d.spans as SpanLike[]) : [];
-  const status = String(d.status || 'unknown');
-  const traceId = String(d.trace_id || trace.id);
-
-  return (
-    <div className="nexus-card p-3">
-      <button
-        type="button"
-        className="w-full text-left"
-        onClick={() => setOpen((o) => !o)}
-        aria-expanded={open}
-      >
-        <div className="flex items-center justify-between mb-2">
-          <div className="flex items-center gap-2 min-w-0">
-            {spans.length > 0 ? (
-              open ? <ChevronDown className="h-3.5 w-3.5 text-muted-foreground shrink-0" /> : <ChevronRight className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
-            ) : (
-              <span className="w-3.5 shrink-0" />
-            )}
-            <Zap className={`h-4 w-4 shrink-0 ${status === 'error' ? 'text-destructive' : 'text-nexus-emerald'}`} />
-            <span className="text-xs font-medium text-foreground truncate">{trace.event_type}</span>
-            <Badge variant="outline" className="text-[10px]">{status}</Badge>
-            <code className="text-[10px] text-muted-foreground font-mono truncate hidden sm:inline">
-              {traceId.slice(0, 8)}
-            </code>
-          </div>
-          <span className="text-[11px] text-muted-foreground shrink-0 ml-2">{new Date(trace.created_at).toLocaleString('pt-BR')}</span>
-        </div>
-        <div className="grid grid-cols-4 gap-2 text-center">
-          <div className="p-2 rounded bg-secondary/30"><p className="text-sm font-bold text-foreground">{d.duration_ms ? `${Number(d.duration_ms)}ms` : '-'}</p><p className="text-[10px] text-muted-foreground">Duração</p></div>
-          <div className="p-2 rounded bg-secondary/30"><p className="text-sm font-bold text-foreground">{typeof d.token_count === 'number' ? (d.token_count as number).toLocaleString() : '-'}</p><p className="text-[10px] text-muted-foreground">Tokens</p></div>
-          <div className="p-2 rounded bg-secondary/30"><p className="text-sm font-bold text-foreground">{d.cost_usd ? `$${Number(d.cost_usd).toFixed(4)}` : '-'}</p><p className="text-[10px] text-muted-foreground">Custo</p></div>
-          <div className="p-2 rounded bg-secondary/30"><p className="text-sm font-bold text-foreground">{spans.length || '-'}</p><p className="text-[10px] text-muted-foreground">Spans</p></div>
-        </div>
-      </button>
-
-      {open && spans.length > 0 && (
-        <div className="mt-3 pt-3 border-t border-border/30">
-          <SpanTreeView
-            spans={spans}
-            traceDurationMs={typeof d.duration_ms === 'number' ? d.duration_ms : undefined}
-          />
-        </div>
-      )}
-    </div>
-  );
-}
-
-function TracingPanel() {
-  const { data: traceData = [], isLoading } = useQuery({
-    queryKey: ['trace_events_tracing'],
-    queryFn: async () => {
-      const { getRecentTraceEvents } = await import("@/services/monitoringService");
-      return await getRecentTraceEvents(50);
-    },
-  });
-
-  if (isLoading) return <div className="flex justify-center py-12"><Loader2 className="h-5 w-5 animate-spin text-muted-foreground" /></div>;
-  if (traceData.length === 0) return (
-    <div className="flex flex-col items-center justify-center py-20 text-center">
-      <Zap className="h-12 w-12 text-muted-foreground mb-4" />
-      <h2 className="text-lg font-semibold text-foreground mb-1">Nenhum trace registrado</h2>
-      <p className="text-sm text-muted-foreground">Traces OpenTelemetry aparecerão quando agentes executarem com tracing instrumentado.</p>
-    </div>
-  );
-
-  return (
-    <div className="space-y-3">
-      <div className="flex items-center justify-between">
-        <h3 className="text-sm font-heading font-semibold text-foreground">Trace Events ({traceData.length})</h3>
-        <Badge variant="outline" className="text-[10px]">OTel GenAI</Badge>
-      </div>
-      <p className="text-[11px] text-muted-foreground">Clique em um trace para expandir a árvore de spans.</p>
-      {traceData.map(trace => (
-        <TraceCard key={trace.id} trace={trace as { id: string; event_type: string; created_at: string; data: Record<string, unknown> }} />
-      ))}
-    </div>
-  );
-}
-
-// ═══ Alert Rules Management ═══
-function AlertRulesPanel() {
-  const queryClient = useQueryClient();
-  const [creating, setCreating] = useState(false);
-  const [ruleName, setRuleName] = useState('');
-  const [ruleMetric, setRuleMetric] = useState('cost_usd');
-  const [ruleOp, setRuleOp] = useState('>');
-  const [ruleThreshold, setRuleThreshold] = useState('10');
-  const [ruleSeverity, setRuleSeverity] = useState('warning');
-
-  const { data: rules = [] } = useQuery({
-    queryKey: ['alert_rules'],
-    queryFn: listAlertRules,
-  });
-
-  const handleCreateRule = async () => {
-    const result = alertRuleSchema.safeParse({ name: ruleName, metric: ruleMetric, operator: ruleOp, threshold: parseFloat(ruleThreshold) || 0, severity: ruleSeverity });
-    if (!result.success) { toast.error(result.error.errors[0]?.message || 'Dados inválidos'); return; }
-    setCreating(true);
-    try {
-      await createAlertRule({
-        name: ruleName.trim(), metric: ruleMetric, operator: ruleOp,
-        threshold: parseFloat(ruleThreshold) || 0, severity: ruleSeverity,
-      });
-      toast.success('Regra criada!');
-      setRuleName('');
-      queryClient.invalidateQueries({ queryKey: ['alert_rules'] });
-    } catch (e: unknown) { toast.error(e instanceof Error ? e.message : "Erro inesperado"); }
-    finally { setCreating(false); }
-  };
-
-  const handleDeleteRule = async (id: string) => {
-    await deleteAlertRule(id);
-    queryClient.invalidateQueries({ queryKey: ['alert_rules'] });
-    toast.success('Regra removida');
-  };
-
-  const handleToggleRule = async (id: string, enabled: boolean) => {
-    await toggleAlertRule(id, enabled);
-    queryClient.invalidateQueries({ queryKey: ['alert_rules'] });
-  };
-
-  return (
-    <div className="nexus-card mt-6">
-      <h3 className="text-sm font-heading font-semibold text-foreground mb-3">Regras de Alerta Automático</h3>
-      <p className="text-xs text-muted-foreground mb-4">Crie regras que disparam alertas quando métricas ultrapassam limites.</p>
-
-      {/* Create form */}
-      <div className="grid grid-cols-2 md:grid-cols-6 gap-2 mb-4 items-end">
-        <div><label className="text-[11px] text-muted-foreground">Nome</label><input value={ruleName} onChange={e => setRuleName(e.target.value)} placeholder="Ex: Custo alto" className="w-full rounded-lg border border-border bg-secondary/50 px-2 py-1.5 text-xs" /></div>
-        <div><label className="text-[11px] text-muted-foreground">Métrica</label>
-          <select value={ruleMetric} onChange={e => setRuleMetric(e.target.value)} className="w-full rounded-lg border border-border bg-secondary/50 px-2 py-1.5 text-xs">
-            <option value="cost_usd">Custo (USD)</option><option value="latency_ms">Latência (ms)</option><option value="tokens_used">Tokens</option><option value="error_count">Erros</option>
-          </select></div>
-        <div><label className="text-[11px] text-muted-foreground">Operador</label>
-          <select value={ruleOp} onChange={e => setRuleOp(e.target.value)} className="w-full rounded-lg border border-border bg-secondary/50 px-2 py-1.5 text-xs">
-            <option value=">">&gt;</option><option value=">=">&gt;=</option><option value="<">&lt;</option><option value="<=">&lt;=</option><option value="==">=</option>
-          </select></div>
-        <div><label className="text-[11px] text-muted-foreground">Threshold</label><input type="number" value={ruleThreshold} onChange={e => setRuleThreshold(e.target.value)} className="w-full rounded-lg border border-border bg-secondary/50 px-2 py-1.5 text-xs" /></div>
-        <div><label className="text-[11px] text-muted-foreground">Severidade</label>
-          <select value={ruleSeverity} onChange={e => setRuleSeverity(e.target.value)} className="w-full rounded-lg border border-border bg-secondary/50 px-2 py-1.5 text-xs">
-            <option value="info">Info</option><option value="warning">Warning</option><option value="critical">Critical</option>
-          </select></div>
-        <Button size="sm" onClick={handleCreateRule} disabled={creating} className="nexus-gradient-bg text-primary-foreground text-xs">
-          {creating ? <Loader2 className="h-3 w-3 animate-spin" /> : 'Criar regra'}
-        </Button>
-      </div>
-
-      {/* Rules list */}
-      {rules.length === 0 ? (
-        <p className="text-xs text-muted-foreground text-center py-4">Nenhuma regra criada. Alertas de budget são automáticos via trigger.</p>
-      ) : (
-        <div className="space-y-2">
-          {rules.map((rule: Record<string, unknown>) => (
-            <div key={String(rule.id)} className="flex items-center justify-between py-2 px-3 rounded-lg bg-secondary/30 text-xs">
-              <div className="flex items-center gap-3">
-                <input type="checkbox" checked={Boolean(rule.is_enabled)} onChange={e => handleToggleRule(String(rule.id), e.target.checked)} className="rounded" />
-                <div>
-                  <span className="font-medium text-foreground">{String(rule.name)}</span>
-                  <span className="text-muted-foreground ml-2">{String(rule.metric)} {String(rule.operator)} {String(rule.threshold)}</span>
-                </div>
-                <Badge variant={rule.severity === 'critical' ? 'destructive' : 'outline'} className="text-[11px]">{String(rule.severity)}</Badge>
-              </div>
-              <Button variant="ghost" size="icon" className="h-6 w-6 text-destructive" onClick={() => handleDeleteRule(String(rule.id))}>
-                <Trash2 className="h-3 w-3" />
-              </Button>
-            </div>
-          ))}
-        </div>
-      )}
     </div>
   );
 }
