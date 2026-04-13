@@ -413,7 +413,6 @@ export function DataBrowser({ entityId, onClose }: { entityId: string; onClose: 
             page={page}
             pageSize={pageSize}
             total={total}
-            totalPages={totalPages}
             dataLength={data.length}
             onPageChange={setPage}
             onPageSizeChange={setPageSize}
