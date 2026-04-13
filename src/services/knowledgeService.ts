@@ -144,18 +144,8 @@ export async function getChunkEmbeddingStats() {
   return { done: done.count ?? 0, pending: pending.count ?? 0, failed: failed.count ?? 0 };
 }
 
-export interface RerankResult {
-  chunk: Record<string, unknown>;
-  relevance_score: number;
-}
-
-export interface RerankResponse {
-  reranked: RerankResult[];
-  method: string;
-  query: string;
-  total_input: number;
-  top_k: number;
-}
+export type { RerankResult, RerankResponse } from './types/knowledgeTypes';
+import type { RerankResponse } from './types/knowledgeTypes';
 
 /**
  * Rerank chunks using the rag-rerank edge function.
