@@ -4,7 +4,7 @@ import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { Badge } from "@/components/ui/badge";
 import {
-  Bot, Sparkles, Brain, Database, Check, Shield,
+  Sparkles, Database, Check, Shield,
   MessageSquare, Search as SearchIcon, BarChart3, Headphones,
   Users, Layers, Globe, Code, Mail, Calendar, Hash, Webhook,
 } from "lucide-react";
