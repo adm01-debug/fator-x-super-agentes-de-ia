@@ -1,8 +1,8 @@
+import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
 import { Switch } from "@/components/ui/switch";
 import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
@@ -10,7 +10,6 @@ import {
 import {
   Sparkles, Loader2, Settings2, ChevronDown, ChevronUp,
 } from "lucide-react";
-import { ORACLE_MODES } from "@/stores/oracleStore";
 import type { OracleMode } from "@/stores/types/oracleTypes";
 import { PresetSelector } from "@/components/oracle/PresetSelector";
 
@@ -29,8 +28,6 @@ interface OracleInputAreaProps {
   enableThinking: boolean;
   chairmanModel: string;
   chairmanSelection: 'auto' | 'manual';
-  currentPresetName?: string;
-  currentPresetIcon?: string;
   modeConfig: { icon: string; label: string; stages: string[] };
   memberCount: number;
   onQueryChange: (q: string) => void;
