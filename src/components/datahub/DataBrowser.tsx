@@ -6,9 +6,9 @@ import {
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import {
-  Search, ChevronLeft, Loader2, Download, Filter, X, Plus,
+  Search, ChevronLeft, Loader2, Download, Filter, Plus,
+  Users, Factory, Truck, Package, UserCheck, MessageCircle, Pencil,
   Users, Factory, Truck, Package, UserCheck, MessageCircle, Pencil,
   FileJson, Keyboard, Trash2, Database,
 } from "lucide-react";
