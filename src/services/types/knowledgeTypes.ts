@@ -14,3 +14,19 @@ export interface RerankResponse {
   total_input: number;
   top_k: number;
 }
+
+export type DocOcrAction = 'ocr' | 'describe' | 'extract_table' | 'extract_fields';
+
+export interface DocOcrOptions {
+  action?: DocOcrAction;
+  imageBase64?: string;
+  imageUrl?: string;
+  prompt?: string;
+  fields?: string[];
+}
+
+export interface DocOcrResult {
+  text: string;
+  action: DocOcrAction;
+  model: string;
+}
