@@ -277,7 +277,7 @@ describe('tracing — backward compat', () => {
       outputTokens: 25,
       costUsd: 0.005,
     });
-    await tracer.endTrace('success');
+    tracer.endTrace();
     // No throw = pass
   });
 
