@@ -5,7 +5,7 @@ import { invokeTracedFunction } from '@/services/llmGatewayService';
 export type { OracleMode, OraclePreset, ModelResponse, ConsensusPoint, Citation, OracleResult } from './types/oracleTypes';
 import type { OracleMode, OracleResult } from './types/oracleTypes';
 export { ORACLE_MODES, ORACLE_PRESETS } from './presets/oraclePresets';
-import { ORACLE_PRESETS } from './presets/oraclePresets';
+import { ORACLE_MODES, ORACLE_PRESETS } from './presets/oraclePresets';
 
 interface OracleStore {
   query: string;
