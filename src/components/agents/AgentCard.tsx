@@ -11,7 +11,7 @@ interface AgentCardProps {
   isFav: boolean;
   isSelected: boolean;
   selectionMode: boolean;
-  cloning: string | null;
+  cloning: boolean;
   onNavigate: (id: string) => void;
   onToggleFav: (e: React.MouseEvent, id: string) => void;
   onClone: (e: React.MouseEvent, agent: AgentRow) => void;
