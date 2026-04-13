@@ -126,42 +126,9 @@ export async function listAgentsForSelect() {
   return data ?? [];
 }
 
-// ═══ Types ═══
+import type { EvalTestCase as TestCase, EvalResult, CLEARScore } from './types/evaluationsTypes';
 
-export interface TestCase {
-  id: string;
-  input: string;
-  expected_output: string;
-  rubric?: string;
-  tags: string[];
-  weight: number;
-}
-
-export interface EvalResult {
-  test_case_id: string;
-  input: string;
-  expected: string;
-  actual: string;
-  scores: {
-    deterministic: number; // 0-1: regex, format, exact match
-    statistical: number; // 0-1: BLEU, ROUGE-L, cosine similarity
-    llm_judge: number; // 0-1: LLM-as-Judge semantic quality
-    combined: number; // Weighted average
-  };
-  latency_ms: number;
-  tokens_used: number;
-  cost_usd: number;
-  status: 'pass' | 'fail' | 'partial';
-}
-
-export interface CLEARScore {
-  cost: number; // Cost per interaction (lower = better)
-  latency: number; // P95 latency in ms (lower = better)
-  efficiency: number; // Tokens per useful response (lower = better)
-  assurance: number; // % guardrails NOT triggered (higher = better)
-  reliability: number; // % successful executions (higher = better)
-  overall: number; // 0-100 composite score
-}
+export type { EvalTestCase, EvalResult, CLEARScore } from './types/evaluationsTypes';
 
 /**
  * Deterministic scoring — checks structural/content correctness.
