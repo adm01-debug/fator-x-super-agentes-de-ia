@@ -1,13 +1,11 @@
 import { logger } from '@/lib/logger';
 import { PageHeader } from "@/components/shared/PageHeader";
-import { StatusBadge } from "@/components/shared/StatusBadge";
 import { QuickActionsBar } from "@/components/shared/QuickActionsBar";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Checkbox } from "@/components/ui/checkbox";
 import {
-  Bot, Plus, Search, Filter, ArrowRight, Loader2, BookOpen, GitBranch, Activity,
-  Star, Copy, Wand2, Download, Upload, Trash2, Archive, CheckSquare, X,
+  Bot, Plus, Search, Filter, BookOpen, GitBranch, Activity,
+  Download, Upload, Trash2, Archive, CheckSquare, X,
 } from "lucide-react";
 import { toast } from "sonner";
 import { useQueryClient } from "@tanstack/react-query";
@@ -193,6 +191,7 @@ export default function AgentsPage() {
               <Button onClick={() => navigate('/agents/new')} className="nexus-gradient-bg text-primary-foreground gap-2 hover:opacity-90">
                 <Plus className="h-4 w-4" /> Criar agente
               </Button>
+            </AccessControl>
             </AccessControl>
           </div>
         }
