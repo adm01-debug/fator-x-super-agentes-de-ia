@@ -283,7 +283,7 @@ export function GroupMembers({ entityId, grupoId, excludeId }: { entityId: strin
 }
 
 /* ── KNOWN SECONDARY TABLE RENDERERS ─────────────────── */
-export const SECONDARY_RENDERERS: Record<string, (data: Array<Record<string, unknown>>) => React.ReactNode> = {
+export const SECONDARY_RENDERERS: Record<string, (data: Array<Record<string, unknown>>) => React.ReactElement | null> = {
   company_phones: (data) => <PhoneList phones={data} />,
   company_emails: (data) => <EmailList emails={data} />,
   company_addresses: (data) => <AddressCard addresses={data} />,
