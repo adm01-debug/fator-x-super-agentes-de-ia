@@ -76,7 +76,7 @@ export function RecordDetail({ record, enrichedData, entityId, onClose, onRecord
           <p className="text-[11px] text-muted-foreground mt-2 border-t border-border/10 pt-1">
             Criado: {formatDate(String(currentRecord.created_at))} · Atualizado: {formatDate(String(currentRecord.updated_at))}
           </p>
-        )}
+        ) : null}
       </div>
 
       {sensitiveFields.size > 0 && (
