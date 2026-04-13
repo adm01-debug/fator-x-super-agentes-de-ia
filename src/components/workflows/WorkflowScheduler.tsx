@@ -64,7 +64,7 @@ export function WorkflowScheduler({ workflows }: { workflows: Array<Record<strin
 
       {schedules.length > 0 && (
         <div className="space-y-2">
-          {schedules.map((s: Record<string, unknown>) => {
+          {schedules.map((s) => {
             const isActive = s.status === 'active';
             const wf = workflows.find((w) => String(w.id) === String(s.target_id));
             const nextRun = s.next_run_at ? new Date(String(s.next_run_at)).toLocaleString('pt-BR') : '—';
