@@ -12,6 +12,7 @@ import {
   Users, Factory, Truck, Package, UserCheck, MessageCircle, Pencil,
   FileJson, Keyboard, Trash2, Database,
 } from "lucide-react";
+import { DataBrowserFilters, type ActiveFilter } from "./DataBrowserFilters";
 import { DataBrowserTable } from "./DataBrowserTable";
 import { DataBrowserPagination } from "./DataBrowserPagination";
 import { ENTITY_MAPPINGS } from "@/config/datahub-entities";
@@ -37,12 +38,6 @@ const ENTITY_ICONS: Record<string, React.ElementType> = {
   produto: Package, colaborador: UserCheck, conversa_whatsapp: MessageCircle,
 };
 
-interface ActiveFilter {
-  column: string;
-  operator: string;
-  value: string;
-  label: string;
-}
 
 export function DataBrowser({ entityId, onClose }: { entityId: string; onClose: () => void }) {
   const mapping = ENTITY_MAPPINGS[entityId];
