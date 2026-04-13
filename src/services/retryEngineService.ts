@@ -12,7 +12,7 @@ export type {
 
 import type {
   RetryPolicy, CircuitBreakerConfig, CircuitBreakerState,
-  RetryAttempt, RetryResult, DeadLetterEntry, BatchStatus,
+  RetryAttempt, RetryResult, DeadLetterEntry,
 } from './types/retryEngineTypes';
 
 /* ── Default Policies ── */
