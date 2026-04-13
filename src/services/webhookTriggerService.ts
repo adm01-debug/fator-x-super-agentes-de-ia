@@ -16,7 +16,7 @@ import { fromTable, rpcCall } from '@/lib/supabaseExtended';
 import { logger } from '@/lib/logger';
 
 export type { WebhookMethod, WebhookStatus, WebhookAuthType, WebhookEndpoint, WebhookEvent, CreateWebhookInput, WebhookTestResult } from './types/webhookTriggerTypes';
-import type { WebhookEndpoint, WebhookEvent, CreateWebhookInput, WebhookTestResult } from './types/webhookTriggerTypes';
+import type { WebhookMethod, WebhookStatus, WebhookEndpoint, WebhookEvent, CreateWebhookInput, WebhookTestResult } from './types/webhookTriggerTypes';
 
 /* ------------------------------------------------------------------ */
 /*  Helpers                                                            */

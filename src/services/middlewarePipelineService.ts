@@ -18,7 +18,7 @@ import { logger } from '@/lib/logger';
  */
 
 export type { LLMRequest, LLMResponse, MiddlewareContext, MiddlewareFn, MiddlewareConfig } from './types/middlewarePipelineTypes';
-import type { LLMRequest, LLMResponse, MiddlewareContext, MiddlewareFn, MiddlewareConfig } from './types/middlewarePipelineTypes';
+import type { LLMRequest, LLMResponse, MiddlewareContext, MiddlewareConfig } from './types/middlewarePipelineTypes';
 
 // ──────── Pipeline Class ────────
 
