@@ -1,10 +1,9 @@
 import { create } from 'zustand';
-import type { AgentConfig, PromptVersion, AgentPersona, LLMModel, ReasoningPattern, AgentLifecycleStage } from '@/types/agentTypes';
+import type { AgentConfig, PromptVersion } from '@/types/agentTypes';
 import { DEFAULT_AGENT, TABS } from '@/data/agentBuilderData';
 import { supabase } from '@/integrations/supabase/client';
-
-import type { Json } from '@/integrations/supabase/types';
 import { audit } from '@/lib/auditService';
+import { agentToDbRow, dbRowToAgent } from './agentBuilderHelpers';
 
 interface AgentBuilderStore {
   agent: AgentConfig;
@@ -44,43 +43,6 @@ interface AgentBuilderStore {
   getEstimatedMonthlyCost: () => number;
 }
 
-function agentToDbRow(agent: AgentConfig, userId: string) {
-  const { id, created_at: _ca, updated_at: _ua, ...rest } = agent;
-  return {
-    ...(id ? { id: id as string } : {}),
-    user_id: userId,
-    name: agent.name,
-    mission: agent.mission,
-    persona: agent.persona,
-    model: agent.model,
-    avatar_emoji: agent.avatar_emoji,
-    reasoning: agent.reasoning,
-    status: agent.status,
-    version: agent.version,
-    tags: agent.tags,
-    config: rest as unknown as Json,
-  };
-}
-
-function dbRowToAgent(row: Record<string, unknown>): AgentConfig {
-  const config = (row.config || {}) as Record<string, any>;
-  return {
-    ...DEFAULT_AGENT,
-    ...config,
-    id: row.id as string | undefined,
-    name: row.name as string,
-    mission: (row.mission as string) || '',
-    persona: ((row.persona as string) || 'assistant') as AgentPersona,
-    model: ((row.model as string) || 'claude-sonnet-4.6') as LLMModel,
-    avatar_emoji: (row.avatar_emoji as string) || '🤖',
-    reasoning: ((row.reasoning as string) || 'react') as ReasoningPattern,
-    status: ((row.status as string) || 'draft') as AgentLifecycleStage,
-    version: (row.version as number) || 1,
-    tags: (row.tags as string[]) || [],
-    created_at: row.created_at as string | undefined,
-    updated_at: row.updated_at as string | undefined,
-  };
-}
 
 let autoSaveTimer: number | undefined;
 

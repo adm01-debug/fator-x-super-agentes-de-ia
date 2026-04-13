@@ -6,21 +6,20 @@ import {
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
-import { Checkbox } from "@/components/ui/checkbox";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import {
-  Search, ChevronLeft, ChevronRight, Loader2, Eye, Database,
-  ArrowUpDown, ArrowUp, ArrowDown, Download, Filter, X, Plus,
+  Search, ChevronLeft, Loader2, Download, Filter, Plus,
   Users, Factory, Truck, Package, UserCheck, MessageCircle, Pencil,
-  FileJson, ChevronsLeft, ChevronsRight, Keyboard, Trash2,
+  FileJson, Keyboard, Trash2, Database,
 } from "lucide-react";
+import { DataBrowserFilters, type ActiveFilter } from "./DataBrowserFilters";
+import { DataBrowserTable } from "./DataBrowserTable";
+import { DataBrowserPagination } from "./DataBrowserPagination";
 import { ENTITY_MAPPINGS } from "@/config/datahub-entities";
 import {
   ENTITY_DISPLAY_COLUMNS, ENTITY_FILTER_OPTIONS,
   exportToCSV, exportToJSON,
 } from "@/config/datahub-columns";
 import { RecordDetail } from "./RecordDetail";
-import { InlineEditCell } from "./InlineEditCell";
 import { BulkEditDialog } from "./BulkEditDialog";
 import { CreateRecordDialog } from "./CreateRecordDialog";
 import { supabase } from "@/integrations/supabase/client";
@@ -38,14 +37,6 @@ const ENTITY_ICONS: Record<string, React.ElementType> = {
   produto: Package, colaborador: UserCheck, conversa_whatsapp: MessageCircle,
 };
 
-const PAGE_SIZE_OPTIONS = [25, 50, 100] as const;
-
-interface ActiveFilter {
-  column: string;
-  operator: string;
-  value: string;
-  label: string;
-}
 
 export function DataBrowser({ entityId, onClose }: { entityId: string; onClose: () => void }) {
   const mapping = ENTITY_MAPPINGS[entityId];
@@ -316,72 +307,17 @@ export function DataBrowser({ entityId, onClose }: { entityId: string; onClose: 
 
       {/* Advanced filters */}
       {showFilters && (
-        <div className="rounded-lg bg-secondary/20 border border-border/30 p-3 space-y-3 animate-in slide-in-from-top-1 duration-150">
-          <div className="flex items-center gap-2 flex-wrap">
-            <Select value={newFilterCol} onValueChange={setNewFilterCol}>
-              <SelectTrigger className="w-[160px] h-8 text-xs"><SelectValue placeholder="Coluna..." /></SelectTrigger>
-              <SelectContent>
-                {filterOptions.map(opt => (
-                  <SelectItem key={opt.column} value={opt.column}>{opt.label}</SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-
-            {newFilterCol && (() => {
-              const opt = filterOptions.find(f => f.column === newFilterCol);
-              if (opt?.type === 'select') {
-                return (
-                  <Select value={newFilterVal} onValueChange={setNewFilterVal}>
-                    <SelectTrigger className="w-[140px] h-8 text-xs"><SelectValue placeholder="Valor..." /></SelectTrigger>
-                    <SelectContent>
-                      {opt.options?.map(o => (
-                        <SelectItem key={o.value} value={o.value}>{o.label}</SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                );
-              }
-              if (opt?.type === 'boolean') {
-                return (
-                  <Select value={newFilterVal} onValueChange={setNewFilterVal}>
-                    <SelectTrigger className="w-[100px] h-8 text-xs"><SelectValue placeholder="..." /></SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="true">Sim</SelectItem>
-                      <SelectItem value="false">Não</SelectItem>
-                    </SelectContent>
-                  </Select>
-                );
-              }
-              return (
-                <Input
-                  placeholder="Valor..."
-                  value={newFilterVal}
-                  onChange={e => setNewFilterVal(e.target.value)}
-                  className="w-[180px] h-8 text-xs"
-                  onKeyDown={e => e.key === 'Enter' && addFilter()}
-                />
-              );
-            })()}
-
-            <Button size="sm" variant="default" className="h-8 gap-1 text-xs" onClick={addFilter} disabled={!newFilterCol || !newFilterVal}>
-              <Plus className="h-3 w-3" /> Adicionar
-            </Button>
-          </div>
-
-          {filters.length > 0 && (
-            <div className="flex flex-wrap gap-1.5">
-              {filters.map((f, i) => (
-                <Badge key={i} variant="secondary" className="text-[11px] gap-1 pr-1">
-                  {f.label}
-                  <button onClick={() => removeFilter(i)} className="ml-1 hover:text-destructive"><X className="h-3 w-3" /></button>
-                </Badge>
-              ))}
-              <Button size="sm" variant="ghost" className="h-5 text-[11px] text-destructive" onClick={() => setFilters([])}>
-                Limpar tudo
-              </Button>
-            </div>
-          )}
-        </div>
+        <DataBrowserFilters
+          filterOptions={filterOptions}
+          filters={filters}
+          newFilterCol={newFilterCol}
+          newFilterVal={newFilterVal}
+          onNewFilterColChange={setNewFilterCol}
+          onNewFilterValChange={setNewFilterVal}
+          onAddFilter={addFilter}
+          onRemoveFilter={removeFilter}
+          onClearFilters={() => setFilters([])}
+        />
       )}
 
       {/* Hint for inline editing */}
@@ -396,117 +332,30 @@ export function DataBrowser({ entityId, onClose }: { entityId: string; onClose: 
         <div className="flex items-center justify-center py-12"><Loader2 className="h-6 w-6 animate-spin text-muted-foreground" /></div>
       ) : (
         <>
-          <div className="rounded-lg border border-border overflow-hidden">
-            <div className="overflow-x-auto max-h-[500px]">
-              <table className="w-full text-xs">
-                <thead className="bg-secondary/50 sticky top-0 z-10">
-                  <tr>
-                    <th className="p-2 w-[36px]">
-                      <Checkbox
-                        checked={allSelected}
-                        onCheckedChange={toggleSelectAll}
-                        aria-label="Selecionar todos"
-                      />
-                    </th>
-                    {columns.map(col => (
-                      <th
-                        key={col.key}
-                        className={`text-left p-2 font-medium text-muted-foreground select-none ${col.width ?? ''} ${col.sortable ? 'cursor-pointer hover:text-foreground' : ''}`}
-                        onClick={() => col.sortable && handleSort(col.key)}
-                      >
-                        <div className="flex items-center gap-1">
-                          {col.label}
-                          {col.sortable && (
-                            sortColumn === col.key ? (
-                              sortDirection === 'asc'
-                                ? <ArrowUp className="h-3 w-3 text-primary" />
-                                : <ArrowDown className="h-3 w-3 text-primary" />
-                            ) : <ArrowUpDown className="h-3 w-3 text-muted-foreground/40" />
-                          )}
-                        </div>
-                      </th>
-                    ))}
-                    <th className="text-left p-2 font-medium text-muted-foreground w-[60px]">Ações</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {data.map((row, i) => (
-                    <tr
-                      key={row.id ?? i}
-                      className={`border-t border-border/30 hover:bg-secondary/20 transition-colors ${
-                        selectedIds.has(row.id) ? 'bg-primary/5' : ''
-                      }`}
-                    >
-                      <td className="p-2">
-                        <Checkbox
-                          checked={selectedIds.has(row.id)}
-                          onCheckedChange={() => toggleSelect(row.id)}
-                          aria-label={`Selecionar ${row[displayCol] || row.id}`}
-                        />
-                      </td>
-                      {columns.map(col => (
-                        <td key={col.key} className={`p-2 ${col.width ?? ''}`}>
-                          <InlineEditCell
-                            row={row}
-                            col={col}
-                            entityId={entityId}
-                            onUpdate={handleInlineUpdate}
-                          />
-                        </td>
-                      ))}
-                      <td className="p-2">
-                        <Button size="sm" variant="ghost" className="h-6 text-[11px] gap-1" onClick={() => fetchRecord(row.id)}>
-                          <Eye className="h-3 w-3" /> Ver
-                        </Button>
-                      </td>
-                    </tr>
-                  ))}
-                  {data.length === 0 && (
-                    <tr><td colSpan={columns.length + 2} className="p-8 text-center text-muted-foreground">Nenhum registro encontrado</td></tr>
-                  )}
-                </tbody>
-              </table>
-            </div>
-          </div>
+          <DataBrowserTable
+            data={data}
+            columns={columns}
+            displayCol={displayCol}
+            selectedIds={selectedIds}
+            allSelected={allSelected}
+            sortColumn={sortColumn}
+            sortDirection={sortDirection}
+            entityId={entityId}
+            onToggleSelectAll={toggleSelectAll}
+            onToggleSelect={toggleSelect}
+            onSort={handleSort}
+            onInlineUpdate={handleInlineUpdate}
+            onViewRecord={fetchRecord}
+          />
 
-          {/* Pagination */}
-          <div className="flex items-center justify-between flex-wrap gap-2">
-            <div className="flex items-center gap-3">
-              <p className="text-[11px] text-muted-foreground">
-                Mostrando {data.length > 0 ? page * pageSize + 1 : 0}–{Math.min((page + 1) * pageSize, total)} de {total.toLocaleString()}
-              </p>
-              <div className="flex items-center gap-1.5">
-                <span className="text-[11px] text-muted-foreground">Por página:</span>
-                <Select value={String(pageSize)} onValueChange={v => setPageSize(Number(v))}>
-                  <SelectTrigger className="h-7 w-[65px] text-[11px]">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {PAGE_SIZE_OPTIONS.map(size => (
-                      <SelectItem key={size} value={String(size)}>{size}</SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-            </div>
-            <div className="flex items-center gap-1">
-              <Button size="sm" variant="outline" className="h-7 w-7 p-0" disabled={page === 0} onClick={() => setPage(0)}>
-                <ChevronsLeft className="h-3.5 w-3.5" />
-              </Button>
-              <Button size="sm" variant="outline" className="h-7 w-7 p-0" disabled={page === 0} onClick={() => setPage(p => p - 1)}>
-                <ChevronLeft className="h-3.5 w-3.5" />
-              </Button>
-              <span className="text-[11px] text-muted-foreground px-2 min-w-[60px] text-center">
-                {page + 1} / {totalPages || 1}
-              </span>
-              <Button size="sm" variant="outline" className="h-7 w-7 p-0" disabled={page >= totalPages - 1} onClick={() => setPage(p => p + 1)}>
-                <ChevronRight className="h-3.5 w-3.5" />
-              </Button>
-              <Button size="sm" variant="outline" className="h-7 w-7 p-0" disabled={page >= totalPages - 1} onClick={() => setPage(totalPages - 1)}>
-                <ChevronsRight className="h-3.5 w-3.5" />
-              </Button>
-            </div>
-          </div>
+          <DataBrowserPagination
+            page={page}
+            pageSize={pageSize}
+            total={total}
+            dataLength={data.length}
+            onPageChange={setPage}
+            onPageSizeChange={setPageSize}
+          />
         </>
       )}
 
