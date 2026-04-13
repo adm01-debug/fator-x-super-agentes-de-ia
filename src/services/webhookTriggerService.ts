@@ -15,7 +15,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { fromTable, rpcCall } from '@/lib/supabaseExtended';
 import { logger } from '@/lib/logger';
 
-import type { WebhookMethod, WebhookStatus, WebhookAuthType, WebhookEndpoint, WebhookEvent, CreateWebhookInput, WebhookTestResult } from './types/webhookTriggerTypes';
+import type { WebhookMethod, WebhookStatus, WebhookEndpoint, WebhookEvent, CreateWebhookInput, WebhookTestResult } from './types/webhookTriggerTypes';
 
 export type { WebhookMethod, WebhookStatus, WebhookAuthType, WebhookEndpoint, WebhookEvent, CreateWebhookInput, WebhookTestResult } from './types/webhookTriggerTypes';
 

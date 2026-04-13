@@ -17,7 +17,7 @@ import { logger } from '@/lib/logger';
  * - PII redaction
  */
 
-import type { LLMRequest, LLMResponse, MiddlewareContext, MiddlewareFn, MiddlewareConfig } from './types/middlewarePipelineTypes';
+import type { LLMRequest, LLMResponse, MiddlewareContext, MiddlewareConfig } from './types/middlewarePipelineTypes';
 
 export type { LLMRequest, LLMResponse, MiddlewareContext, MiddlewareFn, MiddlewareConfig } from './types/middlewarePipelineTypes';
 

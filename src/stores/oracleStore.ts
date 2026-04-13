@@ -2,7 +2,7 @@ import { create } from 'zustand';
 import { saveOracleHistory } from '@/lib/oracleHistory';
 import { invokeTracedFunction } from '@/services/llmGatewayService';
 
-import type { OracleMode, OraclePreset, ModelResponse, ConsensusPoint, Citation, OracleResult } from './types/oracleTypes';
+import type { OracleMode, OraclePreset, OracleResult } from './types/oracleTypes';
 
 export type { OracleMode, OraclePreset, ModelResponse, ConsensusPoint, Citation, OracleResult } from './types/oracleTypes';
 
