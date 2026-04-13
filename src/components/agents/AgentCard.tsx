@@ -61,8 +61,8 @@ export function AgentCard({
           <button onClick={(e) => onAutoTag(e, agent)} className="h-7 w-7 rounded-md flex items-center justify-center text-muted-foreground/40 hover:text-nexus-purple hover:bg-nexus-purple/10 opacity-0 group-hover:opacity-100 transition-all" title="Auto-tag">
             <Wand2 className="h-3.5 w-3.5" />
           </button>
-          <button onClick={(e) => onClone(e, agent)} className="h-7 w-7 rounded-md flex items-center justify-center text-muted-foreground/40 hover:text-muted-foreground hover:bg-secondary/50 opacity-0 group-hover:opacity-100 transition-all" disabled={cloning === agent.id}>
-            {cloning === agent.id ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Copy className="h-3.5 w-3.5" />}
+          <button onClick={(e) => onClone(e, agent)} className="h-7 w-7 rounded-md flex items-center justify-center text-muted-foreground/40 hover:text-muted-foreground hover:bg-secondary/50 opacity-0 group-hover:opacity-100 transition-all" disabled={cloning}>
+            {cloning ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Copy className="h-3.5 w-3.5" />}
           </button>
           <button onClick={(e) => onToggleFav(e, agent.id)} className={`h-7 w-7 rounded-md flex items-center justify-center transition-all ${isFav ? 'text-nexus-amber' : 'text-muted-foreground/30 opacity-0 group-hover:opacity-100'} hover:text-nexus-amber hover:bg-nexus-amber/10`}>
             <Star className={`h-3.5 w-3.5 ${isFav ? 'fill-nexus-amber' : ''}`} />
