@@ -1,12 +1,12 @@
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { supabase } from "@/integrations/supabase/client";
+import { supabaseExternal } from "@/integrations/supabase/externalClient";
 import { getWorkspaceId } from "@/lib/agentService";
 
 export function useAgents() {
   return useQuery({
     queryKey: ['agents'],
     queryFn: async () => {
-      const { data, error } = await supabase
+      const { data, error } = await supabaseExternal
         .from('agents')
         .select('id, name, mission, avatar_emoji, status, model, tags, version, updated_at, persona, reasoning, config, user_id, workspace_id, created_at')
         .order('updated_at', { ascending: false });
@@ -20,7 +20,7 @@ export function useAgent(id: string | undefined) {
   return useQuery({
     queryKey: ['agent', id],
     queryFn: async () => {
-      const { data, error } = await supabase.from('agents').select('*').eq('id', id!).maybeSingle();
+      const { data, error } = await supabaseExternal.from('agents').select('*').eq('id', id!).maybeSingle();
       if (error) throw error;
       return data;
     },
@@ -33,7 +33,7 @@ export function useWorkspace() {
     queryKey: ['workspace_settings'],
     queryFn: async () => {
       const wsId = await getWorkspaceId();
-      const { data } = await supabase.from('workspaces').select('*').eq('id', wsId).maybeSingle();
+      const { data } = await supabaseExternal.from('workspaces').select('*').eq('id', wsId).maybeSingle();
       return data;
     },
   });

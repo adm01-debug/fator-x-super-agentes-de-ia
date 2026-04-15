@@ -2,7 +2,7 @@
  * Nexus — NLP Pipeline Service
  * Connects to nlp-pipeline edge function v2.4
  */
-import { supabase } from '@/integrations/supabase/client';
+import { supabaseExternal } from '@/integrations/supabase/externalClient';
 import { logger } from '@/lib/logger';
 
 export interface NLPEntity {
@@ -43,7 +43,7 @@ export interface NLPResult {
 }
 
 export async function analyzeText(text: string, pipeline: ('ner' | 'sentiment')[] = ['ner', 'sentiment']): Promise<NLPResult> {
-  const { data, error } = await supabase.functions.invoke('nlp-pipeline', {
+  const { data, error } = await supabaseExternal.functions.invoke('nlp-pipeline', {
     body: { text, pipeline },
   });
   if (error) {

@@ -3,7 +3,7 @@
  * Budget management, cost tracking, pricing.
  */
 import { fromTable } from '@/lib/supabaseExtended';
-import { supabase } from '@/integrations/supabase/client';
+import { supabaseExternal } from '@/integrations/supabase/externalClient';
 
 // ═══ Usage ═══
 
@@ -85,7 +85,7 @@ export async function createBudget(workspaceId: string, name: string, limitUsd: 
 }
 
 export async function deleteBudget(id: string) {
-  const { error } = await supabase.from('budgets').delete().eq('id', id);
+  const { error } = await supabaseExternal.from('budgets').delete().eq('id', id);
   if (error) throw error;
 }
 

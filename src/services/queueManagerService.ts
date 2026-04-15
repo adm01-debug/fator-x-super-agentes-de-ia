@@ -3,7 +3,7 @@
  */
 
 import { fromTable } from '@/lib/supabaseExtended';
-import { supabase } from '@/integrations/supabase/client';
+import { supabaseExternal } from '@/integrations/supabase/externalClient';
 import { logger } from '@/lib/logger';
 
 export type {
@@ -175,7 +175,7 @@ export { QUEUE_PRESETS } from './presets/queuePresets';
 
 export async function runQueueWorker(input: QueueWorkerRunInput = {}): Promise<QueueWorkerRunResult> {
   const workerId = input.worker_id ?? `manual-${crypto.randomUUID().slice(0, 8)}`;
-  const { data, error } = await supabase.functions.invoke('queue-worker', {
+  const { data, error } = await supabaseExternal.functions.invoke('queue-worker', {
     body: { queue_id: input.queue_id, worker_id: workerId, batch_size: Math.min(input.batch_size ?? 5, 20) },
   });
   if (error) { logger.error('queue-worker invoke failed', { error: error.message }); throw new Error(error.message); }

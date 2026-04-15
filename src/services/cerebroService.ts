@@ -2,14 +2,14 @@
  * Nexus Agents Studio — Super Cérebro Service
  * Enterprise Memory Layer: collections, graph, facts, health.
  */
-import { supabase } from '@/integrations/supabase/client';
+import { supabaseExternal } from '@/integrations/supabase/externalClient';
 import { fromTable } from '@/lib/supabaseExtended';
 
 export async function getHealthScore() {
   const [docsResult, chunksResult, collectionsResult] = await Promise.all([
-    supabase.from('documents').select('*', { count: 'exact', head: true }),
-    supabase.from('chunks').select('*', { count: 'exact', head: true }),
-    supabase.from('collections').select('*', { count: 'exact', head: true }),
+    supabaseExternal.from('documents').select('*', { count: 'exact', head: true }),
+    supabaseExternal.from('chunks').select('*', { count: 'exact', head: true }),
+    supabaseExternal.from('collections').select('*', { count: 'exact', head: true }),
   ]);
 
   const docs = docsResult.count || 0;
@@ -64,14 +64,14 @@ export async function getMemories(options?: { type?: string; limit?: number }) {
 
 /** Invoke cerebro-brain edge function */
 export async function invokeCerebroBrain(body: Record<string, unknown>) {
-  const { data, error } = await supabase.functions.invoke('cerebro-brain', { body });
+  const { data, error } = await supabaseExternal.functions.invoke('cerebro-brain', { body });
   if (error) throw error;
   return data;
 }
 
 /** Invoke cerebro-query edge function */
 export async function invokeCerebroQuery(body: Record<string, unknown>) {
-  const { data, error } = await supabase.functions.invoke('cerebro-query', { body });
+  const { data, error } = await supabaseExternal.functions.invoke('cerebro-query', { body });
   if (error) throw error;
   return data;
 }

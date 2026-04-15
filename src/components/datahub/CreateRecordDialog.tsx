@@ -7,7 +7,7 @@ import {
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter,
 } from "@/components/ui/dialog";
 import { Loader2, Plus, CheckCircle2 } from "lucide-react";
-import { supabase } from "@/integrations/supabase/client";
+import { supabaseExternal } from "@/integrations/supabase/externalClient";
 import { toast } from "sonner";
 
 /* ── Field definitions per entity for creation forms ── */
@@ -115,7 +115,7 @@ export function CreateRecordDialog({ open, onOpenChange, entityId, entityName, o
         else if (v === '') payload[k] = null;
       }
 
-      const { data: result, error } = await supabase.functions.invoke('datahub-query', {
+      const { data: result, error } = await supabaseExternal.functions.invoke('datahub-query', {
         body: { action: 'create_record', entity: entityId, data: payload },
       });
       if (error) throw new Error(error.message);

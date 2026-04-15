@@ -2,6 +2,7 @@ import { create } from 'zustand';
 import type { AgentConfig, PromptVersion } from '@/types/agentTypes';
 import { DEFAULT_AGENT, TABS } from '@/data/agentBuilderData';
 import { supabase } from '@/integrations/supabase/client';
+import { supabaseExternal } from '@/integrations/supabase/externalClient';
 import { audit } from '@/lib/auditService';
 import { agentToDbRow, dbRowToAgent } from './agentBuilderHelpers';
 
@@ -168,7 +169,7 @@ export const useAgentBuilderStore = create<AgentBuilderStore>((set, get) => ({
       // Sync tool_policies to DB (non-blocking)
       if (agentId && savedAgent.tools?.length > 0) {
         for (const tool of savedAgent.tools) {
-          supabase.from('tool_policies').upsert({
+          supabaseExternal.from('tool_policies').upsert({
             agent_id: agentId,
             tool_integration_id: null,
             is_allowed: tool.enabled,
@@ -180,7 +181,7 @@ export const useAgentBuilderStore = create<AgentBuilderStore>((set, get) => ({
       }
       // ═══ Auto-versioning: snapshot agent config on every save ═══
       if (agentId) {
-        supabase.from('agent_versions').insert({
+        supabaseExternal.from('agent_versions').insert({
           agent_id: agentId,
           version: savedAgent.version || 1,
           config: row.config || {},
@@ -207,7 +208,7 @@ export const useAgentBuilderStore = create<AgentBuilderStore>((set, get) => ({
   deleteAgent: async (id: string) => {
     const agent = get().savedAgents.find(a => a.id === id);
     // Soft delete — preserva dados para auditoria
-    await supabase.from('agents').update({ status: 'archived' as const }).eq('id', id);
+    await supabaseExternal.from('agents').update({ status: 'archived' as const }).eq('id', id);
     set((s) => ({ savedAgents: s.savedAgents.filter(a => a.id !== id) }));
     audit.agentDeleted(id, agent?.name ?? 'unknown');
   },

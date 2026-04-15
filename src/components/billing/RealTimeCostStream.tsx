@@ -8,7 +8,7 @@
  * Pure read-only: subscribes on mount, unsubscribes on unmount.
  */
 import { useEffect, useMemo, useRef, useState } from "react";
-import { supabase } from "@/integrations/supabase/client";
+import { supabaseExternal } from "@/integrations/supabase/externalClient";
 import { Activity, DollarSign, Hash, Pause, Play, Trash2, Zap } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -75,7 +75,7 @@ export function RealTimeCostStream() {
       });
 
     return () => {
-      supabase.removeChannel(channel);
+      supabaseExternal.removeChannel(channel);
     };
   }, []);
 

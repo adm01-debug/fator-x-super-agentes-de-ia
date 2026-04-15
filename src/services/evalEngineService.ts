@@ -2,7 +2,7 @@
  * Nexus — Eval Engine Service (RAGAS metrics)
  * Connects to eval-engine-v2 for RAG quality evaluation.
  */
-import { supabase } from '@/integrations/supabase/client';
+import { supabaseExternal } from '@/integrations/supabase/externalClient';
 import { logger } from '@/lib/logger';
 
 export interface RAGASResult {
@@ -27,7 +27,7 @@ export async function runRAGASEvaluation(
   agentId: string,
   testCases: EvalTestCase[]
 ): Promise<{ ragas: RAGASResult }> {
-  const { data, error } = await supabase.functions.invoke('eval-engine-v2', {
+  const { data, error } = await supabaseExternal.functions.invoke('eval-engine-v2', {
     body: { workspace_id: workspaceId, agent_id: agentId, test_cases: testCases, run_ragas: true },
   });
   if (error) {
@@ -38,7 +38,7 @@ export async function runRAGASEvaluation(
 }
 
 export async function getAgentRAGASAverage(agentId: string) {
-  const { data, error } = await (supabase.rpc as (fn: string, params: Record<string, unknown>) => ReturnType<typeof supabase.rpc>)('get_ragas_avg', { p_agent_id: agentId });
+  const { data, error } = await (supabaseExternal.rpc as (fn: string, params: Record<string, unknown>) => ReturnType<typeof supabaseExternal.rpc>)('get_ragas_avg', { p_agent_id: agentId });
   if (error) {
     logger.error('RAGAS avg query failed', { error: error.message, agentId });
     throw new Error(`RAGAS avg error: ${error.message}`);

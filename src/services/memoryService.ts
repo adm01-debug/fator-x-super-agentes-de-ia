@@ -2,7 +2,7 @@
  * Nexus Agents Studio — Memory Service
  * Persistent memory management (MemGPT/Letta-style via memory-tools edge function).
  */
-import { supabase } from '@/integrations/supabase/client';
+import { supabaseExternal } from '@/integrations/supabase/externalClient';
 
 export type MemoryType = 'episodic' | 'semantic' | 'procedural' | 'short_term' | 'user_profile' | 'team' | 'external';
 export type MemoryScope = 'session' | 'user' | 'agent' | 'org';
@@ -18,7 +18,7 @@ export interface MemoryEntry {
 
 /** Invoke memory-tools edge function */
 async function invokeMemoryTool(tool: string, params: Record<string, unknown>) {
-  const { data, error } = await supabase.functions.invoke('memory-tools', {
+  const { data, error } = await supabaseExternal.functions.invoke('memory-tools', {
     body: { tool, params },
   });
   if (error) throw new Error(error.message || 'Erro ao chamar memory-tools');
@@ -108,7 +108,7 @@ export interface MemoryManagerInvokeResult {
 export async function invokeMemoryManager(
   input: MemoryManagerInvokeInput
 ): Promise<MemoryManagerInvokeResult> {
-  const { data, error } = await supabase.functions.invoke('memory-manager', {
+  const { data, error } = await supabaseExternal.functions.invoke('memory-manager', {
     body: {
       action: input.action,
       content: input.content,

@@ -2,7 +2,7 @@
  * Nexus Agents Studio — Security Service
  * API keys, security events, audit trail, guardrails, sessions, posture.
  */
-import { supabase } from '@/integrations/supabase/client';
+import { supabaseExternal } from '@/integrations/supabase/externalClient';
 import { fromTable } from '@/lib/supabaseExtended';
 import { logger } from '@/lib/logger';
 import { invokeTracedFunction } from '@/services/llmGatewayService';
@@ -39,7 +39,7 @@ export async function createApiKey(name: string, scopes: string[] = ['read', 'ex
     .limit(1)
     .maybeSingle();
 
-  const { error } = await supabase.from('api_keys').insert({
+  const { error } = await supabaseExternal.from('api_keys').insert({
     user_id: user.id,
     workspace_id: member?.workspace_id ?? null,
     name,
@@ -53,7 +53,7 @@ export async function createApiKey(name: string, scopes: string[] = ['read', 'ex
 }
 
 export async function revokeApiKey(id: string) {
-  const { error } = await supabase.from('api_keys').update({ is_active: false }).eq('id', id);
+  const { error } = await supabaseExternal.from('api_keys').update({ is_active: false }).eq('id', id);
   if (error) throw error;
 }
 
@@ -150,7 +150,7 @@ export async function toggleGuardrailPolicy(id: string, enabled: boolean) {
 }
 
 export async function deleteGuardrailPolicy(id: string) {
-  const { error } = await supabase.from('guardrail_policies').delete().eq('id', id);
+  const { error } = await supabaseExternal.from('guardrail_policies').delete().eq('id', id);
   if (error) {
     logger.error('deleteGuardrailPolicy failed', { error: error.message });
     throw error;

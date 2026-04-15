@@ -1,7 +1,7 @@
 import { useState, useRef, useEffect } from "react";
 import { Input } from "@/components/ui/input";
 import { Loader2, Check, X as XIcon } from "lucide-react";
-import { supabase } from "@/integrations/supabase/client";
+import { supabaseExternal } from "@/integrations/supabase/externalClient";
 import { toast } from "sonner";
 import { formatCellValue } from "@/config/datahub-columns";
 import type { ColumnDef } from "@/config/datahub-columns";
@@ -32,7 +32,7 @@ export function InlineEditCell({ row, col, entityId, onUpdate }: InlineEditCellP
     if (value === String(rawValue ?? '')) { setEditing(false); return; }
     setSaving(true);
     try {
-      const { data: result, error } = await supabase.functions.invoke('datahub-query', {
+      const { data: result, error } = await supabaseExternal.functions.invoke('datahub-query', {
         body: { action: 'update_field', entity: entityId, record_id: String(row.id), field: col.key, value },
       });
       if (error) throw new Error(error.message);

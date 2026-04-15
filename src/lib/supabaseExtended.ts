@@ -3,7 +3,7 @@
  * Uses type assertion scoped to this single file to keep the rest of the codebase clean.
  * Tables here: prompt_ab_tests, alert_rules, roles, permissions, role_permissions, user_roles, mcp_servers
  */
-import { supabase } from '@/integrations/supabase/client';
+import { supabaseExternal } from '@/integrations/supabase/externalClient';
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 type AnyFrom = any;
@@ -14,7 +14,7 @@ type AnyFrom = any;
  */
 export function fromTable(name: string): AnyFrom {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  return (supabase as any).from(name);
+  return (supabaseExternal as any).from(name);
 }
 
 /**
@@ -26,5 +26,5 @@ export async function rpcCall(
   params: Record<string, unknown> = {},
 ): Promise<{ data: unknown; error: { message: string } | null }> {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  return (supabase as any).rpc(fnName, params);
+  return (supabaseExternal as any).rpc(fnName, params);
 }

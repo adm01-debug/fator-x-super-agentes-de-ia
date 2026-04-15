@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { useAgentBuilderStore } from '@/stores/agentBuilderStore';
 import { Button } from '@/components/ui/button';
 import { Play, Loader2, CheckCircle2, XCircle } from 'lucide-react';
-import { supabase } from '@/integrations/supabase/client';
+import { supabaseExternal } from '@/integrations/supabase/externalClient';
 import { toast } from 'sonner';
 import type { TestCase } from '@/types/agentTypes';
 
@@ -27,7 +27,7 @@ export function TestExecutionPanel({ testCases }: TestExecutionPanelProps) {
       const systemPrompt = (config.system_prompt as string) || `You are ${agent.name}. ${agent.mission}`;
       const model = agent.model || 'claude-haiku-4-5-20251001';
 
-      const { data, error } = await supabase.functions.invoke('test-runner', {
+      const { data, error } = await supabaseExternal.functions.invoke('test-runner', {
         body: {
           agent_id: agent.id,
           test_cases: testCases.map((tc) => ({ input: tc.input, expected_output: tc.expected_behavior || undefined, tags: tc.tags || [] })),

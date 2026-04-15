@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
-import { supabase } from '@/integrations/supabase/client';
+import { supabaseExternal } from '@/integrations/supabase/externalClient';
 import { useAuth } from '@/contexts/AuthContext';
 import { toast } from 'sonner';
 import { logger } from '@/lib/logger';
@@ -81,7 +81,7 @@ export function useWorkflowPersistence() {
 
     const syncSteps = async (wfId: string) => {
       // Delete old steps
-      await supabase.from('workflow_steps').delete().eq('workflow_id', wfId);
+      await supabaseExternal.from('workflow_steps').delete().eq('workflow_id', wfId);
 
       if (nodes.length === 0) return;
 
@@ -98,7 +98,7 @@ export function useWorkflowPersistence() {
         } as unknown as Json,
       }));
 
-      const { error: stepErr } = await supabase.from('workflow_steps').insert(stepsToInsert);
+      const { error: stepErr } = await supabaseExternal.from('workflow_steps').insert(stepsToInsert);
       if (stepErr) {
         logger.error('Failed to sync workflow_steps', { error: stepErr.message });
       }
@@ -202,8 +202,8 @@ export function useWorkflowPersistence() {
 
   const deleteCanvas = useCallback(async (workflowId: string) => {
     // Delete steps first, then workflow
-    await supabase.from('workflow_steps').delete().eq('workflow_id', workflowId);
-    const { error } = await supabase.from('workflows').delete().eq('id', workflowId);
+    await supabaseExternal.from('workflow_steps').delete().eq('workflow_id', workflowId);
+    const { error } = await supabaseExternal.from('workflows').delete().eq('id', workflowId);
     if (error) {
       toast.error('Erro ao deletar workflow');
       logger.error('Failed to delete workflow', { error: error.message });

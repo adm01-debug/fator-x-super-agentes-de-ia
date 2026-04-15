@@ -4,7 +4,7 @@
  */
 
 import { logger } from '@/lib/logger';
-import { supabase } from '@/integrations/supabase/client';
+import { supabaseExternal } from '@/integrations/supabase/externalClient';
 
 export async function getAgentBasic(agentId: string) {
   const { data, error } = await supabase
@@ -73,7 +73,7 @@ export async function createPromptVersion(params: {
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) throw new Error('Não autenticado');
 
-  const { error } = await supabase.from('prompt_versions').insert({
+  const { error } = await supabaseExternal.from('prompt_versions').insert({
     agent_id: params.agentId,
     user_id: user.id,
     content: params.content,
@@ -121,9 +121,9 @@ export async function deletePromptVersion(versionId: string) {
 
 export async function restorePromptVersion(agentId: string, versionId: string) {
   // Deactivate all
-  await supabase.from('prompt_versions').update({ is_active: false }).eq('agent_id', agentId);
+  await supabaseExternal.from('prompt_versions').update({ is_active: false }).eq('agent_id', agentId);
   // Activate selected
-  const { error } = await supabase.from('prompt_versions').update({ is_active: true }).eq('id', versionId);
+  const { error } = await supabaseExternal.from('prompt_versions').update({ is_active: true }).eq('id', versionId);
   if (error) {
     logger.error('Failed to restore prompt version', { versionId, error: error.message });
     throw error;

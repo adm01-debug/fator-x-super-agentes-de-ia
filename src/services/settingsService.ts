@@ -5,7 +5,7 @@
  * Encapsulates all CRUD for the SettingsPage so pages do not call
  * supabase directly. All functions log errors via logger.ts.
  */
-import { supabase } from '@/integrations/supabase/client';
+import { supabaseExternal } from '@/integrations/supabase/externalClient';
 import { logger } from '@/lib/logger';
 
 export interface MaskedSecret {
@@ -38,7 +38,7 @@ export interface Environment {
  * Returns workspace secrets with masked values (RPC handles masking).
  */
 export async function listMaskedSecrets(workspaceId: string): Promise<MaskedSecret[]> {
-  const { data, error } = await supabase.rpc('get_masked_secrets', { p_workspace_id: workspaceId });
+  const { data, error } = await supabaseExternal.rpc('get_masked_secrets', { p_workspace_id: workspaceId });
   if (error) {
     logger.error('Failed to list masked secrets', { workspaceId, error: error.message });
     throw error;
@@ -55,7 +55,7 @@ export async function createWorkspaceSecret(params: {
   keyName: string;
   keyValue: string;
 }): Promise<void> {
-  const { error } = await supabase.from('workspace_secrets').insert({
+  const { error } = await supabaseExternal.from('workspace_secrets').insert({
     workspace_id: params.workspaceId,
     key_name: params.keyName,
     key_value: params.keyValue,
@@ -70,7 +70,7 @@ export async function createWorkspaceSecret(params: {
  * Hard-deletes a workspace secret by id.
  */
 export async function deleteWorkspaceSecret(id: string): Promise<void> {
-  const { error } = await supabase.from('workspace_secrets').delete().eq('id', id);
+  const { error } = await supabaseExternal.from('workspace_secrets').delete().eq('id', id);
   if (error) {
     logger.error('Failed to delete workspace secret', { id, error: error.message });
     throw error;

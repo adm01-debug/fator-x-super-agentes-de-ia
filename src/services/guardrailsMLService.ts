@@ -2,7 +2,7 @@
  * Nexus — Guardrails ML Service
  * Connects to guardrails-ml edge function v2.2
  */
-import { supabase } from '@/integrations/supabase/client';
+import { supabaseExternal } from '@/integrations/supabase/externalClient';
 import { logger } from '@/lib/logger';
 
 export interface GuardrailResult {
@@ -21,7 +21,7 @@ export interface GuardrailResponse {
 }
 
 export async function checkInput(text: string): Promise<GuardrailResponse> {
-  const { data, error } = await supabase.functions.invoke('guardrails-ml', {
+  const { data, error } = await supabaseExternal.functions.invoke('guardrails-ml', {
     body: { text, direction: 'input' },
   });
   if (error) {
@@ -32,7 +32,7 @@ export async function checkInput(text: string): Promise<GuardrailResponse> {
 }
 
 export async function checkOutput(text: string): Promise<GuardrailResponse> {
-  const { data, error } = await supabase.functions.invoke('guardrails-ml', {
+  const { data, error } = await supabaseExternal.functions.invoke('guardrails-ml', {
     body: { text, direction: 'output' },
   });
   if (error) {

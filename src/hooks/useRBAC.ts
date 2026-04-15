@@ -20,7 +20,6 @@ import {
   type PermissionKey,
   type RoleKey,
 } from '@/services/rbacService';
-import { supabase } from '@/integrations/supabase/client';
 
 interface RBACState {
   role: RoleKey | null;

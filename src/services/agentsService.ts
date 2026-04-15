@@ -3,7 +3,7 @@
  * Centralized CRUD and detail queries for the agents domain.
  * Used by AgentDetailPage, AgentsPage, and any page needing agent data.
  */
-import { supabase } from '@/integrations/supabase/client';
+import { supabaseExternal } from '@/integrations/supabase/externalClient';
 import { logger } from '@/lib/logger';
 
 export interface AgentDetail {

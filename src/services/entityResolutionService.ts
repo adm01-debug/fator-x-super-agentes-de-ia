@@ -11,7 +11,7 @@
  *  3. Group entries with similarity >= threshold (default 0.7)
  *  4. Return clusters with canonical pick (longest content as canonical)
  */
-import { supabase } from '@/integrations/supabase/client';
+import { supabaseExternal } from '@/integrations/supabase/externalClient';
 import { logger } from '@/lib/logger';
 
 export interface EntityCandidate {

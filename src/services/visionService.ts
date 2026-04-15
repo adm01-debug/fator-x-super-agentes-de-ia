@@ -9,7 +9,7 @@
  *   - google/vit-base-patch16-224 (classify)
  *   - ibm-granite/granite-vision-3.3-2b (analyze, default)
  */
-import { supabase } from '@/integrations/supabase/client';
+import { supabaseExternal } from '@/integrations/supabase/externalClient';
 import { logger } from '@/lib/logger';
 
 export type VisionAction = 'analyze' | 'classify' | 'nsfw_check' | 'mockup' | 'compare';
@@ -32,7 +32,7 @@ async function invokeVision(opts: VisionInvokeOptions): Promise<VisionRawRespons
   if (!opts.imageBase64 && !opts.imageUrl) {
     throw new Error('Forneça imageBase64 ou imageUrl');
   }
-  const { data, error } = await supabase.functions.invoke('image-analysis', {
+  const { data, error } = await supabaseExternal.functions.invoke('image-analysis', {
     body: {
       action: opts.action ?? 'analyze',
       image_base64: opts.imageBase64,

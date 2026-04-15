@@ -1,5 +1,6 @@
 import { createContext, useContext, useEffect, useState, type ReactNode } from "react";
 import { supabase } from "@/integrations/supabase/client";
+import { syncExternalAuth } from "@/integrations/supabase/externalClient";
 import type { User, Session } from "@supabase/supabase-js";
 
 interface AuthContextType {
@@ -25,6 +26,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       setSession(session);
       setUser(session?.user ?? null);
       setLoading(false);
+      // Sync access token to external DB client so RLS works
+      if (session?.access_token) {
+        syncExternalAuth(session.access_token);
+      }
     });
 
     supabase.auth.getSession().then(({ data: { session } }) => {

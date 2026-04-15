@@ -22,7 +22,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { toast } from "sonner";
-import { supabase } from "@/integrations/supabase/client";
+import { supabaseExternal } from "@/integrations/supabase/externalClient";
 
 interface EntityMatch {
   source_db: string;
@@ -83,7 +83,7 @@ export function DataHubIdentityResolutionTab() {
       const detectedType = submittedType === 'auto' ? detectQueryType(submittedQuery) : (submittedType as IdentityResolutionResult['query_type']);
 
       try {
-        const { data, error } = await supabase.functions.invoke('datahub-query', {
+        const { data, error } = await supabaseExternal.functions.invoke('datahub-query', {
           body: {
             action: 'identity_resolution',
             query: submittedQuery.trim(),

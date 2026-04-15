@@ -2,7 +2,7 @@
  * Nexus Agents Studio — Dashboard Service
  * Aggregates queries used by the main dashboard.
  */
-import { supabase } from '@/integrations/supabase/client';
+import { supabaseExternal } from '@/integrations/supabase/externalClient';
 import { logger } from '@/lib/logger';
 
 export interface AgentSummary {
@@ -69,7 +69,7 @@ export function subscribeToAlerts(onChange: () => void): () => void {
       onChange();
     })
     .subscribe();
-  return () => { supabase.removeChannel(channel); };
+  return () => { supabaseExternal.removeChannel(channel); };
 }
 
 /**

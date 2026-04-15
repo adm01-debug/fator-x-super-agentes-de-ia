@@ -2,7 +2,7 @@
  * Nexus Agents Studio — Health Service
  * Wraps the health-check Edge Function for system observability.
  */
-import { supabase } from '@/integrations/supabase/client';
+import { supabaseExternal } from '@/integrations/supabase/externalClient';
 import { logger } from '@/lib/logger';
 
 export type HealthStatus = 'healthy' | 'degraded' | 'down' | 'unknown';
@@ -39,7 +39,7 @@ const DOWN_SNAPSHOT = (error: string): SystemHealth => ({
  */
 export async function getSystemHealth(): Promise<SystemHealth> {
   try {
-    const { data, error } = await supabase.functions.invoke('health-check', {
+    const { data, error } = await supabaseExternal.functions.invoke('health-check', {
       method: 'GET',
     });
     if (error) {

@@ -12,7 +12,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { toast } from "sonner";
-import { supabase } from "@/integrations/supabase/client";
+import { supabaseExternal } from "@/integrations/supabase/externalClient";
 
 const PROJECTS = [
   { value: 'pgxfvjmuubtbowutlide', label: 'bancodadosclientes (CRM)' },
@@ -86,7 +86,7 @@ export function DataHubQueryBuilderTab() {
     const start = Date.now();
 
     try {
-      const { data, error: invokeError } = await supabase.functions.invoke('datahub-query', {
+      const { data, error: invokeError } = await supabaseExternal.functions.invoke('datahub-query', {
         body: {
           action: 'execute_sql',
           project_ref: project,

@@ -8,7 +8,7 @@
  * use this service to generate embed snippets and to validate that the
  * widget endpoint is responding for a given agent.
  */
-import { supabase } from '@/integrations/supabase/client';
+import { supabaseExternal } from '@/integrations/supabase/externalClient';
 import { logger } from '@/lib/logger';
 
 const PROJECT_REF = 'tdprnylgyrogbbhgdoik';
@@ -57,7 +57,7 @@ export async function sendWidgetChatMessage(
     throw new Error('agent_id and message are required');
   }
 
-  const { data, error } = await supabase.functions.invoke('widget-proxy', {
+  const { data, error } = await supabaseExternal.functions.invoke('widget-proxy', {
     body: {
       path: '/chat',
       agent_id: input.agent_id,

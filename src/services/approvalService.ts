@@ -1,10 +1,10 @@
 /**
  * Nexus Agents Studio — Approval Queue Service
  */
-import { supabase } from '@/integrations/supabase/client';
+import { supabaseExternal } from '@/integrations/supabase/externalClient';
 
 export async function listPendingApprovals() {
-  const { data } = await supabase.from('workflow_runs')
+  const { data } = await supabaseExternal.from('workflow_runs')
     .select('id, workflow_id, status, output, started_at, current_step, total_steps, workflows(name)')
     .eq('status', 'awaiting_approval')
     .order('started_at', { ascending: false })
@@ -13,7 +13,7 @@ export async function listPendingApprovals() {
 }
 
 export async function approveWorkflowRun(runId: string, workflowId: string, feedback: string) {
-  const { data, error } = await supabase.functions.invoke('workflow-engine-v2', {
+  const { data, error } = await supabaseExternal.functions.invoke('workflow-engine-v2', {
     body: { workflow_id: workflowId, resume_run_id: runId, input: feedback || 'Approved' },
   });
   if (error) throw error;
@@ -21,7 +21,7 @@ export async function approveWorkflowRun(runId: string, workflowId: string, feed
 }
 
 export async function rejectWorkflowRun(runId: string, feedback: string) {
-  await supabase.from('workflow_runs').update({
+  await supabaseExternal.from('workflow_runs').update({
     status: 'failed',
     error: `Rejected by human: ${feedback || 'No reason provided'}`,
     completed_at: new Date().toISOString(),

@@ -2,7 +2,7 @@
  * Nexus Agents Studio — Knowledge Service
  * Collections, documents, chunks management for Super Cérebro.
  */
-import { supabase } from '@/integrations/supabase/client';
+import { supabaseExternal } from '@/integrations/supabase/externalClient';
 import { invokeTracedFunction } from '@/services/llmGatewayService';
 
 export async function listCollections() {
@@ -32,7 +32,7 @@ export async function createCollection(name: string, description?: string) {
 }
 
 export async function deleteCollection(id: string) {
-  const { error } = await supabase.from('collections').delete().eq('id', id);
+  const { error } = await supabaseExternal.from('collections').delete().eq('id', id);
   if (error) throw error;
 }
 
@@ -114,7 +114,7 @@ export async function listKnowledgeBases() {
 }
 
 export async function deleteKnowledgeBase(id: string) {
-  const { error } = await supabase.from('knowledge_bases').delete().eq('id', id);
+  const { error } = await supabaseExternal.from('knowledge_bases').delete().eq('id', id);
   if (error) throw error;
 }
 
@@ -233,12 +233,12 @@ export async function updateKnowledgeBase(
   id: string,
   updates: { name?: string; description?: string; embedding_model?: string },
 ) {
-  const { error } = await supabase.from('knowledge_bases').update(updates).eq('id', id);
+  const { error } = await supabaseExternal.from('knowledge_bases').update(updates).eq('id', id);
   if (error) throw error;
 }
 
 export async function createCollectionInKB(kb_id: string, name: string) {
-  const { error } = await supabase.from('collections').insert({ name, knowledge_base_id: kb_id });
+  const { error } = await supabaseExternal.from('collections').insert({ name, knowledge_base_id: kb_id });
   if (error) throw error;
 }
 
@@ -248,7 +248,7 @@ export async function createDocument(doc: {
   source_type?: string;
   mime_type?: string;
 }) {
-  const { data, error } = await supabase.from('documents').insert(doc).select().single();
+  const { data, error } = await supabaseExternal.from('documents').insert(doc).select().single();
   if (error) throw error;
   return data;
 }
@@ -275,9 +275,9 @@ export async function getChunkCountForCollection(documentIds: string[]) {
 
 export async function getKBHealthStats() {
   const [docs, chunks, colls] = await Promise.all([
-    supabase.from('documents').select('*', { count: 'exact', head: true }),
-    supabase.from('chunks').select('*', { count: 'exact', head: true }),
-    supabase.from('collections').select('*', { count: 'exact', head: true }),
+    supabaseExternal.from('documents').select('*', { count: 'exact', head: true }),
+    supabaseExternal.from('chunks').select('*', { count: 'exact', head: true }),
+    supabaseExternal.from('collections').select('*', { count: 'exact', head: true }),
   ]);
   return {
     docCount: docs.count ?? 0,
@@ -292,7 +292,7 @@ export async function createPromptVersion(pv: {
   user_id: string;
   change_summary?: string;
 }) {
-  const { error } = await supabase.from('prompt_versions').insert(pv);
+  const { error } = await supabaseExternal.from('prompt_versions').insert(pv);
   if (error) throw error;
 }
 
@@ -335,8 +335,8 @@ export async function createCollectionForKB(kbId: string, name: string, descript
 }
 
 export async function deleteDocument(docId: string) {
-  await supabase.from('chunks').delete().eq('document_id', docId);
-  const { error } = await supabase.from('documents').delete().eq('id', docId);
+  await supabaseExternal.from('chunks').delete().eq('document_id', docId);
+  const { error } = await supabaseExternal.from('documents').delete().eq('id', docId);
   if (error) throw error;
 }
 

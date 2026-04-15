@@ -5,7 +5,7 @@
  * Has a local heuristic fallback if the smart-model-router Edge Function
  * is unavailable, so the app never breaks when routing fails.
  */
-import { supabase } from '@/integrations/supabase/client';
+import { supabaseExternal } from '@/integrations/supabase/externalClient';
 import { logger } from '@/lib/logger';
 
 export interface RouteResult {
@@ -22,7 +22,7 @@ export interface RouteResult {
  */
 export async function routeQuery(query: string, preferredProvider?: string): Promise<RouteResult> {
   try {
-    const { data, error } = await supabase.functions.invoke('smart-model-router', {
+    const { data, error } = await supabaseExternal.functions.invoke('smart-model-router', {
       body: { query, preferred_provider: preferredProvider },
     });
     if (error) throw error;

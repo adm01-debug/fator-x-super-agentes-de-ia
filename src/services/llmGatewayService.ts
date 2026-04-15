@@ -9,6 +9,7 @@
  *  - Fire-and-forget exports trace to Supabase + Langfuse + usage_records
  */
 import { supabase } from '@/integrations/supabase/client';
+import { supabaseExternal } from '@/integrations/supabase/externalClient';
 import { logger } from '@/lib/logger';
 import { startTrace, type SpanKind } from '@/lib/tracing';
 
@@ -139,11 +140,11 @@ export async function invokeTracedFunction<T = unknown>(
 export async function saveWorkspaceSecret(wsId: string, keyName: string, value: string, isUpdate: boolean) {
   try {
     if (isUpdate) {
-      const { error } = await supabase.from('workspace_secrets').update({ key_value: value, updated_at: new Date().toISOString() })
+      const { error } = await supabaseExternal.from('workspace_secrets').update({ key_value: value, updated_at: new Date().toISOString() })
         .eq('workspace_id', wsId).eq('key_name', keyName);
       if (error) throw error;
     } else {
-      const { error } = await supabase.from('workspace_secrets').insert({ workspace_id: wsId, key_name: keyName, key_value: value });
+      const { error } = await supabaseExternal.from('workspace_secrets').insert({ workspace_id: wsId, key_name: keyName, key_value: value });
       if (error) throw error;
     }
   } catch (err) {
@@ -153,7 +154,7 @@ export async function saveWorkspaceSecret(wsId: string, keyName: string, value: 
 }
 
 export async function getMaskedSecrets(wsId: string) {
-  const { data, error } = await supabase.rpc('get_masked_secrets', { p_workspace_id: wsId });
+  const { data, error } = await supabaseExternal.rpc('get_masked_secrets', { p_workspace_id: wsId });
   if (error) { logger.error('getMaskedSecrets failed', { error: error.message }); throw error; }
   return data ?? [];
 }

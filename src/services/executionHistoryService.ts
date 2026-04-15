@@ -10,7 +10,7 @@
  * Gap 7/10 — automation topic analysis
  */
 
-import { supabase } from '@/integrations/supabase/client';
+import { supabaseExternal } from '@/integrations/supabase/externalClient';
 import { fromTable } from '@/lib/supabaseExtended';
 
 export type { ExecutionType, ExecutionStatus, ExecutionRecord, ExecutionStepRecord, ExecutionFilter, ExecutionComparison, ExecutionTimeline } from './types/executionHistoryTypes';

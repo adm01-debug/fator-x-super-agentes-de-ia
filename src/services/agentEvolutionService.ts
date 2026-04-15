@@ -5,7 +5,7 @@
  * Loop: Agent → Environment → Trace → Reflector → SkillManager → Skillbook → Agent
  */
 
-import { supabase } from '@/integrations/supabase/client';
+import { supabaseExternal } from '@/integrations/supabase/externalClient';
 
 export interface AgentSkill {
   id: string;

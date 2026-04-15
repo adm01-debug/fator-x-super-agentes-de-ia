@@ -2,7 +2,7 @@
  * Nexus Agents Studio — Monitoring Service
  * Traces, metrics, alerts, sessions, and observability data.
  */
-import { supabase } from '@/integrations/supabase/client';
+import { supabaseExternal } from '@/integrations/supabase/externalClient';
 import { fromTable } from '@/lib/supabaseExtended';
 import { logger } from '@/lib/logger';
 
@@ -103,14 +103,14 @@ export async function resolveAlert(alertId: string): Promise<void> {
 // ═══ Agents list (for filter dropdown) ═══
 
 export async function getAgentsForFilter() {
-  const { data } = await supabase.from('agents').select('id, name').order('name');
+  const { data } = await supabaseExternal.from('agents').select('id, name').order('name');
   return data ?? [];
 }
 
 // ═══ Alert Rules ═══
 
 export async function listAlertRules() {
-  const { data: member } = await supabase.from('workspace_members').select('workspace_id').limit(1).maybeSingle();
+  const { data: member } = await supabaseExternal.from('workspace_members').select('workspace_id').limit(1).maybeSingle();
   if (!member?.workspace_id) return [];
   const { data } = await fromTable('alert_rules').select('*').eq('workspace_id', member.workspace_id).order('created_at', { ascending: false });
   return data ?? [];
@@ -119,7 +119,7 @@ export async function listAlertRules() {
 export async function createAlertRule(rule: {
   name: string; metric: string; operator: string; threshold: number; severity: string;
 }) {
-  const { data: member } = await supabase.from('workspace_members').select('workspace_id').limit(1).maybeSingle();
+  const { data: member } = await supabaseExternal.from('workspace_members').select('workspace_id').limit(1).maybeSingle();
   await fromTable('alert_rules').insert({
     workspace_id: member?.workspace_id,
     name: rule.name,
@@ -144,8 +144,8 @@ export async function getDashboardMetrics() {
   const now = new Date();
   const dayAgo = new Date(now.getTime() - 24 * 60 * 60 * 1000);
   const [tracesResult, alertsResult, usageResult] = await Promise.all([
-    supabase.from('trace_events').select('*', { count: 'exact', head: true }).gte('created_at', dayAgo.toISOString()),
-    supabase.from('alerts').select('*', { count: 'exact', head: true }).eq('is_resolved', false),
+    supabaseExternal.from('trace_events').select('*', { count: 'exact', head: true }).gte('created_at', dayAgo.toISOString()),
+    supabaseExternal.from('alerts').select('*', { count: 'exact', head: true }).eq('is_resolved', false),
     fromTable('usage_records').select('cost_usd').gte('created_at', dayAgo.toISOString()),
   ]);
   const dailyCost = ((usageResult.data ?? []) as Array<Record<string, unknown>>).reduce((s, r) => s + Number(r.cost_usd || 0), 0);

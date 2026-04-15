@@ -5,7 +5,7 @@
  */
 
 import { fromTable } from '@/lib/supabaseExtended';
-import { supabase } from '@/integrations/supabase/client';
+import { supabaseExternal } from '@/integrations/supabase/externalClient';
 import { logger } from '@/lib/logger';
 
 // Re-export types from dedicated file
@@ -225,7 +225,7 @@ export async function sendNotificationViaEF(input: NotificationSenderInvokeInput
   if (!input.channel || !input.recipient) throw new Error('channel and recipient are required');
   if (!input.message && !input.template_id) throw new Error('message or template_id is required');
 
-  const { data, error } = await supabase.functions.invoke('notification-sender', {
+  const { data, error } = await supabaseExternal.functions.invoke('notification-sender', {
     body: {
       channel: input.channel, recipient: input.recipient,
       subject: input.subject ?? '', message: input.message,

@@ -14,7 +14,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
 import { toast } from "sonner";
-import { supabase } from "@/integrations/supabase/client";
+import { supabaseExternal } from "@/integrations/supabase/externalClient";
 
 interface SyncStatus {
   source_db: string;
@@ -71,7 +71,7 @@ export function DataHubSyncTab() {
     queryKey: ['datahub-sync-status'],
     queryFn: async (): Promise<SyncReport> => {
       try {
-        const { data, error } = await supabase.functions.invoke('datahub-query', {
+        const { data, error } = await supabaseExternal.functions.invoke('datahub-query', {
           body: { action: 'sync_status' },
         });
         if (error) throw new Error(error.message);
@@ -100,7 +100,7 @@ export function DataHubSyncTab() {
   const handleSyncAll = async () => {
     setSyncingAll(true);
     try {
-      const { error } = await supabase.functions.invoke('datahub-query', {
+      const { error } = await supabaseExternal.functions.invoke('datahub-query', {
         body: { action: 'sync_to_cerebro' },
       });
       if (error) throw new Error(error.message);
@@ -115,7 +115,7 @@ export function DataHubSyncTab() {
 
   const handleToggleSync = async (status: SyncStatus, enabled: boolean) => {
     try {
-      const { error } = await supabase.functions.invoke('datahub-query', {
+      const { error } = await supabaseExternal.functions.invoke('datahub-query', {
         body: {
           action: 'toggle_sync',
           source_db: status.source_db,
