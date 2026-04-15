@@ -14,7 +14,7 @@ type AnyFrom = any;
  */
 export function fromTable(name: string): AnyFrom {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  return (supabase as any).from(name);
+  return (supabaseExternal as any).from(name);
 }
 
 /**
@@ -26,5 +26,5 @@ export async function rpcCall(
   params: Record<string, unknown> = {},
 ): Promise<{ data: unknown; error: { message: string } | null }> {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  return (supabase as any).rpc(fnName, params);
+  return (supabaseExternal as any).rpc(fnName, params);
 }
