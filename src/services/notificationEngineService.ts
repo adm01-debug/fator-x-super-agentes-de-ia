@@ -5,7 +5,6 @@
  */
 
 import { fromTable } from '@/lib/supabaseExtended';
-import { supabaseExternal } from '@/integrations/supabase/externalClient';
 import { logger } from '@/lib/logger';
 
 // Re-export types from dedicated file

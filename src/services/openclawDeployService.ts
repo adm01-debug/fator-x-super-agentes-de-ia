@@ -7,7 +7,6 @@
  * OpenClaw directly from the browser, always go through openclaw-proxy
  * so the API token stays server-side.
  */
-import { supabaseExternal } from '@/integrations/supabase/externalClient';
 import { logger } from '@/lib/logger';
 
 export type OpenclawAction =

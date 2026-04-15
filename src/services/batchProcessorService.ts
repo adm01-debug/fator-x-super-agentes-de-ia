@@ -2,7 +2,6 @@
  * Nexus Agents Studio — Batch Processor Service
  */
 
-import { supabaseExternal } from '@/integrations/supabase/externalClient';
 import { supabase } from '@/integrations/supabase/client';
 import { fromTable } from '@/lib/supabaseExtended';
 

@@ -10,7 +10,6 @@
  * Gap 7/10 — automation topic analysis
  */
 
-import { supabaseExternal } from '@/integrations/supabase/externalClient';
 import { supabase } from '@/integrations/supabase/client';
 import { fromTable } from '@/lib/supabaseExtended';
 

@@ -2,7 +2,6 @@
  * Nexus Agents Studio — Health Service
  * Wraps the health-check Edge Function for system observability.
  */
-import { supabaseExternal } from '@/integrations/supabase/externalClient';
 import { logger } from '@/lib/logger';
 
 export type HealthStatus = 'healthy' | 'degraded' | 'down' | 'unknown';

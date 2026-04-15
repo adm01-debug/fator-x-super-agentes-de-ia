@@ -5,7 +5,6 @@
  * Has a local heuristic fallback if the smart-model-router Edge Function
  * is unavailable, so the app never breaks when routing fails.
  */
-import { supabaseExternal } from '@/integrations/supabase/externalClient';
 import { logger } from '@/lib/logger';
 
 export interface RouteResult {
