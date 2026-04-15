@@ -7,7 +7,6 @@
  */
 
 import { useState, useEffect } from 'react';
-import { supabaseExternal } from '@/integrations/supabase/externalClient';
 
 interface ExecutionTrace {
   id: string;
