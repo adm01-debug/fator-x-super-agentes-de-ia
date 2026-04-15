@@ -12,7 +12,6 @@ import {
   LayoutTemplate, PenTool, Database, Rocket,
 } from "lucide-react";
 import { toast } from "sonner";
-import { supabase } from "@/integrations/supabase/client";
 import { supabaseExternal } from "@/integrations/supabase/externalClient";
 import { useAuth } from "@/contexts/AuthContext";
 import { AGENT_TEMPLATES as STATIC_TEMPLATES, type AgentTemplate } from "@/data/agentTemplates";

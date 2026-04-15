@@ -180,7 +180,7 @@ export async function executeWorkflow(
           span.setAttribute('workflow.engine', 'workflow-engine-v2');
           span.setAttribute('workflow.steps_count', steps.length);
 
-          const { data, error } = await supabase.functions.invoke('workflow-engine-v2', {
+          const { data, error } = await supabaseExternal.functions.invoke('workflow-engine-v2', {
             body: { workflow_id: workflowId, input: `Execute o workflow "${workflowName}"` },
           });
           if (error) throw new Error(error.message);
@@ -226,7 +226,7 @@ export async function executeWorkflow(
               `Retorne apenas o resultado da sua etapa de forma estruturada e objetiva.`,
             ].join('\n\n');
 
-            const { data, error } = await supabase.functions.invoke('llm-gateway', {
+            const { data, error } = await supabaseExternal.functions.invoke('llm-gateway', {
               body: {
                 model: 'claude-sonnet-4.6',
                 messages: [

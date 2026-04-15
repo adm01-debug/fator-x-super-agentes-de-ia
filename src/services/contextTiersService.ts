@@ -25,7 +25,7 @@ export interface ContextTier {
 
 // Phase 1: Search L0 abstracts for quick relevance filtering
 export async function searchL0(query: string, collectionId?: string, limit = 20): Promise<ContextTier[]> {
-  const { data, error } = await (supabase.rpc as (fn: string, params: Record<string, unknown>) => ReturnType<typeof supabase.rpc>)(
+  const { data, error } = await (supabaseExternal.rpc as (fn: string, params: Record<string, unknown>) => ReturnType<typeof supabaseExternal.rpc>)(
     'search_context_l0', {
       p_query: query,
       p_collection_id: collectionId || null,

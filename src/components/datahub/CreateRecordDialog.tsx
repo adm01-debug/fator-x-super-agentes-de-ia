@@ -115,7 +115,7 @@ export function CreateRecordDialog({ open, onOpenChange, entityId, entityName, o
         else if (v === '') payload[k] = null;
       }
 
-      const { data: result, error } = await supabase.functions.invoke('datahub-query', {
+      const { data: result, error } = await supabaseExternal.functions.invoke('datahub-query', {
         body: { action: 'create_record', entity: entityId, data: payload },
       });
       if (error) throw new Error(error.message);

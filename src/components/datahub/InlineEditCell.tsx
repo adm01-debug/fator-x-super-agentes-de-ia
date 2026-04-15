@@ -32,7 +32,7 @@ export function InlineEditCell({ row, col, entityId, onUpdate }: InlineEditCellP
     if (value === String(rawValue ?? '')) { setEditing(false); return; }
     setSaving(true);
     try {
-      const { data: result, error } = await supabase.functions.invoke('datahub-query', {
+      const { data: result, error } = await supabaseExternal.functions.invoke('datahub-query', {
         body: { action: 'update_field', entity: entityId, record_id: String(row.id), field: col.key, value },
       });
       if (error) throw new Error(error.message);

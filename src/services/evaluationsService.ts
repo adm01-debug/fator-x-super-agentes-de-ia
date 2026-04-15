@@ -112,7 +112,7 @@ export async function updateDatasetCaseCount(datasetId: string) {
 }
 
 export async function invokeEvalJudge(body: Record<string, unknown>) {
-  const { data, error } = await supabase.functions.invoke('eval-judge', { body });
+  const { data, error } = await supabaseExternal.functions.invoke('eval-judge', { body });
   if (error) throw error;
   return data;
 }

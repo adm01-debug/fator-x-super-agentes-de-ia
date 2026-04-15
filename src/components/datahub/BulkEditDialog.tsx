@@ -44,7 +44,7 @@ export function BulkEditDialog({
     setSaving(true);
     try {
       const recordIds = selectedRecords.map(r => r.id);
-      const { data: result, error } = await supabase.functions.invoke('datahub-query', {
+      const { data: result, error } = await supabaseExternal.functions.invoke('datahub-query', {
         body: { action: 'batch_update', entity: entityId, record_ids: recordIds, field, value },
       });
       if (error) throw new Error(error.message);

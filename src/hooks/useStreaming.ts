@@ -1,7 +1,6 @@
 import { logger } from '@/lib/logger';
 import { useState, useCallback, useRef } from 'react';
 import { supabase } from '@/integrations/supabase/client';
-import { supabaseExternal } from '@/integrations/supabase/externalClient';
 
 interface StreamingState {
   content: string;

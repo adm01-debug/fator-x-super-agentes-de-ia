@@ -13,7 +13,7 @@ export async function listPendingApprovals() {
 }
 
 export async function approveWorkflowRun(runId: string, workflowId: string, feedback: string) {
-  const { data, error } = await supabase.functions.invoke('workflow-engine-v2', {
+  const { data, error } = await supabaseExternal.functions.invoke('workflow-engine-v2', {
     body: { workflow_id: workflowId, resume_run_id: runId, input: feedback || 'Approved' },
   });
   if (error) throw error;

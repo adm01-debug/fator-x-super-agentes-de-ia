@@ -27,7 +27,7 @@ export function TestExecutionPanel({ testCases }: TestExecutionPanelProps) {
       const systemPrompt = (config.system_prompt as string) || `You are ${agent.name}. ${agent.mission}`;
       const model = agent.model || 'claude-haiku-4-5-20251001';
 
-      const { data, error } = await supabase.functions.invoke('test-runner', {
+      const { data, error } = await supabaseExternal.functions.invoke('test-runner', {
         body: {
           agent_id: agent.id,
           test_cases: testCases.map((tc) => ({ input: tc.input, expected_output: tc.expected_behavior || undefined, tags: tc.tags || [] })),

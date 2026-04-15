@@ -249,7 +249,7 @@ export function GroupMembers({ entityId, grupoId, excludeId }: { entityId: strin
     if (!grupoId) { setLoading(false); return; }
     (async () => {
       try {
-        const { data } = await supabase.functions.invoke('datahub-query', {
+        const { data } = await supabaseExternal.functions.invoke('datahub-query', {
           body: { action: 'query_entity', entity: entityId, filters: [{ column: 'grupo_economico_id', operator: 'eq', value: grupoId }], exclude_id: excludeId, page_size: 10 },
         });
         setMembers((data?.data ?? []).filter((r: Record<string, unknown>) => r.id !== excludeId));

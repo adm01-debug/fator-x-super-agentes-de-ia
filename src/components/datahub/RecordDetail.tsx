@@ -31,7 +31,7 @@ export function RecordDetail({ record, enrichedData, entityId, onClose, onRecord
   const primaryFields = Object.entries(currentRecord).filter(([k]) => !skipKeys.has(k));
 
   const handleFieldSave = async (field: string, newValue: string) => {
-    const { data: result, error } = await supabase.functions.invoke('datahub-query', {
+    const { data: result, error } = await supabaseExternal.functions.invoke('datahub-query', {
       body: { action: 'update_field', entity: entityId, record_id: currentRecord.id, field, value: newValue },
     });
     if (error) throw new Error(error.message);

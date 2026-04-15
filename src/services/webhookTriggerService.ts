@@ -344,7 +344,7 @@ export interface WebhookReceiverInvokeResult {
 export async function triggerWebhookViaEF(
   input: WebhookReceiverInvokeInput
 ): Promise<WebhookReceiverInvokeResult> {
-  const { data, error } = await supabase.functions.invoke('webhook-receiver', {
+  const { data, error } = await supabaseExternal.functions.invoke('webhook-receiver', {
     body: input.payload ?? { test: true, source: 'frontend-test', ts: Date.now() },
     method: 'POST',
     headers: { 'x-webhook-test-path': input.path },

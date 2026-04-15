@@ -45,7 +45,7 @@ export function HibernatedDatabasesPanel() {
 
       for (const known of KNOWN_HIBERNATED) {
         try {
-          const { data, error } = await supabase.functions.invoke('datahub-query', {
+          const { data, error } = await supabaseExternal.functions.invoke('datahub-query', {
             body: { action: 'health_check', project_ref: known.project_ref },
           });
 
@@ -91,7 +91,7 @@ export function HibernatedDatabasesPanel() {
       let success = false;
       for (let i = 0; i < 3; i++) {
         try {
-          const { data } = await supabase.functions.invoke('datahub-query', {
+          const { data } = await supabaseExternal.functions.invoke('datahub-query', {
             body: { action: 'health_check', project_ref: db.project_ref },
           });
           if (data) {

@@ -88,7 +88,7 @@ export function DataBrowser({ entityId, onClose }: { entityId: string; onClose: 
           value: f.value,
         }));
       }
-      const { data: result, error } = await supabase.functions.invoke('datahub-query', { body });
+      const { data: result, error } = await supabaseExternal.functions.invoke('datahub-query', { body });
       if (error) throw error;
       setData(result.data ?? []);
       setTotal(result.total ?? 0);
@@ -121,7 +121,7 @@ export function DataBrowser({ entityId, onClose }: { entityId: string; onClose: 
 
   const fetchRecord = async (recordId: string) => {
     try {
-      const { data: result, error } = await supabase.functions.invoke('datahub-query', {
+      const { data: result, error } = await supabaseExternal.functions.invoke('datahub-query', {
         body: { action: 'query_entity', entity: entityId, record_id: recordId },
       });
       if (error) throw error;
@@ -176,7 +176,7 @@ export function DataBrowser({ entityId, onClose }: { entityId: string; onClose: 
     try {
       let deleted = 0;
       for (const id of selectedIds) {
-        const { data: result, error } = await supabase.functions.invoke('datahub-query', {
+        const { data: result, error } = await supabaseExternal.functions.invoke('datahub-query', {
           body: { action: 'delete_record', entity: entityId, record_id: id },
         });
         if (error) throw new Error(error.message);

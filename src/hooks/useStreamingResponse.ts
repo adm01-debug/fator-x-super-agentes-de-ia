@@ -15,7 +15,6 @@
 import { useState, useCallback, useRef } from 'react';
 import { logger } from '@/lib/logger';
 import { supabase } from '@/integrations/supabase/client';
-import { supabaseExternal } from '@/integrations/supabase/externalClient';
 
 // AG-UI compatible event types
 export type AGUIEventType =

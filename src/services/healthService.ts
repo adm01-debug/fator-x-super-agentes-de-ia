@@ -39,7 +39,7 @@ const DOWN_SNAPSHOT = (error: string): SystemHealth => ({
  */
 export async function getSystemHealth(): Promise<SystemHealth> {
   try {
-    const { data, error } = await supabase.functions.invoke('health-check', {
+    const { data, error } = await supabaseExternal.functions.invoke('health-check', {
       method: 'GET',
     });
     if (error) {

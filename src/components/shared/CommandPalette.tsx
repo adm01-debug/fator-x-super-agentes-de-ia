@@ -10,7 +10,6 @@ import {
   Clock, ArrowRight, ServerCog,
 } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
-import { supabase } from "@/integrations/supabase/client";
 import { supabaseExternal } from "@/integrations/supabase/externalClient";
 
 const pages = [
