@@ -38,7 +38,7 @@ export async function searchL0(query: string, collectionId?: string, limit = 20)
 
 // Phase 2: Load L1 overviews for top-K results (planning phase)
 export async function loadL1(chunkIds: string[]): Promise<ContextTier[]> {
-  const { data, error } = await supabase
+  const { data, error } = await supabaseExternal
     .from('chunks')
     .select('id, document_id, token_count, content, metadata')
     .in('id', chunkIds);
@@ -56,7 +56,7 @@ export async function loadL1(chunkIds: string[]): Promise<ContextTier[]> {
 
 // Phase 3: Load L2 full content for final context (only what's needed)
 export async function loadL2(chunkIds: string[]): Promise<ContextTier[]> {
-  const { data, error } = await supabase
+  const { data, error } = await supabaseExternal
     .from('chunks')
     .select('id, document_id, content, token_count, metadata')
     .in('id', chunkIds);

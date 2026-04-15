@@ -2,7 +2,6 @@
  * Nexus Agents Studio — Cron Scheduler Engine
  */
 
-import { supabaseExternal } from '@/integrations/supabase/externalClient';
 import { supabase } from '@/integrations/supabase/client';
 import { fromTable } from '@/lib/supabaseExtended';
 import { logger } from '@/lib/logger';
@@ -149,7 +148,7 @@ export async function getScheduleStats(): Promise<ScheduleStats> {
 export { CRON_PRESETS } from './presets/cronPresets';
 
 export async function runCronExecutor(): Promise<CronExecutorRunResult> {
-  const { data, error } = await supabaseExternal.functions.invoke('cron-executor', { body: { manual: true, source: 'frontend-panel' } });
+  const { data, error } = await supabase.functions.invoke('cron-executor', { body: { manual: true, source: 'frontend-panel' } });
   if (error) { logger.error('cron-executor invoke failed', { error: error.message }); throw new Error(error.message); }
   return (data as CronExecutorRunResult) ?? { ok: true };
 }

@@ -9,7 +9,7 @@ import { logger } from '@/lib/logger';
 import { invokeTracedFunction } from '@/services/llmGatewayService';
 
 export async function listApiKeys() {
-  const { data, error } = await supabase
+  const { data, error } = await supabaseExternal
     .from('api_keys')
     .select('id, name, key_prefix, scopes, is_active, last_used_at, created_at')
     .order('created_at', { ascending: false });
@@ -33,7 +33,7 @@ export async function createApiKey(name: string, scopes: string[] = ['read', 'ex
   } = await supabase.auth.getUser();
   if (!user) throw new Error('Not authenticated');
 
-  const { data: member } = await supabase
+  const { data: member } = await supabaseExternal
     .from('workspace_members')
     .select('workspace_id')
     .eq('user_id', user.id)
@@ -59,7 +59,7 @@ export async function revokeApiKey(id: string) {
 }
 
 export async function getSecurityEvents(_options?: { severity?: string; limit?: number }) {
-  const { data, error } = await supabase
+  const { data, error } = await supabaseExternal
     .from('audit_log_safe')
     .select('*')
     .order('created_at', { ascending: false })
@@ -74,7 +74,7 @@ export async function getSecurityEvents(_options?: { severity?: string; limit?: 
 }
 
 export async function getAuditLog(options?: { userId?: string; limit?: number }) {
-  let query = supabase
+  let query = supabaseExternal
     .from('audit_log_safe')
     .select('*')
     .order('created_at', { ascending: false })
@@ -114,7 +114,7 @@ export async function getAuthUser() {
 // ──────── Guardrail Policies ────────
 
 export async function listGuardrailPolicies() {
-  const { data, error } = await supabase
+  const { data, error } = await supabaseExternal
     .from('guardrail_policies')
     .select('*')
     .order('created_at', { ascending: false });
@@ -130,7 +130,7 @@ export async function createGuardrailPolicy(
   type: string,
   workspaceId: string | null,
 ) {
-  const { error } = await supabase
+  const { error } = await supabaseExternal
     .from('guardrail_policies')
     .insert({ name, type, workspace_id: workspaceId });
   if (error) {
@@ -140,7 +140,7 @@ export async function createGuardrailPolicy(
 }
 
 export async function toggleGuardrailPolicy(id: string, enabled: boolean) {
-  const { error } = await supabase
+  const { error } = await supabaseExternal
     .from('guardrail_policies')
     .update({ is_enabled: enabled })
     .eq('id', id);

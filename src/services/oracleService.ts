@@ -1,3 +1,4 @@
+import { supabaseExternal } from '@/integrations/supabase/externalClient';
 /**
  * Nexus Agents Studio — Oracle Service
  * Multi-LLM Council queries, history, and analytics.
@@ -48,7 +49,7 @@ export async function queryOracle(params: {
 }
 
 export async function getOracleHistory(limit = 20): Promise<OracleQuery[]> {
-  const { data, error } = await supabase
+  const { data, error } = await supabaseExternal
     .from('oracle_history')
     .select('*')
     .order('created_at', { ascending: false })
@@ -59,7 +60,7 @@ export async function getOracleHistory(limit = 20): Promise<OracleQuery[]> {
 }
 
 export async function getOracleStats() {
-  const { data, error } = await supabase
+  const { data, error } = await supabaseExternal
     .from('oracle_history')
     .select('total_cost_usd, total_tokens, total_latency_ms, created_at');
 

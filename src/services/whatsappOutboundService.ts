@@ -65,7 +65,7 @@ interface ProviderSecrets {
 
 async function loadActiveProviderConfig(): Promise<ProviderSecrets> {
   const wsId = await getWorkspaceId();
-  const { data, error } = await supabase
+  const { data, error } = await supabaseExternal
     .from('workspace_secrets')
     .select('key_name, encrypted_value')
     .eq('workspace_id', wsId)

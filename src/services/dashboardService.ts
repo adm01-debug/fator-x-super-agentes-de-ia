@@ -30,7 +30,7 @@ export interface UsageRecord {
  * Lists agents for the dashboard view (most recently updated first).
  */
 export async function listAgentsForDashboard(): Promise<AgentSummary[]> {
-  const { data, error } = await supabase
+  const { data, error } = await supabaseExternal
     .from('agents')
     .select('id, name, mission, avatar_emoji, status, model, tags, version, updated_at')
     .order('updated_at', { ascending: false });
@@ -47,7 +47,7 @@ export async function listAgentsForDashboard(): Promise<AgentSummary[]> {
 export async function getUsageInRange(days: number): Promise<UsageRecord[]> {
   const fromDate = new Date();
   fromDate.setDate(fromDate.getDate() - days);
-  const { data, error } = await supabase
+  const { data, error } = await supabaseExternal
     .from('agent_usage')
     .select('*')
     .gte('date', fromDate.toISOString().split('T')[0]);
@@ -63,7 +63,7 @@ export async function getUsageInRange(days: number): Promise<UsageRecord[]> {
  * Used by DashboardAlerts to invalidate queries on insert/update.
  */
 export function subscribeToAlerts(onChange: () => void): () => void {
-  const channel = supabase
+  const channel = supabaseExternal
     .channel('dashboard-alerts')
     .on('postgres_changes', { event: '*', schema: 'public', table: 'alerts' }, () => {
       onChange();
@@ -76,7 +76,7 @@ export function subscribeToAlerts(onChange: () => void): () => void {
  * Recent unresolved alerts for the dashboard banner.
  */
 export async function getUnresolvedAlerts(limit = 5) {
-  const { data, error } = await supabase
+  const { data, error } = await supabaseExternal
     .from('alerts')
     .select('id, title, severity, created_at, is_resolved')
     .eq('is_resolved', false)
@@ -93,7 +93,7 @@ export async function getUnresolvedAlerts(limit = 5) {
  * Recent traces for the dashboard activity feed.
  */
 export async function getRecentDashboardTraces(limit = 5) {
-  const { data, error } = await supabase
+  const { data, error } = await supabaseExternal
     .from('agent_traces')
     .select('id, event, level, latency_ms, created_at')
     .order('created_at', { ascending: false })

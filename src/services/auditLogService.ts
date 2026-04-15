@@ -70,7 +70,7 @@ export async function logAudit(input: LogAuditInput): Promise<void> {
 
     let workspaceId: string | null = null;
     if (user?.id) {
-      const { data: member } = await supabase
+      const { data: member } = await supabaseExternal
         .from('workspace_members')
         .select('workspace_id')
         .eq('user_id', user.id)

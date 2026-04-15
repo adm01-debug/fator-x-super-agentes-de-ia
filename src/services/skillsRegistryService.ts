@@ -32,7 +32,7 @@ export async function listSkills(options?: {
 }): Promise<{ skills: AgentSkillDefinition[]; total: number }> {
   const { category, search, page = 1, limit = 20 } = options || {};
 
-  let query = supabase
+  let query = supabaseExternal
     .from('skill_registry')
     .select('*', { count: 'exact' })
     .eq('is_public', true)
@@ -60,7 +60,7 @@ export async function installSkill(agentId: string, skillId: string): Promise<vo
 
 // Get installed skills for an agent
 export async function getInstalledSkills(agentId: string): Promise<AgentSkillDefinition[]> {
-  const { data, error } = await supabase
+  const { data, error } = await supabaseExternal
     .from('agent_installed_skills')
     .select('skill_id, skill_registry(*)')
     .eq('agent_id', agentId);
@@ -71,7 +71,7 @@ export async function getInstalledSkills(agentId: string): Promise<AgentSkillDef
 
 // Uninstall a skill
 export async function uninstallSkill(agentId: string, skillId: string): Promise<void> {
-  const { error } = await supabase
+  const { error } = await supabaseExternal
     .from('agent_installed_skills')
     .delete()
     .eq('agent_id', agentId)
@@ -81,7 +81,7 @@ export async function uninstallSkill(agentId: string, skillId: string): Promise<
 
 // Publish a skill to the registry
 export async function publishSkill(skill: Omit<AgentSkillDefinition, 'id' | 'install_count' | 'rating' | 'created_at'>): Promise<AgentSkillDefinition> {
-  const { data, error } = await supabase
+  const { data, error } = await supabaseExternal
     .from('skill_registry')
     .insert([{
       name: skill.name,

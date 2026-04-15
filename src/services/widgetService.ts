@@ -12,7 +12,7 @@ import { supabaseExternal } from '@/integrations/supabase/externalClient';
 import { logger } from '@/lib/logger';
 
 const PROJECT_REF = 'tdprnylgyrogbbhgdoik';
-const FUNCTIONS_BASE = `https://${PROJECT_REF}.functions.supabase.co/widget-proxy`;
+const FUNCTIONS_BASE = `https://${PROJECT_REF}.functions.supabaseExternal.co/widget-proxy`;
 
 export interface WidgetEmbedSnippet {
   scriptUrl: string;
@@ -57,7 +57,7 @@ export async function sendWidgetChatMessage(
     throw new Error('agent_id and message are required');
   }
 
-  const { data, error } = await supabaseExternal.functions.invoke('widget-proxy', {
+  const { data, error } = await supabase.functions.invoke('widget-proxy', {
     body: {
       path: '/chat',
       agent_id: input.agent_id,

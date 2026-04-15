@@ -7,7 +7,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { invokeTracedFunction } from '@/services/llmGatewayService';
 
 export async function listCollections() {
-  const { data, error } = await supabase
+  const { data, error } = await supabaseExternal
     .from('collections')
     .select('*, documents:documents(count)')
     .order('updated_at', { ascending: false });
@@ -22,7 +22,7 @@ export async function createCollection(name: string, description?: string) {
   } = await supabase.auth.getUser();
   if (!user) throw new Error('Not authenticated');
 
-  const { data, error } = await supabase
+  const { data, error } = await supabaseExternal
     .from('collections')
     .insert({ name, description })
     .select()
@@ -38,7 +38,7 @@ export async function deleteCollection(id: string) {
 }
 
 export async function listDocuments(collectionId: string) {
-  const { data, error } = await supabase
+  const { data, error } = await supabaseExternal
     .from('documents')
     .select('*')
     .eq('collection_id', collectionId)
@@ -82,7 +82,7 @@ export async function searchKnowledge(
 
 export async function getCollectionStats(collectionId: string) {
   // Count documents in this collection
-  const docsResult = await supabase
+  const docsResult = await supabaseExternal
     .from('documents')
     .select('id', { count: 'exact', head: false })
     .eq('collection_id', collectionId);
@@ -92,7 +92,7 @@ export async function getCollectionStats(collectionId: string) {
   // Count chunks belonging to those documents (not to collectionId directly)
   let chunksCount = 0;
   if (docIds.length > 0) {
-    const chunksResult = await supabase
+    const chunksResult = await supabaseExternal
       .from('chunks')
       .select('*', { count: 'exact', head: true })
       .in('document_id', docIds);
@@ -106,7 +106,7 @@ export async function getCollectionStats(collectionId: string) {
 }
 
 export async function listKnowledgeBases() {
-  const { data, error } = await supabase
+  const { data, error } = await supabaseExternal
     .from('knowledge_bases')
     .select('*')
     .order('created_at', { ascending: false });
@@ -120,7 +120,7 @@ export async function deleteKnowledgeBase(id: string) {
 }
 
 export async function listVectorIndexes() {
-  const { data } = await supabase
+  const { data } = await supabaseExternal
     .from('vector_indexes')
     .select('*, knowledge_bases(name)')
     .order('created_at', { ascending: false });
@@ -129,15 +129,15 @@ export async function listVectorIndexes() {
 
 export async function getChunkEmbeddingStats() {
   const [done, pending, failed] = await Promise.all([
-    supabase
+    supabaseExternal
       .from('chunks')
       .select('id', { count: 'exact', head: true })
       .eq('embedding_status', 'done'),
-    supabase
+    supabaseExternal
       .from('chunks')
       .select('id', { count: 'exact', head: true })
       .eq('embedding_status', 'pending'),
-    supabase
+    supabaseExternal
       .from('chunks')
       .select('id', { count: 'exact', head: true })
       .eq('embedding_status', 'failed'),
@@ -187,14 +187,14 @@ export async function rerankChunks(
 
 /** Fetch chunks, optionally filtered by knowledge base */
 export async function fetchChunksForRerank(kbId?: string, limit = 50) {
-  let query = supabase
+  let query = supabaseExternal
     .from('chunks')
     .select('id, content, chunk_index, token_count, document_id, metadata')
     .limit(limit)
     .order('created_at', { ascending: false });
 
   if (kbId) {
-    const { data: docs } = await supabase
+    const { data: docs } = await supabaseExternal
       .from('documents')
       .select('id, collection_id, collections!inner(knowledge_base_id)')
       .eq('collections.knowledge_base_id', kbId);
@@ -213,12 +213,12 @@ export async function createKnowledgeBaseWithWorkspace(kb: {
   description?: string;
   embedding_model?: string;
 }) {
-  const { data: member } = await supabase
+  const { data: member } = await supabaseExternal
     .from('workspace_members')
     .select('workspace_id')
     .limit(1)
     .maybeSingle();
-  const { data, error } = await supabase
+  const { data, error } = await supabaseExternal
     .from('knowledge_bases')
     .insert({
       ...kb,
@@ -259,7 +259,7 @@ export async function invokeRagIngest(body: Record<string, unknown>) {
 }
 
 export async function getDocumentCount(collectionId: string) {
-  const { count } = await supabase
+  const { count } = await supabaseExternal
     .from('documents')
     .select('id', { count: 'exact', head: true })
     .eq('collection_id', collectionId);
@@ -267,7 +267,7 @@ export async function getDocumentCount(collectionId: string) {
 }
 
 export async function getChunkCountForCollection(documentIds: string[]) {
-  const { count } = await supabase
+  const { count } = await supabaseExternal
     .from('chunks')
     .select('id', { count: 'exact', head: true })
     .in('document_id', documentIds);
@@ -298,7 +298,7 @@ export async function createPromptVersion(pv: {
 }
 
 export async function listPromptVersions(agentId: string) {
-  const { data } = await supabase
+  const { data } = await supabaseExternal
     .from('prompt_versions')
     .select('id, version, change_summary, is_active')
     .eq('agent_id', agentId)
@@ -307,7 +307,7 @@ export async function listPromptVersions(agentId: string) {
 }
 
 export async function listCollectionsForKB(kbId: string) {
-  const { data, error } = await supabase
+  const { data, error } = await supabaseExternal
     .from('collections')
     .select('*')
     .eq('knowledge_base_id', kbId)
@@ -318,7 +318,7 @@ export async function listCollectionsForKB(kbId: string) {
 
 export async function listChunksForDocuments(docIds: string[], limit = 100) {
   if (docIds.length === 0) return [];
-  const { data, error } = await supabase
+  const { data, error } = await supabaseExternal
     .from('chunks')
     .select('*')
     .in('document_id', docIds)
@@ -329,7 +329,7 @@ export async function listChunksForDocuments(docIds: string[], limit = 100) {
 }
 
 export async function createCollectionForKB(kbId: string, name: string, description?: string) {
-  const { error } = await supabase
+  const { error } = await supabaseExternal
     .from('collections')
     .insert({ name, description, knowledge_base_id: kbId });
   if (error) throw error;
@@ -345,7 +345,7 @@ export async function createDocumentWithIngest(
   doc: { title: string; collection_id: string; source_url?: string | null; source_type?: string },
   content?: string,
 ) {
-  const { data, error } = await supabase
+  const { data, error } = await supabaseExternal
     .from('documents')
     .insert({
       title: doc.title,
@@ -370,7 +370,7 @@ export async function createDocumentWithIngest(
 }
 
 export async function updateKBCounts(kbId: string, docCount: number, chunkCount: number) {
-  await supabase
+  await supabaseExternal
     .from('knowledge_bases')
     .update({ document_count: docCount, chunk_count: chunkCount })
     .eq('id', kbId);

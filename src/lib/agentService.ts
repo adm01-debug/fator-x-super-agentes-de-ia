@@ -14,7 +14,7 @@ export async function getWorkspaceId(): Promise<string> {
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) throw new Error('Não autenticado');
 
-  const { data } = await supabase
+  const { data } = await supabaseExternal
     .from('workspace_members')
     .select('workspace_id')
     .eq('user_id', user.id)
@@ -31,7 +31,7 @@ export function clearWorkspaceCache() {
 }
 
 export async function listAgents(statusFilter?: string) {
-  let query = supabase
+  let query = supabaseExternal
     .from('agents')
     .select('*')
     .order('updated_at', { ascending: false });
@@ -76,7 +76,7 @@ export async function autoTagAgent(agent: { id: string; model: string | null; co
 }
 
 export async function getAgent(id: string): Promise<AgentConfig> {
-  const { data, error } = await supabase
+  const { data, error } = await supabaseExternal
     .from('agents')
     .select('*')
     .eq('id', id)
@@ -154,7 +154,7 @@ export async function getWorkspaceInfo() {
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) return null;
 
-  const { data: member } = await supabase
+  const { data: member } = await supabaseExternal
     .from('workspace_members')
     .select('workspace_id, role')
     .eq('user_id', user.id)
@@ -163,13 +163,13 @@ export async function getWorkspaceInfo() {
 
   if (!member?.workspace_id) return null;
 
-  const { data: workspace } = await supabase
+  const { data: workspace } = await supabaseExternal
     .from('workspaces')
     .select('name, plan, max_agents')
     .eq('id', member.workspace_id)
     .maybeSingle();
 
-  const { count } = await supabase
+  const { count } = await supabaseExternal
     .from('agents')
     .select('id', { count: 'exact', head: true });
 

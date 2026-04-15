@@ -7,7 +7,6 @@
  * OpenClaw directly from the browser, always go through openclaw-proxy
  * so the API token stays server-side.
  */
-import { supabaseExternal } from '@/integrations/supabase/externalClient';
 import { logger } from '@/lib/logger';
 
 export type OpenclawAction =
@@ -64,7 +63,7 @@ export async function invokeOpenclaw<T = unknown>(
 ): Promise<OpenclawInvokeResult<T>> {
   if (!input.action) throw new Error('OpenClaw action is required');
 
-  const { data, error } = await supabaseExternal.functions.invoke('openclaw-proxy', {
+  const { data, error } = await supabase.functions.invoke('openclaw-proxy', {
     body: {
       action: input.action,
       payload: input.payload ?? {},

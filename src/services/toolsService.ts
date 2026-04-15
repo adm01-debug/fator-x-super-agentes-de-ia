@@ -17,7 +17,7 @@ export interface ToolIntegration {
 }
 
 export async function listToolIntegrations(): Promise<ToolIntegration[]> {
-  const { data, error } = await supabase
+  const { data, error } = await supabaseExternal
     .from('tool_integrations')
     .select('*')
     .order('created_at', { ascending: false });
@@ -47,7 +47,7 @@ export async function createToolIntegration(params: {
 }
 
 export async function toggleToolIntegration(id: string, enabled: boolean): Promise<void> {
-  const { error } = await supabase
+  const { error } = await supabaseExternal
     .from('tool_integrations')
     .update({ is_enabled: enabled })
     .eq('id', id);
@@ -58,7 +58,7 @@ export async function toggleToolIntegration(id: string, enabled: boolean): Promi
 }
 
 export async function deleteToolIntegration(id: string): Promise<void> {
-  const { error } = await supabase
+  const { error } = await supabaseExternal
     .from('tool_integrations')
     .delete()
     .eq('id', id);

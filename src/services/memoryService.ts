@@ -18,7 +18,7 @@ export interface MemoryEntry {
 
 /** Invoke memory-tools edge function */
 async function invokeMemoryTool(tool: string, params: Record<string, unknown>) {
-  const { data, error } = await supabaseExternal.functions.invoke('memory-tools', {
+  const { data, error } = await supabase.functions.invoke('memory-tools', {
     body: { tool, params },
   });
   if (error) throw new Error(error.message || 'Erro ao chamar memory-tools');
@@ -57,7 +57,7 @@ export async function compactMemories(memoryType: string) {
 
 /** List memories directly from the database (fallback) */
 export async function listMemories(type: string, limit = 100): Promise<MemoryEntry[]> {
-  const { data, error } = await supabase
+  const { data, error } = await supabaseExternal
     .from('agent_memories')
     .select('*')
     .eq('memory_type', type)
@@ -108,7 +108,7 @@ export interface MemoryManagerInvokeResult {
 export async function invokeMemoryManager(
   input: MemoryManagerInvokeInput
 ): Promise<MemoryManagerInvokeResult> {
-  const { data, error } = await supabaseExternal.functions.invoke('memory-manager', {
+  const { data, error } = await supabase.functions.invoke('memory-manager', {
     body: {
       action: input.action,
       content: input.content,

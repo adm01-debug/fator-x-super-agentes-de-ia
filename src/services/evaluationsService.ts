@@ -14,7 +14,7 @@ import { supabaseExternal } from '@/integrations/supabase/externalClient';
 // ═══ CRUD ═══
 
 export async function listEvaluationRuns() {
-  const { data, error } = await supabase
+  const { data, error } = await supabaseExternal
     .from('evaluation_runs')
     .select('*')
     .order('created_at', { ascending: false });
@@ -23,7 +23,7 @@ export async function listEvaluationRuns() {
 }
 
 export async function listEvaluationDatasets() {
-  const { data, error } = await supabase
+  const { data, error } = await supabaseExternal
     .from('evaluation_datasets')
     .select('*')
     .order('created_at', { ascending: false });
@@ -32,7 +32,7 @@ export async function listEvaluationDatasets() {
 }
 
 export async function listTestCases(datasetId: string) {
-  const { data, error } = await supabase
+  const { data, error } = await supabaseExternal
     .from('test_cases')
     .select('*')
     .eq('dataset_id', datasetId)
@@ -49,7 +49,7 @@ export async function createEvaluationRun(run: {
   workspace_id?: string;
   status?: string;
 }) {
-  const { data, error } = await supabase
+  const { data, error } = await supabaseExternal
     .from('evaluation_runs')
     .insert({ ...run, status: run.status || 'running' })
     .select()
@@ -68,7 +68,7 @@ export async function createEvaluationDataset(dataset: {
   description?: string;
   workspace_id?: string;
 }) {
-  const { data, error } = await supabase
+  const { data, error } = await supabaseExternal
     .from('evaluation_datasets')
     .insert(dataset)
     .select()
@@ -94,7 +94,7 @@ export async function deleteTestCase(id: string) {
 }
 
 export async function updateDatasetCaseCount(datasetId: string) {
-  const { count, error: countErr } = await supabase
+  const { count, error: countErr } = await supabaseExternal
     .from('test_cases')
     .select('id', { count: 'exact', head: true })
     .eq('dataset_id', datasetId);
@@ -102,7 +102,7 @@ export async function updateDatasetCaseCount(datasetId: string) {
     logger.error('Failed to count test cases', { datasetId, error: countErr.message });
     throw countErr;
   }
-  const { error: updateErr } = await supabase
+  const { error: updateErr } = await supabaseExternal
     .from('evaluation_datasets')
     .update({ case_count: count ?? 0 })
     .eq('id', datasetId);
@@ -113,7 +113,7 @@ export async function updateDatasetCaseCount(datasetId: string) {
 }
 
 export async function invokeEvalJudge(body: Record<string, unknown>) {
-  const { data, error } = await supabaseExternal.functions.invoke('eval-judge', { body });
+  const { data, error } = await supabase.functions.invoke('eval-judge', { body });
   if (error) throw error;
   return data;
 }

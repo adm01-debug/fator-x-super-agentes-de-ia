@@ -6,7 +6,7 @@ import { supabaseExternal } from '@/integrations/supabase/externalClient';
 import { logger } from '@/lib/logger';
 
 export async function embedTexts(texts: string[], provider = 'qwen3-embedding-8b', dimension = 1024) {
-  const { data, error } = await supabaseExternal.functions.invoke('rag-embed-v2', {
+  const { data, error } = await supabase.functions.invoke('rag-embed-v2', {
     body: { texts, provider, dimension, task: 'retrieval.passage' },
   });
   if (error) {
@@ -21,7 +21,7 @@ export async function rerankDocuments(
   documents: Array<{ id: string; content: string; score?: number }>,
   topK = 5
 ) {
-  const { data, error } = await supabaseExternal.functions.invoke('rag-rerank-v2', {
+  const { data, error } = await supabase.functions.invoke('rag-rerank-v2', {
     body: { query, documents, top_k: topK, model: 'qwen3-reranker-8b' },
   });
   if (error) {
@@ -88,7 +88,7 @@ export interface RagRerankV1Result {
 export async function invokeRagRerank(
   input: RagRerankV1Input
 ): Promise<RagRerankV1Result> {
-  const { data, error } = await supabaseExternal.functions.invoke('rag-rerank', {
+  const { data, error } = await supabase.functions.invoke('rag-rerank', {
     body: {
       query: input.query,
       chunks: input.chunks,
