@@ -26,6 +26,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       setSession(session);
       setUser(session?.user ?? null);
       setLoading(false);
+      // Sync access token to external DB client so RLS works
+      if (session?.access_token) {
+        syncExternalAuth(session.access_token);
+      }
     });
 
     supabase.auth.getSession().then(({ data: { session } }) => {
