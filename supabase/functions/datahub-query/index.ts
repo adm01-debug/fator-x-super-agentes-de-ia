@@ -750,7 +750,71 @@ serve(async (req) => {
       }), { headers: { ...getCorsHeaders(req), 'Content-Type': 'application/json' } });
     }
 
-    return new Response(JSON.stringify({ error: 'Invalid action' }), { status: 400, headers: { ...getCorsHeaders(req), 'Content-Type': 'application/json' } });
+    // ═══ ACTION: health_check — Ping a specific project ═══
+    if (action === 'health_check') {
+      const { project_ref } = body as { project_ref?: string };
+      // Find connection by matching known project refs
+      const PROJECT_REF_MAP: Record<string, string> = {
+        pgxfvjmuubtbowutlide: 'bancodadosclientes',
+        doufsxqlfjyuvxuezpln: 'supabase-fuchsia-kite',
+        rhqfnvvjdwvnulxybmrk: 'backupgiftstore',
+        hncgwjbzdajfdztqgefe: 'gestao_time_promo',
+      };
+      const connId = project_ref ? PROJECT_REF_MAP[project_ref] : null;
+
+      if (!connId || !CONNECTION_REGISTRY[connId]) {
+        return new Response(JSON.stringify({ reachable: false, error: `Unknown project ref: ${project_ref}` }), { status: 200, headers: { ...getCorsHeaders(req), 'Content-Type': 'application/json' } });
+      }
+
+      try {
+        const client = getExternalClient(connId);
+        const testTable = connId === 'bancodadosclientes' ? 'companies'
+          : connId === 'supabase-fuchsia-kite' ? 'products'
+          : connId === 'gestao_time_promo' ? 'colaboradores'
+          : 'contacts';
+        const { count, error: testError } = await client.from(testTable).select('id', { count: 'exact', head: true });
+        if (testError) throw new Error(testError.message);
+        return new Response(JSON.stringify({ reachable: true, table_count: 1, total_rows: count ?? 0 }), { headers: { ...getCorsHeaders(req), 'Content-Type': 'application/json' } });
+      } catch (e: unknown) {
+        return new Response(JSON.stringify({ reachable: false, error: e instanceof Error ? e.message : 'Unknown error' }), { status: 200, headers: { ...getCorsHeaders(req), 'Content-Type': 'application/json' } });
+      }
+    }
+
+    // ═══ ACTION: list_tables — List tables per connection ═══
+    if (action === 'list_tables') {
+      const tables: Record<string, string[]> = {};
+      for (const [connId, mapping] of Object.entries(ENTITY_MAPPINGS)) {
+        const conn = (mapping as any).primary.connection;
+        if (!tables[conn]) tables[conn] = [];
+        const tbl = (mapping as any).primary.table;
+        if (!tables[conn].includes(tbl)) tables[conn].push(tbl);
+        if ((mapping as any).secondary) {
+          for (const sec of (mapping as any).secondary) {
+            if (!tables[conn].includes(sec.table)) tables[conn].push(sec.table);
+          }
+        }
+      }
+      return new Response(JSON.stringify({ tables }), { headers: { ...getCorsHeaders(req), 'Content-Type': 'application/json' } });
+    }
+
+    // ═══ ACTION: stats — Aggregate stats ═══
+    if (action === 'stats') {
+      let totalRecords = 0;
+      const tableSet = new Set<string>();
+      for (const [, mapping] of Object.entries(ENTITY_MAPPINGS)) {
+        try {
+          const client = getExternalClient((mapping as any).primary.connection);
+          let q = client.from((mapping as any).primary.table).select('id', { count: 'exact', head: true });
+          if ((mapping as any).primary.filter) q = applyStaticFilter(q, (mapping as any).primary.filter);
+          const { count } = await q;
+          totalRecords += count ?? 0;
+          tableSet.add((mapping as any).primary.table);
+        } catch { /* skip */ }
+      }
+      return new Response(JSON.stringify({ databases: Object.keys(CONNECTION_REGISTRY).length, tables: tableSet.size, records: totalRecords }), { headers: { ...getCorsHeaders(req), 'Content-Type': 'application/json' } });
+    }
+
+    return new Response(JSON.stringify({ error: 'Invalid action', available: ['test_connections','list_entities','query_entity','update_field','batch_update','create_record','delete_record','summarize_conversation','natural_language_query','table_qa','list_rls_policies','health_check','list_tables','stats'] }), { status: 400, headers: { ...getCorsHeaders(req), 'Content-Type': 'application/json' } });
   } catch (error: unknown) {
     console.error('datahub-query error:', error);
     return new Response(JSON.stringify({ error: error instanceof Error ? error.message : 'Internal error' }), { status: 500, headers: { ...getCorsHeaders(req), 'Content-Type': 'application/json' } });
