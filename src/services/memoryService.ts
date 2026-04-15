@@ -2,7 +2,6 @@
  * Nexus Agents Studio — Memory Service
  * Persistent memory management (MemGPT/Letta-style via memory-tools edge function).
  */
-import { supabaseExternal } from '@/integrations/supabase/externalClient';
 
 export type MemoryType = 'episodic' | 'semantic' | 'procedural' | 'short_term' | 'user_profile' | 'team' | 'external';
 export type MemoryScope = 'session' | 'user' | 'agent' | 'org';

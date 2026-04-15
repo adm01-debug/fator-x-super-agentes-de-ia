@@ -4,7 +4,6 @@
  * over time, detects velocity (creation rate), and builds time-window
  * snapshots so the Super Cérebro can answer "what did we know when?".
  */
-import { supabaseExternal } from '@/integrations/supabase/externalClient';
 import { logger } from '@/lib/logger';
 
 export type TemporalWindow = '1h' | '24h' | '7d' | '30d' | '90d' | 'all';

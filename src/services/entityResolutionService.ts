@@ -11,7 +11,6 @@
  *  3. Group entries with similarity >= threshold (default 0.7)
  *  4. Return clusters with canonical pick (longest content as canonical)
  */
-import { supabaseExternal } from '@/integrations/supabase/externalClient';
 import { logger } from '@/lib/logger';
 
 export interface EntityCandidate {
@@ -134,7 +133,7 @@ export function clusterCandidates(
   }
 
   // Only keep clusters with at least one duplicate
-  return clusters.filter((c) => c.duplicates.length > 0);
+  return clusters.filter((c: any) => c.duplicates.length > 0);
 }
 
 /**
@@ -158,7 +157,7 @@ export async function resolveMemoryEntities(
     }
 
     const candidates = ((data ?? []) as EntityCandidate[]).filter(
-      (c) => c.content && c.content.length >= 10
+      (c: any) => c.content && c.content.length >= 10
     );
 
     const clusters = clusterCandidates(candidates, threshold);

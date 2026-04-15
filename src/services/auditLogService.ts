@@ -7,7 +7,6 @@
  * logAudit() after successful execution (or with `status: 'failed'` on
  * error) — this is the enforcement layer for T04 RBAC granular.
  */
-import { supabaseExternal } from '@/integrations/supabase/externalClient';
 import { supabase } from '@/integrations/supabase/client';
 import { logger } from '@/lib/logger';
 import { fromTable } from '@/lib/supabaseExtended';
