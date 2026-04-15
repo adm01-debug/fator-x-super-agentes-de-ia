@@ -48,12 +48,12 @@ export function RealTimeCostStream() {
 
   // Subscribe to usage_records inserts
   useEffect(() => {
-    const channel = supabase
+    const channel = supabaseExternal
       .channel("billing-cost-stream")
       .on(
         "postgres_changes",
         { event: "INSERT", schema: "public", table: "usage_records" },
-        (payload) => {
+        (payload: any) => {
           if (pausedRef.current) return;
           const row = payload.new as Record<string, unknown>;
           const evt: StreamEvent = {
@@ -69,7 +69,7 @@ export function RealTimeCostStream() {
           setEvents((prev) => [evt, ...prev].slice(0, MAX_EVENTS));
         }
       )
-      .subscribe((status) => {
+      .subscribe((status: string) => {
         setConnected(status === "SUBSCRIBED");
         logger.info("RealTimeCostStream subscription status", { status });
       });

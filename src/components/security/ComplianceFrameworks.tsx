@@ -11,7 +11,7 @@ export function ComplianceFrameworks() {
     (async () => {
       let postureScore = 0, hasGuardrails = false, hasLogs = false;
       try { const p = await getSecurityPosture(); postureScore = p.length > 0 ? Math.round((p.filter(c => c.status === 'pass').length / p.length) * 100) : 0; } catch {}
-      try { const g = await listGuardrailPolicies(); hasGuardrails = g.some((x) => x.is_enabled === true); } catch {}
+      try { const g = await listGuardrailPolicies(); hasGuardrails = g.some((x: any) => x.is_enabled === true); } catch {}
       try { const l = await getAuditLog({ limit: 1 }); hasLogs = l.length > 0; } catch {}
       const lgpd = Math.min(100, postureScore + (hasGuardrails ? 10 : 0));
       const gdpr = Math.min(100, postureScore + (hasGuardrails ? 5 : 0));

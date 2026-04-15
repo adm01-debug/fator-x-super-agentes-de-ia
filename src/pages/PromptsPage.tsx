@@ -21,7 +21,7 @@ export default function PromptsPage() {
   });
 
   // Group by agent_id, latest version per agent
-  const agentMap = new Map(agents.map(a => [a.id, a]));
+  const agentMap = new Map(agents.map((a: any) => [a.id, a]));
   const grouped = new Map<string, typeof prompts[0]>();
   for (const p of prompts) {
     if (!grouped.has(p.agent_id) || p.version > (grouped.get(p.agent_id)!.version)) {
@@ -75,7 +75,7 @@ export default function PromptsPage() {
                         <span className="text-sm font-medium text-foreground truncate max-w-[200px]">{p.change_summary || 'Prompt'}</span>
                       </div>
                     </td>
-                    <td className="px-5 py-3 text-xs text-muted-foreground">{agent?.name || '—'}</td>
+                    <td className="px-5 py-3 text-xs text-muted-foreground">{(agent as any)?.name || '—'}</td>
                     <td className="px-5 py-3"><span className="text-xs font-mono text-foreground">v{p.version}</span></td>
                     <td className="px-5 py-3"><StatusBadge status={p.is_active ? 'active' : 'draft'} /></td>
                     <td className="px-5 py-3 text-xs text-muted-foreground">{new Date(p.created_at).toLocaleDateString('pt-BR')}</td>

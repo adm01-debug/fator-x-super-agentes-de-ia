@@ -29,13 +29,13 @@ export default function MonitoringPage() {
   const { data: traceEvents = [] } = useQuery({ queryKey: ['trace_events', expandedTraceId], enabled: !!expandedTraceId, queryFn: () => expandedTraceId ? getTraceEvents(expandedTraceId) : Promise.resolve([]) });
   const { data: alerts = [], isLoading: loadingAlerts } = useQuery({ queryKey: ['alerts'], queryFn: () => getAlerts({}) });
 
-  const selected = traces.find(t => t.id === selectedId) || traces[0];
-  const stats = { total: traces.length, errors: traces.filter(t => t.level === 'error' || t.level === 'critical').length, avgLatency: traces.length ? Math.round(traces.reduce((s, t) => s + (t.latency_ms || 0), 0) / traces.length) : 0, totalCost: traces.reduce((s, t) => s + Number(t.cost_usd || 0), 0) };
-  const levelCounts = traces.reduce((acc, t) => { const level = t.level || 'info'; acc[level] = (acc[level] || 0) + 1; return acc; }, {} as Record<string, number>);
-  const pieData = Object.entries(levelCounts).map(([name, value]) => ({ name, value }));
-  const latencyData = traces.slice(0, 20).reverse().map(t => ({ time: new Date(t.created_at).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' }), latency: t.latency_ms || 0 }));
-  const unresolvedCount = alerts.filter(a => !a.is_resolved).length;
-  const agentName = (id: string | null) => { if (!id) return '—'; const a = agentsList.find((ag) => ag.id === id); return a ? a.name : id.substring(0, 8); };
+  const selected = traces.find((t: any) => t.id === selectedId) || traces[0];
+  const stats = { total: traces.length, errors: traces.filter((t: any) => t.level === 'error' || t.level === 'critical').length, avgLatency: traces.length ? Math.round(traces.reduce((s: number, t: any) => s + (t.latency_ms || 0), 0) / traces.length) : 0, totalCost: traces.reduce((s: number, t: any) => s + Number(t.cost_usd || 0), 0) };
+  const levelCounts = traces.reduce((acc: Record<string, number>, t: any) => { const level = t.level || 'info'; acc[level] = (acc[level] || 0) + 1; return acc; }, {} as Record<string, number>);
+  const pieData = Object.entries(levelCounts).map(([name, value]) => ({ name, value: value as number }));
+  const latencyData = traces.slice(0, 20).reverse().map((t: any) => ({ time: new Date(t.created_at).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' }), latency: t.latency_ms || 0 }));
+  const unresolvedCount = alerts.filter((a: any) => !a.is_resolved).length;
+  const agentName = (id: string | null) => { if (!id) return '—'; const a = agentsList.find((ag: any) => ag.id === id); return a ? a.name : id.substring(0, 8); };
 
   const handleResolveAlert = async (id: string) => { try { await resolveAlert(id); toast.success('Alerta resolvido'); queryClient.invalidateQueries({ queryKey: ['alerts'] }); } catch (e: unknown) { toast.error(e instanceof Error ? e.message : 'Erro inesperado'); } };
 
@@ -71,12 +71,12 @@ export default function MonitoringPage() {
               </div>
               <div className="grid lg:grid-cols-2 gap-4">
                 <div className="nexus-card"><h3 className="text-sm font-heading font-semibold text-foreground mb-3">Latência por evento</h3><LightBarChart data={latencyData} xKey="time" height={180} yFormatter={(v) => `${v}ms`} tooltipFormatter={(v) => `${v}ms`} series={[{ dataKey: 'latency', name: 'Latência', color: 'hsl(var(--primary))', radius: 3 }]} /></div>
-                <div className="nexus-card"><h3 className="text-sm font-heading font-semibold text-foreground mb-3">Distribuição por nível</h3><LightPieChart data={pieData.map((p, i) => ({ ...p, color: PIE_COLORS[i % PIE_COLORS.length] }))} height={180} innerRadius={40} outerRadius={70} /></div>
+                <div className="nexus-card"><h3 className="text-sm font-heading font-semibold text-foreground mb-3">Distribuição por nível</h3><LightPieChart data={pieData.map((p: any, i: number) => ({ ...p, color: PIE_COLORS[i % PIE_COLORS.length] }))} height={180} innerRadius={40} outerRadius={70} /></div>
               </div>
               <div className="grid lg:grid-cols-3 gap-4">
                 <div className="space-y-2 max-h-[500px] overflow-y-auto">
                   <h3 className="text-xs font-heading font-semibold text-muted-foreground uppercase tracking-wider mb-2">Eventos recentes</h3>
-                  {traces.map(trace => (
+                  {traces.map((trace: any) => (
                     <div key={trace.id} className={`nexus-card cursor-pointer p-3 ${selected?.id === trace.id ? 'border-primary/40 nexus-glow-sm' : ''}`} onClick={() => setSelectedId(trace.id)}>
                       <div className="flex items-center justify-between mb-1.5"><p className="text-xs font-medium text-foreground truncate">{trace.event}</p><StatusBadge status={trace.level || 'info'} /></div>
                       <p className="text-[11px] text-muted-foreground">{trace.session_id || trace.id.slice(0, 8)}</p>
@@ -165,7 +165,7 @@ export default function MonitoringPage() {
           {loadingAlerts ? <div className="flex justify-center py-12"><Loader2 className="h-5 w-5 animate-spin text-muted-foreground" /></div>
           : alerts.length === 0 ? <div className="flex flex-col items-center justify-center py-20 text-center"><Bell className="h-12 w-12 text-muted-foreground mb-4" /><h2 className="text-lg font-semibold text-foreground mb-1">Nenhum alerta</h2></div>
           : <div className="space-y-3">
-              {alerts.map((alert) => (
+              {alerts.map((alert: any) => (
                 <div key={alert.id} className={`nexus-card flex items-start gap-3 ${alert.is_resolved ? 'opacity-60' : ''}`}>
                   <div className={`h-8 w-8 rounded-lg flex items-center justify-center shrink-0 ${alert.severity === 'critical' ? 'bg-destructive/10' : alert.severity === 'warning' ? 'bg-nexus-amber/10' : 'bg-primary/10'}`}>
                     <Bell className={`h-4 w-4 ${alert.severity === 'critical' ? 'text-destructive' : alert.severity === 'warning' ? 'text-nexus-amber' : 'text-primary'}`} />

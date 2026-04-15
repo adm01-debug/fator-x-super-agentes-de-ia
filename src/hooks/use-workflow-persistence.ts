@@ -26,7 +26,7 @@ export function useWorkflowPersistence() {
     if (!user) return;
     setLoading(true);
 
-    const { data, error } = await supabase
+    const { data, error } = await supabaseExternal
       .from('workflows')
       .select('id, name, status, config, created_at')
       .order('updated_at', { ascending: false });
@@ -37,11 +37,11 @@ export function useWorkflowPersistence() {
       return;
     }
 
-    const ids = (data ?? []).map(w => w.id);
+    const ids = (data ?? []).map((w: any) => w.id);
     let stepCounts: Record<string, number> = {};
 
     if (ids.length > 0) {
-      const { data: steps } = await supabase
+      const { data: steps } = await supabaseExternal
         .from('workflow_steps')
         .select('workflow_id')
         .in('workflow_id', ids);
@@ -53,7 +53,7 @@ export function useWorkflowPersistence() {
       }
     }
 
-    setWorkflows((data ?? []).map(w => ({
+    setWorkflows((data ?? []).map((w: any) => ({
       ...(w as unknown as WorkflowRecord),
       step_count: stepCounts[w.id] || 0,
     })));
@@ -105,7 +105,7 @@ export function useWorkflowPersistence() {
     };
 
     if (workflowId) {
-      const { error } = await supabase
+      const { error } = await supabaseExternal
         .from('workflows')
         .update({ config: JSON.parse(JSON.stringify(config)), name })
         .eq('id', workflowId);
@@ -125,7 +125,7 @@ export function useWorkflowPersistence() {
     }
 
     // Need workspace_id
-    const { data: memberData } = await supabase
+    const { data: memberData } = await supabaseExternal
       .from('workspace_members')
       .select('workspace_id')
       .eq('user_id', user.id)
@@ -139,7 +139,7 @@ export function useWorkflowPersistence() {
       return null;
     }
 
-    const { data, error } = await supabase
+    const { data, error } = await supabaseExternal
       .from('workflows')
       .insert([{ name, config: JSON.parse(JSON.stringify(config)), workspace_id: workspaceId }])
       .select('id')
@@ -166,7 +166,7 @@ export function useWorkflowPersistence() {
 
   const loadCanvas = useCallback(async (workflowId: string): Promise<{ nodes: CanvasNode[]; edges: CanvasEdge[] } | null> => {
     // Try loading from normalized workflow_steps first
-    const { data: steps } = await supabase
+    const { data: steps } = await supabaseExternal
       .from('workflow_steps')
       .select('*')
       .eq('workflow_id', workflowId)
@@ -175,7 +175,7 @@ export function useWorkflowPersistence() {
     const wf = workflows.find(w => w.id === workflowId);
 
     if (steps && steps.length > 0) {
-      const nodes: CanvasNode[] = steps.map(step => {
+      const nodes: CanvasNode[] = steps.map((step: any) => {
         const cfg = (step.config || {}) as Record<string, unknown>;
         return {
           id: String(cfg.node_id || `step_${step.step_order}`),

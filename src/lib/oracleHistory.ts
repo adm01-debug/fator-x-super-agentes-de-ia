@@ -1,5 +1,7 @@
 import type { OracleResult, OracleMode } from '@/stores/oracleStore';
 import { logger } from '@/lib/logger';
+import { supabase } from '@/integrations/supabase/client';
+import { supabaseExternal } from '@/integrations/supabase/externalClient';
 
 export interface OracleHistoryEntry {
   id: string;
@@ -38,7 +40,7 @@ export async function saveOracleHistory(
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) return null;
 
-  const { data, error } = await supabase
+  const { data, error } = await supabaseExternal
     .from('oracle_history')
     .insert({
       user_id: user.id,
@@ -64,7 +66,7 @@ export async function saveOracleHistory(
 }
 
 export async function fetchOracleHistory(filters: HistoryFilters = {}): Promise<OracleHistoryEntry[]> {
-  let query = supabase
+  let query = supabaseExternal
     .from('oracle_history')
     .select('*')
     .order('created_at', { ascending: false })
@@ -81,7 +83,7 @@ export async function fetchOracleHistory(filters: HistoryFilters = {}): Promise<
 }
 
 export async function deleteOracleHistory(id: string) {
-  const { error } = await supabase
+  const { error } = await supabaseExternal
     .from('oracle_history')
     .delete()
     .eq('id', id);

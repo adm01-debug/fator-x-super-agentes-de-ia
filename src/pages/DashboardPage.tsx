@@ -138,7 +138,7 @@ export default function DashboardPage() {
               <h3 className="text-sm font-heading font-semibold text-foreground mb-3">Atividade recente</h3>
               {recentTraces.length === 0 ? <p className="text-xs text-muted-foreground text-center py-8">Nenhuma atividade registrada.</p>
               : <div className="stagger-list" role="list">
-                  {recentTraces.map(trace => (
+                  {recentTraces.map((trace: any) => (
                     <div key={trace.id} role="listitem" className="flex items-center justify-between p-2 -mx-2 rounded-lg hover:bg-secondary/30 cursor-pointer min-h-[44px]" onClick={() => navigate('/monitoring')}>
                       <div className="flex items-center gap-2.5"><StatusBadge status={trace.level || 'info'} /><div><p className="text-xs font-medium text-foreground">{trace.event}</p><p className="text-[11px] text-muted-foreground">{new Date(trace.created_at).toLocaleString('pt-BR')}</p></div></div>
                       {trace.latency_ms && <span className="text-[11px] text-muted-foreground flex items-center gap-1"><Clock className="h-3 w-3" />{(trace.latency_ms / 1000).toFixed(1)}s</span>}

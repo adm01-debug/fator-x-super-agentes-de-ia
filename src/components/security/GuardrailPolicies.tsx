@@ -108,7 +108,7 @@ export function GuardrailPolicies() {
         </div>
       ) : (
         <div className="grid gap-3 md:grid-cols-2 lg:grid-cols-3">
-          {guardrails.map((g) => (
+          {guardrails.map((g: any) => (
             <div key={g.id}
               className="p-3 rounded-lg bg-secondary/20 border border-border/30 flex items-center gap-3 group"
             >

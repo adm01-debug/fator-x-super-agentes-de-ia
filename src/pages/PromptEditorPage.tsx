@@ -39,7 +39,7 @@ export default function PromptEditorPage() {
     enabled: !!agentId,
   });
 
-  const activeVersion = versions.find(v => v.is_active) || versions[0];
+  const activeVersion = versions.find((v: any) => v.is_active) || versions[0];
 
   const [content, setContent] = useState("");
   const [summary, setSummary] = useState("");
@@ -121,7 +121,7 @@ export default function PromptEditorPage() {
   const score = computeScore(content);
   const scoreItems = Object.entries(score);
   const scorePercent = Math.round((scoreItems.filter(([, v]) => v).length / scoreItems.length) * 100);
-  const diffVersion = versions.find(v => v.id === diffVersionId);
+  const diffVersion = versions.find((v: any) => v.id === diffVersionId);
 
   if (isLoading) {
     return (
@@ -205,7 +205,7 @@ export default function PromptEditorPage() {
           <div className="grid lg:grid-cols-2 gap-4">
             <div className="space-y-2">
               <h3 className="text-sm font-semibold text-foreground mb-2">Histórico de versões</h3>
-              {versions.map((v) => (
+              {versions.map((v: any) => (
                 <div key={v.id}
                   className={`nexus-card flex items-center justify-between cursor-pointer transition-all ${
                     diffVersionId === v.id ? "ring-2 ring-primary bg-primary/5" : ""

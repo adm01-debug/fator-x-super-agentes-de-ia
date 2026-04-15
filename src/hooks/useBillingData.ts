@@ -7,6 +7,7 @@
  */
 
 import { useState, useEffect } from 'react';
+import { supabaseExternal } from '@/integrations/supabase/externalClient';
 
 interface DailyUsage {
   date: string;
@@ -58,7 +59,7 @@ export function useBillingData(agentId?: string): BillingData {
         const monthAgo = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
 
         // Fetch usage records from last 7 days
-        let query = supabase
+        let query = supabaseExternal
           .from('usage_records')
           .select('cost_usd, record_type, created_at')
           .gte('created_at', weekAgo.toISOString())
@@ -83,7 +84,7 @@ export function useBillingData(agentId?: string): BillingData {
         }
 
         // Accumulate real costs
-        (records ?? []).forEach((r) => {
+        (records ?? []).forEach((r: any) => {
           const d = new Date(r.created_at as string);
           const key = DAY_NAMES[d.getDay()];
           const entry = dayMap.get(key);
@@ -107,7 +108,7 @@ export function useBillingData(agentId?: string): BillingData {
         const projectedMonth = avgDaily * 30;
 
         // Count interactions per day (sessions or traces)
-        const { count: traceCount } = await supabase
+        const { count: traceCount } = await supabaseExternal
           .from('trace_events')
           .select('*', { count: 'exact', head: true })
           .gte('created_at', weekAgo.toISOString());
@@ -125,11 +126,11 @@ export function useBillingData(agentId?: string): BillingData {
             projection.push({ week: `S${w + 1}`, real: null, projetado: Math.round(avgDaily * 7) });
           } else {
             // Filter records that fall within this specific week
-            const weekRecords = (records ?? []).filter((r) => {
+            const weekRecords = (records ?? []).filter((r: any) => {
               const d = new Date(r.created_at as string);
               return d >= weekStart && d < weekEnd;
             });
-            const weekCost = weekRecords.reduce((s, r) => s + (Number(r.cost_usd) || 0), 0);
+            const weekCost = weekRecords.reduce((s: number, r: any) => s + (Number(r.cost_usd) || 0), 0);
             projection.push({
               week: `S${w + 1}`,
               real: Math.round(weekCost * 100) / 100,
