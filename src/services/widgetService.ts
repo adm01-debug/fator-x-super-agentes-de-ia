@@ -8,7 +8,7 @@
  * use this service to generate embed snippets and to validate that the
  * widget endpoint is responding for a given agent.
  */
-import { supabaseExternal } from '@/integrations/supabase/externalClient';
+
 import { logger } from '@/lib/logger';
 import { supabase } from '@/integrations/supabase/client';
 

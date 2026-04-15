@@ -13,7 +13,7 @@
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 import { fromTable } from '@/lib/supabaseExtended';
-import { supabaseExternal } from '@/integrations/supabase/externalClient';
+
 
 // ──────── A2A Agent Card Types (following official spec) ────────
 

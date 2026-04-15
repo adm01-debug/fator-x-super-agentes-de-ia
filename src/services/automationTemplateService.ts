@@ -13,7 +13,7 @@
 
 import { fromTable, rpcCall } from '@/lib/supabaseExtended';
 import { supabase } from '@/integrations/supabase/client';
-import { supabaseExternal } from '@/integrations/supabase/externalClient';
+
 
 
 /* ------------------------------------------------------------------ */
