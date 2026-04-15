@@ -1,3 +1,4 @@
+import { supabaseExternal } from '@/integrations/supabase/externalClient';
 /**
  * Nexus Agents Studio — Oracle Service
  * Multi-LLM Council queries, history, and analytics.
