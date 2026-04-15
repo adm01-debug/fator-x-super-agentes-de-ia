@@ -6,7 +6,7 @@ export function useAgents() {
   return useQuery({
     queryKey: ['agents'],
     queryFn: async () => {
-      const { data, error } = await supabase
+      const { data, error } = await supabaseExternal
         .from('agents')
         .select('id, name, mission, avatar_emoji, status, model, tags, version, updated_at, persona, reasoning, config, user_id, workspace_id, created_at')
         .order('updated_at', { ascending: false });

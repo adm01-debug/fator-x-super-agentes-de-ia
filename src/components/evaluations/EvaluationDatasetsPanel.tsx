@@ -90,9 +90,9 @@ export function EvaluationDatasetsPanel() {
 
   const handleDeleteDataset = async (id: string) => {
     try {
-      const { supabase } = await import('@/integrations/supabase/client');
-      await supabase.from('test_cases').delete().eq('dataset_id', id);
-      await supabase.from('evaluation_datasets').delete().eq('id', id);
+      const { supabaseExternal } = await import('@/integrations/supabase/externalClient');
+      await supabaseExternal.from('test_cases').delete().eq('dataset_id', id);
+      await supabaseExternal.from('evaluation_datasets').delete().eq('id', id);
     } catch (e: unknown) { toast.error(e instanceof Error ? e.message : 'Erro'); return; }
     if (selectedDatasetId === id) setSelectedDatasetId(null);
     toast.success('Dataset removido');
