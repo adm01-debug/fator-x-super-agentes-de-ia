@@ -22,7 +22,7 @@ export async function queryEntity(
       Authorization: `Bearer ${session.access_token}`,
       apikey: import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY,
     },
-    body: JSON.stringify({ entity: entityType, filters, limit }),
+    body: JSON.stringify({ action: 'query_entity', entity: entityType, filters, limit }),
   });
 
   if (!resp.ok) {
@@ -45,7 +45,7 @@ export async function getEntityDetail(entityType: string, entityId: string) {
       Authorization: `Bearer ${session.access_token}`,
       apikey: import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY,
     },
-    body: JSON.stringify({ entity: entityType, id: entityId, action: 'detail' }),
+    body: JSON.stringify({ action: 'query_entity', entity: entityType, record_id: entityId }),
   });
 
   if (!resp.ok) {
