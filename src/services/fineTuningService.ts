@@ -4,6 +4,7 @@
  * training kickoff, and job status polling.
  */
 import { logger } from '@/lib/logger';
+import { supabase } from '@/integrations/supabase/client';
 
 export type DatasetSource = 'traces' | 'test_cases' | 'custom';
 export type TaskType = 'text-generation' | 'text-classification' | 'embedding';

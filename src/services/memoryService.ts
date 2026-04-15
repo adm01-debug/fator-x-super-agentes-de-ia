@@ -1,4 +1,6 @@
 /**
+import { supabase } from '@/integrations/supabase/client';
+import { supabaseExternal } from '@/integrations/supabase/externalClient';
  * Nexus Agents Studio — Memory Service
  * Persistent memory management (MemGPT/Letta-style via memory-tools edge function).
  */

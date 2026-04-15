@@ -5,6 +5,7 @@
  * snapshots so the Super Cérebro can answer "what did we know when?".
  */
 import { logger } from '@/lib/logger';
+import { supabaseExternal } from '@/integrations/supabase/externalClient';
 
 export type TemporalWindow = '1h' | '24h' | '7d' | '30d' | '90d' | 'all';
 

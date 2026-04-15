@@ -30,6 +30,7 @@
 import { logger } from '@/lib/logger';
 import { getWorkspaceId } from '@/lib/agentService';
 import { withTrace } from '@/lib/tracing';
+import { supabaseExternal } from '@/integrations/supabase/externalClient';
 
 export type WhatsAppProvider = 'twilio' | 'meta' | 'zapi' | 'evolution';
 

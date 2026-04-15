@@ -10,6 +10,7 @@
  */
 import { supabaseExternal } from '@/integrations/supabase/externalClient';
 import { logger } from '@/lib/logger';
+import { supabase } from '@/integrations/supabase/client';
 
 const PROJECT_REF = 'tdprnylgyrogbbhgdoik';
 const FUNCTIONS_BASE = `https://${PROJECT_REF}.functions.supabaseExternal.co/widget-proxy`;

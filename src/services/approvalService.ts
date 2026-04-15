@@ -2,6 +2,7 @@
  * Nexus Agents Studio — Approval Queue Service
  */
 import { supabaseExternal } from '@/integrations/supabase/externalClient';
+import { supabase } from '@/integrations/supabase/client';
 
 export async function listPendingApprovals() {
   const { data } = await supabaseExternal.from('workflow_runs')

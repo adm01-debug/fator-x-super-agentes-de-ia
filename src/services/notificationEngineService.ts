@@ -16,6 +16,7 @@ export type {
 } from './types/notificationTypes';
 
 import type {
+import { supabase } from '@/integrations/supabase/client';
   NotificationChannel, NotificationPayload, NotificationPriority,
   NotificationStatus, SendNotificationInput, NotificationTemplate,
   NotificationStats, NotificationSenderInvokeInput, NotificationSenderInvokeResult,

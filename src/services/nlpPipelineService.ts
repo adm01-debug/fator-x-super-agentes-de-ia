@@ -3,6 +3,7 @@
  * Connects to nlp-pipeline edge function v2.4
  */
 import { logger } from '@/lib/logger';
+import { supabase } from '@/integrations/supabase/client';
 
 export interface NLPEntity {
   type: string;

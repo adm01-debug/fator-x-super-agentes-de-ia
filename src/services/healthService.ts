@@ -3,6 +3,7 @@
  * Wraps the health-check Edge Function for system observability.
  */
 import { logger } from '@/lib/logger';
+import { supabase } from '@/integrations/supabase/client';
 
 export type HealthStatus = 'healthy' | 'degraded' | 'down' | 'unknown';
 

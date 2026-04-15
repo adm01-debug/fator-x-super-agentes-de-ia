@@ -2,6 +2,7 @@
  * Nexus Agents Studio — LGPD Compliance Service
  */
 import { supabaseExternal } from '@/integrations/supabase/externalClient';
+import { supabase } from '@/integrations/supabase/client';
 
 export async function listConsentRecords() {
   const { data } = await supabaseExternal.from('consent_records').select('*').order('created_at', { ascending: false });

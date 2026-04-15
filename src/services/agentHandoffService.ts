@@ -17,6 +17,7 @@ import { fromTable } from '@/lib/supabaseExtended';
 
 export type { HandoffReason, HandoffStatus, HandoffContext, HandoffRequest, HandoffRecord, HandoffRule, HandoffCondition } from './types/agentHandoffTypes';
 import type { HandoffContext, HandoffRequest, HandoffRecord, HandoffRule, HandoffCondition } from './types/agentHandoffTypes';
+import { supabaseExternal } from '@/integrations/supabase/externalClient';
 
 // ──────── Handoff Execution ────────
 

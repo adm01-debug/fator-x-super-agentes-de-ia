@@ -12,6 +12,7 @@ export type {
 } from './types/queueManagerTypes';
 
 import type {
+import { supabase } from '@/integrations/supabase/client';
   QueueDefinition, QueueItem, CreateQueueInput, EnqueueInput,
   QueueItemStatus, QueueMetrics, QueueWorkerRunInput, QueueWorkerRunResult,
 } from './types/queueManagerTypes';

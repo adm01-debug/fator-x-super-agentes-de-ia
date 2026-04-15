@@ -12,6 +12,7 @@
  *  4. Return clusters with canonical pick (longest content as canonical)
  */
 import { logger } from '@/lib/logger';
+import { supabaseExternal } from '@/integrations/supabase/externalClient';
 
 export interface EntityCandidate {
   id: string;
