@@ -2,7 +2,6 @@
  * Nexus Agents Studio — DataHub Service
  * Cross-database queries, entity browser, MCP exposure.
  */
-import { supabaseExternal } from '@/integrations/supabase/externalClient';
 import { supabase } from '@/integrations/supabase/client';
 import { logger } from '@/lib/logger';
 

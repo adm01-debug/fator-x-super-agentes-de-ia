@@ -5,6 +5,7 @@
  */
 
 import { fromTable } from '@/lib/supabaseExtended';
+import { supabase } from '@/integrations/supabase/client';
 import { logger } from '@/lib/logger';
 
 // Re-export types from dedicated file
@@ -16,7 +17,6 @@ export type {
 } from './types/notificationTypes';
 
 import type {
-import { supabase } from '@/integrations/supabase/client';
   NotificationChannel, NotificationPayload, NotificationPriority,
   NotificationStatus, SendNotificationInput, NotificationTemplate,
   NotificationStats, NotificationSenderInvokeInput, NotificationSenderInvokeResult,
