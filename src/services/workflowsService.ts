@@ -4,6 +4,7 @@
  */
 
 import { logger } from '@/lib/logger';
+import { supabase } from '@/integrations/supabase/client';
 import { supabaseExternal } from '@/integrations/supabase/externalClient';
 import { fromTable } from '@/lib/supabaseExtended';
 import { withTrace } from '@/lib/tracing';

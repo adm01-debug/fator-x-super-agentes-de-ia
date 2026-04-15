@@ -3,6 +3,7 @@
  * Workspace member management, invitations.
  */
 import { supabaseExternal } from '@/integrations/supabase/externalClient';
+import { supabase } from '@/integrations/supabase/client';
 import type { RoleKey } from './rbacService';
 
 export async function listMembers(workspaceId: string) {
