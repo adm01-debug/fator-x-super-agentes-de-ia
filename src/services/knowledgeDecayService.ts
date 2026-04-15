@@ -10,6 +10,7 @@
  * Recommendations: 'fresh', 'review', 'refresh', 'archive'.
  */
 import { logger } from '@/lib/logger';
+import { supabaseExternal } from '@/integrations/supabase/externalClient';
 
 export type DecayLevel = 'fresh' | 'review' | 'refresh' | 'archive';
 

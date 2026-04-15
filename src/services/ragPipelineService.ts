@@ -4,6 +4,7 @@
  */
 import { supabaseExternal } from '@/integrations/supabase/externalClient';
 import { logger } from '@/lib/logger';
+import { supabase } from '@/integrations/supabase/client';
 
 export async function embedTexts(texts: string[], provider = 'qwen3-embedding-8b', dimension = 1024) {
   const { data, error } = await supabase.functions.invoke('rag-embed-v2', {

@@ -15,6 +15,7 @@ import { fromTable, rpcCall } from '@/lib/supabaseExtended';
 import { supabase } from '@/integrations/supabase/client';
 
 
+
 /* ------------------------------------------------------------------ */
 /*  Types                                                              */
 /* ------------------------------------------------------------------ */

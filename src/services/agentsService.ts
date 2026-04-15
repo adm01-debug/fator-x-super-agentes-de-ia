@@ -4,6 +4,7 @@
  * Used by AgentDetailPage, AgentsPage, and any page needing agent data.
  */
 import { logger } from '@/lib/logger';
+import { supabaseExternal } from '@/integrations/supabase/externalClient';
 
 export interface AgentDetail {
   id: string;

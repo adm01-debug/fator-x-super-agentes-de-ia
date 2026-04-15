@@ -8,7 +8,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { supabaseExternal } from '@/integrations/supabase/externalClient';
 import { fromTable } from '@/lib/supabaseExtended';
 import { withTrace } from '@/lib/tracing';
-import type { Json } from '@/integrations/supabaseExternal/types';
+import type { Json } from '@/integrations/supabase/types';
 
 export interface WorkflowNode {
   id: string;

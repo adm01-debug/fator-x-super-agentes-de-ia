@@ -8,6 +8,7 @@
  * so the API token stays server-side.
  */
 import { logger } from '@/lib/logger';
+import { supabase } from '@/integrations/supabase/client';
 
 export type OpenclawAction =
   | 'health'

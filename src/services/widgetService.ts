@@ -8,8 +8,9 @@
  * use this service to generate embed snippets and to validate that the
  * widget endpoint is responding for a given agent.
  */
-import { supabaseExternal } from '@/integrations/supabase/externalClient';
+
 import { logger } from '@/lib/logger';
+import { supabase } from '@/integrations/supabase/client';
 
 const PROJECT_REF = 'tdprnylgyrogbbhgdoik';
 const FUNCTIONS_BASE = `https://${PROJECT_REF}.functions.supabaseExternal.co/widget-proxy`;

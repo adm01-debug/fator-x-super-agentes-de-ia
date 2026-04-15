@@ -10,6 +10,7 @@
  *   - ibm-granite/granite-vision-3.3-2b (analyze, default)
  */
 import { logger } from '@/lib/logger';
+import { supabase } from '@/integrations/supabase/client';
 
 export type VisionAction = 'analyze' | 'classify' | 'nsfw_check' | 'mockup' | 'compare';
 

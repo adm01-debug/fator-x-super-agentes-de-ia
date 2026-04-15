@@ -3,6 +3,7 @@
  * Connects to guardrails-ml edge function v2.2
  */
 import { logger } from '@/lib/logger';
+import { supabase } from '@/integrations/supabase/client';
 
 export interface GuardrailResult {
   passed: boolean;

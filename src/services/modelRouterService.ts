@@ -6,6 +6,7 @@
  * is unavailable, so the app never breaks when routing fails.
  */
 import { logger } from '@/lib/logger';
+import { supabase } from '@/integrations/supabase/client';
 
 export interface RouteResult {
   recommended_model: string;
