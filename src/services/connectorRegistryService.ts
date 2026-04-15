@@ -2,7 +2,7 @@
  * Nexus Agents Studio — Connector Registry Service
  */
 
-import { supabase } from '@/integrations/supabase/client';
+import { supabaseExternal } from '@/integrations/supabase/externalClient';
 import { fromTable } from '@/lib/supabaseExtended';
 
 export type {

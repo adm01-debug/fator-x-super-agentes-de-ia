@@ -13,6 +13,7 @@ import {
 } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
+import { supabaseExternal } from "@/integrations/supabase/externalClient";
 import { useAuth } from "@/contexts/AuthContext";
 import { AGENT_TEMPLATES as STATIC_TEMPLATES, type AgentTemplate } from "@/data/agentTemplates";
 import {
@@ -31,7 +32,7 @@ export function CreateAgentWizard() {
   const [AGENT_TEMPLATES_LIST, setAgentTemplates] = useState<AgentTemplate[]>(STATIC_TEMPLATES);
 
   useEffect(() => {
-    supabase.from('agent_templates').select('*').eq('is_public', true).order('usage_count', { ascending: false }).then(({ data }) => {
+    supabaseExternal.from('agent_templates').select('*').eq('is_public', true).order('usage_count', { ascending: false }).then(({ data }) => {
       if (data && data.length > 0) {
         const dbTemplates: AgentTemplate[] = data.map((t) => {
           const cfg = t.config as Record<string, unknown> | null;
@@ -77,7 +78,7 @@ export function CreateAgentWizard() {
   const saveAgent = async () => {
     if (!user) { toast.error("Faça login para criar agentes"); navigate("/auth"); return; }
     setSaving(true);
-    const { error } = await supabase.from("agents").insert({
+    const { error } = await supabaseExternal.from("agents").insert({
       user_id: user.id, name: form.name, mission: form.objective || form.description,
       persona: "assistant", model: form.model, avatar_emoji: selectedTemplate?.emoji || "🤖", status: "draft" as const,
       config: { type: form.type, prompt: form.prompt, tools: form.tools, memory: form.memory, knowledgeBases: form.knowledgeBases, environment: form.environment, description: form.description },

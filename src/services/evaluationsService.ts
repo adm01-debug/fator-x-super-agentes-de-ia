@@ -8,7 +8,7 @@
  */
 
 import { logger } from '@/lib/logger';
-import { supabase } from '@/integrations/supabase/client';
+import { supabaseExternal } from '@/integrations/supabase/externalClient';
 
 // ═══ CRUD ═══
 
@@ -58,7 +58,7 @@ export async function createEvaluationRun(run: {
 }
 
 export async function updateEvaluationRun(id: string, updates: Record<string, unknown>) {
-  const { error } = await supabase.from('evaluation_runs').update(updates).eq('id', id);
+  const { error } = await supabaseExternal.from('evaluation_runs').update(updates).eq('id', id);
   if (error) throw error;
 }
 
@@ -82,13 +82,13 @@ export async function createTestCase(tc: {
   expected_output?: string;
   tags?: string[];
 }) {
-  const { data, error } = await supabase.from('test_cases').insert(tc).select().single();
+  const { data, error } = await supabaseExternal.from('test_cases').insert(tc).select().single();
   if (error) throw error;
   return data;
 }
 
 export async function deleteTestCase(id: string) {
-  const { error } = await supabase.from('test_cases').delete().eq('id', id);
+  const { error } = await supabaseExternal.from('test_cases').delete().eq('id', id);
   if (error) throw error;
 }
 
@@ -118,7 +118,7 @@ export async function invokeEvalJudge(body: Record<string, unknown>) {
 }
 
 export async function listAgentsForSelect() {
-  const { data, error } = await supabase.from('agents').select('id, name').order('name');
+  const { data, error } = await supabaseExternal.from('agents').select('id, name').order('name');
   if (error) {
     logger.error('Failed to list agents for select', { error: error.message });
     throw error;

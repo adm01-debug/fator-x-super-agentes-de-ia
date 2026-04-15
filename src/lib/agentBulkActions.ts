@@ -1,4 +1,4 @@
-import { supabase } from '@/integrations/supabase/client';
+import { supabaseExternal } from '@/integrations/supabase/externalClient';
 import type { Database } from '@/integrations/supabase/types';
 
 type AgentStatus = Database['public']['Enums']['agent_status'];

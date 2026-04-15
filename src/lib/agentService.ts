@@ -1,5 +1,6 @@
 import { logger } from '@/lib/logger';
 import { supabase } from '@/integrations/supabase/client';
+import { supabaseExternal } from '@/integrations/supabase/externalClient';
 import type { Tables, Database } from '@/integrations/supabase/types';
 import type { AgentConfig } from '@/types/agentTypes';
 import { DEFAULT_AGENT } from '@/data/agentBuilderData';
@@ -44,7 +45,7 @@ export async function listAgents(statusFilter?: string) {
 
 export async function cloneAgent(agentRow: Tables<"agents">) {
   const { id: _id, created_at: _ca, updated_at: _ua, ...rest } = agentRow;
-  const { data, error } = await supabase.from('agents').insert({
+  const { data, error } = await supabaseExternal.from('agents').insert({
     ...rest,
     name: `${agentRow.name} (cópia)`,
     status: 'draft' as const,
@@ -69,7 +70,7 @@ export async function autoTagAgent(agent: { id: string; model: string | null; co
   if (merged.length === (agent.tags ?? []).length) {
     return { added: 0 };
   }
-  const { error } = await supabase.from('agents').update({ tags: merged }).eq('id', agent.id);
+  const { error } = await supabaseExternal.from('agents').update({ tags: merged }).eq('id', agent.id);
   if (error) throw error;
   return { added: merged.length - (agent.tags ?? []).length };
 }
@@ -128,18 +129,18 @@ export async function saveAgent(agent: AgentConfig): Promise<AgentConfig> {
   };
 
   if (id) {
-    const { error } = await supabase.from('agents').update(row).eq('id', id as string);
+    const { error } = await supabaseExternal.from('agents').update(row).eq('id', id as string);
     if (error) throw error;
     return { ...agent, id };
   } else {
-    const { data, error } = await supabase.from('agents').insert(row).select('id, created_at, updated_at').single();
+    const { data, error } = await supabaseExternal.from('agents').insert(row).select('id, created_at, updated_at').single();
     if (error) throw error;
     return { ...agent, id: data!.id, created_at: data!.created_at, updated_at: data!.updated_at };
   }
 }
 
 export async function deleteAgent(id: string): Promise<void> {
-  const { error } = await supabase.from('agents').delete().eq('id', id);
+  const { error } = await supabaseExternal.from('agents').delete().eq('id', id);
   if (error) throw error;
 }
 

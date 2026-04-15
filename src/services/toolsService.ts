@@ -2,7 +2,7 @@
  * Nexus Agents Studio — Tools Service
  * CRUD for the tool_integrations table.
  */
-import { supabase } from '@/integrations/supabase/client';
+import { supabaseExternal } from '@/integrations/supabase/externalClient';
 import { logger } from '@/lib/logger';
 
 export interface ToolIntegration {
@@ -34,7 +34,7 @@ export async function createToolIntegration(params: {
   description: string;
   type: string;
 }): Promise<void> {
-  const { error } = await supabase.from('tool_integrations').insert({
+  const { error } = await supabaseExternal.from('tool_integrations').insert({
     workspace_id: params.workspaceId,
     name: params.name.trim(),
     description: params.description.trim(),

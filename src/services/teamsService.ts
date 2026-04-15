@@ -2,7 +2,7 @@
  * Nexus Agents Studio — Teams Service
  * Workspace member management, invitations.
  */
-import { supabase } from '@/integrations/supabase/client';
+import { supabaseExternal } from '@/integrations/supabase/externalClient';
 import type { RoleKey } from './rbacService';
 
 export async function listMembers(workspaceId: string) {
@@ -57,7 +57,7 @@ export async function getPendingInvites(email: string) {
 }
 
 export async function acceptInvite(memberId: string) {
-  const { error } = await supabase.rpc('accept_workspace_invitation', { p_member_id: memberId });
+  const { error } = await supabaseExternal.rpc('accept_workspace_invitation', { p_member_id: memberId });
   if (error) throw error;
 }
 
@@ -80,7 +80,7 @@ export async function insertWorkspaceMember(member: {
 }) {
   // user_id is required by DB; for pending invitations use a deterministic UUID based on email
   const userId = member.user_id ?? crypto.randomUUID();
-  const { error } = await supabase.from('workspace_members').insert({
+  const { error } = await supabaseExternal.from('workspace_members').insert({
     ...member,
     user_id: userId,
   });

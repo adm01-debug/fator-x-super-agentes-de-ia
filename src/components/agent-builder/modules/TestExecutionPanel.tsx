@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { useAgentBuilderStore } from '@/stores/agentBuilderStore';
 import { Button } from '@/components/ui/button';
 import { Play, Loader2, CheckCircle2, XCircle } from 'lucide-react';
-import { supabase } from '@/integrations/supabase/client';
+import { supabaseExternal } from '@/integrations/supabase/externalClient';
 import { toast } from 'sonner';
 import type { TestCase } from '@/types/agentTypes';
 

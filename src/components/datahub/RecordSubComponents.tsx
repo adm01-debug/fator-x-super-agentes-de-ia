@@ -7,7 +7,7 @@ import {
 } from "lucide-react";
 import { formatCNPJ, formatPhone, formatDate } from "@/config/datahub-columns";
 import { ENTITY_MAPPINGS } from "@/config/datahub-entities";
-import { supabase } from "@/integrations/supabase/client";
+import { supabaseExternal } from "@/integrations/supabase/externalClient";
 import { logger } from "@/lib/logger";
 import { toast } from "sonner";
 

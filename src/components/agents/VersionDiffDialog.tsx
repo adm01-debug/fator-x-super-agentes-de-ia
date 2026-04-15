@@ -6,7 +6,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { PromptDiff } from "@/components/prompts/PromptDiff";
 import { GitCompare, RotateCcw, Loader2 } from "lucide-react";
-import { supabase } from "@/integrations/supabase/client";
+import { supabaseExternal } from "@/integrations/supabase/externalClient";
 import { useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import type { Json } from "@/integrations/supabase/types";
@@ -60,7 +60,7 @@ export function VersionDiffDialog({ open, onOpenChange, versions, agentId }: Pro
     if (!agentId) return;
     setRestoring(true);
     try {
-      const { error } = await supabase.from('agents').update({
+      const { error } = await supabaseExternal.from('agents').update({
         model: version.model,
         persona: version.persona,
         mission: version.mission,

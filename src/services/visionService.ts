@@ -9,7 +9,7 @@
  *   - google/vit-base-patch16-224 (classify)
  *   - ibm-granite/granite-vision-3.3-2b (analyze, default)
  */
-import { supabase } from '@/integrations/supabase/client';
+import { supabaseExternal } from '@/integrations/supabase/externalClient';
 import { logger } from '@/lib/logger';
 
 export type VisionAction = 'analyze' | 'classify' | 'nsfw_check' | 'mockup' | 'compare';

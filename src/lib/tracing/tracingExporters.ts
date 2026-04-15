@@ -2,7 +2,7 @@
  * Tracing — Exporters (fire-and-forget)
  */
 
-import { supabase } from '@/integrations/supabase/client';
+import { supabaseExternal } from '@/integrations/supabase/externalClient';
 import { logger } from '@/lib/logger';
 import type { TraceData } from './tracingTypes';
 
@@ -27,7 +27,7 @@ export async function exportToSupabase(trace: TraceData): Promise<void> {
         spans: trace.spans,
       },
     };
-    await (supabase.from('trace_events').insert as Function)(insertData);
+    await (supabaseExternal.from('trace_events').insert as Function)(insertData);
   } catch (err: unknown) {
     logger.error('Trace export to Supabase failed', {
       trace_id: trace.trace_id,
@@ -87,7 +87,7 @@ export async function exportUsageRecord(trace: TraceData): Promise<void> {
     0
   );
   try {
-    await (supabase.from('usage_records').insert as Function)({
+    await (supabaseExternal.from('usage_records').insert as Function)({
       agent_id: trace.agent_id,
       record_type: 'llm_call',
       cost_usd: totalCost,

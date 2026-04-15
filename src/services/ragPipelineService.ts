@@ -2,7 +2,7 @@
  * Nexus — RAG Pipeline Service (Embed v2 + Rerank v2)
  * Two-stage retrieval: vector search → neural reranking.
  */
-import { supabase } from '@/integrations/supabase/client';
+import { supabaseExternal } from '@/integrations/supabase/externalClient';
 import { logger } from '@/lib/logger';
 
 export async function embedTexts(texts: string[], provider = 'qwen3-embedding-8b', dimension = 1024) {

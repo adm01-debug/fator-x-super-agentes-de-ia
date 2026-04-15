@@ -1,4 +1,4 @@
-import { supabase } from '@/integrations/supabase/client';
+import { supabaseExternal } from '@/integrations/supabase/externalClient';
 import { logger } from '@/lib/logger';
 import type { Json } from '@/integrations/supabase/types';
 
@@ -21,7 +21,7 @@ interface AuditEntry {
 
 export async function logAudit(entry: AuditEntry): Promise<void> {
   try {
-    const { error } = await supabase.rpc('log_audit_entry' as never, {
+    const { error } = await supabaseExternal.rpc('log_audit_entry' as never, {
       p_action: entry.action,
       p_entity_type: entry.entity_type,
       p_entity_id: entry.entity_id ?? null,

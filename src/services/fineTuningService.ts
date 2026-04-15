@@ -3,7 +3,7 @@
  * Wraps the hf-autotrain Edge Function for dataset preparation,
  * training kickoff, and job status polling.
  */
-import { supabase } from '@/integrations/supabase/client';
+import { supabaseExternal } from '@/integrations/supabase/externalClient';
 import { logger } from '@/lib/logger';
 
 export type DatasetSource = 'traces' | 'test_cases' | 'custom';

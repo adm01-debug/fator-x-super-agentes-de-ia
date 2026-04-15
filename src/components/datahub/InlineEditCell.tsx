@@ -1,7 +1,7 @@
 import { useState, useRef, useEffect } from "react";
 import { Input } from "@/components/ui/input";
 import { Loader2, Check, X as XIcon } from "lucide-react";
-import { supabase } from "@/integrations/supabase/client";
+import { supabaseExternal } from "@/integrations/supabase/externalClient";
 import { toast } from "sonner";
 import { formatCellValue } from "@/config/datahub-columns";
 import type { ColumnDef } from "@/config/datahub-columns";

@@ -2,7 +2,7 @@
  * Nexus — Eval Engine Service (RAGAS metrics)
  * Connects to eval-engine-v2 for RAG quality evaluation.
  */
-import { supabase } from '@/integrations/supabase/client';
+import { supabaseExternal } from '@/integrations/supabase/externalClient';
 import { logger } from '@/lib/logger';
 
 export interface RAGASResult {

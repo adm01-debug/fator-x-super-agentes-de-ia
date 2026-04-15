@@ -1,15 +1,15 @@
 /**
  * Nexus Agents Studio — LGPD Compliance Service
  */
-import { supabase } from '@/integrations/supabase/client';
+import { supabaseExternal } from '@/integrations/supabase/externalClient';
 
 export async function listConsentRecords() {
-  const { data } = await supabase.from('consent_records').select('*').order('created_at', { ascending: false });
+  const { data } = await supabaseExternal.from('consent_records').select('*').order('created_at', { ascending: false });
   return data ?? [];
 }
 
 export async function listDeletionRequests() {
-  const { data } = await supabase.from('data_deletion_requests').select('*').order('requested_at', { ascending: false });
+  const { data } = await supabaseExternal.from('data_deletion_requests').select('*').order('requested_at', { ascending: false });
   return data ?? [];
 }
 

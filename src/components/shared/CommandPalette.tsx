@@ -11,6 +11,7 @@ import {
 } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
+import { supabaseExternal } from "@/integrations/supabase/externalClient";
 
 const pages = [
   { name: "Dashboard", href: "/", icon: LayoutDashboard, keywords: "home início" },
@@ -66,7 +67,7 @@ export function CommandPalette() {
   const { data: agents = [] } = useQuery({
     queryKey: ['agents_palette'],
     queryFn: async () => {
-      const { data } = await supabase.from('agents').select('id, name, model, persona, avatar_emoji, status').order('updated_at', { ascending: false }).limit(10);
+      const { data } = await supabaseExternal.from('agents').select('id, name, model, persona, avatar_emoji, status').order('updated_at', { ascending: false }).limit(10);
       return data ?? [];
     },
     enabled: open,
@@ -76,7 +77,7 @@ export function CommandPalette() {
   const { data: knowledgeBases = [] } = useQuery({
     queryKey: ['kb_palette'],
     queryFn: async () => {
-      const { data } = await supabase.from('knowledge_bases').select('id, name, document_count, status').order('updated_at', { ascending: false }).limit(8);
+      const { data } = await supabaseExternal.from('knowledge_bases').select('id, name, document_count, status').order('updated_at', { ascending: false }).limit(8);
       return data ?? [];
     },
     enabled: open,
@@ -86,7 +87,7 @@ export function CommandPalette() {
   const { data: workflows = [] } = useQuery({
     queryKey: ['workflows_palette'],
     queryFn: async () => {
-      const { data } = await supabase.from('workflows').select('id, name, status').order('updated_at', { ascending: false }).limit(8);
+      const { data } = await supabaseExternal.from('workflows').select('id, name, status').order('updated_at', { ascending: false }).limit(8);
       return data ?? [];
     },
     enabled: open,
@@ -96,7 +97,7 @@ export function CommandPalette() {
   const { data: tools = [] } = useQuery({
     queryKey: ['tools_palette'],
     queryFn: async () => {
-      const { data } = await supabase.from('tool_integrations').select('id, name, type, is_enabled').order('name').limit(8);
+      const { data } = await supabaseExternal.from('tool_integrations').select('id, name, type, is_enabled').order('name').limit(8);
       return data ?? [];
     },
     enabled: open,

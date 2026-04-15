@@ -17,6 +17,7 @@ import { Slider } from '@/components/ui/slider';
 import { Loader2, Play, Trash2, ChevronDown, ChevronRight, Clock, Cpu, Wrench } from 'lucide-react';
 import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
+import { supabaseExternal } from '@/integrations/supabase/externalClient';
 import { StreamingChat } from '@/components/shared/StreamingChat';
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any

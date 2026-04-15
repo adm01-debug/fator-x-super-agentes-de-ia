@@ -2,7 +2,7 @@
  * Nexus — Guardrails ML Service
  * Connects to guardrails-ml edge function v2.2
  */
-import { supabase } from '@/integrations/supabase/client';
+import { supabaseExternal } from '@/integrations/supabase/externalClient';
 import { logger } from '@/lib/logger';
 
 export interface GuardrailResult {

@@ -4,7 +4,7 @@ import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { XCircle, GitBranch, Link2, Lock, Building2, Pencil } from "lucide-react";
 import { formatDate } from "@/config/datahub-columns";
 import { ENTITY_MAPPINGS } from "@/config/datahub-entities";
-import { supabase } from "@/integrations/supabase/client";
+import { supabaseExternal } from "@/integrations/supabase/externalClient";
 import { useState, useEffect } from "react";
 import {
   FieldValue, NON_EDITABLE, GenericSecondaryCard, CrossDbResults, GroupMembers,

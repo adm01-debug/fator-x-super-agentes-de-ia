@@ -22,7 +22,7 @@ import {
 import { RecordDetail } from "./RecordDetail";
 import { BulkEditDialog } from "./BulkEditDialog";
 import { CreateRecordDialog } from "./CreateRecordDialog";
-import { supabase } from "@/integrations/supabase/client";
+import { supabaseExternal } from "@/integrations/supabase/externalClient";
 import { toast } from "sonner";
 import { useDebounce } from "@/hooks/use-debounce";
 import {

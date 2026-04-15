@@ -1,5 +1,5 @@
 import { useState, useCallback, useEffect } from 'react';
-import { supabase } from '@/integrations/supabase/client';
+import { supabaseExternal } from '@/integrations/supabase/externalClient';
 import type { Database } from '@/integrations/supabase/types';
 
 type TableName = keyof Database['public']['Tables'];
@@ -66,7 +66,7 @@ export function usePaginatedQuery<T = Record<string, unknown>>(
         const to = from + pageSize - 1;
 
         // Count
-        let countBuilder = supabase.from(table).select('*', { count: 'exact', head: true });
+        let countBuilder = supabaseExternal.from(table).select('*', { count: 'exact', head: true });
         for (const [col, val] of Object.entries(eqFilters)) {
           countBuilder = countBuilder.eq(col, val);
         }
@@ -74,7 +74,7 @@ export function usePaginatedQuery<T = Record<string, unknown>>(
         const total = count ?? 0;
 
         // Data
-        let dataBuilder = supabase.from(table).select(select).order(orderBy, { ascending }).range(from, to);
+        let dataBuilder = supabaseExternal.from(table).select(select).order(orderBy, { ascending }).range(from, to);
         for (const [col, val] of Object.entries(eqFilters)) {
           dataBuilder = dataBuilder.eq(col, val);
         }

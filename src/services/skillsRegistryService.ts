@@ -3,7 +3,7 @@
  * Inspired by LobeHub Skills, akm, OpenClaw skill repos
  */
 
-import { supabase } from '@/integrations/supabase/client';
+import { supabaseExternal } from '@/integrations/supabase/externalClient';
 
 export interface AgentSkillDefinition {
   id: string;
@@ -49,13 +49,13 @@ export async function listSkills(options?: {
 
 // Install a skill for an agent
 export async function installSkill(agentId: string, skillId: string): Promise<void> {
-  const { error } = await supabase.from('agent_installed_skills').insert({
+  const { error } = await supabaseExternal.from('agent_installed_skills').insert({
     agent_id: agentId,
     skill_id: skillId,
   });
   if (error) throw error;
 
-  await supabase.rpc('increment_skill_installs', { p_skill_id: skillId });
+  await supabaseExternal.rpc('increment_skill_installs', { p_skill_id: skillId });
 }
 
 // Get installed skills for an agent

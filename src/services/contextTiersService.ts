@@ -10,7 +10,7 @@
  * RPC search_context_l0 are planned for future migration.
  */
 
-import { supabase } from '@/integrations/supabase/client';
+import { supabaseExternal } from '@/integrations/supabase/externalClient';
 
 export interface ContextTier {
   chunk_id: string;

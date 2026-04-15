@@ -1,4 +1,5 @@
 import { supabase } from '@/integrations/supabase/client';
+import { supabaseExternal } from '@/integrations/supabase/externalClient';
 import type { Json } from '@/integrations/supabase/types';
 
 interface ExportedAgent {
@@ -75,7 +76,7 @@ export async function importAgentFromJSON(json: string): Promise<string> {
     .limit(1)
     .maybeSingle();
 
-  const { data, error } = await supabase.from('agents').insert({
+  const { data, error } = await supabaseExternal.from('agents').insert({
     user_id: user.id,
     workspace_id: member?.workspace_id ?? null,
     name: `${agent.name} (importado)`,

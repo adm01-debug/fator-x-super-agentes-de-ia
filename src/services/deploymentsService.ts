@@ -2,7 +2,7 @@
  * Nexus Agents Studio — Deployments Service
  * Multi-channel deploy: Widget, WhatsApp, Slack, API, Bitrix24
  */
-import { supabase } from '@/integrations/supabase/client';
+import { supabaseExternal } from '@/integrations/supabase/externalClient';
 
 export type DeployChannel = 'widget' | 'api' | 'whatsapp' | 'slack' | 'bitrix24' | 'telegram';
 
@@ -37,7 +37,7 @@ export async function createDeployment(agentId: string, channel: DeployChannel, 
     config,
     status: 'active',
   };
-  const { data, error } = await (supabase.from('deploy_connections').insert as Function)(insertData)
+  const { data, error } = await (supabaseExternal.from('deploy_connections').insert as Function)(insertData)
     .select()
     .single();
 
@@ -55,7 +55,7 @@ export async function toggleDeployment(id: string, active: boolean) {
 }
 
 export async function deleteDeployment(id: string) {
-  const { error } = await supabase.from('deploy_connections').delete().eq('id', id);
+  const { error } = await supabaseExternal.from('deploy_connections').delete().eq('id', id);
   if (error) throw error;
 }
 

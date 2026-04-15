@@ -5,7 +5,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { Bell, AlertTriangle, XCircle, Info, CheckCircle2, FlaskConical } from "lucide-react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { supabase } from "@/integrations/supabase/client";
+import { supabaseExternal } from "@/integrations/supabase/externalClient";
 import { toast } from "sonner";
 import { useNotificationStore } from "@/stores/notificationStore";
 
@@ -110,7 +110,7 @@ export function NotificationsDrawer() {
       )
       .subscribe();
 
-    return () => { supabase.removeChannel(channel); };
+    return () => { supabaseExternal.removeChannel(channel); };
   }, [queryClient]);
 
   // Subscribe to agent status changes
@@ -148,7 +148,7 @@ export function NotificationsDrawer() {
       )
       .subscribe();
 
-    return () => { supabase.removeChannel(channel); };
+    return () => { supabaseExternal.removeChannel(channel); };
   }, []);
 
   // Subscribe to evaluation completions
@@ -197,7 +197,7 @@ export function NotificationsDrawer() {
       )
       .subscribe();
 
-    return () => { supabase.removeChannel(channel); };
+    return () => { supabaseExternal.removeChannel(channel); };
   }, []);
 
   // Zustand store notifications
