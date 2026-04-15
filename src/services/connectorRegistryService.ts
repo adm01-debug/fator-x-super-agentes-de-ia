@@ -103,7 +103,7 @@ export async function getConnectorStats(): Promise<{ total_connectors: number; c
   return {
     total_connectors: connectors.length,
     connected: instances.filter((i) => i.status === 'connected').length,
-    available: connectors.filter((c) => c.status === 'available').length,
+    available: connectors.filter((c: any) => c.status === 'available').length,
     error_count: instances.filter((i) => i.status === 'error').length,
     total_usage: instances.reduce((s, i) => s + i.usage_count, 0),
   };

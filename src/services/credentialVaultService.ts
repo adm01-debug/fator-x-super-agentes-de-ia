@@ -42,7 +42,7 @@ export async function encryptData(data: CredentialData): Promise<string> {
 
 export async function decryptData(encrypted: string): Promise<CredentialData> {
   const key = await getOrCreateMasterKey();
-  const combined = new Uint8Array(atob(encrypted).split('').map((c) => c.charCodeAt(0)));
+  const combined = new Uint8Array(atob(encrypted).split('').map((c: any) => c.charCodeAt(0)));
   const plaintext = await crypto.subtle.decrypt({ name: 'AES-GCM', iv: combined.slice(0, 12) }, key, combined.slice(12));
   return JSON.parse(new TextDecoder().decode(plaintext));
 }
@@ -164,7 +164,7 @@ export async function getVaultStats(): Promise<VaultStats> {
     if (c.expires_at && new Date(c.expires_at) <= sevenDays && c.status === 'active') expiringSoon++;
     if (c.next_rotation_at && new Date(c.next_rotation_at) <= now) rotationDue++;
   }
-  return { total_credentials: creds.length, active: creds.filter((c) => c.status === 'active').length, expired: creds.filter((c) => c.status === 'expired').length, expiring_soon: expiringSoon, rotation_due: rotationDue, by_type: byType, total_access_count: totalAccess };
+  return { total_credentials: creds.length, active: creds.filter((c: any) => c.status === 'active').length, expired: creds.filter((c: any) => c.status === 'expired').length, expiring_soon: expiringSoon, rotation_due: rotationDue, by_type: byType, total_access_count: totalAccess };
 }
 
 export { CREDENTIAL_TEMPLATES } from './presets/credentialPresets';

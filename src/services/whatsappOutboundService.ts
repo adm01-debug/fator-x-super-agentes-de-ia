@@ -27,7 +27,6 @@
  *              whatsapp_outbound_evolution_instance,
  *              whatsapp_outbound_evolution_apikey
  */
-import { supabaseExternal } from '@/integrations/supabase/externalClient';
 import { logger } from '@/lib/logger';
 import { getWorkspaceId } from '@/lib/agentService';
 import { withTrace } from '@/lib/tracing';
