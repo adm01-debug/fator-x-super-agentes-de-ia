@@ -89,7 +89,7 @@ export const useAgentBuilderStore = create<AgentBuilderStore>((set, get) => ({
 
   loadAgentFromDB: async (id: string) => {
     set({ isLoading: true });
-    const { data, error } = await supabase
+    const { data, error } = await supabaseExternal
       .from('agents')
       .select('*')
       .eq('id', id)
@@ -117,7 +117,7 @@ export const useAgentBuilderStore = create<AgentBuilderStore>((set, get) => ({
     let error;
     if (agent.id) {
       // ═══ Optimistic locking: check version hasn't changed ═══
-      const { data: current } = await supabase
+      const { data: current } = await supabaseExternal
         .from('agents')
         .select('version, updated_at')
         .eq('id', agent.id as string)
@@ -135,7 +135,7 @@ export const useAgentBuilderStore = create<AgentBuilderStore>((set, get) => ({
       // Bump version on update
       row.version = (agent.version || 1) + 1;
 
-      const { error: e } = await supabase
+      const { error: e } = await supabaseExternal
         .from('agents')
         .update(row)
         .eq('id', agent.id as string);
@@ -144,7 +144,7 @@ export const useAgentBuilderStore = create<AgentBuilderStore>((set, get) => ({
         set((s) => ({ agent: { ...s.agent, version: row.version } }));
       }
     } else {
-      const { data, error: e } = await supabase
+      const { data, error: e } = await supabaseExternal
         .from('agents')
         .insert(row)
         .select('id')
@@ -196,7 +196,7 @@ export const useAgentBuilderStore = create<AgentBuilderStore>((set, get) => ({
   },
 
   loadSavedAgents: async () => {
-    const { data } = await supabase
+    const { data } = await supabaseExternal
       .from('agents')
       .select('*')
       .order('updated_at', { ascending: false });
@@ -230,13 +230,13 @@ export const useAgentBuilderStore = create<AgentBuilderStore>((set, get) => ({
 
     // Deactivate old versions
     if (promptVersions.length > 0) {
-      await supabase
+      await supabaseExternal
         .from('prompt_versions')
         .update({ is_active: false })
         .eq('agent_id', agent.id);
     }
 
-    const { data, error } = await supabase
+    const { data, error } = await supabaseExternal
       .from('prompt_versions')
       .insert({
         agent_id: agent.id,
@@ -269,7 +269,7 @@ export const useAgentBuilderStore = create<AgentBuilderStore>((set, get) => ({
   loadPromptVersions: async () => {
     const agent = get().agent;
     if (!agent.id) return;
-    const { data } = await supabase
+    const { data } = await supabaseExternal
       .from('prompt_versions')
       .select('*')
       .eq('agent_id', agent.id)
@@ -294,11 +294,11 @@ export const useAgentBuilderStore = create<AgentBuilderStore>((set, get) => ({
     const target = promptVersions.find(v => v.id === versionId);
     if (!target || !agent.id) return;
 
-    await supabase
+    await supabaseExternal
       .from('prompt_versions')
       .update({ is_active: false })
       .eq('agent_id', agent.id);
-    await supabase
+    await supabaseExternal
       .from('prompt_versions')
       .update({ is_active: true })
       .eq('id', versionId);

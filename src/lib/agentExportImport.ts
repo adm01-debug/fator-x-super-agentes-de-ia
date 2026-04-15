@@ -69,7 +69,7 @@ export async function importAgentFromJSON(json: string): Promise<string> {
   if (!user) throw new Error('Não autenticado');
 
   // Get workspace
-  const { data: member } = await supabase
+  const { data: member } = await supabaseExternal
     .from('workspace_members')
     .select('workspace_id')
     .eq('user_id', user.id)
