@@ -44,7 +44,7 @@ interface JobStatusResult {
 }
 
 async function invoke<T>(body: Record<string, unknown>): Promise<T> {
-  const { data, error } = await supabaseExternal.functions.invoke('hf-autotrain', { body });
+  const { data, error } = await supabase.functions.invoke('hf-autotrain', { body });
   if (error) {
     logger.error('hf-autotrain failed', { action: body.action, error: error.message });
     throw new Error(`Fine-tuning error: ${error.message}`);

@@ -77,7 +77,7 @@ export async function getDatahubStats() {
 }
 
 export async function testDatahubConnections() {
-  const { data, error } = await supabaseExternal.functions.invoke('datahub-query', {
+  const { data, error } = await supabase.functions.invoke('datahub-query', {
     body: { action: 'test_connections' },
   });
   if (error) throw error;
@@ -85,7 +85,7 @@ export async function testDatahubConnections() {
 }
 
 export async function listDatahubEntities() {
-  const { data, error } = await supabaseExternal.functions.invoke('datahub-query', {
+  const { data, error } = await supabase.functions.invoke('datahub-query', {
     body: { action: 'list_entities' },
   });
   if (error) throw error;
@@ -93,7 +93,7 @@ export async function listDatahubEntities() {
 }
 
 export async function listDatahubTables() {
-  const { data, error } = await supabaseExternal.functions.invoke('datahub-query', {
+  const { data, error } = await supabase.functions.invoke('datahub-query', {
     body: { action: 'list_tables' },
   });
   if (error) throw error;
@@ -125,7 +125,7 @@ export interface DatahubHealthReport {
 
 const DATAHUB_PROJECTS: Array<{ name: string; ref: string }> = [
   { name: 'bancodadosclientes', ref: 'pgxfvjmuubtbowutlide' },
-  { name: 'supabase-fuchsia-kite', ref: 'doufsxqlfjyuvxuezpln' },
+  { name: 'supabaseExternal-fuchsia-kite', ref: 'doufsxqlfjyuvxuezpln' },
   { name: 'backupgiftstore', ref: 'rhqfnvvjdwvnulxybmrk' },
   { name: 'gestao_time_promo', ref: 'hncgwjbzdajfdztqgefe' },
   { name: 'financeiro_promo', ref: 'xyykivpcdbfukaongpbw' },
@@ -170,7 +170,7 @@ export interface RlsPolicyReport {
  * that gracefully.
  */
 export async function getDatahubRlsPolicies(connection?: string): Promise<RlsPolicyReport> {
-  const { data, error } = await supabaseExternal.functions.invoke('datahub-query', {
+  const { data, error } = await supabase.functions.invoke('datahub-query', {
     body: { action: 'list_rls_policies', connection },
   });
   if (error) {
@@ -190,7 +190,7 @@ export async function getDatahubHealth(): Promise<DatahubHealthReport> {
   for (const proj of DATAHUB_PROJECTS) {
     const start = Date.now();
     try {
-      const { data, error } = await supabaseExternal.functions.invoke('datahub-query', {
+      const { data, error } = await supabase.functions.invoke('datahub-query', {
         body: { action: 'health_check', project_ref: proj.ref },
       });
       const latency = Date.now() - start;
@@ -253,13 +253,13 @@ export async function getDatahubHealth(): Promise<DatahubHealthReport> {
 
 /**
  * Invoke a tool on the datahub-mcp-server Edge Function.
- * Extracted from DataHubPage to keep supabase calls in the service layer.
+ * Extracted from DataHubPage to keep supabaseExternal calls in the service layer.
  */
 export async function invokeDatahubMCPTool(
   toolName: string,
   args: Record<string, unknown> = {},
 ): Promise<Record<string, unknown>> {
-  const { data, error } = await supabaseExternal.functions.invoke('datahub-mcp-server', {
+  const { data, error } = await supabase.functions.invoke('datahub-mcp-server', {
     body: {
       jsonrpc: '2.0',
       id: 1,

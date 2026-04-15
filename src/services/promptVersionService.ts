@@ -8,7 +8,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { supabaseExternal } from '@/integrations/supabase/externalClient';
 
 export async function getAgentBasic(agentId: string) {
-  const { data, error } = await supabase
+  const { data, error } = await supabaseExternal
     .from('agents')
     .select('id, name, avatar_emoji')
     .eq('id', agentId)
@@ -25,7 +25,7 @@ export async function getAgentBasic(agentId: string) {
  * Used by PromptsPage library view.
  */
 export async function listAgentsBasic() {
-  const { data, error } = await supabase
+  const { data, error } = await supabaseExternal
     .from('agents')
     .select('id, name, avatar_emoji');
   if (error) {
@@ -41,7 +41,7 @@ export async function listAgentsBasic() {
  * library with the latest version per agent.
  */
 export async function listAllPromptVersions() {
-  const { data, error } = await supabase
+  const { data, error } = await supabaseExternal
     .from('prompt_versions')
     .select('*')
     .order('created_at', { ascending: false });
@@ -53,7 +53,7 @@ export async function listAllPromptVersions() {
 }
 
 export async function listPromptVersions(agentId: string) {
-  const { data, error } = await supabase
+  const { data, error } = await supabaseExternal
     .from('prompt_versions')
     .select('*')
     .eq('agent_id', agentId)
@@ -88,7 +88,7 @@ export async function createPromptVersion(params: {
   }
 
   // Deactivate previous versions
-  const { error: deactivateErr } = await supabase
+  const { error: deactivateErr } = await supabaseExternal
     .from('prompt_versions')
     .update({ is_active: false })
     .eq('agent_id', params.agentId)
@@ -99,7 +99,7 @@ export async function createPromptVersion(params: {
 }
 
 export async function updatePromptVersion(versionId: string, content: string) {
-  const { error } = await supabase
+  const { error } = await supabaseExternal
     .from('prompt_versions')
     .update({ content })
     .eq('id', versionId);
@@ -110,7 +110,7 @@ export async function updatePromptVersion(versionId: string, content: string) {
 }
 
 export async function deletePromptVersion(versionId: string) {
-  const { error } = await supabase
+  const { error } = await supabaseExternal
     .from('prompt_versions')
     .delete()
     .eq('id', versionId);

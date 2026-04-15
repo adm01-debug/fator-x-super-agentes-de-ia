@@ -35,7 +35,7 @@ export async function getUsageSummary(period: 'day' | 'week' | 'month' = 'week')
 export async function getAgentUsage(days = 30) {
   const since = new Date();
   since.setDate(since.getDate() - days);
-  const { data, error } = await supabase
+  const { data, error } = await supabaseExternal
     .from('agent_usage')
     .select('*')
     .gte('date', since.toISOString().split('T')[0])
@@ -45,7 +45,7 @@ export async function getAgentUsage(days = 30) {
 }
 
 export async function getUsageRecords(limit = 50) {
-  const { data, error } = await supabase
+  const { data, error } = await supabaseExternal
     .from('usage_records')
     .select('*')
     .order('created_at', { ascending: false })
@@ -57,7 +57,7 @@ export async function getUsageRecords(limit = 50) {
 // ═══ Budgets ═══
 
 export async function listBudgets() {
-  const { data, error } = await supabase
+  const { data, error } = await supabaseExternal
     .from('budgets')
     .select('*')
     .order('created_at', { ascending: false });
@@ -66,7 +66,7 @@ export async function listBudgets() {
 }
 
 export async function getBudget(workspaceId: string) {
-  const { data } = await supabase
+  const { data } = await supabaseExternal
     .from('budgets')
     .select('*')
     .eq('workspace_id', workspaceId)
@@ -75,7 +75,7 @@ export async function getBudget(workspaceId: string) {
 }
 
 export async function createBudget(workspaceId: string, name: string, limitUsd: number) {
-  const { data, error } = await supabase
+  const { data, error } = await supabaseExternal
     .from('budgets')
     .insert({ name, limit_usd: limitUsd, workspace_id: workspaceId })
     .select()
@@ -90,7 +90,7 @@ export async function deleteBudget(id: string) {
 }
 
 export async function setBudget(workspaceId: string, monthlyLimit: number) {
-  const { data, error } = await supabase
+  const { data, error } = await supabaseExternal
     .from('budgets')
     .upsert({ workspace_id: workspaceId, limit_usd: monthlyLimit, alert_threshold: 0.8 })
     .select()
@@ -118,7 +118,7 @@ export async function checkBudgetStatus(workspaceId: string) {
 // ═══ Pricing ═══
 
 export async function getModelPricing() {
-  const { data, error } = await supabase
+  const { data, error } = await supabaseExternal
     .from('model_pricing')
     .select('*')
     .order('model_pattern');

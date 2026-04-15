@@ -8,7 +8,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { supabaseExternal } from '@/integrations/supabase/externalClient';
 import { fromTable } from '@/lib/supabaseExtended';
 import { withTrace } from '@/lib/tracing';
-import type { Json } from '@/integrations/supabase/types';
+import type { Json } from '@/integrations/supabaseExternal/types';
 
 export interface WorkflowNode {
   id: string;
@@ -55,7 +55,7 @@ export interface Workflow {
 
 /* ── List ── */
 export async function listWorkflows(): Promise<Workflow[]> {
-  const { data, error } = await supabase
+  const { data, error } = await supabaseExternal
     .from('workflows')
     .select('*')
     .order('updated_at', { ascending: false });
@@ -67,7 +67,7 @@ export async function listWorkflows(): Promise<Workflow[]> {
   // Fetch all steps for these workflows in one query
   let allSteps: WorkflowStep[] = [];
   if (workflowIds.length > 0) {
-    const { data: stepsData } = await supabase
+    const { data: stepsData } = await supabaseExternal
       .from('workflow_steps')
       .select('*')
       .in('workflow_id', workflowIds)
@@ -125,7 +125,7 @@ export async function saveWorkflow(
   await syncWorkflowSteps(workflowId, workflow.nodes || []);
 
   // Re-fetch steps
-  const { data: stepsData } = await supabase
+  const { data: stepsData } = await supabaseExternal
     .from('workflow_steps')
     .select('*')
     .eq('workflow_id', workflowId)
@@ -143,7 +143,7 @@ export async function deleteWorkflow(id: string): Promise<void> {
 
 /* ── Toggle status ── */
 export async function toggleWorkflowStatus(id: string, currentStatus: string): Promise<void> {
-  const { error } = await supabase
+  const { error } = await supabaseExternal
     .from('workflows')
     .update({ status: currentStatus === 'active' ? 'draft' : 'active' })
     .eq('id', id);
@@ -152,7 +152,7 @@ export async function toggleWorkflowStatus(id: string, currentStatus: string): P
 
 /* ── List workflow runs ── */
 export async function listWorkflowRuns(limit = 30) {
-  const { data, error } = await supabase
+  const { data, error } = await supabaseExternal
     .from('workflow_runs')
     .select('*, workflows(name)')
     .order('started_at', { ascending: false })
@@ -181,7 +181,7 @@ export async function executeWorkflow(
           span.setAttribute('workflow.engine', 'workflow-engine-v2');
           span.setAttribute('workflow.steps_count', steps.length);
 
-          const { data, error } = await supabaseExternal.functions.invoke('workflow-engine-v2', {
+          const { data, error } = await supabase.functions.invoke('workflow-engine-v2', {
             body: { workflow_id: workflowId, input: `Execute o workflow "${workflowName}"` },
           });
           if (error) throw new Error(error.message);
@@ -227,7 +227,7 @@ export async function executeWorkflow(
               `Retorne apenas o resultado da sua etapa de forma estruturada e objetiva.`,
             ].join('\n\n');
 
-            const { data, error } = await supabaseExternal.functions.invoke('llm-gateway', {
+            const { data, error } = await supabase.functions.invoke('llm-gateway', {
               body: {
                 model: 'claude-sonnet-4.6',
                 messages: [
@@ -275,7 +275,7 @@ export async function duplicateWorkflow(id: string): Promise<Workflow> {
 
 /* ── Get steps for a workflow ── */
 export async function getWorkflowSteps(workflowId: string): Promise<WorkflowStep[]> {
-  const { data, error } = await supabase
+  const { data, error } = await supabaseExternal
     .from('workflow_steps')
     .select('*')
     .eq('workflow_id', workflowId)

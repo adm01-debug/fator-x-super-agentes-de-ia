@@ -18,7 +18,7 @@ export interface DeployConnection {
 }
 
 export async function listDeployments(agentId: string): Promise<DeployConnection[]> {
-  const { data, error } = await supabase
+  const { data, error } = await supabaseExternal
     .from('deploy_connections')
     .select('*')
     .eq('agent_id', agentId)
@@ -47,7 +47,7 @@ export async function createDeployment(agentId: string, channel: DeployChannel, 
 }
 
 export async function toggleDeployment(id: string, active: boolean) {
-  const { error } = await supabase
+  const { error } = await supabaseExternal
     .from('deploy_connections')
     .update({ status: active ? 'active' : 'inactive' })
     .eq('id', id);
@@ -70,7 +70,7 @@ export function getApiEndpoint(_agentId: string): string {
 }
 
 export async function listDeployedAgents() {
-  const { data, error } = await supabase
+  const { data, error } = await supabaseExternal
     .from('agents')
     .select('id, name, avatar_emoji, status, config, version, updated_at')
     .in('status', ['production', 'staging', 'monitoring']);
@@ -78,7 +78,7 @@ export async function listDeployedAgents() {
   if (!data) return [];
 
   const agentIds = data.map(a => a.id);
-  const { data: connections } = await supabase
+  const { data: connections } = await supabaseExternal
     .from('deploy_connections')
     .select('agent_id, channel, status, message_count, last_message_at, error_message')
     .in('agent_id', agentIds);

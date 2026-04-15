@@ -3,7 +3,7 @@
  * Workspace settings, API keys (workspace_secrets), and environments.
  *
  * Encapsulates all CRUD for the SettingsPage so pages do not call
- * supabase directly. All functions log errors via logger.ts.
+ * supabaseExternal directly. All functions log errors via logger.ts.
  */
 import { supabaseExternal } from '@/integrations/supabase/externalClient';
 import { logger } from '@/lib/logger';
@@ -82,7 +82,7 @@ export async function deleteWorkspaceSecret(id: string): Promise<void> {
  */
 export async function rotateWorkspaceSecret(id: string, newValue: string): Promise<void> {
   if (!newValue.trim()) throw new Error('Novo valor é obrigatório');
-  const { error } = await supabase
+  const { error } = await supabaseExternal
     .from('workspace_secrets')
     .update({ encrypted_value: new TextEncoder().encode(newValue.trim()) } as Record<string, unknown>)
     .eq('id', id);
@@ -98,7 +98,7 @@ export async function rotateWorkspaceSecret(id: string, newValue: string): Promi
  * Fetches a single workspace by id.
  */
 export async function getWorkspace(workspaceId: string): Promise<Workspace | null> {
-  const { data, error } = await supabase
+  const { data, error } = await supabaseExternal
     .from('workspaces')
     .select('*')
     .eq('id', workspaceId)
@@ -116,7 +116,7 @@ export async function getWorkspace(workspaceId: string): Promise<Workspace | nul
  * Lists all environments (dev/staging/prod) for a workspace.
  */
 export async function listEnvironments(workspaceId: string): Promise<Environment[]> {
-  const { data, error } = await supabase
+  const { data, error } = await supabaseExternal
     .from('environments')
     .select('*')
     .eq('workspace_id', workspaceId)
@@ -132,7 +132,7 @@ export async function listEnvironments(workspaceId: string): Promise<Environment
  * Creates a new environment (e.g. development, staging, production).
  */
 export async function createEnvironment(workspaceId: string, name: string): Promise<void> {
-  const { error } = await supabase
+  const { error } = await supabaseExternal
     .from('environments')
     .insert({ workspace_id: workspaceId, name: name.trim() });
   if (error) {
@@ -145,7 +145,7 @@ export async function createEnvironment(workspaceId: string, name: string): Prom
  * Deletes an environment by id.
  */
 export async function deleteEnvironment(id: string): Promise<void> {
-  const { error } = await supabase
+  const { error } = await supabaseExternal
     .from('environments')
     .delete()
     .eq('id', id);

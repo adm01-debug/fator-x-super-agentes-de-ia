@@ -63,7 +63,7 @@ export interface AgentVersion {
  * Fetches a single agent by ID with all fields.
  */
 export async function getAgentById(id: string): Promise<AgentDetail | null> {
-  const { data, error } = await supabase
+  const { data, error } = await supabaseExternal
     .from('agents')
     .select('*')
     .eq('id', id)
@@ -79,7 +79,7 @@ export async function getAgentById(id: string): Promise<AgentDetail | null> {
  * Recent traces for a specific agent (latest N).
  */
 export async function getAgentDetailTraces(agentId: string, limit = 50): Promise<AgentTrace[]> {
-  const { data, error } = await supabase
+  const { data, error } = await supabaseExternal
     .from('agent_traces')
     .select('latency_ms, tokens_used, cost_usd, level, created_at')
     .eq('agent_id', agentId)
@@ -98,7 +98,7 @@ export async function getAgentDetailTraces(agentId: string, limit = 50): Promise
 export async function getAgentUsage(agentId: string, days = 7): Promise<AgentUsage[]> {
   const fromDate = new Date();
   fromDate.setDate(fromDate.getDate() - days);
-  const { data, error } = await supabase
+  const { data, error } = await supabaseExternal
     .from('agent_usage')
     .select('*')
     .eq('agent_id', agentId)
@@ -115,7 +115,7 @@ export async function getAgentUsage(agentId: string, days = 7): Promise<AgentUsa
  * Recent alerts for a specific agent (latest N).
  */
 export async function getAgentRecentAlerts(agentId: string, limit = 5): Promise<AgentAlert[]> {
-  const { data, error } = await supabase
+  const { data, error } = await supabaseExternal
     .from('alerts')
     .select('title, severity, created_at, is_resolved')
     .eq('agent_id', agentId)
@@ -132,7 +132,7 @@ export async function getAgentRecentAlerts(agentId: string, limit = 5): Promise<
  * Version history for a specific agent (latest N).
  */
 export async function getAgentVersions(agentId: string, limit = 20): Promise<AgentVersion[]> {
-  const { data, error } = await supabase
+  const { data, error } = await supabaseExternal
     .from('agent_versions')
     .select('*')
     .eq('agent_id', agentId)

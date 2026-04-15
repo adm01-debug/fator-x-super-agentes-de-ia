@@ -14,7 +14,7 @@ export async function getAgentTraces(options: {
   limit?: number;
 }) {
   const { agentId, limit = 50 } = options;
-  let query = supabase
+  let query = supabaseExternal
     .from('agent_traces')
     .select('*')
     .order('created_at', { ascending: false })
@@ -32,7 +32,7 @@ export async function getSessions(options: { agentId?: string; limit?: number })
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) return [];
 
-  let query = supabase
+  let query = supabaseExternal
     .from('sessions')
     .select('*')
     .eq('user_id', user.id)
@@ -48,7 +48,7 @@ export async function getSessions(options: { agentId?: string; limit?: number })
 }
 
 export async function getSessionTraces(sessionId: string) {
-  const { data, error } = await supabase
+  const { data, error } = await supabaseExternal
     .from('session_traces')
     .select('*')
     .eq('session_id', sessionId)
@@ -62,7 +62,7 @@ export async function getSessionTraces(sessionId: string) {
 }
 
 export async function getTraceEvents(traceId: string) {
-  const { data, error } = await supabase
+  const { data, error } = await supabaseExternal
     .from('trace_events')
     .select('*')
     .eq('session_trace_id', traceId)
@@ -81,7 +81,7 @@ export async function getAlerts(options: {
   limit?: number;
 }) {
   const { severity, acknowledged, limit = 50 } = options;
-  let query = supabase
+  let query = supabaseExternal
     .from('alerts')
     .select('*')
     .order('created_at', { ascending: false })
@@ -94,7 +94,7 @@ export async function getAlerts(options: {
 }
 
 export async function resolveAlert(alertId: string): Promise<void> {
-  const { error } = await supabase
+  const { error } = await supabaseExternal
     .from('alerts')
     .update({ is_resolved: true, resolved_at: new Date().toISOString() })
     .eq('id', alertId);
@@ -167,7 +167,7 @@ export interface TraceEvent {
 }
 
 export async function getRecentTraceEvents(limit = 50): Promise<TraceEvent[]> {
-  const { data, error } = await supabase
+  const { data, error } = await supabaseExternal
     .from('trace_events')
     .select('*')
     .order('created_at', { ascending: false })

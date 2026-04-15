@@ -32,7 +32,7 @@ async function invokeVision(opts: VisionInvokeOptions): Promise<VisionRawRespons
   if (!opts.imageBase64 && !opts.imageUrl) {
     throw new Error('Forneça imageBase64 ou imageUrl');
   }
-  const { data, error } = await supabaseExternal.functions.invoke('image-analysis', {
+  const { data, error } = await supabase.functions.invoke('image-analysis', {
     body: {
       action: opts.action ?? 'analyze',
       image_base64: opts.imageBase64,

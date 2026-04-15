@@ -14,7 +14,7 @@ export async function listDeletionRequests() {
 }
 
 export async function exportMyData() {
-  const { data, error } = await supabaseExternal.functions.invoke('lgpd-manager', {
+  const { data, error } = await supabase.functions.invoke('lgpd-manager', {
     body: { action: 'get_my_data' },
   });
   if (error) throw error;
@@ -22,7 +22,7 @@ export async function exportMyData() {
 }
 
 export async function requestDeletion(scope: string) {
-  const { data, error } = await supabaseExternal.functions.invoke('lgpd-manager', {
+  const { data, error } = await supabase.functions.invoke('lgpd-manager', {
     body: { action: 'request_deletion', scope },
   });
   if (error) throw error;
@@ -30,7 +30,7 @@ export async function requestDeletion(scope: string) {
 }
 
 export async function manageConsent(purpose: string, grant: boolean) {
-  await supabaseExternal.functions.invoke('lgpd-manager', {
+  await supabase.functions.invoke('lgpd-manager', {
     body: { action: grant ? 'consent_grant' : 'consent_revoke', purpose, legal_basis: 'consent' },
   });
 }

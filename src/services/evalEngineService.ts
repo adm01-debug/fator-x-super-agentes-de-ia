@@ -27,7 +27,7 @@ export async function runRAGASEvaluation(
   agentId: string,
   testCases: EvalTestCase[]
 ): Promise<{ ragas: RAGASResult }> {
-  const { data, error } = await supabaseExternal.functions.invoke('eval-engine-v2', {
+  const { data, error } = await supabase.functions.invoke('eval-engine-v2', {
     body: { workspace_id: workspaceId, agent_id: agentId, test_cases: testCases, run_ragas: true },
   });
   if (error) {

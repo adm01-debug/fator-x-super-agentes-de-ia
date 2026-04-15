@@ -83,7 +83,7 @@ export async function detectKnowledgeDecay(limit = 200): Promise<DecayReport> {
   };
 
   try {
-    const { data: memData, error: memErr } = await supabase
+    const { data: memData, error: memErr } = await supabaseExternal
       .from('agent_memories')
       .select('id, content, source, created_at, relevance_score, memory_type')
       .order('created_at', { ascending: true })
@@ -141,7 +141,7 @@ export async function detectKnowledgeDecay(limit = 200): Promise<DecayReport> {
 export async function archiveDecayedItems(itemIds: string[]): Promise<number> {
   if (itemIds.length === 0) return 0;
 
-  const { error } = await supabase
+  const { error } = await supabaseExternal
     .from('agent_memories')
     .delete()
     .in('id', itemIds);

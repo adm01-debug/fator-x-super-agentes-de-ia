@@ -146,7 +146,7 @@ export async function resolveMemoryEntities(
   threshold = 0.7
 ): Promise<EntityResolutionReport> {
   try {
-    const { data, error } = await supabase
+    const { data, error } = await supabaseExternal
       .from('agent_memories')
       .select('id, content, source, created_at, memory_type')
       .order('created_at', { ascending: false })
@@ -186,7 +186,7 @@ export async function mergeEntityCluster(cluster: EntityCluster): Promise<number
   if (cluster.duplicates.length === 0) return 0;
   const idsToDelete = cluster.duplicates.map((d) => d.id);
 
-  const { error } = await supabase
+  const { error } = await supabaseExternal
     .from('agent_memories')
     .delete()
     .in('id', idsToDelete);

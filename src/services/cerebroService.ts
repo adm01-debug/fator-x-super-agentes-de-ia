@@ -50,7 +50,7 @@ export async function queryBrain(query: string, options?: Record<string, unknown
 }
 
 export async function getMemories(options?: { type?: string; limit?: number }) {
-  let query = supabase
+  let query = supabaseExternal
     .from('agent_memories')
     .select('*')
     .order('created_at', { ascending: false })
@@ -65,14 +65,14 @@ export async function getMemories(options?: { type?: string; limit?: number }) {
 
 /** Invoke cerebro-brain edge function */
 export async function invokeCerebroBrain(body: Record<string, unknown>) {
-  const { data, error } = await supabaseExternal.functions.invoke('cerebro-brain', { body });
+  const { data, error } = await supabase.functions.invoke('cerebro-brain', { body });
   if (error) throw error;
   return data;
 }
 
 /** Invoke cerebro-query edge function */
 export async function invokeCerebroQuery(body: Record<string, unknown>) {
-  const { data, error } = await supabaseExternal.functions.invoke('cerebro-query', { body });
+  const { data, error } = await supabase.functions.invoke('cerebro-query', { body });
   if (error) throw error;
   return data;
 }
@@ -139,19 +139,19 @@ export async function getKnowledgeAreaStats(): Promise<Record<string, KnowledgeA
       let lastUpdated: string | null = null;
 
       if (kbIds.length > 0) {
-        const { count: dCount } = await supabase
+        const { count: dCount } = await supabaseExternal
           .from('documents')
           .select('*', { count: 'exact', head: true })
           .in('knowledge_base_id', kbIds);
         docCount = dCount ?? 0;
 
-        const { count: cCount } = await supabase
+        const { count: cCount } = await supabaseExternal
           .from('chunks')
           .select('*', { count: 'exact', head: true })
           .in('knowledge_base_id', kbIds);
         chunkCount = cCount ?? 0;
 
-        const { data: latestDoc } = await supabase
+        const { data: latestDoc } = await supabaseExternal
           .from('documents')
           .select('updated_at')
           .in('knowledge_base_id', kbIds)

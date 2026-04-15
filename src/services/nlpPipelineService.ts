@@ -43,7 +43,7 @@ export interface NLPResult {
 }
 
 export async function analyzeText(text: string, pipeline: ('ner' | 'sentiment')[] = ['ner', 'sentiment']): Promise<NLPResult> {
-  const { data, error } = await supabaseExternal.functions.invoke('nlp-pipeline', {
+  const { data, error } = await supabase.functions.invoke('nlp-pipeline', {
     body: { text, pipeline },
   });
   if (error) {

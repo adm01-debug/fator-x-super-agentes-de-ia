@@ -79,7 +79,7 @@ export async function getTemporalSnapshot(window: TemporalWindow = '7d'): Promis
 
   try {
     // Fetch memories within the window
-    const { data: memData, error: memErr } = await supabase
+    const { data: memData, error: memErr } = await supabaseExternal
       .from('agent_memories')
       .select('id, created_at, relevance_score')
       .gte('created_at', sinceIso)
@@ -93,7 +93,7 @@ export async function getTemporalSnapshot(window: TemporalWindow = '7d'): Promis
     const memories = (memData ?? []) as Array<{ id: string; created_at: string; relevance_score: number | null }>;
 
     // Fetch chunks within the window
-    const { data: chunkData, error: chunkErr } = await supabase
+    const { data: chunkData, error: chunkErr } = await supabaseExternal
       .from('chunks')
       .select('id, created_at')
       .gte('created_at', sinceIso)
@@ -182,7 +182,7 @@ export async function getTemporalSnapshot(window: TemporalWindow = '7d'): Promis
  * Used by the temporal timeline view in Super Cérebro.
  */
 export async function listRecentMemoryEvents(limit = 50) {
-  const { data, error } = await supabase
+  const { data, error } = await supabaseExternal
     .from('agent_memories')
     .select('id, content, memory_type, source, relevance_score, created_at')
     .order('created_at', { ascending: false })

@@ -7,7 +7,7 @@ import { supabase } from '@/integrations/supabase/client';
 import type { RoleKey } from './rbacService';
 
 export async function listMembers(workspaceId: string) {
-  const { data, error } = await supabase
+  const { data, error } = await supabaseExternal
     .from('workspace_members_safe')
     .select('*')
     .eq('workspace_id', workspaceId)
@@ -37,7 +37,7 @@ export async function inviteMember(
 }
 
 export async function removeMember(workspaceId: string, userId: string) {
-  const { error } = await supabase
+  const { error } = await supabaseExternal
     .from('workspace_members')
     .delete()
     .eq('workspace_id', workspaceId)
@@ -47,7 +47,7 @@ export async function removeMember(workspaceId: string, userId: string) {
 }
 
 export async function getPendingInvites(email: string) {
-  const { data, error } = await supabase
+  const { data, error } = await supabaseExternal
     .from('workspace_members')
     .select('*')
     .eq('email', email)
@@ -63,7 +63,7 @@ export async function acceptInvite(memberId: string) {
 }
 
 export async function updateMemberRole(workspaceId: string, userId: string, newRole: RoleKey) {
-  const { error } = await supabase
+  const { error } = await supabaseExternal
     .from('workspace_members')
     .update({ role: newRole })
     .eq('workspace_id', workspaceId)

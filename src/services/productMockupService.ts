@@ -42,7 +42,7 @@ export interface GenerateMockupResult {
 }
 
 export async function generateMockup(opts: GenerateMockupOptions): Promise<GenerateMockupResult> {
-  const { data, error } = await supabaseExternal.functions.invoke('product-mockup', {
+  const { data, error } = await supabase.functions.invoke('product-mockup', {
     body: {
       action: 'generate_mockup',
       product_image_base64: opts.productImageBase64,
@@ -70,7 +70,7 @@ export interface UpscaleResult {
 }
 
 export async function upscaleImage(imageBase64: string, scale = 2): Promise<UpscaleResult> {
-  const { data, error } = await supabaseExternal.functions.invoke('product-mockup', {
+  const { data, error } = await supabase.functions.invoke('product-mockup', {
     body: { action: 'upscale', image_base64: imageBase64, scale },
   });
   if (error) {
@@ -99,7 +99,7 @@ export interface InpaintResult {
 }
 
 export async function inpaintImage(opts: InpaintOptions): Promise<InpaintResult> {
-  const { data, error } = await supabaseExternal.functions.invoke('product-mockup', {
+  const { data, error } = await supabase.functions.invoke('product-mockup', {
     body: {
       action: 'inpaint',
       image_base64: opts.imageBase64,
@@ -131,7 +131,7 @@ export interface SegmentResult {
 }
 
 export async function segmentImage(imageBase64: string): Promise<SegmentResult> {
-  const { data, error } = await supabaseExternal.functions.invoke('product-mockup', {
+  const { data, error } = await supabase.functions.invoke('product-mockup', {
     body: { action: 'segment', image_base64: imageBase64 },
   });
   if (error) {

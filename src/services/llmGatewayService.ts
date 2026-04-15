@@ -37,7 +37,7 @@ async function tracedInvoke<T = unknown>(
   });
 
   const span = ctx.startSpan(`edge.${functionName}`, options.spanKind ?? 'http');
-  span.setAttribute('http.url', `supabase/functions/${functionName}`);
+  span.setAttribute('http.url', `supabaseExternal/functions/${functionName}`);
   span.setAttribute('gen_ai.system', 'nexus');
   const model = options.extractModel?.(body);
   if (model) span.setAttribute('gen_ai.request.model', model);
