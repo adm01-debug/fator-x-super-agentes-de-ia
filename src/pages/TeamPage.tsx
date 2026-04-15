@@ -46,7 +46,7 @@ export default function TeamPage() {
   const handleRemoveMember = async (memberId: string) => {
     try {
       const wsId = await getWorkspaceId();
-      const member = members.find(m => m.id === memberId);
+      const member = members.find((m: any) => m.id === memberId);
       if (member?.user_id) await removeMember(wsId, member.user_id);
       toast.success('Membro removido');
       refetch();
@@ -66,7 +66,7 @@ export default function TeamPage() {
       {/* Pending invitations banner */}
       {pendingInvites.length > 0 && (
         <div className="space-y-2">
-          {pendingInvites.map(invite => (
+          {pendingInvites.map((invite: any) => (
             <div key={invite.id}
               className="nexus-card border-primary/30 flex items-center justify-between"
             >
@@ -102,7 +102,7 @@ export default function TeamPage() {
               </tr>
             </thead>
             <tbody>
-              {members.map((m) => (
+              {members.map((m: any) => (
                 <tr key={m.id} className="border-b border-border/30 hover:bg-secondary/30 transition-colors">
                   <td className="px-5 py-3">
                     <div className="flex items-center gap-3">

@@ -11,6 +11,7 @@
  */
 
 import { supabaseExternal } from '@/integrations/supabase/externalClient';
+import { supabase } from '@/integrations/supabase/client';
 import { fromTable } from '@/lib/supabaseExtended';
 
 export type { ExecutionType, ExecutionStatus, ExecutionRecord, ExecutionStepRecord, ExecutionFilter, ExecutionComparison, ExecutionTimeline } from './types/executionHistoryTypes';

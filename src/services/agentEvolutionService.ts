@@ -32,7 +32,7 @@ export interface EvolutionReport {
 
 // Get agent's learned skills (Skillbook)
 export async function getSkillbook(agentId: string): Promise<AgentSkill[]> {
-  const { data, error } = await supabase
+  const { data, error } = await supabaseExternal
     .from('agent_skills')
     .select('*')
     .eq('agent_id', agentId)
@@ -49,7 +49,7 @@ export async function learnSkill(
   pattern: string,
   _traceId?: string
 ): Promise<AgentSkill> {
-  const { data, error } = await supabase
+  const { data, error } = await supabaseExternal
     .from('agent_skills')
     .upsert({
       agent_id: agentId,
@@ -72,7 +72,7 @@ export async function updateSkillOutcome(
   skillId: string,
   success: boolean
 ): Promise<void> {
-  const { data: skill } = await supabase
+  const { data: skill } = await supabaseExternal
     .from('agent_skills')
     .select('*')
     .eq('id', skillId)
@@ -82,7 +82,7 @@ export async function updateSkillOutcome(
     const newSuccess = skill.success_count + (success ? 1 : 0);
     const newFailure = skill.failure_count + (success ? 0 : 1);
     const confidence = newSuccess / (newSuccess + newFailure);
-    await supabase
+    await supabaseExternal
       .from('agent_skills')
       .update({
         success_count: newSuccess,
@@ -97,7 +97,7 @@ export async function updateSkillOutcome(
 export async function reflectAndEvolve(agentId: string, windowHours = 24): Promise<EvolutionReport> {
   const since = new Date(Date.now() - windowHours * 3600_000).toISOString();
 
-  const { data: traces } = await supabase
+  const { data: traces } = await supabaseExternal
     .from('agent_traces')
     .select('*')
     .eq('agent_id', agentId)
@@ -172,7 +172,7 @@ export async function reflectOnTraces(
 
 // Prune skills that have very low confidence
 export async function pruneWeakSkills(agentId: string, minConfidence = 0.2): Promise<number> {
-  const { data, error } = await supabase
+  const { data, error } = await supabaseExternal
     .from('agent_skills')
     .delete()
     .eq('agent_id', agentId)

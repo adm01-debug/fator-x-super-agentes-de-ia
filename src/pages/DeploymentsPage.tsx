@@ -37,7 +37,7 @@ export default function DeploymentsPage() {
         />
       ) : (
         <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-          {deployments.map((dep) => (
+          {deployments.map((dep: any) => (
             <div key={dep.id} className="nexus-card">
               <div className="flex items-start justify-between mb-3">
                 <div className="flex items-center gap-2.5">
@@ -51,7 +51,7 @@ export default function DeploymentsPage() {
               </div>
               {dep.channels.length > 0 && (
                 <div className="flex flex-wrap gap-1 mt-2">
-                  {dep.channels.map((c) => (
+                  {dep.channels.map((c: any) => (
                     <span key={c.name} className={`text-[11px] px-2 py-0.5 rounded-full ${c.status === 'active' ? 'bg-nexus-emerald/10 text-nexus-emerald' : c.status === 'error' ? 'bg-destructive/10 text-destructive' : 'nexus-badge-primary'}`} title={c.error || `${c.messages} msgs`}>
                       {c.name} {c.messages > 0 ? `(${c.messages})` : ''}
                     </span>

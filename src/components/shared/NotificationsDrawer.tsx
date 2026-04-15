@@ -42,13 +42,13 @@ export function NotificationsDrawer() {
     queryKey: ['notifications'],
     queryFn: async () => {
       // Fetch warning/error traces
-      const { data: traces } = await supabase
+      const { data: traces } = await supabaseExternal
         .from('agent_traces')
         .select('id, event, level, created_at, metadata')
         .in('level', ['warning', 'error', 'critical'])
         .order('created_at', { ascending: false })
         .limit(20);
-      const traceNotifs = (traces ?? []).map(a => ({
+      const traceNotifs = (traces ?? []).map((a: any) => ({
         id: a.id,
         type: 'trace' as const,
         title: a.event,
@@ -57,13 +57,13 @@ export function NotificationsDrawer() {
         read: false,
       }));
       // Fetch unresolved alerts (budget, guardrails, etc)
-      const { data: alerts } = await supabase
+      const { data: alerts } = await supabaseExternal
         .from('alerts')
         .select('id, title, message, severity, is_resolved, created_at')
         .eq('is_resolved', false)
         .order('created_at', { ascending: false })
         .limit(20);
-      const alertNotifs: Notification[] = (alerts ?? []).map(a => ({
+      const alertNotifs: Notification[] = (alerts ?? []).map((a: any) => ({
         id: `alert-${a.id}`,
         type: 'trace' as const,
         title: a.title,
@@ -79,7 +79,7 @@ export function NotificationsDrawer() {
 
   // Subscribe to realtime agent failure traces
   useEffect(() => {
-    const channel = supabase
+    const channel = supabaseExternal
       .channel('notifications-traces')
       .on(
         'postgres_changes',
@@ -89,7 +89,7 @@ export function NotificationsDrawer() {
           table: 'agent_traces',
           filter: 'level=in.(error,critical,warning)',
         },
-        (payload) => {
+        (payload: any) => {
           const row = payload.new as Record<string, unknown>;
           const notif: Notification = {
             id: String(row.id ?? ''),
@@ -115,12 +115,12 @@ export function NotificationsDrawer() {
 
   // Subscribe to agent status changes
   useEffect(() => {
-    const channel = supabase
+    const channel = supabaseExternal
       .channel('notifications-agents')
       .on(
         'postgres_changes',
         { event: 'UPDATE', schema: 'public', table: 'agents' },
-        (payload) => {
+        (payload: any) => {
           const row = payload.new as Record<string, unknown>;
           const old = payload.old as Record<string, unknown>;
           if (old.status && row.status && old.status !== row.status) {
@@ -153,12 +153,12 @@ export function NotificationsDrawer() {
 
   // Subscribe to evaluation completions
   useEffect(() => {
-    const channel = supabase
+    const channel = supabaseExternal
       .channel('notifications-evals')
       .on(
         'postgres_changes',
         { event: 'UPDATE', schema: 'public', table: 'evaluation_runs' },
-        (payload) => {
+        (payload: any) => {
           const row = payload.new as Record<string, unknown>;
           const old = payload.old as Record<string, unknown>;
           if (old.status !== 'completed' && row.status === 'completed') {
@@ -180,7 +180,7 @@ export function NotificationsDrawer() {
       .on(
         'postgres_changes',
         { event: 'INSERT', schema: 'public', table: 'evaluation_runs' },
-        (payload) => {
+        (payload: any) => {
           const row = payload.new as Record<string, unknown>;
           if (row.status === 'completed') {
             const notif: Notification = {

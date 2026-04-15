@@ -7,6 +7,7 @@
  */
 
 import { useState, useEffect } from 'react';
+import { supabaseExternal } from '@/integrations/supabase/externalClient';
 
 interface ExecutionTrace {
   id: string;
@@ -53,7 +54,7 @@ export function useTracesData(
 
     async function fetchTraces() {
       try {
-        let query = supabase
+        let query = supabaseExternal
           .from('trace_events')
           .select('*', { count: 'exact' })
           .order('created_at', { ascending: false })

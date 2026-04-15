@@ -33,7 +33,7 @@ export default function KnowledgePage() {
     queryFn: listKnowledgeBases,
   });
 
-  const filtered = knowledgeBases.filter(kb =>
+  const filtered = knowledgeBases.filter((kb: any) =>
     kb.name.toLowerCase().includes(search.toLowerCase())
   );
 
@@ -112,7 +112,7 @@ export default function KnowledgePage() {
         </div>
       ) : (
         <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-          {filtered.map((kb) => (
+          {filtered.map((kb: any) => (
             <div key={kb.id}
               className="nexus-card group cursor-pointer"
               onClick={() => setSelectedKb({ id: kb.id, name: kb.name })}

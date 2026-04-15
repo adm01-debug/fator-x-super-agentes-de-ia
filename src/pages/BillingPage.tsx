@@ -38,7 +38,7 @@ export default function BillingPage() {
     queryFn: () => getUsageRecords(50),
   });
 
-  const totals = usage.reduce((acc, u) => ({
+  const totals = usage.reduce((acc: any, u: any) => ({
     cost: acc.cost + Number(u.total_cost_usd || 0),
     tokensIn: acc.tokensIn + (u.tokens_input || 0),
     tokensOut: acc.tokensOut + (u.tokens_output || 0),
@@ -46,7 +46,7 @@ export default function BillingPage() {
     errors: acc.errors + (u.error_count || 0),
   }), { cost: 0, tokensIn: 0, tokensOut: 0, requests: 0, errors: 0 });
 
-  const chartData = usage.map(u => ({
+  const chartData = usage.map((u: any) => ({
     date: new Date(u.date).toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' }),
     cost: Number(u.total_cost_usd || 0),
   }));
@@ -156,7 +156,7 @@ export default function BillingPage() {
             </div>
           ) : (
             <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-              {budgets.map((b) => {
+              {budgets.map((b: any) => {
                 const pct = b.limit_usd > 0 ? ((b.current_usd ?? 0) / b.limit_usd) * 100 : 0;
                 const overThreshold = pct >= (b.alert_threshold ?? 80) * 100;
                 return (
@@ -214,7 +214,7 @@ export default function BillingPage() {
                   </tr>
                 </thead>
                 <tbody>
-                  {usageRecords.map(r => (
+                  {usageRecords.map((r: any) => (
                     <tr key={r.id} className="border-b border-border/30 hover:bg-secondary/30 transition-colors">
                       <td className="px-4 py-2"><Badge variant="outline" className="text-[11px]">{r.record_type}</Badge></td>
                       <td className="px-4 py-2 text-xs text-foreground">{(r.tokens ?? 0).toLocaleString()}</td>
@@ -254,7 +254,7 @@ function PricingTable() {
           <th className="text-right p-3 font-medium">Custo estimado / 1M tokens</th>
         </tr></thead>
         <tbody>
-          {pricing.map((p) => (
+          {pricing.map((p: any) => (
             <tr key={p.id} className="border-b border-border/20 hover:bg-secondary/30">
               <td className="p-3 font-mono text-foreground">{String(p.model_pattern)}</td>
               <td className="p-3 text-right text-foreground">${Number(p.input_cost_per_1k).toFixed(6)}</td>

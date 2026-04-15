@@ -3,6 +3,7 @@
  * Generic list/delete with hardcoded table whitelist for security.
  */
 import { logger } from '@/lib/logger';
+import { supabaseExternal } from '@/integrations/supabase/externalClient';
 
 export const ALLOWED_ADMIN_TABLES = [
   'agents',
@@ -25,7 +26,7 @@ function assertAllowed(table: string): asserts table is AdminTable {
 
 export async function listAdminRows(table: string, limit = 200): Promise<Record<string, unknown>[]> {
   assertAllowed(table);
-  const { data, error } = await supabase
+  const { data, error } = await supabaseExternal
     .from(table)
     .select('*')
     .order('created_at', { ascending: false })
@@ -39,7 +40,7 @@ export async function listAdminRows(table: string, limit = 200): Promise<Record<
 
 export async function deleteAdminRow(table: string, id: string): Promise<void> {
   assertAllowed(table);
-  const { error } = await supabase
+  const { error } = await supabaseExternal
     .from(table)
     .delete()
     .eq('id', id);

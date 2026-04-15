@@ -3,6 +3,7 @@
  * Collections, documents, chunks management for Super Cérebro.
  */
 import { supabaseExternal } from '@/integrations/supabase/externalClient';
+import { supabase } from '@/integrations/supabase/client';
 import { invokeTracedFunction } from '@/services/llmGatewayService';
 
 export async function listCollections() {

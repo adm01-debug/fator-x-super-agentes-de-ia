@@ -12,6 +12,7 @@
  */
 
 import { useState, useEffect, useCallback, useMemo } from 'react';
+import { supabaseExternal } from '@/integrations/supabase/externalClient';
 import { useAuth } from '@/contexts/AuthContext';
 import {
   getUserRole,
@@ -48,7 +49,7 @@ export function useRBAC() {
     async function loadPermissions() {
       try {
         // Get workspace ID
-        const { data: membership } = await supabase
+        const { data: membership } = await supabaseExternal
           .from('workspace_members')
           .select('workspace_id')
           .eq('user_id', user!.id)

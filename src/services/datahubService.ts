@@ -3,6 +3,7 @@
  * Cross-database queries, entity browser, MCP exposure.
  */
 import { supabaseExternal } from '@/integrations/supabase/externalClient';
+import { supabase } from '@/integrations/supabase/client';
 import { logger } from '@/lib/logger';
 
 export async function queryEntity(

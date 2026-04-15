@@ -29,7 +29,7 @@ export function DashboardAlerts() {
         <button onClick={() => navigate('/monitoring')} className="text-[11px] text-primary hover:underline">Ver todos</button>
       </div>
       <div className="space-y-2">
-        {alerts.map(a => (
+        {alerts.map((a: any) => (
           <div key={a.id} className="flex items-center gap-2 text-xs py-1">
             <span className={`w-2 h-2 rounded-full shrink-0 ${a.severity === 'critical' ? 'bg-destructive' : 'bg-nexus-amber'}`} />
             <span className="text-foreground truncate">{a.title}</span>

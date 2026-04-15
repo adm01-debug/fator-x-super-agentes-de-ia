@@ -183,7 +183,7 @@ export function TemporalGraphTab() {
           </p>
         ) : (
           <div className="space-y-1.5 max-h-[400px] overflow-y-auto">
-            {timeline.map((m) => {
+            {timeline.map((m: any) => {
               const memory = m as Record<string, unknown>;
               const content = String(memory.content ?? '');
               const memType = String(memory.memory_type ?? 'semantic');
