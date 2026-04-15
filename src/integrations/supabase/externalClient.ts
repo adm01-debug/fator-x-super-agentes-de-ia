@@ -13,25 +13,29 @@ import type { Database } from './types';
 const EXTERNAL_SUPABASE_URL = import.meta.env.VITE_EXTERNAL_SUPABASE_URL;
 const EXTERNAL_SUPABASE_ANON_KEY = import.meta.env.VITE_EXTERNAL_SUPABASE_ANON_KEY;
 
+// Fallback: if external vars are missing, use the local Lovable Cloud DB
+const FALLBACK_URL = import.meta.env.VITE_SUPABASE_URL;
+const FALLBACK_KEY = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY;
+
+const resolvedUrl = EXTERNAL_SUPABASE_URL || FALLBACK_URL;
+const resolvedKey = EXTERNAL_SUPABASE_ANON_KEY || FALLBACK_KEY;
+
 if (!EXTERNAL_SUPABASE_URL || !EXTERNAL_SUPABASE_ANON_KEY) {
-  console.error(
-    '🔴 Missing VITE_EXTERNAL_SUPABASE_URL or VITE_EXTERNAL_SUPABASE_ANON_KEY.',
-    'Set them in your .env or Lovable environment settings.'
+  console.warn(
+    '⚠️ VITE_EXTERNAL_SUPABASE_URL or VITE_EXTERNAL_SUPABASE_ANON_KEY not set.',
+    'Falling back to Lovable Cloud DB. Set them in Lovable environment settings to use the external DB.'
   );
 }
 
 /**
  * External Supabase client for ALL data operations.
- * Auth tokens from the local Lovable Cloud client are forwarded
- * so RLS policies on the external DB can validate the user.
+ * Falls back to Lovable Cloud DB when external vars are not configured.
  */
 export const supabaseExternal = createClient<Database>(
-  EXTERNAL_SUPABASE_URL || '',
-  EXTERNAL_SUPABASE_ANON_KEY || '',
+  resolvedUrl,
+  resolvedKey,
   {
     auth: {
-      // We do NOT persist auth here — auth is handled by the local client.
-      // This client inherits the session from the local client via accessToken.
       persistSession: false,
       autoRefreshToken: false,
     },
