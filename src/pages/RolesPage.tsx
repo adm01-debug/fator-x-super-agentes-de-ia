@@ -9,7 +9,7 @@ import { InfoHint } from "@/components/shared/InfoHint";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
-import { listRoles, listPermissions, type Role, type Permission } from "@/services/rbacService";
+import { listRoles, listPermissions, type Role } from "@/services/rbacService";
 import { fromTable } from "@/lib/supabaseExtended";
 import { Crown, Edit, PlayCircle, FileSearch, Eye, Shield, ArrowRight, Loader2 } from "lucide-react";
 import { toast } from "sonner";
