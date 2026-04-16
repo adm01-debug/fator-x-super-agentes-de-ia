@@ -10,6 +10,7 @@ import {
   Mic, GitBranch as GitBranchIcon, KeyRound, Globe2, Monitor, Eye, Smartphone, TestTube2,
   Store, Cpu, Wand2, GitMerge, Terminal, Mail, Bug, FileCheck2,
   PhoneCall, Network, FlaskRound, TrendingDown,
+  Share2, Building2, Radar, ShieldAlert,
 } from "lucide-react";
 import {
   Sidebar, SidebarContent, SidebarGroup, SidebarGroupContent, SidebarGroupLabel,
@@ -66,6 +67,10 @@ const navSections = [
       { title: "Knowledge Graph", url: "/knowledge-graph", icon: Network },
       { title: "Simulation Lab", url: "/simulation", icon: FlaskRound },
       { title: "Cost Optimizer", url: "/cost-optimizer", icon: TrendingDown },
+      { title: "Federated Learning", url: "/federated-learning", icon: Share2 },
+      { title: "Multi-Tenancy", url: "/multi-tenancy", icon: Building2 },
+      { title: "Observability", url: "/observability", icon: Radar },
+      { title: "Disaster Recovery", url: "/disaster-recovery", icon: ShieldAlert },
     ],
   },
   {

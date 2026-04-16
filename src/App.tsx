@@ -191,6 +191,10 @@ const App = () => (
                       <Route path="/knowledge-graph" element={<SafePage><KnowledgeGraphPage /></SafePage>} />
                       <Route path="/simulation" element={<SafePage><AgentSimulationPage /></SafePage>} />
                       <Route path="/cost-optimizer" element={<SafePage><CostOptimizerPage /></SafePage>} />
+                      <Route path="/federated-learning" element={<SafePage><ProtectedRoute permission="settings.api_keys"><FederatedLearningPage /></ProtectedRoute></SafePage>} />
+                      <Route path="/multi-tenancy" element={<SafePage><ProtectedRoute permission="team.roles"><MultiTenancyPage /></ProtectedRoute></SafePage>} />
+                      <Route path="/observability" element={<SafePage><ObservabilityOTelPage /></SafePage>} />
+                      <Route path="/disaster-recovery" element={<SafePage><ProtectedRoute permission="settings.api_keys"><DisasterRecoveryPage /></ProtectedRoute></SafePage>} />
                       <Route path="*" element={<SafePage><NotFound /></SafePage>} />
                     </Routes>
                   </AppLayout>
