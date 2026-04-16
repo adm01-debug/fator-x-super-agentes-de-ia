@@ -65,6 +65,9 @@ const ComputerUsePage = lazy(() => import("./pages/ComputerUsePage"));
 const VisionAgentsPage = lazy(() => import("./pages/VisionAgentsPage"));
 const MobileSDKPage = lazy(() => import("./pages/MobileSDKPage"));
 const PromptABTestPage = lazy(() => import("./pages/PromptABTestPage"));
+const MarketplaceMonetizedPage = lazy(() => import("./pages/MarketplaceMonetizedPage"));
+const SyntheticDataPage = lazy(() => import("./pages/SyntheticDataPage"));
+const CanaryDeploymentsPage = lazy(() => import("./pages/CanaryDeploymentsPage"));
 const NotFound = lazy(() => import("./pages/NotFound"));
 
 const queryClient = new QueryClient({
@@ -165,6 +168,9 @@ const App = () => (
                       <Route path="/vision" element={<SafePage><VisionAgentsPage /></SafePage>} />
                       <Route path="/mobile-sdk" element={<SafePage><MobileSDKPage /></SafePage>} />
                       <Route path="/ab-test" element={<SafePage><PromptABTestPage /></SafePage>} />
+                      <Route path="/marketplace-pro" element={<SafePage><MarketplaceMonetizedPage /></SafePage>} />
+                      <Route path="/synthetic-data" element={<SafePage><SyntheticDataPage /></SafePage>} />
+                      <Route path="/canary" element={<SafePage><CanaryDeploymentsPage /></SafePage>} />
                       <Route path="*" element={<SafePage><NotFound /></SafePage>} />
                     </Routes>
                   </AppLayout>

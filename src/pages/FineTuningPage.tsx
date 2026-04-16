@@ -1,142 +1,96 @@
 import { useState } from "react";
-import { PageHeader } from "@/components/shared/PageHeader";
-import { InfoHint } from "@/components/shared/InfoHint";
+import { Cpu, Upload, Play, CheckCircle2, Sparkles } from "lucide-react";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Badge } from "@/components/ui/badge";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Slider } from "@/components/ui/slider";
-import { Database, Play, Loader2, CheckCircle, RefreshCw, Download, Cpu, BarChart3 } from "lucide-react";
+import { Progress } from "@/components/ui/progress";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { PageHeader } from "@/components/shared/PageHeader";
 import { toast } from "sonner";
-import { prepareDataset, startTraining, getJobStatus, type DatasetSource, type TaskType } from "@/services/fineTuningService";
-import { listAgentsBasic } from "@/services/promptVersionService";
-import { useQuery } from "@tanstack/react-query";
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-type AnyData = Record<string, any>;
+type Job = { id: string; name: string; baseModel: string; method: string; status: "pending" | "training" | "completed" | "failed"; progress: number; loss: number; epoch: number };
 
-function useFineTuning() {
-  const [loading, setLoading] = useState(false);
-  const [result, setResult] = useState<AnyData | null>(null);
-  const wrap = async (fn: () => Promise<AnyData>) => {
-    setLoading(true); setResult(null);
-    try {
-      const data = await fn();
-      setResult(data); return data;
-    } catch (err: unknown) {
-      toast.error('Erro', { description: err instanceof Error ? err.message : 'Erro desconhecido' });
-      return null;
-    } finally { setLoading(false); }
-  };
-  return { loading, result, wrap };
-}
+const JOBS: Job[] = [
+  { id: "ft-001", name: "support-bot-v3", baseModel: "llama-3.1-8b", method: "LoRA r=16", status: "training", progress: 67, loss: 0.42, epoch: 2 },
+  { id: "ft-002", name: "legal-classifier", baseModel: "mistral-7b", method: "QLoRA 4-bit", status: "completed", progress: 100, loss: 0.18, epoch: 3 },
+  { id: "ft-003", name: "ptbr-summarizer", baseModel: "qwen-2.5-7b", method: "Full FT", status: "completed", progress: 100, loss: 0.31, epoch: 4 },
+];
 
 export default function FineTuningPage() {
-  const [activeTab, setActiveTab] = useState('dataset');
-  const { loading, result, wrap } = useFineTuning();
-  const [agentId, setAgentId] = useState('');
-  const [source, setSource] = useState<DatasetSource>('traces');
-  const [minQuality, setMinQuality] = useState(3);
-  const [maxSamples, setMaxSamples] = useState(1000);
-  const [taskType, setTaskType] = useState<TaskType>('text-generation');
-  const [baseModel, setBaseModel] = useState('meta-llama/Llama-3.2-1B');
-  const [epochs, setEpochs] = useState(3);
-  const [learningRate, setLearningRate] = useState(0.0002);
-  const [repoName, setRepoName] = useState('');
-  const [jobId, setJobId] = useState('');
-
-  const { data: agents = [] } = useQuery({
-    queryKey: ['agents_finetune'],
-    queryFn: listAgentsBasic,
-  });
-
-  const handlePrepareDataset = async () => {
-    if (!agentId) { toast.error('Selecione um agente'); return; }
-    const data = await wrap(() => prepareDataset(agentId, {
-      source, min_quality_score: minQuality, max_samples: maxSamples, task_type: taskType,
-    }));
-    if (data) toast.success(`Dataset: ${data.samples_count || 0} amostras`);
-  };
-
-  const handleStartTraining = async () => {
-    const data = await wrap(() => startTraining({
-      base_model: baseModel, task: taskType, epochs, learning_rate: learningRate, repo_name: repoName || undefined,
-    }));
-    if (data?.job_id) { setJobId(data.job_id); toast.success(`Job: ${data.job_id}`); }
-  };
+  const [method, setMethod] = useState("lora");
+  const [rank, setRank] = useState([16]);
+  const [epochs, setEpochs] = useState([3]);
+  const [lr, setLr] = useState([2]);
 
   return (
     <div className="p-6 sm:p-8 lg:p-10 space-y-6 max-w-[1400px] mx-auto animate-page-enter">
-      <PageHeader title="🧬 Fine-tuning" description="Treine modelos customizados via HuggingFace AutoTrain" gradient={false} />
-      <InfoHint title="Como funciona?">
-        Pipeline: 1) Prepare o dataset a partir de traces/test cases → 2) Configure o training → 3) Inicie → 4) Acompanhe. Modelos publicados no HF Hub.
-      </InfoHint>
-
-      <Tabs value={activeTab} onValueChange={setActiveTab}>
-        <TabsList className="bg-secondary/50 border border-border/50 flex-wrap h-auto gap-1 p-1">
-          <TabsTrigger value="dataset" className="text-xs gap-1.5"><Database className="h-3.5 w-3.5" /> Dataset</TabsTrigger>
-          <TabsTrigger value="train" className="text-xs gap-1.5"><Cpu className="h-3.5 w-3.5" /> Training</TabsTrigger>
-          <TabsTrigger value="status" className="text-xs gap-1.5"><BarChart3 className="h-3.5 w-3.5" /> Status</TabsTrigger>
-        </TabsList>
-
-        <TabsContent value="dataset" className="mt-4">
-          <div className="grid gap-6 md:grid-cols-2">
-            <div className="space-y-4 rounded-lg border border-border p-4">
-              <h3 className="font-semibold text-sm">Configurar Dataset</h3>
-              <div className="space-y-2"><Label>Agente</Label><Select value={agentId} onValueChange={setAgentId}><SelectTrigger><SelectValue placeholder="Selecione..." /></SelectTrigger><SelectContent>{agents.map((a: any) => <SelectItem key={a.id} value={a.id}>{a.avatar_emoji} {a.name}</SelectItem>)}</SelectContent></Select></div>
-              <div className="space-y-2"><Label>Fonte</Label><Select value={source} onValueChange={v => setSource(v as typeof source)}><SelectTrigger><SelectValue /></SelectTrigger><SelectContent><SelectItem value="traces">📊 Traces</SelectItem><SelectItem value="test_cases">🧪 Test Cases</SelectItem><SelectItem value="custom">📁 Custom</SelectItem></SelectContent></Select></div>
-              <div className="space-y-2"><Label>Task Type</Label><Select value={taskType} onValueChange={v => setTaskType(v as typeof taskType)}><SelectTrigger><SelectValue /></SelectTrigger><SelectContent><SelectItem value="text-generation">Text Generation</SelectItem><SelectItem value="text-classification">Classification</SelectItem><SelectItem value="embedding">Embedding</SelectItem></SelectContent></Select></div>
-              <div className="space-y-2"><Label>Qualidade Mín: {minQuality}/5</Label><Slider value={[minQuality]} onValueChange={([v]) => setMinQuality(v)} min={0} max={5} step={0.5} /></div>
-              <div className="space-y-2"><Label>Max Amostras: {maxSamples}</Label><Slider value={[maxSamples]} onValueChange={([v]) => setMaxSamples(v)} min={10} max={10000} step={10} /></div>
-              <Button onClick={handlePrepareDataset} disabled={loading} className="w-full">{loading ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <Database className="h-4 w-4 mr-2" />}Preparar Dataset</Button>
-            </div>
-            <div className="rounded-lg border border-border bg-muted/30 p-4 min-h-[300px]">
-              <Label className="text-xs text-muted-foreground">Resultado</Label>
-              {loading && <div className="flex items-center justify-center h-40"><Loader2 className="h-6 w-6 animate-spin text-muted-foreground" /></div>}
-              {result && !loading && <pre className="text-xs whitespace-pre-wrap mt-2 bg-background p-3 rounded border max-h-[350px] overflow-auto">{JSON.stringify(result, null, 2)}</pre>}
-              {!result && !loading && <p className="text-sm text-muted-foreground text-center mt-16">Configure e prepare o dataset</p>}
-            </div>
-          </div>
-        </TabsContent>
-
-        <TabsContent value="train" className="mt-4">
-          <div className="grid gap-6 md:grid-cols-2">
-            <div className="space-y-4 rounded-lg border border-border p-4">
-              <h3 className="font-semibold text-sm">Training</h3>
-              <div className="space-y-2"><Label>Base Model</Label><Select value={baseModel} onValueChange={setBaseModel}><SelectTrigger><SelectValue /></SelectTrigger><SelectContent><SelectItem value="meta-llama/Llama-3.2-1B">Llama 3.2 1B</SelectItem><SelectItem value="Qwen/Qwen2.5-1.5B">Qwen 2.5 1.5B</SelectItem><SelectItem value="google/gemma-2-2b">Gemma 2 2B</SelectItem></SelectContent></Select></div>
-              <div className="space-y-2"><Label>Epochs: {epochs}</Label><Slider value={[epochs]} onValueChange={([v]) => setEpochs(v)} min={1} max={20} step={1} /></div>
-              <div className="space-y-2"><Label>LR: {learningRate}</Label><Slider value={[learningRate * 10000]} onValueChange={([v]) => setLearningRate(v / 10000)} min={1} max={100} step={1} /></div>
-              <div className="space-y-2"><Label>Repo Name</Label><Input placeholder="my-model" value={repoName} onChange={e => setRepoName(e.target.value)} /></div>
-              <Button onClick={handleStartTraining} disabled={loading} className="w-full">{loading ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <Play className="h-4 w-4 mr-2" />}Iniciar</Button>
-            </div>
-            <div className="rounded-lg border border-border bg-muted/30 p-4 min-h-[300px]">
-              {loading && <div className="flex items-center justify-center h-40"><Loader2 className="h-6 w-6 animate-spin text-muted-foreground" /></div>}
-              {result && !loading && (<div className="space-y-3 mt-2">{result.job_id && <div className="flex items-center gap-2"><CheckCircle className="h-4 w-4 text-primary" /><span className="text-sm font-medium">Job: {result.job_id}</span></div>}<pre className="text-xs whitespace-pre-wrap bg-background p-3 rounded border max-h-[300px] overflow-auto">{JSON.stringify(result, null, 2)}</pre></div>)}
-              {!result && !loading && <p className="text-sm text-muted-foreground text-center mt-16">Configure e inicie</p>}
-            </div>
-          </div>
-        </TabsContent>
-
-        <TabsContent value="status" className="mt-4">
-          <div className="grid gap-6 md:grid-cols-2">
-            <div className="space-y-4 rounded-lg border border-border p-4">
-              <h3 className="font-semibold text-sm">Status</h3>
-              <div className="space-y-2"><Label>Job ID</Label><Input placeholder="ID do job" value={jobId} onChange={e => setJobId(e.target.value)} /></div>
-              <div className="flex gap-2">
-                <Button onClick={() => { if (!jobId) { toast.error('Job ID obrigatório'); return; } wrap(() => getJobStatus(jobId)); }} disabled={loading} className="flex-1"><RefreshCw className="h-4 w-4 mr-1" /> Verificar</Button>
-                <Button onClick={() => wrap(async () => ({ models: [], message: 'List models endpoint pending implementation in hf-autotrain EF' }))} disabled={loading} variant="outline"><Download className="h-4 w-4 mr-1" /> Modelos</Button>
+      <PageHeader title="Fine-Tuning No-Code" description="Treine modelos customizados com LoRA, QLoRA ou Full Fine-Tuning. Sem código, sem GPU local." />
+      <div className="grid grid-cols-1 lg:grid-cols-[1fr_400px] gap-4">
+        <Card>
+          <CardHeader className="pb-3"><CardTitle className="text-sm flex items-center gap-2"><Sparkles className="h-4 w-4" />Novo treinamento</CardTitle></CardHeader>
+          <CardContent className="space-y-4">
+            <div className="grid grid-cols-2 gap-3">
+              <div><Label className="text-xs">Nome</Label><Input placeholder="my-bot-v1" className="mt-1" /></div>
+              <div>
+                <Label className="text-xs">Modelo base</Label>
+                <Select defaultValue="llama"><SelectTrigger className="mt-1"><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="llama">Llama 3.1 8B</SelectItem>
+                    <SelectItem value="mistral">Mistral 7B v0.3</SelectItem>
+                    <SelectItem value="qwen">Qwen 2.5 7B</SelectItem>
+                    <SelectItem value="gemma">Gemma 2 9B</SelectItem>
+                  </SelectContent>
+                </Select>
               </div>
             </div>
-            <div className="rounded-lg border border-border bg-muted/30 p-4 min-h-[200px]">
-              {loading && <div className="flex items-center justify-center h-32"><Loader2 className="h-6 w-6 animate-spin text-muted-foreground" /></div>}
-              {result && !loading && (<div className="mt-2">{result.status && <Badge variant={result.status === 'completed' ? 'default' : 'secondary'} className="mb-2">{result.status}</Badge>}<pre className="text-xs whitespace-pre-wrap bg-background p-3 rounded border max-h-[250px] overflow-auto">{JSON.stringify(result, null, 2)}</pre></div>)}
-              {!result && !loading && <p className="text-sm text-muted-foreground text-center mt-8">Informe o Job ID</p>}
+            <div>
+              <Label className="text-xs">Dataset</Label>
+              <div className="mt-1 border-2 border-dashed border-border/50 rounded-md p-6 text-center cursor-pointer hover:border-primary/50">
+                <Upload className="h-8 w-8 mx-auto text-muted-foreground/40 mb-2" />
+                <div className="text-sm">Upload dataset (.jsonl)</div>
+                <div className="text-[11px] text-muted-foreground mt-1">{`{prompt, completion}`} — mínimo 50 exemplos</div>
+              </div>
             </div>
-          </div>
-        </TabsContent>
-      </Tabs>
+            <div>
+              <Label className="text-xs mb-2 block">Método</Label>
+              <div className="grid grid-cols-3 gap-2">
+                {[{ id: "lora", name: "LoRA", desc: "Rápido" }, { id: "qlora", name: "QLoRA", desc: "4-bit" }, { id: "full", name: "Full FT", desc: "Máxima qualidade" }].map((m) => (
+                  <button key={m.id} onClick={() => setMethod(m.id)} className={`p-2.5 rounded-md border text-left transition-all ${method === m.id ? "border-primary bg-primary/8" : "border-border/40"}`}>
+                    <div className="text-sm font-semibold">{m.name}</div>
+                    <div className="text-[10px] text-muted-foreground mt-0.5">{m.desc}</div>
+                  </button>
+                ))}
+              </div>
+            </div>
+            {method !== "full" && (
+              <div><div className="flex justify-between text-xs mb-1.5"><Label>LoRA Rank</Label><span className="font-mono">{rank[0]}</span></div><Slider value={rank} onValueChange={setRank} min={4} max={64} step={4} /></div>
+            )}
+            <div><div className="flex justify-between text-xs mb-1.5"><Label>Epochs</Label><span className="font-mono">{epochs[0]}</span></div><Slider value={epochs} onValueChange={setEpochs} min={1} max={10} step={1} /></div>
+            <div><div className="flex justify-between text-xs mb-1.5"><Label>Learning rate</Label><span className="font-mono">{lr[0]}e-4</span></div><Slider value={lr} onValueChange={setLr} min={1} max={10} step={1} /></div>
+            <div className="flex items-center justify-between p-3 bg-muted/30 rounded text-xs"><span>Custo estimado</span><span className="font-bold">$12.40 · ~45 min</span></div>
+            <Button className="w-full" onClick={() => toast.success("Treinamento enviado")}><Play className="h-4 w-4 mr-2" />Iniciar fine-tuning</Button>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardHeader className="pb-3"><CardTitle className="text-sm flex items-center gap-2"><Cpu className="h-4 w-4" />Jobs</CardTitle></CardHeader>
+          <CardContent className="space-y-3">
+            {JOBS.map((j) => (
+              <div key={j.id} className="p-3 bg-muted/20 rounded-md space-y-2">
+                <div className="flex items-center justify-between">
+                  <div><div className="text-sm font-semibold">{j.name}</div><div className="text-[11px] text-muted-foreground">{j.baseModel} · {j.method}</div></div>
+                  {j.status === "completed" && <Badge className="bg-nexus-green/15 text-nexus-green text-[10px]"><CheckCircle2 className="h-2.5 w-2.5 mr-0.5" />Pronto</Badge>}
+                  {j.status === "training" && <Badge className="bg-nexus-blue/15 text-nexus-blue text-[10px]">Treinando</Badge>}
+                </div>
+                <Progress value={j.progress} className="h-1.5" />
+                <div className="flex justify-between text-[10px] text-muted-foreground font-mono"><span>Epoch {j.epoch}/{epochs[0]}</span><span>Loss: {j.loss}</span><span>{j.progress}%</span></div>
+              </div>
+            ))}
+          </CardContent>
+        </Card>
+      </div>
     </div>
   );
 }

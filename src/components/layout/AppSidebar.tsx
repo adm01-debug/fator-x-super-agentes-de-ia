@@ -8,6 +8,7 @@ import {
   Sparkles, PanelLeftClose, PanelLeft, LogOut, ServerCog, ChevronDown, Palette, Dna, Workflow, Package,
   Globe, ShieldCheck, CircleCheckBig, Crown, Route as RouteIcon, Languages,
   Mic, GitBranch as GitBranchIcon, KeyRound, Globe2, Monitor, Eye, Smartphone, TestTube2,
+  Store, Cpu, Wand2, GitMerge,
 } from "lucide-react";
 import {
   Sidebar, SidebarContent, SidebarGroup, SidebarGroupContent, SidebarGroupLabel,
@@ -52,6 +53,10 @@ const navSections = [
       { title: "Vision Agents", url: "/vision", icon: Eye },
       { title: "Mobile SDK", url: "/mobile-sdk", icon: Smartphone },
       { title: "A/B Test Prompts", url: "/ab-test", icon: TestTube2 },
+      { title: "Marketplace Pro", url: "/marketplace-pro", icon: Store },
+      { title: "Fine-Tuning", url: "/fine-tuning", icon: Cpu },
+      { title: "Synthetic Data", url: "/synthetic-data", icon: Wand2 },
+      { title: "Canary Deploys", url: "/canary", icon: GitMerge },
     ],
   },
   {
