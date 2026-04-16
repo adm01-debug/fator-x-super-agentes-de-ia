@@ -1,33 +1,30 @@
 
-User aprovou execução completa. Vou enfileirar as 7 sugestões restantes do agent module em sequência, executando uma por mensagem com excelência. Validação final via browser ao fim de cada uma.
+Continuando a fila aprovada do agent module. #3 e #4 done. Próxima: **#1 Diff de Versões**.
 
-## Ordem de execução (já recomendada e aprovada)
+Já vi `VersionDiffDialog.tsx` existe e usa `PromptDiff`. Tem seleção A/B + restore. Falta: integração visível no builder (botão no header + tab Settings/Blueprint), badges de delta mais ricas (temperature, tools, guardrails), e diff colorido de JSON config.
 
-1. ✅ **#3 Templates de Agente** — JÁ FEITO
-2. **#4 Score de Prontidão no header** — badge vivo no AgentBuilderLayout
-3. **#1 Diff de Versões** — split-view comparando agent_versions
-4. **#2 Replay de Trace** — botão em Observability que carrega trace no Playground
-5. **#8 Conversational Builder** — chat-to-agent via Lovable AI
-6. **#5 A/B Testing real** — UI de split traffic + métricas
-7. **#6 Cost Predictor** — simulador antes do deploy
-8. **#9 Agent Eval Suite** — CI/CD de prompts com judge LLM
-9. **#10 Visual Orchestrator** — React Flow canvas pra multi-agent
-10. **#7 Guardrails Library** — biblioteca compartilhada
+## #1 Diff de Versões — Escopo
 
-## Próxima mensagem: #4 Score de Prontidão
+**Melhorias no `VersionDiffDialog.tsx`:**
+- Adicionar deltas para: `temperature`, `max_tokens`, tools count, guardrails count, system_prompt length
+- Seção "Resumo de mudanças" no topo (ex: "+2 tools, -1 guardrail, modelo trocado")
+- Auto-selecionar últimas 2 versões ao abrir
+- Botão "Ver versão anterior" rápido (compara current vs previous)
 
-**Escopo:**
-- Helper `computeReadinessScore(agent)` em `src/lib/agentReadiness.ts` — retorna `{score: 0-10, missing: string[], breakdown: {...}}`
-- Critérios: nome, mission, persona, system_prompt, model, ≥1 tool, ≥1 test_case, monitoring KPI, guardrails, deploy_channel
-- Componente `ReadinessBadge` no header do `AgentBuilderLayout` com Popover mostrando checklist
-- Cores: <5 destrutivo, 5-7 amber, 8-10 emerald
-- Ao clicar item faltando → navega pra tab correspondente
-- Atualização reativa via Zustand selector
+**Integração no builder:**
+- Botão `History` no header do `AgentBuilderLayout` → abre dialog
+- Hook `useAgentVersions(agentId)` em `src/hooks/useAgentVersions.ts` (React Query)
+- Na tab `BlueprintModule`, adicionar painel "Histórico de Versões" com timeline + botão comparar
 
-**Validação:** abrir `/agents/new`, verificar badge "0/10", preencher campos, ver score subir em tempo real.
+**Arquivos:**
+- editar `src/components/agents/VersionDiffDialog.tsx` — enriquecer deltas + resumo
+- criar `src/hooks/useAgentVersions.ts` — fetch via supabaseExternal
+- editar `src/components/agent-builder/AgentBuilderLayout.tsx` — botão History no header
+- editar `src/components/agent-builder/modules/BlueprintModule.tsx` — timeline integrada
 
-## Próximas mensagens (uma por sugestão)
+**Validação:** abrir agente existente, clicar History, comparar v1 vs v2, ver deltas + restore funciona.
 
-Cada sugestão receberá: arquivos novos/editados + migrations se necessário + validação no preview. Sigo sem pausar entre elas até #10 estar completa.
+## Próximas (sem pausar entre)
+#2 Replay Trace → #8 Conversational Builder → #5 A/B Testing → #6 Cost Predictor → #9 Eval Suite → #10 Visual Orchestrator → #7 Guardrails Library
 
-Aprove e inicio #4 imediatamente.
+Aprove e sigo direto até #10.
