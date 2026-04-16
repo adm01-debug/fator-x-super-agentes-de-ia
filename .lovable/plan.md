@@ -1,102 +1,65 @@
 
+O usuário quer que eu execute testes abrangentes simulando cenários do dia a dia, focado **exclusivamente** no que acabamos de implementar nas últimas iterações: os specialists templates (Manuseio/Embalagem + 4 de Gravação) e o `CreateAgentWizard` com merge/dedupe + badges "Verificado" + contadores de categoria.
 
-# Plano de Migração: Lovable Cloud → Supabase Externo (tdprnylgyrogbbhgdoik)
+Como estou em modo READ-ONLY (chat-and-plan), não posso executar testes diretamente. Vou apresentar um plano de QA estruturado que executarei em modo default.
 
-## Diagnóstico Atual
+## Escopo dos testes (somente o que foi implementado nas últimas iterações)
 
-**Lovable Cloud (origem):** 42 tabelas, ~232 registros no total
-- Tabelas com dados: `agent_usage` (180), `agent_traces` (10), `agents` (8), `workspace_members` (5), `workspaces` (4), `sessions` (3), `audit_log` (2), `usage_records` (13), `chunks` (10), `documents` (3), `collections` (1), `knowledge_bases` (1)
-- Tabelas vazias: ~30 tabelas (workflows, alerts, budgets, etc.)
-- 8 funções SECURITY DEFINER, ~113 RLS policies, 42 Edge Functions
-- **43 arquivos frontend** fazendo queries diretas via `supabase.from()`
+**Backend / Banco:**
+1. Templates persistidos em `agent_templates` (16 specialists + Manuseio/Embalagem + 4 de Gravação = ~22 ativos PT-BR)
+2. Limpeza dos 8 legados em inglês (não devem retornar)
+3. Índices de performance (`idx_agent_templates_public_category`, `idx_agent_templates_name_lower`, `idx_agent_templates_created_by`)
 
-**Supabase externo destino:** `tdprnylgyrogbbhgdoik` (o "banco de dados externo" deste projeto)
+**Frontend / Wizard:**
+4. Merge dedupe por nome normalizado (sem duplicatas visíveis)
+5. Badge "Verificado" 🛡️ aparece apenas em templates do banco
+6. Contadores de categoria (`Todos (N)`, `Operações (N)`, `Gravação (N)`...)
+7. Parser de tools resiliente (string[] e object[])
+8. Seleção de template → preenche campos do wizard corretamente
+9. Criação de agente a partir de template specialist
 
-**Padrão de referência (outro projeto — pgxfvjmuubtbowutlide):** Usa `CONNECTION_REGISTRY` + `getExternalClient()` nas Edge Functions para conectar a múltiplos bancos externos via service_role_key.
+## Plano de Execução
 
----
+### Fase 1 — Validação de Banco (SQL via supabase--read_query)
+- Query 1: `SELECT COUNT(*), category FROM agent_templates WHERE is_public=true GROUP BY category` — confirmar distribuição
+- Query 2: `SELECT name FROM agent_templates WHERE name ILIKE 'Especialista%' ORDER BY name` — validar lista PT-BR completa dos 16 + Manuseio + 4 Gravação
+- Query 3: `SELECT name, category FROM agent_templates WHERE category IN ('creative','analysis','data','automation')` — deve retornar 0 (legados removidos)
+- Query 4: `SELECT indexname FROM pg_indexes WHERE tablename='agent_templates'` — confirmar 3 índices criados
+- Query 5: `EXPLAIN ANALYZE SELECT * FROM agent_templates WHERE is_public=true AND category='Gravação'` — confirmar uso do índice
+- Query 6: Verificar config JSON dos 5 últimos templates (model, tools, system_prompt, guardrails)
 
-## Arquitetura Proposta
+### Fase 2 — Testes Unitários Vitest
+Criar `src/test/agent-templates-merge.test.ts`:
+- Dedupe por nome normalizado (case + espaços)
+- Priorização DB > static
+- Parser de tools: string[] vs object[] vs null
+- categoryCount: contagem correta com filtro 'all'
+- dbTemplateIds: marca apenas IDs vindos do DB
 
-```text
-┌─────────────────────┐     ┌──────────────────────────────┐
-│   Frontend (React)  │     │  Lovable Cloud (tifbqkyum..)│
-│                     │     │  ┌─────────────────────────┐ │
-│  supabase (local)   │─────│  │ auth.users (permanece)  │ │
-│  → APENAS auth      │     │  │ auth.sessions           │ │
-│                     │     │  └─────────────────────────┘ │
-│  supabaseExternal   │──┐  └──────────────────────────────┘
-│  → TODOS os dados   │  │
-└─────────────────────┘  │  ┌──────────────────────────────┐
-                         └──│  Supabase Externo             │
-                            │  (tdprnylgyrogbbhgdoik)       │
-  ┌──────────────────┐      │  ┌─────────────────────────┐ │
-  │  Edge Functions  │──────│  │ 42 tabelas migradas     │ │
-  │  (42 funções)    │      │  │ RLS + funções + triggers│ │
-  └──────────────────┘      │  │ profiles (mapa auth)    │ │
-                            │  └─────────────────────────┘ │
-                            └──────────────────────────────┘
-```
+Rodar suite com `npm test -- agent-templates-merge`.
 
----
+### Fase 3 — Type-check & Build
+- `npx tsc --noEmit` — zero erros
+- `npm run build` — build limpo
 
-## Fases de Implementação
+### Fase 4 — Smoke Test E2E (browser tool)
+Cenário do dia a dia: usuário cria agente a partir de specialist
+1. Navegar `/agents/create` (autenticado)
+2. Filtrar categoria "Gravação" → confirmar contador correto
+3. Selecionar "Especialista - Gravação - Sublimação Canecas" → confirmar badge "Verificado"
+4. Avançar wizard → campos preenchidos (nome, persona, model `gpt-4o`, tools)
+5. Concluir criação → agente aparece em `/agents`
+6. Repetir para "Manuseio e Embalagem de Brindes"
 
-### FASE 1 — Schema DDL no Supabase Externo
-- Gerar SQL completo com todas 42 tabelas, enums (`agent_status`, `trace_level`), índices e constraints
-- Criar tabela `profiles` mapeando `auth.uid()` do Lovable Cloud
-- Adaptar 8 funções SECURITY DEFINER para o contexto externo
-- Adaptar ~113 RLS policies (usar `service_role_key` nas Edge Functions; no frontend, auth via JWT custom ou passthrough)
-- **Entregável**: Script SQL pronto para execução
+### Fase 5 — Relatório Final
+Tabela com: módulo testado / cenário / resultado (PASS/FAIL) / evidência (query result, screenshot, log). Score 10/10 só se 100% PASS.
 
-### FASE 2 — Migrar Dados (~232 registros)
-- Exportar via `supabase--read_query` as tabelas com dados
-- Gerar INSERT statements preservando UUIDs e timestamps
-- Importar no externo
-- Validar contagem e integridade
-- **Entregável**: Script de dados + relatório
+## Entregáveis
+- 1 arquivo de teste novo: `src/test/agent-templates-merge.test.ts`
+- Relatório QA inline na resposta (não cria .md, mantém repo limpo)
+- Correções imediatas se algum FAIL aparecer
 
-### FASE 3 — Criar Cliente Externo no Frontend
-- Criar `src/integrations/supabase/externalClient.ts` com URL e anon_key do `tdprnylgyrogbbhgdoik`
-- Manter `client.ts` original intacto (apenas auth)
-- **Entregável**: Novo client configurado
-
-### FASE 4 — Migrar 43 Arquivos Frontend
-- Substituir `supabase.from('tabela')` → `supabaseExternal.from('tabela')` em todos os 43 arquivos de serviço/hooks
-- Manter `supabase.auth.*` inalterado
-- Arquivos afetados: `agentsService.ts`, `dashboardService.ts`, `oracleService.ts`, `knowledgeService.ts`, `memoryService.ts`, `adminCrudService.ts`, `use-data.ts`, e mais ~36 arquivos
-- **Entregável**: Frontend migrado
-
-### FASE 5 — Adaptar Edge Functions
-- Adicionar secrets `EXTERNAL_DB_URL` e `EXTERNAL_DB_SERVICE_ROLE_KEY` para `tdprnylgyrogbbhgdoik`
-- Atualizar as 42 Edge Functions que fazem queries diretas para usar o client externo
-- Manter auth validation via Lovable Cloud JWT
-- **Entregável**: Edge Functions atualizadas
-
-### FASE 6 — Testes e Validação
-- CRUD em todas as entidades via frontend
-- Validar auth flow: login Lovable Cloud → dados no externo
-- Testar Edge Functions com `curl_edge_functions`
-- Benchmark de latência
-- **Entregável**: Relatório de testes
-
----
-
-## Riscos e Mitigações
-
-| Risco | Mitigação |
-|-------|-----------|
-| JWT do Lovable Cloud não válido no externo | RLS no externo usa `service_role_key` via Edge Functions; frontend usa anon_key com RLS customizado |
-| Realtime quebra | Configurar Realtime no projeto externo |
-| Latência adicional | Queries diretas via `supabaseExternal` client, sem proxy |
-| `client.ts` auto-gerado | Nunca tocamos nele — novo arquivo separado |
-
-## Secrets Necessários
-- `EXTERNAL_DB_URL` → URL do `tdprnylgyrogbbhgdoik`
-- `EXTERNAL_DB_ANON_KEY` → anon key do externo (para frontend)
-- `EXTERNAL_DB_SERVICE_ROLE_KEY` → service role key (para Edge Functions)
-
-## Estimativa: ~5 sessões sequenciais
-
-Aprove o plano para iniciar pela **Fase 1** (geração do DDL completo).
-
+## Restrições
+- Não toco em código fora do escopo das últimas iterações
+- Não crio novos templates (somente valido os existentes)
+- Browser usado apenas se Fases 1–3 passarem (economizar quota)
