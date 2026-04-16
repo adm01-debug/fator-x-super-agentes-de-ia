@@ -2,6 +2,7 @@ import { useAgentBuilderStore } from '@/stores/agentBuilderStore';
 import { TABS } from '@/data/agentBuilderData';
 import { AgentPlayground } from './AgentPlayground';
 import { TabNavigation } from './TabNavigation';
+import { ReadinessBadge } from './ReadinessBadge';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { ChevronLeft, ChevronRight, Save, Plus, Loader2, Check } from 'lucide-react';
@@ -64,6 +65,8 @@ export function AgentBuilderLayout({ children }: AgentBuilderLayoutProps) {
           <Badge variant={statusInfo.variant} className="text-[11px]">
             {statusInfo.label}
           </Badge>
+
+          <ReadinessBadge />
 
           {/* Save indicator */}
           <div className="flex items-center gap-1.5 text-[11px] text-muted-foreground min-w-[80px] justify-end">
