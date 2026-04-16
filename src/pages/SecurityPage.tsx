@@ -17,6 +17,7 @@ import { AccessControl, DangerousActionDialog } from '@/components/rbac';
 import { toast } from 'sonner';
 import { RedTeamingPanel } from '@/components/security/RedTeamingPanel';
 import { PIIScannerPanel } from '@/components/security/PIIScannerPanel';
+import { TwoFactorSetup } from '@/components/security/TwoFactorSetup';
 
 interface ApiKey {
   id: string;
@@ -150,6 +151,7 @@ export default function SecurityPage() {
       </InfoHint>
 
       <SecurityPosture />
+      <TwoFactorSetup />
       <ApiKeysPanel />
       <GuardrailsConfig />
       <ComplianceFrameworks />

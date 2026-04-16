@@ -8,6 +8,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { Bot, Lock, ArrowRight, Eye, EyeOff, Check, X, ShieldCheck } from "lucide-react";
 import { useMemo } from "react";
+import { usePasswordBreachCheck } from "@/hooks/usePasswordBreachCheck";
 
 function PasswordStrength({ password }: { password: string }) {
   const checks = useMemo(() => [
@@ -50,6 +51,7 @@ export default function ResetPasswordPage() {
   const [success, setSuccess] = useState(false);
   const [errors, setErrors] = useState<{ password?: string; confirm?: string }>({});
   const { updatePassword } = useAuth();
+  const { check: checkBreach } = usePasswordBreachCheck();
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -83,6 +85,16 @@ export default function ResetPasswordPage() {
     e.preventDefault();
     if (!validate()) return;
     setLoading(true);
+
+    // Check HIBP before updating
+    const { breached, count } = await checkBreach(password);
+    if (breached) {
+      toast.error("Senha comprometida", {
+        description: `Esta senha apareceu em ${count.toLocaleString('pt-BR')} vazamentos. Escolha outra mais segura.`,
+      });
+      setLoading(false);
+      return;
+    }
 
     const { error } = await updatePassword(password);
     if (error) {
