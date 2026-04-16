@@ -58,6 +58,166 @@ export type Database = {
           },
         ]
       }
+      agent_eval_datasets: {
+        Row: {
+          agent_id: string | null
+          created_at: string
+          created_by: string
+          description: string | null
+          id: string
+          items: Json
+          name: string
+          updated_at: string
+          workspace_id: string
+        }
+        Insert: {
+          agent_id?: string | null
+          created_at?: string
+          created_by: string
+          description?: string | null
+          id?: string
+          items?: Json
+          name: string
+          updated_at?: string
+          workspace_id: string
+        }
+        Update: {
+          agent_id?: string | null
+          created_at?: string
+          created_by?: string
+          description?: string | null
+          id?: string
+          items?: Json
+          name?: string
+          updated_at?: string
+          workspace_id?: string
+        }
+        Relationships: []
+      }
+      agent_eval_results: {
+        Row: {
+          actual: string | null
+          cost_usd: number | null
+          created_at: string
+          error: string | null
+          expected: string | null
+          id: string
+          input: string
+          item_index: number
+          judge_reasoning: string | null
+          latency_ms: number | null
+          passed: boolean
+          run_id: string
+          score: number
+        }
+        Insert: {
+          actual?: string | null
+          cost_usd?: number | null
+          created_at?: string
+          error?: string | null
+          expected?: string | null
+          id?: string
+          input: string
+          item_index: number
+          judge_reasoning?: string | null
+          latency_ms?: number | null
+          passed?: boolean
+          run_id: string
+          score?: number
+        }
+        Update: {
+          actual?: string | null
+          cost_usd?: number | null
+          created_at?: string
+          error?: string | null
+          expected?: string | null
+          id?: string
+          input?: string
+          item_index?: number
+          judge_reasoning?: string | null
+          latency_ms?: number | null
+          passed?: boolean
+          run_id?: string
+          score?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "agent_eval_results_run_id_fkey"
+            columns: ["run_id"]
+            isOneToOne: false
+            referencedRelation: "agent_eval_runs"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      agent_eval_runs: {
+        Row: {
+          agent_id: string
+          avg_latency_ms: number | null
+          avg_score: number | null
+          completed_at: string | null
+          created_at: string
+          created_by: string
+          dataset_id: string
+          error_message: string | null
+          failed: number
+          id: string
+          model: string | null
+          passed: number
+          started_at: string | null
+          status: string
+          total_cost_usd: number | null
+          total_items: number
+          workspace_id: string
+        }
+        Insert: {
+          agent_id: string
+          avg_latency_ms?: number | null
+          avg_score?: number | null
+          completed_at?: string | null
+          created_at?: string
+          created_by: string
+          dataset_id: string
+          error_message?: string | null
+          failed?: number
+          id?: string
+          model?: string | null
+          passed?: number
+          started_at?: string | null
+          status?: string
+          total_cost_usd?: number | null
+          total_items?: number
+          workspace_id: string
+        }
+        Update: {
+          agent_id?: string
+          avg_latency_ms?: number | null
+          avg_score?: number | null
+          completed_at?: string | null
+          created_at?: string
+          created_by?: string
+          dataset_id?: string
+          error_message?: string | null
+          failed?: number
+          id?: string
+          model?: string | null
+          passed?: number
+          started_at?: string | null
+          status?: string
+          total_cost_usd?: number | null
+          total_items?: number
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "agent_eval_runs_dataset_id_fkey"
+            columns: ["dataset_id"]
+            isOneToOne: false
+            referencedRelation: "agent_eval_datasets"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       agent_experiment_runs: {
         Row: {
           cost_usd: number | null
