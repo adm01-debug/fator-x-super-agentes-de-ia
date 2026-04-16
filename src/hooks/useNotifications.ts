@@ -5,9 +5,24 @@
  * Does NOT depend on a database 'notifications' table — uses in-memory store only.
  */
 
-import { useState, useEffect, useCallback } from 'react';
-import { useNotificationStore, type Notification } from '@/stores/notificationStore';
+import { useCallback } from 'react';
+import { useNotificationStore } from '@/stores/notificationStore';
 import { useAuth } from '@/contexts/AuthContext';
+
+export interface NotificationItem {
+  id: string;
+  title: string;
+  body: string;
+  subject: string;
+  message: string;
+  channel: 'in_app';
+  priority: string;
+  status: 'read' | 'sent';
+  recipient_id: string;
+  created_at: string;
+  read_at?: string;
+  type: string;
+}
 
 export function useNotifications(_pollIntervalMs: number = 30000) {
   const storeNotifs = useNotificationStore((s) => s.notifications);
@@ -15,7 +30,6 @@ export function useNotifications(_pollIntervalMs: number = 30000) {
   const storeMarkRead = useNotificationStore((s) => s.markRead);
   const storeMarkAllRead = useNotificationStore((s) => s.markAllRead);
   const { user } = useAuth();
-  const [loading] = useState(false);
 
   const refresh = useCallback(async () => {
     // No-op: notifications come from the zustand store reactively
@@ -29,25 +43,25 @@ export function useNotifications(_pollIntervalMs: number = 30000) {
     storeMarkAllRead();
   }, [storeMarkAllRead]);
 
-  // Map store Notification type to the shape expected by consumers
-  const notifications = storeNotifs.map((n) => ({
+  const notifications: NotificationItem[] = storeNotifs.map((n) => ({
     id: n.id,
     title: n.title,
     body: n.message,
+    subject: n.title,
     message: n.message,
     channel: 'in_app' as const,
-    priority: (n.type === 'error' ? 'critical' : 'normal') as 'critical' | 'normal',
+    priority: n.priority,
     status: (n.read ? 'read' : 'sent') as 'read' | 'sent',
     recipient_id: user?.id ?? '',
-    created_at: n.timestamp,
-    read_at: n.read ? n.timestamp : undefined,
+    created_at: n.createdAt,
+    read_at: n.read ? n.createdAt : undefined,
     type: n.type,
   }));
 
   return {
     notifications,
     unreadCount: storeUnread,
-    loading,
+    loading: false,
     refresh,
     markOneRead,
     markAllAsRead,
