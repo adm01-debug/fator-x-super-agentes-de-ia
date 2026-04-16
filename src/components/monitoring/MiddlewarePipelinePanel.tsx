@@ -5,7 +5,7 @@
 import { useState } from 'react';
 import { Badge } from '@/components/ui/badge';
 import { Switch } from '@/components/ui/switch';
-import { Layers, Shield, Clock, DollarSign, Eye, RefreshCcw, Zap } from 'lucide-react';
+import { Layers, Shield, DollarSign, Eye, RefreshCcw, Zap } from 'lucide-react';
 
 const AVAILABLE_MIDDLEWARES = [
   { id: 'logging', name: 'Logging & Tracing', icon: Eye, description: 'Registra todas as requisições e respostas', priority: 1 },
