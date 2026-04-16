@@ -6,7 +6,7 @@ import {
   LayoutDashboard, Bot, BookOpen, Brain, Puzzle, FileText, GitBranch, Zap,
   FlaskConical, Rocket, Activity, Database, Shield, Users, CreditCard, Settings,
   Sparkles, PanelLeftClose, PanelLeft, LogOut, ServerCog, ChevronDown, Palette, Dna, Workflow, Package,
-  Globe, ShieldCheck, CircleCheckBig, Crown, Route as RouteIcon,
+  Globe, ShieldCheck, CircleCheckBig, Crown, Route as RouteIcon, Languages,
 } from "lucide-react";
 import {
   Sidebar, SidebarContent, SidebarGroup, SidebarGroupContent, SidebarGroupLabel,
