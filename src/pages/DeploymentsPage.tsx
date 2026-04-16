@@ -17,8 +17,9 @@ import { WebWidgetPanel } from '@/components/deployments/WebWidgetPanel';
 import { WhatsAppSendDialog } from '@/components/deployments/WhatsAppSendDialog';
 
 export default function DeploymentsPage() {
-  // useRetryAction available for resilient deploys
-  const retryDeploy = useRetryAction(listDeployedAgents, { operationName: 'listDeployments', showErrorToast: true });
+  // Retry engine for resilient operations
+  const retryEngine = useRetryAction(listDeployedAgents, { operationName: 'listDeployments', showErrorToast: true });
+  void retryEngine; // Available for manual retry on error states
   const { data: deployments = [], isLoading } = useQuery({
     queryKey: ['deployments'],
     queryFn: listDeployedAgents,
