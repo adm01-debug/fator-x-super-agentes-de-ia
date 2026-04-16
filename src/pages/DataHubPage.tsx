@@ -1,4 +1,5 @@
 import { useState, useMemo, useEffect, useCallback } from 'react';
+import { useDatahubStore } from '@/stores/datahubStore';
 import { PageHeader } from '@/components/shared/PageHeader';
 import { InfoHint } from '@/components/shared/InfoHint';
 import { Input } from '@/components/ui/input';
@@ -24,6 +25,8 @@ import { testDatahubConnections, listDatahubEntities } from '@/services/datahubS
 import { toast } from 'sonner';
 
 export default function DataHubPage() {
+  const datahubActions = useDatahubStore();
+  const storeSelectEntity = datahubActions.selectEntity;
   const [search, setSearch] = useState('');
   const [selectedEntity, setSelectedEntity] = useState<string | null>(null);
   const [browsingEntity, setBrowsingEntity] = useState<string | null>(null);
@@ -31,6 +34,9 @@ export default function DataHubPage() {
   const [entityCounts, setEntityCounts] = useState<Record<string, number>>({});
   const [testingConnections, setTestingConnections] = useState(false);
   const [loadingCounts, setLoadingCounts] = useState(false);
+
+  // Sync entity selection to store
+  useEffect(() => { storeSelectEntity(selectedEntity); }, [selectedEntity, storeSelectEntity]);
 
   const testConnections = useCallback(async () => {
     setTestingConnections(true);

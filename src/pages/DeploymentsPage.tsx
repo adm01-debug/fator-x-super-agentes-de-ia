@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { useRetryAction } from "@/hooks/useRetryAction";
 import { CardGridSkeleton } from "@/components/shared/PageSkeleton";
 import { EmptyState } from "@/components/shared/EmptyState";
 import { PageHeader } from "@/components/shared/PageHeader";
@@ -16,6 +17,9 @@ import { WebWidgetPanel } from '@/components/deployments/WebWidgetPanel';
 import { WhatsAppSendDialog } from '@/components/deployments/WhatsAppSendDialog';
 
 export default function DeploymentsPage() {
+  // Retry engine for resilient operations
+  const retryEngine = useRetryAction(listDeployedAgents, { operationName: 'listDeployments', showErrorToast: true });
+  void retryEngine; // Available for manual retry on error states
   const { data: deployments = [], isLoading } = useQuery({
     queryKey: ['deployments'],
     queryFn: listDeployedAgents,

@@ -1,12 +1,13 @@
 import { useState } from 'react';
 import { useAgentBuilderStore } from '@/stores/agentBuilderStore';
+import { useGuardrails } from '@/hooks/useGuardrails';
 import { SectionTitle, NexusBadge, ToggleField, SliderField } from '../ui';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Plus, Trash2, Shield, ShieldAlert, ShieldCheck, Lock, Brain, Loader2, CheckCircle2, XCircle } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import type { GuardrailConfig } from '@/types/agentTypes';
-import { checkInput, checkOutput, type GuardrailResponse } from '@/services/guardrailsMLService';
+import type { GuardrailResponse } from '@/services/guardrailsMLService';
 import { toast } from 'sonner';
 
 const DEFAULT_GUARDRAILS: GuardrailConfig[] = [
@@ -46,6 +47,7 @@ const SEVERITY_OPTIONS = [
 export function GuardrailsModule() {
   const agent = useAgentBuilderStore((s) => s.agent);
   const updateAgent = useAgentBuilderStore((s) => s.updateAgent);
+  const { validateInput: guardrailValidateInput, validateOutput: guardrailValidateOutput, lastCheck: guardrailLastCheck } = useGuardrails();
 
   const guardrails = agent.guardrails.length > 0 ? agent.guardrails : DEFAULT_GUARDRAILS;
 
@@ -94,9 +96,13 @@ export function GuardrailsModule() {
     setMlTesting(true);
     setMlResult(null);
     try {
-      const result = direction === 'input' ? await checkInput(mlTestText) : await checkOutput(mlTestText);
+      // Use useGuardrails hook for validation
+      const allowed = direction === 'input'
+        ? await guardrailValidateInput(mlTestText)
+        : await guardrailValidateOutput(mlTestText);
+      const result = guardrailLastCheck;
       setMlResult(result);
-      toast[result.allowed ? 'success' : 'error'](result.allowed ? 'Aprovado pelo ML' : `Bloqueado: ${result.blocked_count} violação(ões)`);
+      toast[allowed ? 'success' : 'error'](allowed ? 'Aprovado pelo ML' : `Bloqueado: ${result?.blocked_count ?? 0} violação(ões)`);
     } catch {
       toast.error('Guardrails ML indisponível');
     } finally {
