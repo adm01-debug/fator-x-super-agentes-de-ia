@@ -1,39 +1,44 @@
 
-Vou executar as 4 frentes em sequência, sem pausas. Cada frente entregue por completo antes de passar pra próxima.
+Plano já aprovado, estou em modo plano de novo. Vou re-confirmar a Frente 1 com escopo executável dentro dos limites do sandbox (timeouts) e seguir.
 
-## Frente 1 — Cobertura de Testes >80%
-- Rodar `vitest --coverage` em chunks (services, lib, hooks separados) pra capturar % real sem timeout.
-- Identificar e corrigir os ~24 testes falhando (mocks legados WhatsApp/Bitrix24 — ajustar `vi.mock` pra refletir contratos atuais).
-- Adicionar testes unitários nos arquivos abaixo de 70%: services órfãos, helpers em `src/lib/`, hooks críticos.
-- Criar testes de integração Deno pra 5 edge functions críticas: `whatsapp-webhook`, `bitrix24-webhook`, `nlp-pipeline`, `guardrails-engine`, `oracle-research`.
-- Atualizar thresholds em `vitest.config.ts` de 70→80.
+## Frente 1 — Cobertura de Testes (execução em chunks)
 
-## Frente 2 — Performance & Otimização
-- Auditoria de bundle: `vite build --mode production` + `rollup-plugin-visualizer` pra mapear chunks pesados.
-- Lazy loading agressivo: converter rotas pesadas (Oracle, DataHub, Workflows, Cerebro) em `React.lazy` + Suspense.
-- React Query tuning: definir `staleTime`/`gcTime` por domínio (listas: 30s, detalhes: 5min, configs: 1h).
-- Índices DB: rodar `EXPLAIN ANALYZE` em queries lentas conhecidas, criar migration com índices faltantes em `agent_traces`, `evaluation_runs`, `oracle_history`.
-- Edge Functions: revisar cold-start removendo imports desnecessários nas 5 mais chamadas.
+**Problema observado nas tentativas anteriores:** rodar `vitest --coverage` na suíte inteira (81 arquivos, ~2400 testes) estoura o timeout de 9min do sandbox antes de gerar `coverage-summary.json`. Solução: rodar em chunks por diretório.
 
-## Frente 3 — Novo Módulo: Vision Agents
-Escolho **Vision Agents** (mais valor imediato pro caso "Fator X"):
-- Tabela `vision_analyses` (workspace_id, agent_id, image_url, analysis_json, model, tokens, created_at) + RLS.
-- Edge function `vision-analyze` usando `google/gemini-2.5-pro` via Lovable AI (multimodal já suportado).
-- Página `/vision-agents` com upload de imagem, seleção de agente, histórico, comparação lado-a-lado.
-- Service `visionAgentsService.ts` + hook `useVisionAnalyses` + testes.
-- Item de menu na sidebar (PT-BR: "Agentes de Visão").
+### Passos
+1. **Mapear falhas** — rodar vitest em 4 chunks paralelos curtos:
+   - `src/test/whatsapp-*` + `src/test/bitrix24-*` (mocks legados suspeitos)
+   - `src/test/*service*.test.ts`
+   - `src/test/*hook*.test.ts` + `src/test/*store*.test.ts`
+   - resto (`src/test/*.test.ts` excluindo os acima)
+   Capturar `--reporter=json` por chunk em `/tmp/chunk-N.json`.
 
-## Frente 4 — Hardening de Produção
-- Sentry: adicionar `@sentry/react` + DSN como secret, integração no `main.tsx`, source maps no build.
-- Rate limiting global: middleware nas edge functions usando `_shared/rate-limiter.ts` (já existe), aplicar em todas as 27 functions.
-- Runbooks: criar `docs/runbooks/` com playbooks pra incidentes comuns (DB down, edge function 500, rate limit hit, OAuth expirado).
-- Backup/restore: documentar processo de export do Supabase + script de restore. Schedule `pg_dump` semanal via GH Action.
-- Disaster recovery: documento `DR-PLAN.md` com RTO/RPO, contatos, rollback steps.
+2. **Corrigir ~24 falhas** — para cada teste falhando:
+   - Ler o service/hook real
+   - Atualizar `vi.mock(...)` no teste pra refletir a assinatura atual (provavelmente novos campos, retornos `{data,error}`, ou métodos renomeados)
+   - Re-rodar só o arquivo corrigido até passar
 
-## Ordem de execução
-1. **Mensagem 1 (próxima)**: Frente 1 completa — coverage report + correção de testes + novos testes + thresholds atualizados.
-2. **Mensagem 2**: Frente 2 completa.
-3. **Mensagem 3**: Frente 3 completa.
-4. **Mensagem 4**: Frente 4 completa + relatório final 10/10.
+3. **Coverage por chunk** — `vitest run --coverage src/services` etc., somar manualmente os `coverage-summary.json` parciais pra obter % global. Identificar arquivos <70%.
 
-Aprove o plano e eu inicio a Frente 1 imediatamente na próxima resposta.
+4. **Novos testes unitários** pra fechar gaps (alvos prováveis baseado no que vi):
+   - `src/lib/agentService.ts`, `src/lib/logger.ts`, `src/lib/externalClient.ts`
+   - Services órfãos sem teste: rodar `ls src/services/*.ts` vs `ls src/test/*service*.test.ts` pra achar diff
+   - Hooks: `useI18n`, `useNotificationStore`, `useUIStore`
+
+5. **Testes de integração Deno** pra 5 edge functions críticas usando `supabase--test_edge_functions`:
+   - `whatsapp-webhook/index.test.ts` — provider detection + HMAC + persistência
+   - `bitrix24-webhook/index.test.ts` — OAuth flow + payload routing
+   - `nlp-pipeline/index.test.ts` — happy path + erro de validação Zod
+   - `guardrails-engine/index.test.ts` — 4 camadas (input/output/PII/policy)
+   - `oracle-research/index.test.ts` — iteração + cap de tokens
+   Cada teste usa `Deno.test` + `dotenv/load.ts` conforme padrão Lovable.
+
+6. **Atualizar `vitest.config.ts`** — thresholds 70→80 (lines/functions/statements), 60→70 (branches).
+
+### Após Frente 1 concluída
+Sigo direto pra Frentes 2 (perf), 3 (Vision Agents), 4 (hardening) em mensagens subsequentes — uma frente completa por mensagem, sem pausas pra perguntas.
+
+### Observação honesta
+A suíte é grande. Se durante a execução algum chunk individual estourar timeout, vou subdividir em chunks menores ainda (por arquivo) — não vou pular nem mockar resultados. Meta real: >80% medido, não estimado.
+
+Aprove e eu inicio a execução do passo 1 imediatamente.
