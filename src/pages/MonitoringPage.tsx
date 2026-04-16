@@ -14,6 +14,7 @@ import { getAgentTraces, getSessions, getSessionTraces, getTraceEvents, getAlert
 import { TracingPanel } from "@/components/monitoring/TracingPanel";
 import { AdvancedTraceFilters, applyTraceFilters, EMPTY_FILTERS, type TraceFilters } from "@/components/monitoring/AdvancedTraceFilters";
 import { AlertRulesPanel } from "@/components/monitoring/AlertRulesPanel";
+import { WebVitalsPanel } from "@/components/monitoring/WebVitalsPanel";
 
 const PIE_COLORS = ['hsl(var(--primary))', 'hsl(var(--nexus-emerald, 142 71% 45%))', 'hsl(var(--nexus-amber, 38 92% 50%))', 'hsl(var(--nexus-cyan, 190 90% 50%))', 'hsl(var(--destructive))'];
 
@@ -61,6 +62,7 @@ export default function MonitoringPage() {
           <TabsTrigger value="sessions" className="gap-1.5"><Layers className="h-3.5 w-3.5" /> Sessões {sessions.length > 0 && <Badge variant="secondary" className="text-[11px] h-4 px-1 ml-1">{sessions.length}</Badge>}</TabsTrigger>
           <TabsTrigger value="alerts" className="gap-1.5">Alertas {unresolvedCount > 0 && <Badge variant="destructive" className="text-[11px] h-4 px-1">{unresolvedCount}</Badge>}</TabsTrigger>
           <TabsTrigger value="tracing" className="gap-1.5"><Zap className="h-3.5 w-3.5" /> Tracing</TabsTrigger>
+          <TabsTrigger value="vitals" className="gap-1.5">⚡ Web Vitals</TabsTrigger>
         </TabsList>
 
         <TabsContent value="traces">

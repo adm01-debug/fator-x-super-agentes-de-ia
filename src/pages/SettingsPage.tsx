@@ -8,6 +8,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Palette, Globe, Bell, Key, Plus, Trash2, Save, Loader2, RotateCw, Sparkles, Server, Building2 } from "lucide-react";
 import { MCPServerManager } from "@/components/integrations/MCPServerManager";
+import { MCPServersPanel } from "@/components/settings/MCPServersPanel";
 import { Bitrix24Connect } from "@/components/integrations/Bitrix24Connect";
 import { AccessControl, DangerousActionDialog } from "@/components/rbac";
 import { toast } from "sonner";
@@ -216,7 +217,7 @@ docker run --gpus all -p 8081:80 -v tei-data:/data \\
           </div>
         </TabsContent>
 
-        <TabsContent value="mcp" className="mt-4"><MCPServerManager /></TabsContent>
+        <TabsContent value="mcp" className="mt-4 space-y-4"><MCPServersPanel /><MCPServerManager /></TabsContent>
 
         <TabsContent value="integrations" className="mt-4 space-y-4">
           <div className="nexus-card space-y-4">
