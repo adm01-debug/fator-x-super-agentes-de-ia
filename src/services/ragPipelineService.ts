@@ -49,10 +49,11 @@ export async function searchAndRerank(query: string, knowledgeBaseId: string, to
     throw new Error(`Search error: ${error.message}`);
   }
 
-  if (candidates?.length) {
+  const candidatesArr = Array.isArray(candidates) ? (candidates as Array<Record<string, unknown>>) : [];
+  if (candidatesArr.length) {
     return rerankDocuments(
       query,
-      (candidates as Array<Record<string, unknown>>).map(c => ({
+      candidatesArr.map(c => ({
         id: String(c.id),
         content: String(c.content),
         score: Number(c.similarity || 0),
