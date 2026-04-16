@@ -14,6 +14,7 @@ import { getAgentUsage, listBudgets, createBudget, deleteBudget, getUsageRecords
 import { LightBarChart } from "@/components/charts";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { RealTimeCostStream } from "@/components/billing/RealTimeCostStream";
+import { CostOptimizationPanel } from "@/components/billing/CostOptimizationPanel";
 import { toast } from "sonner";
 
 export default function BillingPage() {
