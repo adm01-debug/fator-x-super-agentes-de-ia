@@ -7,7 +7,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { IdCard, Copy, Check, Download } from 'lucide-react';
-import { generateAgentCard, type AgentCard } from '@/services/agentCardService';
+import { generateAndSaveAgentCard, getAgentCard, type AgentCard } from '@/services/agentCardService';
 import { toast } from 'sonner';
 
 interface Props {
@@ -26,7 +26,11 @@ export function AgentCardViewer({ agentId, agentName }: Props) {
     if (isOpen && !card) {
       setLoading(true);
       try {
-        const generated = await generateAgentCard(agentId);
+        // Try cached first, then generate
+        let generated = await getAgentCard(agentId);
+        if (!generated) {
+          try { generated = await generateAndSaveAgentCard(agentId); } catch { generated = null; }
+        }
         setCard(generated);
       } catch {
         toast.error('Erro ao gerar Agent Card');
