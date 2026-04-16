@@ -72,6 +72,10 @@ const navSections = [
       { title: "Multi-Tenancy", url: "/multi-tenancy", icon: Building2 },
       { title: "Observability", url: "/observability", icon: Radar },
       { title: "Disaster Recovery", url: "/disaster-recovery", icon: ShieldAlert },
+      { title: "Self-Evolution (ACE)", url: "/self-evolution", icon: BrainCircuit },
+      { title: "AG-UI Streaming", url: "/ag-ui", icon: Radio },
+      { title: "Generative UI", url: "/a2ui", icon: Layout },
+      { title: "Red Team", url: "/red-team", icon: Swords },
     ],
   },
   {
