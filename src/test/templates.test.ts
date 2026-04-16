@@ -2,8 +2,8 @@ import { describe, it, expect } from 'vitest';
 import { AGENT_TEMPLATES, TEMPLATE_CATEGORIES } from '@/data/agentTemplates';
 
 describe('Agent Templates', () => {
-  it('has 15 templates', () => {
-    expect(AGENT_TEMPLATES.length).toBe(15);
+  it('has at least 38 templates', () => {
+    expect(AGENT_TEMPLATES.length).toBeGreaterThanOrEqual(38);
   });
 
   it('all templates have required fields', () => {
