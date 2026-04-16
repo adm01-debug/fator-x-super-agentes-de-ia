@@ -6,7 +6,7 @@ import type { LLMModel, ReasoningPattern } from '@/types/agentTypes';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { cn } from '@/lib/utils';
 import { routeQuery, type RouteResult } from '@/services/modelRouterService';
-import { getRegisteredSkills } from '@/services/progressiveSkillLoader';
+import { getAllSkills, type Skill } from '@/services/progressiveSkillLoader';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Sparkles, Loader2, Cpu } from 'lucide-react';
