@@ -5,7 +5,10 @@ import { TabNavigation } from './TabNavigation';
 import { ReadinessBadge } from './ReadinessBadge';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { ChevronLeft, ChevronRight, Save, Plus, Loader2, Check } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Save, Plus, Loader2, Check, History } from 'lucide-react';
+import { useState } from 'react';
+import { VersionDiffDialog } from '@/components/agents/VersionDiffDialog';
+import { useAgentVersions } from '@/hooks/useAgentVersions';
 
 const STATUS_LABELS: Record<string, { label: string; variant: 'default' | 'secondary' | 'destructive' | 'outline' }> = {
   draft: { label: 'Rascunho', variant: 'secondary' },
@@ -26,6 +29,8 @@ interface AgentBuilderLayoutProps {
 export function AgentBuilderLayout({ children }: AgentBuilderLayoutProps) {
   const { agent, activeTab, isDirty, isSaving, lastSaved, saveAgent, resetAgent, nextTab, prevTab } =
     useAgentBuilderStore();
+  const [historyOpen, setHistoryOpen] = useState(false);
+  const { data: versions = [] } = useAgentVersions(agent.id as string | undefined);
 
   const currentIndex = TABS.findIndex((t) => t.id === activeTab);
   const isFirst = currentIndex === 0;
@@ -95,6 +100,20 @@ export function AgentBuilderLayout({ children }: AgentBuilderLayoutProps) {
             <span className="hidden sm:inline">Salvar</span>
           </Button>
 
+          {agent.id && versions.length >= 2 && (
+            <Button
+              size="sm"
+              variant="outline"
+              onClick={() => setHistoryOpen(true)}
+              aria-label="Histórico de versões"
+              title={`${versions.length} versões`}
+            >
+              <History className="h-3.5 w-3.5" />
+              <span className="hidden sm:inline">Histórico</span>
+              <span className="text-[10px] text-muted-foreground ml-0.5">{versions.length}</span>
+            </Button>
+          )}
+
           <Button size="sm" onClick={() => resetAgent()} aria-label="Novo agente">
             <Plus className="h-3.5 w-3.5" />
             <span className="hidden sm:inline">Novo</span>
@@ -143,6 +162,12 @@ export function AgentBuilderLayout({ children }: AgentBuilderLayoutProps) {
         </Button>
       </footer>
       <AgentPlayground />
+      <VersionDiffDialog
+        open={historyOpen}
+        onOpenChange={setHistoryOpen}
+        versions={versions as any}
+        agentId={agent.id as string | undefined}
+      />
     </div>
   );
 }
