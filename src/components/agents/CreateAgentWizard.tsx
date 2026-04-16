@@ -177,13 +177,20 @@ export function CreateAgentWizard() {
               <button
                 key={cat}
                 onClick={() => setSelectedCategory(cat)}
-                className={`text-xs px-3 py-1 rounded-full border transition-colors ${
+                className={`text-xs px-3 py-1 rounded-full border transition-colors inline-flex items-center gap-1.5 ${
                   selectedCategory === cat
                     ? "bg-primary text-primary-foreground border-primary"
                     : "bg-secondary/50 text-muted-foreground border-border/50 hover:bg-secondary"
                 }`}
               >
-                {cat === "all" ? "Todos" : cat}
+                <span>{cat === "all" ? "Todos" : cat}</span>
+                <span className={`text-[10px] font-mono px-1.5 py-0.5 rounded-full ${
+                  selectedCategory === cat
+                    ? "bg-primary-foreground/20 text-primary-foreground"
+                    : "bg-background/60 text-muted-foreground"
+                }`}>
+                  {categoryCount[cat] || 0}
+                </span>
               </button>
             ))}
           </div>
@@ -195,9 +202,23 @@ export function CreateAgentWizard() {
             <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
               {filteredTemplates.map(t => {
                 const selected = selectedTemplate?.id === t.id;
+                const isVerified = dbTemplateIds.has(t.id);
                 return (
                   <button key={t.id} onClick={() => applyTemplate(t)} className={`nexus-card text-left transition-all relative ${selected ? "ring-2 ring-primary bg-primary/5" : "hover:bg-secondary/60"}`}>
-                    <div className="flex items-center gap-3 mb-2"><span className="text-2xl">{t.emoji}</span><div><p className="font-medium text-sm text-foreground">{t.name}</p><Badge variant="outline" className="text-[11px]">{t.category}</Badge></div></div>
+                    <div className="flex items-center gap-3 mb-2">
+                      <span className="text-2xl">{t.emoji}</span>
+                      <div className="min-w-0 flex-1">
+                        <div className="flex items-center gap-1.5 flex-wrap">
+                          <p className="font-medium text-sm text-foreground truncate">{t.name}</p>
+                          {isVerified && (
+                            <span title="Template verificado e otimizado" className="inline-flex items-center gap-0.5 text-[10px] font-semibold text-primary bg-primary/10 border border-primary/20 px-1.5 py-0.5 rounded-full">
+                              <Shield className="h-2.5 w-2.5" /> Verificado
+                            </span>
+                          )}
+                        </div>
+                        <Badge variant="outline" className="text-[11px] mt-0.5">{t.category}</Badge>
+                      </div>
+                    </div>
                     <p className="text-xs text-muted-foreground line-clamp-2">{t.description}</p>
                     {selected && <Check className="h-4 w-4 text-primary absolute top-3 right-3" />}
                   </button>
