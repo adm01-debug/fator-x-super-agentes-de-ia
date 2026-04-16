@@ -56,6 +56,11 @@ const PermissionsPage = lazy(() => import("./pages/PermissionsPage"));
 const RolePermissionsPage = lazy(() => import("./pages/RolePermissionsPage"));
 const SearchPage = lazy(() => import("./pages/SearchPage"));
 const NLPPipelinePage = lazy(() => import("./pages/NLPPipelinePage"));
+const TracesTimelinePage = lazy(() => import("./pages/TracesTimelinePage"));
+const VoiceAgentStudioPage = lazy(() => import("./pages/VoiceAgentStudioPage"));
+const ReplayForkPage = lazy(() => import("./pages/ReplayForkPage"));
+const EnterpriseSSOPage = lazy(() => import("./pages/EnterpriseSSOPage"));
+const DataResidencyPage = lazy(() => import("./pages/DataResidencyPage"));
 const NotFound = lazy(() => import("./pages/NotFound"));
 
 const queryClient = new QueryClient({
@@ -147,6 +152,11 @@ const App = () => (
                       <Route path="/rbac/permissions" element={<SafePage><ProtectedRoute permission="team.roles"><PermissionsPage /></ProtectedRoute></SafePage>} />
                       <Route path="/search" element={<SafePage><SearchPage /></SafePage>} />
                       <Route path="/nlp" element={<SafePage><NLPPipelinePage /></SafePage>} />
+                      <Route path="/traces" element={<SafePage><TracesTimelinePage /></SafePage>} />
+                      <Route path="/voice" element={<SafePage><VoiceAgentStudioPage /></SafePage>} />
+                      <Route path="/replay" element={<SafePage><ReplayForkPage /></SafePage>} />
+                      <Route path="/sso" element={<SafePage><ProtectedRoute permission="settings.api_keys"><EnterpriseSSOPage /></ProtectedRoute></SafePage>} />
+                      <Route path="/residency" element={<SafePage><ProtectedRoute permission="settings.api_keys"><DataResidencyPage /></ProtectedRoute></SafePage>} />
                       <Route path="*" element={<SafePage><NotFound /></SafePage>} />
                     </Routes>
                   </AppLayout>
