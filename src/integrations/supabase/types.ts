@@ -1063,6 +1063,122 @@ export type Database = {
         }
         Relationships: []
       }
+      forum_posts: {
+        Row: {
+          author_id: string
+          author_name: string
+          body: string
+          created_at: string
+          id: string
+          is_answer: boolean
+          parent_post_id: string | null
+          thread_id: string
+          updated_at: string
+          upvotes: number
+        }
+        Insert: {
+          author_id: string
+          author_name?: string
+          body: string
+          created_at?: string
+          id?: string
+          is_answer?: boolean
+          parent_post_id?: string | null
+          thread_id: string
+          updated_at?: string
+          upvotes?: number
+        }
+        Update: {
+          author_id?: string
+          author_name?: string
+          body?: string
+          created_at?: string
+          id?: string
+          is_answer?: boolean
+          parent_post_id?: string | null
+          thread_id?: string
+          updated_at?: string
+          upvotes?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "forum_posts_parent_post_id_fkey"
+            columns: ["parent_post_id"]
+            isOneToOne: false
+            referencedRelation: "forum_posts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "forum_posts_thread_id_fkey"
+            columns: ["thread_id"]
+            isOneToOne: false
+            referencedRelation: "forum_threads"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      forum_threads: {
+        Row: {
+          author_id: string
+          author_name: string
+          body: string
+          category: string | null
+          created_at: string
+          help_center_id: string
+          id: string
+          is_locked: boolean
+          is_pinned: boolean
+          is_resolved: boolean
+          last_activity_at: string
+          reply_count: number
+          title: string
+          upvotes: number
+          view_count: number
+        }
+        Insert: {
+          author_id: string
+          author_name?: string
+          body: string
+          category?: string | null
+          created_at?: string
+          help_center_id: string
+          id?: string
+          is_locked?: boolean
+          is_pinned?: boolean
+          is_resolved?: boolean
+          last_activity_at?: string
+          reply_count?: number
+          title: string
+          upvotes?: number
+          view_count?: number
+        }
+        Update: {
+          author_id?: string
+          author_name?: string
+          body?: string
+          category?: string | null
+          created_at?: string
+          help_center_id?: string
+          id?: string
+          is_locked?: boolean
+          is_pinned?: boolean
+          is_resolved?: boolean
+          last_activity_at?: string
+          reply_count?: number
+          title?: string
+          upvotes?: number
+          view_count?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "forum_threads_help_center_id_fkey"
+            columns: ["help_center_id"]
+            isOneToOne: false
+            referencedRelation: "help_centers"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       geo_allowed_countries: {
         Row: {
           country_code: string
@@ -1139,6 +1255,69 @@ export type Database = {
           },
         ]
       }
+      help_centers: {
+        Row: {
+          created_at: string
+          custom_domain: string | null
+          description: string | null
+          id: string
+          is_published: boolean
+          knowledge_base_id: string | null
+          logo_url: string | null
+          primary_color: string | null
+          seo_meta: Json | null
+          slug: string
+          title: string
+          updated_at: string
+          workspace_id: string
+        }
+        Insert: {
+          created_at?: string
+          custom_domain?: string | null
+          description?: string | null
+          id?: string
+          is_published?: boolean
+          knowledge_base_id?: string | null
+          logo_url?: string | null
+          primary_color?: string | null
+          seo_meta?: Json | null
+          slug: string
+          title?: string
+          updated_at?: string
+          workspace_id: string
+        }
+        Update: {
+          created_at?: string
+          custom_domain?: string | null
+          description?: string | null
+          id?: string
+          is_published?: boolean
+          knowledge_base_id?: string | null
+          logo_url?: string | null
+          primary_color?: string | null
+          seo_meta?: Json | null
+          slug?: string
+          title?: string
+          updated_at?: string
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "help_centers_knowledge_base_id_fkey"
+            columns: ["knowledge_base_id"]
+            isOneToOne: false
+            referencedRelation: "knowledge_bases"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "help_centers_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       ip_whitelist: {
         Row: {
           created_at: string
@@ -1176,6 +1355,241 @@ export type Database = {
             columns: ["workspace_id"]
             isOneToOne: false
             referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      kb_article_versions: {
+        Row: {
+          article_id: string
+          author_id: string | null
+          change_summary: string | null
+          content_html: string | null
+          content_json: Json
+          created_at: string
+          id: string
+          title: string
+          version: number
+        }
+        Insert: {
+          article_id: string
+          author_id?: string | null
+          change_summary?: string | null
+          content_html?: string | null
+          content_json: Json
+          created_at?: string
+          id?: string
+          title: string
+          version: number
+        }
+        Update: {
+          article_id?: string
+          author_id?: string | null
+          change_summary?: string | null
+          content_html?: string | null
+          content_json?: Json
+          created_at?: string
+          id?: string
+          title?: string
+          version?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "kb_article_versions_article_id_fkey"
+            columns: ["article_id"]
+            isOneToOne: false
+            referencedRelation: "kb_articles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      kb_articles: {
+        Row: {
+          author_id: string | null
+          content_html: string | null
+          content_json: Json
+          created_at: string
+          current_version: number
+          excerpt: string | null
+          help_center_id: string | null
+          helpful_count: number
+          id: string
+          knowledge_base_id: string
+          language: string
+          not_helpful_count: number
+          slug: string
+          status: string
+          tags: string[] | null
+          title: string
+          updated_at: string
+          view_count: number
+        }
+        Insert: {
+          author_id?: string | null
+          content_html?: string | null
+          content_json?: Json
+          created_at?: string
+          current_version?: number
+          excerpt?: string | null
+          help_center_id?: string | null
+          helpful_count?: number
+          id?: string
+          knowledge_base_id: string
+          language?: string
+          not_helpful_count?: number
+          slug: string
+          status?: string
+          tags?: string[] | null
+          title: string
+          updated_at?: string
+          view_count?: number
+        }
+        Update: {
+          author_id?: string | null
+          content_html?: string | null
+          content_json?: Json
+          created_at?: string
+          current_version?: number
+          excerpt?: string | null
+          help_center_id?: string | null
+          helpful_count?: number
+          id?: string
+          knowledge_base_id?: string
+          language?: string
+          not_helpful_count?: number
+          slug?: string
+          status?: string
+          tags?: string[] | null
+          title?: string
+          updated_at?: string
+          view_count?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "kb_articles_help_center_id_fkey"
+            columns: ["help_center_id"]
+            isOneToOne: false
+            referencedRelation: "help_centers"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "kb_articles_knowledge_base_id_fkey"
+            columns: ["knowledge_base_id"]
+            isOneToOne: false
+            referencedRelation: "knowledge_bases"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      kb_query_gaps: {
+        Row: {
+          best_match_chunk_id: string | null
+          best_match_score: number | null
+          created_at: string
+          id: string
+          knowledge_base_id: string
+          last_seen_at: string
+          occurrences: number
+          query: string
+          query_normalized: string
+          resolved_article_id: string | null
+          status: string
+          suggested_outline: Json | null
+          suggested_topic: string | null
+        }
+        Insert: {
+          best_match_chunk_id?: string | null
+          best_match_score?: number | null
+          created_at?: string
+          id?: string
+          knowledge_base_id: string
+          last_seen_at?: string
+          occurrences?: number
+          query: string
+          query_normalized: string
+          resolved_article_id?: string | null
+          status?: string
+          suggested_outline?: Json | null
+          suggested_topic?: string | null
+        }
+        Update: {
+          best_match_chunk_id?: string | null
+          best_match_score?: number | null
+          created_at?: string
+          id?: string
+          knowledge_base_id?: string
+          last_seen_at?: string
+          occurrences?: number
+          query?: string
+          query_normalized?: string
+          resolved_article_id?: string | null
+          status?: string
+          suggested_outline?: Json | null
+          suggested_topic?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "kb_query_gaps_knowledge_base_id_fkey"
+            columns: ["knowledge_base_id"]
+            isOneToOne: false
+            referencedRelation: "knowledge_bases"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "kb_query_gaps_resolved_article_id_fkey"
+            columns: ["resolved_article_id"]
+            isOneToOne: false
+            referencedRelation: "kb_articles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      kb_translations: {
+        Row: {
+          article_id: string
+          created_at: string
+          id: string
+          reviewed: boolean
+          source_hash: string
+          source_language: string
+          target_language: string
+          translated_content_json: Json
+          translated_title: string
+          translation_method: string
+          updated_at: string
+        }
+        Insert: {
+          article_id: string
+          created_at?: string
+          id?: string
+          reviewed?: boolean
+          source_hash: string
+          source_language: string
+          target_language: string
+          translated_content_json: Json
+          translated_title: string
+          translation_method?: string
+          updated_at?: string
+        }
+        Update: {
+          article_id?: string
+          created_at?: string
+          id?: string
+          reviewed?: boolean
+          source_hash?: string
+          source_language?: string
+          target_language?: string
+          translated_content_json?: Json
+          translated_title?: string
+          translation_method?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "kb_translations_article_id_fkey"
+            columns: ["article_id"]
+            isOneToOne: false
+            referencedRelation: "kb_articles"
             referencedColumns: ["id"]
           },
         ]
