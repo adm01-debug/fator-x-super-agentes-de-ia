@@ -53,8 +53,10 @@ export function CreateAgentWizard() {
       if (data && data.length > 0) {
         const dbTemplates: AgentTemplate[] = data.map((t) => {
           const cfg = t.config as Record<string, unknown> | null;
-          const toolsArr = cfg?.tools as Array<{ name: string }> | undefined;
-          const toolNames = toolsArr?.map((tool) => tool.name) || [];
+          const rawTools = cfg?.tools;
+          const toolNames: string[] = Array.isArray(rawTools)
+            ? rawTools.map((tool) => typeof tool === 'string' ? tool : (tool as { name?: string })?.name ?? '').filter(Boolean)
+            : [];
           const memoryTypes = (cfg?.memory_types as string[]) || (cfg?.memory as string[]) || [];
           return {
             id: t.id, name: t.name, icon: t.icon || '🤖', category: t.category || 'general',
@@ -64,8 +66,11 @@ export function CreateAgentWizard() {
             prompt: (cfg?.system_prompt as string) || '', tools: toolNames, memory: memoryTypes,
           };
         });
-        const dbIds = new Set(dbTemplates.map(t => t.id));
-        setAgentTemplates([...dbTemplates, ...STATIC_TEMPLATES.filter(t => !dbIds.has(t.id))]);
+        // Dedup por nome normalizado (IDs do banco são UUIDs, dos estáticos são slugs).
+        const norm = (s: string) => s.trim().toLowerCase().replace(/\s+/g, ' ');
+        const dbNames = new Set(dbTemplates.map(t => norm(t.name)));
+        const merged = [...dbTemplates, ...STATIC_TEMPLATES.filter(t => !dbNames.has(norm(t.name)))];
+        setAgentTemplates(merged);
       }
     }).then(undefined, () => {});
   }, []);
