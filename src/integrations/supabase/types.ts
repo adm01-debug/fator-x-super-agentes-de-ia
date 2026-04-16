@@ -1109,10 +1109,24 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "forum_posts_parent_post_id_fkey"
+            columns: ["parent_post_id"]
+            isOneToOne: false
+            referencedRelation: "forum_posts_public"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "forum_posts_thread_id_fkey"
             columns: ["thread_id"]
             isOneToOne: false
             referencedRelation: "forum_threads"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "forum_posts_thread_id_fkey"
+            columns: ["thread_id"]
+            isOneToOne: false
+            referencedRelation: "forum_threads_public"
             referencedColumns: ["id"]
           },
         ]
@@ -2614,6 +2628,130 @@ export type Database = {
           user_id?: string | null
         }
         Relationships: []
+      }
+      forum_posts_public: {
+        Row: {
+          author_name: string | null
+          body: string | null
+          created_at: string | null
+          id: string | null
+          is_answer: boolean | null
+          parent_post_id: string | null
+          thread_id: string | null
+          updated_at: string | null
+          upvotes: number | null
+        }
+        Insert: {
+          author_name?: string | null
+          body?: string | null
+          created_at?: string | null
+          id?: string | null
+          is_answer?: boolean | null
+          parent_post_id?: string | null
+          thread_id?: string | null
+          updated_at?: string | null
+          upvotes?: number | null
+        }
+        Update: {
+          author_name?: string | null
+          body?: string | null
+          created_at?: string | null
+          id?: string | null
+          is_answer?: boolean | null
+          parent_post_id?: string | null
+          thread_id?: string | null
+          updated_at?: string | null
+          upvotes?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "forum_posts_parent_post_id_fkey"
+            columns: ["parent_post_id"]
+            isOneToOne: false
+            referencedRelation: "forum_posts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "forum_posts_parent_post_id_fkey"
+            columns: ["parent_post_id"]
+            isOneToOne: false
+            referencedRelation: "forum_posts_public"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "forum_posts_thread_id_fkey"
+            columns: ["thread_id"]
+            isOneToOne: false
+            referencedRelation: "forum_threads"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "forum_posts_thread_id_fkey"
+            columns: ["thread_id"]
+            isOneToOne: false
+            referencedRelation: "forum_threads_public"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      forum_threads_public: {
+        Row: {
+          author_name: string | null
+          body: string | null
+          category: string | null
+          created_at: string | null
+          help_center_id: string | null
+          id: string | null
+          is_locked: boolean | null
+          is_pinned: boolean | null
+          is_resolved: boolean | null
+          last_activity_at: string | null
+          reply_count: number | null
+          title: string | null
+          upvotes: number | null
+          view_count: number | null
+        }
+        Insert: {
+          author_name?: string | null
+          body?: string | null
+          category?: string | null
+          created_at?: string | null
+          help_center_id?: string | null
+          id?: string | null
+          is_locked?: boolean | null
+          is_pinned?: boolean | null
+          is_resolved?: boolean | null
+          last_activity_at?: string | null
+          reply_count?: number | null
+          title?: string | null
+          upvotes?: number | null
+          view_count?: number | null
+        }
+        Update: {
+          author_name?: string | null
+          body?: string | null
+          category?: string | null
+          created_at?: string | null
+          help_center_id?: string | null
+          id?: string | null
+          is_locked?: boolean | null
+          is_pinned?: boolean | null
+          is_resolved?: boolean | null
+          last_activity_at?: string | null
+          reply_count?: number | null
+          title?: string | null
+          upvotes?: number | null
+          view_count?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "forum_threads_help_center_id_fkey"
+            columns: ["help_center_id"]
+            isOneToOne: false
+            referencedRelation: "help_centers"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       skill_registry_safe: {
         Row: {
