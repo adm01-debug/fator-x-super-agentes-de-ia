@@ -47,7 +47,8 @@ const SEVERITY_OPTIONS = [
 export function GuardrailsModule() {
   const agent = useAgentBuilderStore((s) => s.agent);
   const updateAgent = useAgentBuilderStore((s) => s.updateAgent);
-  const { validateInput, checking: guardrailChecking, lastCheck: guardrailLastCheck } = useGuardrails();
+  const guardrails_hook = useGuardrails();
+  const guardrailChecking = guardrails_hook.checking;
 
   const guardrails = agent.guardrails.length > 0 ? agent.guardrails : DEFAULT_GUARDRAILS;
 

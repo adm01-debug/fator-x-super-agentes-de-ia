@@ -25,7 +25,8 @@ import { testDatahubConnections, listDatahubEntities } from '@/services/datahubS
 import { toast } from 'sonner';
 
 export default function DataHubPage() {
-  const { setCurrentQuery, setQueryResults, setIsQuerying, setQueryError, selectEntity: storeSelectEntity } = useDatahubStore();
+  const datahubActions = useDatahubStore();
+  const storeSelectEntity = datahubActions.selectEntity;
   const [search, setSearch] = useState('');
   const [selectedEntity, setSelectedEntity] = useState<string | null>(null);
   const [browsingEntity, setBrowsingEntity] = useState<string | null>(null);
