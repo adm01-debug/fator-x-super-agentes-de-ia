@@ -69,7 +69,8 @@ export function useAutomationRules(workspaceId: string | null) {
   const createRule = useCallback(async (input: Omit<AutomationRule, 'id' | 'run_count' | 'last_run_at' | 'created_at' | 'updated_at' | 'created_by'>) => {
     const { data: u } = await supabase.auth.getUser();
     if (!u.user) throw new Error('Não autenticado');
-    const { error } = await supabase.from('automation_rules').insert({ ...input, created_by: u.user.id });
+    const row = { ...input, created_by: u.user.id } as never;
+    const { error } = await supabase.from('automation_rules').insert(row);
     if (error) throw error;
     toast({ title: 'Regra criada' });
     await refresh();
