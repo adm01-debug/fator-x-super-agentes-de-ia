@@ -58,6 +58,131 @@ export type Database = {
           },
         ]
       }
+      agent_experiment_runs: {
+        Row: {
+          cost_usd: number | null
+          created_at: string
+          created_by: string | null
+          experiment_id: string
+          feedback: string | null
+          id: string
+          input: Json
+          latency_ms: number | null
+          output: Json | null
+          score: number | null
+          tokens_input: number | null
+          tokens_output: number | null
+          variant: string
+        }
+        Insert: {
+          cost_usd?: number | null
+          created_at?: string
+          created_by?: string | null
+          experiment_id: string
+          feedback?: string | null
+          id?: string
+          input?: Json
+          latency_ms?: number | null
+          output?: Json | null
+          score?: number | null
+          tokens_input?: number | null
+          tokens_output?: number | null
+          variant: string
+        }
+        Update: {
+          cost_usd?: number | null
+          created_at?: string
+          created_by?: string | null
+          experiment_id?: string
+          feedback?: string | null
+          id?: string
+          input?: Json
+          latency_ms?: number | null
+          output?: Json | null
+          score?: number | null
+          tokens_input?: number | null
+          tokens_output?: number | null
+          variant?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "agent_experiment_runs_experiment_id_fkey"
+            columns: ["experiment_id"]
+            isOneToOne: false
+            referencedRelation: "agent_experiments"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      agent_experiments: {
+        Row: {
+          agent_id: string
+          created_at: string
+          created_by: string
+          description: string | null
+          ended_at: string | null
+          id: string
+          name: string
+          started_at: string | null
+          status: string
+          traffic_split: number
+          updated_at: string
+          variant_a_config: Json
+          variant_b_config: Json
+          winner: string | null
+          workspace_id: string
+        }
+        Insert: {
+          agent_id: string
+          created_at?: string
+          created_by: string
+          description?: string | null
+          ended_at?: string | null
+          id?: string
+          name: string
+          started_at?: string | null
+          status?: string
+          traffic_split?: number
+          updated_at?: string
+          variant_a_config?: Json
+          variant_b_config?: Json
+          winner?: string | null
+          workspace_id: string
+        }
+        Update: {
+          agent_id?: string
+          created_at?: string
+          created_by?: string
+          description?: string | null
+          ended_at?: string | null
+          id?: string
+          name?: string
+          started_at?: string | null
+          status?: string
+          traffic_split?: number
+          updated_at?: string
+          variant_a_config?: Json
+          variant_b_config?: Json
+          winner?: string | null
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "agent_experiments_agent_id_fkey"
+            columns: ["agent_id"]
+            isOneToOne: false
+            referencedRelation: "agents"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "agent_experiments_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       agent_installed_skills: {
         Row: {
           agent_id: string
