@@ -61,7 +61,7 @@ export function ExperimentsModule() {
       <div className="space-y-6">
         <SectionTitle icon="🧪" title="Experimentos A/B" subtitle="Compare duas variantes do agente." />
         <EmptyState
-          icon={FlaskConical}
+          icon="🧪"
           title="Salve o agente primeiro"
           description="Você precisa salvar o agente antes de criar experimentos."
         />
@@ -90,7 +90,7 @@ export function ExperimentsModule() {
           </div>
         ) : experiments.length === 0 ? (
           <EmptyState
-            icon={FlaskConical}
+            icon="⚗️"
             title="Nenhum experimento ainda"
             description="Crie seu primeiro teste A/B para comparar variantes do agente."
             actionLabel="Criar experimento"
