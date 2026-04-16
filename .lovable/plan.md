@@ -1,35 +1,40 @@
 
-#5 done. Próxima: **#6 Cost Predictor** — estimativa de custo antes de rodar.
+#6 done. Próxima: **#9 Eval Suite** — testes automatizados de qualidade.
 
-## #6 Cost Predictor
+## #9 Eval Suite
 
-Preview de custo/latência baseado em config atual + input do playground, usando tabela de preços por modelo.
+Sistema de avaliação batch: rodar dataset de testes contra agente, calcular métricas (accuracy, latência, custo) e comparar versões.
 
-**Pricing table (constante):**
-- `src/lib/llmPricing.ts` — map `model → { input_per_1k, output_per_1k, avg_latency_ms }`
-- Cobre: gemini-2.5-flash/pro/lite, gpt-5/mini/nano, gemini-3.x
+**Schema (migration):**
+- `agent_eval_datasets`: id, agent_id, name, description, items (jsonb array de `{input, expected_output, criteria[]}`), workspace_id, created_by, created_at
+- `agent_eval_runs`: id, dataset_id, agent_id, status (queued/running/completed/failed), total_items, passed, failed, avg_latency_ms, total_cost_usd, started_at, completed_at, created_by
+- `agent_eval_results`: id, run_id, item_index, input, expected, actual, passed (bool), score (0-1), latency_ms, cost_usd, judge_reasoning, error
+- RLS: workspace members
 
 **Hook:**
-- `src/hooks/useCostEstimate.ts`
-- Input: `{ model, systemPrompt, userInput, maxTokens, tools[] }`
-- Tokens estimados: chars/4 (system + user) + maxTokens output
-- Output: `{ inputTokens, outputTokens, costUsd, costBrl, estLatencyMs }`
-- USD→BRL via constante (5.0) ou env
+- `src/hooks/useAgentEvals.ts` — CRUD datasets/runs + queries de resultados
 
-**UI — 2 lugares:**
-1. **Playground** (`AgentPlayground.tsx`): card "💰 Estimativa" acima do botão Send mostrando custo + latência prevista, atualiza ao digitar
-2. **CostModule** existente (ou Billing): widget "Simulador" — input livre + slider tokens → tabela comparando todos os modelos lado a lado (acha o mais barato/rápido)
+**Edge function:**
+- `supabase/functions/agent-eval-runner/index.ts`
+- Input: `{ dataset_id, agent_id }`
+- Para cada item: chama o agente (via mesma lógica do playground) → usa LLM-as-judge (Gemini Flash) com prompt "compare expected vs actual usando critérios X" → retorna score 0-1 + reasoning
+- Persiste em `agent_eval_results` em batch
+- Atualiza `agent_eval_runs` ao final com agregados
 
-**Componente compartilhado:**
-- `src/components/agent-builder/CostEstimateCard.tsx` — card compacto reutilizável
+**Componente:**
+- `src/components/agent-builder/modules/EvalsModule.tsx` — nova tab "Avaliação"
+- **Datasets**: lista + botão "Novo dataset" (modal com textarea JSON ou builder linha-a-linha de input/expected)
+- **Runs**: histórico com status, pass rate, latência média, custo
+- **Detalhes do run**: tabela com cada item (input/expected/actual/score/judge reasoning) + filtro pass/fail
 
 **Arquivos:**
-- criar `src/lib/llmPricing.ts`
-- criar `src/hooks/useCostEstimate.ts`
-- criar `src/components/agent-builder/CostEstimateCard.tsx`
-- editar `src/components/agent-builder/AgentPlayground.tsx` — integrar card
-- editar `src/components/agent-builder/modules/BillingModule.tsx` — adicionar simulador comparativo
+- migration SQL nova
+- criar `src/hooks/useAgentEvals.ts`
+- criar `src/components/agent-builder/modules/EvalsModule.tsx`
+- criar `supabase/functions/agent-eval-runner/index.ts`
+- editar `src/data/agentBuilderData.ts` — registrar tab "evals"
+- editar `src/pages/AgentBuilder.tsx` — rotear módulo
 
-**Validação:** abrir playground → digitar input → ver custo USD/BRL atualizando; trocar modelo no builder → custo recalcula; em Billing → simular e ver tabela comparativa.
+**Validação:** abrir agente → tab Avaliação → criar dataset com 3 itens → rodar → ver pass rate + detalhes por item.
 
-Próximas sem pausar: #9 Eval Suite → #10 Visual Orchestrator → #7 Guardrails Library.
+Próximas sem pausar: #10 Visual Orchestrator → #7 Guardrails Library.
