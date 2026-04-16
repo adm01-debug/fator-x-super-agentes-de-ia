@@ -170,11 +170,15 @@ export async function markAllRead(userId: string): Promise<number> {
 /* ------------------------------------------------------------------ */
 
 export async function listTemplates(channel?: NotificationChannel): Promise<NotificationTemplate[]> {
-  let query = fromTable('notification_templates').select('*').eq('is_active', true).order('name');
-  if (channel) query = query.eq('channel', channel);
-  const { data, error } = await query;
-  if (error) throw error;
-  return (data ?? []) as NotificationTemplate[];
+  try {
+    let query = fromTable('notification_templates').select('*').eq('is_active', true).order('name');
+    if (channel) query = query.eq('channel', channel);
+    const { data, error } = await query;
+    if (error) return [];
+    return (data ?? []) as NotificationTemplate[];
+  } catch {
+    return [];
+  }
 }
 
 export async function createTemplate(input: Omit<NotificationTemplate, 'id' | 'created_at'>): Promise<NotificationTemplate> {
