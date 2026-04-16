@@ -37,6 +37,7 @@ export function ActivityFeed() {
     queryKey: ['activity_feed'],
     queryFn: () => getAuditLog({ limit: 15 }),
     refetchInterval: 30000,
+    retry: 1,
   });
 
   if (isLoading) {

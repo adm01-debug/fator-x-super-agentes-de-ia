@@ -74,17 +74,24 @@ export async function getSecurityEvents(_options?: { severity?: string; limit?: 
 }
 
 export async function getAuditLog(options?: { userId?: string; limit?: number }) {
-  let query = supabaseExternal
-    .from('audit_log_safe')
-    .select('*')
-    .order('created_at', { ascending: false })
-    .limit(options?.limit || 100);
+  try {
+    let query = supabaseExternal
+      .from('audit_log_safe')
+      .select('*')
+      .order('created_at', { ascending: false })
+      .limit(options?.limit || 100);
 
-  if (options?.userId) query = query.eq('user_id', options.userId);
+    if (options?.userId) query = query.eq('user_id', options.userId);
 
-  const { data, error } = await query;
-  if (error) throw error;
-  return data ?? [];
+    const { data, error } = await query;
+    if (error) {
+      console.warn('Audit log query failed:', error.message);
+      return [];
+    }
+    return data ?? [];
+  } catch {
+    return [];
+  }
 }
 
 export async function invokeGuardrailsCheck(text: string) {
