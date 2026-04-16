@@ -66,7 +66,8 @@ export function usePaginatedQuery<T = Record<string, unknown>>(
         const to = from + pageSize - 1;
 
         // Count
-        let countBuilder = supabaseExternal.from(table).select('*', { count: 'exact', head: true });
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        let countBuilder: any = (supabaseExternal as any).from(table).select('*', { count: 'exact', head: true });
         for (const [col, val] of Object.entries(eqFilters)) {
           countBuilder = countBuilder.eq(col, val);
         }
@@ -74,7 +75,8 @@ export function usePaginatedQuery<T = Record<string, unknown>>(
         const total = count ?? 0;
 
         // Data
-        let dataBuilder = supabaseExternal.from(table).select(select).order(orderBy, { ascending }).range(from, to);
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        let dataBuilder: any = (supabaseExternal as any).from(table).select(select).order(orderBy, { ascending }).range(from, to);
         for (const [col, val] of Object.entries(eqFilters)) {
           dataBuilder = dataBuilder.eq(col, val);
         }
