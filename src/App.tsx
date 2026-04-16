@@ -76,6 +76,10 @@ const VoiceTelephonyPage = lazy(() => import("./pages/VoiceTelephonyPage"));
 const KnowledgeGraphPage = lazy(() => import("./pages/KnowledgeGraphPage"));
 const AgentSimulationPage = lazy(() => import("./pages/AgentSimulationPage"));
 const CostOptimizerPage = lazy(() => import("./pages/CostOptimizerPage"));
+const FederatedLearningPage = lazy(() => import("./pages/FederatedLearningPage"));
+const MultiTenancyPage = lazy(() => import("./pages/MultiTenancyPage"));
+const ObservabilityOTelPage = lazy(() => import("./pages/ObservabilityOTelPage"));
+const DisasterRecoveryPage = lazy(() => import("./pages/DisasterRecoveryPage"));
 const NotFound = lazy(() => import("./pages/NotFound"));
 
 const queryClient = new QueryClient({
@@ -187,6 +191,10 @@ const App = () => (
                       <Route path="/knowledge-graph" element={<SafePage><KnowledgeGraphPage /></SafePage>} />
                       <Route path="/simulation" element={<SafePage><AgentSimulationPage /></SafePage>} />
                       <Route path="/cost-optimizer" element={<SafePage><CostOptimizerPage /></SafePage>} />
+                      <Route path="/federated-learning" element={<SafePage><ProtectedRoute permission="settings.api_keys"><FederatedLearningPage /></ProtectedRoute></SafePage>} />
+                      <Route path="/multi-tenancy" element={<SafePage><ProtectedRoute permission="team.roles"><MultiTenancyPage /></ProtectedRoute></SafePage>} />
+                      <Route path="/observability" element={<SafePage><ObservabilityOTelPage /></SafePage>} />
+                      <Route path="/disaster-recovery" element={<SafePage><ProtectedRoute permission="settings.api_keys"><DisasterRecoveryPage /></ProtectedRoute></SafePage>} />
                       <Route path="*" element={<SafePage><NotFound /></SafePage>} />
                     </Routes>
                   </AppLayout>
