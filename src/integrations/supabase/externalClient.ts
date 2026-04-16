@@ -47,8 +47,12 @@ export const supabaseExternal = createClient<Database>(
  * Call this after login or when the session changes.
  */
 export async function syncExternalAuth(accessToken: string) {
-  await supabaseExternal.auth.setSession({
-    access_token: accessToken,
-    refresh_token: '', // Not needed — local client manages refresh
-  });
+  try {
+    await supabaseExternal.auth.setSession({
+      access_token: accessToken,
+      refresh_token: '', // Not needed — local client manages refresh
+    });
+  } catch (e) {
+    console.warn('⚠️ Failed to sync external auth session:', e);
+  }
 }

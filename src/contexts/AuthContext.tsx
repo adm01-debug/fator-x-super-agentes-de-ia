@@ -35,6 +35,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     supabase.auth.getSession().then(({ data: { session } }) => {
       setSession(session);
       setUser(session?.user ?? null);
+      // Sync access token to external DB client on initial load
+      if (session?.access_token) {
+        syncExternalAuth(session.access_token);
+      }
       setLoading(false);
     });
 

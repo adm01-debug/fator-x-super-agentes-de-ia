@@ -30,7 +30,7 @@ export default function DashboardPage() {
   const navigate = useNavigate();
   const { user } = useAuth();
   const [dateRange, setDateRange] = useState<DateRange>('30d');
-  const { data: agents = [], isLoading } = useQuery({ queryKey: ['agents'], queryFn: listAgentsForDashboard });
+  const { data: agents = [], isLoading } = useQuery({ queryKey: ['agents'], queryFn: listAgentsForDashboard, retry: 2 });
   const days = getDateRangeDays(dateRange);
   const { data: usageData = [] } = useQuery({ queryKey: ['dashboard_usage', dateRange], queryFn: () => getUsageInRange(days) });
 
