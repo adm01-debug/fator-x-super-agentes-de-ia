@@ -6,6 +6,11 @@ import { supabaseExternal } from '@/integrations/supabase/externalClient';
 import { audit } from '@/lib/auditService';
 import { agentToDbRow, dbRowToAgent } from './agentBuilderHelpers';
 
+export interface PlaygroundSeed {
+  input: string;
+  traceId: string;
+}
+
 interface AgentBuilderStore {
   agent: AgentConfig;
   activeTab: string;
@@ -15,6 +20,12 @@ interface AgentBuilderStore {
   lastSaved?: string;
   savedAgents: AgentConfig[];
   promptVersions: PromptVersion[];
+  playgroundSeed: PlaygroundSeed | null;
+  playgroundOpenSignal: number;
+
+  setPlaygroundSeed: (seed: PlaygroundSeed | null) => void;
+  clearPlaygroundSeed: () => void;
+  replayTrace: (trace: { id: string; user_input: string }) => void;
 
   setActiveTab: (tab: string) => void;
   nextTab: () => void;
@@ -56,6 +67,15 @@ export const useAgentBuilderStore = create<AgentBuilderStore>((set, get) => ({
   lastSaved: undefined,
   savedAgents: [],
   promptVersions: [],
+  playgroundSeed: null,
+  playgroundOpenSignal: 0,
+
+  setPlaygroundSeed: (seed) => set({ playgroundSeed: seed }),
+  clearPlaygroundSeed: () => set({ playgroundSeed: null }),
+  replayTrace: (trace) => set((s) => ({
+    playgroundSeed: { input: trace.user_input, traceId: trace.id },
+    playgroundOpenSignal: s.playgroundOpenSignal + 1,
+  })),
 
   setActiveTab: (tab) => set({ activeTab: tab }),
 
