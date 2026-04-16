@@ -1,7 +1,7 @@
 import { ShieldCheck, FileCheck2, Download, Calendar, Eye, BadgeCheck } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
+
 import { Progress } from "@/components/ui/progress";
 import { PageHeader } from "@/components/shared/PageHeader";
 import { toast } from "sonner";
