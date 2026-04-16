@@ -191,6 +191,9 @@ export default function AgentsPage() {
               <Upload className="h-3.5 w-3.5" /> Importar
             </Button>
             <input ref={fileInputRef} type="file" accept=".json" className="hidden" onChange={handleImport} />
+            <Button variant="outline" size="sm" className="gap-1.5" onClick={() => navigate('/agents/templates')}>
+              <BookOpen className="h-3.5 w-3.5" /> Templates
+            </Button>
             <AccessControl permission="agents.create">
               <Button onClick={() => navigate('/agents/new')} className="nexus-gradient-bg text-primary-foreground gap-2 hover:opacity-90">
                 <Plus className="h-4 w-4" /> Criar agente
