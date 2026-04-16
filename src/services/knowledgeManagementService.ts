@@ -102,7 +102,8 @@ export async function rateArticle(id: string, helpful: boolean) {
   const article = await getArticle(id);
   if (!article) return;
   const field = helpful ? "helpful_count" : "not_helpful_count";
-  await supabase.from("kb_articles").update({ [field]: ((article as Record<string, number>)[field] ?? 0) + 1 } as never).eq("id", id);
+  const current = (article as unknown as Record<string, number>)[field] ?? 0;
+  await supabase.from("kb_articles").update({ [field]: current + 1 } as never).eq("id", id);
 }
 
 // ============ Versions ============
