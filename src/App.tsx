@@ -68,6 +68,10 @@ const PromptABTestPage = lazy(() => import("./pages/PromptABTestPage"));
 const MarketplaceMonetizedPage = lazy(() => import("./pages/MarketplaceMonetizedPage"));
 const SyntheticDataPage = lazy(() => import("./pages/SyntheticDataPage"));
 const CanaryDeploymentsPage = lazy(() => import("./pages/CanaryDeploymentsPage"));
+const CodeInterpreterPage = lazy(() => import("./pages/CodeInterpreterPage"));
+const EmailCalendarTriggersPage = lazy(() => import("./pages/EmailCalendarTriggersPage"));
+const AgentDebuggerPage = lazy(() => import("./pages/AgentDebuggerPage"));
+const ComplianceReportsPage = lazy(() => import("./pages/ComplianceReportsPage"));
 const NotFound = lazy(() => import("./pages/NotFound"));
 
 const queryClient = new QueryClient({
@@ -171,6 +175,10 @@ const App = () => (
                       <Route path="/marketplace-pro" element={<SafePage><MarketplaceMonetizedPage /></SafePage>} />
                       <Route path="/synthetic-data" element={<SafePage><SyntheticDataPage /></SafePage>} />
                       <Route path="/canary" element={<SafePage><CanaryDeploymentsPage /></SafePage>} />
+                      <Route path="/code-interpreter" element={<SafePage><CodeInterpreterPage /></SafePage>} />
+                      <Route path="/email-triggers" element={<SafePage><EmailCalendarTriggersPage /></SafePage>} />
+                      <Route path="/debugger" element={<SafePage><AgentDebuggerPage /></SafePage>} />
+                      <Route path="/compliance-reports" element={<SafePage><ProtectedRoute permission="settings.api_keys"><ComplianceReportsPage /></ProtectedRoute></SafePage>} />
                       <Route path="*" element={<SafePage><NotFound /></SafePage>} />
                     </Routes>
                   </AppLayout>
