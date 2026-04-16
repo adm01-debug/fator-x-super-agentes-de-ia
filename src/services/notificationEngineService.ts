@@ -188,8 +188,13 @@ export async function createTemplate(input: Omit<NotificationTemplate, 'id' | 'c
 /* ------------------------------------------------------------------ */
 
 export async function getNotificationStats(): Promise<NotificationStats> {
-  const { data, error } = await fromTable('notifications').select('channel, priority, status, sent_at, delivered_at');
-  if (error) throw error;
+  let items: Array<{ channel: NotificationChannel; priority: NotificationPriority; status: NotificationStatus; sent_at: string | null; delivered_at: string | null }> = [];
+  try {
+    const { data, error } = await fromTable('notifications').select('channel, priority, status, sent_at, delivered_at');
+    if (!error) items = (data ?? []) as typeof items;
+  } catch {
+    // Table may not exist yet — return empty stats
+  }
 
   const items = (data ?? []) as Array<{ channel: NotificationChannel; priority: NotificationPriority; status: NotificationStatus; sent_at: string | null; delivered_at: string | null }>;
   const byChannel = {} as Record<NotificationChannel, { sent: number; delivered: number; failed: number }>;
