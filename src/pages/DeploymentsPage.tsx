@@ -13,6 +13,7 @@ import { toast } from "sonner";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { A2APanel } from '@/components/integrations/A2APanel';
 import { WebWidgetPanel } from '@/components/deployments/WebWidgetPanel';
+import { WhatsAppSendDialog } from '@/components/deployments/WhatsAppSendDialog';
 
 export default function DeploymentsPage() {
   const { data: deployments = [], isLoading } = useQuery({
@@ -22,7 +23,7 @@ export default function DeploymentsPage() {
 
   return (
     <div className="p-6 sm:p-8 lg:p-10 space-y-6 max-w-[1400px] mx-auto animate-page-enter">
-      <PageHeader title="Implantações" description="Agentes em produção e staging" actions={<EndpointGeneratorButton />} />
+      <PageHeader title="Implantações" description="Agentes em produção e staging" actions={<div className="flex gap-2"><WhatsAppSendDialog /><EndpointGeneratorButton /></div>} />
 
       <WebWidgetPanel agentId={deployments[0]?.id} agentName={deployments[0]?.name} />
 
