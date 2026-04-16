@@ -7,6 +7,7 @@ import {
   FlaskConical, Rocket, Activity, Database, Shield, Users, CreditCard, Settings,
   Sparkles, PanelLeftClose, PanelLeft, LogOut, ServerCog, ChevronDown, Palette, Dna, Workflow, Package,
   Globe, ShieldCheck, CircleCheckBig, Crown, Route as RouteIcon, Languages,
+  Mic, GitBranch as GitBranchIcon, KeyRound, Globe2,
 } from "lucide-react";
 import {
   Sidebar, SidebarContent, SidebarGroup, SidebarGroupContent, SidebarGroupLabel,
@@ -56,6 +57,9 @@ const navSections = [
       { title: "Avaliações", url: "/evaluations", icon: FlaskConical },
       { title: "Implantações", url: "/deployments", icon: Rocket },
       { title: "Monitoramento", url: "/monitoring", icon: Activity },
+      { title: "Traces & Spans", url: "/traces", icon: Activity },
+      { title: "Replay & Fork", url: "/replay", icon: GitBranchIcon },
+      { title: "Voice Agent", url: "/voice", icon: Mic },
       { title: "Dados & Storage", url: "/data-storage", icon: Database },
       { title: "DataHub", url: "/datahub", icon: ServerCog },
     ],
@@ -65,6 +69,8 @@ const navSections = [
     key: "admin",
     items: [
       { title: "Segurança", url: "/security", icon: Shield },
+      { title: "SSO Enterprise", url: "/sso", icon: KeyRound },
+      { title: "Data Residency", url: "/residency", icon: Globe2 },
       { title: "LGPD", url: "/lgpd", icon: ShieldCheck },
       { title: "Aprovações", url: "/approvals", icon: CircleCheckBig },
       { title: "Equipe", url: "/team", icon: Users },
