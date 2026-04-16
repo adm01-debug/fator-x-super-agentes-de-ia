@@ -5,10 +5,11 @@ import { TabNavigation } from './TabNavigation';
 import { ReadinessBadge } from './ReadinessBadge';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { ChevronLeft, ChevronRight, Save, Plus, Loader2, Check, History } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Save, Plus, Loader2, Check, History, Sparkles } from 'lucide-react';
 import { useState } from 'react';
 import { VersionDiffDialog } from '@/components/agents/VersionDiffDialog';
 import { useAgentVersions } from '@/hooks/useAgentVersions';
+import { ConversationalBuilder } from './ConversationalBuilder';
 
 const STATUS_LABELS: Record<string, { label: string; variant: 'default' | 'secondary' | 'destructive' | 'outline' }> = {
   draft: { label: 'Rascunho', variant: 'secondary' },
@@ -30,6 +31,7 @@ export function AgentBuilderLayout({ children }: AgentBuilderLayoutProps) {
   const { agent, activeTab, isDirty, isSaving, lastSaved, saveAgent, resetAgent, nextTab, prevTab } =
     useAgentBuilderStore();
   const [historyOpen, setHistoryOpen] = useState(false);
+  const [convOpen, setConvOpen] = useState(false);
   const { data: versions = [] } = useAgentVersions(agent.id as string | undefined);
 
   const currentIndex = TABS.findIndex((t) => t.id === activeTab);
@@ -100,6 +102,18 @@ export function AgentBuilderLayout({ children }: AgentBuilderLayoutProps) {
             <span className="hidden sm:inline">Salvar</span>
           </Button>
 
+          <Button
+            size="sm"
+            variant="outline"
+            onClick={() => setConvOpen(true)}
+            aria-label="Builder Conversacional"
+            title="Montar agente conversando com IA"
+            className="border-primary/40 text-primary hover:bg-primary/10"
+          >
+            <Sparkles className="h-3.5 w-3.5" />
+            <span className="hidden sm:inline">IA Builder</span>
+          </Button>
+
           {agent.id && versions.length >= 2 && (
             <Button
               size="sm"
@@ -168,6 +182,7 @@ export function AgentBuilderLayout({ children }: AgentBuilderLayoutProps) {
         versions={versions as any}
         agentId={agent.id as string | undefined}
       />
+      <ConversationalBuilder open={convOpen} onOpenChange={setConvOpen} />
     </div>
   );
 }
