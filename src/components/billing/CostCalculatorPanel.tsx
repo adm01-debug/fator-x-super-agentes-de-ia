@@ -7,7 +7,7 @@ import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Calculator, ArrowUpDown, DollarSign } from 'lucide-react';
-import { getAllPricing, calculateCost, formatCostUsd, formatCostBrl, compareCosts, type ModelPricing, type ActualCost } from '@/services/costCalculatorService';
+import { getAllPricing, calculateCost, formatCostUsd, formatCostBrl, compareCosts, type ActualCost } from '@/services/costCalculatorService';
 import { Button } from '@/components/ui/button';
 
 export function CostCalculatorPanel() {
@@ -121,8 +121,8 @@ export function CostCalculatorPanel() {
                 <div className="flex-1 min-w-0">
                   <p className="text-[11px] font-medium truncate">{c.provider}/{c.model}</p>
                 </div>
-                <Badge variant="outline" className="text-[10px]">{formatCostUsd(c.totalCostUsd)}</Badge>
-                <span className="text-[10px] text-muted-foreground">{formatCostBrl(c.totalCostBrl)}</span>
+                <Badge variant="outline" className="text-[10px]">{formatCostUsd(c.costUsd)}</Badge>
+                <span className="text-[10px] text-muted-foreground">{formatCostBrl(c.costBrl)}</span>
               </div>
             ))}
           </div>

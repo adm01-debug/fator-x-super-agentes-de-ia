@@ -6,7 +6,7 @@ import { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Input } from '@/components/ui/input';
+// Input removed — unused
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { ArrowRightLeft, Loader2, Plus, CheckCircle2, XCircle, Clock, AlertTriangle } from 'lucide-react';
 import { getHandoffHistory, initiateHandoff, acceptHandoff, rejectHandoff, type HandoffRecord, type HandoffReason } from '@/services/agentHandoffService';
@@ -28,7 +28,7 @@ interface Props {
 export function HandoffPanel({ agentId }: Props) {
   const [initiating, setInitiating] = useState(false);
   const [targetAgentId, setTargetAgentId] = useState('');
-  const [reason, setReason] = useState<HandoffReason>('capability_match');
+  const [reason, setReason] = useState<HandoffReason>('specialization');
 
   const { data: history = [], isLoading, refetch } = useQuery({
     queryKey: ['handoff_history', agentId],
@@ -52,7 +52,7 @@ export function HandoffPanel({ agentId }: Props) {
         sourceAgentId: agentId,
         targetAgentId,
         reason,
-        context: { messages: [], metadata: {}, summary: 'Manual handoff from builder' },
+        context: { messages: [], state: {}, instructions: 'Manual handoff from builder' },
       });
       toast.success('Handoff iniciado!');
       refetch();
@@ -105,7 +105,7 @@ export function HandoffPanel({ agentId }: Props) {
           <Select value={reason} onValueChange={v => setReason(v as HandoffReason)}>
             <SelectTrigger className="h-8 text-xs"><SelectValue /></SelectTrigger>
             <SelectContent>
-              <SelectItem value="capability_match">Capacidade</SelectItem>
+              <SelectItem value="skill_mismatch">Skill Mismatch</SelectItem>
               <SelectItem value="escalation">Escalação</SelectItem>
               <SelectItem value="specialization">Especialização</SelectItem>
               <SelectItem value="load_balancing">Load Balance</SelectItem>

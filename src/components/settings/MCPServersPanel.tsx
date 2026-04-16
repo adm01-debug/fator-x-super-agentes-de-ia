@@ -36,7 +36,7 @@ export function MCPServersPanel() {
     setAdding(true);
     try {
       const server = await registerMCPServer({
-        server: { url: newUrl, name: newName || new URL(newUrl).hostname, status: 'disconnected', tools: [] },
+        url: newUrl, name: newName || new URL(newUrl).hostname,
       });
       setServers(prev => [...prev, server]);
       toast.success(`MCP Server adicionado: ${server.name}`);
