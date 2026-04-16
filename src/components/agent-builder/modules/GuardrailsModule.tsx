@@ -7,7 +7,7 @@ import { Badge } from '@/components/ui/badge';
 import { Plus, Trash2, Shield, ShieldAlert, ShieldCheck, Lock, Brain, Loader2, CheckCircle2, XCircle } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import type { GuardrailConfig } from '@/types/agentTypes';
-import { checkInput, checkOutput, type GuardrailResponse } from '@/services/guardrailsMLService';
+import type { GuardrailResponse } from '@/services/guardrailsMLService';
 import { toast } from 'sonner';
 
 const DEFAULT_GUARDRAILS: GuardrailConfig[] = [
@@ -47,7 +47,7 @@ const SEVERITY_OPTIONS = [
 export function GuardrailsModule() {
   const agent = useAgentBuilderStore((s) => s.agent);
   const updateAgent = useAgentBuilderStore((s) => s.updateAgent);
-  const { validateInput: guardrailValidateInput, validateOutput: guardrailValidateOutput, checking: guardrailChecking, lastCheck: guardrailLastCheck } = useGuardrails();
+  const { validateInput: guardrailValidateInput, validateOutput: guardrailValidateOutput, lastCheck: guardrailLastCheck } = useGuardrails();
 
   const guardrails = agent.guardrails.length > 0 ? agent.guardrails : DEFAULT_GUARDRAILS;
 
