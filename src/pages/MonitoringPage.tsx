@@ -12,6 +12,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { toast } from "sonner";
 import { getAgentTraces, getSessions, getSessionTraces, getTraceEvents, getAlerts, resolveAlert, getAgentsForFilter } from "@/services/monitoringService";
 import { TracingPanel } from "@/components/monitoring/TracingPanel";
+import { AdvancedTraceFilters, applyTraceFilters, EMPTY_FILTERS, type TraceFilters } from "@/components/monitoring/AdvancedTraceFilters";
 import { AlertRulesPanel } from "@/components/monitoring/AlertRulesPanel";
 
 const PIE_COLORS = ['hsl(var(--primary))', 'hsl(var(--nexus-emerald, 142 71% 45%))', 'hsl(var(--nexus-amber, 38 92% 50%))', 'hsl(var(--nexus-cyan, 190 90% 50%))', 'hsl(var(--destructive))'];
