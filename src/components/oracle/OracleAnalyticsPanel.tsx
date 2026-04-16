@@ -63,6 +63,13 @@ export function OracleAnalyticsPanel() {
     queryFn: () => fetchOracleHistory({}),
   });
 
+  // Enrich with oracleService stats (cross-database aggregation)
+  const { data: serviceStats } = useQuery({
+    queryKey: ['oracle-service-stats'],
+    queryFn: () => getOracleStats().catch(() => null),
+    staleTime: 60_000,
+  });
+
   const metrics = useMemo(() => aggregateByMode(history), [history]);
 
   const totals = useMemo(() => {
