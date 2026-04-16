@@ -14,6 +14,50 @@ export type Database = {
   }
   public: {
     Tables: {
+      access_blocked_log: {
+        Row: {
+          country_code: string | null
+          created_at: string
+          id: string
+          ip_address: string | null
+          metadata: Json | null
+          reason: string
+          user_agent: string | null
+          user_id: string | null
+          workspace_id: string | null
+        }
+        Insert: {
+          country_code?: string | null
+          created_at?: string
+          id?: string
+          ip_address?: string | null
+          metadata?: Json | null
+          reason: string
+          user_agent?: string | null
+          user_id?: string | null
+          workspace_id?: string | null
+        }
+        Update: {
+          country_code?: string | null
+          created_at?: string
+          id?: string
+          ip_address?: string | null
+          metadata?: Json | null
+          reason?: string
+          user_agent?: string | null
+          user_id?: string | null
+          workspace_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "access_blocked_log_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       agent_installed_skills: {
         Row: {
           agent_id: string
@@ -1019,6 +1063,41 @@ export type Database = {
         }
         Relationships: []
       }
+      geo_allowed_countries: {
+        Row: {
+          country_code: string
+          country_name: string | null
+          created_at: string
+          created_by: string | null
+          id: string
+          workspace_id: string
+        }
+        Insert: {
+          country_code: string
+          country_name?: string | null
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          workspace_id: string
+        }
+        Update: {
+          country_code?: string
+          country_name?: string | null
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "geo_allowed_countries_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       guardrail_policies: {
         Row: {
           config: Json | null
@@ -1053,6 +1132,47 @@ export type Database = {
         Relationships: [
           {
             foreignKeyName: "guardrail_policies_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      ip_whitelist: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          id: string
+          ip_address: string
+          is_active: boolean
+          label: string | null
+          updated_at: string
+          workspace_id: string
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          ip_address: string
+          is_active?: boolean
+          label?: string | null
+          updated_at?: string
+          workspace_id: string
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          ip_address?: string
+          is_active?: boolean
+          label?: string | null
+          updated_at?: string
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ip_whitelist_workspace_id_fkey"
             columns: ["workspace_id"]
             isOneToOne: false
             referencedRelation: "workspaces"
