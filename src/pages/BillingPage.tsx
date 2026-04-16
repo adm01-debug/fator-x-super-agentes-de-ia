@@ -15,6 +15,7 @@ import { LightBarChart } from "@/components/charts";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { RealTimeCostStream } from "@/components/billing/RealTimeCostStream";
 import { CostOptimizationPanel } from "@/components/billing/CostOptimizationPanel";
+import { CostCalculatorPanel } from "@/components/billing/CostCalculatorPanel";
 import { toast } from "sonner";
 
 export default function BillingPage() {
@@ -87,6 +88,7 @@ export default function BillingPage() {
         <TabsList>
           <TabsTrigger value="overview">Visão geral</TabsTrigger>
           <TabsTrigger value="optimization">💡 Otimização</TabsTrigger>
+          <TabsTrigger value="calculator">🧮 Calculadora</TabsTrigger>
           <TabsTrigger value="stream">Stream ao vivo</TabsTrigger>
           <TabsTrigger value="budgets">Orçamentos</TabsTrigger>
           <TabsTrigger value="records">Registros de uso</TabsTrigger>
@@ -127,6 +129,10 @@ export default function BillingPage() {
 
         <TabsContent value="optimization">
           <CostOptimizationPanel />
+        </TabsContent>
+
+        <TabsContent value="calculator">
+          <CostCalculatorPanel />
         </TabsContent>
 
         <TabsContent value="stream">

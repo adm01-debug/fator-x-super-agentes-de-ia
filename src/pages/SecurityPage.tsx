@@ -16,6 +16,7 @@ import { Key, Plus, Trash2, Loader2, Copy } from 'lucide-react';
 import { AccessControl, DangerousActionDialog } from '@/components/rbac';
 import { toast } from 'sonner';
 import { RedTeamingPanel } from '@/components/security/RedTeamingPanel';
+import { PIIScannerPanel } from '@/components/security/PIIScannerPanel';
 
 interface ApiKey {
   id: string;
@@ -156,7 +157,7 @@ export default function SecurityPage() {
       <SessionManagement />
       <RateLimitingPanel />
       <AuditLogSection />
-
+      <PIIScannerPanel />
       <RedTeamingPanel />
     </div>
   );

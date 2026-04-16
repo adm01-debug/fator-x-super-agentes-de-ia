@@ -5,6 +5,7 @@ import { CollapsibleCard } from '../ui/CollapsibleCard';
 import { Button } from '@/components/ui/button';
 import { Plus, Trash2 } from 'lucide-react';
 import type { OrchestrationPattern, SubAgentRef } from '@/types/agentTypes';
+import { HandoffPanel } from '../HandoffPanel';
 
 const ORCHESTRATION_PATTERNS: { id: OrchestrationPattern; icon: string; title: string; description: string; badge?: string }[] = [
   { id: 'single', icon: '🎯', title: 'Single Agent', description: 'Um único agente executa tudo de forma autônoma.' },
@@ -237,6 +238,14 @@ export function OrchestrationModule() {
           </div>
         </div>
       </section>
+
+      {/* Handoff Panel */}
+      {isMultiAgent && (
+        <section>
+          <SectionTitle icon="🔄" title="Agent Handoff" subtitle="Configure handoffs formais entre agentes do time." />
+          <HandoffPanel agentId={agent.id || 'draft'} />
+        </section>
+      )}
     </div>
   );
 }
