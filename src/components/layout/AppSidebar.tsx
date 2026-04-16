@@ -9,6 +9,7 @@ import {
   Globe, ShieldCheck, CircleCheckBig, Crown, Route as RouteIcon, Languages,
   Mic, GitBranch as GitBranchIcon, KeyRound, Globe2, Monitor, Eye, Smartphone, TestTube2,
   Store, Cpu, Wand2, GitMerge, Terminal, Mail, Bug, FileCheck2,
+  PhoneCall, Network, FlaskRound, TrendingDown,
 } from "lucide-react";
 import {
   Sidebar, SidebarContent, SidebarGroup, SidebarGroupContent, SidebarGroupLabel,
@@ -61,6 +62,10 @@ const navSections = [
       { title: "Email Triggers", url: "/email-triggers", icon: Mail },
       { title: "Agent Debugger", url: "/debugger", icon: Bug },
       { title: "Compliance Reports", url: "/compliance-reports", icon: FileCheck2 },
+      { title: "Voice & Telefonia", url: "/voice-telephony", icon: PhoneCall },
+      { title: "Knowledge Graph", url: "/knowledge-graph", icon: Network },
+      { title: "Simulation Lab", url: "/simulation", icon: FlaskRound },
+      { title: "Cost Optimizer", url: "/cost-optimizer", icon: TrendingDown },
     ],
   },
   {
