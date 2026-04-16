@@ -76,6 +76,10 @@ const VoiceTelephonyPage = lazy(() => import("./pages/VoiceTelephonyPage"));
 const KnowledgeGraphPage = lazy(() => import("./pages/KnowledgeGraphPage"));
 const AgentSimulationPage = lazy(() => import("./pages/AgentSimulationPage"));
 const CostOptimizerPage = lazy(() => import("./pages/CostOptimizerPage"));
+const FederatedLearningPage = lazy(() => import("./pages/FederatedLearningPage"));
+const MultiTenancyPage = lazy(() => import("./pages/MultiTenancyPage"));
+const ObservabilityOTelPage = lazy(() => import("./pages/ObservabilityOTelPage"));
+const DisasterRecoveryPage = lazy(() => import("./pages/DisasterRecoveryPage"));
 const NotFound = lazy(() => import("./pages/NotFound"));
 
 const queryClient = new QueryClient({
