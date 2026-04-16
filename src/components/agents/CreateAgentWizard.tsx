@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { PageHeader } from "@/components/shared/PageHeader";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
@@ -8,7 +8,7 @@ import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { Badge } from "@/components/ui/badge";
 import {
-  Check, ArrowLeft, ArrowRight, ChevronRight, Shield,
+  Check, ArrowLeft, ArrowRight, ChevronRight, Shield, Search,
   LayoutTemplate, PenTool, Database, Rocket,
 } from "lucide-react";
 import { toast } from "sonner";
