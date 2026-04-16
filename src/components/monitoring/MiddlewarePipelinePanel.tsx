@@ -4,26 +4,15 @@
  */
 import { useState } from 'react';
 import { Badge } from '@/components/ui/badge';
-import { Button } from '@/components/ui/button';
 import { Switch } from '@/components/ui/switch';
 import { Layers, Shield, Clock, DollarSign, Eye, RefreshCcw, Zap } from 'lucide-react';
-import {
-  MiddlewarePipeline,
-  createLoggingMiddleware,
-  createTokenCounterMiddleware,
-  createCostTrackerMiddleware,
-  createRateLimiterMiddleware,
-  createContentFilterMiddleware,
-  createRetryMiddleware,
-} from '@/services/middlewarePipelineService';
 
 const AVAILABLE_MIDDLEWARES = [
-  { id: 'logging', name: 'Logging & Tracing', icon: Eye, description: 'Registra todas as requisições e respostas', factory: createLoggingMiddleware, priority: 1 },
-  { id: 'token_counter', name: 'Token Counter', icon: Zap, description: 'Contabiliza tokens de entrada e saída', factory: createTokenCounterMiddleware, priority: 10 },
-  { id: 'cost_tracker', name: 'Cost Tracker', icon: DollarSign, description: 'Rastreia custo por requisição', factory: createCostTrackerMiddleware, priority: 20 },
-  { id: 'rate_limiter', name: 'Rate Limiter', icon: Clock, description: 'Limita requisições por minuto', factory: createRateLimiterMiddleware, priority: 30 },
-  { id: 'content_filter', name: 'Content Filter', icon: Shield, description: 'Filtra conteúdo sensível', factory: createContentFilterMiddleware, priority: 40 },
-  { id: 'retry', name: 'Auto Retry', icon: RefreshCcw, description: 'Retenta em caso de falha', factory: createRetryMiddleware, priority: 50 },
+  { id: 'logging', name: 'Logging & Tracing', icon: Eye, description: 'Registra todas as requisições e respostas', priority: 1 },
+  { id: 'token_counter', name: 'Token Counter', icon: Zap, description: 'Contabiliza tokens de entrada e saída', priority: 10 },
+  { id: 'caching', name: 'Smart Cache', icon: DollarSign, description: 'Cache inteligente para evitar chamadas duplicadas', priority: 20 },
+  { id: 'pii_redaction', name: 'PII Redaction', icon: Shield, description: 'Remove dados pessoais antes de enviar ao LLM', priority: 30 },
+  { id: 'retry', name: 'Auto Retry', icon: RefreshCcw, description: 'Retenta em caso de falha', priority: 50 },
 ];
 
 export function MiddlewarePipelinePanel() {

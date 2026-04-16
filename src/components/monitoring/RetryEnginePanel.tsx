@@ -4,12 +4,10 @@
  */
 import { useState } from 'react';
 import { Badge } from '@/components/ui/badge';
-import { Button } from '@/components/ui/button';
 import { RefreshCcw, Shield, Zap, AlertTriangle, CheckCircle2 } from 'lucide-react';
 import {
   RETRY_PRESETS,
   DEFAULT_CIRCUIT_CONFIG,
-  type RetryPolicy,
 } from '@/services/retryEngineService';
 
 const PRESET_META: Record<string, { label: string; icon: React.ReactNode; description: string }> = {
