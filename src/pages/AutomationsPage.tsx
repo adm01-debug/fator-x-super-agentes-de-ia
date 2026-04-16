@@ -12,7 +12,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, Dialog
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Plus, Play, Trash2, Zap, History, AlertCircle, CheckCircle2 } from 'lucide-react';
 import { useAutomationRules, type TriggerType, type ActionType } from '@/hooks/useAutomationRules';
-import { useWorkspace } from '@/hooks/useWorkspace';
+import { useWorkspaceId } from '@/hooks/use-data';
 import { formatDistanceToNow } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 
@@ -33,8 +33,8 @@ const ACTIONS: { value: ActionType; label: string }[] = [
 ];
 
 export default function AutomationsPage() {
-  const { currentWorkspace } = useWorkspace();
-  const wsId = currentWorkspace?.id ?? null;
+  const { data: workspaceId } = useWorkspaceId();
+  const wsId = workspaceId ?? null;
   const { rules, logs, loading, createRule, toggleRule, deleteRule, runRule } = useAutomationRules(wsId);
   const [open, setOpen] = useState(false);
   const [form, setForm] = useState({
@@ -169,7 +169,7 @@ export default function AutomationsPage() {
             <Card key={l.id}>
               <CardContent className="py-3 flex items-center justify-between">
                 <div className="flex items-center gap-3">
-                  {l.status === 'success' ? <CheckCircle2 className="h-4 w-4 text-green-500" /> : <AlertCircle className="h-4 w-4 text-destructive" />}
+                  {l.status === 'success' ? <CheckCircle2 className="h-4 w-4 text-success" /> : <AlertCircle className="h-4 w-4 text-destructive" />}
                   <div>
                     <p className="text-sm font-medium">{rules.find(r => r.id === l.rule_id)?.name ?? l.rule_id}</p>
                     <p className="text-xs text-muted-foreground">
