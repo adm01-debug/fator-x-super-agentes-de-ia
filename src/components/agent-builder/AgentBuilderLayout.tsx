@@ -100,6 +100,20 @@ export function AgentBuilderLayout({ children }: AgentBuilderLayoutProps) {
             <span className="hidden sm:inline">Salvar</span>
           </Button>
 
+          {agent.id && versions.length >= 2 && (
+            <Button
+              size="sm"
+              variant="outline"
+              onClick={() => setHistoryOpen(true)}
+              aria-label="Histórico de versões"
+              title={`${versions.length} versões`}
+            >
+              <History className="h-3.5 w-3.5" />
+              <span className="hidden sm:inline">Histórico</span>
+              <span className="text-[10px] text-muted-foreground ml-0.5">{versions.length}</span>
+            </Button>
+          )}
+
           <Button size="sm" onClick={() => resetAgent()} aria-label="Novo agente">
             <Plus className="h-3.5 w-3.5" />
             <span className="hidden sm:inline">Novo</span>
@@ -148,6 +162,12 @@ export function AgentBuilderLayout({ children }: AgentBuilderLayoutProps) {
         </Button>
       </footer>
       <AgentPlayground />
+      <VersionDiffDialog
+        open={historyOpen}
+        onOpenChange={setHistoryOpen}
+        versions={versions as any}
+        agentId={agent.id as string | undefined}
+      />
     </div>
   );
 }
