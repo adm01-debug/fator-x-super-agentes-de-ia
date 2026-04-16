@@ -6,7 +6,7 @@ import { Badge } from '@/components/ui/badge';
 import { useAgentBuilderStore } from '@/stores/agentBuilderStore';
 import { invokeLLMGateway } from '@/services/llmGatewayService';
 import { useStreamingResponse } from '@/hooks/useStreamingResponse';
-import { Send, MessageSquare, Trash2, Bug, Loader2, StopCircle, Zap, Clock, Hash, DollarSign, Activity, RefreshCw } from 'lucide-react';
+import { Send, MessageSquare, Trash2, Bug, Loader2, StopCircle, Zap, Clock, Hash, Activity, RefreshCw } from 'lucide-react';
 import ReactMarkdown from 'react-markdown';
 
 interface ChatMessage {
