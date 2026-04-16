@@ -120,10 +120,10 @@ export function CreateAgentWizard() {
           <button onClick={() => { setMode("template"); setStep(0); }} className="nexus-card text-left transition-all hover:ring-2 hover:ring-primary/50 space-y-3 p-6">
             <div className="h-12 w-12 rounded-xl bg-primary/15 flex items-center justify-center"><LayoutTemplate className="h-6 w-6 text-primary" /></div>
             <h2 className="text-lg font-heading font-semibold text-foreground">Usar template</h2>
-            <p className="text-sm text-muted-foreground">Comece com um dos 6 templates pré-configurados e personalize em 3 passos rápidos.</p>
+            <p className="text-sm text-muted-foreground">Comece com um dos {AGENT_TEMPLATES_LIST.length} templates pré-configurados e personalize em 3 passos rápidos.</p>
             <div className="flex flex-wrap gap-1.5">
               {AGENT_TEMPLATES_LIST.slice(0, 3).map(t => <span key={t.id} className="text-xs bg-secondary px-2 py-0.5 rounded-full text-muted-foreground">{t.emoji} {t.name}</span>)}
-              <span className="text-xs bg-secondary px-2 py-0.5 rounded-full text-muted-foreground">+3</span>
+              <span className="text-xs bg-secondary px-2 py-0.5 rounded-full text-muted-foreground">+{Math.max(0, AGENT_TEMPLATES_LIST.length - 3)}</span>
             </div>
           </button>
           <button onClick={() => { setMode("scratch"); setStep(0); }} className="nexus-card text-left transition-all hover:ring-2 hover:ring-primary/50 space-y-3 p-6">
