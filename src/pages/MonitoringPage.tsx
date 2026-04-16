@@ -12,6 +12,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { toast } from "sonner";
 import { getAgentTraces, getSessions, getSessionTraces, getTraceEvents, getAlerts, resolveAlert, getAgentsForFilter } from "@/services/monitoringService";
 import { TracingPanel } from "@/components/monitoring/TracingPanel";
+import { AdvancedTraceFilters, applyTraceFilters, EMPTY_FILTERS, type TraceFilters } from "@/components/monitoring/AdvancedTraceFilters";
 import { AlertRulesPanel } from "@/components/monitoring/AlertRulesPanel";
 
 const PIE_COLORS = ['hsl(var(--primary))', 'hsl(var(--nexus-emerald, 142 71% 45%))', 'hsl(var(--nexus-amber, 38 92% 50%))', 'hsl(var(--nexus-cyan, 190 90% 50%))', 'hsl(var(--destructive))'];
@@ -20,8 +21,10 @@ export default function MonitoringPage() {
   const queryClient = useQueryClient();
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [agentFilter, setAgentFilter] = useState<string>('all');
+  const [traceFilters, setTraceFilters] = useState<TraceFilters>(EMPTY_FILTERS);
   const { data: agentsList = [] } = useQuery({ queryKey: ['agents_list_monitoring'], queryFn: getAgentsForFilter });
   const { data: traces = [], isLoading } = useQuery({ queryKey: ['agent_traces', agentFilter], queryFn: () => getAgentTraces({ agentId: agentFilter !== 'all' ? agentFilter : undefined }) });
+  const filteredTraces = applyTraceFilters(traces, traceFilters);
   const { data: sessions = [], isLoading: loadingSessions } = useQuery({ queryKey: ['sessions_real', agentFilter], queryFn: () => getSessions({ agentId: agentFilter !== 'all' ? agentFilter : undefined }) });
   const [expandedSessionId, setExpandedSessionId] = useState<string | null>(null);
   const { data: sessionTraces = [] } = useQuery({ queryKey: ['session_traces', expandedSessionId], enabled: !!expandedSessionId, queryFn: () => expandedSessionId ? getSessionTraces(expandedSessionId) : Promise.resolve([]) });
@@ -29,11 +32,11 @@ export default function MonitoringPage() {
   const { data: traceEvents = [] } = useQuery({ queryKey: ['trace_events', expandedTraceId], enabled: !!expandedTraceId, queryFn: () => expandedTraceId ? getTraceEvents(expandedTraceId) : Promise.resolve([]) });
   const { data: alerts = [], isLoading: loadingAlerts } = useQuery({ queryKey: ['alerts'], queryFn: () => getAlerts({}) });
 
-  const selected = traces.find((t: any) => t.id === selectedId) || traces[0];
-  const stats = { total: traces.length, errors: traces.filter((t: any) => t.level === 'error' || t.level === 'critical').length, avgLatency: traces.length ? Math.round(traces.reduce((s: number, t: any) => s + (t.latency_ms || 0), 0) / traces.length) : 0, totalCost: traces.reduce((s: number, t: any) => s + Number(t.cost_usd || 0), 0) };
-  const levelCounts = traces.reduce((acc: Record<string, number>, t: any) => { const level = t.level || 'info'; acc[level] = (acc[level] || 0) + 1; return acc; }, {} as Record<string, number>);
+  const selected = filteredTraces.find((t: any) => t.id === selectedId) || filteredTraces[0];
+  const stats = { total: filteredTraces.length, errors: filteredTraces.filter((t: any) => t.level === 'error' || t.level === 'critical').length, avgLatency: filteredTraces.length ? Math.round(filteredTraces.reduce((s: number, t: any) => s + (t.latency_ms || 0), 0) / filteredTraces.length) : 0, totalCost: filteredTraces.reduce((s: number, t: any) => s + Number(t.cost_usd || 0), 0) };
+  const levelCounts = filteredTraces.reduce((acc: Record<string, number>, t: any) => { const level = t.level || 'info'; acc[level] = (acc[level] || 0) + 1; return acc; }, {} as Record<string, number>);
   const pieData = Object.entries(levelCounts).map(([name, value]) => ({ name, value: value as number }));
-  const latencyData = traces.slice(0, 20).reverse().map((t: any) => ({ time: new Date(t.created_at).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' }), latency: t.latency_ms || 0 }));
+  const latencyData = filteredTraces.slice(0, 20).reverse().map((t: any) => ({ time: new Date(t.created_at).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' }), latency: t.latency_ms || 0 }));
   const unresolvedCount = alerts.filter((a: any) => !a.is_resolved).length;
   const agentName = (id: string | null) => { if (!id) return '—'; const a = agentsList.find((ag: any) => ag.id === id); return a ? a.name : id.substring(0, 8); };
 
@@ -43,13 +46,14 @@ export default function MonitoringPage() {
     <div className="p-6 sm:p-8 lg:p-10 space-y-6 max-w-[1400px] mx-auto animate-page-enter">
       <PageHeader title="Monitoramento" description="Traces, sessões, alertas e observabilidade em tempo real" />
       <SystemHealthBanner />
-      <div className="flex items-center gap-3">
+      <div className="flex items-center gap-3 flex-wrap">
         <Select value={agentFilter} onValueChange={setAgentFilter}>
           <SelectTrigger className="w-[220px] bg-secondary/50 text-xs"><SelectValue placeholder="Filtrar por agente" /></SelectTrigger>
           <SelectContent><SelectItem value="all">Todos os agentes</SelectItem>{agentsList.map((a) => <SelectItem key={a.id} value={String(a.id)}>{String(a.name)}</SelectItem>)}</SelectContent>
         </Select>
         {agentFilter !== 'all' && <Badge variant="outline" className="text-[11px]">Filtrado</Badge>}
       </div>
+      <AdvancedTraceFilters filters={traceFilters} onChange={setTraceFilters} />
 
       <Tabs defaultValue="traces" className="space-y-4">
         <TabsList>
@@ -61,7 +65,7 @@ export default function MonitoringPage() {
 
         <TabsContent value="traces">
           {isLoading ? <div className="flex items-center justify-center py-20"><Loader2 className="h-6 w-6 animate-spin text-muted-foreground" /></div>
-          : traces.length === 0 ? <div className="flex flex-col items-center justify-center py-20 text-center"><Activity className="h-12 w-12 text-muted-foreground mb-4" /><h2 className="text-lg font-semibold text-foreground mb-1">Nenhum trace registrado</h2><p className="text-sm text-muted-foreground">Traces aparecerão aqui quando agentes estiverem em produção.</p></div>
+          : filteredTraces.length === 0 ? <div className="flex flex-col items-center justify-center py-20 text-center"><Activity className="h-12 w-12 text-muted-foreground mb-4" /><h2 className="text-lg font-semibold text-foreground mb-1">Nenhum trace registrado</h2><p className="text-sm text-muted-foreground">Traces aparecerão aqui quando agentes estiverem em produção.</p></div>
           : <>
               <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
                 <div className="nexus-card text-center py-3"><p className="text-xl font-heading font-bold text-foreground">{stats.total}</p><p className="text-[11px] text-muted-foreground">Total de traces</p></div>
@@ -76,7 +80,7 @@ export default function MonitoringPage() {
               <div className="grid lg:grid-cols-3 gap-4">
                 <div className="space-y-2 max-h-[500px] overflow-y-auto">
                   <h3 className="text-xs font-heading font-semibold text-muted-foreground uppercase tracking-wider mb-2">Eventos recentes</h3>
-                  {traces.map((trace: any) => (
+                  {filteredTraces.map((trace: any) => (
                     <div key={trace.id} className={`nexus-card cursor-pointer p-3 ${selected?.id === trace.id ? 'border-primary/40 nexus-glow-sm' : ''}`} onClick={() => setSelectedId(trace.id)}>
                       <div className="flex items-center justify-between mb-1.5"><p className="text-xs font-medium text-foreground truncate">{trace.event}</p><StatusBadge status={trace.level || 'info'} /></div>
                       <p className="text-[11px] text-muted-foreground">{trace.session_id || trace.id.slice(0, 8)}</p>
