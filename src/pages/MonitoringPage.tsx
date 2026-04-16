@@ -65,7 +65,7 @@ export default function MonitoringPage() {
 
         <TabsContent value="traces">
           {isLoading ? <div className="flex items-center justify-center py-20"><Loader2 className="h-6 w-6 animate-spin text-muted-foreground" /></div>
-          : traces.length === 0 ? <div className="flex flex-col items-center justify-center py-20 text-center"><Activity className="h-12 w-12 text-muted-foreground mb-4" /><h2 className="text-lg font-semibold text-foreground mb-1">Nenhum trace registrado</h2><p className="text-sm text-muted-foreground">Traces aparecerão aqui quando agentes estiverem em produção.</p></div>
+          : filteredTraces.length === 0 ? <div className="flex flex-col items-center justify-center py-20 text-center"><Activity className="h-12 w-12 text-muted-foreground mb-4" /><h2 className="text-lg font-semibold text-foreground mb-1">Nenhum trace registrado</h2><p className="text-sm text-muted-foreground">Traces aparecerão aqui quando agentes estiverem em produção.</p></div>
           : <>
               <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
                 <div className="nexus-card text-center py-3"><p className="text-xl font-heading font-bold text-foreground">{stats.total}</p><p className="text-[11px] text-muted-foreground">Total de traces</p></div>
@@ -80,7 +80,7 @@ export default function MonitoringPage() {
               <div className="grid lg:grid-cols-3 gap-4">
                 <div className="space-y-2 max-h-[500px] overflow-y-auto">
                   <h3 className="text-xs font-heading font-semibold text-muted-foreground uppercase tracking-wider mb-2">Eventos recentes</h3>
-                  {traces.map((trace: any) => (
+                  {filteredTraces.map((trace: any) => (
                     <div key={trace.id} className={`nexus-card cursor-pointer p-3 ${selected?.id === trace.id ? 'border-primary/40 nexus-glow-sm' : ''}`} onClick={() => setSelectedId(trace.id)}>
                       <div className="flex items-center justify-between mb-1.5"><p className="text-xs font-medium text-foreground truncate">{trace.event}</p><StatusBadge status={trace.level || 'info'} /></div>
                       <p className="text-[11px] text-muted-foreground">{trace.session_id || trace.id.slice(0, 8)}</p>
