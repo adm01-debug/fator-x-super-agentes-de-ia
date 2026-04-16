@@ -54,6 +54,7 @@ const AutomationCenterPage = lazy(() => import("./pages/AutomationCenterPage"));
 const RolesPage = lazy(() => import("./pages/RolesPage"));
 const PermissionsPage = lazy(() => import("./pages/PermissionsPage"));
 const RolePermissionsPage = lazy(() => import("./pages/RolePermissionsPage"));
+const SearchPage = lazy(() => import("./pages/SearchPage"));
 const NotFound = lazy(() => import("./pages/NotFound"));
 
 const queryClient = new QueryClient({
@@ -143,6 +144,7 @@ const App = () => (
                       <Route path="/rbac/roles" element={<SafePage><ProtectedRoute permission="team.roles"><RolesPage /></ProtectedRoute></SafePage>} />
                       <Route path="/rbac/roles/:roleKey" element={<SafePage><ProtectedRoute permission="team.roles"><RolePermissionsPage /></ProtectedRoute></SafePage>} />
                       <Route path="/rbac/permissions" element={<SafePage><ProtectedRoute permission="team.roles"><PermissionsPage /></ProtectedRoute></SafePage>} />
+                      <Route path="/search" element={<SafePage><SearchPage /></SafePage>} />
                       <Route path="*" element={<SafePage><NotFound /></SafePage>} />
                     </Routes>
                   </AppLayout>

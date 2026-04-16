@@ -114,3 +114,4 @@ export * from './auditLogService';
 export * from './temporalKnowledgeService';
 export * from './entityResolutionService';
 export * from './knowledgeDecayService';
+export * from './searchService';
