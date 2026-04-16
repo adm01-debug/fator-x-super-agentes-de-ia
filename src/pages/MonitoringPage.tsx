@@ -3,7 +3,7 @@ import { StatusBadge } from "@/components/shared/StatusBadge";
 import { SystemHealthBanner } from "@/components/shared/SystemHealthBanner";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Clock, DollarSign, Wrench, Activity, Loader2, Bell, CheckCircle, Layers, Zap } from "lucide-react";
+import { Clock, DollarSign, Wrench, Activity, Loader2, Bell, CheckCircle, Layers, Zap, Shield } from "lucide-react";
 import { useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { LightBarChart, LightPieChart } from "@/components/charts";
