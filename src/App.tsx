@@ -168,6 +168,9 @@ const App = () => (
                       <Route path="/vision" element={<SafePage><VisionAgentsPage /></SafePage>} />
                       <Route path="/mobile-sdk" element={<SafePage><MobileSDKPage /></SafePage>} />
                       <Route path="/ab-test" element={<SafePage><PromptABTestPage /></SafePage>} />
+                      <Route path="/marketplace-pro" element={<SafePage><MarketplaceMonetizedPage /></SafePage>} />
+                      <Route path="/synthetic-data" element={<SafePage><SyntheticDataPage /></SafePage>} />
+                      <Route path="/canary" element={<SafePage><CanaryDeploymentsPage /></SafePage>} />
                       <Route path="*" element={<SafePage><NotFound /></SafePage>} />
                     </Routes>
                   </AppLayout>
