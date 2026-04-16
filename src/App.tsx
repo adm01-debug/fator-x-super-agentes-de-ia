@@ -51,6 +51,7 @@ const FineTuningPage = lazy(() => import("./pages/FineTuningPage"));
 const SmolagentPage = lazy(() => import("./pages/SmolagentPage"));
 const SkillsMarketplacePage = lazy(() => import("./pages/SkillsMarketplacePage"));
 const AutomationCenterPage = lazy(() => import("./pages/AutomationCenterPage"));
+const AutomationsPage = lazy(() => import("./pages/AutomationsPage"));
 const RolesPage = lazy(() => import("./pages/RolesPage"));
 const PermissionsPage = lazy(() => import("./pages/PermissionsPage"));
 const RolePermissionsPage = lazy(() => import("./pages/RolePermissionsPage"));
@@ -159,6 +160,7 @@ const App = () => (
                       <Route path="/prompts/:id" element={<SafePage><PromptEditorPage /></SafePage>} />
                       <Route path="/workflows" element={<SafePage><WorkflowsPage /></SafePage>} />
                       <Route path="/automation" element={<SafePage><AutomationCenterPage /></SafePage>} />
+                      <Route path="/automations" element={<SafePage><AutomationsPage /></SafePage>} />
                       <Route path="/evaluations" element={<SafePage><EvaluationsPage /></SafePage>} />
                       <Route path="/deployments" element={<SafePage><DeploymentsPage /></SafePage>} />
                       <Route path="/deploy/openclaw" element={<SafePage><OpenclawDeployPage /></SafePage>} />
