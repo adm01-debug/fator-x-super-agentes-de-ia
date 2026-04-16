@@ -7,7 +7,7 @@ import { Bot, Loader2, GitCompare } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
 import { getAgentById, getAgentDetailTraces, getAgentUsage, getAgentRecentAlerts, getAgentVersions } from "@/services/agentsService";
 import { VersionDiffDialog } from "@/components/agents/VersionDiffDialog";
-// Self-Evolution: available via agentEvolutionService (getSkillbook, buildSkillbookPrompt)
+import { AgentCardViewer } from "@/components/agents/AgentCardViewer";
 
 export default function AgentDetailPage() {
   const { id } = useParams();
@@ -41,9 +41,12 @@ export default function AgentDetailPage() {
         description={agent.mission || 'Sem descrição'}
         backTo="/agents"
         actions={
-          <Button variant="outline" size="sm" onClick={() => navigate(`/builder/${agent.id}`)}>
-            Editar no Builder
-          </Button>
+          <div className="flex items-center gap-2">
+            <AgentCardViewer agentId={agent.id} agentName={agent.name} />
+            <Button variant="outline" size="sm" onClick={() => navigate(`/builder/${agent.id}`)}>
+              Editar no Builder
+            </Button>
+          </div>
         }
       />
 

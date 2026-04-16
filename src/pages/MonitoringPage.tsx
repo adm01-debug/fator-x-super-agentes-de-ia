@@ -3,7 +3,7 @@ import { StatusBadge } from "@/components/shared/StatusBadge";
 import { SystemHealthBanner } from "@/components/shared/SystemHealthBanner";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Clock, DollarSign, Wrench, Activity, Loader2, Bell, CheckCircle, Layers, Zap } from "lucide-react";
+import { Clock, DollarSign, Wrench, Activity, Loader2, Bell, CheckCircle, Layers, Zap, Shield } from "lucide-react";
 import { useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { LightBarChart, LightPieChart } from "@/components/charts";
@@ -15,7 +15,8 @@ import { TracingPanel } from "@/components/monitoring/TracingPanel";
 import { AdvancedTraceFilters, applyTraceFilters, EMPTY_FILTERS, type TraceFilters } from "@/components/monitoring/AdvancedTraceFilters";
 import { AlertRulesPanel } from "@/components/monitoring/AlertRulesPanel";
 import { WebVitalsPanel } from "@/components/monitoring/WebVitalsPanel";
-
+import { MiddlewarePipelinePanel } from "@/components/monitoring/MiddlewarePipelinePanel";
+import { RetryEnginePanel } from "@/components/monitoring/RetryEnginePanel";
 const PIE_COLORS = ['hsl(var(--primary))', 'hsl(var(--nexus-emerald, 142 71% 45%))', 'hsl(var(--nexus-amber, 38 92% 50%))', 'hsl(var(--nexus-cyan, 190 90% 50%))', 'hsl(var(--destructive))'];
 
 export default function MonitoringPage() {
@@ -63,6 +64,8 @@ export default function MonitoringPage() {
           <TabsTrigger value="alerts" className="gap-1.5">Alertas {unresolvedCount > 0 && <Badge variant="destructive" className="text-[11px] h-4 px-1">{unresolvedCount}</Badge>}</TabsTrigger>
           <TabsTrigger value="tracing" className="gap-1.5"><Zap className="h-3.5 w-3.5" /> Tracing</TabsTrigger>
           <TabsTrigger value="vitals" className="gap-1.5">⚡ Web Vitals</TabsTrigger>
+          <TabsTrigger value="middleware" className="gap-1.5"><Layers className="h-3.5 w-3.5" /> Middleware</TabsTrigger>
+          <TabsTrigger value="resilience" className="gap-1.5"><Shield className="h-3.5 w-3.5" /> Resiliência</TabsTrigger>
         </TabsList>
 
         <TabsContent value="traces">
@@ -189,6 +192,8 @@ export default function MonitoringPage() {
 
         <TabsContent value="tracing"><TracingPanel /></TabsContent>
         <TabsContent value="vitals"><WebVitalsPanel /></TabsContent>
+        <TabsContent value="middleware"><MiddlewarePipelinePanel /></TabsContent>
+        <TabsContent value="resilience"><RetryEnginePanel /></TabsContent>
       </Tabs>
     </div>
   );

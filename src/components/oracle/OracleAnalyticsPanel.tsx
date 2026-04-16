@@ -11,6 +11,7 @@ import {
 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { fetchOracleHistory, type OracleHistoryEntry } from "@/lib/oracleHistory";
+import { getOracleStats } from "@/services/oracleService";
 import { ORACLE_MODES, type OracleMode } from "@/stores/oracleStore";
 
 interface ModeMetrics {
@@ -62,6 +63,13 @@ export function OracleAnalyticsPanel() {
     queryFn: () => fetchOracleHistory({}),
   });
 
+  // Enrich with oracleService stats (cross-database aggregation)
+  const { data: serviceStats } = useQuery({
+    queryKey: ['oracle-service-stats'],
+    queryFn: () => getOracleStats().catch(() => null),
+    staleTime: 60_000,
+  });
+
   const metrics = useMemo(() => aggregateByMode(history), [history]);
 
   const totals = useMemo(() => {
@@ -79,8 +87,10 @@ export function OracleAnalyticsPanel() {
       ? eligibleModes.reduce((max, m) => (m.avg_confidence > max.avg_confidence ? m : max))
       : null;
 
-    return { totalQueries, totalCost, avgConfidence, avgLatencyS, bestMode };
-  }, [history, metrics]);
+    // Merge with cross-database stats from oracleService if available
+    const totalTokens = serviceStats?.totalTokens ?? history.reduce((a, e) => a + (e.total_tokens ?? 0), 0);
+    return { totalQueries, totalCost, avgConfidence, avgLatencyS, bestMode, totalTokens };
+  }, [history, metrics, serviceStats]);
 
   return (
     <div className="space-y-4">

@@ -6,9 +6,10 @@ import type { LLMModel, ReasoningPattern } from '@/types/agentTypes';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { cn } from '@/lib/utils';
 import { routeQuery, type RouteResult } from '@/services/modelRouterService';
+import { getAllSkills } from '@/services/progressiveSkillLoader';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Sparkles, Loader2 } from 'lucide-react';
+import { Sparkles, Loader2, Cpu } from 'lucide-react';
 import { toast } from 'sonner';
 
 const MODELS = [
@@ -178,6 +179,30 @@ export function BrainModule() {
             min={0} max={10} step={1}
             description="Tentativas em caso de falha."
           />
+        </div>
+      </section>
+
+      {/* Seção E — Progressive Skill Loading */}
+      <section>
+        <SectionTitle icon="🧩" title="Progressive Skill Loading" subtitle="Skills carregadas dinamicamente no contexto do LLM para economizar tokens." />
+        <div className="rounded-lg border border-border/50 bg-secondary/20 p-4">
+          <div className="flex items-center gap-2 mb-2">
+            <Cpu className="h-4 w-4 text-primary" />
+            <span className="text-xs font-semibold text-foreground">Skills Registradas</span>
+            <Badge variant="secondary" className="text-[11px]">{getAllSkills().length}</Badge>
+          </div>
+          <p className="text-[11px] text-muted-foreground">
+            O sistema carrega apenas as skills relevantes para cada tarefa, otimizando uso de tokens e qualidade da resposta.
+            Skills são selecionadas por matching semântico com a task description.
+          </p>
+          {getAllSkills().length > 0 && (
+            <div className="flex flex-wrap gap-1 mt-2">
+              {getAllSkills().slice(0, 10).map(s => (
+                <Badge key={s.id} variant="outline" className="text-[10px]">{s.name}</Badge>
+              ))}
+              {getAllSkills().length > 10 && <Badge variant="secondary" className="text-[10px]">+{getAllSkills().length - 10} mais</Badge>}
+            </div>
+          )}
         </div>
       </section>
     </div>

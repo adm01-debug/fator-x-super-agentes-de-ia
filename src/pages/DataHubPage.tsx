@@ -22,6 +22,7 @@ import { EntityDetailPanel, ENTITY_ICONS, getConnectionLabel } from '@/component
 import { MCPServerPanel } from '@/components/datahub/MCPServerPanel';
 import { DATAHUB_TABLE_BLACKLIST } from '@/config/datahub-blacklist';
 import { testDatahubConnections, listDatahubEntities } from '@/services/datahubService';
+import { NLPAnalysisDialog } from '@/components/shared/NLPAnalysisDialog';
 import { toast } from 'sonner';
 
 export default function DataHubPage() {
@@ -88,7 +89,7 @@ export default function DataHubPage() {
 
   return (
     <div className="p-6 sm:p-8 lg:p-10 space-y-6 max-w-[1400px] mx-auto animate-page-enter">
-      <PageHeader title="DataHub" description="Central de dados: explore entidades, conexões e mapeamentos cross-database" />
+      <PageHeader title="DataHub" description="Central de dados: explore entidades, conexões e mapeamentos cross-database" actions={<NLPAnalysisDialog />} />
       <DataHubStats entityCount={ENTITY_LIST.length} connectionCount={activeConnections.length} connectedCount={connectedCount} totalRecords={totalRecords} joinCount={joinCount} crossDbCount={crossDbCount} />
       <InfoHint title="Como funciona o DataHub?">O DataHub mapeia entidades de negócio (Clientes, Produtos, etc.) para tabelas em múltiplos bancos de dados externos. Cada entidade tem uma tabela primária e pode ter joins secundários e <strong>cross-database</strong>.</InfoHint>
 
