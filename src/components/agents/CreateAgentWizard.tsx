@@ -82,6 +82,7 @@ export function CreateAgentWizard() {
         const dbNames = new Set(dbTemplates.map(t => norm(t.name)));
         const merged = [...dbTemplates, ...STATIC_TEMPLATES.filter(t => !dbNames.has(norm(t.name)))];
         setAgentTemplates(merged);
+        setDbTemplateIds(new Set(dbTemplates.map(t => t.id)));
       }
     }).then(undefined, () => {});
   }, []);
