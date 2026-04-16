@@ -11,6 +11,7 @@ import {
 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { fetchOracleHistory, type OracleHistoryEntry } from "@/lib/oracleHistory";
+import { getOracleStats } from "@/services/oracleService";
 import { ORACLE_MODES, type OracleMode } from "@/stores/oracleStore";
 
 interface ModeMetrics {
