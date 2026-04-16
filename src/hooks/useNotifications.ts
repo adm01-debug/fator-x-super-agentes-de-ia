@@ -21,13 +21,15 @@ export function useNotifications(pollIntervalMs: number = 30000) {
   const { user } = useAuth();
 
   const refresh = useCallback(async () => {
-    if (!user?.id) return;
+    if (!user?.id) { setLoading(false); return; }
     try {
       const data = await getInAppNotifications(user.id, false);
       setNotifications(data);
       setUnreadCount(data.filter((n) => n.status === 'sent' || n.status === 'delivered').length);
     } catch {
-      // silent fail for polling
+      // Table may not exist — silently return empty
+      setNotifications([]);
+      setUnreadCount(0);
     } finally {
       setLoading(false);
     }
