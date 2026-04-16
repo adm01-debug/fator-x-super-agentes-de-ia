@@ -30,37 +30,46 @@ export interface UsageRecord {
  * Lists agents for the dashboard view (most recently updated first).
  */
 export async function listAgentsForDashboard(): Promise<AgentSummary[]> {
-  const { data, error } = await supabaseExternal
-    .from('agents')
-    .select('id, name, mission, avatar_emoji, status, model, tags, version, updated_at')
-    .order('updated_at', { ascending: false });
-  if (error) {
-    logger.error('Failed to list dashboard agents', { error: error.message });
-    throw error;
+  try {
+    const { data, error } = await supabaseExternal
+      .from('agents')
+      .select('id, name, mission, avatar_emoji, status, model, tags, version, updated_at')
+      .order('updated_at', { ascending: false });
+    if (error) {
+      logger.error('Failed to list dashboard agents', { error: error.message });
+      return [];
+    }
+    return (data ?? []) as AgentSummary[];
+  } catch (e) {
+    logger.error('Dashboard agents fetch crashed', { error: String(e) });
+    return [];
   }
-  return (data ?? []) as AgentSummary[];
 }
 
 /**
  * Returns usage records for the last N days.
  */
 export async function getUsageInRange(days: number): Promise<UsageRecord[]> {
-  const fromDate = new Date();
-  fromDate.setDate(fromDate.getDate() - days);
-  const { data, error } = await supabaseExternal
-    .from('agent_usage')
-    .select('*')
-    .gte('date', fromDate.toISOString().split('T')[0]);
-  if (error) {
-    logger.error('Failed to fetch usage range', { days, error: error.message });
-    throw error;
+  try {
+    const fromDate = new Date();
+    fromDate.setDate(fromDate.getDate() - days);
+    const { data, error } = await supabaseExternal
+      .from('agent_usage')
+      .select('*')
+      .gte('date', fromDate.toISOString().split('T')[0]);
+    if (error) {
+      logger.error('Failed to fetch usage range', { days, error: error.message });
+      return [];
+    }
+    return (data ?? []) as UsageRecord[];
+  } catch (e) {
+    logger.error('Usage range fetch crashed', { error: String(e) });
+    return [];
   }
-  return (data ?? []) as UsageRecord[];
 }
 
 /**
  * Subscribes to realtime alert changes. Returns an unsubscribe fn.
- * Used by DashboardAlerts to invalidate queries on insert/update.
  */
 export function subscribeToAlerts(onChange: () => void): () => void {
   const channel = supabaseExternal
@@ -76,31 +85,39 @@ export function subscribeToAlerts(onChange: () => void): () => void {
  * Recent unresolved alerts for the dashboard banner.
  */
 export async function getUnresolvedAlerts(limit = 5) {
-  const { data, error } = await supabaseExternal
-    .from('alerts')
-    .select('id, title, severity, created_at, is_resolved')
-    .eq('is_resolved', false)
-    .order('created_at', { ascending: false })
-    .limit(limit);
-  if (error) {
-    logger.error('Failed to fetch unresolved alerts', { error: error.message });
-    throw error;
+  try {
+    const { data, error } = await supabaseExternal
+      .from('alerts')
+      .select('id, title, severity, created_at, is_resolved')
+      .eq('is_resolved', false)
+      .order('created_at', { ascending: false })
+      .limit(limit);
+    if (error) {
+      logger.error('Failed to fetch unresolved alerts', { error: error.message });
+      return [];
+    }
+    return data ?? [];
+  } catch {
+    return [];
   }
-  return data ?? [];
 }
 
 /**
  * Recent traces for the dashboard activity feed.
  */
 export async function getRecentDashboardTraces(limit = 5) {
-  const { data, error } = await supabaseExternal
-    .from('agent_traces')
-    .select('id, event, level, latency_ms, created_at')
-    .order('created_at', { ascending: false })
-    .limit(limit);
-  if (error) {
-    logger.error('Failed to fetch recent traces', { error: error.message });
-    throw error;
+  try {
+    const { data, error } = await supabaseExternal
+      .from('agent_traces')
+      .select('id, event, level, latency_ms, created_at')
+      .order('created_at', { ascending: false })
+      .limit(limit);
+    if (error) {
+      logger.error('Failed to fetch recent traces', { error: error.message });
+      return [];
+    }
+    return data ?? [];
+  } catch {
+    return [];
   }
-  return data ?? [];
 }
