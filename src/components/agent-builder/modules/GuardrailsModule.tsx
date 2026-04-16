@@ -47,8 +47,7 @@ const SEVERITY_OPTIONS = [
 export function GuardrailsModule() {
   const agent = useAgentBuilderStore((s) => s.agent);
   const updateAgent = useAgentBuilderStore((s) => s.updateAgent);
-  const guardrails_hook = useGuardrails();
-  const guardrailChecking = guardrails_hook.checking;
+  const { validateInput: guardrailValidateInput, validateOutput: guardrailValidateOutput, checking: guardrailChecking, lastCheck: guardrailLastCheck } = useGuardrails();
 
   const guardrails = agent.guardrails.length > 0 ? agent.guardrails : DEFAULT_GUARDRAILS;
 
@@ -97,9 +96,13 @@ export function GuardrailsModule() {
     setMlTesting(true);
     setMlResult(null);
     try {
-      const result = direction === 'input' ? await checkInput(mlTestText) : await checkOutput(mlTestText);
+      // Use useGuardrails hook for validation
+      const allowed = direction === 'input'
+        ? await guardrailValidateInput(mlTestText)
+        : await guardrailValidateOutput(mlTestText);
+      const result = guardrailLastCheck;
       setMlResult(result);
-      toast[result.allowed ? 'success' : 'error'](result.allowed ? 'Aprovado pelo ML' : `Bloqueado: ${result.blocked_count} violação(ões)`);
+      toast[allowed ? 'success' : 'error'](allowed ? 'Aprovado pelo ML' : `Bloqueado: ${result?.blocked_count ?? 0} violação(ões)`);
     } catch {
       toast.error('Guardrails ML indisponível');
     } finally {
