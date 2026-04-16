@@ -1,11 +1,17 @@
 import { useState } from 'react';
 import { SectionTitle, CodeBlock } from '../ui';
 import { useAgentBuilderStore } from '@/stores/agentBuilderStore';
+import { useAgentVersions } from '@/hooks/useAgentVersions';
+import { VersionDiffDialog } from '@/components/agents/VersionDiffDialog';
+import { Button } from '@/components/ui/button';
+import { GitCompare, History } from 'lucide-react';
 import { toast } from 'sonner';
 
 export function BlueprintModule() {
   const { agent, exportJSON, exportMarkdown } = useAgentBuilderStore();
   const [showFormat, setShowFormat] = useState<'json' | 'markdown'>('json');
+  const [historyOpen, setHistoryOpen] = useState(false);
+  const { data: versions = [] } = useAgentVersions(agent.id as string | undefined);
 
   const summaryCards = [
     { label: 'Nome', value: `${agent.avatar_emoji} ${agent.name || '(sem nome)'}` },
@@ -127,6 +133,47 @@ export function BlueprintModule() {
           </p>
         </div>
       </div>
+
+      {/* Versions Timeline */}
+      {agent.id && versions.length > 0 && (
+        <>
+          <SectionTitle icon="🕒" title="Histórico de Versões" subtitle={`${versions.length} versões salvas`} />
+          <div className="rounded-xl border border-border bg-card p-4 space-y-3">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                <History className="h-4 w-4" />
+                Últimas alterações
+              </div>
+              {versions.length >= 2 && (
+                <Button size="sm" variant="outline" onClick={() => setHistoryOpen(true)} className="gap-1.5 h-7 text-xs">
+                  <GitCompare className="h-3 w-3" />
+                  Comparar versões
+                </Button>
+              )}
+            </div>
+            <div className="space-y-1.5 max-h-64 overflow-auto">
+              {versions.slice(0, 10).map((v) => (
+                <div key={v.id} className="flex items-center justify-between text-xs py-1.5 px-2 rounded-md hover:bg-muted/50">
+                  <div className="flex items-center gap-2 min-w-0">
+                    <span className="font-mono font-semibold text-foreground shrink-0">v{v.version}</span>
+                    <span className="text-muted-foreground truncate">{v.model || '—'}</span>
+                    {v.change_summary && <span className="text-muted-foreground truncate">· {v.change_summary}</span>}
+                  </div>
+                  <span className="text-muted-foreground shrink-0 ml-2">
+                    {new Date(v.created_at).toLocaleDateString('pt-BR')}
+                  </span>
+                </div>
+              ))}
+            </div>
+          </div>
+          <VersionDiffDialog
+            open={historyOpen}
+            onOpenChange={setHistoryOpen}
+            versions={versions as any}
+            agentId={agent.id as string | undefined}
+          />
+        </>
+      )}
     </div>
   );
 }
