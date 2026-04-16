@@ -11,6 +11,7 @@ import { useQuery } from "@tanstack/react-query";
 import { listEvaluationRuns } from "@/services/evaluationsService";
 import { CreateEvaluationDialog } from "@/components/dialogs/CreateEvaluationDialog";
 import { EvaluationDatasetsPanel } from "@/components/evaluations/EvaluationDatasetsPanel";
+import { RAGASMetricsPanel } from "@/components/evaluations/RAGASMetricsPanel";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
 export default function EvaluationsPage() {
@@ -34,6 +35,7 @@ export default function EvaluationsPage() {
       <Tabs defaultValue="runs" className="space-y-4">
         <TabsList>
           <TabsTrigger value="runs">Execuções</TabsTrigger>
+          <TabsTrigger value="ragas">📊 RAGAS</TabsTrigger>
           <TabsTrigger value="datasets">Datasets & Test Cases</TabsTrigger>
         </TabsList>
 
