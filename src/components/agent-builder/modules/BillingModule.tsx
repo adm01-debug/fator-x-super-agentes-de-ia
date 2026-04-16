@@ -1,8 +1,12 @@
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
 import { SectionTitle, SliderField, InputField, ToggleField, ProgressBar } from '../ui';
 import { useAgentBuilderStore } from '@/stores/agentBuilderStore';
 import { LightBarChart, LightLineChart } from '@/components/charts';
 import { useBillingData } from '@/hooks/useBillingData';
+import { Textarea } from '@/components/ui/textarea';
+import { Badge } from '@/components/ui/badge';
+import { listModelPrices, USD_TO_BRL, estimateTokens } from '@/lib/llmPricing';
+import { Calculator, TrendingDown, Zap } from 'lucide-react';
 
 // Real data from Supabase via useBillingData hook — no more mocks!
 
@@ -17,11 +21,33 @@ export function BillingModule() {
   const { agent, updateAgent } = useAgentBuilderStore();
   const [period, setPeriod] = useState<'daily' | 'weekly' | 'monthly'>('daily');
   const billing = useBillingData(agent.id);
+  const [simInput, setSimInput] = useState('Olá, preciso de ajuda com meu pedido número 12345.');
+  const [simMaxTokens, setSimMaxTokens] = useState(1000);
 
   const totalWeek = billing.totalWeek;
   const avgDaily = billing.avgDaily;
   const projectedMonth = billing.projectedMonth;
   const budgetUsed = agent.monthly_budget ? (projectedMonth / agent.monthly_budget) * 100 : 0;
+
+  const simulation = useMemo(() => {
+    const inputTokens = estimateTokens(simInput);
+    const outputTokens = Math.max(100, Math.floor(simMaxTokens * 0.6));
+    return listModelPrices()
+      .map((p) => {
+        const costUsd = (inputTokens / 1000) * p.input_per_1k + (outputTokens / 1000) * p.output_per_1k;
+        return {
+          ...p,
+          inputTokens,
+          outputTokens,
+          costUsd,
+          costBrl: costUsd * USD_TO_BRL,
+        };
+      })
+      .sort((a, b) => a.costUsd - b.costUsd);
+  }, [simInput, simMaxTokens]);
+
+  const cheapest = simulation[0];
+  const fastest = [...simulation].sort((a, b) => a.avg_latency_ms - b.avg_latency_ms)[0];
 
   return (
     <div className="space-y-8">
