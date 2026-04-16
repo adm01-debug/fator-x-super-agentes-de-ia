@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { PageHeader } from "@/components/shared/PageHeader";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
@@ -8,7 +8,7 @@ import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { Badge } from "@/components/ui/badge";
 import {
-  Check, ArrowLeft, ArrowRight, ChevronRight, Shield,
+  Check, ArrowLeft, ArrowRight, ChevronRight, Shield, Search,
   LayoutTemplate, PenTool, Database, Rocket,
 } from "lucide-react";
 import { toast } from "sonner";
@@ -29,6 +29,24 @@ export function CreateAgentWizard() {
   const [saving, setSaving] = useState(false);
   const [selectedTemplate, setSelectedTemplate] = useState<AgentTemplate | null>(null);
   const [AGENT_TEMPLATES_LIST, setAgentTemplates] = useState<AgentTemplate[]>(STATIC_TEMPLATES);
+  const [searchQuery, setSearchQuery] = useState("");
+  const [selectedCategory, setSelectedCategory] = useState<string>("all");
+
+  const categories = useMemo(() => {
+    const set = new Set<string>();
+    AGENT_TEMPLATES_LIST.forEach(t => t.category && set.add(t.category));
+    return ["all", ...Array.from(set).sort()];
+  }, [AGENT_TEMPLATES_LIST]);
+
+  const filteredTemplates = useMemo(() => {
+    const q = searchQuery.trim().toLowerCase();
+    return AGENT_TEMPLATES_LIST.filter(t => {
+      if (selectedCategory !== "all" && t.category !== selectedCategory) return false;
+      if (!q) return true;
+      const hay = `${t.name} ${t.description} ${t.category} ${(t.tags || []).join(" ")}`.toLowerCase();
+      return hay.includes(q);
+    });
+  }, [AGENT_TEMPLATES_LIST, searchQuery, selectedCategory]);
 
   useEffect(() => {
     supabaseExternal.from('agent_templates').select('*').eq('is_public', true).order('usage_count', { ascending: false }).then(({ data }) => {
@@ -102,10 +120,10 @@ export function CreateAgentWizard() {
           <button onClick={() => { setMode("template"); setStep(0); }} className="nexus-card text-left transition-all hover:ring-2 hover:ring-primary/50 space-y-3 p-6">
             <div className="h-12 w-12 rounded-xl bg-primary/15 flex items-center justify-center"><LayoutTemplate className="h-6 w-6 text-primary" /></div>
             <h2 className="text-lg font-heading font-semibold text-foreground">Usar template</h2>
-            <p className="text-sm text-muted-foreground">Comece com um dos 6 templates pré-configurados e personalize em 3 passos rápidos.</p>
+            <p className="text-sm text-muted-foreground">Comece com um dos {AGENT_TEMPLATES_LIST.length} templates pré-configurados e personalize em 3 passos rápidos.</p>
             <div className="flex flex-wrap gap-1.5">
               {AGENT_TEMPLATES_LIST.slice(0, 3).map(t => <span key={t.id} className="text-xs bg-secondary px-2 py-0.5 rounded-full text-muted-foreground">{t.emoji} {t.name}</span>)}
-              <span className="text-xs bg-secondary px-2 py-0.5 rounded-full text-muted-foreground">+3</span>
+              <span className="text-xs bg-secondary px-2 py-0.5 rounded-full text-muted-foreground">+{Math.max(0, AGENT_TEMPLATES_LIST.length - 3)}</span>
             </div>
           </button>
           <button onClick={() => { setMode("scratch"); setStep(0); }} className="nexus-card text-left transition-all hover:ring-2 hover:ring-primary/50 space-y-3 p-6">
@@ -122,20 +140,54 @@ export function CreateAgentWizard() {
     switch (step) {
       case 0: return (
         <div className="space-y-4">
-          <h2 className="text-lg font-heading font-semibold text-foreground">Escolha um template</h2>
-          <p className="text-sm text-muted-foreground">Selecione o template que mais se aproxima do seu caso de uso.</p>
-          <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
-            {AGENT_TEMPLATES_LIST.map(t => {
-              const selected = selectedTemplate?.id === t.id;
-              return (
-                <button key={t.id} onClick={() => applyTemplate(t)} className={`nexus-card text-left transition-all ${selected ? "ring-2 ring-primary bg-primary/5" : "hover:bg-secondary/60"}`}>
-                  <div className="flex items-center gap-3 mb-2"><span className="text-2xl">{t.emoji}</span><div><p className="font-medium text-sm text-foreground">{t.name}</p><Badge variant="outline" className="text-[11px]">{t.category}</Badge></div></div>
-                  <p className="text-xs text-muted-foreground line-clamp-2">{t.description}</p>
-                  {selected && <Check className="h-4 w-4 text-primary absolute top-3 right-3" />}
-                </button>
-              );
-            })}
+          <div>
+            <h2 className="text-lg font-heading font-semibold text-foreground">Escolha um template</h2>
+            <p className="text-sm text-muted-foreground">{filteredTemplates.length} de {AGENT_TEMPLATES_LIST.length} templates disponíveis</p>
           </div>
+          <div className="flex flex-col sm:flex-row gap-2">
+            <div className="relative flex-1">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+              <Input
+                value={searchQuery}
+                onChange={e => setSearchQuery(e.target.value)}
+                placeholder="Buscar por nome, categoria, descrição ou tag..."
+                className="pl-9 bg-secondary/50 border-border/50"
+              />
+            </div>
+          </div>
+          <div className="flex flex-wrap gap-1.5">
+            {categories.map(cat => (
+              <button
+                key={cat}
+                onClick={() => setSelectedCategory(cat)}
+                className={`text-xs px-3 py-1 rounded-full border transition-colors ${
+                  selectedCategory === cat
+                    ? "bg-primary text-primary-foreground border-primary"
+                    : "bg-secondary/50 text-muted-foreground border-border/50 hover:bg-secondary"
+                }`}
+              >
+                {cat === "all" ? "Todos" : cat}
+              </button>
+            ))}
+          </div>
+          {filteredTemplates.length === 0 ? (
+            <div className="nexus-card text-center py-10 text-sm text-muted-foreground">
+              Nenhum template encontrado para esta busca.
+            </div>
+          ) : (
+            <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+              {filteredTemplates.map(t => {
+                const selected = selectedTemplate?.id === t.id;
+                return (
+                  <button key={t.id} onClick={() => applyTemplate(t)} className={`nexus-card text-left transition-all relative ${selected ? "ring-2 ring-primary bg-primary/5" : "hover:bg-secondary/60"}`}>
+                    <div className="flex items-center gap-3 mb-2"><span className="text-2xl">{t.emoji}</span><div><p className="font-medium text-sm text-foreground">{t.name}</p><Badge variant="outline" className="text-[11px]">{t.category}</Badge></div></div>
+                    <p className="text-xs text-muted-foreground line-clamp-2">{t.description}</p>
+                    {selected && <Check className="h-4 w-4 text-primary absolute top-3 right-3" />}
+                  </button>
+                );
+              })}
+            </div>
+          )}
         </div>
       );
       case 1: return (
