@@ -5,8 +5,8 @@ import { Textarea } from '@/components/ui/textarea';
 import { Badge } from '@/components/ui/badge';
 import { useAgentBuilderStore } from '@/stores/agentBuilderStore';
 import { invokeLLMGateway } from '@/services/llmGatewayService';
-import { useStreaming } from '@/hooks/useStreaming';
-import { Send, MessageSquare, Trash2, Bug, Loader2, StopCircle } from 'lucide-react';
+import { useStreamingResponse } from '@/hooks/useStreamingResponse';
+import { Send, MessageSquare, Trash2, Bug, Loader2, StopCircle, Zap, Clock, Hash, Activity, RefreshCw } from 'lucide-react';
 import ReactMarkdown from 'react-markdown';
 
 interface ChatMessage {
@@ -30,11 +30,11 @@ export function AgentPlayground() {
   const [streamMode] = useState(true);
   const scrollRef = useRef<HTMLDivElement>(null);
   const agent = useAgentBuilderStore((s) => s.agent);
-  const streaming = useStreaming();
+  const streaming = useStreamingResponse();
 
   useEffect(() => {
     scrollRef.current?.scrollTo({ top: scrollRef.current.scrollHeight, behavior: 'smooth' });
-  }, [messages]);
+  }, [messages, streaming.text]);
 
   const buildSystemPrompt = () => {
     const parts: string[] = [];
@@ -66,19 +66,39 @@ export function AgentPlayground() {
     ];
 
     if (streamMode) {
-      // Streaming mode — add placeholder and update in real-time
-      // Streaming mode — add placeholder and update in real-time
       setMessages(prev => [...prev, { role: 'assistant', content: '' }]);
-      streaming.reset();
-      await streaming.stream({
-        model: agent.model || 'google/gemini-2.5-flash',
-        messages: allMessages,
-        temperature: agent.temperature ?? 0.7,
-        max_tokens: agent.max_tokens ?? 4000,
-        agent_id: agent.id as string || undefined,
-      });
+
+      await streaming.stream(
+        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/llm-gateway`,
+        {
+          model: agent.model || 'google/gemini-2.5-flash',
+          messages: allMessages,
+          temperature: agent.temperature ?? 0.7,
+          max_tokens: agent.max_tokens ?? 4000,
+          agent_id: agent.id as string || undefined,
+        },
+        {
+          onComplete: (fullText) => {
+            setMessages(prev => {
+              const copy = [...prev];
+              const last = copy[copy.length - 1];
+              if (last?.role === 'assistant') {
+                copy[copy.length - 1] = {
+                  ...last,
+                  content: fullText,
+                  metadata: {
+                    model: streaming.model || undefined,
+                    provider: streaming.provider || undefined,
+                    latency_ms: streaming.latencyMs,
+                  },
+                };
+              }
+              return copy;
+            });
+          },
+        }
+      );
     } else {
-      // Non-streaming mode
       setLoading(true);
       try {
         const data = await invokeLLMGateway({
@@ -98,32 +118,23 @@ export function AgentPlayground() {
     }
   };
 
-  // Update last message with streaming content
+  // Update last message with streaming content in real-time
   useEffect(() => {
-    if (streaming.content && streaming.isStreaming) {
+    if (streaming.text && streaming.isStreaming) {
       setMessages(prev => {
         const copy = [...prev];
         const last = copy[copy.length - 1];
         if (last?.role === 'assistant') {
-          copy[copy.length - 1] = { ...last, content: streaming.content };
+          copy[copy.length - 1] = { ...last, content: streaming.text };
         }
         return copy;
       });
     }
-    if (!streaming.isStreaming && streaming.content) {
-      setMessages(prev => {
-        const copy = [...prev];
-        const last = copy[copy.length - 1];
-        if (last?.role === 'assistant') {
-          copy[copy.length - 1] = {
-            ...last, content: streaming.content,
-            metadata: { model: streaming.model, provider: streaming.provider, tokens: streaming.tokens, cost_usd: streaming.costUsd, latency_ms: streaming.latencyMs },
-          };
-        }
-        return copy;
-      });
-    }
-  }, [streaming.content, streaming.isStreaming]);
+  }, [streaming.text, streaming.isStreaming]);
+
+  const tokensPerSec = streaming.latencyMs > 0 && streaming.tokens > 0
+    ? (streaming.tokens / (streaming.latencyMs / 1000)).toFixed(1)
+    : null;
 
   return (
     <>
@@ -156,7 +167,7 @@ export function AgentPlayground() {
                     <StopCircle className="h-3.5 w-3.5 text-destructive" />
                   </Button>
                 )}
-                <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => setMessages([])} title="Limpar conversa">
+                <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => { setMessages([]); streaming.reset(); }} title="Limpar conversa">
                   <Trash2 className="h-3.5 w-3.5 text-muted-foreground" />
                 </Button>
               </div>
@@ -169,6 +180,60 @@ export function AgentPlayground() {
               <pre className="text-[11px] text-foreground font-mono whitespace-pre-wrap max-h-32 overflow-y-auto mt-1">
                 {buildSystemPrompt()}
               </pre>
+            </div>
+          )}
+
+          {/* ═══ Live Streaming Metrics Bar ═══ */}
+          {(streaming.isStreaming || streaming.isComplete) && (
+            <div className="px-5 py-2 border-b border-border/50 bg-secondary/20 shrink-0">
+              <div className="flex items-center gap-3 flex-wrap">
+                {streaming.isStreaming && (
+                  <Badge className="bg-primary/20 text-primary text-[10px] h-5 animate-pulse gap-1">
+                    <Activity className="h-3 w-3" />
+                    STREAMING
+                  </Badge>
+                )}
+                {streaming.isComplete && !streaming.error && (
+                  <Badge className="bg-nexus-emerald/20 text-nexus-emerald text-[10px] h-5 gap-1">
+                    <Zap className="h-3 w-3" />
+                    CONCLUÍDO
+                  </Badge>
+                )}
+                {streaming.error && (
+                  <Badge variant="destructive" className="text-[10px] h-5">
+                    ERRO
+                  </Badge>
+                )}
+                <span className="flex items-center gap-1 text-[10px] text-muted-foreground">
+                  <Hash className="h-3 w-3" />
+                  {streaming.tokens} tokens
+                </span>
+                <span className="flex items-center gap-1 text-[10px] text-muted-foreground">
+                  <Clock className="h-3 w-3" />
+                  {(streaming.latencyMs / 1000).toFixed(1)}s
+                </span>
+                {tokensPerSec && (
+                  <span className="flex items-center gap-1 text-[10px] text-muted-foreground">
+                    <Zap className="h-3 w-3" />
+                    {tokensPerSec} tok/s
+                  </span>
+                )}
+                {streaming.provider && (
+                  <Badge variant="outline" className="text-[10px] h-5">{streaming.provider}</Badge>
+                )}
+                {streaming.model && (
+                  <Badge variant="outline" className="text-[10px] h-5">{streaming.model}</Badge>
+                )}
+                {streaming.retryCount > 0 && (
+                  <span className="flex items-center gap-1 text-[10px] text-nexus-amber">
+                    <RefreshCw className="h-3 w-3" />
+                    retry #{streaming.retryCount}
+                  </span>
+                )}
+              </div>
+              {streaming.error && (
+                <p className="text-[10px] text-destructive mt-1">{streaming.error}</p>
+              )}
             </div>
           )}
 
@@ -193,11 +258,16 @@ export function AgentPlayground() {
                     <div className="whitespace-pre-wrap text-xs leading-relaxed">{msg.content}</div>
                   ) : (
                     <div className="prose prose-sm prose-invert max-w-none text-xs leading-relaxed [&_p]:mb-1.5 [&_ul]:mb-1.5 [&_ol]:mb-1.5 [&_pre]:bg-background/50 [&_pre]:rounded-md [&_pre]:p-2 [&_code]:text-[11px] [&_h1]:text-sm [&_h2]:text-xs [&_h3]:text-xs [&_li]:text-xs">
-                      <ReactMarkdown>{msg.content || '...'}</ReactMarkdown>
+                      <ReactMarkdown>
+                        {msg.content || (streaming.isStreaming && i === messages.length - 1 ? '' : '...')}
+                      </ReactMarkdown>
+                      {streaming.isStreaming && i === messages.length - 1 && (
+                        <span className="inline-block w-2 h-4 bg-primary animate-pulse rounded-sm ml-0.5" />
+                      )}
                     </div>
                   )}
                 </div>
-                {msg.metadata && (
+                {msg.metadata && !streaming.isStreaming && (
                   <div className="flex items-center gap-2 mt-1 ml-1">
                     {msg.metadata.model && <Badge variant="outline" className="text-[11px] h-4">{msg.metadata.provider || msg.metadata.model}</Badge>}
                     {msg.metadata.tokens && <span className="text-[11px] text-muted-foreground">{msg.metadata.tokens.total} tokens</span>}
@@ -225,7 +295,7 @@ export function AgentPlayground() {
                 className="min-h-[40px] max-h-[120px] text-xs bg-secondary/50 border-border/50 resize-none"
                 rows={1}
               />
-              <Button size="icon" onClick={sendMessage} disabled={!input.trim() || loading} className="shrink-0 nexus-gradient-bg text-primary-foreground hover:opacity-90 h-10 w-10">
+              <Button size="icon" onClick={sendMessage} disabled={!input.trim() || loading || streaming.isStreaming} className="shrink-0 nexus-gradient-bg text-primary-foreground hover:opacity-90 h-10 w-10">
                 <Send className="h-4 w-4" />
               </Button>
             </div>
