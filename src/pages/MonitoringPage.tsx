@@ -21,8 +21,10 @@ export default function MonitoringPage() {
   const queryClient = useQueryClient();
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [agentFilter, setAgentFilter] = useState<string>('all');
+  const [traceFilters, setTraceFilters] = useState<TraceFilters>(EMPTY_FILTERS);
   const { data: agentsList = [] } = useQuery({ queryKey: ['agents_list_monitoring'], queryFn: getAgentsForFilter });
   const { data: traces = [], isLoading } = useQuery({ queryKey: ['agent_traces', agentFilter], queryFn: () => getAgentTraces({ agentId: agentFilter !== 'all' ? agentFilter : undefined }) });
+  const filteredTraces = applyTraceFilters(traces, traceFilters);
   const { data: sessions = [], isLoading: loadingSessions } = useQuery({ queryKey: ['sessions_real', agentFilter], queryFn: () => getSessions({ agentId: agentFilter !== 'all' ? agentFilter : undefined }) });
   const [expandedSessionId, setExpandedSessionId] = useState<string | null>(null);
   const { data: sessionTraces = [] } = useQuery({ queryKey: ['session_traces', expandedSessionId], enabled: !!expandedSessionId, queryFn: () => expandedSessionId ? getSessionTraces(expandedSessionId) : Promise.resolve([]) });
@@ -30,8 +32,8 @@ export default function MonitoringPage() {
   const { data: traceEvents = [] } = useQuery({ queryKey: ['trace_events', expandedTraceId], enabled: !!expandedTraceId, queryFn: () => expandedTraceId ? getTraceEvents(expandedTraceId) : Promise.resolve([]) });
   const { data: alerts = [], isLoading: loadingAlerts } = useQuery({ queryKey: ['alerts'], queryFn: () => getAlerts({}) });
 
-  const selected = traces.find((t: any) => t.id === selectedId) || traces[0];
-  const stats = { total: traces.length, errors: traces.filter((t: any) => t.level === 'error' || t.level === 'critical').length, avgLatency: traces.length ? Math.round(traces.reduce((s: number, t: any) => s + (t.latency_ms || 0), 0) / traces.length) : 0, totalCost: traces.reduce((s: number, t: any) => s + Number(t.cost_usd || 0), 0) };
+  const selected = filteredTraces.find((t: any) => t.id === selectedId) || filteredTraces[0];
+  const stats = { total: filteredTraces.length, errors: filteredTraces.filter((t: any) => t.level === 'error' || t.level === 'critical').length, avgLatency: filteredTraces.length ? Math.round(filteredTraces.reduce((s: number, t: any) => s + (t.latency_ms || 0), 0) / filteredTraces.length) : 0, totalCost: filteredTraces.reduce((s: number, t: any) => s + Number(t.cost_usd || 0), 0) };
   const levelCounts = traces.reduce((acc: Record<string, number>, t: any) => { const level = t.level || 'info'; acc[level] = (acc[level] || 0) + 1; return acc; }, {} as Record<string, number>);
   const pieData = Object.entries(levelCounts).map(([name, value]) => ({ name, value: value as number }));
   const latencyData = traces.slice(0, 20).reverse().map((t: any) => ({ time: new Date(t.created_at).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' }), latency: t.latency_ms || 0 }));
