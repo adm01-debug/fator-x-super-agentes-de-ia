@@ -5,7 +5,7 @@
 import { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Input } from '@/components/ui/input';
+// Input removed — unused
 import { Textarea } from '@/components/ui/textarea';
 import { FlaskConical, Loader2, TrendingUp, AlertTriangle } from 'lucide-react';
 import { runRAGASEvaluation, type RAGASResult, type EvalTestCase } from '@/services/evalEngineService';
