@@ -55,7 +55,7 @@ export function NotificationBell() {
           ) : (
             <div className="divide-y divide-border">
               {notifications.slice(0, 20).map((n) => {
-                const isUnread = n.status === 'sent';
+                const isUnread = n.status === 'sent' || n.status === 'delivered';
                 return (
                   <div
                     key={n.id}

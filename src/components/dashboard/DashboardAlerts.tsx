@@ -9,6 +9,7 @@ export function DashboardAlerts() {
   const { data: alerts = [] } = useQuery({
     queryKey: ['dashboard_alerts'],
     queryFn: () => getUnresolvedAlerts(5),
+    retry: 1,
   });
 
   useEffect(() => {

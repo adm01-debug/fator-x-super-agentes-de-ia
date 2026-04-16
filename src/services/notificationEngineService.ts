@@ -128,41 +128,29 @@ export async function listNotifications(
   filters?: { channel?: NotificationChannel; status?: NotificationStatus; recipient_id?: string; priority?: NotificationPriority; source_type?: NotificationPayload['source_type'] },
   limit: number = 50,
 ): Promise<NotificationPayload[]> {
-  try {
-    let query = fromTable('notifications').select('*').order('created_at', { ascending: false }).limit(limit);
-    if (filters?.channel) query = query.eq('channel', filters.channel);
-    if (filters?.status) query = query.eq('status', filters.status);
-    if (filters?.recipient_id) query = query.eq('recipient_id', filters.recipient_id);
-    if (filters?.priority) query = query.eq('priority', filters.priority);
-    if (filters?.source_type) query = query.eq('source_type', filters.source_type);
-    const { data, error } = await query;
-    if (error) return [];
-    return (data ?? []) as NotificationPayload[];
-  } catch {
-    return [];
-  }
+  let query = fromTable('notifications').select('*').order('created_at', { ascending: false }).limit(limit);
+  if (filters?.channel) query = query.eq('channel', filters.channel);
+  if (filters?.status) query = query.eq('status', filters.status);
+  if (filters?.recipient_id) query = query.eq('recipient_id', filters.recipient_id);
+  if (filters?.priority) query = query.eq('priority', filters.priority);
+  if (filters?.source_type) query = query.eq('source_type', filters.source_type);
+  const { data, error } = await query;
+  if (error) throw error;
+  return (data ?? []) as NotificationPayload[];
 }
 
 export async function getInAppNotifications(userId: string, unreadOnly: boolean = false): Promise<NotificationPayload[]> {
-  try {
-    let query = fromTable('notifications').select('*').eq('channel', 'in_app').eq('recipient_id', userId).order('created_at', { ascending: false }).limit(100);
-    if (unreadOnly) query = query.in('status', ['sent', 'delivered']);
-    const { data, error } = await query;
-    if (error) return [];
-    return (data ?? []) as NotificationPayload[];
-  } catch {
-    return [];
-  }
+  let query = fromTable('notifications').select('*').eq('channel', 'in_app').eq('recipient_id', userId).order('created_at', { ascending: false }).limit(100);
+  if (unreadOnly) query = query.in('status', ['sent', 'delivered']);
+  const { data, error } = await query;
+  if (error) throw error;
+  return (data ?? []) as NotificationPayload[];
 }
 
 export async function markAllRead(userId: string): Promise<number> {
-  try {
-    const { data, error } = await fromTable('notifications').update({ status: 'read', read_at: new Date().toISOString() }).eq('channel', 'in_app').eq('recipient_id', userId).in('status', ['sent', 'delivered']).select('id');
-    if (error) return 0;
-    return data?.length ?? 0;
-  } catch {
-    return 0;
-  }
+  const { data, error } = await fromTable('notifications').update({ status: 'read', read_at: new Date().toISOString() }).eq('channel', 'in_app').eq('recipient_id', userId).in('status', ['sent', 'delivered']).select('id');
+  if (error) throw error;
+  return data?.length ?? 0;
 }
 
 /* ------------------------------------------------------------------ */
@@ -170,15 +158,11 @@ export async function markAllRead(userId: string): Promise<number> {
 /* ------------------------------------------------------------------ */
 
 export async function listTemplates(channel?: NotificationChannel): Promise<NotificationTemplate[]> {
-  try {
-    let query = fromTable('notification_templates').select('*').eq('is_active', true).order('name');
-    if (channel) query = query.eq('channel', channel);
-    const { data, error } = await query;
-    if (error) return [];
-    return (data ?? []) as NotificationTemplate[];
-  } catch {
-    return [];
-  }
+  let query = fromTable('notification_templates').select('*').eq('is_active', true).order('name');
+  if (channel) query = query.eq('channel', channel);
+  const { data, error } = await query;
+  if (error) throw error;
+  return (data ?? []) as NotificationTemplate[];
 }
 
 export async function createTemplate(input: Omit<NotificationTemplate, 'id' | 'created_at'>): Promise<NotificationTemplate> {
@@ -192,15 +176,10 @@ export async function createTemplate(input: Omit<NotificationTemplate, 'id' | 'c
 /* ------------------------------------------------------------------ */
 
 export async function getNotificationStats(): Promise<NotificationStats> {
-  let items: Array<{ channel: NotificationChannel; priority: NotificationPriority; status: NotificationStatus; sent_at: string | null; delivered_at: string | null }> = [];
-  try {
-    const { data, error } = await fromTable('notifications').select('channel, priority, status, sent_at, delivered_at');
-    if (!error) items = (data ?? []) as typeof items;
-  } catch {
-    // Table may not exist yet — return empty stats
-  }
+  const { data, error } = await fromTable('notifications').select('channel, priority, status, sent_at, delivered_at');
+  if (error) throw error;
 
-  
+  const items = (data ?? []) as Array<{ channel: NotificationChannel; priority: NotificationPriority; status: NotificationStatus; sent_at: string | null; delivered_at: string | null }>;
   const byChannel = {} as Record<NotificationChannel, { sent: number; delivered: number; failed: number }>;
   const byPriority = {} as Record<NotificationPriority, number>;
   let totalDeliveryTime = 0, deliveryCount = 0;
