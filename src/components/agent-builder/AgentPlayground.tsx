@@ -6,7 +6,7 @@ import { Badge } from '@/components/ui/badge';
 import { useAgentBuilderStore } from '@/stores/agentBuilderStore';
 import { invokeLLMGateway } from '@/services/llmGatewayService';
 import { useStreamingResponse } from '@/hooks/useStreamingResponse';
-import { Send, MessageSquare, Trash2, Bug, Loader2, StopCircle, Zap, Clock, Hash, Activity, RefreshCw } from 'lucide-react';
+import { Send, MessageSquare, Trash2, Bug, Loader2, StopCircle, Zap, Clock, Hash, Activity, RefreshCw, Repeat, X } from 'lucide-react';
 import ReactMarkdown from 'react-markdown';
 
 interface ChatMessage {
@@ -30,11 +30,23 @@ export function AgentPlayground() {
   const [streamMode] = useState(true);
   const scrollRef = useRef<HTMLDivElement>(null);
   const agent = useAgentBuilderStore((s) => s.agent);
+  const playgroundSeed = useAgentBuilderStore((s) => s.playgroundSeed);
+  const playgroundOpenSignal = useAgentBuilderStore((s) => s.playgroundOpenSignal);
+  const clearPlaygroundSeed = useAgentBuilderStore((s) => s.clearPlaygroundSeed);
   const streaming = useStreamingResponse();
 
   useEffect(() => {
     scrollRef.current?.scrollTo({ top: scrollRef.current.scrollHeight, behavior: 'smooth' });
   }, [messages, streaming.text]);
+
+  // Consume replay seed when changed
+  useEffect(() => {
+    if (playgroundSeed) {
+      setOpen(true);
+      setInput(playgroundSeed.input);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [playgroundOpenSignal]);
 
   const buildSystemPrompt = () => {
     const parts: string[] = [];
@@ -173,6 +185,22 @@ export function AgentPlayground() {
               </div>
             </div>
           </SheetHeader>
+
+          {playgroundSeed && (
+            <div className="px-5 py-2 bg-primary/10 border-b border-primary/30 shrink-0 flex items-center justify-between gap-2">
+              <div className="flex items-center gap-2 min-w-0">
+                <Badge className="bg-primary/20 text-primary text-[10px] h-5 gap-1 shrink-0">
+                  <Repeat className="h-3 w-3" /> REPLAY
+                </Badge>
+                <p className="text-[11px] text-muted-foreground truncate font-mono">
+                  trace {playgroundSeed.traceId.slice(0, 8)}…
+                </p>
+              </div>
+              <Button variant="ghost" size="icon" className="h-6 w-6 shrink-0" onClick={clearPlaygroundSeed} title="Limpar replay">
+                <X className="h-3.5 w-3.5" />
+              </Button>
+            </div>
+          )}
 
           {debugMode && (
             <div className="px-5 py-2 bg-secondary/30 border-b border-border/50 shrink-0">

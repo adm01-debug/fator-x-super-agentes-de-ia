@@ -1,7 +1,7 @@
 import { useAgentBuilderStore } from '@/stores/agentBuilderStore';
 import { SectionTitle, NexusBadge, ToggleField } from '../ui';
 import { CollapsibleCard } from '../ui/CollapsibleCard';
-import { Activity, Clock, DollarSign, AlertTriangle, CheckCircle, XCircle, Filter, Loader2, Plus, Trash2 } from 'lucide-react';
+import { Activity, Clock, DollarSign, AlertTriangle, CheckCircle, XCircle, Filter, Loader2, Plus, Trash2, Play } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
@@ -25,8 +25,15 @@ const STATUS_CONFIG: Record<string, { icon: React.ReactNode; label: string; clas
 export function ObservabilityModule() {
   const agent = useAgentBuilderStore((s) => s.agent);
   const updateAgent = useAgentBuilderStore((s) => s.updateAgent);
+  const replayTrace = useAgentBuilderStore((s) => s.replayTrace);
   const [selectedTrace, setSelectedTrace] = useState<string | null>(null);
   const [statusFilter, setStatusFilter] = useState<string>('all');
+
+  const handleReplay = (trace: ExecutionTrace, e?: React.MouseEvent) => {
+    e?.stopPropagation();
+    replayTrace({ id: trace.id, user_input: trace.user_input });
+    toast.success('Trace carregado no Playground', { description: trace.user_input.slice(0, 60) });
+  };
 
   const tracesData = useTracesData(agent.id);
   const traces = tracesData.traces as unknown as ExecutionTrace[];
@@ -119,6 +126,15 @@ export function ObservabilityModule() {
                     <span>{trace.latency_ms}ms</span>
                     <span>${trace.total_cost.toFixed(4)}</span>
                     <span>{time}</span>
+                    <Button
+                      size="sm"
+                      variant="ghost"
+                      className="h-6 px-2 text-[11px] gap-1 hover:bg-primary/10 hover:text-primary"
+                      onClick={(e) => handleReplay(trace, e)}
+                      title="Replay no Playground"
+                    >
+                      <Play className="h-3 w-3" /> Replay
+                    </Button>
                   </div>
                 </div>
               </button>
@@ -130,7 +146,12 @@ export function ObservabilityModule() {
       {/* Trace Detail */}
       {selected && (
         <section>
-          <SectionTitle icon="🔍" title="Detalhes do Trace" subtitle={selected.id} />
+          <div className="flex items-center justify-between mb-3">
+            <SectionTitle icon="🔍" title="Detalhes do Trace" subtitle={selected.id} />
+            <Button size="sm" variant="default" className="gap-1.5" onClick={() => handleReplay(selected)}>
+              <Play className="h-3.5 w-3.5" /> Replay no Playground
+            </Button>
+          </div>
           <div className="space-y-3">
             <CollapsibleCard title="📥 Input do Usuário" defaultOpen>
               <p className="text-sm text-foreground bg-muted/30 rounded-lg p-3">{selected.user_input}</p>
