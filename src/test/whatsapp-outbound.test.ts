@@ -44,18 +44,23 @@ const secretsByProvider: Record<string, Record<string, string>> = {
 
 let activeProviderKey: keyof typeof secretsByProvider = 'meta';
 
-vi.mock('@/integrations/supabase/client', () => ({
-  supabase: {
+vi.mock('@/integrations/supabase/externalClient', () => ({
+  supabaseExternal: {
     from: vi.fn(() => ({
       select: vi.fn().mockReturnThis(),
       eq: vi.fn().mockReturnThis(),
       like: vi.fn().mockImplementation(() => {
         const map = secretsByProvider[activeProviderKey];
-        const data = Object.entries(map).map(([key_name, key_value]) => ({ key_name, key_value }));
+        // Service expects column name `encrypted_value`
+        const data = Object.entries(map).map(([key_name, encrypted_value]) => ({ key_name, encrypted_value }));
         return Promise.resolve({ data, error: null });
       }),
     })),
   },
+}));
+
+vi.mock('@/integrations/supabase/client', () => ({
+  supabase: { from: vi.fn(() => ({ select: vi.fn().mockReturnThis(), eq: vi.fn().mockReturnThis() })) },
 }));
 
 vi.mock('@/lib/agentService', () => ({

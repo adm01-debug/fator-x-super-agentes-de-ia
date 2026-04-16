@@ -7,18 +7,22 @@
  */
 import { describe, it, expect, vi } from 'vitest';
 
+function makeQB() {
+  const qb: Record<string, unknown> = {};
+  const chain = ['select', 'eq', 'order', 'limit', 'delete', 'update', 'in', 'is', 'neq', 'gte', 'lte'];
+  for (const m of chain) qb[m] = vi.fn(() => qb);
+  qb.upsert = vi.fn().mockResolvedValue({ data: null, error: null });
+  qb.then = (resolve: (v: { data: unknown[]; error: null }) => void) => resolve({ data: [], error: null });
+  return qb;
+}
+
+vi.mock('@/lib/supabaseExtended', () => ({
+  fromTable: vi.fn(() => makeQB()),
+  rpcCall: vi.fn().mockResolvedValue({ data: null, error: null }),
+}));
+
 vi.mock('@/integrations/supabase/client', () => ({
-  supabase: {
-    from: vi.fn(() => ({
-      select: vi.fn().mockReturnThis(),
-      eq: vi.fn().mockReturnThis(),
-      order: vi.fn().mockReturnThis(),
-      limit: vi.fn().mockResolvedValue({ data: [], error: null }),
-      upsert: vi.fn().mockResolvedValue({ data: null, error: null }),
-      delete: vi.fn().mockReturnThis(),
-      update: vi.fn().mockReturnThis(),
-    })),
-  },
+  supabase: { from: vi.fn(() => makeQB()) },
 }));
 
 vi.mock('@/lib/agentService', () => ({
