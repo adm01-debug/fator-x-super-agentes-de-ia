@@ -13,6 +13,7 @@ import { useNavigate } from "react-router-dom";
 import { useState, useCallback, useRef } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { listAgents, cloneAgent, autoTagAgent } from "@/lib/agentService";
+import { useAgents } from "@/hooks/use-data";
 import { useAuth } from "@/contexts/AuthContext";
 import type { Tables } from "@/integrations/supabase/types";
 import { exportAgentToJSON, downloadJSON, importAgentFromJSON, readFileAsText } from "@/lib/agentExportImport";

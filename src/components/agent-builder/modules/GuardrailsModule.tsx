@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { useAgentBuilderStore } from '@/stores/agentBuilderStore';
+import { useGuardrails } from '@/hooks/useGuardrails';
 import { SectionTitle, NexusBadge, ToggleField, SliderField } from '../ui';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
