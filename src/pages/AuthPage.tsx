@@ -10,6 +10,7 @@ import { Mail, Lock, ArrowRight, Eye, EyeOff } from "lucide-react";
 import { FatorXLogo } from "@/components/shared/FatorXLogo";
 import { PasswordStrength } from "@/components/auth/PasswordStrength";
 import { AuthBrandingPanel, GridBackground, GoogleIcon } from "@/components/auth/AuthBrandingPanel";
+import { usePasswordBreachCheck } from "@/hooks/usePasswordBreachCheck";
 
 const MAX_ATTEMPTS = 5;
 const LOCKOUT_DURATION_MS = 60_000;
@@ -26,6 +27,7 @@ export default function AuthPage() {
   const [lockoutUntil, setLockoutUntil] = useState<number | null>(null);
   const [lockoutRemaining, setLockoutRemaining] = useState(0);
   const { signIn, signUp, resetPassword } = useAuth();
+  const { check: checkBreach } = usePasswordBreachCheck();
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -71,6 +73,15 @@ export default function AuthPage() {
         else { const msg = error.message.includes('Invalid login') ? `E-mail ou senha incorretos (${MAX_ATTEMPTS - newAttempts} tentativas restantes)` : error.message.includes('Email not confirmed') ? 'Confirme seu e-mail antes de entrar' : error.message; toast.error("Erro ao entrar", { description: msg }); }
       } else { setFailedAttempts(0); toast.success("Login realizado!"); navigate("/"); }
     } else {
+      // Check if password appeared in known breaches before signing up
+      const { breached, count } = await checkBreach(password);
+      if (breached) {
+        toast.error("Senha comprometida", {
+          description: `Esta senha apareceu em ${count.toLocaleString('pt-BR')} vazamentos. Escolha outra mais segura.`,
+        });
+        setLoading(false);
+        return;
+      }
       const { error } = await signUp(email, password);
       if (error) { const msg = error.message.includes('already registered') ? 'Este e-mail já está cadastrado' : error.message; toast.error("Erro ao criar conta", { description: msg }); }
       else toast.success("Conta criada!", { description: "Verifique seu e-mail para confirmar." });
