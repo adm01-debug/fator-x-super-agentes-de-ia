@@ -3,6 +3,7 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { StatusBadge } from '@/components/shared/StatusBadge';
 import { Star, Copy, Wand2, Download, Loader2 } from 'lucide-react';
 import type { Tables } from '@/integrations/supabase/types';
+import { AgentCardViewer } from './AgentCardViewer';
 
 type AgentRow = Tables<'agents'>;
 
@@ -55,6 +56,9 @@ export function AgentCard({
           </div>
         </div>
         <div className="flex items-center gap-1.5">
+          <div className="opacity-0 group-hover:opacity-100 transition-all" onClick={(e) => e.stopPropagation()}>
+            <AgentCardViewer agentId={agent.id} agentName={agent.name} />
+          </div>
           <button onClick={(e) => onExport(e, agent)} className="h-7 w-7 rounded-md flex items-center justify-center text-muted-foreground/40 hover:text-nexus-cyan hover:bg-nexus-cyan/10 opacity-0 group-hover:opacity-100 transition-all" title="Exportar JSON">
             <Download className="h-3.5 w-3.5" />
           </button>

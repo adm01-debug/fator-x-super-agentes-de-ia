@@ -5,6 +5,7 @@ import { SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
 import { AppSidebar } from "./AppSidebar";
 import { Search, Command } from "lucide-react";
 import { NotificationsDrawer } from "@/components/shared/NotificationsDrawer";
+import { NotificationBell } from "@/components/shared/NotificationBell";
 import { ThemeToggle } from "@/components/shared/ThemeToggle";
 import { DirectionalTransition } from "@/components/shared/DirectionalTransition";
 import { NavigationProgress } from "@/components/shared/NavigationProgress";
@@ -172,6 +173,7 @@ export function AppLayout({ children }: AppLayoutProps) {
               </div>
               <div className="flex items-center gap-2 sm:gap-2.5">
                 <ThemeToggle />
+                <NotificationBell />
                 <NotificationsDrawer />
                 <DropdownMenu>
                   <DropdownMenuTrigger asChild>
