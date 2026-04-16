@@ -51,6 +51,9 @@ const FineTuningPage = lazy(() => import("./pages/FineTuningPage"));
 const SmolagentPage = lazy(() => import("./pages/SmolagentPage"));
 const SkillsMarketplacePage = lazy(() => import("./pages/SkillsMarketplacePage"));
 const AutomationCenterPage = lazy(() => import("./pages/AutomationCenterPage"));
+const RolesPage = lazy(() => import("./pages/RolesPage"));
+const PermissionsPage = lazy(() => import("./pages/PermissionsPage"));
+const RolePermissionsPage = lazy(() => import("./pages/RolePermissionsPage"));
 const NotFound = lazy(() => import("./pages/NotFound"));
 
 const queryClient = new QueryClient({
@@ -137,6 +140,9 @@ const App = () => (
                       <Route path="/fine-tuning" element={<SafePage><FineTuningPage /></SafePage>} />
                       <Route path="/smolagent" element={<SafePage><SmolagentPage /></SafePage>} />
                       <Route path="/skills" element={<SafePage><SkillsMarketplacePage /></SafePage>} />
+                      <Route path="/rbac/roles" element={<SafePage><ProtectedRoute permission="team.roles"><RolesPage /></ProtectedRoute></SafePage>} />
+                      <Route path="/rbac/roles/:roleKey" element={<SafePage><ProtectedRoute permission="team.roles"><RolePermissionsPage /></ProtectedRoute></SafePage>} />
+                      <Route path="/rbac/permissions" element={<SafePage><ProtectedRoute permission="team.roles"><PermissionsPage /></ProtectedRoute></SafePage>} />
                       <Route path="*" element={<SafePage><NotFound /></SafePage>} />
                     </Routes>
                   </AppLayout>
