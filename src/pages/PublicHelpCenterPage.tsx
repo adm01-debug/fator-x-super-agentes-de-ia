@@ -58,8 +58,8 @@ function ArticleList({ helpCenterId, hcSlug, search, primaryColor }: { helpCente
   const { data: articles = [] } = useQuery({ queryKey: ["public_articles", helpCenterId], queryFn: () => listPublicArticles(helpCenterId) });
   const { data: threads = [] } = useQuery({ queryKey: ["public_threads", helpCenterId], queryFn: () => listThreads(helpCenterId) });
 
-  const filtered = articles.filter((a: { title: string; excerpt: string }) =>
-    !search || a.title.toLowerCase().includes(search.toLowerCase()) || a.excerpt?.toLowerCase().includes(search.toLowerCase())
+  const filtered = (articles as Array<{ id: string; slug: string; title: string; excerpt: string | null; view_count: number; helpful_count: number }>).filter((a) =>
+    !search || a.title.toLowerCase().includes(search.toLowerCase()) || (a.excerpt ?? "").toLowerCase().includes(search.toLowerCase())
   );
 
   return (
@@ -68,7 +68,7 @@ function ArticleList({ helpCenterId, hcSlug, search, primaryColor }: { helpCente
         <h2 className="text-lg font-heading font-semibold mb-4">Artigos</h2>
         {filtered.length === 0 ? (
           <p className="text-sm text-muted-foreground py-8 text-center">Nenhum artigo encontrado.</p>
-        ) : filtered.map((a: { id: string; slug: string; title: string; excerpt: string; view_count: number; helpful_count: number }) => (
+        ) : filtered.map((a) => (
           <Link key={a.id} to={`/help/${hcSlug}/${a.slug}`} className="nexus-card block hover:border-primary/50 transition-colors group">
             <div className="flex items-start justify-between gap-4">
               <div className="flex-1 min-w-0">
@@ -109,7 +109,7 @@ function ArticleList({ helpCenterId, hcSlug, search, primaryColor }: { helpCente
   );
 }
 
-function ArticleView({ helpCenterId, articleSlug, primaryColor }: { helpCenterId: string; articleSlug: string; primaryColor: string }) {
+function ArticleView({ helpCenterId, articleSlug }: { helpCenterId: string; articleSlug: string; primaryColor: string }) {
   const { data: article } = useQuery({ queryKey: ["public_article", helpCenterId, articleSlug], queryFn: () => getPublicArticleBySlug(helpCenterId, articleSlug) });
   const [rated, setRated] = useState<"yes" | "no" | null>(null);
 

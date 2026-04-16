@@ -10,7 +10,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Badge } from "@/components/ui/badge";
-import { FileText, Globe, GitBranch, Languages, AlertCircle, Plus, ExternalLink, Eye, ThumbsUp, MessageSquare } from "lucide-react";
+import { FileText, Globe, AlertCircle, Plus, ExternalLink, Eye, ThumbsUp } from "lucide-react";
 import { toast } from "sonner";
 import {
   listHelpCenters, createHelpCenter, updateHelpCenter,
@@ -84,10 +84,10 @@ export default function KnowledgeManagementPage() {
             <CreateHelpCenterDialog workspaceId={workspace?.id} kbs={kbs} onCreated={() => qc.invalidateQueries({ queryKey: ["help_centers"] })} />
           </div>
           <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-            {helpCenters.map((hc: { id: string; slug: string; title: string; description: string; primary_color: string; is_published: boolean }) => (
+            {(helpCenters as Array<{ id: string; slug: string; title: string; description: string | null; primary_color: string | null; is_published: boolean }>).map((hc) => (
               <div key={hc.id} className="nexus-card">
                 <div className="flex items-start justify-between mb-3">
-                  <div className="h-10 w-10 rounded-xl flex items-center justify-center" style={{ background: `${hc.primary_color}20`, color: hc.primary_color }}>
+                  <div className="h-10 w-10 rounded-xl flex items-center justify-center" style={{ background: `${hc.primary_color ?? "#6366f1"}20`, color: hc.primary_color ?? "#6366f1" }}>
                     <Globe className="h-5 w-5" />
                   </div>
                   <Badge variant={hc.is_published ? "default" : "secondary"}>{hc.is_published ? "Publicado" : "Rascunho"}</Badge>
@@ -156,7 +156,7 @@ export default function KnowledgeManagementPage() {
             <div className="text-center text-sm text-muted-foreground py-12">Nenhuma lacuna. Execute uma análise.</div>
           ) : (
             <div className="space-y-2">
-              {gaps.map((g: { id: string; query: string; occurrences: number; status: string; suggested_topic?: string; suggested_outline?: string[] }) => (
+              {(gaps as Array<{ id: string; query: string; occurrences: number; status: string; suggested_topic: string | null; suggested_outline: unknown }>).map((g) => (
                 <div key={g.id} className="nexus-card">
                   <div className="flex items-start justify-between mb-2">
                     <div className="flex-1">
@@ -166,9 +166,9 @@ export default function KnowledgeManagementPage() {
                         <div className="mt-3 p-3 rounded-lg bg-primary/5 border border-primary/20">
                           <p className="text-xs font-medium text-primary mb-1">Sugestão de artigo:</p>
                           <p className="text-sm font-semibold text-foreground">{g.suggested_topic}</p>
-                          {g.suggested_outline && Array.isArray(g.suggested_outline) && (
+                          {Array.isArray(g.suggested_outline) && (
                             <ul className="mt-2 list-disc list-inside text-xs text-muted-foreground space-y-0.5">
-                              {g.suggested_outline.map((s: string, i: number) => <li key={i}>{s}</li>)}
+                              {(g.suggested_outline as string[]).map((s, i) => <li key={i}>{s}</li>)}
                             </ul>
                           )}
                         </div>

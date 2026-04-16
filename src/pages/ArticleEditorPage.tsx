@@ -7,7 +7,7 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { ArrowLeft, Save, Globe, GitBranch, Languages } from "lucide-react";
+import { ArrowLeft, Save, GitBranch, Languages } from "lucide-react";
 import { toast } from "sonner";
 import { RichEditor } from "@/components/knowledge/RichEditor";
 import { ArticleDiffViewer } from "@/components/knowledge/ArticleDiffViewer";
