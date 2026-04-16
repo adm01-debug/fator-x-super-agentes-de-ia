@@ -87,8 +87,10 @@ export function OracleAnalyticsPanel() {
       ? eligibleModes.reduce((max, m) => (m.avg_confidence > max.avg_confidence ? m : max))
       : null;
 
-    return { totalQueries, totalCost, avgConfidence, avgLatencyS, bestMode };
-  }, [history, metrics]);
+    // Merge with cross-database stats from oracleService if available
+    const totalTokens = serviceStats?.totalTokens ?? history.reduce((a, e) => a + (e.total_tokens ?? 0), 0);
+    return { totalQueries, totalCost, avgConfidence, avgLatencyS, bestMode, totalTokens };
+  }, [history, metrics, serviceStats]);
 
   return (
     <div className="space-y-4">
