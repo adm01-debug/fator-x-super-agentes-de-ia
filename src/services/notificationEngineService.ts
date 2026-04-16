@@ -196,7 +196,7 @@ export async function getNotificationStats(): Promise<NotificationStats> {
     // Table may not exist yet — return empty stats
   }
 
-  const items = (data ?? []) as Array<{ channel: NotificationChannel; priority: NotificationPriority; status: NotificationStatus; sent_at: string | null; delivered_at: string | null }>;
+  
   const byChannel = {} as Record<NotificationChannel, { sent: number; delivered: number; failed: number }>;
   const byPriority = {} as Record<NotificationPriority, number>;
   let totalDeliveryTime = 0, deliveryCount = 0;
