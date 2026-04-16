@@ -80,6 +80,10 @@ const FederatedLearningPage = lazy(() => import("./pages/FederatedLearningPage")
 const MultiTenancyPage = lazy(() => import("./pages/MultiTenancyPage"));
 const ObservabilityOTelPage = lazy(() => import("./pages/ObservabilityOTelPage"));
 const DisasterRecoveryPage = lazy(() => import("./pages/DisasterRecoveryPage"));
+const SelfEvolutionPage = lazy(() => import("./pages/SelfEvolutionPage"));
+const AGUIStreamingPage = lazy(() => import("./pages/AGUIStreamingPage"));
+const A2UIGenerativePage = lazy(() => import("./pages/A2UIGenerativePage"));
+const RedTeamingPage = lazy(() => import("./pages/RedTeamingPage"));
 const NotFound = lazy(() => import("./pages/NotFound"));
 
 const queryClient = new QueryClient({
@@ -195,6 +199,10 @@ const App = () => (
                       <Route path="/multi-tenancy" element={<SafePage><ProtectedRoute permission="team.roles"><MultiTenancyPage /></ProtectedRoute></SafePage>} />
                       <Route path="/observability" element={<SafePage><ObservabilityOTelPage /></SafePage>} />
                       <Route path="/disaster-recovery" element={<SafePage><ProtectedRoute permission="settings.api_keys"><DisasterRecoveryPage /></ProtectedRoute></SafePage>} />
+                      <Route path="/self-evolution" element={<SafePage><SelfEvolutionPage /></SafePage>} />
+                      <Route path="/ag-ui" element={<SafePage><AGUIStreamingPage /></SafePage>} />
+                      <Route path="/a2ui" element={<SafePage><A2UIGenerativePage /></SafePage>} />
+                      <Route path="/red-team" element={<SafePage><ProtectedRoute permission="settings.api_keys"><RedTeamingPage /></ProtectedRoute></SafePage>} />
                       <Route path="*" element={<SafePage><NotFound /></SafePage>} />
                     </Routes>
                   </AppLayout>

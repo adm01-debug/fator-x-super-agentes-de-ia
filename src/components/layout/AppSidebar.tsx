@@ -11,6 +11,7 @@ import {
   Store, Cpu, Wand2, GitMerge, Terminal, Mail, Bug, FileCheck2,
   PhoneCall, Network, FlaskRound, TrendingDown,
   Share2, Building2, Radar, ShieldAlert,
+  BrainCircuit, Radio, Layout, Swords,
 } from "lucide-react";
 import {
   Sidebar, SidebarContent, SidebarGroup, SidebarGroupContent, SidebarGroupLabel,
