@@ -1,7 +1,7 @@
 import { Badge } from '@/components/ui/badge';
 import { Checkbox } from '@/components/ui/checkbox';
 import { StatusBadge } from '@/components/shared/StatusBadge';
-import { Star, Copy, Wand2, Download, Loader2, IdCard } from 'lucide-react';
+import { Star, Copy, Wand2, Download, Loader2 } from 'lucide-react';
 import type { Tables } from '@/integrations/supabase/types';
 import { AgentCardViewer } from './AgentCardViewer';
 
