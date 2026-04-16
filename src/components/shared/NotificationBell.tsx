@@ -66,9 +66,9 @@ export function NotificationBell() {
                       {isUnread && <span className="h-2 w-2 rounded-full bg-primary mt-1.5 shrink-0" />}
                       <div className="flex-1 min-w-0">
                         <p className={`text-xs ${isUnread ? 'font-semibold text-foreground' : 'text-muted-foreground'}`}>
-                          {n.title || n.channel}
+                          {n.subject || n.channel}
                         </p>
-                        <p className="text-[11px] text-muted-foreground truncate">{n.message}</p>
+                        <p className="text-[11px] text-muted-foreground truncate">{n.body}</p>
                         <p className="text-[10px] text-muted-foreground/60 mt-0.5">
                           {n.created_at ? new Date(n.created_at).toLocaleString('pt-BR', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' }) : ''}
                         </p>
