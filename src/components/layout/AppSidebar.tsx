@@ -7,7 +7,7 @@ import {
   FlaskConical, Rocket, Activity, Database, Shield, Users, CreditCard, Settings,
   Sparkles, PanelLeftClose, PanelLeft, LogOut, ServerCog, ChevronDown, Palette, Dna, Workflow, Package,
   Globe, ShieldCheck, CircleCheckBig, Crown, Route as RouteIcon, Languages,
-  Mic, GitBranch as GitBranchIcon, KeyRound, Globe2,
+  Mic, GitBranch as GitBranchIcon, KeyRound, Globe2, Monitor, Eye, Smartphone, TestTube2,
 } from "lucide-react";
 import {
   Sidebar, SidebarContent, SidebarGroup, SidebarGroupContent, SidebarGroupLabel,
@@ -48,6 +48,10 @@ const navSections = [
       { title: "Smolagent", url: "/smolagent", icon: Workflow },
       { title: "Skills Marketplace", url: "/skills", icon: Package },
       { title: "NLP Pipeline", url: "/nlp", icon: Languages },
+      { title: "Computer Use", url: "/computer-use", icon: Monitor },
+      { title: "Vision Agents", url: "/vision", icon: Eye },
+      { title: "Mobile SDK", url: "/mobile-sdk", icon: Smartphone },
+      { title: "A/B Test Prompts", url: "/ab-test", icon: TestTube2 },
     ],
   },
   {
