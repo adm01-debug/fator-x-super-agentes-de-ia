@@ -32,11 +32,22 @@ export function CreateAgentWizard() {
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedCategory, setSelectedCategory] = useState<string>("all");
 
+  const categoryCount = useMemo(() => {
+    const counts: Record<string, number> = { all: AGENT_TEMPLATES_LIST.length };
+    AGENT_TEMPLATES_LIST.forEach(t => {
+      if (t.category) counts[t.category] = (counts[t.category] || 0) + 1;
+    });
+    return counts;
+  }, [AGENT_TEMPLATES_LIST]);
+
   const categories = useMemo(() => {
     const set = new Set<string>();
     AGENT_TEMPLATES_LIST.forEach(t => t.category && set.add(t.category));
     return ["all", ...Array.from(set).sort()];
   }, [AGENT_TEMPLATES_LIST]);
+
+  // Track which templates came from the database (verified)
+  const [dbTemplateIds, setDbTemplateIds] = useState<Set<string>>(new Set());
 
   const filteredTemplates = useMemo(() => {
     const q = searchQuery.trim().toLowerCase();
