@@ -21,6 +21,7 @@ const DashboardPage = lazy(() => import("./pages/DashboardPage"));
 const AgentsPage = lazy(() => import("./pages/AgentsPage"));
 const AgentDetailPage = lazy(() => import("./pages/AgentDetailPage"));
 const CreateAgentPage = lazy(() => import("./pages/CreateAgentPage"));
+const AgentTemplatesPage = lazy(() => import("./pages/AgentTemplatesPage"));
 const AgentBuilder = lazy(() => import("./pages/AgentBuilder"));
 const AuthPage = lazy(() => import("./pages/AuthPage"));
 const ResetPasswordPage = lazy(() => import("./pages/ResetPasswordPage"));
@@ -144,6 +145,7 @@ const App = () => (
                       <Route path="/dashboard" element={<SafePage><DashboardPage /></SafePage>} />
                       <Route path="/agents" element={<SafePage><AgentsPage /></SafePage>} />
                       <Route path="/agents/new" element={<SafePage><CreateAgentPage /></SafePage>} />
+                      <Route path="/agents/templates" element={<SafePage><AgentTemplatesPage /></SafePage>} />
                       <Route path="/agents/:id" element={<SafePage><AgentDetailPage /></SafePage>} />
                       <Route path="/builder" element={<SafePage><AgentBuilder /></SafePage>} />
                       <Route path="/builder/:id" element={<SafePage><AgentBuilder /></SafePage>} />
