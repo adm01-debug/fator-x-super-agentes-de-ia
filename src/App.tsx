@@ -65,6 +65,10 @@ const ComputerUsePage = lazy(() => import("./pages/ComputerUsePage"));
 const VisionAgentsPage = lazy(() => import("./pages/VisionAgentsPage"));
 const MobileSDKPage = lazy(() => import("./pages/MobileSDKPage"));
 const PromptABTestPage = lazy(() => import("./pages/PromptABTestPage"));
+const MarketplaceMonetizedPage = lazy(() => import("./pages/MarketplaceMonetizedPage"));
+const FineTuningPage = lazy(() => import("./pages/FineTuningPage"));
+const SyntheticDataPage = lazy(() => import("./pages/SyntheticDataPage"));
+const CanaryDeploymentsPage = lazy(() => import("./pages/CanaryDeploymentsPage"));
 const NotFound = lazy(() => import("./pages/NotFound"));
 
 const queryClient = new QueryClient({
