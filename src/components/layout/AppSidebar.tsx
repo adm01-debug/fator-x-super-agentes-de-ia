@@ -8,7 +8,7 @@ import {
   Sparkles, PanelLeftClose, PanelLeft, LogOut, ServerCog, ChevronDown, Palette, Dna, Workflow, Package,
   Globe, ShieldCheck, CircleCheckBig, Crown, Route as RouteIcon, Languages,
   Mic, GitBranch as GitBranchIcon, KeyRound, Globe2, Monitor, Eye, Smartphone, TestTube2,
-  Store, Cpu, Wand2, GitMerge,
+  Store, Cpu, Wand2, GitMerge, Terminal, Mail, Bug, FileCheck2,
 } from "lucide-react";
 import {
   Sidebar, SidebarContent, SidebarGroup, SidebarGroupContent, SidebarGroupLabel,
@@ -57,6 +57,10 @@ const navSections = [
       { title: "Fine-Tuning", url: "/fine-tuning", icon: Cpu },
       { title: "Synthetic Data", url: "/synthetic-data", icon: Wand2 },
       { title: "Canary Deploys", url: "/canary", icon: GitMerge },
+      { title: "Code Interpreter", url: "/code-interpreter", icon: Terminal },
+      { title: "Email Triggers", url: "/email-triggers", icon: Mail },
+      { title: "Agent Debugger", url: "/debugger", icon: Bug },
+      { title: "Compliance Reports", url: "/compliance-reports", icon: FileCheck2 },
     ],
   },
   {
