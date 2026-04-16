@@ -72,6 +72,10 @@ const CodeInterpreterPage = lazy(() => import("./pages/CodeInterpreterPage"));
 const EmailCalendarTriggersPage = lazy(() => import("./pages/EmailCalendarTriggersPage"));
 const AgentDebuggerPage = lazy(() => import("./pages/AgentDebuggerPage"));
 const ComplianceReportsPage = lazy(() => import("./pages/ComplianceReportsPage"));
+const VoiceTelephonyPage = lazy(() => import("./pages/VoiceTelephonyPage"));
+const KnowledgeGraphPage = lazy(() => import("./pages/KnowledgeGraphPage"));
+const AgentSimulationPage = lazy(() => import("./pages/AgentSimulationPage"));
+const CostOptimizerPage = lazy(() => import("./pages/CostOptimizerPage"));
 const NotFound = lazy(() => import("./pages/NotFound"));
 
 const queryClient = new QueryClient({
@@ -179,6 +183,10 @@ const App = () => (
                       <Route path="/email-triggers" element={<SafePage><EmailCalendarTriggersPage /></SafePage>} />
                       <Route path="/debugger" element={<SafePage><AgentDebuggerPage /></SafePage>} />
                       <Route path="/compliance-reports" element={<SafePage><ProtectedRoute permission="settings.api_keys"><ComplianceReportsPage /></ProtectedRoute></SafePage>} />
+                      <Route path="/voice-telephony" element={<SafePage><VoiceTelephonyPage /></SafePage>} />
+                      <Route path="/knowledge-graph" element={<SafePage><KnowledgeGraphPage /></SafePage>} />
+                      <Route path="/simulation" element={<SafePage><AgentSimulationPage /></SafePage>} />
+                      <Route path="/cost-optimizer" element={<SafePage><CostOptimizerPage /></SafePage>} />
                       <Route path="*" element={<SafePage><NotFound /></SafePage>} />
                     </Routes>
                   </AppLayout>

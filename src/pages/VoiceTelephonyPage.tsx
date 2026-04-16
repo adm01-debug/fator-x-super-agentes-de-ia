@@ -6,7 +6,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Phone, PhoneCall, PhoneIncoming, PhoneOutgoing, Mic, Volume2, Clock, DollarSign } from "lucide-react";
+import { Phone, PhoneCall, PhoneIncoming, PhoneOutgoing, Volume2, Clock, DollarSign } from "lucide-react";
 import { toast } from "sonner";
 
 interface Call {
