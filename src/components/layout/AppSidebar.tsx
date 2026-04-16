@@ -53,6 +53,10 @@ const navSections = [
       { title: "Vision Agents", url: "/vision", icon: Eye },
       { title: "Mobile SDK", url: "/mobile-sdk", icon: Smartphone },
       { title: "A/B Test Prompts", url: "/ab-test", icon: TestTube2 },
+      { title: "Marketplace Pro", url: "/marketplace-pro", icon: Store },
+      { title: "Fine-Tuning", url: "/fine-tuning", icon: Cpu },
+      { title: "Synthetic Data", url: "/synthetic-data", icon: Wand2 },
+      { title: "Canary Deploys", url: "/canary", icon: GitMerge },
     ],
   },
   {
