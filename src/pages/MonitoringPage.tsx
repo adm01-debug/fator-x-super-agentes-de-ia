@@ -34,9 +34,9 @@ export default function MonitoringPage() {
 
   const selected = filteredTraces.find((t: any) => t.id === selectedId) || filteredTraces[0];
   const stats = { total: filteredTraces.length, errors: filteredTraces.filter((t: any) => t.level === 'error' || t.level === 'critical').length, avgLatency: filteredTraces.length ? Math.round(filteredTraces.reduce((s: number, t: any) => s + (t.latency_ms || 0), 0) / filteredTraces.length) : 0, totalCost: filteredTraces.reduce((s: number, t: any) => s + Number(t.cost_usd || 0), 0) };
-  const levelCounts = traces.reduce((acc: Record<string, number>, t: any) => { const level = t.level || 'info'; acc[level] = (acc[level] || 0) + 1; return acc; }, {} as Record<string, number>);
+  const levelCounts = filteredTraces.reduce((acc: Record<string, number>, t: any) => { const level = t.level || 'info'; acc[level] = (acc[level] || 0) + 1; return acc; }, {} as Record<string, number>);
   const pieData = Object.entries(levelCounts).map(([name, value]) => ({ name, value: value as number }));
-  const latencyData = traces.slice(0, 20).reverse().map((t: any) => ({ time: new Date(t.created_at).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' }), latency: t.latency_ms || 0 }));
+  const latencyData = filteredTraces.slice(0, 20).reverse().map((t: any) => ({ time: new Date(t.created_at).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' }), latency: t.latency_ms || 0 }));
   const unresolvedCount = alerts.filter((a: any) => !a.is_resolved).length;
   const agentName = (id: string | null) => { if (!id) return '—'; const a = agentsList.find((ag: any) => ag.id === id); return a ? a.name : id.substring(0, 8); };
 
@@ -46,13 +46,14 @@ export default function MonitoringPage() {
     <div className="p-6 sm:p-8 lg:p-10 space-y-6 max-w-[1400px] mx-auto animate-page-enter">
       <PageHeader title="Monitoramento" description="Traces, sessões, alertas e observabilidade em tempo real" />
       <SystemHealthBanner />
-      <div className="flex items-center gap-3">
+      <div className="flex items-center gap-3 flex-wrap">
         <Select value={agentFilter} onValueChange={setAgentFilter}>
           <SelectTrigger className="w-[220px] bg-secondary/50 text-xs"><SelectValue placeholder="Filtrar por agente" /></SelectTrigger>
           <SelectContent><SelectItem value="all">Todos os agentes</SelectItem>{agentsList.map((a) => <SelectItem key={a.id} value={String(a.id)}>{String(a.name)}</SelectItem>)}</SelectContent>
         </Select>
         {agentFilter !== 'all' && <Badge variant="outline" className="text-[11px]">Filtrado</Badge>}
       </div>
+      <AdvancedTraceFilters filters={traceFilters} onChange={setTraceFilters} />
 
       <Tabs defaultValue="traces" className="space-y-4">
         <TabsList>
