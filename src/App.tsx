@@ -61,6 +61,10 @@ const VoiceAgentStudioPage = lazy(() => import("./pages/VoiceAgentStudioPage"));
 const ReplayForkPage = lazy(() => import("./pages/ReplayForkPage"));
 const EnterpriseSSOPage = lazy(() => import("./pages/EnterpriseSSOPage"));
 const DataResidencyPage = lazy(() => import("./pages/DataResidencyPage"));
+const ComputerUsePage = lazy(() => import("./pages/ComputerUsePage"));
+const VisionAgentsPage = lazy(() => import("./pages/VisionAgentsPage"));
+const MobileSDKPage = lazy(() => import("./pages/MobileSDKPage"));
+const PromptABTestPage = lazy(() => import("./pages/PromptABTestPage"));
 const NotFound = lazy(() => import("./pages/NotFound"));
 
 const queryClient = new QueryClient({
@@ -157,6 +161,10 @@ const App = () => (
                       <Route path="/replay" element={<SafePage><ReplayForkPage /></SafePage>} />
                       <Route path="/sso" element={<SafePage><ProtectedRoute permission="settings.api_keys"><EnterpriseSSOPage /></ProtectedRoute></SafePage>} />
                       <Route path="/residency" element={<SafePage><ProtectedRoute permission="settings.api_keys"><DataResidencyPage /></ProtectedRoute></SafePage>} />
+                      <Route path="/computer-use" element={<SafePage><ComputerUsePage /></SafePage>} />
+                      <Route path="/vision" element={<SafePage><VisionAgentsPage /></SafePage>} />
+                      <Route path="/mobile-sdk" element={<SafePage><MobileSDKPage /></SafePage>} />
+                      <Route path="/ab-test" element={<SafePage><PromptABTestPage /></SafePage>} />
                       <Route path="*" element={<SafePage><NotFound /></SafePage>} />
                     </Routes>
                   </AppLayout>
