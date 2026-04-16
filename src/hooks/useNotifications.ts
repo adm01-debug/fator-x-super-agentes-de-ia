@@ -1,67 +1,67 @@
 /**
  * Nexus Agents Studio — useNotifications Hook
  *
- * In-app notification management with unread count,
- * designed for the notification bell in the app header.
+ * In-app notification management using the zustand notification store.
+ * Does NOT depend on a database 'notifications' table — uses in-memory store only.
  */
 
-import { useState, useEffect, useCallback } from 'react';
-import {
-  getInAppNotifications,
-  markRead,
-  markAllRead,
-  type NotificationPayload,
-} from '@/services/notificationEngineService';
+import { useCallback } from 'react';
+import { useNotificationStore } from '@/stores/notificationStore';
 import { useAuth } from '@/contexts/AuthContext';
 
-export function useNotifications(pollIntervalMs: number = 30000) {
-  const [notifications, setNotifications] = useState<NotificationPayload[]>([]);
-  const [unreadCount, setUnreadCount] = useState(0);
-  const [loading, setLoading] = useState(true);
+export interface NotificationItem {
+  id: string;
+  title: string;
+  body: string;
+  subject: string;
+  message: string;
+  channel: 'in_app';
+  priority: string;
+  status: 'read' | 'sent';
+  recipient_id: string;
+  created_at: string;
+  read_at?: string;
+  type: string;
+}
+
+export function useNotifications(_pollIntervalMs: number = 30000) {
+  const storeNotifs = useNotificationStore((s) => s.notifications);
+  const storeUnread = useNotificationStore((s) => s.unreadCount);
+  const storeMarkRead = useNotificationStore((s) => s.markRead);
+  const storeMarkAllRead = useNotificationStore((s) => s.markAllRead);
   const { user } = useAuth();
 
   const refresh = useCallback(async () => {
-    if (!user?.id) return;
-    try {
-      const data = await getInAppNotifications(user.id, false);
-      setNotifications(data);
-      setUnreadCount(data.filter((n) => n.status === 'sent' || n.status === 'delivered').length);
-    } catch {
-      // silent fail for polling
-    } finally {
-      setLoading(false);
-    }
-  }, [user?.id]);
-
-  useEffect(() => {
-    refresh();
-    if (pollIntervalMs > 0) {
-      const interval = setInterval(refresh, pollIntervalMs);
-      return () => clearInterval(interval);
-    }
-  }, [refresh, pollIntervalMs]);
-
-  const markOneRead = useCallback(async (id: string) => {
-    await markRead(id);
-    setNotifications((prev) =>
-      prev.map((n) => (n.id === id ? { ...n, status: 'read' as const, read_at: new Date().toISOString() } : n)),
-    );
-    setUnreadCount((c) => Math.max(0, c - 1));
+    // No-op: notifications come from the zustand store reactively
   }, []);
 
+  const markOneRead = useCallback(async (id: string) => {
+    storeMarkRead(id);
+  }, [storeMarkRead]);
+
   const markAllAsRead = useCallback(async () => {
-    if (!user?.id) return;
-    await markAllRead(user.id);
-    setNotifications((prev) =>
-      prev.map((n) => ({ ...n, status: 'read' as const, read_at: new Date().toISOString() })),
-    );
-    setUnreadCount(0);
-  }, [user?.id]);
+    storeMarkAllRead();
+  }, [storeMarkAllRead]);
+
+  const notifications: NotificationItem[] = storeNotifs.map((n) => ({
+    id: n.id,
+    title: n.title,
+    body: n.message,
+    subject: n.title,
+    message: n.message,
+    channel: 'in_app' as const,
+    priority: n.priority,
+    status: (n.read ? 'read' : 'sent') as 'read' | 'sent',
+    recipient_id: user?.id ?? '',
+    created_at: n.createdAt,
+    read_at: n.read ? n.createdAt : undefined,
+    type: n.type,
+  }));
 
   return {
     notifications,
-    unreadCount,
-    loading,
+    unreadCount: storeUnread,
+    loading: false,
     refresh,
     markOneRead,
     markAllAsRead,
