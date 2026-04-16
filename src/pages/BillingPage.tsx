@@ -86,6 +86,7 @@ export default function BillingPage() {
       <Tabs defaultValue="overview" className="space-y-4">
         <TabsList>
           <TabsTrigger value="overview">Visão geral</TabsTrigger>
+          <TabsTrigger value="optimization">💡 Otimização</TabsTrigger>
           <TabsTrigger value="stream">Stream ao vivo</TabsTrigger>
           <TabsTrigger value="budgets">Orçamentos</TabsTrigger>
           <TabsTrigger value="records">Registros de uso</TabsTrigger>
