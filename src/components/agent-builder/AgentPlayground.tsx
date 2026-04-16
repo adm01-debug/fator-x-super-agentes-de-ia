@@ -8,6 +8,8 @@ import { invokeLLMGateway } from '@/services/llmGatewayService';
 import { useStreamingResponse } from '@/hooks/useStreamingResponse';
 import { Send, MessageSquare, Trash2, Bug, Loader2, StopCircle, Zap, Clock, Hash, Activity, RefreshCw, Repeat, X } from 'lucide-react';
 import ReactMarkdown from 'react-markdown';
+import { useCostEstimate } from '@/hooks/useCostEstimate';
+import { CostEstimateCard } from './CostEstimateCard';
 
 interface ChatMessage {
   role: 'user' | 'assistant';
@@ -147,6 +149,14 @@ export function AgentPlayground() {
   const tokensPerSec = streaming.latencyMs > 0 && streaming.tokens > 0
     ? (streaming.tokens / (streaming.latencyMs / 1000)).toFixed(1)
     : null;
+
+  const estimate = useCostEstimate({
+    model: agent.model,
+    systemPrompt: buildSystemPrompt(),
+    userInput: input,
+    maxTokens: agent.max_tokens ?? 4000,
+    toolsCount: agent.tools.filter(t => t.enabled).length,
+  });
 
   return (
     <>
@@ -313,7 +323,10 @@ export function AgentPlayground() {
             )}
           </div>
 
-          <div className="px-5 py-3 border-t border-border/50 shrink-0">
+          <div className="px-5 py-3 border-t border-border/50 shrink-0 space-y-2">
+            {input.trim().length > 0 && (
+              <CostEstimateCard estimate={estimate} compact />
+            )}
             <div className="flex items-end gap-2">
               <Textarea
                 placeholder="Digite sua mensagem..."
