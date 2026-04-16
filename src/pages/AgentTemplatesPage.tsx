@@ -16,7 +16,8 @@ import { Badge } from "@/components/ui/badge";
 import { Card } from "@/components/ui/card";
 import { ScrollArea, ScrollBar } from "@/components/ui/scroll-area";
 import { AGENT_TEMPLATES, type AgentTemplate } from "@/data/agentTemplates";
-import { saveAgent, type AgentConfig } from "@/lib/agentService";
+import { saveAgent } from "@/lib/agentService";
+import type { AgentConfig } from "@/types/agentTypes";
 import { useAuth } from "@/contexts/AuthContext";
 import { logger } from "@/lib/logger";
 
