@@ -1,33 +1,35 @@
 
-#2 done. Próxima: **#8 Conversational Builder** — chat-to-agent via Lovable AI.
+#8 done. Próxima: **#5 A/B Testing real**.
 
-## #8 Conversational Builder — Escopo
+## #5 A/B Testing — Escopo
 
-Wizard conversacional que faz perguntas e auto-preenche o agente via Lovable AI (Gemini Flash, sem custo).
+Sistema de experimentos comparando 2 variantes de agente com split de tráfego e métricas.
 
-**Edge function:**
-- `supabase/functions/agent-conversational-builder/index.ts`
-- Input: `{ messages: ChatMessage[], currentAgent: Partial<AgentConfig> }`
-- Usa `LOVABLE_API_KEY` + `google/gemini-2.5-flash`
-- System prompt: "Você é um assistente que ajuda a configurar agentes IA. Faça 1 pergunta por vez sobre missão, persona, modelo, ferramentas, guardrails. Quando tiver info suficiente, retorne JSON com `patch: Partial<AgentConfig>` + `next_question` ou `done: true`."
-- Streaming via SSE (mesmo padrão de outras edge functions)
+**Schema (migration):**
+- `agent_experiments`: id, agent_id, name, status (draft/running/paused/completed), variant_a_config (jsonb), variant_b_config (jsonb), traffic_split (int 0-100, % pra B), started_at, ended_at, winner (a/b/null), workspace_id, created_by
+- `agent_experiment_runs`: id, experiment_id, variant (a/b), input, output, latency_ms, tokens, cost, score (nullable), feedback (nullable), created_at
+- RLS: workspace members podem ver/criar; só admin pausa/completa
+
+**Hook:**
+- `src/hooks/useAgentExperiments.ts` — CRUD via supabaseExternal + React Query
 
 **Componente:**
-- `src/components/agent-builder/ConversationalBuilder.tsx` — Sheet lateral
-- Chat UI: bolhas user/assistant, input, send
-- Ao receber `patch` → `updateAgent(patch)` + toast "Campo X preenchido"
-- Botão "Aplicar e fechar" no fim
+- `src/components/agent-builder/modules/ExperimentsModule.tsx` — nova tab ou painel dentro de Observability
+- Lista experimentos do agente
+- Wizard "Novo experimento": nome → diff configs (model/prompt/temp) → split slider → start
+- Painel ativo: métricas side-by-side (latência média, custo, score) + barra de progresso runs A vs B
+- Botão "Declarar vencedor" → aplica config no agente principal
 
-**Trigger:**
-- Botão "✨ Builder Conversacional" no header do `AgentBuilderLayout` (ao lado de History)
-- Ou no IdentityModule como CTA grande para agentes vazios
+**Edge function (opcional fase 1, fica pra depois):**
+- Roteamento real no playground respeitando split — fase 1 usa só registro manual de runs
 
 **Arquivos:**
-- criar `supabase/functions/agent-conversational-builder/index.ts`
-- criar `src/components/agent-builder/ConversationalBuilder.tsx`
-- editar `src/components/agent-builder/AgentBuilderLayout.tsx` — botão + Sheet
-- editar `supabase/config.toml` — registrar função (`verify_jwt = false` para teste, depois true)
+- migration SQL nova
+- criar `src/hooks/useAgentExperiments.ts`
+- criar `src/components/agent-builder/modules/ExperimentsModule.tsx`
+- editar `src/data/agentBuilderData.ts` — adicionar tab "experiments" ou integrar em existente
+- editar `src/pages/AgentBuilder.tsx` (ou onde tabs são roteadas) — registrar módulo
 
-**Validação:** clicar botão → chat abre → "quero um agente de suporte" → IA pergunta detalhes → campos preenchem em tempo real no builder atrás.
+**Validação:** abrir agente → tab Experiments → criar experimento → ver métricas mock + declarar vencedor.
 
-Próximas sem pausar: #5 → #6 → #9 → #10 → #7.
+Próximas sem pausar: #6 Cost Predictor → #9 Eval Suite → #10 Visual Orchestrator → #7 Guardrails Library.
