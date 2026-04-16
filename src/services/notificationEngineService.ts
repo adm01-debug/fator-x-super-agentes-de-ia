@@ -128,29 +128,41 @@ export async function listNotifications(
   filters?: { channel?: NotificationChannel; status?: NotificationStatus; recipient_id?: string; priority?: NotificationPriority; source_type?: NotificationPayload['source_type'] },
   limit: number = 50,
 ): Promise<NotificationPayload[]> {
-  let query = fromTable('notifications').select('*').order('created_at', { ascending: false }).limit(limit);
-  if (filters?.channel) query = query.eq('channel', filters.channel);
-  if (filters?.status) query = query.eq('status', filters.status);
-  if (filters?.recipient_id) query = query.eq('recipient_id', filters.recipient_id);
-  if (filters?.priority) query = query.eq('priority', filters.priority);
-  if (filters?.source_type) query = query.eq('source_type', filters.source_type);
-  const { data, error } = await query;
-  if (error) throw error;
-  return (data ?? []) as NotificationPayload[];
+  try {
+    let query = fromTable('notifications').select('*').order('created_at', { ascending: false }).limit(limit);
+    if (filters?.channel) query = query.eq('channel', filters.channel);
+    if (filters?.status) query = query.eq('status', filters.status);
+    if (filters?.recipient_id) query = query.eq('recipient_id', filters.recipient_id);
+    if (filters?.priority) query = query.eq('priority', filters.priority);
+    if (filters?.source_type) query = query.eq('source_type', filters.source_type);
+    const { data, error } = await query;
+    if (error) return [];
+    return (data ?? []) as NotificationPayload[];
+  } catch {
+    return [];
+  }
 }
 
 export async function getInAppNotifications(userId: string, unreadOnly: boolean = false): Promise<NotificationPayload[]> {
-  let query = fromTable('notifications').select('*').eq('channel', 'in_app').eq('recipient_id', userId).order('created_at', { ascending: false }).limit(100);
-  if (unreadOnly) query = query.in('status', ['sent', 'delivered']);
-  const { data, error } = await query;
-  if (error) throw error;
-  return (data ?? []) as NotificationPayload[];
+  try {
+    let query = fromTable('notifications').select('*').eq('channel', 'in_app').eq('recipient_id', userId).order('created_at', { ascending: false }).limit(100);
+    if (unreadOnly) query = query.in('status', ['sent', 'delivered']);
+    const { data, error } = await query;
+    if (error) return [];
+    return (data ?? []) as NotificationPayload[];
+  } catch {
+    return [];
+  }
 }
 
 export async function markAllRead(userId: string): Promise<number> {
-  const { data, error } = await fromTable('notifications').update({ status: 'read', read_at: new Date().toISOString() }).eq('channel', 'in_app').eq('recipient_id', userId).in('status', ['sent', 'delivered']).select('id');
-  if (error) throw error;
-  return data?.length ?? 0;
+  try {
+    const { data, error } = await fromTable('notifications').update({ status: 'read', read_at: new Date().toISOString() }).eq('channel', 'in_app').eq('recipient_id', userId).in('status', ['sent', 'delivered']).select('id');
+    if (error) return 0;
+    return data?.length ?? 0;
+  } catch {
+    return 0;
+  }
 }
 
 /* ------------------------------------------------------------------ */
