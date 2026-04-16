@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { ShieldCheck, Building2, KeyRound, UserPlus, Link2, Copy, CheckCircle2, AlertCircle } from "lucide-react";
+import { Building2, KeyRound, UserPlus, Link2, Copy, CheckCircle2, AlertCircle } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -41,7 +41,6 @@ export default function EnterpriseSSOPage() {
       <PageHeader
         title="SSO Enterprise"
         description="SAML 2.0 + SCIM 2.0 — provisione e desprovisione usuários automaticamente via Okta, Azure AD, Google Workspace e mais."
-        icon={ShieldCheck}
       />
 
       <Tabs defaultValue="saml">

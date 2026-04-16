@@ -1,7 +1,7 @@
 import { useState } from "react";
-import { Globe2, MapPin, Lock, Database, ShieldCheck, AlertTriangle, CheckCircle2 } from "lucide-react";
+import { Globe2, MapPin, Lock, Database, AlertTriangle, CheckCircle2 } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
+
 import { Badge } from "@/components/ui/badge";
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
@@ -34,7 +34,6 @@ export default function DataResidencyPage() {
       <PageHeader
         title="Data Residency & Multi-Tenant"
         description="Soberania de dados, isolamento por tenant e compliance regional (LGPD, GDPR, residency requirements)."
-        icon={Globe2}
       />
 
       <div className="grid grid-cols-1 md:grid-cols-4 gap-4">

@@ -104,7 +104,6 @@ export default function TracesTimelinePage() {
       <PageHeader
         title="Traces & Observabilidade"
         description="Timeline interativa estilo LangSmith — waterfall de spans, custo por execução, replay e fork."
-        icon={Activity}
       />
 
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">

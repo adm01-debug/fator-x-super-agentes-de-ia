@@ -1,5 +1,5 @@
 import { useEffect, useState, useMemo } from "react";
-import { GitBranch, Play, Pause, SkipBack, SkipForward, Copy, Layers, Hash } from "lucide-react";
+import { GitBranch, Play, Pause, SkipBack, SkipForward, Layers, Hash } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -94,7 +94,6 @@ export default function ReplayForkPage() {
       <PageHeader
         title="Replay & Fork"
         description="Time-travel debugging visual — replay determinístico de execuções com fork a partir de qualquer step."
-        icon={GitBranch}
       />
 
       <div className="grid grid-cols-1 lg:grid-cols-[340px_1fr] gap-4">

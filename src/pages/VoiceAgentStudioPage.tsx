@@ -14,7 +14,7 @@ type Turn = { role: "user" | "agent"; text: string; ms: number; ts: string };
 
 export default function VoiceAgentStudioPage() {
   const [connected, setConnected] = useState(false);
-  const [recording, setRecording] = useState(false);
+  const [, setRecording] = useState(false);
   const [vadEnabled, setVadEnabled] = useState(true);
   const [bargeIn, setBargeIn] = useState(true);
   const [voice, setVoice] = useState("alloy");
@@ -89,7 +89,6 @@ export default function VoiceAgentStudioPage() {
       <PageHeader
         title="Voice Agent Studio"
         description="Pipeline realtime STT ↔ LLM ↔ TTS com WebRTC, VAD e barge-in. Interface inspirada em Vapi/Retell."
-        icon={Mic}
       />
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
