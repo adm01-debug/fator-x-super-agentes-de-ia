@@ -57,6 +57,10 @@ export default function EvaluationsPage() {
           )}
         </TabsContent>
 
+        <TabsContent value="ragas">
+          <RAGASMetricsPanel />
+        </TabsContent>
+
         <TabsContent value="datasets">
           <EvaluationDatasetsPanel />
         </TabsContent>
