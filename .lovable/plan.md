@@ -1,35 +1,35 @@
 
-#8 done. Próxima: **#5 A/B Testing real**.
+#5 done. Próxima: **#6 Cost Predictor** — estimativa de custo antes de rodar.
 
-## #5 A/B Testing — Escopo
+## #6 Cost Predictor
 
-Sistema de experimentos comparando 2 variantes de agente com split de tráfego e métricas.
+Preview de custo/latência baseado em config atual + input do playground, usando tabela de preços por modelo.
 
-**Schema (migration):**
-- `agent_experiments`: id, agent_id, name, status (draft/running/paused/completed), variant_a_config (jsonb), variant_b_config (jsonb), traffic_split (int 0-100, % pra B), started_at, ended_at, winner (a/b/null), workspace_id, created_by
-- `agent_experiment_runs`: id, experiment_id, variant (a/b), input, output, latency_ms, tokens, cost, score (nullable), feedback (nullable), created_at
-- RLS: workspace members podem ver/criar; só admin pausa/completa
+**Pricing table (constante):**
+- `src/lib/llmPricing.ts` — map `model → { input_per_1k, output_per_1k, avg_latency_ms }`
+- Cobre: gemini-2.5-flash/pro/lite, gpt-5/mini/nano, gemini-3.x
 
 **Hook:**
-- `src/hooks/useAgentExperiments.ts` — CRUD via supabaseExternal + React Query
+- `src/hooks/useCostEstimate.ts`
+- Input: `{ model, systemPrompt, userInput, maxTokens, tools[] }`
+- Tokens estimados: chars/4 (system + user) + maxTokens output
+- Output: `{ inputTokens, outputTokens, costUsd, costBrl, estLatencyMs }`
+- USD→BRL via constante (5.0) ou env
 
-**Componente:**
-- `src/components/agent-builder/modules/ExperimentsModule.tsx` — nova tab ou painel dentro de Observability
-- Lista experimentos do agente
-- Wizard "Novo experimento": nome → diff configs (model/prompt/temp) → split slider → start
-- Painel ativo: métricas side-by-side (latência média, custo, score) + barra de progresso runs A vs B
-- Botão "Declarar vencedor" → aplica config no agente principal
+**UI — 2 lugares:**
+1. **Playground** (`AgentPlayground.tsx`): card "💰 Estimativa" acima do botão Send mostrando custo + latência prevista, atualiza ao digitar
+2. **CostModule** existente (ou Billing): widget "Simulador" — input livre + slider tokens → tabela comparando todos os modelos lado a lado (acha o mais barato/rápido)
 
-**Edge function (opcional fase 1, fica pra depois):**
-- Roteamento real no playground respeitando split — fase 1 usa só registro manual de runs
+**Componente compartilhado:**
+- `src/components/agent-builder/CostEstimateCard.tsx` — card compacto reutilizável
 
 **Arquivos:**
-- migration SQL nova
-- criar `src/hooks/useAgentExperiments.ts`
-- criar `src/components/agent-builder/modules/ExperimentsModule.tsx`
-- editar `src/data/agentBuilderData.ts` — adicionar tab "experiments" ou integrar em existente
-- editar `src/pages/AgentBuilder.tsx` (ou onde tabs são roteadas) — registrar módulo
+- criar `src/lib/llmPricing.ts`
+- criar `src/hooks/useCostEstimate.ts`
+- criar `src/components/agent-builder/CostEstimateCard.tsx`
+- editar `src/components/agent-builder/AgentPlayground.tsx` — integrar card
+- editar `src/components/agent-builder/modules/BillingModule.tsx` — adicionar simulador comparativo
 
-**Validação:** abrir agente → tab Experiments → criar experimento → ver métricas mock + declarar vencedor.
+**Validação:** abrir playground → digitar input → ver custo USD/BRL atualizando; trocar modelo no builder → custo recalcula; em Billing → simular e ver tabela comparativa.
 
-Próximas sem pausar: #6 Cost Predictor → #9 Eval Suite → #10 Visual Orchestrator → #7 Guardrails Library.
+Próximas sem pausar: #9 Eval Suite → #10 Visual Orchestrator → #7 Guardrails Library.
