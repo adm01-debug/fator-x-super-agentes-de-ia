@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Globe2, MapPin, Lock, Database, AlertTriangle, CheckCircle2 } from "lucide-react";
+import { MapPin, Lock, Database, AlertTriangle, CheckCircle2 } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 
 import { Badge } from "@/components/ui/badge";
