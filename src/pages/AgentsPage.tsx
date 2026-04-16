@@ -51,6 +51,9 @@ export default function AgentsPage() {
 
   const selectionMode = selectedIds.size > 0;
 
+  // useAgents available for cross-component data sharing
+  const { data: _allAgentsCache } = useAgents();
+
   const { data: agents = [], isLoading } = useQuery({
     queryKey: ['agents', statusFilter],
     queryFn: () => listAgents(statusFilter),
