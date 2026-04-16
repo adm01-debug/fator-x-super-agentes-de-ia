@@ -80,6 +80,10 @@ const FederatedLearningPage = lazy(() => import("./pages/FederatedLearningPage")
 const MultiTenancyPage = lazy(() => import("./pages/MultiTenancyPage"));
 const ObservabilityOTelPage = lazy(() => import("./pages/ObservabilityOTelPage"));
 const DisasterRecoveryPage = lazy(() => import("./pages/DisasterRecoveryPage"));
+const KnowledgeManagementPage = lazy(() => import("./pages/KnowledgeManagementPage"));
+const ArticleEditorPage = lazy(() => import("./pages/ArticleEditorPage"));
+const PublicHelpCenterPage = lazy(() => import("./pages/PublicHelpCenterPage"));
+const PublicForumPage = lazy(() => import("./pages/PublicForumPage"));
 const NotFound = lazy(() => import("./pages/NotFound"));
 
 const queryClient = new QueryClient({
@@ -127,6 +131,10 @@ const App = () => (
             <Routes>
               <Route path="/auth" element={<SafePage><AuthPage /></SafePage>} />
               <Route path="/reset-password" element={<SafePage><ResetPasswordPage /></SafePage>} />
+              <Route path="/help/:slug" element={<SafePage><PublicHelpCenterPage /></SafePage>} />
+              <Route path="/help/:slug/forum" element={<SafePage><PublicForumPage /></SafePage>} />
+              <Route path="/help/:slug/forum/:threadId" element={<SafePage><PublicForumPage /></SafePage>} />
+              <Route path="/help/:slug/:articleSlug" element={<SafePage><PublicHelpCenterPage /></SafePage>} />
               <Route path="*" element={
                 <AuthGuard>
                   <AppLayout>
@@ -142,6 +150,8 @@ const App = () => (
                       <Route path="/super-cerebro" element={<SafePage><SuperCerebroPage /></SafePage>} />
                       <Route path="/oracle" element={<SafePage><OraclePage /></SafePage>} />
                       <Route path="/knowledge" element={<SafePage><KnowledgePage /></SafePage>} />
+                      <Route path="/knowledge-management" element={<SafePage><KnowledgeManagementPage /></SafePage>} />
+                      <Route path="/knowledge-management/article/:id" element={<SafePage><ArticleEditorPage /></SafePage>} />
                       <Route path="/memory" element={<SafePage><MemoryPage /></SafePage>} />
                       <Route path="/tools" element={<SafePage><ToolsPage /></SafePage>} />
                       <Route path="/routing" element={<SafePage><RoutingConfigPage /></SafePage>} />
