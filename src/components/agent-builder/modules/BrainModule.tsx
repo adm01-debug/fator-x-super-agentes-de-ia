@@ -1,9 +1,15 @@
+import { useState } from 'react';
 import { useAgentBuilderStore } from '@/stores/agentBuilderStore';
 import { SectionTitle, SelectionGrid, SliderField, ToggleField, SelectField } from '../ui';
 import { NexusBadge } from '../ui/NexusBadge';
 import type { LLMModel, ReasoningPattern } from '@/types/agentTypes';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { cn } from '@/lib/utils';
+import { routeQuery, type RouteResult } from '@/services/modelRouterService';
+import { Button } from '@/components/ui/button';
+import { Badge } from '@/components/ui/badge';
+import { Sparkles, Loader2 } from 'lucide-react';
+import { toast } from 'sonner';
 
 const MODELS = [
   { id: 'claude-opus-4.6', icon: '🟤', title: 'Claude Opus 4.6', description: 'Anthropic · 200K ctx · $15/$75 por 1M', badge: <NexusBadge color="orange">Premium</NexusBadge>, accentColor: 'hsl(var(--nexus-gold))' },
@@ -31,12 +37,54 @@ const FALLBACK_OPTIONS = MODELS.map((m) => ({ value: m.id, label: m.title }));
 export function BrainModule() {
   const agent = useAgentBuilderStore((s) => s.agent);
   const updateAgent = useAgentBuilderStore((s) => s.updateAgent);
+  const [routing, setRouting] = useState(false);
+  const [routeResult, setRouteResult] = useState<RouteResult | null>(null);
+
+  const handleAutoRoute = async () => {
+    const testQuery = agent.mission || agent.persona || 'Analyze complex data and provide insights';
+    setRouting(true);
+    try {
+      const result = await routeQuery(testQuery);
+      setRouteResult(result);
+      const matchingModel = MODELS.find(m => result.recommended_model.includes(m.id) || m.id.includes(result.recommended_model));
+      if (matchingModel) {
+        updateAgent({ model: matchingModel.id as LLMModel });
+        toast.success(`Auto-Route: ${matchingModel.title} (${result.tier})`);
+      } else {
+        toast.info(`Sugestão: ${result.recommended_model} (${result.tier})`);
+      }
+    } catch {
+      toast.error('Auto-Route indisponível, selecione manualmente');
+    } finally {
+      setRouting(false);
+    }
+  };
 
   return (
     <div className="space-y-10">
       {/* Seção A — Modelo Principal */}
       <section>
-        <SectionTitle icon="🧠" title="Modelo Principal (LLM)" subtitle="Selecione o modelo de linguagem que alimentará o cérebro do agente." />
+        <div className="flex items-center justify-between mb-2">
+          <SectionTitle icon="🧠" title="Modelo Principal (LLM)" subtitle="Selecione o modelo de linguagem que alimentará o cérebro do agente." />
+          <Button variant="outline" size="sm" className="gap-1.5 text-xs shrink-0" onClick={handleAutoRoute} disabled={routing}>
+            {routing ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Sparkles className="h-3.5 w-3.5" />}
+            Auto-Route
+          </Button>
+        </div>
+        {routeResult && (
+          <div className="mb-4 p-3 rounded-lg border border-primary/20 bg-primary/5 animate-fade-in">
+            <div className="flex items-center gap-2 flex-wrap">
+              <Badge variant="outline" className="text-[10px]">Complexidade: {routeResult.complexity.level} ({(routeResult.complexity.score * 100).toFixed(0)}%)</Badge>
+              <Badge variant="outline" className="text-[10px]">Tier: {routeResult.tier}</Badge>
+              <Badge variant="outline" className="text-[10px]">~${routeResult.estimated_cost_per_query.toFixed(4)}/query</Badge>
+            </div>
+            {routeResult.alternatives.length > 0 && (
+              <p className="text-[11px] text-muted-foreground mt-1.5">
+                Alternativas: {routeResult.alternatives.map(a => `${a.model} (${a.tier})`).join(', ')}
+              </p>
+            )}
+          </div>
+        )}
         <SelectionGrid
           items={MODELS}
           value={agent.model}

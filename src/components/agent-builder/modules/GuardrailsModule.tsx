@@ -1,8 +1,13 @@
+import { useState } from 'react';
 import { useAgentBuilderStore } from '@/stores/agentBuilderStore';
 import { SectionTitle, NexusBadge, ToggleField, SliderField } from '../ui';
 import { Button } from '@/components/ui/button';
-import { Plus, Trash2, Shield, ShieldAlert, ShieldCheck, Lock } from 'lucide-react';
+import { Badge } from '@/components/ui/badge';
+import { Plus, Trash2, Shield, ShieldAlert, ShieldCheck, Lock, Brain, Loader2, CheckCircle2, XCircle } from 'lucide-react';
+import { Input } from '@/components/ui/input';
 import type { GuardrailConfig } from '@/types/agentTypes';
+import { checkInput, checkOutput, type GuardrailResponse } from '@/services/guardrailsMLService';
+import { toast } from 'sonner';
 
 const DEFAULT_GUARDRAILS: GuardrailConfig[] = [
   // Input Validation
@@ -80,6 +85,25 @@ export function GuardrailsModule() {
   const categories = ['input_validation', 'output_safety', 'access_control', 'operational'] as const;
   const enabledCount = guardrails.filter((g) => g.enabled).length;
 
+  const [mlTestText, setMlTestText] = useState('');
+  const [mlTesting, setMlTesting] = useState(false);
+  const [mlResult, setMlResult] = useState<GuardrailResponse | null>(null);
+
+  const handleMLTest = async (direction: 'input' | 'output') => {
+    if (!mlTestText.trim()) return;
+    setMlTesting(true);
+    setMlResult(null);
+    try {
+      const result = direction === 'input' ? await checkInput(mlTestText) : await checkOutput(mlTestText);
+      setMlResult(result);
+      toast[result.allowed ? 'success' : 'error'](result.allowed ? 'Aprovado pelo ML' : `Bloqueado: ${result.blocked_count} violação(ões)`);
+    } catch {
+      toast.error('Guardrails ML indisponível');
+    } finally {
+      setMlTesting(false);
+    }
+  };
+
   return (
     <div className="space-y-10">
       {/* Resumo */}
@@ -103,6 +127,53 @@ export function GuardrailsModule() {
               </div>
             );
           })}
+        </div>
+      </section>
+
+      {/* Guardrails ML Test */}
+      <section>
+        <SectionTitle
+          icon="🧠"
+          title="Teste de Guardrails ML"
+          subtitle="Teste textos contra o modelo ML de detecção de injection, PII e toxicidade."
+          badge={<NexusBadge color="purple">ML v2.2</NexusBadge>}
+        />
+        <div className="space-y-3 rounded-xl border border-border bg-card p-4">
+          <Input
+            placeholder="Digite um texto para testar contra os guardrails ML..."
+            value={mlTestText}
+            onChange={(e) => setMlTestText(e.target.value)}
+            className="text-sm"
+          />
+          <div className="flex gap-2">
+            <Button variant="outline" size="sm" className="gap-1.5 text-xs" onClick={() => handleMLTest('input')} disabled={mlTesting || !mlTestText.trim()}>
+              {mlTesting ? <Loader2 className="h-3 w-3 animate-spin" /> : <Brain className="h-3 w-3" />}
+              Testar Input
+            </Button>
+            <Button variant="outline" size="sm" className="gap-1.5 text-xs" onClick={() => handleMLTest('output')} disabled={mlTesting || !mlTestText.trim()}>
+              {mlTesting ? <Loader2 className="h-3 w-3 animate-spin" /> : <Brain className="h-3 w-3" />}
+              Testar Output
+            </Button>
+          </div>
+          {mlResult && (
+            <div className={`rounded-lg border p-3 animate-fade-in ${mlResult.allowed ? 'border-nexus-emerald/30 bg-nexus-emerald/5' : 'border-destructive/30 bg-destructive/5'}`}>
+              <div className="flex items-center gap-2 mb-2">
+                {mlResult.allowed ? <CheckCircle2 className="h-4 w-4 text-nexus-emerald" /> : <XCircle className="h-4 w-4 text-destructive" />}
+                <span className="text-xs font-semibold">{mlResult.allowed ? 'Aprovado' : `Bloqueado (${mlResult.blocked_count})`}</span>
+                <Badge variant="outline" className="text-[10px]">{mlResult.direction} · v{mlResult.version}</Badge>
+              </div>
+              <div className="space-y-1">
+                {mlResult.results.map((r, i) => (
+                  <div key={i} className="flex items-center gap-2 text-[11px]">
+                    {r.passed ? <CheckCircle2 className="h-3 w-3 text-nexus-emerald" /> : <XCircle className="h-3 w-3 text-destructive" />}
+                    <span className="font-medium">{r.layer}</span>
+                    <span className="text-muted-foreground">score: {(r.score * 100).toFixed(0)}%</span>
+                    <span className="text-muted-foreground truncate">{r.details}</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
         </div>
       </section>
 
