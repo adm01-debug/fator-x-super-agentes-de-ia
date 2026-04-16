@@ -188,6 +188,7 @@ export default function MonitoringPage() {
         </TabsContent>
 
         <TabsContent value="tracing"><TracingPanel /></TabsContent>
+        <TabsContent value="vitals"><WebVitalsPanel /></TabsContent>
       </Tabs>
     </div>
   );
