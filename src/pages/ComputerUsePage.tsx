@@ -1,11 +1,10 @@
 import { useState } from "react";
-import { Monitor, MousePointer2, Keyboard, Camera, Play, Square, FastForward, AlertTriangle, CheckCircle2 } from "lucide-react";
+import { Monitor, MousePointer2, Camera, Play, Square, FastForward, AlertTriangle, CheckCircle2 } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { PageHeader } from "@/components/shared/PageHeader";
 import { toast } from "sonner";
 

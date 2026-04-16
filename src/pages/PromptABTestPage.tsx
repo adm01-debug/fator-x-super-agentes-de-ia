@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { TestTube2, TrendingUp, Trophy, Play, Pause, BarChart3, Zap } from "lucide-react";
+import { Trophy, Play, Pause, BarChart3, Zap } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -21,7 +21,7 @@ const INITIAL: Variant[] = [
 export default function PromptABTestPage() {
   const [variants, setVariants] = useState<Variant[]>(INITIAL);
   const [running, setRunning] = useState(true);
-  const [confidence, setConfidence] = useState(94.2);
+  const [confidence] = useState(94.2);
 
   const winner = variants.reduce((a, b) => (b.conversion > a.conversion ? b : a));
   const lift = ((winner.conversion - variants.find(v => v.id !== winner.id)!.conversion) / variants.find(v => v.id !== winner.id)!.conversion * 100);
