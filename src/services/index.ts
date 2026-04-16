@@ -115,3 +115,4 @@ export * from './temporalKnowledgeService';
 export * from './entityResolutionService';
 export * from './knowledgeDecayService';
 export * from './searchService';
+export * from './accessControlService';
