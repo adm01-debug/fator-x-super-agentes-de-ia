@@ -29,6 +29,8 @@ interface AgentBuilderLayoutProps {
 export function AgentBuilderLayout({ children }: AgentBuilderLayoutProps) {
   const { agent, activeTab, isDirty, isSaving, lastSaved, saveAgent, resetAgent, nextTab, prevTab } =
     useAgentBuilderStore();
+  const [historyOpen, setHistoryOpen] = useState(false);
+  const { data: versions = [] } = useAgentVersions(agent.id as string | undefined);
 
   const currentIndex = TABS.findIndex((t) => t.id === activeTab);
   const isFirst = currentIndex === 0;
