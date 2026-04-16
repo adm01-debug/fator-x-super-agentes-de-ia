@@ -125,6 +125,10 @@ export default function BillingPage() {
           )}
         </TabsContent>
 
+        <TabsContent value="optimization">
+          <CostOptimizationPanel />
+        </TabsContent>
+
         <TabsContent value="stream">
           <RealTimeCostStream />
         </TabsContent>
