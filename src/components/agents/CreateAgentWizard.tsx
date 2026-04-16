@@ -29,6 +29,24 @@ export function CreateAgentWizard() {
   const [saving, setSaving] = useState(false);
   const [selectedTemplate, setSelectedTemplate] = useState<AgentTemplate | null>(null);
   const [AGENT_TEMPLATES_LIST, setAgentTemplates] = useState<AgentTemplate[]>(STATIC_TEMPLATES);
+  const [searchQuery, setSearchQuery] = useState("");
+  const [selectedCategory, setSelectedCategory] = useState<string>("all");
+
+  const categories = useMemo(() => {
+    const set = new Set<string>();
+    AGENT_TEMPLATES_LIST.forEach(t => t.category && set.add(t.category));
+    return ["all", ...Array.from(set).sort()];
+  }, [AGENT_TEMPLATES_LIST]);
+
+  const filteredTemplates = useMemo(() => {
+    const q = searchQuery.trim().toLowerCase();
+    return AGENT_TEMPLATES_LIST.filter(t => {
+      if (selectedCategory !== "all" && t.category !== selectedCategory) return false;
+      if (!q) return true;
+      const hay = `${t.name} ${t.description} ${t.category} ${(t.tags || []).join(" ")}`.toLowerCase();
+      return hay.includes(q);
+    });
+  }, [AGENT_TEMPLATES_LIST, searchQuery, selectedCategory]);
 
   useEffect(() => {
     supabaseExternal.from('agent_templates').select('*').eq('is_public', true).order('usage_count', { ascending: false }).then(({ data }) => {
