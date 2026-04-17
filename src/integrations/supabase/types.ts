@@ -675,6 +675,110 @@ export type Database = {
           },
         ]
       }
+      agent_workflow_runs: {
+        Row: {
+          completed_at: string | null
+          created_by: string
+          error_message: string | null
+          id: string
+          input: Json | null
+          output: Json | null
+          started_at: string
+          status: string
+          trace: Json
+          workflow_id: string
+        }
+        Insert: {
+          completed_at?: string | null
+          created_by: string
+          error_message?: string | null
+          id?: string
+          input?: Json | null
+          output?: Json | null
+          started_at?: string
+          status?: string
+          trace?: Json
+          workflow_id: string
+        }
+        Update: {
+          completed_at?: string | null
+          created_by?: string
+          error_message?: string | null
+          id?: string
+          input?: Json | null
+          output?: Json | null
+          started_at?: string
+          status?: string
+          trace?: Json
+          workflow_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "agent_workflow_runs_workflow_id_fkey"
+            columns: ["workflow_id"]
+            isOneToOne: false
+            referencedRelation: "agent_workflows"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      agent_workflows: {
+        Row: {
+          agent_id: string | null
+          created_at: string
+          created_by: string
+          description: string | null
+          edges: Json
+          id: string
+          name: string
+          nodes: Json
+          status: string
+          updated_at: string
+          workspace_id: string
+        }
+        Insert: {
+          agent_id?: string | null
+          created_at?: string
+          created_by: string
+          description?: string | null
+          edges?: Json
+          id?: string
+          name: string
+          nodes?: Json
+          status?: string
+          updated_at?: string
+          workspace_id: string
+        }
+        Update: {
+          agent_id?: string | null
+          created_at?: string
+          created_by?: string
+          description?: string | null
+          edges?: Json
+          id?: string
+          name?: string
+          nodes?: Json
+          status?: string
+          updated_at?: string
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "agent_workflows_agent_id_fkey"
+            columns: ["agent_id"]
+            isOneToOne: false
+            referencedRelation: "agents"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "agent_workflows_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       agents: {
         Row: {
           avatar_emoji: string | null
