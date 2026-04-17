@@ -1,44 +1,69 @@
 
-Próximo da fila: **#10 Multi-Agent Orchestration Visual (LangGraph-style)** (P1, último item da fila para chegar em 10/10).
+Auditoria técnica exaustiva do Nexus Agents Studio nas 22 dimensões. Esta é uma tarefa de **análise read-only** — não preciso de aprovação para executar leitura de arquivos. Vou apresentar o plano de execução da auditoria + estrutura do entregável, e ao aprovar, executo a varredura completa.
 
-Estado atual: agentes existem isolados, sem grafo visual de orquestração, sem handoffs declarativos, sem visualização de fluxo multi-agente em runtime.
+## Plano de Execução da Auditoria
 
-## Plano
+### Fase 0 — Coleta de Inventário (10 min)
+- `code--exec` para contagens: arquivos `src/`, edge functions, migrations, linhas TS/TSX
+- `supabase--read_query` para inventário de tabelas, RLS policies, índices
+- `code--view` em: `package.json`, `tsconfig.app.json`, `eslint.config.js`, `.github/workflows/`, `vitest.config.ts`, `playwright.config.ts`, `README.md`
+- `supabase--linter` para findings automáticos
+- `security--run_security_scan` para validação de exposição de dados
 
-**Backend (migration):**
-1. Tabela `agent_graphs`: id, workspace_id, name, description, nodes jsonb [{id, agent_id, role, position{x,y}}], edges jsonb [{from, to, condition}], entry_node_id, created_by, created_at, updated_at. RLS por workspace.
-2. Tabela `graph_executions`: id, graph_id, user_id, input text, status (running/completed/failed), current_node_id, trace jsonb [{node_id, agent_id, input, output, latency_ms, ts}], final_output text, total_cost_cents, started_at, ended_at. RLS por user_id.
+### Fase 1 — Varredura das 22 Dimensões
+Para cada dimensão: nota 0–10 com **evidência citada** (arquivo:linha), gaps objetivos, ações concretas.
 
-**Edge function `graph-execute`:**
-- Recebe `{graph_id, input}` → carrega grafo → executa BFS a partir do entry_node:
-  - Para cada nó: chama LLM (Lovable AI Gemini 2.5 Flash) com persona do agente + input do nó pai
-  - Avalia edges condicionais (LLM decide próximo nó quando há múltiplos)
-  - Persiste cada step no trace
-- Para em nó terminal (sem edges) ou max 15 nós.
+**Mapeamento dimensão → fontes de evidência:**
 
-**Service `agentGraphService.ts`:**
-- listGraphs, createGraph, updateGraph, deleteGraph, getGraph, executeGraph, listExecutions, getExecution.
+| Dimensão | Fontes |
+|---|---|
+| 1. Arquitetura | `src/` tree, `docs/adr/*`, padrões de imports |
+| 2. Autenticação | `AuthContext.tsx`, `_shared/auth.ts`, config Supabase Auth |
+| 3. Autorização | `pg_policies` query, `has_role`, `is_workspace_admin`, AuthGuard |
+| 4. Banco de Dados | schema query, índices (`pg_indexes`), FKs, migrations |
+| 5. CI/CD | `.github/workflows/ci.yml`, `.husky/`, branch protection |
+| 6. Data Integrity | RPCs, triggers, transações em edge functions |
+| 7. Documentação | `README.md`, `docs/`, `CHANGELOG`, ADRs |
+| 8. Infraestrutura | `vite.config.ts`, env management, secrets |
+| 9. Logging | `lib/logger.ts`, edge function `console.*`, PII redaction |
+| 10. Observabilidade | traces table, dashboards, error tracking |
+| 11. Lógica de Negócio | services/, validations/, state machines |
+| 12. Manutenibilidade | tamanhos de arquivos, dead code, complexidade |
+| 13. Operacionalidade | `RUNBOOK.md`, rollback, feature flags |
+| 14. Performance | bundle config, índices, paginação, N+1 |
+| 15. Qualidade | ESLint config, console.log scan, TODOs |
+| 16. Segurança | scan results, CSP, CORS, OWASP, webhooks HMAC |
+| 17. Testes | `vitest`, `playwright`, coverage, RLS tests |
+| 18. Tipagem | `tsconfig.json` strict, scan `as any`, Zod |
+| 19. Validação | `validations/`, Zod schemas, edge function inputs |
+| 20. Operações | git flow docs, PR template, dependabot |
 
-**Frontend — nova `AgentOrchestrationPage.tsx` em `/orchestration`:**
-- Lista de grafos (cards com preview).
-- Editor visual usando **@xyflow/react** (já instalado provavelmente — verificar): canvas com drag-drop de agentes, conexões entre nós, painel lateral para configurar nó (qual agente, role, condição da edge).
-- Painel de execução: input + botão "▶ Executar" → visualização ao vivo dos nós sendo ativados (highlight + latência por nó) → resultado final.
-- Histórico de execuções com replay no canvas.
+(O prompt lista 22, mas as últimas 2 são meta. Cubro as 20 numeradas + comentário sobre as duas extras.)
 
-**Integração:**
-- Rota `/orchestration` em `App.tsx`.
-- Item no sidebar (ícone `Network` ou `GitBranch`).
+### Fase 2 — Consolidação
+- Scorecard tabela ASCII com 20 notas
+- **Média ponderada** (×3 para Seg/Auth/Authz/DataInt; ×2 para DB/Tipagem/Valid/Testes/Arq; ×1 demais)
+- Top 10 ações por ROI (impacto÷esforço)
+- Roadmap 3 ondas: 🔴 Quick Wins / 🟠 Sprint 1 / 🟡 Sprint 2
+- Parágrafo final sobre maturidade
 
-**Validação:** `tsc` clean, criar grafo de 3 agentes (researcher → writer → reviewer) → executar → ver trace visual.
+### Estrutura do Entregável
+```
+1. INVENTÁRIO
+2. AS 20 DIMENSÕES (cada uma: Nota/Evidências/Gaps/Ações)
+3. SCORECARD + Nota Geral Ponderada
+4. TOP 10 AÇÕES POR ROI
+5. ROADMAP 3 ONDAS
+6. NOTA FINAL + comentário de maturidade
+```
 
-**Arquivos:**
-- migration (2 tabelas)
-- `supabase/functions/graph-execute/index.ts` (novo)
-- `src/services/agentGraphService.ts` (novo)
-- `src/pages/AgentOrchestrationPage.tsx` (novo)
-- `src/components/orchestration/GraphCanvas.tsx` (novo, usa @xyflow/react)
-- `src/components/orchestration/NodeConfigPanel.tsx` (novo)
-- `src/App.tsx` (rota)
-- `src/components/layout/AppSidebar.tsx` (item menu)
+### Regras
+- Zero notas 10 sem evidência absoluta
+- Toda nota com citação de arquivo/linha ou ausência específica
+- Gaps acionáveis (código/config/migration), nunca "melhorar X"
+- Calibrado ao porte: produto Lovable single-tenant Cloud, não enterprise multi-region
 
-**Nota:** Se @xyflow/react não estiver instalado, será adicionado. Esta é a peça final para fechar o ciclo de "Studio de Agentes" — junto com Voice (#8), Browser (#9), Code (#5), Marketplace (#6), A/B Test (#7), atinge paridade competitiva com LangSmith/AgentOps.
+### Tempo estimado
+~8–12 chamadas de ferramentas read-only para coleta, depois síntese textual em uma resposta longa final.
+
+**Nota:** A auditoria é puramente analítica — não modifica código. Após apresentar o relatório, você decide quais ações virar plano de execução (modo default).
