@@ -13,109 +13,8 @@ type: feature
 - audit_log table with RLS (SECURITY DEFINER for writes)
 - DELETE policy on workspaces
 
-## Completed — Sprint 1
-- Zod validation schemas (Identity, Brain, Budget, KnowledgeBase, Lifecycle)
-- Structured logger with global error handlers
-- llm-gateway refactored: providers.ts extracted
-- 15 new validation tests (38 total, all passing)
-- Zero npm vulnerabilities
-
-## Completed — Sprint 2
-- usePaginatedQuery hook + PaginationControls component
-- Security headers (CSP, X-Frame-Options, Permissions-Policy, referrer)
-- Audit trail service integrated into agent CRUD
-- Audit log INSERT policy replaced with SECURITY DEFINER RPC function
-
-## Completed — Sprint 3 (Backend↔Frontend Gap Closure)
-- All pages connected to DB (Knowledge, Evaluations, Tools, Security, Billing, Monitoring, Team, Memory)
-- OracleHistory save/list/delete integrated
-- RAG rerank pipeline integrated
-- workflow-engine v1 removed (v2 only)
-
-## Completed — Sprint 4 (Code Quality)
-- 5 missing DB tables created with RLS + indices
-- fromTable() helper replaced all (supabase as any).from()
-- All catch (e: any) → catch (e: unknown) with instanceof checks
-- 6 new Zod validation schemas
-
-## Completed — Sprint 5 (Architecture & Testing)
-- agent_versions policies fixed: {public} → {authenticated}
-- SuperCerebroPage refactored: 710→55 lines, 8 components
-- ErrorBoundary + Suspense (SafePage) on ALL 28 routes
-- 42 new tests: security-guards + normalize
-
-## Completed — Sprint 6 (Security Hardening)
-- Realtime publication leak FIXED
-- Input validation on ALL edge functions
-- ALL catch (error: any) → catch (error: unknown) in edge functions
-- 38 validation tests
-
-## Completed — Sprint 7 (RLS Hardening)
-- tool_integrations SELECT: restricted to owners only
-- deploy_connections SELECT: restricted to owners only
-- Security scan: 0 ERRORS
-- 23 component tests (StatusBadge, MetricCard, AnimatedCounter)
-
-## Completed — Sprint 8 (Final Polish)
-- lgpd-manager: full Zod input validation, removed all `as any`
-- workflow-engine-v2: Zod input validation, proper typing, removed all `as any`
-- EmptyState: added role="status" + aria-label for accessibility
-- 6 new accessibility tests (EmptyState, LoadingSpinner, FullPageLoader, PageLoading)
-- QueryClient: smart retry (skip 401/403), global mutation error toasts
-
-## Completed — Sprint 9 (Test Coverage & E2E)
-- E2E: navigation.spec.ts — protected route redirects, 404, SEO meta, responsive, JS error check
-- Unit: useDebounce hook — 6 tests (timing, cancellation, types)
-- Unit: useDocumentTitle hook — 8 tests (all routes, fallback, nested)
-- Unit: useNetworkStatus hook — 6 tests (listeners, cleanup, offline/online toasts)
-- Total unit tests: 160+ across all suites
-- Total E2E specs: 4 files covering auth, security headers, navigation, agent builder
-
-## Completed — Sprint 10 (Type Safety Final)
-- llm-gateway: SupabaseClient type imported, all `any` params → proper types
-- rag-rerank: all `any` → Record<string, unknown> with proper casts
-- oracle-council: all `any[]` → Array<Record<string, unknown>>
-- datahub-query: parsedValue typed as union, query builders documented with lint-ignore
-- All catch (e) → catch (e: unknown) across entire codebase
-- Edge functions redeployed and verified
-
-## Completed — Sprint 11 (Performance & DX)
-- React.StrictMode enabled in main.tsx
-- Route prefetching on sidebar link hover (prefetchRoute utility)
-- NavLink enhanced with onMouseEnter prefetch
-- Sidebar useEffect dependency fix (functional setState)
-- Lazy chunk load performance monitoring via PerformanceObserver
-- webVitals.ts enhanced with slow chunk warnings
-
-## Completed — Sprint 12 (Full Edge Function Coverage)
-- AIStudioPage: unified UI for audio-transcribe, text-to-speech, doc-ocr, image-analysis, product-mockup
-- FineTuningPage: dataset prep, training config, job status for hf-autotrain
-- SmolagentPage: ReAct agent playground with step-by-step visualization
-- All 3 pages wired into sidebar + routes with lazy loading
-- 8 edge function TS build errors fixed + 6 functions redeployed
-
-## Completed — Sprint 13 (Security Hardening v2)
-- workspace_secrets: SELECT blocked (USING false) — no client can read plaintext values
-- get_masked_secrets RPC: SECURITY DEFINER function returns masked values (••••••••xxxx)
-- SettingsPage updated to use RPC instead of direct table query
-- SettingsModule updated to use masked RPC
-- Eye/EyeOff toggle removed (values always masked server-side)
-- Zero `as any` in frontend (huggingface.ts refactored with getDenoEnv helper)
-
-## Completed — Sprint 14 (Service Layer & Security)
-- audit_log_safe VIEW created (SECURITY INVOKER) — excludes ip_address from user queries
-- AuditLogSection + securityService migrated to audit_log_safe view
-- api_keys TABLE created with RLS — SHA-256 hashed storage, prefix-only display
-- securityService fully wired to api_keys table (create/list/revoke)
-- deploymentsService: listDeployedAgents() with channel status
-- evaluationsService: listEvaluationRuns(), listEvaluationDatasets(), listTestCases()
-- knowledgeService: listKnowledgeBases(), deleteKnowledgeBase(), listVectorIndexes(), getChunkEmbeddingStats()
-- All pages migrated to service layer (DeploymentsPage, EvaluationsPage, KnowledgePage, SecurityPage)
-- useI18n language selector integrated in sidebar footer
-- Bitrix24Connect + MCPServerManager refactored with semantic tokens
-- 19 new service layer tests (all passing)
-- fromTable() helper hardened with proper type isolation
-- Security scan: 0 ERRORS, 4 WARNINGS (all known/intentional)
+## Completed — Sprints 1–14
+(see prior history — service layer, RLS hardening, type-safety, edge function coverage, Sentry-ready logger, etc.)
 
 ## Completed — Sprint 15 (Wave 1 Quick Wins)
 - workspace_members.email masked via SECURITY DEFINER view (closes ERROR finding)
@@ -123,10 +22,38 @@ type: feature
 - docs/RUNBOOK.md created with Security Headers section
 - Root tsconfig.json: strict + noImplicitAny + strictNullChecks + noFallthroughCasesInSwitch enabled
 
-## Score: 10/10 ✅ (Sprint 15 complete)
+## Completed — Sprint 16 (Observability)
+- @sentry/react integrated, no-op when VITE_SENTRY_DSN unset
+- src/lib/sentry.ts: PII scrubbing, ignore list, replay on error only
+- logger.error/critical forwarded to Sentry via lazy import
+- ErrorBoundary captures with componentStack
+- vite.config.ts injects __APP_VERSION__ for release tracking
+- CSP connect-src extended for *.sentry.io regional ingests
+- RUNBOOK.md: Observability — Sentry section
 
-## Note
-- HIBP (leaked password protection) — requires manual activation in Cloud UI (operational, not code)
-- Vault encryption at rest — requires pgsodium extension at infrastructure level
-- Member emails visible in workspace — intentional for collaboration features
-- tool_integrations owner-only — intentional for credential protection
+## Completed — Sprint 17 (RLS Persona Tests)
+- tests/rls/setup.ts: createTestUser, deleteTestUser, getAuthedClient helpers
+- tests/rls/personas.test.ts: 8 cross-tenant isolation tests
+  - agents SELECT/UPDATE/DELETE blocked for non-owners
+  - workspace_secrets direct SELECT blocked, get_masked_secrets RPC owner-only
+  - audit_log direct INSERT blocked, log_audit_entry RPC works
+  - api_keys key_hash never leaks to other users
+  - workspace_members returns zero rows to non-members
+- vitest.rls.config.ts: dedicated Node-env config, single-fork serial execution
+- package.json: `test:rls` script
+- vitest.config.ts: excludes tests/rls and e2e from default suite
+- Opt-in via SUPABASE_SERVICE_ROLE_KEY — auto-skips when absent (CI-safe)
+- RUNBOOK.md: RLS Persona Tests section
+
+## Score: 10/10 ✅ (Sprint 17 complete)
+
+## Next candidates
+- Vitest coverage gate enforcement (>=70% in CI)
+- Playwright auth flow E2E expansion
+- Bundle-size budget guard
+
+## Notes
+- HIBP (leaked password protection) — manual activation in Cloud UI
+- Vault encryption at rest — pgsodium extension at infra level
+- Member emails visible to workspace peers — intentional for collaboration
+- tool_integrations owner-only — intentional credential protection
