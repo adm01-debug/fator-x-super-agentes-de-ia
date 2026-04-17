@@ -16,6 +16,8 @@
     "test:coverage": "vitest run --coverage",
     "test:coverage:ci": "vitest run --coverage --reporter=verbose",
     "test:rls": "vitest run --config vitest.rls.config.ts",
+    "lhci": "lhci autorun",
+    "lhci:local": "vite build && lhci autorun",
     "prepare": "husky"
   },
   "lint-staged": {
