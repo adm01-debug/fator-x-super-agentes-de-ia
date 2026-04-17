@@ -6,16 +6,7 @@
  */
 import { useCallback, useEffect, useState } from 'react';
 import { Activity, AlertTriangle, Check, RefreshCw, TrendingUp, Zap } from 'lucide-react';
-import {
-  Area,
-  AreaChart,
-  CartesianGrid,
-  ReferenceLine,
-  ResponsiveContainer,
-  Tooltip,
-  XAxis,
-  YAxis,
-} from 'recharts';
+import { LightAreaChart } from '@/components/charts';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
