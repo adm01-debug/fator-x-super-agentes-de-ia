@@ -67,6 +67,7 @@ const ComputerUsePage = lazy(() => import("./pages/ComputerUsePage"));
 const VisionAgentsPage = lazy(() => import("./pages/VisionAgentsPage"));
 const MobileSDKPage = lazy(() => import("./pages/MobileSDKPage"));
 const PromptABTestPage = lazy(() => import("./pages/PromptABTestPage"));
+const PromptExperimentsPage = lazy(() => import("./pages/PromptExperimentsPage"));
 const MarketplaceMonetizedPage = lazy(() => import("./pages/MarketplaceMonetizedPage"));
 const SyntheticDataPage = lazy(() => import("./pages/SyntheticDataPage"));
 const CanaryDeploymentsPage = lazy(() => import("./pages/CanaryDeploymentsPage"));
@@ -159,6 +160,7 @@ const App = () => (
                       <Route path="/tools" element={<SafePage><ToolsPage /></SafePage>} />
                       <Route path="/routing" element={<SafePage><RoutingConfigPage /></SafePage>} />
                       <Route path="/prompts" element={<SafePage><PromptsPage /></SafePage>} />
+                      <Route path="/prompts/experiments" element={<SafePage><PromptExperimentsPage /></SafePage>} />
                       <Route path="/prompts/:id" element={<SafePage><PromptEditorPage /></SafePage>} />
                       <Route path="/workflows" element={<SafePage><WorkflowsPage /></SafePage>} />
                       <Route path="/automation" element={<SafePage><AutomationCenterPage /></SafePage>} />

@@ -9,7 +9,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { PageHeader } from '@/components/shared/PageHeader';
-import { useWorkspace } from '@/hooks/useWorkspace';
+import { useWorkspaceId } from '@/hooks/use-data';
 import { promptExperimentService, type PromptExperiment, type ExperimentStats } from '@/services/promptExperimentService';
 import { CreateExperimentDialog } from '@/components/prompts/CreateExperimentDialog';
 import { toast } from 'sonner';
@@ -31,7 +31,8 @@ const STATUS_LABEL: Record<string, string> = {
 };
 
 export default function PromptExperimentsPage() {
-  const { workspace } = useWorkspace();
+  const { data: workspaceId } = useWorkspaceId();
+  const workspace = workspaceId ? { id: workspaceId } : null;
   const qc = useQueryClient();
   const [createOpen, setCreateOpen] = useState(false);
   const [selectedId, setSelectedId] = useState<string | null>(null);
