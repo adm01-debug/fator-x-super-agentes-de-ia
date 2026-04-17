@@ -70,9 +70,12 @@ function addRecent(href: string) {
 
 export function CommandPalette() {
   const [open, setOpen] = useState(false);
+  const [search, setSearch] = useState("");
   const navigate = useNavigate();
   const location = useLocation();
   const [recent, setRecent] = useState<string[]>([]);
+
+  const { data: globalHits = [], isFetching: isSearching } = useGlobalSearch(search, open);
 
   // ═══ Fetch agents ═══
   const { data: agents = [] } = useQuery({
