@@ -3,6 +3,7 @@ import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient, type SupabaseClient } from "https://esm.sh/@supabase/supabase-js@2.49.4";
 import { callLovable, callOpenRouter, callAnthropic, callOpenAICompatible, callHuggingFace, type LLMCallParams, type LLMResult } from "./providers.ts";
 import { getCorsHeaders, handleCorsPreflight, getRateLimitIdentifier, createRateLimitResponse, RATE_LIMITS } from "../_shared/mod.ts";
+import { startEdgeTrace } from "../_shared/otel.ts";
 
 // CORS handled by _shared/cors.ts — dynamic origin whitelist
 // corsHeaders removed — using getCorsHeaders(req) from _shared/cors.ts
@@ -363,6 +364,12 @@ async function callWithFallback(
 // ═══ Main Handler ═══
 serve(async (req) => {
   if (req.method === 'OPTIONS') return handleCorsPreflight(req);
+
+  // ═══ OTel root trace (Sprint 26) — accepts client `traceparent` for cross-tier correlation
+  const trace = startEdgeTrace(req, { rootName: 'llm-gateway.handle' });
+  const rootSpan = trace.startSpan('llm-gateway.handle', 'server');
+  rootSpan.setAttribute('http.method', req.method);
+  rootSpan.setAttribute('http.route', '/llm-gateway');
 
   try {
     const authHeader = req.headers.get('Authorization');
