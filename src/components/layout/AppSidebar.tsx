@@ -52,6 +52,7 @@ const navSections = [
       { title: "Skills Marketplace", url: "/skills", icon: Package },
       { title: "NLP Pipeline", url: "/nlp", icon: Languages },
       { title: "Computer Use", url: "/computer-use", icon: Monitor },
+      { title: "Browser Agent", url: "/browser-agent", icon: Globe2 },
       { title: "Vision Agents", url: "/vision", icon: Eye },
       { title: "Mobile SDK", url: "/mobile-sdk", icon: Smartphone },
       { title: "A/B Test Prompts", url: "/ab-test", icon: TestTube2 },
