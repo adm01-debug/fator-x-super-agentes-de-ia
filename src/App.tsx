@@ -62,6 +62,7 @@ const TracesTimelinePage = lazy(() => import("./pages/TracesTimelinePage"));
 const VoiceAgentStudioPage = lazy(() => import("./pages/VoiceAgentStudioPage"));
 const VoiceAgentsPage = lazy(() => import("./pages/VoiceAgentsPage"));
 const BrowserAgentPage = lazy(() => import("./pages/BrowserAgentPage"));
+const AgentOrchestrationPage = lazy(() => import("./pages/AgentOrchestrationPage"));
 const ReplayForkPage = lazy(() => import("./pages/ReplayForkPage"));
 const EnterpriseSSOPage = lazy(() => import("./pages/EnterpriseSSOPage"));
 const DataResidencyPage = lazy(() => import("./pages/DataResidencyPage"));
@@ -193,6 +194,7 @@ const App = () => (
                       <Route path="/voice" element={<SafePage><VoiceAgentStudioPage /></SafePage>} />
                       <Route path="/voice-agents" element={<SafePage><VoiceAgentsPage /></SafePage>} />
                       <Route path="/browser-agent" element={<SafePage><BrowserAgentPage /></SafePage>} />
+                      <Route path="/orchestration" element={<SafePage><AgentOrchestrationPage /></SafePage>} />
                       <Route path="/replay" element={<SafePage><ReplayForkPage /></SafePage>} />
                       <Route path="/sso" element={<SafePage><ProtectedRoute permission="settings.api_keys"><EnterpriseSSOPage /></ProtectedRoute></SafePage>} />
                       <Route path="/residency" element={<SafePage><ProtectedRoute permission="settings.api_keys"><DataResidencyPage /></ProtectedRoute></SafePage>} />

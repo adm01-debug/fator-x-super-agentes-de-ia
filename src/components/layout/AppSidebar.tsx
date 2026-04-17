@@ -45,6 +45,7 @@ const navSections = [
       { title: "Ferramentas", url: "/tools", icon: Puzzle },
       { title: "Prompts", url: "/prompts", icon: FileText },
       { title: "Workflows", url: "/workflows", icon: GitBranch },
+      { title: "Orquestração Multi-Agente", url: "/orchestration", icon: Network },
       { title: "Automação", url: "/automation", icon: Zap },
       { title: "Roteamento", url: "/routing", icon: RouteIcon },
       { title: "Fine-tuning", url: "/fine-tuning", icon: Dna },
