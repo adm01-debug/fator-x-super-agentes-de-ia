@@ -664,12 +664,27 @@ serve(async (req) => {
 
     const startTime = Date.now();
     const callParams: LLMCallParams = { model, messages: safeMessages, temperature, max_tokens };
-    const { result, provider, model: usedModel, attempt, errors: fallbackErrors } = await callWithFallback(chain, callParams, supabaseUrl);
+    const { result, provider, model: usedModel, attempt, errors: fallbackErrors } = await trace.withSpan('provider.call', 'llm', async (span) => {
+      span.setAttribute('gen_ai.request.model', model);
+      span.setAttribute('llm.fallback_chain_size', chain.length);
+      const r = await callWithFallback(chain, callParams, supabaseUrl);
+      span.setAttribute('gen_ai.response.model', r.model);
+      span.setAttribute('gen_ai.response.provider', r.provider);
+      span.setAttribute('gen_ai.usage.input_tokens', r.result.usage.prompt_tokens);
+      span.setAttribute('gen_ai.usage.output_tokens', r.result.usage.completion_tokens);
+      span.setAttribute('llm.fallback_attempt', r.attempt);
+      if (r.errors.length > 0) span.setAttribute('llm.fallback_errors', r.errors.length);
+      return r;
+    });
 
     const latencyMs = Date.now() - startTime;
     const llmMs = latencyMs; // LLM call time
     const totalMs = Date.now() - t0; // end-to-end
     const costUsd = await calculateCost(supabase, usedModel, result.usage.prompt_tokens, result.usage.completion_tokens);
+    rootSpan.setAttribute('cost.usd', costUsd);
+    rootSpan.setAttribute('gen_ai.usage.input_tokens', result.usage.prompt_tokens);
+    rootSpan.setAttribute('gen_ai.usage.output_tokens', result.usage.completion_tokens);
+    rootSpan.setAttribute('http.status_code', 200);
     const latencyBreakdown = { guardrail_ms: guardrailMs, llm_ms: llmMs, total_ms: totalMs };
 
     // ═══ TRACE (non-blocking) ═══
@@ -821,8 +836,16 @@ serve(async (req) => {
       output_toxicity: outputToxicityScore > 0.1 ? Math.round(outputToxicityScore * 1000) / 1000 : undefined,
       hallucination_risk: hallucinationScore !== null && hallucinationScore > 0.3 ? hallucinationScore : undefined,
       agentic_risk: agenticRisk || undefined,
-    }), { headers: { ...getCorsHeaders(req), 'Content-Type': 'application/json' } });
+      trace_id: trace.traceId,
+    }), { headers: { ...getCorsHeaders(req), 'Content-Type': 'application/json', 'x-trace-id': trace.traceId } });
   } catch (error: unknown) {
-    return new Response(JSON.stringify({ error: error instanceof Error ? error.message : 'Internal error' }), { status: 500, headers: { ...getCorsHeaders(req), 'Content-Type': 'application/json' } });
+    const msg = error instanceof Error ? error.message : 'Internal error';
+    rootSpan.setStatus('error', msg);
+    trace.endSpan(rootSpan, 'error');
+    trace.end('error');
+    return new Response(JSON.stringify({ error: msg, trace_id: trace.traceId }), { status: 500, headers: { ...getCorsHeaders(req), 'Content-Type': 'application/json', 'x-trace-id': trace.traceId } });
+  } finally {
+    // Close root span + trace if still running (success path)
+    try { trace.endSpan(rootSpan, 'ok'); trace.end('ok'); } catch { /* already ended */ }
   }
 });
