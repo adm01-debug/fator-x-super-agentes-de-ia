@@ -54,8 +54,10 @@ for (const file of files) {
   const gzipKb = gzipSync(buf).length / 1024;
   totalGzipKb += gzipKb;
 
-  // Extract chunk name: strip trailing `-<hash>.js`
-  const name = file.replace(/-[A-Za-z0-9_-]+\.js$/, "").replace(/\.js$/, "");
+  // Extract chunk name: strip trailing `-<hash>.js`. Vite hashes are
+  // 8-char base64-ish strings (letters, digits, `_`, `-`). Anchor to that
+  // shape so multi-segment names like `vendor-react` stay intact.
+  const name = file.replace(/-[A-Za-z0-9_-]{8}\.js$/, "").replace(/\.js$/, "");
   chunkSizes.set(name, (chunkSizes.get(name) ?? 0) + gzipKb);
 }
 
