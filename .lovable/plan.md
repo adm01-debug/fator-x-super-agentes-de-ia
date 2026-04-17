@@ -1,51 +1,57 @@
 
-Wave 1 está 100% completa (3/3 quick wins). Próxima da fila da auditoria: 🟡 **Sprint 1 — Item #1: Integrar Sentry SDK para observabilidade de erros em produção**.
+Próxima melhoria: 🟡 **Sprint 1 — Item #2: RLS Persona Tests (pgTAP-style integration tests)**.
 
 ## Problema
-Hoje erros de runtime só aparecem no console do navegador do usuário. Sem Sentry:
-- Não vemos crashes silenciosos em produção
-- Sem stack trace agregado, source maps, breadcrumbs de UX
-- Impossível medir taxa de erro por release/rota
-- `src/lib/logger.ts` já captura `window.onerror` mas só loga local
+Temos RLS em todas as tabelas, mas zero testes automatizados que provem que:
+- Usuário A não consegue ler dados do workspace de B
+- Membro `viewer` não consegue mutar agentes
+- `workspace_secrets` continua bloqueado a SELECT
+- `workspace_members.email` retorna mascarado para não-owner
+- `audit_log` só aceita INSERT via RPC `log_audit_entry`
+
+Sem testes, qualquer migration futura pode silenciosamente abrir um buraco.
 
 ## Plano
 
-**1. Instalar `@sentry/react`** (peer-compatible com React 18 + Vite).
+**1. `tests/rls/personas.test.ts` (novo, vitest + supabase-js):**
+- Setup: criar 2 usuários sintéticos via service role + 2 workspaces + roles distintas (owner, member, viewer).
+- Cada teste cria 2 clientes Supabase autenticados (`createClient` com JWT de cada user) e valida cross-tenant isolation.
 
-**2. `src/lib/sentry.ts` (novo):**
-- `initSentry()` chamado em `main.tsx` antes do `ReactDOM.render`
-- DSN via `import.meta.env.VITE_SENTRY_DSN` (opcional — se vazio, no-op silencioso, não quebra dev local)
-- `tracesSampleRate: 0.1`, `replaysSessionSampleRate: 0`, `replaysOnErrorSampleRate: 1.0`
-- `environment: import.meta.env.MODE`, `release: __APP_VERSION__` (injetar via vite define)
-- `beforeSend`: scrubbing de PII (email, tokens, headers Authorization)
-- Ignore list: `ResizeObserver loop`, `Network request failed` (ruído conhecido)
+**2. Casos cobertos (8 testes):**
+- `agents`: user B não vê agentes do workspace de A (SELECT retorna [])
+- `agents`: viewer não consegue UPDATE (erro RLS)
+- `workspace_secrets`: nenhum cliente consegue SELECT (mesmo owner) — só RPC `get_masked_secrets`
+- `workspace_members`: SELECT por non-owner retorna email mascarado (`***@domain`)
+- `audit_log`: INSERT direto falha; `log_audit_entry()` RPC funciona
+- `tool_integrations`: SELECT só pelo owner
+- `deploy_connections`: SELECT só pelo owner
+- `api_keys`: nenhum cliente consegue ler `key_hash`
 
-**3. `src/main.tsx`:** chamar `initSentry()` no topo.
+**3. `tests/rls/setup.ts` (helpers):**
+- `createTestUser(email)` — usa service role para `auth.admin.createUser` + retorna JWT.
+- `getAuthedClient(jwt)` — `createClient(url, anon, { global: { headers: { Authorization: \`Bearer ${jwt}\` } } })`.
+- `cleanup()` — deleta usuários após cada suite via service role.
+- Service role key vem de `process.env.SUPABASE_SERVICE_ROLE_KEY` (apenas em CI/local, nunca no bundle).
 
-**4. `src/lib/logger.ts`:** quando Sentry estiver inicializado, encaminhar `logger.error()` via `Sentry.captureException`. Manter console local em paralelo.
+**4. `vitest.config.ts`:** garantir que `tests/rls/**` rode em `environment: 'node'` separado (não jsdom) — adicionar pattern ou novo project config.
 
-**5. `src/components/shared/ErrorBoundary.tsx`:** envolver com `Sentry.ErrorBoundary` ou chamar `Sentry.captureException` no `componentDidCatch`.
+**5. `package.json`:** novo script `"test:rls": "vitest run tests/rls"`.
 
-**6. `vite.config.ts`:** adicionar `define: { __APP_VERSION__: JSON.stringify(pkg.version) }`.
+**6. `docs/RUNBOOK.md`:** seção "RLS Tests" — como rodar local (`SUPABASE_SERVICE_ROLE_KEY=xxx npm run test:rls`) e nota que CI precisa do secret.
 
-**7. CSP (`index.html`):** adicionar `https://*.sentry.io` em `connect-src` para o transport funcionar.
+**7. Memory update:** `mem://features/audit-improvements` → Sprint 17.
 
-**8. `docs/RUNBOOK.md`:** seção "Observability — Sentry" explicando como criar projeto Sentry e setar `VITE_SENTRY_DSN` no Lovable env.
-
-**Decisão sobre DSN:**
-- Não vou pedir o DSN agora — o init é tolerante a DSN vazio (no-op). Usuário ativa quando criar o projeto Sentry. Isso destrava o código sem bloquear no input.
+**Decisão sobre service role key:**
+- Não pedir agora. Os testes são opt-in por env var. Se ausente, o suite faz `describe.skip` com mensagem clara. Isso permite commit sem bloquear no input do usuário.
 
 **Validação:**
-- App carrega sem Sentry DSN (modo dev) — sem warnings.
-- Com DSN setado, erro forçado em ErrorBoundary aparece no Sentry.
-- Bundle size: Sentry adiciona ~40kb gzipped, aceitável.
+- Rodar `npm run test:rls` localmente após o usuário setar a env (fora do escopo agora — só preparar o terreno).
+- Sem env var: suite skipa com warning, build CI continua verde.
 
 **Arquivos:**
-- `package.json` (dep `@sentry/react`)
-- `src/lib/sentry.ts` (novo)
-- `src/main.tsx` (chamada init)
-- `src/lib/logger.ts` (forward)
-- `src/components/shared/ErrorBoundary.tsx` (capture)
-- `vite.config.ts` (define version)
-- `index.html` (CSP connect-src)
+- `tests/rls/setup.ts` (novo)
+- `tests/rls/personas.test.ts` (novo)
+- `vitest.config.ts` (ajuste se necessário)
+- `package.json` (script)
 - `docs/RUNBOOK.md` (seção)
+- `mem://features/audit-improvements` (Sprint 17)
