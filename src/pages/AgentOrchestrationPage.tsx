@@ -11,7 +11,7 @@ import { agentGraphService, type AgentGraph, type GraphExecution, type GraphNode
 import { GraphCanvas } from '@/components/orchestration/GraphCanvas';
 import { NodeConfigPanel } from '@/components/orchestration/NodeConfigPanel';
 import { supabase } from '@/integrations/supabase/client';
-import { getCurrentWorkspaceId } from '@/lib/agentService';
+import { getWorkspaceId } from '@/lib/agentService';
 
 interface AgentLite { id: string; name: string }
 
@@ -29,7 +29,7 @@ export default function AgentOrchestrationPage() {
   const [newName, setNewName] = useState('');
 
   useEffect(() => { (async () => {
-    const wsId = await getCurrentWorkspaceId();
+    const wsId = await getWorkspaceId();
     setWorkspaceId(wsId);
     if (wsId) {
       const [gs, ag] = await Promise.all([
