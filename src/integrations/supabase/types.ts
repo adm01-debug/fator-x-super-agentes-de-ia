@@ -343,6 +343,53 @@ export type Database = {
           },
         ]
       }
+      agent_graphs: {
+        Row: {
+          created_at: string
+          created_by: string
+          description: string | null
+          edges: Json
+          entry_node_id: string | null
+          id: string
+          name: string
+          nodes: Json
+          updated_at: string
+          workspace_id: string
+        }
+        Insert: {
+          created_at?: string
+          created_by: string
+          description?: string | null
+          edges?: Json
+          entry_node_id?: string | null
+          id?: string
+          name: string
+          nodes?: Json
+          updated_at?: string
+          workspace_id: string
+        }
+        Update: {
+          created_at?: string
+          created_by?: string
+          description?: string | null
+          edges?: Json
+          entry_node_id?: string | null
+          id?: string
+          name?: string
+          nodes?: Json
+          updated_at?: string
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "agent_graphs_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       agent_installed_skills: {
         Row: {
           agent_id: string
@@ -1882,6 +1929,69 @@ export type Database = {
         Relationships: [
           {
             foreignKeyName: "geo_allowed_countries_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      graph_executions: {
+        Row: {
+          current_node_id: string | null
+          ended_at: string | null
+          error_message: string | null
+          final_output: string | null
+          graph_id: string
+          id: string
+          input: string
+          started_at: string
+          status: string
+          total_cost_cents: number
+          trace: Json
+          user_id: string
+          workspace_id: string | null
+        }
+        Insert: {
+          current_node_id?: string | null
+          ended_at?: string | null
+          error_message?: string | null
+          final_output?: string | null
+          graph_id: string
+          id?: string
+          input: string
+          started_at?: string
+          status?: string
+          total_cost_cents?: number
+          trace?: Json
+          user_id: string
+          workspace_id?: string | null
+        }
+        Update: {
+          current_node_id?: string | null
+          ended_at?: string | null
+          error_message?: string | null
+          final_output?: string | null
+          graph_id?: string
+          id?: string
+          input?: string
+          started_at?: string
+          status?: string
+          total_cost_cents?: number
+          trace?: Json
+          user_id?: string
+          workspace_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "graph_executions_graph_id_fkey"
+            columns: ["graph_id"]
+            isOneToOne: false
+            referencedRelation: "agent_graphs"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "graph_executions_workspace_id_fkey"
             columns: ["workspace_id"]
             isOneToOne: false
             referencedRelation: "workspaces"
