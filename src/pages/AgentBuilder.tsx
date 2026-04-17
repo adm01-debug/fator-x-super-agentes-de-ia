@@ -13,6 +13,7 @@ const RAGModule = lazy(() => import('@/components/agent-builder/modules/RAGModul
 const ToolsModule = lazy(() => import('@/components/agent-builder/modules/ToolsModule').then(m => ({ default: m.ToolsModule })));
 const PromptModule = lazy(() => import('@/components/agent-builder/modules/PromptModule').then(m => ({ default: m.PromptModule })));
 const OrchestrationModule = lazy(() => import('@/components/agent-builder/modules/OrchestrationModule').then(m => ({ default: m.OrchestrationModule })));
+const OrchestratorModule = lazy(() => import('@/components/agent-builder/modules/OrchestratorModule').then(m => ({ default: m.OrchestratorModule })));
 const GuardrailsModule = lazy(() => import('@/components/agent-builder/modules/GuardrailsModule').then(m => ({ default: m.GuardrailsModule })));
 const TestingModule = lazy(() => import('@/components/agent-builder/modules/TestingModule').then(m => ({ default: m.TestingModule })));
 const EvalsModule = lazy(() => import('@/components/agent-builder/modules/EvalsModule').then(m => ({ default: m.EvalsModule })));
@@ -46,6 +47,7 @@ const MODULE_MAP: Record<string, React.LazyExoticComponent<React.ComponentType>>
   tools: ToolsModule,
   prompt: PromptModule,
   orchestration: OrchestrationModule,
+  orchestrator: OrchestratorModule,
   guardrails: GuardrailsModule,
   testing: TestingModule,
   evals: EvalsModule,
