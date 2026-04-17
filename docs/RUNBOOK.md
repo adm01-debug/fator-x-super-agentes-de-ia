@@ -379,3 +379,43 @@ Em CI, violations bloqueantes geram `axe-violations.json` anexo ao run do Playwr
 - Adicione `await expectNoA11yViolations(page, testInfo)` em **toda nova spec E2E** que renderize tela visualmente significativa
 - Para warnings (`moderate`/`minor`): triagem no daily, não bloqueiam merge
 - `excludes` só com justificativa em comentário (ex: widget terceiro sem ARIA fix)
+
+## Visual Regression Tests (Sprint 24)
+
+Pixel-diff guard usando `playwright.toHaveScreenshot()`. Baselines commitados em `e2e/__screenshots__/`.
+
+### Quando roda
+- A cada PR no job `e2e-tests` (`npx playwright test`)
+- Local: `npm run test:e2e:visual`
+
+### Cenários cobertos (`e2e/visual.spec.ts`)
+| Cenário | Viewport | Snapshot |
+|---|---|---|
+| Auth login (desktop) | 1280×720 | `auth-desktop.png` |
+| Auth login (mobile) | 375×667 | `auth-mobile.png` |
+| Auth signup variant | 1280×720 | `auth-signup-desktop.png` |
+| Protected redirect (`/agents` → `/auth`) | 1280×720 | `auth-after-redirect.png` |
+
+### Tolerância
+- `threshold: 0.2` (anti-aliasing)
+- `maxDiffPixelRatio: 0.01` (1% pixels podem divergir)
+- `animations: "disabled"` em todos os shots
+
+### Atualizar baseline (mudança intencional)
+```bash
+npm run test:e2e:update           # regenera todos os snapshots
+git add e2e/__screenshots__/
+git commit -m "chore(visual): update baseline — <razão>"
+```
+**Política:** PR de update de baseline requer 1 reviewer aprovando visualmente cada PNG novo.
+
+### Falha não intencional
+- CI falha o job `e2e-tests` com diff
+- Artifact `visual-regression-diffs` contém:
+  - `test-results/<test>/...-diff.png` (vermelho = pixels diferentes)
+  - `test-results/<test>/...-actual.png` (renderização atual)
+  - `test-results/<test>/...-expected.png` (baseline)
+- Baixar artifact, inspecionar, decidir: bug ou update intencional
+
+### Ignorar resultados ephemerais
+`test-results/` e `playwright-report/` são gerados por run e devem ser ignorados pelo VCS (configurado no `.gitignore` global; verificar localmente se `git status` mostra esses dirs sujos).
