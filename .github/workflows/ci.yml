@@ -45,7 +45,7 @@ jobs:
           cache: 'npm'
       - run: npm ci
       - run: npx vitest run --reporter=verbose --coverage
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         if: always()
         with:
           name: test-results
@@ -80,14 +80,14 @@ jobs:
           else
             echo "Auth E2E ran with synthetic users."
           fi
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         if: always()
         with:
           name: playwright-report
           path: playwright-report/
       - name: Upload visual diff artifacts
         if: failure()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: visual-regression-diffs
           path: |
@@ -111,7 +111,7 @@ jobs:
           VITE_SUPABASE_PUBLISHABLE_KEY: ${{ secrets.VITE_SUPABASE_PUBLISHABLE_KEY }}
       - name: Bundle size budget
         run: npm run check:bundle
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         if: always()
         with:
           name: bundle-report
@@ -145,7 +145,7 @@ jobs:
             npx @lhci/cli@0.15.x autorun
           fi
         continue-on-error: true
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         if: always()
         with:
           name: lighthouse-report-${{ matrix.profile }}
@@ -175,7 +175,7 @@ jobs:
           if [ -z "${SUPABASE_SERVICE_ROLE_KEY}" ]; then
             echo "::warning::SUPABASE_SERVICE_ROLE_KEY not set — k6 ran in skip mode. Add the secret for real load coverage."
           fi
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         if: always()
         with:
           name: k6-summary
