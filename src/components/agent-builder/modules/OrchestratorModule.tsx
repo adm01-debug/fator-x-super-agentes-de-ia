@@ -26,7 +26,7 @@ import { SectionTitle } from '../ui';
 
 export function OrchestratorModule() {
   const agent = useAgentBuilderStore((s) => s.agent);
-  const { workspace } = useCurrentWorkspace();
+  const { data: workspaceId } = useWorkspaceId();
   const { workflows, createWorkflow, updateWorkflow, deleteWorkflow } = useAgentWorkflows(agent.id);
 
   const [activeId, setActiveId] = useState<string | null>(null);
