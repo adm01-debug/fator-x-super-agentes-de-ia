@@ -9,6 +9,7 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import { AppLayout } from "@/components/layout/AppLayout";
 import { PageLoading } from "@/components/shared/PageLoading";
 import { HealthAlertsMounter } from "@/components/shared/HealthAlertsMounter";
+import { SLOAlertsMounter } from "@/components/shared/SLOAlertsMounter";
 import { ErrorBoundary } from "@/components/shared/ErrorBoundary";
 import { AuthProvider } from "@/contexts/AuthContext";
 import { I18nProvider } from "@/i18n/I18nProvider";
@@ -86,6 +87,7 @@ const FederatedLearningPage = lazy(() => import("./pages/FederatedLearningPage")
 const MultiTenancyPage = lazy(() => import("./pages/MultiTenancyPage"));
 const ObservabilityOTelPage = lazy(() => import("./pages/ObservabilityOTelPage"));
 const DisasterRecoveryPage = lazy(() => import("./pages/DisasterRecoveryPage"));
+const SLODashboard = lazy(() => import("./pages/SLODashboard"));
 const KnowledgeManagementPage = lazy(() => import("./pages/KnowledgeManagementPage"));
 const ArticleEditorPage = lazy(() => import("./pages/ArticleEditorPage"));
 const PublicHelpCenterPage = lazy(() => import("./pages/PublicHelpCenterPage"));
@@ -130,6 +132,7 @@ const App = () => (
       <I18nProvider>
         <AuthProvider>
           <HealthAlertsMounter />
+          <SLOAlertsMounter />
           <TooltipProvider>
           <Toaster />
           <Sonner />
@@ -216,6 +219,7 @@ const App = () => (
                       <Route path="/federated-learning" element={<SafePage><ProtectedRoute permission="settings.api_keys"><FederatedLearningPage /></ProtectedRoute></SafePage>} />
                       <Route path="/multi-tenancy" element={<SafePage><ProtectedRoute permission="team.roles"><MultiTenancyPage /></ProtectedRoute></SafePage>} />
                       <Route path="/observability" element={<SafePage><ObservabilityOTelPage /></SafePage>} />
+                      <Route path="/observability/slo" element={<SafePage><SLODashboard /></SafePage>} />
                       <Route path="/disaster-recovery" element={<SafePage><ProtectedRoute permission="settings.api_keys"><DisasterRecoveryPage /></ProtectedRoute></SafePage>} />
                       <Route path="*" element={<SafePage><NotFound /></SafePage>} />
                     </Routes>

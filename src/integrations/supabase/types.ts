@@ -3958,6 +3958,30 @@ export type Database = {
         }
         Relationships: []
       }
+      slo_metrics_hourly: {
+        Row: {
+          agent_id: string | null
+          bucket_hour: string | null
+          error_count: number | null
+          p50_latency_ms: number | null
+          p95_latency_ms: number | null
+          p99_latency_ms: number | null
+          success_rate: number | null
+          total_cost_usd: number | null
+          total_tokens: number | null
+          total_traces: number | null
+          user_id: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "agent_traces_agent_id_fkey"
+            columns: ["agent_id"]
+            isOneToOne: false
+            referencedRelation: "agents"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       workspace_members_directory: {
         Row: {
           accepted_at: string | null
@@ -4062,6 +4086,7 @@ export type Database = {
           updated_at: string
         }[]
       }
+      get_slo_summary: { Args: { p_window_hours?: number }; Returns: Json }
       get_user_workspace_ids: { Args: { _user_id: string }; Returns: string[] }
       increment_skill_installs: {
         Args: { p_skill_id: string }
