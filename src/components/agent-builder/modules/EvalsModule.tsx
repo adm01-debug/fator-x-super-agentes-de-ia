@@ -271,7 +271,7 @@ function RunDetails({ runId }: { runId: string | null }) {
         <Card key={r.id}>
           <CardHeader className="pb-2">
             <CardTitle className="text-sm flex items-center gap-2">
-              {r.passed ? <CheckCircle2 className="h-4 w-4 text-emerald-500" /> : <XCircle className="h-4 w-4 text-destructive" />}
+              {r.passed ? <CheckCircle2 className="h-4 w-4 text-nexus-emerald" /> : <XCircle className="h-4 w-4 text-destructive" />}
               Caso #{r.item_index + 1} — score {Number(r.score).toFixed(2)} · {r.latency_ms}ms
             </CardTitle>
           </CardHeader>
