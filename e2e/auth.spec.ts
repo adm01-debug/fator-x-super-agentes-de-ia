@@ -1,8 +1,14 @@
 import { test, expect } from "../playwright-fixture";
+import { expectNoA11yViolations } from "./helpers/a11y";
 
 test.describe("Auth Page", () => {
   test.beforeEach(async ({ page }) => {
     await page.goto("/auth");
+  });
+
+  test("has no critical/serious a11y violations on initial render", async ({ page }, testInfo) => {
+    await page.waitForLoadState("networkidle");
+    await expectNoA11yViolations(page, testInfo);
   });
 
   test("renders login form with all required elements", async ({ page }) => {

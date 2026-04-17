@@ -16,6 +16,7 @@ import {
   loginViaUI,
   type E2EUser,
 } from "./helpers/auth-fixtures";
+import { expectNoA11yViolations } from "./helpers/a11y";
 
 test.describe("Auth Flows (synthetic user)", () => {
   test.skip(!AUTH_E2E_ENABLED, AUTH_E2E_SKIP_REASON);
