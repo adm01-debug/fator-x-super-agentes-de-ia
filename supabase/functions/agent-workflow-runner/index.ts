@@ -1,5 +1,6 @@
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.57.4';
 import { startEdgeTrace } from '../_shared/otel.ts';
+import { maybeInjectFault, applyFault } from '../_shared/chaos.ts';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -96,6 +97,17 @@ Deno.serve(async (req) => {
 
     const { workflow_id, input } = await req.json();
     rootSpan.setAttribute('workflow.id', workflow_id);
+
+    // ═══ CHAOS ENGINEERING — fault injection (Sprint 28) ═══
+    const chaosFault = await maybeInjectFault('agent-workflow-runner', supa);
+    if (chaosFault) {
+      await trace.withSpan('chaos.inject', 'tool', async (span) => {
+        span.setAttribute('chaos.fault_type', chaosFault.fault_type);
+        span.setAttribute('chaos.experiment_id', chaosFault.id);
+        if (chaosFault.fault_type === 'latency') span.setAttribute('chaos.latency_ms', chaosFault.latency_ms);
+        await applyFault(chaosFault);
+      });
+    }
     const { data: wf, error: wfErr } = await trace.withSpan('db.workflow_load', 'db', async () => supa.from('agent_workflows').select('*').eq('id', workflow_id).single());
     if (wfErr || !wf) { rootSpan.setStatus('error', 'workflow_not_found'); trace.endSpan(rootSpan, 'error'); trace.end('error'); return new Response(JSON.stringify({ error: 'Workflow não encontrado' }), { status: 404, headers: corsHeaders }); }
 

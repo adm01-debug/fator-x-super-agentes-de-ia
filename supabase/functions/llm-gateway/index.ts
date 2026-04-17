@@ -4,6 +4,7 @@ import { createClient, type SupabaseClient } from "https://esm.sh/@supabase/supa
 import { callLovable, callOpenRouter, callAnthropic, callOpenAICompatible, callHuggingFace, type LLMCallParams, type LLMResult } from "./providers.ts";
 import { getCorsHeaders, handleCorsPreflight, getRateLimitIdentifier, createRateLimitResponse, RATE_LIMITS } from "../_shared/mod.ts";
 import { startEdgeTrace } from "../_shared/otel.ts";
+import { maybeInjectFault, applyFault } from "../_shared/chaos.ts";
 
 // CORS handled by _shared/cors.ts — dynamic origin whitelist
 // corsHeaders removed — using getCorsHeaders(req) from _shared/cors.ts
@@ -403,6 +404,17 @@ serve(async (req) => {
 
     const { data: member } = await supabase.from('workspace_members').select('workspace_id').eq('user_id', user.id).limit(1).single();
     const workspaceId = member?.workspace_id || validation.data.workspace_id;
+
+    // ═══ CHAOS ENGINEERING — fault injection (Sprint 28) ═══
+    const chaosFault = await maybeInjectFault('llm-gateway', supabase);
+    if (chaosFault) {
+      await trace.withSpan('chaos.inject', 'tool', async (span) => {
+        span.setAttribute('chaos.fault_type', chaosFault.fault_type);
+        span.setAttribute('chaos.experiment_id', chaosFault.id);
+        if (chaosFault.fault_type === 'latency') span.setAttribute('chaos.latency_ms', chaosFault.latency_ms);
+        await applyFault(chaosFault);
+      });
+    }
 
     // ═══ TIMING START ═══
     const t0 = Date.now();

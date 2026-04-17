@@ -1257,6 +1257,56 @@ export type Database = {
           },
         ]
       }
+      chaos_experiments: {
+        Row: {
+          created_at: string
+          created_by: string
+          enabled: boolean
+          expires_at: string
+          fault_type: string
+          id: string
+          latency_ms: number | null
+          name: string
+          probability: number
+          target: string
+          workspace_id: string
+        }
+        Insert: {
+          created_at?: string
+          created_by: string
+          enabled?: boolean
+          expires_at: string
+          fault_type: string
+          id?: string
+          latency_ms?: number | null
+          name: string
+          probability?: number
+          target: string
+          workspace_id: string
+        }
+        Update: {
+          created_at?: string
+          created_by?: string
+          enabled?: boolean
+          expires_at?: string
+          fault_type?: string
+          id?: string
+          latency_ms?: number | null
+          name?: string
+          probability?: number
+          target?: string
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "chaos_experiments_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       chunks: {
         Row: {
           chunk_index: number
@@ -4074,6 +4124,16 @@ export type Database = {
       compute_experiment_stats: {
         Args: { p_experiment_id: string }
         Returns: Json
+      }
+      disable_all_chaos: { Args: { p_workspace_id: string }; Returns: number }
+      get_active_chaos_faults: {
+        Args: { p_target: string }
+        Returns: {
+          fault_type: string
+          id: string
+          latency_ms: number
+          probability: number
+        }[]
       }
       get_creator_earnings: { Args: { p_creator_id?: string }; Returns: Json }
       get_masked_secrets: {

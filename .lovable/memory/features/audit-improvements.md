@@ -156,4 +156,19 @@ type: feature
 - docs/RUNBOOK.md: seção "SLO Monitoring" com targets, burn rate, resposta a breach, failure modes
 - Reuso 100%: dados já existentes em agent_traces (sem necessidade de novas tabelas), LightAreaChart existente (sem nova dep recharts)
 
+## Completed — Sprint 28 (Chaos Engineering — controlled fault injection)
+- Migration: tabela `chaos_experiments` (workspace_id, target, fault_type, probability ≤0.5 CHECK, latency_ms ≤10000, expires_at ≤created_at+1h CHECK) + RLS (members SELECT, admins CRUD) + 2 índices (`idx_chaos_active` partial WHERE enabled, `idx_chaos_workspace`)
+- Migration: RPC `disable_all_chaos(workspace_id)` SECURITY DEFINER (admin-only kill switch, retorna count); RPC `get_active_chaos_faults(target)` STABLE SECURITY DEFINER (filtra enabled + expires_at>now)
+- supabase/functions/_shared/chaos.ts (novo): maybeInjectFault() com cache 5s + dice roll por probability; applyFault() para 4 tipos (latency sleep, error_500/429 throw com .status, timeout 30s); zero overhead quando sem experimentos ativos; nunca quebra produção (try/catch retorna null)
+- supabase/functions/llm-gateway/index.ts: chaos check após auth+validation, antes de timing/provider call; span `chaos.inject` (kind=tool) com attrs fault_type/experiment_id/latency_ms
+- supabase/functions/agent-workflow-runner/index.ts: chaos check após req.json() parse, antes do topo sort; mesmo padrão de span OTel
+- src/services/chaosService.ts: list/listActive/create/disable/disableAll com validação client (probability ≤0.5, duration ≤3600s)
+- src/pages/ChaosLabPage.tsx (rota `/observability/chaos`, ProtectedRoute permission settings.api_keys): form criar (slider probability 1-50%, slider duration 1-60min, conditional latency_ms input para fault=latency), lista ativos+histórico com badges color-coded (amber=ativo, outline=expirado/desativado), kill switch button com confirm dialog, alert educacional em empty state, auto-refresh 15s
+- src/components/shared/ChaosBanner.tsx: banner sticky amber em todo app quando experimentos ativos, polling 30s, link "Gerenciar" para /observability/chaos, usa nexus-amber semantic token
+- src/components/layout/AppSidebar.tsx: item "Chaos Lab" em Operações (ícone Zap)
+- src/App.tsx: rota lazy + ChaosBanner montado dentro do AuthGuard (antes do AppLayout)
+- docs/RUNBOOK.md: seção "Chaos Engineering" com tabela targets+falhas, hard safety limits, walkthrough primeiro experimento, tabela validações esperadas, política operacional, failure modes graceful
+
+## Score: 10/10 ✅ mantido (Sprint 28 — fecha ciclo resiliência: observabilidade SABE + chaos VALIDA resposta a falhas)
+
 ## Score: 10/10 ✅ mantido (Sprint 27 — observabilidade fecha o ciclo: traces (debug) + load (capacidade) + SLO (saúde contínua))
