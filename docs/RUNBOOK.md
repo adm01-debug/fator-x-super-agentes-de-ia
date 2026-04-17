@@ -175,3 +175,34 @@ Após rodar, abrir `coverage/index.html` no browser para o report navegável (li
 - `all: true` força arquivos não-importados em testes a aparecerem como 0% — evita "cobertura fantasma".
 - Novos services em `src/services/` devem ser acompanhados de suíte em `src/test/`.
 - Rebaixar threshold só com PR dedicado documentando o débito técnico — nunca silenciosamente.
+
+## Bundle Size Budget
+
+O build gera `dist/bundle-report.html` (treemap navegável via `rollup-plugin-visualizer`) e o script `scripts/check-bundle-size.mjs` valida cada chunk contra `bundle-budget.json`. PRs que estourarem o orçamento **falham o CI**.
+
+### Rodar localmente
+```bash
+npm run build              # gera dist/ + bundle-report.html
+npm run check:bundle       # valida contra bundle-budget.json
+npm run build:analyze      # build + dica para abrir o report
+```
+
+Abrir `dist/bundle-report.html` no browser para visualizar o treemap (gzip + brotli sizes lado a lado).
+
+### Estratégia de chunks (vite.config.ts)
+| Chunk | Conteúdo | Racional |
+|-------|----------|----------|
+| `vendor-react` | react, react-dom, react-router-dom | Core runtime, cache longo |
+| `vendor-supabase` | @supabase/supabase-js | API client, isolado para invalidação seletiva |
+| `vendor-query` | @tanstack/react-query | State async, raramente muda |
+| `vendor-ui` | sonner | UI primitives compartilhadas |
+| `index` | App code | Tudo que não é vendor |
+
+### Orçamentos atuais (gzip KB)
+Ver `bundle-budget.json` na raiz. Total: 1200 KB. Limites por chunk derivados do baseline pós-Sentry (Sprint 16) com folga de ~15%.
+
+### Política
+- **Estourar o budget falha o build** — sem exceção silenciosa.
+- Para subir um limite: PR dedicado editando `bundle-budget.json` com justificativa no commit body (nova feature, dep nova, etc.).
+- Antes de subir, sempre tentar primeiro: code-splitting com `lazy()`, remoção de deps redundantes, tree-shaking review via `bundle-report.html`.
+- Warnings (>85% do limite) são amarelos no output — sinal pra agir antes de virar erro vermelho.
