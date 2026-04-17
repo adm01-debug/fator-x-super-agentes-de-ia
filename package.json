@@ -33,6 +33,7 @@
     ]
   },
   "dependencies": {
+    "@axe-core/playwright": "^4.10.0",
     "@hookform/resolvers": "^3.10.0",
     "@lhci/cli": "^0.15.1",
     "@lovable.dev/cloud-auth-js": "^1.0.1",
