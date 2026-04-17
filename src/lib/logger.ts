@@ -49,6 +49,18 @@ function log(level: LogLevel, message: string, context?: unknown) {
     case 'error':
     case 'critical': console.error(formatted); break;
   }
+
+  // Forward errors to Sentry (no-op if not initialized)
+  if (level === 'error' || level === 'critical') {
+    // Lazy import to avoid circular dep at module init
+    import('./sentry').then(({ captureException, isSentryEnabled }) => {
+      if (!isSentryEnabled()) return;
+      const err = entry.context?.stack
+        ? new Error(`${message} :: ${entry.context.error ?? ''}`)
+        : new Error(message);
+      captureException(err, entry.context);
+    }).catch(() => { /* noop */ });
+  }
 }
 
 export const logger = {
