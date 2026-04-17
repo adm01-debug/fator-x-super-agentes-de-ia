@@ -148,3 +148,30 @@ Sem `SUPABASE_SERVICE_ROLE_KEY` o suite faz `describe.skip` com aviso no console
 ### CI
 
 Para ativar em CI, adicionar os 3 secrets ao runner e incluir o step `npm run test:rls` no pipeline. Recomendado rodar contra um projeto Supabase **dedicado a testes**, não produção.
+
+## Coverage Gate
+
+A suite de testes unitários roda com `@vitest/coverage-v8` e thresholds enforced no `vitest.config.ts`. PRs que derrubarem cobertura abaixo dos limites **falham o build**.
+
+### Thresholds atuais
+| Métrica | Limite |
+|---------|--------|
+| Lines | 70% |
+| Functions | 70% |
+| Statements | 70% |
+| Branches | 60% |
+
+Escopo coberto: `src/services/**`, `src/lib/**`, `src/hooks/**`. UI/components ficam fora do gate (cobertos por Playwright).
+
+### Rodar localmente
+```bash
+npm run test:coverage          # roda + report em terminal + HTML
+npm run test:coverage:ci       # versão verbose (usado em CI)
+```
+
+Após rodar, abrir `coverage/index.html` no browser para o report navegável (linhas vermelhas = sem cobertura).
+
+### Política
+- `all: true` força arquivos não-importados em testes a aparecerem como 0% — evita "cobertura fantasma".
+- Novos services em `src/services/` devem ser acompanhados de suíte em `src/test/`.
+- Rebaixar threshold só com PR dedicado documentando o débito técnico — nunca silenciosamente.
