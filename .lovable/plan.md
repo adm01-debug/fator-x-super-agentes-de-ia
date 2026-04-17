@@ -1,46 +1,51 @@
 
-A fila de auditoria está **100% zerada**. Todos os 22 sprints foram concluídos e o score 10/10 está consolidado e mantido. Não há mais itens em "Next candidates" no `mem://features/audit-improvements`.
+Sprint 23 (Mobile Lighthouse + Runtime A11y) completo ✅. Próximo da fila de Continuous Hardening: 🟢 **Sprint 24 — Visual regression (Playwright screenshots baseline)**.
 
-Para continuar evoluindo além do 10/10 da auditoria original, identifiquei **3 áreas de hardening contínuo** que naturalmente surgem após uma base 10/10. Proponho começar pelo de maior ROI:
+## Por quê
+- Lighthouse + axe pegam métricas e a11y, mas **mudanças visuais silenciosas** (cor errada, layout shift, ícone sumido, tipografia trocada) só aparecem se alguém olhar a tela
+- Playwright tem `toHaveScreenshot()` nativo com diff por pixel + threshold tolerante a anti-aliasing
+- Custo zero: roda no mesmo job E2E que já existe
 
-## 🟢 Sprint 23 — Mobile Lighthouse profile + a11y deep-dive
+## Plano
 
-### Por quê
-- Sprint 21 só audita preset `desktop`. Mobile tem CPU 4× mais lenta + rede 3G → métricas reais do usuário em campo
-- Acessibilidade ≥0.95 atual é boa, mas falta cobertura runtime (axe-core nos testes Playwright pega regressões dinâmicas que Lighthouse estático não vê)
-- Complementa Sprints 19 (bundle) + 21 (perf desktop) fechando o tripé performance
+**1. `e2e/visual.spec.ts` (novo):** baseline screenshots de telas-chave
+- `/auth` (login form) — viewport desktop 1280×720
+- `/auth` viewport mobile 375×667
+- `/` (landing pública, se existir; senão skip)
+- Auth guard: tela de loading/redirect em rota protegida sem sessão
 
-### Plano (resumo)
+**2. `playwright.config.ts`:** ajustes
+- `expect.toHaveScreenshot.maxDiffPixelRatio: 0.01` (1% tolerância)
+- `expect.toHaveScreenshot.threshold: 0.2` (anti-aliasing)
+- `snapshotPathTemplate`: `e2e/__screenshots__/{testFilePath}/{arg}-{projectName}{ext}`
+- Project `chromium` já cobre; adicionar viewport `mobile-chrome` (Pixel 5)
 
-1. **`lighthouserc.json`**: adicionar segunda config `mobile` (preset `mobile`, throttling 4G, viewport 360×640)
-   - Assertions mobile mais permissivas: perf ≥0.75, LCP ≤4000ms, TBT ≤600ms
-   - A11y/best-practices/CLS mantém os mesmos thresholds rígidos
+**3. `package.json`:** scripts
+- `"test:e2e:visual": "playwright test e2e/visual.spec.ts"`
+- `"test:e2e:update": "playwright test --update-snapshots"` — para atualizar baseline intencionalmente
 
-2. **`@axe-core/playwright`** (nova devDep): integrar em todos os specs E2E
-   - Helper `e2e/helpers/a11y.ts` com `expectNoA11yViolations(page)` 
-   - Adicionar 1 assertion axe em cada spec existente (`auth.spec.ts`, `auth-flows.spec.ts`)
-   - Falha em violations `serious` ou `critical` (warn em `moderate`/`minor`)
+**4. `.github/workflows/ci.yml`:** job `e2e-tests` já roda specs novos automaticamente. Adicionar upload de `e2e/__screenshots__/` em failure para inspeção dos diffs.
 
-3. **`.github/workflows/ci.yml`**: job `lighthouse` roda matrix `[desktop, mobile]`
+**5. `.gitignore`:** garantir que `test-results/` e `playwright-report/` estão ignorados; `__screenshots__/` **commitada** (são o baseline).
 
-4. **`docs/RUNBOOK.md`**: nova seção "Mobile Performance + Runtime A11y"
-   - Tabela comparativa desktop vs mobile budgets
-   - Como interpretar violations axe-core
+**6. `docs/RUNBOOK.md`:** seção "Visual Regression Tests"
+- Como rodar local
+- Como atualizar baseline (com PR dedicado)
+- Política: diff >1% bloqueia merge; update intencional requer 1 reviewer aprovando o screenshot
 
-5. **`mem://features/audit-improvements`**: Sprint 23 logged + nova fila "Continuous hardening"
+**7. `mem://features/audit-improvements`:** Sprint 24 logged + fila atualizada (Sprint 25 k6, Sprint 26 OTel).
 
-### Arquivos
-- `lighthouserc.json` (refatorar para multi-config)
-- `package.json` (1 devDep)
-- `e2e/helpers/a11y.ts` (novo)
-- `e2e/auth.spec.ts` + `e2e/auth-flows.spec.ts` (1 assertion cada)
-- `.github/workflows/ci.yml` (matrix)
+## Arquivos
+- `e2e/visual.spec.ts` (novo)
+- `e2e/__screenshots__/` (baselines gerados na primeira run)
+- `playwright.config.ts` (config snapshot + viewport mobile)
+- `package.json` (2 scripts)
+- `.github/workflows/ci.yml` (artifact upload em failure)
+- `.gitignore` (verificação)
 - `docs/RUNBOOK.md` (seção)
 - `.lovable/memory/features/audit-improvements.md` (append)
 
-### Validação
-- `npm run lhci:local` gera 2 reports (desktop + mobile)
-- `npm run test:e2e` executa axe em cada cenário e falha em violations críticas
-- CI mostra 2 colunas de Lighthouse no PR
-
-Após Sprint 23, próximas candidatas naturais: **Sprint 24 — Visual regression (Playwright screenshots)** e **Sprint 25 — k6 load test do edge function crítico**.
+## Validação
+- `npm run test:e2e:visual` na primeira run gera baseline (passa)
+- Mudança intencional: `npm run test:e2e:update` regenera, commit explícito
+- Mudança não intencional: CI falha com diff PNG anexo no artifact
