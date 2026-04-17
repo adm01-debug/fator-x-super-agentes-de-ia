@@ -47,8 +47,9 @@ export async function removeMember(workspaceId: string, userId: string) {
 }
 
 export async function getPendingInvites(email: string) {
+  // Usa a view segura; o filtro por email é feito pelo backend via RLS/auth.uid()
   const { data, error } = await supabaseExternal
-    .from('workspace_members')
+    .from('workspace_members_safe')
     .select('*')
     .eq('email', email)
     .is('accepted_at', null)
