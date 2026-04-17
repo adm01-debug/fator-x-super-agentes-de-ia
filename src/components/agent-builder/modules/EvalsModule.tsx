@@ -204,7 +204,7 @@ export function EvalsModule() {
                           <div className="grid grid-cols-4 gap-3 mt-3 text-xs">
                             <div>
                               <div className="text-muted-foreground">Pass rate</div>
-                              <div className={`font-semibold text-base ${passRate >= 70 ? 'text-emerald-500' : passRate >= 40 ? 'text-yellow-500' : 'text-destructive'}`}>
+                              <div className={`font-semibold text-base ${passRate >= 70 ? 'text-nexus-emerald' : passRate >= 40 ? 'text-nexus-amber' : 'text-destructive'}`}>
                                 {passRate.toFixed(0)}%
                               </div>
                             </div>
