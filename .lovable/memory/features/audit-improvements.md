@@ -108,7 +108,6 @@ type: feature
 - RUNBOOK.md: seção "Mobile Performance + Runtime A11y" com tabela comparativa de budgets + política de impact levels
 
 ## Continuous Hardening Queue
-- Sprint 25 — k6 load test do edge function crítico (chat completion)
 - Sprint 26 — OpenTelemetry tracing distribuído (frontend → edge → DB)
 
 ## Completed — Sprint 24 (Visual regression — Playwright screenshots)
@@ -119,5 +118,17 @@ type: feature
 - RUNBOOK.md: seção "Visual Regression Tests" com tabela de cenários + política de update + troubleshooting de diffs
 - Baselines geradas na primeira run no CI (commit subsequente do dev após inspeção visual)
 
-## Score: 10/10 ✅ mantido (Sprint 24 — segundo hardening, tripé performance+a11y+visual fechado)
+## Completed — Sprint 25 (Load testing — k6 llm-gateway)
+- tests/load/llm-gateway.k6.js: smoke (1 VU 30s) + full load (ramp 0→20 VUs em 1m, sustain 3m, ramp-down 30s)
+- Thresholds: p(95)<2000ms, p(99)<5000ms, failed<1%, checks>95%, success>95%
+- Auth via SUPABASE_SERVICE_ROLE_KEY (espelha padrão E2E); skip gracioso quando ausente
+- handleSummary customizado: summary.json + textSummary stdout com p50/p95/p99
+- tests/load/README.md: instalação k6, env vars, thresholds, calibração (3× runs + 20% headroom), reading P95/P99 spikes
+- package.json: scripts test:load + test:load:smoke
+- .github/workflows/ci.yml: novo job `load-test` (PR-only, needs build) — smoke sempre + full apenas com label `load-test` (gate de custo)
+- grafana/setup-k6-action@v1 para instalação
+- Upload artifact `k6-summary` (90d retenção)
+- RUNBOOK.md: seção "Load Testing — k6" com tabela de thresholds + política de release + interpretação de spikes
+
+## Score: 10/10 ✅ mantido (Sprint 25 — performance budget de edge functions fechado)
 
