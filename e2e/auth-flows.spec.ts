@@ -31,7 +31,7 @@ test.describe("Auth Flows (synthetic user)", () => {
     await deleteE2EUser(user?.id);
   });
 
-  test("login válido redireciona para área autenticada", async ({ page }) => {
+  test("login válido redireciona para área autenticada", async ({ page }, testInfo) => {
     if (!user) throw new Error("user fixture missing");
     await page.goto("/auth");
     await loginViaUI(page, user.email, user.password);
@@ -39,6 +39,10 @@ test.describe("Auth Flows (synthetic user)", () => {
     // Aguarda redirect para fora de /auth (dashboard, agents, ou home autenticado)
     await page.waitForURL((url) => !url.pathname.startsWith("/auth"), { timeout: 15_000 });
     expect(page.url()).not.toContain("/auth");
+
+    // A11y check em tela autenticada (cobre layout shell + sidebar)
+    await page.waitForLoadState("networkidle");
+    await expectNoA11yViolations(page, testInfo);
   });
 
   test("login inválido mantém usuário em /auth com mensagem de erro", async ({ page }) => {
