@@ -1,40 +1,51 @@
 
-#6 done. Próxima: **#9 Eval Suite** — testes automatizados de qualidade.
+#9 done. Próxima: **#10 Visual Orchestrator** — workflow builder visual node-based.
 
-## #9 Eval Suite
+## #10 Visual Orchestrator
 
-Sistema de avaliação batch: rodar dataset de testes contra agente, calcular métricas (accuracy, latência, custo) e comparar versões.
+Editor visual de fluxos multi-agente com nós conectáveis (drag-and-drop), usando React Flow.
 
 **Schema (migration):**
-- `agent_eval_datasets`: id, agent_id, name, description, items (jsonb array de `{input, expected_output, criteria[]}`), workspace_id, created_by, created_at
-- `agent_eval_runs`: id, dataset_id, agent_id, status (queued/running/completed/failed), total_items, passed, failed, avg_latency_ms, total_cost_usd, started_at, completed_at, created_by
-- `agent_eval_results`: id, run_id, item_index, input, expected, actual, passed (bool), score (0-1), latency_ms, cost_usd, judge_reasoning, error
+- `agent_workflows`: id, agent_id, name, description, nodes (jsonb), edges (jsonb), status (draft/active), workspace_id, created_by, created_at, updated_at
+- `agent_workflow_runs`: id, workflow_id, status (running/completed/failed), input, output, trace (jsonb), started_at, completed_at, created_by
 - RLS: workspace members
 
-**Hook:**
-- `src/hooks/useAgentEvals.ts` — CRUD datasets/runs + queries de resultados
+**Tipos de nó:**
+- `trigger` — entrada do fluxo (input do usuário)
+- `agent` — chamada a um agente (config: agent_id)
+- `tool` — execução de ferramenta (config: tool_name, params)
+- `condition` — branch if/else (config: expression)
+- `transform` — transformação de dados (config: code/template)
+- `output` — saída final
 
-**Edge function:**
-- `supabase/functions/agent-eval-runner/index.ts`
-- Input: `{ dataset_id, agent_id }`
-- Para cada item: chama o agente (via mesma lógica do playground) → usa LLM-as-judge (Gemini Flash) com prompt "compare expected vs actual usando critérios X" → retorna score 0-1 + reasoning
-- Persiste em `agent_eval_results` em batch
-- Atualiza `agent_eval_runs` ao final com agregados
+**Hook:**
+- `src/hooks/useAgentWorkflows.ts` — CRUD via supabaseExternal + execução
 
 **Componente:**
-- `src/components/agent-builder/modules/EvalsModule.tsx` — nova tab "Avaliação"
-- **Datasets**: lista + botão "Novo dataset" (modal com textarea JSON ou builder linha-a-linha de input/expected)
-- **Runs**: histórico com status, pass rate, latência média, custo
-- **Detalhes do run**: tabela com cada item (input/expected/actual/score/judge reasoning) + filtro pass/fail
+- `src/components/agent-builder/modules/OrchestratorModule.tsx` — nova tab "Orquestração"
+- Canvas React Flow com paleta lateral de nós arrastáveis
+- Painel de propriedades quando nó selecionado
+- Botão "Salvar" + "Executar" (com input de teste) + "Histórico de runs"
+- Mini-mapa + zoom controls
+
+**Edge function (fase 1 simplificada):**
+- `supabase/functions/agent-workflow-runner/index.ts`
+- Topological sort dos nós → executa sequencial seguindo edges
+- Para cada nó: roda lógica conforme tipo, passa output para próximos
+- Persiste trace em `agent_workflow_runs`
+
+**Dependência:**
+- `reactflow` (instalar via package.json)
 
 **Arquivos:**
 - migration SQL nova
-- criar `src/hooks/useAgentEvals.ts`
-- criar `src/components/agent-builder/modules/EvalsModule.tsx`
-- criar `supabase/functions/agent-eval-runner/index.ts`
-- editar `src/data/agentBuilderData.ts` — registrar tab "evals"
+- criar `src/hooks/useAgentWorkflows.ts`
+- criar `src/components/agent-builder/modules/OrchestratorModule.tsx`
+- criar nodes customizados em `src/components/agent-builder/orchestrator/nodes/`
+- criar `supabase/functions/agent-workflow-runner/index.ts`
+- editar `src/data/agentBuilderData.ts` — registrar tab "orchestrator"
 - editar `src/pages/AgentBuilder.tsx` — rotear módulo
 
-**Validação:** abrir agente → tab Avaliação → criar dataset com 3 itens → rodar → ver pass rate + detalhes por item.
+**Validação:** abrir agente → tab Orquestração → arrastar trigger + agent + output → conectar → salvar → executar com input teste → ver trace.
 
-Próximas sem pausar: #10 Visual Orchestrator → #7 Guardrails Library.
+Próxima sem pausar: #7 Guardrails Library (final).
