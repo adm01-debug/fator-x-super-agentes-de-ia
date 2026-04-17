@@ -45,12 +45,18 @@ type: feature
 - Opt-in via SUPABASE_SERVICE_ROLE_KEY — auto-skips when absent (CI-safe)
 - RUNBOOK.md: RLS Persona Tests section
 
-## Score: 10/10 ✅ (Sprint 17 complete)
+## Completed — Sprint 18 (Coverage Gate enforcement)
+- package.json: `test:coverage` + `test:coverage:ci` scripts
+- vitest.config.ts: `all: true`, html reporter, reportsDirectory: 'coverage'
+- .gitignore: `coverage/` excluded from VCS
+- RUNBOOK.md: Coverage Gate section with thresholds (70/70/60) + policy
+
+## Score: 10/10 ✅ (Sprint 18 complete)
 
 ## Next candidates
-- Vitest coverage gate enforcement (>=70% in CI)
 - Playwright auth flow E2E expansion
 - Bundle-size budget guard
+- Lighthouse CI integration
 
 ## Notes
 - HIBP (leaked password protection) — manual activation in Cloud UI
