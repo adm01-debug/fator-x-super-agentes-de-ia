@@ -237,3 +237,51 @@ Comentar no PR do Dependabot:
 
 ### Cadence
 Segunda-feira de manhã: revisar fila de PRs `dependencies` no GitHub. Merge em batch reduz overhead.
+
+## Performance Budget — Lighthouse CI
+
+Lighthouse CI roda em PRs (job `lighthouse` no `.github/workflows/ci.yml`) contra o build estático em `dist/`. Configuração: `lighthouserc.json`.
+
+### Rodar localmente
+```bash
+npm run lhci:local        # build + autorun (3 runs por URL, média)
+npm run lhci              # só autorun (assume dist/ pronto)
+```
+
+Após executar, os reports HTML ficam em `.lighthouseci/` e um link público temporário é impresso no terminal (válido ~7 dias).
+
+### URLs auditadas
+| URL | Por quê |
+|-----|---------|
+| `/index.html` | Entrypoint SPA — mede LCP/CLS/TBT do shell inicial |
+| `/auth` | Rota pública crítica — mede performance do fluxo de login |
+
+### Assertions (preset desktop)
+| Métrica | Limite | Severidade |
+|---------|--------|------------|
+| `categories:performance` | ≥ 0.85 | warn |
+| `categories:accessibility` | ≥ 0.95 | **error** |
+| `categories:best-practices` | ≥ 0.90 | **error** |
+| `categories:seo` | ≥ 0.90 | warn |
+| `largest-contentful-paint` | ≤ 2500ms | warn |
+| `cumulative-layout-shift` | ≤ 0.1 | **error** |
+| `total-blocking-time` | ≤ 300ms | warn |
+
+`error` falha o job; `warn` aparece amarelo no log mas não bloqueia merge.
+
+### Política
+- **Acessibilidade < 0.95 ou CLS > 0.1**: blocker — investigar antes de merge (regressão de a11y/UX é dívida cara).
+- **Performance < 0.85**: warning — abrir issue para investigar (chunk pesado, imagem não otimizada, render-blocking script).
+- **Subir um threshold**: PR dedicado editando `lighthouserc.json` com justificativa (nova feature pesada, third-party adicionada, etc.).
+- **Baixar um threshold**: requer aprovação do tech lead + issue rastreando o débito técnico.
+
+### Como ler o report
+1. Acessar o link público impresso no log do CI (ou abrir `.lighthouseci/lhr-*.html` localmente).
+2. Aba **Performance** → "Opportunities" lista quick wins (defer scripts, optimize images, etc.).
+3. Aba **Diagnostics** → mostra main-thread work breakdown.
+4. Comparar com run anterior via aba **Compare** (Lighthouse server) ou diff manual.
+
+### Limitações conhecidas
+- Roteamento client-side: Lighthouse audita só o HTML estático servido — não navega para rotas SPA pós-hidratação. Para auditar rotas autenticadas, use Playwright + Lighthouse programático (futuro Sprint).
+- Tempo de CI: +60-90s no pipeline. Job roda em paralelo com `e2e-tests` para minimizar wall-clock.
+- Variação entre runs: usar `numberOfRuns: 3` (média) reduz mas não elimina ruído. Re-run em caso de flake suspeita.
