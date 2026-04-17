@@ -206,3 +206,34 @@ Ver `bundle-budget.json` na raiz. Total: 1200 KB. Limites por chunk derivados do
 - Para subir um limite: PR dedicado editando `bundle-budget.json` com justificativa no commit body (nova feature, dep nova, etc.).
 - Antes de subir, sempre tentar primeiro: code-splitting com `lazy()`, remoção de deps redundantes, tree-shaking review via `bundle-report.html`.
 - Warnings (>85% do limite) são amarelos no output — sinal pra agir antes de virar erro vermelho.
+
+## Dependency Freshness
+
+Dependabot roda semanalmente (segunda 06:00 UTC) e abre PRs agrupados para manter deps npm + GitHub Actions atualizadas. Config: `.github/dependabot.yml`.
+
+### Grupos de PR
+| Grupo | Conteúdo | Racional |
+|-------|----------|----------|
+| `react` | react, react-dom, react-router-dom, @types/react* | Core runtime — bump conjunto evita mismatch |
+| `supabase` | @supabase/* | API client — versionamento alinhado |
+| `sentry` | @sentry/* | Observability SDK — bump conjunto |
+| `radix` | @radix-ui/* | UI primitives — alta frequência de patches |
+| `dev-dependencies` | Todos devDeps minor/patch | Reduz ruído (vitest, eslint, types, etc.) |
+| `github-actions` | Workflows CI | actions/checkout, setup-node, etc. |
+
+Limite: 5 PRs npm + 3 PRs Actions abertos simultaneamente — evita spam.
+
+### Política de revisão
+- **Minor/patch**: CI verde (lint + test + coverage + bundle budget) → merge direto.
+- **Major bumps**: revisão manual obrigatória + smoke test em preview. React/react-dom major estão **ignorados** no Dependabot — upgrade requer plano de migração dedicado.
+- **CVE crítico**: priorizar imediato, mesmo fora da janela semanal.
+
+### Pausar/desabilitar uma dep
+Comentar no PR do Dependabot:
+- `@dependabot ignore this dependency` — pula essa lib até nova major
+- `@dependabot ignore this minor version` — só pula a versão atual
+- `@dependabot rebase` — atualiza branch contra `main`
+- `@dependabot recreate` — recria o PR do zero
+
+### Cadence
+Segunda-feira de manhã: revisar fila de PRs `dependencies` no GitHub. Merge em batch reduz overhead.

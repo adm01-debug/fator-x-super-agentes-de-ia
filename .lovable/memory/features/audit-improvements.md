@@ -62,10 +62,17 @@ type: feature
 
 ## Score: 10/10 ✅ (Sprint 19 complete)
 
+## Completed — Sprint 20 (Dependency Freshness — Dependabot)
+- .github/dependabot.yml: weekly (Mon 06:00 UTC) for npm + github-actions
+- Grouping: react, supabase, sentry, radix, dev-dependencies (minor/patch)
+- Major bumps on react/react-dom ignored (manual migration only)
+- Limits: 5 npm PRs + 3 Actions PRs concurrent
+- Commit prefixes: chore(deps) / chore(deps-dev) / chore(ci)
+- RUNBOOK.md: Dependency Freshness section (groups table + review policy + dependabot commands)
+
 ## Next candidates
 - Playwright auth flow E2E expansion
 - Lighthouse CI integration
-- Dependency freshness audit (renovate/dependabot config)
 
 ## Notes
 - HIBP (leaked password protection) — manual activation in Cloud UI
