@@ -1,7 +1,7 @@
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
-import { Globe2, Play, Square, Trash2, CheckCircle2, XCircle, Loader2, Clock, DollarSign, ListChecks } from "lucide-react";
+import { Globe2, Play, Square, Trash2, CheckCircle2, Loader2, Clock, DollarSign, ListChecks } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
