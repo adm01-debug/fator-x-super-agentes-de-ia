@@ -1,51 +1,36 @@
 
-#9 done. Próxima: **#10 Visual Orchestrator** — workflow builder visual node-based.
+Próxima da fila: **#5 Code Interpreter Sandbox (E2B-style)**.
 
-## #10 Visual Orchestrator
+Estado atual: `CodeInterpreterPage.tsx` é mock (setTimeout + string fixa). Edge function `smolagent-runtime` existe mas sem isolamento real.
 
-Editor visual de fluxos multi-agente com nós conectáveis (drag-and-drop), usando React Flow.
+## Plano
 
-**Schema (migration):**
-- `agent_workflows`: id, agent_id, name, description, nodes (jsonb), edges (jsonb), status (draft/active), workspace_id, created_by, created_at, updated_at
-- `agent_workflow_runs`: id, workflow_id, status (running/completed/failed), input, output, trace (jsonb), started_at, completed_at, created_by
-- RLS: workspace members
+**Backend:**
+1. Migration: tabela `code_executions` (id, user_id, workspace_id, runtime, code, stdout, stderr, exit_code, files jsonb, duration_ms, memory_mb, status, created_at) com RLS por user_id.
+2. Edge function `code-interpreter-execute`:
+   - Valida JWT + Zod schema (runtime ∈ python|node|deno, code ≤ 50KB)
+   - Runtime **Deno**: executa nativo via `Deno.Command` em worker isolado com timeout 30s + memory cap
+   - Runtime **Node/Python**: usa Lovable AI Gateway (gemini-2.5-flash) para "simular" execução determinística com sandbox virtual (retorna stdout/stderr/files plausíveis baseado em análise estática) — marcado como `simulated: true`. Realmente executar Python exige container externo (E2B/Daytona) — fora de escopo sem API key.
+   - Persiste resultado em `code_executions`
+3. Service `codeInterpreterService.ts`: execute(), list(), get(), remove()
 
-**Tipos de nó:**
-- `trigger` — entrada do fluxo (input do usuário)
-- `agent` — chamada a um agente (config: agent_id)
-- `tool` — execução de ferramenta (config: tool_name, params)
-- `condition` — branch if/else (config: expression)
-- `transform` — transformação de dados (config: code/template)
-- `output` — saída final
+**Frontend:**
+4. Reescrever `CodeInterpreterPage.tsx`:
+   - Editor real (textarea com syntax highlight via `<pre>` + line numbers)
+   - Painel histórico de execuções (últimas 20) com replay
+   - Output tabs: stdout (cor), stderr (vermelho), files (download via base64), métricas (duração, memória)
+   - Badge "Sandbox real" (Deno) vs "Simulado" (Python/Node)
+   - Snippets prontos: Hello World, fibonacci, JSON parse
+   - Botão "Limpar histórico"
 
-**Hook:**
-- `src/hooks/useAgentWorkflows.ts` — CRUD via supabaseExternal + execução
-
-**Componente:**
-- `src/components/agent-builder/modules/OrchestratorModule.tsx` — nova tab "Orquestração"
-- Canvas React Flow com paleta lateral de nós arrastáveis
-- Painel de propriedades quando nó selecionado
-- Botão "Salvar" + "Executar" (com input de teste) + "Histórico de runs"
-- Mini-mapa + zoom controls
-
-**Edge function (fase 1 simplificada):**
-- `supabase/functions/agent-workflow-runner/index.ts`
-- Topological sort dos nós → executa sequencial seguindo edges
-- Para cada nó: roda lógica conforme tipo, passa output para próximos
-- Persiste trace em `agent_workflow_runs`
-
-**Dependência:**
-- `reactflow` (instalar via package.json)
+**Validação:**
+- `tsc` clean
+- Executar snippet Deno → ver stdout real
+- Executar Python → ver simulação com aviso
+- Verificar persistência ao recarregar página
 
 **Arquivos:**
-- migration SQL nova
-- criar `src/hooks/useAgentWorkflows.ts`
-- criar `src/components/agent-builder/modules/OrchestratorModule.tsx`
-- criar nodes customizados em `src/components/agent-builder/orchestrator/nodes/`
-- criar `supabase/functions/agent-workflow-runner/index.ts`
-- editar `src/data/agentBuilderData.ts` — registrar tab "orchestrator"
-- editar `src/pages/AgentBuilder.tsx` — rotear módulo
-
-**Validação:** abrir agente → tab Orquestração → arrastar trigger + agent + output → conectar → salvar → executar com input teste → ver trace.
-
-Próxima sem pausar: #7 Guardrails Library (final).
+- migration `code_executions`
+- `supabase/functions/code-interpreter-execute/index.ts` (novo)
+- `src/services/codeInterpreterService.ts` (novo)
+- `src/pages/CodeInterpreterPage.tsx` (reescrita)
