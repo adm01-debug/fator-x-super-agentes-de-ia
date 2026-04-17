@@ -379,17 +379,26 @@ serve(async (req) => {
     const supabaseKey = Deno.env.get('SUPABASE_ANON_KEY')!;
     const supabase = createClient(supabaseUrl, supabaseKey, { global: { headers: { Authorization: authHeader } } });
 
-    const { data: { user }, error: authError } = await supabase.auth.getUser();
-    if (authError || !user) return new Response(JSON.stringify({ error: 'Unauthorized' }), { status: 401, headers: { ...getCorsHeaders(req), 'Content-Type': 'application/json' } });
-    if (!checkRateLimit(user.id)) return new Response(JSON.stringify({ error: 'Rate limit exceeded' }), { status: 429, headers: { ...getCorsHeaders(req), 'Content-Type': 'application/json', 'Retry-After': '60' } });
+    const { data: { user }, error: authError } = await trace.withSpan('auth.verify', 'auth', async (span) => {
+      const res = await supabase.auth.getUser();
+      if (res.error || !res.data?.user) span.setStatus('error', res.error?.message || 'no user');
+      else span.setAttribute('user.id', res.data.user.id);
+      return res;
+    });
+    if (authError || !user) { rootSpan.setStatus('error', 'unauthorized'); trace.endSpan(rootSpan, 'error'); trace.end('error'); return new Response(JSON.stringify({ error: 'Unauthorized' }), { status: 401, headers: { ...getCorsHeaders(req), 'Content-Type': 'application/json' } }); }
+    if (!checkRateLimit(user.id)) { rootSpan.setStatus('error', 'rate_limited'); trace.endSpan(rootSpan, 'error'); trace.end('error'); return new Response(JSON.stringify({ error: 'Rate limit exceeded' }), { status: 429, headers: { ...getCorsHeaders(req), 'Content-Type': 'application/json', 'Retry-After': '60' } }); }
 
     let rawBody: unknown;
-    try { rawBody = await req.json(); } catch { return new Response(JSON.stringify({ error: 'Invalid JSON' }), { status: 400, headers: { ...getCorsHeaders(req), 'Content-Type': 'application/json' } }); }
+    try { rawBody = await req.json(); } catch { rootSpan.setStatus('error', 'invalid_json'); trace.endSpan(rootSpan, 'error'); trace.end('error'); return new Response(JSON.stringify({ error: 'Invalid JSON' }), { status: 400, headers: { ...getCorsHeaders(req), 'Content-Type': 'application/json' } }); }
 
     const validation = validateRequest(rawBody);
-    if (!validation.valid) return new Response(JSON.stringify({ error: validation.error }), { status: 400, headers: { ...getCorsHeaders(req), 'Content-Type': 'application/json' } });
+    if (!validation.valid) { rootSpan.setStatus('error', 'validation_failed'); trace.endSpan(rootSpan, 'error'); trace.end('error'); return new Response(JSON.stringify({ error: validation.error }), { status: 400, headers: { ...getCorsHeaders(req), 'Content-Type': 'application/json' } }); }
 
     const { model, messages, temperature, max_tokens, agent_id, session_id, stream } = validation.data;
+    rootSpan.setAttribute('gen_ai.request.model', model);
+    rootSpan.setAttribute('gen_ai.system', 'llm-gateway');
+    if (agent_id) rootSpan.setAttribute('agent.id', agent_id);
+    if (session_id) rootSpan.setAttribute('session.id', session_id);
     const userMessage = messages.filter(m => m.role === 'user').pop()?.content || '';
 
     const { data: member } = await supabase.from('workspace_members').select('workspace_id').eq('user_id', user.id).limit(1).single();
