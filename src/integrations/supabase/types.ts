@@ -1091,6 +1091,78 @@ export type Database = {
           },
         ]
       }
+      browser_sessions: {
+        Row: {
+          agent_id: string | null
+          cost_cents: number
+          created_at: string
+          ended_at: string | null
+          error_message: string | null
+          final_result: string | null
+          goal: string
+          id: string
+          max_steps: number
+          start_url: string
+          started_at: string
+          status: string
+          steps: Json
+          steps_count: number
+          user_id: string
+          workspace_id: string | null
+        }
+        Insert: {
+          agent_id?: string | null
+          cost_cents?: number
+          created_at?: string
+          ended_at?: string | null
+          error_message?: string | null
+          final_result?: string | null
+          goal: string
+          id?: string
+          max_steps?: number
+          start_url: string
+          started_at?: string
+          status?: string
+          steps?: Json
+          steps_count?: number
+          user_id: string
+          workspace_id?: string | null
+        }
+        Update: {
+          agent_id?: string | null
+          cost_cents?: number
+          created_at?: string
+          ended_at?: string | null
+          error_message?: string | null
+          final_result?: string | null
+          goal?: string
+          id?: string
+          max_steps?: number
+          start_url?: string
+          started_at?: string
+          status?: string
+          steps?: Json
+          steps_count?: number
+          user_id?: string
+          workspace_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "browser_sessions_agent_id_fkey"
+            columns: ["agent_id"]
+            isOneToOne: false
+            referencedRelation: "agents"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "browser_sessions_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       budgets: {
         Row: {
           alert_threshold: number | null
