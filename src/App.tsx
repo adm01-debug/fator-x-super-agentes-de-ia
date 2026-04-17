@@ -10,6 +10,7 @@ import { AppLayout } from "@/components/layout/AppLayout";
 import { PageLoading } from "@/components/shared/PageLoading";
 import { HealthAlertsMounter } from "@/components/shared/HealthAlertsMounter";
 import { SLOAlertsMounter } from "@/components/shared/SLOAlertsMounter";
+import { ChaosBanner } from "@/components/shared/ChaosBanner";
 import { ErrorBoundary } from "@/components/shared/ErrorBoundary";
 import { AuthProvider } from "@/contexts/AuthContext";
 import { I18nProvider } from "@/i18n/I18nProvider";
@@ -88,6 +89,7 @@ const MultiTenancyPage = lazy(() => import("./pages/MultiTenancyPage"));
 const ObservabilityOTelPage = lazy(() => import("./pages/ObservabilityOTelPage"));
 const DisasterRecoveryPage = lazy(() => import("./pages/DisasterRecoveryPage"));
 const SLODashboard = lazy(() => import("./pages/SLODashboard"));
+const ChaosLabPage = lazy(() => import("./pages/ChaosLabPage"));
 const KnowledgeManagementPage = lazy(() => import("./pages/KnowledgeManagementPage"));
 const ArticleEditorPage = lazy(() => import("./pages/ArticleEditorPage"));
 const PublicHelpCenterPage = lazy(() => import("./pages/PublicHelpCenterPage"));
@@ -146,6 +148,7 @@ const App = () => (
               <Route path="/help/:slug/:articleSlug" element={<SafePage><PublicHelpCenterPage /></SafePage>} />
               <Route path="*" element={
                 <AuthGuard>
+                  <ChaosBanner />
                   <AppLayout>
                     <Routes>
                       <Route path="/" element={<SafePage><DashboardPage /></SafePage>} />
@@ -220,6 +223,7 @@ const App = () => (
                       <Route path="/multi-tenancy" element={<SafePage><ProtectedRoute permission="team.roles"><MultiTenancyPage /></ProtectedRoute></SafePage>} />
                       <Route path="/observability" element={<SafePage><ObservabilityOTelPage /></SafePage>} />
                       <Route path="/observability/slo" element={<SafePage><SLODashboard /></SafePage>} />
+                      <Route path="/observability/chaos" element={<SafePage><ProtectedRoute permission="settings.api_keys"><ChaosLabPage /></ProtectedRoute></SafePage>} />
                       <Route path="/disaster-recovery" element={<SafePage><ProtectedRoute permission="settings.api_keys"><DisasterRecoveryPage /></ProtectedRoute></SafePage>} />
                       <Route path="*" element={<SafePage><NotFound /></SafePage>} />
                     </Routes>
