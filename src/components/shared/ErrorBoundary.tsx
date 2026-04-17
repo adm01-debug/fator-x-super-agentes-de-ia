@@ -1,4 +1,5 @@
 import { logger } from '@/lib/logger';
+import { captureException } from '@/lib/sentry';
 import { Component, type ReactNode } from "react";
 import { AlertTriangle, RefreshCw } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -39,6 +40,13 @@ export class ErrorBoundary extends Component<Props, State> {
       componentStack: errorInfo.split('\n').slice(0, 5).join('\n'),
       timestamp: new Date().toISOString(),
       retryCount: this.state.retryCount,
+    });
+
+    // Direct Sentry capture preserves the original Error + componentStack
+    captureException(error, {
+      componentStack: errorInfo,
+      retryCount: this.state.retryCount,
+      boundary: 'ErrorBoundary',
     });
   }
 

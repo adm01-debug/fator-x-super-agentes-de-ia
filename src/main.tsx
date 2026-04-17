@@ -4,6 +4,10 @@ import App from "./App.tsx";
 import "./index.css";
 import { initWebVitals } from "./lib/webVitals";
 import { initGlobalErrorHandlers } from "./lib/logger";
+import { initSentry } from "./lib/sentry";
+
+// Initialize Sentry first so subsequent errors are captured
+initSentry();
 
 // Initialize global error handlers before rendering
 initGlobalErrorHandlers();

@@ -88,3 +88,34 @@ Qualquer ajuste em CSP deve ser testado em **todas** as integrações (Supabase 
 ## Contatos
 - **Técnico:** Equipe Promo Brindes
 - **Suporte Lovable:** https://docs.lovable.dev
+
+## Observability — Sentry
+
+A aplicação está integrada ao Sentry SDK (`@sentry/react`). A inicialização é **tolerante** — sem `VITE_SENTRY_DSN`, o SDK fica em no-op silencioso e não afeta dev local nem produção.
+
+### Ativar Sentry em produção
+1. Criar projeto no Sentry → tipo **React** → copiar o DSN.
+2. Em **Lovable Cloud → Environment Variables**, setar:
+   - `VITE_SENTRY_DSN=https://xxxx@oXXX.ingest.sentry.io/XXX`
+3. Rebuild/publish — o SDK ativa automaticamente.
+
+### O que é coletado
+- **Erros não capturados** (window.onerror, unhandledrejection)
+- **Erros do React ErrorBoundary** com componentStack
+- **logger.error / logger.critical** encaminhados via `Sentry.captureException`
+- **Performance traces:** `tracesSampleRate: 0.1` (10% das navegações)
+- **Session Replay:** apenas em erro (`replaysOnErrorSampleRate: 1.0`), com `maskAllText` e `blockAllMedia`
+
+### PII Scrubbing
+O `beforeSend` aplica redaction em chaves sensíveis: `email`, `password`, `token`, `authorization`, `api_key`, `secret`, `cookie`, `session`. `event.user.email` também é mascarado.
+
+### Erros ignorados (ruído conhecido)
+- `ResizeObserver loop`
+- `Network request failed` / `Failed to fetch` / `Load failed`
+- `Non-Error promise rejection captured`
+
+### Release tracking
+Cada build injeta `__APP_VERSION__` (de `package.json`) como `release` no Sentry — permite agrupar erros por versão e usar source maps.
+
+### CSP
+`connect-src` já inclui `https://*.sentry.io`, `https://*.ingest.sentry.io`, `https://*.ingest.us.sentry.io` e `https://*.ingest.de.sentry.io`.
