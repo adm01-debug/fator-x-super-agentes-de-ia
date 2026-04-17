@@ -466,3 +466,53 @@ npm run test:load          # ~5min full ramp
 If `SUPABASE_SERVICE_ROLE_KEY` is missing the script emits a warning and exits early — CI stays green. Add the secret to enable real load coverage.
 
 See full runbook: `tests/load/README.md`.
+
+---
+
+## Distributed Tracing — OpenTelemetry (Sprint 26)
+
+End-to-end trace correlation across **client → edge function → LLM provider** using W3C Trace Context. Closes the observability triangle started in Sprint 16 (client) and Sprint 25 (load metrics).
+
+### Architecture
+```
+Browser (src/lib/tracing.ts)
+  ├─ trace_id: 32-hex
+  └─ span: edge.llm-gateway
+        ↓ injects header `traceparent: 00-{traceId}-{spanId}-01`
+Edge Function (supabase/functions/_shared/otel.ts)
+  ├─ continues SAME trace_id (W3C parsing)
+  ├─ root span: llm-gateway.handle (kind=server)
+  └─ child spans:
+       ├─ auth.verify (kind=auth)
+       ├─ provider.call (kind=llm) — gen_ai.* attributes
+       └─ db.* (kind=db)
+        ↓ exports to Supabase tables `traces` + `spans`
+```
+
+### Instrumented edge functions
+| Function | Root span | Key sub-spans |
+|---|---|---|
+| `llm-gateway` | `llm-gateway.handle` | `auth.verify`, `provider.call` |
+| `agent-workflow-runner` | `agent-workflow-runner.handle` | `auth.verify`, `db.workflow_load`, `node.<type>` per workflow node |
+
+### Naming conventions (OTel semantic)
+- **Root span** = `<function>.handle`
+- **Sub-spans** = `<domain>.<verb>` (e.g., `auth.verify`, `db.query`, `provider.call`)
+- **GenAI attributes** on LLM spans: `gen_ai.system`, `gen_ai.request.model`, `gen_ai.response.model`, `gen_ai.usage.input_tokens`, `gen_ai.usage.output_tokens`, `cost.usd`
+- **HTTP attributes** on root: `http.method`, `http.route`, `http.status_code`
+
+### Response headers
+Every instrumented edge function response includes:
+- `x-trace-id: <32-hex>` — paste into Langfuse or `traces` table to inspect
+
+### Debugging a slow request
+1. Find `trace_id` in response body (`trace_id` field) or `x-trace-id` header
+2. Query `SELECT * FROM spans WHERE trace_id = '<id>' ORDER BY start_time` — waterfall sorted
+3. Look for: span with highest `duration_ms`, any `status='error'` with `status_message`
+4. Cross-reference with `agent_traces` for the same `session_id`/`agent_id`
+
+### Failure modes (graceful)
+- Tracing exporter fails → swallowed silently (handler unaffected)
+- Client doesn't send `traceparent` → edge generates new `trace_id` (no parent linkage but still traced)
+- Malformed `traceparent` → ignored, new `trace_id` generated
+
