@@ -51,12 +51,21 @@ type: feature
 - .gitignore: `coverage/` excluded from VCS
 - RUNBOOK.md: Coverage Gate section with thresholds (70/70/60) + policy
 
-## Score: 10/10 ✅ (Sprint 18 complete)
+## Completed — Sprint 19 (Bundle-size budget guard)
+- bundle-budget.json: per-chunk + total gzip KB limits (total 1200 KB)
+- scripts/check-bundle-size.mjs: gzip-measures dist/assets/*.js, fails on over-budget
+- package.json: `build:analyze` + `check:bundle` scripts
+- .github/workflows/ci.yml: `check:bundle` step after build + uploads bundle-report.html artifact
+- vite.config.ts already had visualizer + manualChunks (vendor-react, vendor-supabase, vendor-ui, vendor-query) — reused
+- RUNBOOK.md: Bundle Size Budget section with strategy table + policy
+- Yellow warning at >85% of limit, red fail at >100%
+
+## Score: 10/10 ✅ (Sprint 19 complete)
 
 ## Next candidates
 - Playwright auth flow E2E expansion
-- Bundle-size budget guard
 - Lighthouse CI integration
+- Dependency freshness audit (renovate/dependabot config)
 
 ## Notes
 - HIBP (leaked password protection) — manual activation in Cloud UI

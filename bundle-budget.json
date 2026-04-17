@@ -1,0 +1,11 @@
+{
+  "$comment": "Bundle size budget in kilobytes (gzipped). Updating these limits requires a dedicated PR with justification — see docs/RUNBOOK.md → Bundle Size Budget.",
+  "total_gzip_kb": 1200,
+  "chunks": {
+    "vendor-react": 200,
+    "vendor-supabase": 150,
+    "vendor-ui": 80,
+    "vendor-query": 60,
+    "index": 600
+  }
+}
