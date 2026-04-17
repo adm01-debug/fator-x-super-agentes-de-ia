@@ -83,6 +83,7 @@ const navSections = [
       { title: "Implantações", url: "/deployments", icon: Rocket },
       { title: "Monitoramento", url: "/monitoring", icon: Activity },
       { title: "Traces & Spans", url: "/traces", icon: Activity },
+      { title: "SLO Dashboard", url: "/observability/slo", icon: Activity },
       { title: "Replay & Fork", url: "/replay", icon: GitBranchIcon },
       { title: "Voice Agent", url: "/voice", icon: Mic },
       { title: "Voice Realtime", url: "/voice-agents", icon: Mic },
