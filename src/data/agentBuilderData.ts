@@ -10,6 +10,7 @@ export const TABS = [
   { id: 'orchestration',  label: 'Orquestração',       icon: '🎼', order: 7 },
   { id: 'guardrails',     label: 'Guardrails',         icon: '🛡️', order: 8 },
   { id: 'testing',        label: 'Avaliação & Testes', icon: '🧪', order: 9 },
+  { id: 'evals',          label: 'Eval Suite (Auto)',  icon: '🤖', order: 9.5 },
   { id: 'experiments',    label: 'Experimentos A/B',   icon: '⚗️', order: 10 },
   { id: 'observability',  label: 'Traces & Observ.',   icon: '🔭', order: 11 },
   { id: 'deploy',         label: 'Deploy & Canais',    icon: '🚀', order: 12 },

@@ -15,6 +15,7 @@ const PromptModule = lazy(() => import('@/components/agent-builder/modules/Promp
 const OrchestrationModule = lazy(() => import('@/components/agent-builder/modules/OrchestrationModule').then(m => ({ default: m.OrchestrationModule })));
 const GuardrailsModule = lazy(() => import('@/components/agent-builder/modules/GuardrailsModule').then(m => ({ default: m.GuardrailsModule })));
 const TestingModule = lazy(() => import('@/components/agent-builder/modules/TestingModule').then(m => ({ default: m.TestingModule })));
+const EvalsModule = lazy(() => import('@/components/agent-builder/modules/EvalsModule').then(m => ({ default: m.EvalsModule })));
 const ExperimentsModule = lazy(() => import('@/components/agent-builder/modules/ExperimentsModule').then(m => ({ default: m.ExperimentsModule })));
 const ObservabilityModule = lazy(() => import('@/components/agent-builder/modules/ObservabilityModule').then(m => ({ default: m.ObservabilityModule })));
 const DeployModule = lazy(() => import('@/components/agent-builder/modules/DeployModule').then(m => ({ default: m.DeployModule })));
@@ -47,6 +48,7 @@ const MODULE_MAP: Record<string, React.LazyExoticComponent<React.ComponentType>>
   orchestration: OrchestrationModule,
   guardrails: GuardrailsModule,
   testing: TestingModule,
+  evals: EvalsModule,
   experiments: ExperimentsModule,
   observability: ObservabilityModule,
   deploy: DeployModule,
