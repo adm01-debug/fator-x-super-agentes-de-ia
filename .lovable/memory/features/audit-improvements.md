@@ -87,3 +87,17 @@ type: feature
 - Vault encryption at rest — pgsodium extension at infra level
 - Member emails visible to workspace peers — intentional for collaboration
 - tool_integrations owner-only — intentional credential protection
+
+## Completed — Sprint 22 (Auth E2E — synthetic user flows) 🎉 FINAL SPRINT
+- e2e/helpers/auth-fixtures.ts: createE2EUser/deleteE2EUser via service role admin API + loginViaUI helper
+- Synthetic users use @e2e-tests.invalid TLD for easy cleanup identification
+- e2e/auth-flows.spec.ts: 5 cenários (login válido, login inválido, rota protegida, sessão persiste em reload, logout)
+- AUTH_E2E_ENABLED flag — auto-skip quando SUPABASE_SERVICE_ROLE_KEY ausente (CI verde sem secrets)
+- package.json: `test:e2e`, `test:e2e:ui`, `test:e2e:auth` scripts
+- .github/workflows/ci.yml: env vars adicionados ao job e2e-tests + warning step quando service key ausente
+- RUNBOOK.md: Auth E2E Tests section (estratégia, comandos, tabela de cenários, política, debug)
+
+## Next candidates
+- (vazio) — Auditoria 100% completa ✅
+
+## Score Final: 10/10 ✅ (Sprint 22 complete — fila zerada)
