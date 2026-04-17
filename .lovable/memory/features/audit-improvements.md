@@ -108,7 +108,8 @@ type: feature
 - RUNBOOK.md: seção "Mobile Performance + Runtime A11y" com tabela comparativa de budgets + política de impact levels
 
 ## Continuous Hardening Queue
-- Sprint 26 — OpenTelemetry tracing distribuído (frontend → edge → DB)
+- Sprint 27 — SLO dashboards (error budget, golden signals consolidados)
+- Sprint 28 — Chaos testing (provider outage, DB lock, rate-limit flood)
 
 ## Completed — Sprint 24 (Visual regression — Playwright screenshots)
 - e2e/visual.spec.ts: 4 cenários (auth desktop 1280×720, auth mobile 375×667, signup variant, protected redirect /agents → /auth)
@@ -130,5 +131,14 @@ type: feature
 - Upload artifact `k6-summary` (90d retenção)
 - RUNBOOK.md: seção "Load Testing — k6" com tabela de thresholds + política de release + interpretação de spikes
 
-## Score: 10/10 ✅ mantido (Sprint 25 — performance budget de edge functions fechado)
+## Completed — Sprint 26 (Distributed tracing — OpenTelemetry edge → client)
+- supabase/functions/_shared/otel.ts (novo): mini-tracer OTel-compatible (W3C Trace Context parsing, EdgeSpan + EdgeTraceContext, fire-and-forget exporter para tabelas `traces`/`spans`, idempotent end())
+- supabase/functions/llm-gateway/index.ts: instrumentado com root span `llm-gateway.handle` (kind=server) + sub-spans `auth.verify`, `provider.call` (gen_ai.request.model, gen_ai.usage.input/output_tokens, gen_ai.response.provider, llm.fallback_attempt, cost.usd) + finally idempotente + `x-trace-id` response header + `trace_id` no body
+- supabase/functions/agent-workflow-runner/index.ts: root span `agent-workflow-runner.handle` + sub-spans `auth.verify`, `db.workflow_load`, `node.<type>` por nó do workflow + headers/body com trace_id
+- supabase/functions/_shared/cors.ts: traceparent + tracestate adicionados aos ALLOWED_HEADERS
+- src/services/llmGatewayService.ts: tracedInvoke() injeta header `traceparent: 00-{traceId}-{spanId}-01` no `supabase.functions.invoke()` (continua trace cross-tier)
+- docs/RUNBOOK.md: seção "Distributed Tracing — OpenTelemetry" com diagrama waterfall, tabela de funções instrumentadas, naming conventions OTel, debugging por trace_id, failure modes graceful
+
+## Score: 10/10 ✅ mantido (Sprint 26 — observabilidade tri-tier fechada: client + edge + load)
+
 

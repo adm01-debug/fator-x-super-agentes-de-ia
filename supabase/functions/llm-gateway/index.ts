@@ -3,6 +3,7 @@ import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient, type SupabaseClient } from "https://esm.sh/@supabase/supabase-js@2.49.4";
 import { callLovable, callOpenRouter, callAnthropic, callOpenAICompatible, callHuggingFace, type LLMCallParams, type LLMResult } from "./providers.ts";
 import { getCorsHeaders, handleCorsPreflight, getRateLimitIdentifier, createRateLimitResponse, RATE_LIMITS } from "../_shared/mod.ts";
+import { startEdgeTrace } from "../_shared/otel.ts";
 
 // CORS handled by _shared/cors.ts — dynamic origin whitelist
 // corsHeaders removed — using getCorsHeaders(req) from _shared/cors.ts
@@ -364,6 +365,12 @@ async function callWithFallback(
 serve(async (req) => {
   if (req.method === 'OPTIONS') return handleCorsPreflight(req);
 
+  // ═══ OTel root trace (Sprint 26) — accepts client `traceparent` for cross-tier correlation
+  const trace = startEdgeTrace(req, { rootName: 'llm-gateway.handle' });
+  const rootSpan = trace.startSpan('llm-gateway.handle', 'server');
+  rootSpan.setAttribute('http.method', req.method);
+  rootSpan.setAttribute('http.route', '/llm-gateway');
+
   try {
     const authHeader = req.headers.get('Authorization');
     if (!authHeader) return new Response(JSON.stringify({ error: 'Missing authorization' }), { status: 401, headers: { ...getCorsHeaders(req), 'Content-Type': 'application/json' } });
@@ -372,17 +379,26 @@ serve(async (req) => {
     const supabaseKey = Deno.env.get('SUPABASE_ANON_KEY')!;
     const supabase = createClient(supabaseUrl, supabaseKey, { global: { headers: { Authorization: authHeader } } });
 
-    const { data: { user }, error: authError } = await supabase.auth.getUser();
-    if (authError || !user) return new Response(JSON.stringify({ error: 'Unauthorized' }), { status: 401, headers: { ...getCorsHeaders(req), 'Content-Type': 'application/json' } });
-    if (!checkRateLimit(user.id)) return new Response(JSON.stringify({ error: 'Rate limit exceeded' }), { status: 429, headers: { ...getCorsHeaders(req), 'Content-Type': 'application/json', 'Retry-After': '60' } });
+    const { data: { user }, error: authError } = await trace.withSpan('auth.verify', 'auth', async (span) => {
+      const res = await supabase.auth.getUser();
+      if (res.error || !res.data?.user) span.setStatus('error', res.error?.message || 'no user');
+      else span.setAttribute('user.id', res.data.user.id);
+      return res;
+    });
+    if (authError || !user) { rootSpan.setStatus('error', 'unauthorized'); trace.endSpan(rootSpan, 'error'); trace.end('error'); return new Response(JSON.stringify({ error: 'Unauthorized' }), { status: 401, headers: { ...getCorsHeaders(req), 'Content-Type': 'application/json' } }); }
+    if (!checkRateLimit(user.id)) { rootSpan.setStatus('error', 'rate_limited'); trace.endSpan(rootSpan, 'error'); trace.end('error'); return new Response(JSON.stringify({ error: 'Rate limit exceeded' }), { status: 429, headers: { ...getCorsHeaders(req), 'Content-Type': 'application/json', 'Retry-After': '60' } }); }
 
     let rawBody: unknown;
-    try { rawBody = await req.json(); } catch { return new Response(JSON.stringify({ error: 'Invalid JSON' }), { status: 400, headers: { ...getCorsHeaders(req), 'Content-Type': 'application/json' } }); }
+    try { rawBody = await req.json(); } catch { rootSpan.setStatus('error', 'invalid_json'); trace.endSpan(rootSpan, 'error'); trace.end('error'); return new Response(JSON.stringify({ error: 'Invalid JSON' }), { status: 400, headers: { ...getCorsHeaders(req), 'Content-Type': 'application/json' } }); }
 
     const validation = validateRequest(rawBody);
-    if (!validation.valid) return new Response(JSON.stringify({ error: validation.error }), { status: 400, headers: { ...getCorsHeaders(req), 'Content-Type': 'application/json' } });
+    if (!validation.valid) { rootSpan.setStatus('error', 'validation_failed'); trace.endSpan(rootSpan, 'error'); trace.end('error'); return new Response(JSON.stringify({ error: validation.error }), { status: 400, headers: { ...getCorsHeaders(req), 'Content-Type': 'application/json' } }); }
 
     const { model, messages, temperature, max_tokens, agent_id, session_id, stream } = validation.data;
+    rootSpan.setAttribute('gen_ai.request.model', model);
+    rootSpan.setAttribute('gen_ai.system', 'llm-gateway');
+    if (agent_id) rootSpan.setAttribute('agent.id', agent_id);
+    if (session_id) rootSpan.setAttribute('session.id', session_id);
     const userMessage = messages.filter(m => m.role === 'user').pop()?.content || '';
 
     const { data: member } = await supabase.from('workspace_members').select('workspace_id').eq('user_id', user.id).limit(1).single();
@@ -648,12 +664,27 @@ serve(async (req) => {
 
     const startTime = Date.now();
     const callParams: LLMCallParams = { model, messages: safeMessages, temperature, max_tokens };
-    const { result, provider, model: usedModel, attempt, errors: fallbackErrors } = await callWithFallback(chain, callParams, supabaseUrl);
+    const { result, provider, model: usedModel, attempt, errors: fallbackErrors } = await trace.withSpan('provider.call', 'llm', async (span) => {
+      span.setAttribute('gen_ai.request.model', model);
+      span.setAttribute('llm.fallback_chain_size', chain.length);
+      const r = await callWithFallback(chain, callParams, supabaseUrl);
+      span.setAttribute('gen_ai.response.model', r.model);
+      span.setAttribute('gen_ai.response.provider', r.provider);
+      span.setAttribute('gen_ai.usage.input_tokens', r.result.usage.prompt_tokens);
+      span.setAttribute('gen_ai.usage.output_tokens', r.result.usage.completion_tokens);
+      span.setAttribute('llm.fallback_attempt', r.attempt);
+      if (r.errors.length > 0) span.setAttribute('llm.fallback_errors', r.errors.length);
+      return r;
+    });
 
     const latencyMs = Date.now() - startTime;
     const llmMs = latencyMs; // LLM call time
     const totalMs = Date.now() - t0; // end-to-end
     const costUsd = await calculateCost(supabase, usedModel, result.usage.prompt_tokens, result.usage.completion_tokens);
+    rootSpan.setAttribute('cost.usd', costUsd);
+    rootSpan.setAttribute('gen_ai.usage.input_tokens', result.usage.prompt_tokens);
+    rootSpan.setAttribute('gen_ai.usage.output_tokens', result.usage.completion_tokens);
+    rootSpan.setAttribute('http.status_code', 200);
     const latencyBreakdown = { guardrail_ms: guardrailMs, llm_ms: llmMs, total_ms: totalMs };
 
     // ═══ TRACE (non-blocking) ═══
@@ -805,8 +836,16 @@ serve(async (req) => {
       output_toxicity: outputToxicityScore > 0.1 ? Math.round(outputToxicityScore * 1000) / 1000 : undefined,
       hallucination_risk: hallucinationScore !== null && hallucinationScore > 0.3 ? hallucinationScore : undefined,
       agentic_risk: agenticRisk || undefined,
-    }), { headers: { ...getCorsHeaders(req), 'Content-Type': 'application/json' } });
+      trace_id: trace.traceId,
+    }), { headers: { ...getCorsHeaders(req), 'Content-Type': 'application/json', 'x-trace-id': trace.traceId } });
   } catch (error: unknown) {
-    return new Response(JSON.stringify({ error: error instanceof Error ? error.message : 'Internal error' }), { status: 500, headers: { ...getCorsHeaders(req), 'Content-Type': 'application/json' } });
+    const msg = error instanceof Error ? error.message : 'Internal error';
+    rootSpan.setStatus('error', msg);
+    trace.endSpan(rootSpan, 'error');
+    trace.end('error');
+    return new Response(JSON.stringify({ error: msg, trace_id: trace.traceId }), { status: 500, headers: { ...getCorsHeaders(req), 'Content-Type': 'application/json', 'x-trace-id': trace.traceId } });
+  } finally {
+    // Close root span + trace if still running (success path)
+    try { trace.endSpan(rootSpan, 'ok'); trace.end('ok'); } catch { /* already ended */ }
   }
 });

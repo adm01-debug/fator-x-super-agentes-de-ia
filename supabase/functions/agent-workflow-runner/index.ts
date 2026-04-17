@@ -1,8 +1,9 @@
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.57.4';
+import { startEdgeTrace } from '../_shared/otel.ts';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type, traceparent',
 };
 
 interface WFNode { id: string; type: string; data: Record<string, any> }
@@ -77,20 +78,26 @@ async function executeNode(node: WFNode, ctx: Record<string, any>, supa: any, lo
 Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') return new Response('ok', { headers: corsHeaders });
 
+  // ═══ OTel root trace (Sprint 26)
+  const trace = startEdgeTrace(req, { rootName: 'agent-workflow-runner.handle' });
+  const rootSpan = trace.startSpan('agent-workflow-runner.handle', 'server');
+  rootSpan.setAttribute('http.method', req.method);
+
   try {
     const auth = req.headers.get('Authorization');
-    if (!auth) return new Response(JSON.stringify({ error: 'Unauthorized' }), { status: 401, headers: corsHeaders });
+    if (!auth) { rootSpan.setStatus('error', 'unauthorized'); trace.endSpan(rootSpan, 'error'); trace.end('error'); return new Response(JSON.stringify({ error: 'Unauthorized' }), { status: 401, headers: corsHeaders }); }
 
     const supa = createClient(Deno.env.get('SUPABASE_URL')!, Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!);
     const userClient = createClient(Deno.env.get('SUPABASE_URL')!, Deno.env.get('SUPABASE_ANON_KEY')!, {
       global: { headers: { Authorization: auth } },
     });
-    const { data: { user } } = await userClient.auth.getUser();
-    if (!user) return new Response(JSON.stringify({ error: 'Unauthorized' }), { status: 401, headers: corsHeaders });
+    const { data: { user } } = await trace.withSpan('auth.verify', 'auth', async () => userClient.auth.getUser());
+    if (!user) { rootSpan.setStatus('error', 'unauthorized'); trace.endSpan(rootSpan, 'error'); trace.end('error'); return new Response(JSON.stringify({ error: 'Unauthorized' }), { status: 401, headers: corsHeaders }); }
 
     const { workflow_id, input } = await req.json();
-    const { data: wf, error: wfErr } = await supa.from('agent_workflows').select('*').eq('id', workflow_id).single();
-    if (wfErr || !wf) return new Response(JSON.stringify({ error: 'Workflow não encontrado' }), { status: 404, headers: corsHeaders });
+    rootSpan.setAttribute('workflow.id', workflow_id);
+    const { data: wf, error: wfErr } = await trace.withSpan('db.workflow_load', 'db', async () => supa.from('agent_workflows').select('*').eq('id', workflow_id).single());
+    if (wfErr || !wf) { rootSpan.setStatus('error', 'workflow_not_found'); trace.endSpan(rootSpan, 'error'); trace.end('error'); return new Response(JSON.stringify({ error: 'Workflow não encontrado' }), { status: 404, headers: corsHeaders }); }
 
     const { data: run } = await supa.from('agent_workflow_runs').insert({
       workflow_id, status: 'running', input, created_by: user.id,
@@ -98,30 +105,41 @@ Deno.serve(async (req) => {
 
     const lovableKey = Deno.env.get('LOVABLE_API_KEY')!;
     const ordered = topoSort(wf.nodes || [], wf.edges || []);
+    rootSpan.setAttribute('workflow.node_count', ordered.length);
     const ctx: Record<string, any> = { __input: input };
-    const trace: any[] = [];
+    const trace2: any[] = [];
 
     try {
       for (const node of ordered) {
         const t0 = Date.now();
-        const out = await executeNode(node, ctx, supa, lovableKey);
+        const out = await trace.withSpan(`node.${node.type}`, 'tool', async (span) => {
+          span.setAttribute('node.id', node.id);
+          span.setAttribute('node.type', node.type);
+          if (node.data?.agent_id) span.setAttribute('agent.id', node.data.agent_id);
+          return executeNode(node, ctx, supa, lovableKey);
+        });
         ctx[node.id] = out;
-        trace.push({ node_id: node.id, type: node.type, output: out, latency_ms: Date.now() - t0 });
+        trace2.push({ node_id: node.id, type: node.type, output: out, latency_ms: Date.now() - t0 });
       }
       const finalOutput = ordered.length ? ctx[ordered[ordered.length - 1].id] : null;
       await supa.from('agent_workflow_runs').update({
-        status: 'completed', output: finalOutput, trace, completed_at: new Date().toISOString(),
+        status: 'completed', output: finalOutput, trace: trace2, completed_at: new Date().toISOString(),
       }).eq('id', run.id);
-      return new Response(JSON.stringify({ run_id: run.id, output: finalOutput, trace }), {
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      trace.endSpan(rootSpan, 'ok');
+      trace.end('ok');
+      return new Response(JSON.stringify({ run_id: run.id, output: finalOutput, trace: trace2, trace_id: trace.traceId }), {
+        headers: { ...corsHeaders, 'Content-Type': 'application/json', 'x-trace-id': trace.traceId },
       });
     } catch (e: any) {
       await supa.from('agent_workflow_runs').update({
-        status: 'failed', error_message: e.message, trace, completed_at: new Date().toISOString(),
+        status: 'failed', error_message: e.message, trace: trace2, completed_at: new Date().toISOString(),
       }).eq('id', run.id);
       throw e;
     }
   } catch (e: any) {
-    return new Response(JSON.stringify({ error: e.message }), { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
+    rootSpan.setStatus('error', e.message);
+    trace.endSpan(rootSpan, 'error');
+    trace.end('error');
+    return new Response(JSON.stringify({ error: e.message, trace_id: trace.traceId }), { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json', 'x-trace-id': trace.traceId } });
   }
 });

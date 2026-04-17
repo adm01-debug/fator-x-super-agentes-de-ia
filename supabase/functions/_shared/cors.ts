@@ -17,7 +17,7 @@ const ALLOWED_ORIGIN_PATTERNS: RegExp[] = [
   /^https:\/\/.*\.supabase\.co$/,
   /^https:\/\/.*\.promobrindes\.com\.br$/,
 ];
-const ALLOWED_HEADERS = ['authorization','x-client-info','apikey','content-type','x-api-key','x-request-id','x-workspace-id','x-supabase-client-platform','x-supabase-client-platform-version','x-supabase-client-runtime','x-supabase-client-runtime-version'].join(', ');
+const ALLOWED_HEADERS = ['authorization','x-client-info','apikey','content-type','x-api-key','x-request-id','x-workspace-id','traceparent','tracestate','x-supabase-client-platform','x-supabase-client-platform-version','x-supabase-client-runtime','x-supabase-client-runtime-version'].join(', ');
 const ALLOWED_METHODS = 'GET, POST, PUT, PATCH, DELETE, OPTIONS';
 const MAX_AGE = '86400';
 function isOriginAllowed(o: string | null): boolean {
