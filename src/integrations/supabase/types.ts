@@ -2312,6 +2312,75 @@ export type Database = {
           },
         ]
       }
+      replay_forks: {
+        Row: {
+          completed_at: string | null
+          cost_usd: number | null
+          created_at: string
+          deterministic_seed: string | null
+          duration_ms: number | null
+          error_message: string | null
+          fork_step_index: number
+          id: string
+          name: string
+          new_execution_id: string | null
+          override_input: Json | null
+          parent_agent_id: string | null
+          parent_chain_hash: string | null
+          parent_execution_id: string
+          result: Json | null
+          state_snapshot: Json | null
+          status: string
+          total_steps: number | null
+          user_id: string
+          workspace_id: string | null
+        }
+        Insert: {
+          completed_at?: string | null
+          cost_usd?: number | null
+          created_at?: string
+          deterministic_seed?: string | null
+          duration_ms?: number | null
+          error_message?: string | null
+          fork_step_index?: number
+          id?: string
+          name?: string
+          new_execution_id?: string | null
+          override_input?: Json | null
+          parent_agent_id?: string | null
+          parent_chain_hash?: string | null
+          parent_execution_id: string
+          result?: Json | null
+          state_snapshot?: Json | null
+          status?: string
+          total_steps?: number | null
+          user_id: string
+          workspace_id?: string | null
+        }
+        Update: {
+          completed_at?: string | null
+          cost_usd?: number | null
+          created_at?: string
+          deterministic_seed?: string | null
+          duration_ms?: number | null
+          error_message?: string | null
+          fork_step_index?: number
+          id?: string
+          name?: string
+          new_execution_id?: string | null
+          override_input?: Json | null
+          parent_agent_id?: string | null
+          parent_chain_hash?: string | null
+          parent_execution_id?: string
+          result?: Json | null
+          state_snapshot?: Json | null
+          status?: string
+          total_steps?: number | null
+          user_id?: string
+          workspace_id?: string | null
+        }
+        Relationships: []
+      }
       role_permissions: {
         Row: {
           created_at: string
