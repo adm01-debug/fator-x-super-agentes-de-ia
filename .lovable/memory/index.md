@@ -12,7 +12,9 @@ All page titles in PT-BR. PageHeader uses gradient text by default.
 All pages use standard spacing: p-6 sm:p-8 lg:p-10 space-y-6 max-w-[1400px] mx-auto animate-page-enter
 Typography: Space Grotesk headings with negative letter-spacing, Inter body at line-height 1.6
 Glass morphism on dialogs and header. Grain texture on main layout.
-CSP removed from index.html (was blocking Vite). X-Frame-Options removed (invalid in meta).
+CSP + Permissions-Policy + Referrer-Policy injected via meta in index.html. HSTS/X-Frame-Options come from Lovable CDN edge.
+Sentry SDK ready (no-op until VITE_SENTRY_DSN set). PII scrubbing in beforeSend.
+RLS persona tests in tests/rls/ — opt-in via SUPABASE_SERVICE_ROLE_KEY, run with `npm run test:rls`.
 
 ## Memories
 - [Audit improvements](mem://features/audit-improvements) — All completed improvements tracking
