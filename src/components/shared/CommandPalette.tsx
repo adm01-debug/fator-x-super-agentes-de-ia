@@ -11,6 +11,18 @@ import {
 } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
 import { supabaseExternal } from "@/integrations/supabase/externalClient";
+import { useGlobalSearch } from "@/hooks/useGlobalSearch";
+import { Loader2, Bot as BotIcon, BookOpen as KbIcon, FileText as ArticleIcon, GitBranch as WfIcon, FlaskConical as EvalIcon, Zap as AutoIcon, FileText as DocIcon } from "lucide-react";
+
+const TYPE_META: Record<string, { label: string; icon: any; color: string }> = {
+  agent: { label: "Agente", icon: BotIcon, color: "text-primary" },
+  knowledge_base: { label: "Base", icon: KbIcon, color: "text-nexus-emerald" },
+  article: { label: "Artigo", icon: ArticleIcon, color: "text-nexus-cyan" },
+  workflow: { label: "Workflow", icon: WfIcon, color: "text-nexus-cyan" },
+  eval_dataset: { label: "Avaliação", icon: EvalIcon, color: "text-nexus-amber" },
+  automation: { label: "Automação", icon: AutoIcon, color: "text-nexus-amber" },
+  document: { label: "Documento", icon: DocIcon, color: "text-muted-foreground" },
+};
 
 const pages = [
   { name: "Dashboard", href: "/", icon: LayoutDashboard, keywords: "home início" },
