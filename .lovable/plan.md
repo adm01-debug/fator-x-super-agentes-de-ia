@@ -1,59 +1,46 @@
 
-Sprint 21 (Lighthouse CI) completo ✅. Score 10/10 mantido. Última candidata da fila: 🟢 **Sprint 22 — Playwright auth E2E expansion (último item da auditoria)**.
+A fila de auditoria está **100% zerada**. Todos os 22 sprints foram concluídos e o score 10/10 está consolidado e mantido. Não há mais itens em "Next candidates" no `mem://features/audit-improvements`.
 
-## Por que esta agora
-É o único item restante. Fecha o ciclo de auditoria com cobertura E2E real do fluxo crítico (auth = porta de entrada). Estratégia para evitar fricção de credenciais OTP/Google: usar **service role do Supabase para criar usuário sintético**, fazer login via senha (provider `email` clássico) — sem depender de OAuth real ou inbox.
+Para continuar evoluindo além do 10/10 da auditoria original, identifiquei **3 áreas de hardening contínuo** que naturalmente surgem após uma base 10/10. Proponho começar pelo de maior ROI:
 
-## Plano
+## 🟢 Sprint 23 — Mobile Lighthouse profile + a11y deep-dive
 
-**1. `tests/e2e/auth.spec.ts` (novo):**
-- `beforeAll`: cria usuário sintético via service role (`*@e2e-tests.invalid`, senha aleatória) — reusa padrão de `tests/rls/setup.ts`
-- `afterAll`: deleta o usuário
-- Cenários:
-  - **Login válido**: preenche email+senha → submit → assert redirect para `/dashboard` ou `/agents`
-  - **Login inválido**: senha errada → assert toast/mensagem de erro → permanece em `/auth`
-  - **Logout**: após login, click no botão logout → assert redirect para `/auth`
-  - **Rota protegida sem auth**: `goto('/agents')` direto → assert redirect para `/auth`
-  - **Sessão persiste em reload**: login → `page.reload()` → continua autenticado
+### Por quê
+- Sprint 21 só audita preset `desktop`. Mobile tem CPU 4× mais lenta + rede 3G → métricas reais do usuário em campo
+- Acessibilidade ≥0.95 atual é boa, mas falta cobertura runtime (axe-core nos testes Playwright pega regressões dinâmicas que Lighthouse estático não vê)
+- Complementa Sprints 19 (bundle) + 21 (perf desktop) fechando o tripé performance
 
-**2. `tests/e2e/helpers/auth-fixtures.ts` (novo):**
-- `createE2EUser()` / `deleteE2EUser()` — wrapper sobre service role admin API
-- `loginViaUI(page, email, password)` — helper reutilizável
-- Auto-skip se `SUPABASE_SERVICE_ROLE_KEY` ausente (espelha padrão RLS tests)
+### Plano (resumo)
 
-**3. `playwright.config.ts`:** verificar/ajustar:
-- `baseURL` aponta para preview server local (`http://localhost:8080` ou similar do Vite)
-- `webServer` config: `npm run preview` com `reuseExistingServer: !process.env.CI`
-- `testDir: "tests/e2e"`
+1. **`lighthouserc.json`**: adicionar segunda config `mobile` (preset `mobile`, throttling 4G, viewport 360×640)
+   - Assertions mobile mais permissivas: perf ≥0.75, LCP ≤4000ms, TBT ≤600ms
+   - A11y/best-practices/CLS mantém os mesmos thresholds rígidos
 
-**4. `package.json`:** scripts:
-- `"test:e2e": "playwright test"`
-- `"test:e2e:ui": "playwright test --ui"`
-- `"test:e2e:auth": "playwright test tests/e2e/auth.spec.ts"`
+2. **`@axe-core/playwright`** (nova devDep): integrar em todos os specs E2E
+   - Helper `e2e/helpers/a11y.ts` com `expectNoA11yViolations(page)` 
+   - Adicionar 1 assertion axe em cada spec existente (`auth.spec.ts`, `auth-flows.spec.ts`)
+   - Falha em violations `serious` ou `critical` (warn em `moderate`/`minor`)
 
-**5. `.github/workflows/ci.yml`:** ajustar job `e2e-tests`:
-- Adicionar env: `SUPABASE_SERVICE_ROLE_KEY`, `SUPABASE_URL`, `SUPABASE_ANON_KEY` (do secrets do repo)
-- Step: `npm run build && npm run preview &` (background) + wait + `npx playwright test`
-- Sem secrets → step skipa graciosamente (mensagem clara no log)
+3. **`.github/workflows/ci.yml`**: job `lighthouse` roda matrix `[desktop, mobile]`
 
-**6. `docs/RUNBOOK.md`:** seção "Auth E2E Tests":
-- Como rodar local (env + `npm run test:e2e`)
-- Cenários cobertos (tabela)
-- Política: usuário sintético dedicado, nunca produção
-- Como debugar (UI mode, traces, screenshots on failure)
+4. **`docs/RUNBOOK.md`**: nova seção "Mobile Performance + Runtime A11y"
+   - Tabela comparativa desktop vs mobile budgets
+   - Como interpretar violations axe-core
 
-**7. `mem://features/audit-improvements`:** Sprint 22 logged + **`Next candidates` zerado** — auditoria 100% completa.
+5. **`mem://features/audit-improvements`**: Sprint 23 logged + nova fila "Continuous hardening"
 
-## Arquivos
-- `tests/e2e/auth.spec.ts` (novo)
-- `tests/e2e/helpers/auth-fixtures.ts` (novo)
-- `playwright.config.ts` (ajuste se necessário)
-- `package.json` (3 scripts)
-- `.github/workflows/ci.yml` (env + ajuste do job e2e)
+### Arquivos
+- `lighthouserc.json` (refatorar para multi-config)
+- `package.json` (1 devDep)
+- `e2e/helpers/a11y.ts` (novo)
+- `e2e/auth.spec.ts` + `e2e/auth-flows.spec.ts` (1 assertion cada)
+- `.github/workflows/ci.yml` (matrix)
 - `docs/RUNBOOK.md` (seção)
-- `.lovable/memory/features/audit-improvements.md` (append final)
+- `.lovable/memory/features/audit-improvements.md` (append)
 
-## Validação
-- `npm run test:e2e` local com env passa todos os 5 cenários
-- Sem env: suite skipa com warning, CI verde
-- Após merge, fila de auditoria = vazia, score 10/10 consolidado
+### Validação
+- `npm run lhci:local` gera 2 reports (desktop + mobile)
+- `npm run test:e2e` executa axe em cada cenário e falha em violations críticas
+- CI mostra 2 colunas de Lighthouse no PR
+
+Após Sprint 23, próximas candidatas naturais: **Sprint 24 — Visual regression (Playwright screenshots)** e **Sprint 25 — k6 load test do edge function crítico**.
