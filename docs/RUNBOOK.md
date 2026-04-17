@@ -59,6 +59,32 @@ Edge Functions são deployadas automaticamente ao salvar.
 2. Verificar se as chaves API não expiraram
 3. Limpar cache do browser e relogar
 
+## Security Headers
+
+A defesa em profundidade combina headers via `<meta>` no `index.html` e headers HTTP injetados na borda (Lovable CDN).
+
+### Injetados via `<meta http-equiv>` (no `index.html`)
+| Header | Valor (resumido) | Propósito |
+|--------|------------------|-----------|
+| `Content-Security-Policy` | `default-src 'self'` + allowlists para Supabase, Lovable, fontes Google | Mitiga XSS, exfiltração e injeção de scripts |
+| `X-Content-Type-Options` | `nosniff` | Bloqueia MIME sniffing |
+| `Referrer-Policy` | `strict-origin-when-cross-origin` | Reduz vazamento de URL via Referer |
+| `Permissions-Policy` | `camera=(), microphone=(self), geolocation=(), payment=()` | Restringe APIs sensíveis (microfone liberado p/ Voice Agent) |
+
+### Injetados pela borda (Lovable CDN — não funcionam via meta)
+| Header | Valor esperado |
+|--------|----------------|
+| `Strict-Transport-Security` | `max-age=63072000; includeSubDomains; preload` |
+| `X-Frame-Options` | `SAMEORIGIN` (e CSP `frame-ancestors` complementa) |
+
+### Validação
+1. DevTools → Network → selecionar request do HTML → aba Headers → conferir presença.
+2. Console sem violações de CSP em fluxos críticos (auth, dashboards, agents, voice).
+3. Re-rodar `security--run_security_scan` após mudanças.
+
+### Mudanças
+Qualquer ajuste em CSP deve ser testado em **todas** as integrações (Supabase realtime/auth, OpenRouter, Anthropic, HuggingFace, Lovable preview iframe).
+
 ## Contatos
 - **Técnico:** Equipe Promo Brindes
 - **Suporte Lovable:** https://docs.lovable.dev
