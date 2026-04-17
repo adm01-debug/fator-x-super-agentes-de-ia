@@ -330,3 +330,52 @@ Para ativar em CI, adicionar 3 secrets ao repo: `SUPABASE_SERVICE_ROLE_KEY`, `SU
 - **Traces**: configurados em `playwright.config.ts` via `lovable-agent-playwright-config` — gerados on-failure
 - **Screenshots**: capturados automaticamente no momento da falha e anexados ao `playwright-report/`
 - **CI artifacts**: report HTML disponível em "Artifacts" do run do GitHub Actions (retenção padrão 90 dias)
+
+## Mobile Performance + Runtime A11y (Sprint 23)
+
+### Multi-profile Lighthouse
+O CI roda Lighthouse em **dois perfis** via matrix (`desktop`, `mobile`). Cada um upa artifact separado (`lighthouse-report-desktop` / `lighthouse-report-mobile`) e link público no log do PR.
+
+| Métrica | Desktop | Mobile | Razão |
+|---------|---------|--------|-------|
+| Performance | ≥ 0.85 | ≥ 0.75 | Mobile = CPU 4× mais lenta + rede 3G simulada |
+| Accessibility | ≥ 0.95 | ≥ 0.95 | A11y é responsabilidade independente de device |
+| Best Practices | ≥ 0.90 | ≥ 0.90 | HTTPS/console errors/etc — independente de device |
+| SEO | ≥ 0.90 | ≥ 0.90 | Mantido |
+| LCP | ≤ 2500 ms | ≤ 4000 ms | Web Vitals threshold "good" (2.5s) e "needs improvement" (≤4s) |
+| CLS | ≤ 0.10 | ≤ 0.10 | Layout não muda por device |
+| TBT | ≤ 300 ms | ≤ 600 ms | CPU mobile dobra o budget de blocking |
+
+Comandos locais:
+```bash
+npm run lhci         # desktop
+npm run lhci:mobile  # mobile
+npm run lhci:local   # roda os dois sequencialmente (build + ambos)
+```
+
+### Runtime A11y via axe-core
+Lighthouse audita o DOM **estático**. Para regressões dinâmicas (dialog aberto, focus trap, ARIA dinâmico) usamos `@axe-core/playwright` em cada spec E2E.
+
+Helper: `e2e/helpers/a11y.ts` → `expectNoA11yViolations(page, testInfo, opts?)`.
+
+| Impact | Comportamento |
+|--------|---------------|
+| `critical` | ❌ Falha o teste |
+| `serious` | ❌ Falha o teste |
+| `moderate` | ⚠️ Console warning + anexa JSON ao report |
+| `minor` | ⚠️ Console warning + anexa JSON ao report |
+
+Configuração padrão: tags `wcag2a + wcag2aa + wcag21aa`. Override via `opts.tags`/`opts.exclude`/`opts.failOn`.
+
+#### Como interpretar uma violation
+Cada violation traz:
+- `id` — regra axe (ex: `color-contrast`, `button-name`, `label`)
+- `helpUrl` — link Deque com fix recomendado
+- `nodes[].target` — selector CSS do elemento problemático
+
+Em CI, violations bloqueantes geram `axe-violations.json` anexo ao run do Playwright (em `playwright-report/`).
+
+### Política
+- Adicione `await expectNoA11yViolations(page, testInfo)` em **toda nova spec E2E** que renderize tela visualmente significativa
+- Para warnings (`moderate`/`minor`): triagem no daily, não bloqueiam merge
+- `excludes` só com justificativa em comentário (ex: widget terceiro sem ARIA fix)
