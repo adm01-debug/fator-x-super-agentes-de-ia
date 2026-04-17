@@ -1,69 +1,45 @@
 
-Sprint 18 (Coverage Gate) está completo. A meta 10/10 foi atingida e mantida. Próximo da fila de "Next candidates": 🟢 **Sprint 19 — Bundle-size budget guard**.
+Sprint 19 (Bundle-size budget guard) completo ✅. Score 10/10 mantido. Próximo da fila: 🟢 **Sprint 20 — Renovate/Dependabot config (dependency freshness audit)**.
 
 ## Por que esta agora
-Das 3 candidatas (Playwright auth E2E, Bundle-size guard, Lighthouse CI), bundle-size é a de maior ROI imediato:
-- Sentry adicionou ~40kb gzipped no Sprint 16 — sem guard, regressões silenciosas vão acumular
-- Setup é 100% local (sem secrets, sem CI flakiness)
-- Detecta bloat de deps imediatamente em PR
+Das 2 candidatas restantes (Playwright auth E2E, Lighthouse CI), Renovate/Dependabot é a de maior ROI e menor fricção:
+- Zero secrets necessários (Dependabot é nativo do GitHub)
+- Detecta CVEs em deps automaticamente — complementa o `npm audit` do CI
+- Mantém Sentry, Supabase, Vite atualizados sem esforço manual
+- Setup é 1 arquivo YAML
 
-Playwright E2E precisa de credenciais de teste; Lighthouse CI precisa de URL pública estável + GitHub Action — ambos com mais fricção.
+Playwright auth E2E precisa de credenciais sintéticas + fluxo OTP/Google = fricção alta. Lighthouse CI precisa de URL pública estável + budget de performance separado.
 
 ## Plano
 
-**1. Instalar `rollup-plugin-visualizer`** (dev dep) — gera treemap HTML do bundle.
+**1. `.github/dependabot.yml` (novo):**
+- Ecosystem `npm` na raiz, schedule `weekly` (segunda 06:00 UTC)
+- `open-pull-requests-limit: 5` — evita spam
+- Grouping estratégico:
+  - `react` (react, react-dom, @types/react*)
+  - `supabase` (@supabase/*)
+  - `sentry` (@sentry/*)
+  - `radix` (@radix-ui/*)
+  - `dev-dependencies` (todos devDeps minor/patch)
+- `ignore`: bumps `major` em react/react-dom (breaking, requer migração manual)
+- Labels: `dependencies`, `automated`
+- Commit prefix: `chore(deps)`
+- Ecosystem `github-actions` em `.github/workflows/` (weekly) — mantém `actions/checkout@v4`, `setup-node@v4` etc atualizados
 
-**2. `vite.config.ts`:**
-- Adicionar `visualizer({ filename: 'dist/stats.html', gzipSize: true, brotliSize: true })` em modo build
-- Configurar `build.rollupOptions.output.manualChunks` para split estratégico:
-  - `react-vendor`: react, react-dom, react-router-dom
-  - `supabase`: @supabase/supabase-js
-  - `sentry`: @sentry/react
-  - `ui-vendor`: @radix-ui/*
-  - `charts`: recharts (se usado)
-- Setar `build.chunkSizeWarningLimit: 600` (kb) — força revisão de chunks grandes
+**2. `docs/RUNBOOK.md`:** seção "Dependency Freshness":
+- Cadência (semanal segunda)
+- Como revisar PRs do Dependabot (CI roda full pipeline → verde = merge)
+- Política de major bumps (manual, com smoke test)
+- Como pausar temporariamente (`@dependabot ignore this dependency`)
 
-**3. `scripts/check-bundle-size.mjs` (novo):**
-- Lê `dist/stats.html` ou `dist/assets/*.js` após build
-- Compara contra orçamento em `bundle-budget.json`:
-  ```json
-  {
-    "total_gzip_kb": 800,
-    "chunks": {
-      "react-vendor": 180,
-      "supabase": 130,
-      "sentry": 60,
-      "main": 250
-    }
-  }
-  ```
-- Exit 1 se algum chunk passar do budget — falha o build
-
-**4. `package.json`:**
-- `"build:analyze": "vite build && open dist/stats.html"`
-- `"check:bundle": "node scripts/check-bundle-size.mjs"`
-- Script `build` continua igual (não bloqueia dev)
-
-**5. `.github/workflows/ci.yml`:**
-- Adicionar step após `build`: `node scripts/check-bundle-size.mjs`
-
-**6. `docs/RUNBOOK.md`:** seção "Bundle Size Budget":
-- Como rodar local (`npm run build:analyze`)
-- Como atualizar budget (PR dedicado documentando justificativa)
-- Top 5 chunks atuais e lógica de split
-
-**7. `mem://features/audit-improvements`:** Sprint 19 logged.
+**3. `.lovable/memory/features/audit-improvements.md`:** Sprint 20 logged + `Next candidates` reduzido para 2 (Playwright E2E, Lighthouse CI).
 
 ## Arquivos
-- `package.json` (dev dep + 2 scripts)
-- `vite.config.ts` (visualizer + manualChunks)
-- `bundle-budget.json` (novo, raiz)
-- `scripts/check-bundle-size.mjs` (novo)
-- `.github/workflows/ci.yml` (1 step)
+- `.github/dependabot.yml` (novo)
 - `docs/RUNBOOK.md` (seção)
 - `.lovable/memory/features/audit-improvements.md` (append)
 
 ## Validação
-- `npm run build` continua passando local
-- `npm run check:bundle` falha se algum chunk inflar acima do budget
-- `dist/stats.html` abre treemap navegável
+- Dependabot ativa automaticamente quando o YAML é mergeado em `main`
+- Primeiro batch de PRs aparece na próxima segunda
+- Sem impacto em build/dev local
