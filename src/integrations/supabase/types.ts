@@ -4012,7 +4012,7 @@ export type Database = {
           email?: never
           id?: string | null
           invited_at?: string | null
-          name?: never
+          name?: string | null
           role?: string | null
           user_id?: string | null
           workspace_id?: string | null
@@ -4022,7 +4022,7 @@ export type Database = {
           email?: never
           id?: string | null
           invited_at?: string | null
-          name?: never
+          name?: string | null
           role?: string | null
           user_id?: string | null
           workspace_id?: string | null
@@ -4080,6 +4080,7 @@ export type Database = {
         }
         Returns: undefined
       }
+      mask_email: { Args: { p_email: string }; Returns: string }
       promote_experiment_winner: {
         Args: { p_experiment_id: string; p_winner: string }
         Returns: Json
