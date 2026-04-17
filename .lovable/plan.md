@@ -1,50 +1,51 @@
 
-Sprint 24 (Visual regression) completo ✅. Score 10/10 mantido. Próximo da fila Continuous Hardening: 🟢 **Sprint 25 — k6 load test do edge function crítico**.
+Sprint 25 (k6 load test) completo ✅. Score 10/10 mantido. Próximo da fila Continuous Hardening: 🟢 **Sprint 26 — OpenTelemetry tracing nas edge functions críticas**.
 
 ## Por quê
-- Edge functions são o caminho crítico (chat completion, agent execution) — performance sob carga é desconhecida
-- k6 é o padrão indústria para load testing: scriptável em JS, roda em CI, métricas Prometheus-compatíveis
-- Detecta degradação P95/P99, error rate sob concorrência, throughput limit antes de produção
+- Já temos tracing client-side (`src/lib/tracing.ts`) com spans, attributes e exporters (Supabase + Langfuse)
+- Edge functions (`llm-gateway`, agent execution) são caixa-preta: sem visibilidade de latência por etapa, falhas de provider, retry overhead
+- OTel-compatible spans permitem correlacionar trace client → edge function → LLM provider em um único waterfall
+- Fecha o tripé observabilidade: client traces (✅) + edge traces (Sprint 26) + load metrics (✅ Sprint 25)
 
 ## Plano
 
-**1. Identificar edge function crítica:** inspecionar `supabase/functions/` e escolher a de maior tráfego esperado (provavelmente `chat-completion` ou similar). Se múltiplas candidatas, focar em 1 com endpoint público autenticado.
+**1. `supabase/functions/_shared/otel.ts` (novo):** mini-tracer compatível com OTel semantic conventions
+- `startSpan(name, kind, parentTraceId?)` retorna handle com `setAttribute`, `setStatus`, `end`
+- `withSpan(name, kind, fn)` helper async
+- Exporta para Supabase via `traces`/`spans` tables (mesmo schema do client)
+- Aceita `traceparent` header (W3C Trace Context) para continuação cross-tier
+- Lê env `LANGFUSE_PUBLIC_KEY` opcional para forward direto
 
-**2. `tests/load/chat-completion.k6.js` (novo):**
-- Smoke test: 1 VU por 30s (sanity check)
-- Load test: ramp-up 0→20 VUs em 1min, sustentar 3min, ramp-down 30s
-- Thresholds: `http_req_duration p(95)<2000`, `http_req_failed rate<0.01`, `checks rate>0.95`
-- Auth: usar service role key para gerar JWT sintético (espelha padrão E2E)
-- Skip gracioso se `SUPABASE_SERVICE_ROLE_KEY` ausente
+**2. Instrumentar `supabase/functions/llm-gateway/index.ts`:**
+- Span raiz `llm-gateway.handle` (kind=`server`)
+- Sub-spans: `auth.verify`, `quota.check`, `provider.call` (com `gen_ai.request.model`, `gen_ai.usage.*`, `cost.usd`), `response.format`
+- Propagar `traceparent` se cliente enviou
+- Status `error` em qualquer throw + `status_message`
 
-**3. `tests/load/README.md`:** como rodar local (`k6 run`), interpretar output, calibrar thresholds.
+**3. Instrumentar 1 edge function de agent execution** (descobrir qual via `code--list_dir supabase/functions/`):
+- Span raiz por execução
+- Sub-spans por tool call / step
 
-**4. `package.json`:** scripts
-- `"test:load": "k6 run tests/load/chat-completion.k6.js"`
-- `"test:load:smoke": "k6 run --vus 1 --duration 30s tests/load/chat-completion.k6.js"`
+**4. Client tracing — propagação:**
+- Atualizar `src/lib/tracing.ts` ou wrapper de chamada a edge function para enviar header `traceparent: 00-{traceId}-{spanId}-01`
+- Buscar onde `supabase.functions.invoke('llm-gateway', ...)` é chamado e injetar header
 
-**5. `.github/workflows/ci.yml`:** novo job `load-test`
-- `if: github.event_name == 'pull_request'` + label gate (`load-test` label) — não roda em todo PR (caro)
-- Setup k6 via `grafana/setup-k6-action@v1`
-- Roda smoke test sempre, full load apenas com label
-- Upload de `summary.json` como artifact
+**5. `docs/RUNBOOK.md`:** seção "Distributed Tracing"
+- Diagrama waterfall esperado
+- Como debugar trace em Langfuse/Supabase
+- Convenções de naming OTel
 
-**6. `docs/RUNBOOK.md`:** seção "Load Testing — k6"
-- Tabela de thresholds
-- Política: rodar full load antes de releases majors + quando edge function crítica muda
-- Como interpretar P95/P99 spikes
-
-**7. `mem://features/audit-improvements`:** Sprint 25 logged + fila atualizada (Sprint 26 OTel).
+**6. `mem://features/audit-improvements`:** Sprint 26 logged + nova fila (Sprint 27 SLO dashboards, Sprint 28 chaos testing).
 
 ## Arquivos
-- `tests/load/chat-completion.k6.js` (novo)
-- `tests/load/README.md` (novo)
-- `package.json` (2 scripts)
-- `.github/workflows/ci.yml` (novo job opt-in)
+- `supabase/functions/_shared/otel.ts` (novo)
+- `supabase/functions/llm-gateway/index.ts` (instrumentar)
+- 1 outra edge function crítica (descobrir + instrumentar)
+- `src/lib/tracing.ts` ou call site (propagação `traceparent`)
 - `docs/RUNBOOK.md` (seção)
 - `.lovable/memory/features/audit-improvements.md` (append)
 
 ## Validação
-- `npm run test:load:smoke` local passa em <40s com 0 erros
-- CI: smoke roda em todo PR, full apenas com label `load-test`
-- Thresholds violados = job falha vermelho com summary detalhado
+- Chamada do client a `llm-gateway` gera trace único com 5+ spans encadeados
+- Erro injetado no provider = span com status `error` + message preservada
+- Header `traceparent` ausente = trace novo gerado (não quebra)
