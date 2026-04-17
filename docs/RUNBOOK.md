@@ -555,3 +555,55 @@ Real-time view of Service Level Objectives, available at `/observability/slo`.
 - Empty data (`total_traces = 0`) → empty state with CTA "Ir para Agentes"
 - RPC fails → toast error, dashboard remains last good snapshot
 - Alert hook fails silently (logger.error) — does not interrupt UX
+
+## Chaos Engineering (Sprint 28)
+
+Injeção controlada de falhas (latência, erros 500/429, timeouts) nas edge functions críticas para validar resiliência: retry, fallback, alertas e SLOs.
+
+### Targets instrumentados
+
+| Edge function            | Falhas suportadas                    |
+| ------------------------ | ------------------------------------ |
+| `llm-gateway`            | latency, error_500, error_429, timeout |
+| `agent-workflow-runner`  | latency, error_500, error_429, timeout |
+
+### Hard safety limits
+
+- **Probabilidade máx**: 50% (CHECK constraint na coluna)
+- **Duração máx**: 1 hora (CHECK constraint `expires_at - created_at`)
+- **Latência máx**: 10.000ms
+- **Auto-expira**: faults com `expires_at < now()` são ignorados pelo middleware
+- **Kill switch**: RPC `disable_all_chaos(workspace_id)` desativa tudo em 1 call (admin only)
+- **Cache 5s** no edge: minimiza queries em cada request, mas garante que kill switch propaga em ≤5s
+
+### Como executar primeiro experimento
+
+1. Acesse `/observability/chaos` (requer permissão `settings.api_keys`)
+2. Crie experimento: target=`llm-gateway`, fault=`latency`, probability=`5%`, latency=`500ms`, duration=`10min`
+3. Banner amber aparece em todo app
+4. Faça 50+ chamadas reais ao agente
+5. Abra `/observability/slo` — P95 deve subir; success rate deve permanecer alto (latency não erra)
+6. Para teste de erro: troque `fault_type` para `error_500` — alertas SLO devem disparar
+
+### Validações esperadas
+
+| Falha       | Comportamento esperado                                            |
+| ----------- | ------------------------------------------------------------------ |
+| latency     | P95 sobe; success rate inalterado; spans `chaos.inject` no trace   |
+| error_500   | Trace mostra erro; agent_traces.level=`error`; toast SLO alert     |
+| error_429   | Cliente vê 429; backoff/retry deve ativar (se implementado)         |
+| timeout     | Request expira em ~30s; trace marcado `error`                      |
+
+### Política operacional
+
+- ❌ Nunca rodar em produção sem comunicação prévia ao time
+- ❌ Nunca subir probabilidade > 10% sem rodar smoke a 5% antes
+- ✅ Sempre `expires_at` curto (10–30min é típico)
+- ✅ Acompanhar SLO Dashboard durante o experimento
+- ✅ Usar kill switch ao primeiro sinal de impacto inesperado a usuários
+
+### Failure modes graceful
+
+- Tabela `chaos_experiments` indisponível → `maybeInjectFault` retorna `null`, zero impacto
+- RPC `get_active_chaos_faults` falha → cache vazio, próxima tentativa em 5s
+- Sem experimentos ativos → 1 query rápida (filtered index `idx_chaos_active`), depois cache
