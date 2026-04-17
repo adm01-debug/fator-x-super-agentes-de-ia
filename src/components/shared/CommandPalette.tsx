@@ -75,7 +75,7 @@ export function CommandPalette() {
   const location = useLocation();
   const [recent, setRecent] = useState<string[]>([]);
 
-  const { data: globalHits = [], isFetching: isSearching } = useGlobalSearch(search, open);
+  const { data: globalHits = [], isFetching: isSearching, mode: searchMode } = useGlobalSearch(search, open);
 
   // ═══ Fetch agents ═══
   const { data: agents = [] } = useQuery({
@@ -176,7 +176,21 @@ export function CommandPalette() {
         {/* Global semantic search results */}
         {globalHits.length > 0 && (
           <>
-            <CommandGroup heading={`Resultados${isSearching ? " (atualizando…)" : ""}`}>
+            <CommandGroup
+              heading={
+                <span className="flex items-center gap-2">
+                  <span>Resultados</span>
+                  {searchMode === "semantic-hybrid" && (
+                    <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-sm bg-primary/10 text-primary text-[9px] font-medium uppercase tracking-wide">
+                      <Sparkles className="h-2.5 w-2.5" /> Semântico
+                    </span>
+                  )}
+                  {isSearching && (
+                    <Loader2 className="h-3 w-3 animate-spin text-muted-foreground" />
+                  )}
+                </span>
+              }
+            >
               {globalHits.map((hit) => {
                 const meta = TYPE_META[hit.type] ?? TYPE_META.document;
                 const Icon = meta.icon;
