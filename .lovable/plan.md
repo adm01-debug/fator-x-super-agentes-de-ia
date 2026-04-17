@@ -1,36 +1,36 @@
 
-Próxima da fila: **#5 Code Interpreter Sandbox (E2B-style)**.
+Próximo da fila: **#6 Marketplace Monetizado (Revenue Share)**.
 
-Estado atual: `CodeInterpreterPage.tsx` é mock (setTimeout + string fixa). Edge function `smolagent-runtime` existe mas sem isolamento real.
+Estado atual: `skill_registry` com `install_count` mas sem preços, sem checkout, sem revenue share, sem reviews.
 
 ## Plano
 
-**Backend:**
-1. Migration: tabela `code_executions` (id, user_id, workspace_id, runtime, code, stdout, stderr, exit_code, files jsonb, duration_ms, memory_mb, status, created_at) com RLS por user_id.
-2. Edge function `code-interpreter-execute`:
-   - Valida JWT + Zod schema (runtime ∈ python|node|deno, code ≤ 50KB)
-   - Runtime **Deno**: executa nativo via `Deno.Command` em worker isolado com timeout 30s + memory cap
-   - Runtime **Node/Python**: usa Lovable AI Gateway (gemini-2.5-flash) para "simular" execução determinística com sandbox virtual (retorna stdout/stderr/files plausíveis baseado em análise estática) — marcado como `simulated: true`. Realmente executar Python exige container externo (E2B/Daytona) — fora de escopo sem API key.
-   - Persiste resultado em `code_executions`
-3. Service `codeInterpreterService.ts`: execute(), list(), get(), remove()
+**Backend (migration):**
+1. Adicionar colunas em `skill_registry`: `price_cents` (int), `pricing_model` (enum: free/one_time/subscription), `creator_id` (uuid → auth.users), `creator_payout_pct` (default 70), `verified` (bool), `avg_rating` (numeric), `review_count` (int).
+2. Nova tabela `skill_purchases`: id, skill_id, buyer_id, amount_cents, creator_payout_cents, platform_fee_cents, status (pending/completed/refunded), payment_provider, payment_ref, created_at. RLS: buyer vê próprias; creator vê do seu skill.
+3. Nova tabela `skill_reviews`: id, skill_id, reviewer_id, rating (1-5), comment, created_at. RLS: público leitura, dono escreve. Trigger atualiza `avg_rating`/`review_count`.
+4. Nova tabela `creator_payouts`: id, creator_id, period_start/end, total_cents, status, created_at.
+5. RPC `purchase_skill(skill_id)`: registra compra mock (sem provider real ainda), incrementa install_count.
 
-**Frontend:**
-4. Reescrever `CodeInterpreterPage.tsx`:
-   - Editor real (textarea com syntax highlight via `<pre>` + line numbers)
-   - Painel histórico de execuções (últimas 20) com replay
-   - Output tabs: stdout (cor), stderr (vermelho), files (download via base64), métricas (duração, memória)
-   - Badge "Sandbox real" (Deno) vs "Simulado" (Python/Node)
-   - Snippets prontos: Hello World, fibonacci, JSON parse
-   - Botão "Limpar histórico"
+**Service:**
+6. `marketplaceService.ts`: listSkills(filters), getSkill(id), purchase(id), submitReview(skill_id, rating, comment), getMyPurchases(), getCreatorEarnings().
+
+**Frontend — reescrever `MarketplacePage.tsx`:**
+7. Grid de skills com badge "Verificado", preço (Free/R$X), rating ⭐, install_count.
+8. Filtros: categoria, preço (free/paid), rating min, ordenação (popular/novo/melhor avaliado).
+9. Modal de skill: descrição, screenshots, reviews, botão "Instalar grátis" ou "Comprar R$X".
+10. Aba "Minhas compras" + aba "Modo Creator" (se user tem skills publicadas: ganhos, payouts, analytics).
+11. Banner: "70% para creators, 30% plataforma".
 
 **Validação:**
-- `tsc` clean
-- Executar snippet Deno → ver stdout real
-- Executar Python → ver simulação com aviso
-- Verificar persistência ao recarregar página
+- `tsc` clean + linter Supabase
+- Mock purchase funciona end-to-end
+- Reviews atualizam rating médio
 
 **Arquivos:**
-- migration `code_executions`
-- `supabase/functions/code-interpreter-execute/index.ts` (novo)
-- `src/services/codeInterpreterService.ts` (novo)
-- `src/pages/CodeInterpreterPage.tsx` (reescrita)
+- migration (3 tabelas + alter + trigger + RPC)
+- `src/services/marketplaceService.ts` (novo)
+- `src/pages/MarketplacePage.tsx` (reescrita ou criar se não existir)
+- Componentes: `SkillCard.tsx`, `SkillDetailDialog.tsx`, `CreatorDashboard.tsx`
+
+**Nota:** Stripe Connect real fica para próxima iteração — esta entrega é a fundação completa (DB + UI + fluxo) com pagamento mock; trocar por Stripe é só plugar provider no RPC.
