@@ -108,9 +108,16 @@ type: feature
 - RUNBOOK.md: seção "Mobile Performance + Runtime A11y" com tabela comparativa de budgets + política de impact levels
 
 ## Continuous Hardening Queue
-- Sprint 24 — Visual regression (Playwright screenshots baseline)
 - Sprint 25 — k6 load test do edge function crítico (chat completion)
 - Sprint 26 — OpenTelemetry tracing distribuído (frontend → edge → DB)
 
-## Score: 10/10 ✅ mantido (Sprint 23 — primeiro hardening além da auditoria original)
+## Completed — Sprint 24 (Visual regression — Playwright screenshots)
+- e2e/visual.spec.ts: 4 cenários (auth desktop 1280×720, auth mobile 375×667, signup variant, protected redirect /agents → /auth)
+- playwright.config.ts: threshold 0.2 + maxDiffPixelRatio 0.01 + animations disabled + snapshotPathTemplate em e2e/__screenshots__/
+- package.json: scripts test:e2e:visual + test:e2e:update
+- .github/workflows/ci.yml: upload artifact `visual-regression-diffs` on failure (test-results/ + e2e/__screenshots__/)
+- RUNBOOK.md: seção "Visual Regression Tests" com tabela de cenários + política de update + troubleshooting de diffs
+- Baselines geradas na primeira run no CI (commit subsequente do dev após inspeção visual)
+
+## Score: 10/10 ✅ mantido (Sprint 24 — segundo hardening, tripé performance+a11y+visual fechado)
 
