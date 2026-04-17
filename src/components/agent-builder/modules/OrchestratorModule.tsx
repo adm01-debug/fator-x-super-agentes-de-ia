@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import ReactFlow, {
   Background,
   Controls,
@@ -13,7 +13,7 @@ import ReactFlow, {
 import 'reactflow/dist/style.css';
 import { useAgentBuilderStore } from '@/stores/agentBuilderStore';
 import { useAgentWorkflows, useWorkflowRuns, runWorkflow, type AgentWorkflow } from '@/hooks/useAgentWorkflows';
-import { useCurrentWorkspace } from '@/hooks/useCurrentWorkspace';
+import { useWorkspaceId } from '@/hooks/use-data';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
