@@ -117,7 +117,13 @@ type: feature
 - fromTable() helper hardened with proper type isolation
 - Security scan: 0 ERRORS, 4 WARNINGS (all known/intentional)
 
-## Score: 10/10 ✅ (Sprint 14 complete)
+## Completed — Sprint 15 (Wave 1 Quick Wins)
+- workspace_members.email masked via SECURITY DEFINER view (closes ERROR finding)
+- Security headers hardened in index.html (CSP, Referrer-Policy, Permissions-Policy)
+- docs/RUNBOOK.md created with Security Headers section
+- Root tsconfig.json: strict + noImplicitAny + strictNullChecks + noFallthroughCasesInSwitch enabled
+
+## Score: 10/10 ✅ (Sprint 15 complete)
 
 ## Note
 - HIBP (leaked password protection) — requires manual activation in Cloud UI (operational, not code)
