@@ -142,3 +142,18 @@ type: feature
 ## Score: 10/10 ✅ mantido (Sprint 26 — observabilidade tri-tier fechada: client + edge + load)
 
 
+
+## Completed — Sprint 27 (SLO Dashboards & Alerting)
+- Migration: VIEW `slo_metrics_hourly` (security_invoker=true, herda RLS de agent_traces) agregando por (hour, user_id, agent_id) — total/error/success_rate/p50/p95/p99/cost/tokens
+- Migration: RPC `get_slo_summary(p_window_hours int)` SECURITY DEFINER + GRANT authenticated — totals + top 5 piores agentes (por p95) + timeseries horária; filtra por auth.uid()
+- src/lib/slo/sloTargets.ts: SLO_TARGETS (P95<2000, P99<5000, success≥99%, errBudget 1%) + status helpers (latencyStatus, successRateStatus, errorBudgetStatus) + statusColor/Bg semantic tokens
+- src/lib/slo/sloService.ts: fetchSLOSummary(windowHours) tipado (SLOSummary, SLOTopAgent, SLOTimeseriesPoint)
+- src/pages/SLODashboard.tsx: 4 MetricCards color-coded + LightAreaChart (P95/P50/target band) + Resumo card + tabela top 5 agentes com pior P95 + selector janela (1h/6h/24h/7d) + auto-refresh 60s + empty state + page-enter
+- src/hooks/useSLOAlerts.ts: polling 5min, toast.error com action "Ver dashboard" em breach, dedupe via sessionStorage
+- src/components/shared/SLOAlertsMounter.tsx + montado em App.tsx
+- src/components/layout/AppSidebar.tsx: item "SLO Dashboard" em Operações (ícone Activity)
+- src/App.tsx: rota lazy `/observability/slo`
+- docs/RUNBOOK.md: seção "SLO Monitoring" com targets, burn rate, resposta a breach, failure modes
+- Reuso 100%: dados já existentes em agent_traces (sem necessidade de novas tabelas), LightAreaChart existente (sem nova dep recharts)
+
+## Score: 10/10 ✅ mantido (Sprint 27 — observabilidade fecha o ciclo: traces (debug) + load (capacidade) + SLO (saúde contínua))

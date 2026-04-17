@@ -516,3 +516,42 @@ Every instrumented edge function response includes:
 - Client doesn't send `traceparent` → edge generates new `trace_id` (no parent linkage but still traced)
 - Malformed `traceparent` → ignored, new `trace_id` generated
 
+
+---
+
+## SLO Monitoring (Sprint 27)
+
+Real-time view of Service Level Objectives, available at `/observability/slo`.
+
+### SLO Targets
+
+| Metric            | Target          | Warning at | Source                           |
+| ----------------- | --------------- | ---------- | -------------------------------- |
+| Success rate      | ≥ 99%           | < 99.5%    | `agent_traces.level <> 'error'`  |
+| Latency P95       | < 2000 ms       | > 1600 ms  | `agent_traces.latency_ms`        |
+| Latency P99       | < 5000 ms       | > 4000 ms  | `agent_traces.latency_ms`        |
+| Error budget (mo) | ≤ 1% errors     | > 50% used | rolling 30 day window            |
+
+### Architecture
+- **View** `slo_metrics_hourly` — invoker-rights, inherits RLS from `agent_traces`
+- **RPC** `get_slo_summary(p_window_hours)` — security-definer; returns aggregated JSON for `auth.uid()` only
+- **UI** `src/pages/SLODashboard.tsx` — auto-refreshes every 60s, supports 1h / 6h / 24h / 7d windows
+- **Alerts** `src/hooks/useSLOAlerts.ts` — polls every 5 min; toasts on breach with link to dashboard; deduplicates per-session
+
+### Burn rate interpretation
+- **Error budget consumed** = (actual error rate / target error rate) × 100
+- 0–50% = healthy, on-track for the month
+- 50–100% = warning, slow down risky deploys
+- 100%+ = breach, freeze non-critical changes; investigate root cause via traces
+
+### Response to a breach
+1. Open `/observability/slo` → identify which SLO failed (P95? success rate?)
+2. Top 5 worst agents table → click affected agent → `/agents/:id` → review recent runs
+3. Cross-reference with traces (`trace_id` from agent runs)
+4. If provider issue: check `cost-optimizer` for fallback availability
+5. Communicate via status page if user-impacting
+
+### Failure modes
+- Empty data (`total_traces = 0`) → empty state with CTA "Ir para Agentes"
+- RPC fails → toast error, dashboard remains last good snapshot
+- Alert hook fails silently (logger.error) — does not interrupt UX
