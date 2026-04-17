@@ -119,3 +119,32 @@ Cada build injeta `__APP_VERSION__` (de `package.json`) como `release` no Sentry
 
 ### CSP
 `connect-src` já inclui `https://*.sentry.io`, `https://*.ingest.sentry.io`, `https://*.ingest.us.sentry.io` e `https://*.ingest.de.sentry.io`.
+
+## RLS Persona Tests
+
+Suite de testes de integração que prova o isolamento cross-tenant das políticas RLS contra um projeto Supabase real. Cobre 8 cenários críticos:
+
+- `agents` — Bob não enxerga / atualiza / deleta agentes da Alice
+- `workspace_secrets` — SELECT direto bloqueado, RPC `get_masked_secrets` só funciona para o owner
+- `audit_log` — INSERT direto falha, RPC `log_audit_entry` funciona
+- `api_keys` — `key_hash` nunca vaza para outros usuários
+- `workspace_members` — não-membros recebem zero linhas
+
+### Rodar localmente
+
+```bash
+SUPABASE_SERVICE_ROLE_KEY=eyJ... \
+SUPABASE_URL=https://xxx.supabase.co \
+SUPABASE_ANON_KEY=eyJ... \
+npm run test:rls
+```
+
+> ⚠️ Os testes criam usuários sintéticos (`*@rls-tests.invalid`) e os deletam no `afterAll`. Use **service role do projeto de teste**, nunca produção.
+
+### Comportamento sem env
+
+Sem `SUPABASE_SERVICE_ROLE_KEY` o suite faz `describe.skip` com aviso no console. CI continua verde — opt-in só quando o secret estiver disponível no runner.
+
+### CI
+
+Para ativar em CI, adicionar os 3 secrets ao runner e incluir o step `npm run test:rls` no pipeline. Recomendado rodar contra um projeto Supabase **dedicado a testes**, não produção.
