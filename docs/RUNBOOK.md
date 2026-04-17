@@ -419,3 +419,50 @@ git commit -m "chore(visual): update baseline — <razão>"
 
 ### Ignorar resultados ephemerais
 `test-results/` e `playwright-report/` são gerados por run e devem ser ignorados pelo VCS (configurado no `.gitignore` global; verificar localmente se `git status` mostra esses dirs sujos).
+
+---
+
+## Load Testing — k6 (Sprint 25)
+
+Performance guard for critical edge functions. Runs in CI per PR (smoke) and on-demand (full load via `load-test` label).
+
+### Critical endpoint coverage
+| Function | Why | Script |
+|---|---|---|
+| `llm-gateway` | Hot path for every chat/agent run; latency directly impacts UX | `tests/load/llm-gateway.k6.js` |
+
+### Thresholds (any breach = exit code 1)
+| Metric | Limit |
+|---|---|
+| `http_req_duration p(95)` | < 2000 ms |
+| `http_req_duration p(99)` | < 5000 ms |
+| `http_req_failed rate` | < 1 % |
+| `checks rate` | > 95 % |
+| `llm_gateway_success rate` | > 95 % |
+
+### Modes
+| Mode | Profile | When |
+|---|---|---|
+| Smoke | 1 VU × 30s | Every PR (sanity, ~10s job) |
+| Full load | ramp 0→20 VUs / 1m + sustain 3m + ramp-down 30s | Label `load-test` on PR, OR manually before major releases |
+
+### Commands
+```bash
+npm run test:load:smoke    # 30s sanity check
+npm run test:load          # ~5min full ramp
+```
+
+### Policy
+- **Run full load** before any release that touches `llm-gateway`, `smart-model-router`, or `chat-completion` paths.
+- **Re-baseline thresholds** after instance upgrade or model swap (3× runs → median P95 + 20% headroom).
+- **CI artifact** `k6-summary` (summary.json) preserved for 90d for trend analysis.
+
+### Reading P95/P99 spikes
+- **P95 spike, P99 stable** → tail latency on a subset of VUs (cold-start, auth slow path)
+- **P99 spike** → infrastructure issue (DB lock, downstream API throttle)
+- **Failed rate > 1%** → endpoint regression — check edge function logs in same window
+
+### Skip behaviour
+If `SUPABASE_SERVICE_ROLE_KEY` is missing the script emits a warning and exits early — CI stays green. Add the secret to enable real load coverage.
+
+See full runbook: `tests/load/README.md`.
