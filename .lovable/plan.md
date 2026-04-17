@@ -1,41 +1,44 @@
 
-Próximo da fila: **#9 Computer Use / Browser Automation Agent** (Anthropic Computer Use style, P1).
+Próximo da fila: **#10 Multi-Agent Orchestration Visual (LangGraph-style)** (P1, último item da fila para chegar em 10/10).
 
-Estado atual: zero infra de browser automation. Sem Playwright, sem screenshots, sem ações em DOM.
+Estado atual: agentes existem isolados, sem grafo visual de orquestração, sem handoffs declarativos, sem visualização de fluxo multi-agente em runtime.
 
 ## Plano
 
-**Backend:**
-1. Migration: tabela `browser_sessions` (id, user_id, workspace_id, agent_id, goal text, status: running/completed/failed/cancelled, started_at, ended_at, steps jsonb [{action, target, screenshot_url, reasoning, ts}], final_result text, screenshots_count int, cost_cents int). RLS por user_id + workspace.
-2. Edge function `browser-agent-run`: recebe `{goal, start_url, max_steps}` → loop server-side com Gemini 2.5 Pro multimodal:
-   - Fetch URL → render simplificado (extrair HTML/texto via fetch + cheerio-like parsing no Deno)
-   - Capturar "screenshot" textual (DOM serializado + lista de elementos clicáveis numerados)
-   - LLM decide próxima ação: `click(n)`, `type(n, text)`, `navigate(url)`, `extract(selector)`, `done(result)`
-   - Persiste cada step. Para em `done`, `max_steps` ou erro.
-3. Edge function `browser-session-cancel`: marca cancelled.
+**Backend (migration):**
+1. Tabela `agent_graphs`: id, workspace_id, name, description, nodes jsonb [{id, agent_id, role, position{x,y}}], edges jsonb [{from, to, condition}], entry_node_id, created_by, created_at, updated_at. RLS por workspace.
+2. Tabela `graph_executions`: id, graph_id, user_id, input text, status (running/completed/failed), current_node_id, trace jsonb [{node_id, agent_id, input, output, latency_ms, ts}], final_output text, total_cost_cents, started_at, ended_at. RLS por user_id.
 
-**Service `browserAgentService.ts`:**
-- runAgent(goal, startUrl, agentId), cancelSession(id), listSessions(), getSession(id), deleteSession(id).
+**Edge function `graph-execute`:**
+- Recebe `{graph_id, input}` → carrega grafo → executa BFS a partir do entry_node:
+  - Para cada nó: chama LLM (Lovable AI Gemini 2.5 Flash) com persona do agente + input do nó pai
+  - Avalia edges condicionais (LLM decide próximo nó quando há múltiplos)
+  - Persiste cada step no trace
+- Para em nó terminal (sem edges) ou max 15 nós.
 
-**Frontend — nova `BrowserAgentPage.tsx` em `/browser-agent`:**
-- Hero: textarea "Qual o objetivo?" + input URL inicial + seletor de agente + botão "▶ Executar".
-- Painel ao vivo: indicador de step atual, lista de ações executadas com reasoning, "screenshot" textual do DOM atual, botão "Cancelar".
-- Histórico de sessões: tabela com goal, status badge, steps count, custo, link para replay.
-- Replay modal: timeline step-by-step com reasoning de cada decisão.
+**Service `agentGraphService.ts`:**
+- listGraphs, createGraph, updateGraph, deleteGraph, getGraph, executeGraph, listExecutions, getExecution.
+
+**Frontend — nova `AgentOrchestrationPage.tsx` em `/orchestration`:**
+- Lista de grafos (cards com preview).
+- Editor visual usando **@xyflow/react** (já instalado provavelmente — verificar): canvas com drag-drop de agentes, conexões entre nós, painel lateral para configurar nó (qual agente, role, condição da edge).
+- Painel de execução: input + botão "▶ Executar" → visualização ao vivo dos nós sendo ativados (highlight + latência por nó) → resultado final.
+- Histórico de execuções com replay no canvas.
 
 **Integração:**
-- Rota `/browser-agent` em `App.tsx`.
-- Item no sidebar (ícone `Globe` ou `MousePointer`).
+- Rota `/orchestration` em `App.tsx`.
+- Item no sidebar (ícone `Network` ou `GitBranch`).
 
-**Validação:** `tsc` clean, executar goal simples ("buscar preço de X em Y") → ver steps → resultado final.
+**Validação:** `tsc` clean, criar grafo de 3 agentes (researcher → writer → reviewer) → executar → ver trace visual.
 
 **Arquivos:**
-- migration `browser_sessions`
-- `supabase/functions/browser-agent-run/index.ts` (novo)
-- `supabase/functions/browser-session-cancel/index.ts` (novo)
-- `src/services/browserAgentService.ts` (novo)
-- `src/pages/BrowserAgentPage.tsx` (novo)
+- migration (2 tabelas)
+- `supabase/functions/graph-execute/index.ts` (novo)
+- `src/services/agentGraphService.ts` (novo)
+- `src/pages/AgentOrchestrationPage.tsx` (novo)
+- `src/components/orchestration/GraphCanvas.tsx` (novo, usa @xyflow/react)
+- `src/components/orchestration/NodeConfigPanel.tsx` (novo)
 - `src/App.tsx` (rota)
 - `src/components/layout/AppSidebar.tsx` (item menu)
 
-**Nota:** "Computer Use" real (Playwright + screenshots PNG) requer container persistente fora do Deno edge runtime. Esta entrega é DOM-based agent (texto + elementos numerados) — funciona para 80% dos casos (formulários, scraping, navegação) com zero overhead. Trocar por Browserbase/E2B Desktop fica para iteração futura quando houver budget.
+**Nota:** Se @xyflow/react não estiver instalado, será adicionado. Esta é a peça final para fechar o ciclo de "Studio de Agentes" — junto com Voice (#8), Browser (#9), Code (#5), Marketplace (#6), A/B Test (#7), atinge paridade competitiva com LangSmith/AgentOps.
