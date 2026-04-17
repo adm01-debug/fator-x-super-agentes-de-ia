@@ -70,9 +70,17 @@ type: feature
 - Commit prefixes: chore(deps) / chore(deps-dev) / chore(ci)
 - RUNBOOK.md: Dependency Freshness section (groups table + review policy + dependabot commands)
 
+## Completed — Sprint 21 (Lighthouse CI — performance budget guard)
+- @lhci/cli devDep added
+- lighthouserc.json: staticDistDir dist, 2 URLs (/, /auth), 3 runs, desktop preset
+- Assertions: perf ≥0.85 (warn), a11y ≥0.95 (error), best-practices ≥0.90 (error), seo ≥0.90 (warn), LCP ≤2500ms, CLS ≤0.1 (error), TBT ≤300ms
+- temporary-public-storage upload (link público no log do PR)
+- package.json: `lhci` + `lhci:local` scripts
+- .github/workflows/ci.yml: novo job `lighthouse` (PR-only, needs build, uploads .lighthouseci/ artifact)
+- RUNBOOK.md: Performance Budget — Lighthouse CI section (URLs table + assertions table + policy + how to read)
+
 ## Next candidates
-- Playwright auth flow E2E expansion
-- Lighthouse CI integration
+- Playwright auth flow E2E expansion (último — requer credenciais sintéticas + OTP/Google flow)
 
 ## Notes
 - HIBP (leaked password protection) — manual activation in Cloud UI
