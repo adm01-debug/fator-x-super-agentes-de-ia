@@ -1304,6 +1304,42 @@ export type Database = {
         }
         Relationships: []
       }
+      creator_payouts: {
+        Row: {
+          created_at: string
+          creator_id: string
+          id: string
+          payout_method: string | null
+          payout_ref: string | null
+          period_end: string
+          period_start: string
+          status: string
+          total_cents: number
+        }
+        Insert: {
+          created_at?: string
+          creator_id: string
+          id?: string
+          payout_method?: string | null
+          payout_ref?: string | null
+          period_end: string
+          period_start: string
+          status?: string
+          total_cents?: number
+        }
+        Update: {
+          created_at?: string
+          creator_id?: string
+          id?: string
+          payout_method?: string | null
+          payout_ref?: string | null
+          period_end?: string
+          period_start?: string
+          status?: string
+          total_cents?: number
+        }
+        Relationships: []
+      }
       data_deletion_requests: {
         Row: {
           completed_at: string | null
@@ -2598,6 +2634,93 @@ export type Database = {
           },
         ]
       }
+      skill_marketplace_meta: {
+        Row: {
+          avg_rating: number
+          created_at: string
+          creator_id: string
+          creator_payout_pct: number
+          id: string
+          install_count: number
+          price_cents: number
+          pricing_model: string
+          review_count: number
+          skill_id: string
+          updated_at: string
+          verified: boolean
+        }
+        Insert: {
+          avg_rating?: number
+          created_at?: string
+          creator_id: string
+          creator_payout_pct?: number
+          id?: string
+          install_count?: number
+          price_cents?: number
+          pricing_model?: string
+          review_count?: number
+          skill_id: string
+          updated_at?: string
+          verified?: boolean
+        }
+        Update: {
+          avg_rating?: number
+          created_at?: string
+          creator_id?: string
+          creator_payout_pct?: number
+          id?: string
+          install_count?: number
+          price_cents?: number
+          pricing_model?: string
+          review_count?: number
+          skill_id?: string
+          updated_at?: string
+          verified?: boolean
+        }
+        Relationships: []
+      }
+      skill_purchases: {
+        Row: {
+          amount_cents: number
+          buyer_id: string
+          created_at: string
+          creator_id: string
+          creator_payout_cents: number
+          id: string
+          payment_provider: string
+          payment_ref: string | null
+          platform_fee_cents: number
+          skill_id: string
+          status: string
+        }
+        Insert: {
+          amount_cents?: number
+          buyer_id: string
+          created_at?: string
+          creator_id: string
+          creator_payout_cents?: number
+          id?: string
+          payment_provider?: string
+          payment_ref?: string | null
+          platform_fee_cents?: number
+          skill_id: string
+          status?: string
+        }
+        Update: {
+          amount_cents?: number
+          buyer_id?: string
+          created_at?: string
+          creator_id?: string
+          creator_payout_cents?: number
+          id?: string
+          payment_provider?: string
+          payment_ref?: string | null
+          platform_fee_cents?: number
+          skill_id?: string
+          status?: string
+        }
+        Relationships: []
+      }
       skill_registry: {
         Row: {
           author: string
@@ -2655,6 +2778,33 @@ export type Database = {
           tags?: string[] | null
           updated_at?: string
           version?: string
+        }
+        Relationships: []
+      }
+      skill_reviews: {
+        Row: {
+          comment: string | null
+          created_at: string
+          id: string
+          rating: number
+          reviewer_id: string
+          skill_id: string
+        }
+        Insert: {
+          comment?: string | null
+          created_at?: string
+          id?: string
+          rating: number
+          reviewer_id: string
+          skill_id: string
+        }
+        Update: {
+          comment?: string | null
+          created_at?: string
+          id?: string
+          rating?: number
+          reviewer_id?: string
+          skill_id?: string
         }
         Relationships: []
       }
@@ -3520,6 +3670,7 @@ export type Database = {
         Args: { p_member_id: string }
         Returns: undefined
       }
+      get_creator_earnings: { Args: { p_creator_id?: string }; Returns: Json }
       get_masked_secrets: {
         Args: { p_workspace_id: string }
         Returns: {
@@ -3548,6 +3699,7 @@ export type Database = {
         }
         Returns: undefined
       }
+      purchase_skill: { Args: { p_skill_id: string }; Returns: Json }
     }
     Enums: {
       agent_status:
