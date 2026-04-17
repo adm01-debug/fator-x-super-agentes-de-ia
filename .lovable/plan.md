@@ -1,64 +1,59 @@
 
-Sprint 20 completo ✅. Score 10/10 mantido. Próximo da fila: 🟢 **Sprint 21 — Lighthouse CI (performance budget guard)**.
+Sprint 21 (Lighthouse CI) completo ✅. Score 10/10 mantido. Última candidata da fila: 🟢 **Sprint 22 — Playwright auth E2E expansion (último item da auditoria)**.
 
 ## Por que esta agora
-Das 2 candidatas restantes, Lighthouse CI tem maior ROI imediato:
-- Complementa o bundle-size guard (Sprint 19) com métricas reais de runtime (LCP, CLS, TBT, FCP)
-- Detecta regressões de performance antes do merge (não só tamanho de bundle)
-- Roda local contra `dist/` servido por `vite preview` — sem URL pública necessária
-- Gera artefato HTML navegável + assertions falham CI
-
-Playwright auth E2E fica por último (precisa credenciais sintéticas + fluxo OTP/Google).
+É o único item restante. Fecha o ciclo de auditoria com cobertura E2E real do fluxo crítico (auth = porta de entrada). Estratégia para evitar fricção de credenciais OTP/Google: usar **service role do Supabase para criar usuário sintético**, fazer login via senha (provider `email` clássico) — sem depender de OAuth real ou inbox.
 
 ## Plano
 
-**1. Instalar deps (devDependencies):**
-- `@lhci/cli` — CLI oficial do Lighthouse CI
-- (Chrome headless já vem no runner do GitHub Actions)
+**1. `tests/e2e/auth.spec.ts` (novo):**
+- `beforeAll`: cria usuário sintético via service role (`*@e2e-tests.invalid`, senha aleatória) — reusa padrão de `tests/rls/setup.ts`
+- `afterAll`: deleta o usuário
+- Cenários:
+  - **Login válido**: preenche email+senha → submit → assert redirect para `/dashboard` ou `/agents`
+  - **Login inválido**: senha errada → assert toast/mensagem de erro → permanece em `/auth`
+  - **Logout**: após login, click no botão logout → assert redirect para `/auth`
+  - **Rota protegida sem auth**: `goto('/agents')` direto → assert redirect para `/auth`
+  - **Sessão persiste em reload**: login → `page.reload()` → continua autenticado
 
-**2. `lighthouserc.json` (novo, raiz):**
-- `ci.collect.staticDistDir: "./dist"` — serve build local
-- `ci.collect.url: ["http://localhost/", "http://localhost/auth"]` — landing + auth (rotas públicas)
-- `ci.collect.numberOfRuns: 3` — média de 3 runs reduz flakiness
-- `ci.collect.settings.preset: "desktop"` — baseline desktop primeiro
-- `ci.assert.assertions`:
-  - `categories:performance` ≥ 0.85 (warn) / 0.80 (error)
-  - `categories:accessibility` ≥ 0.95 (error)
-  - `categories:best-practices` ≥ 0.90 (error)
-  - `categories:seo` ≥ 0.90 (warn)
-  - `largest-contentful-paint` ≤ 2500ms (warn)
-  - `cumulative-layout-shift` ≤ 0.1 (error)
-  - `total-blocking-time` ≤ 300ms (warn)
-- `ci.upload.target: "temporary-public-storage"` — link público no PR sem setup
+**2. `tests/e2e/helpers/auth-fixtures.ts` (novo):**
+- `createE2EUser()` / `deleteE2EUser()` — wrapper sobre service role admin API
+- `loginViaUI(page, email, password)` — helper reutilizável
+- Auto-skip se `SUPABASE_SERVICE_ROLE_KEY` ausente (espelha padrão RLS tests)
 
-**3. `package.json`:** scripts:
-- `"lhci": "lhci autorun"`
-- `"lhci:local": "npm run build && lhci autorun"` — uso dev local
+**3. `playwright.config.ts`:** verificar/ajustar:
+- `baseURL` aponta para preview server local (`http://localhost:8080` ou similar do Vite)
+- `webServer` config: `npm run preview` com `reuseExistingServer: !process.env.CI`
+- `testDir: "tests/e2e"`
 
-**4. `.github/workflows/ci.yml`:** novo job `lighthouse` (paralelo ao `check:bundle`):
-- Runs após `npm run build`
-- `npx @lhci/cli autorun`
-- Upload do `.lighthouseci/` como artefato
+**4. `package.json`:** scripts:
+- `"test:e2e": "playwright test"`
+- `"test:e2e:ui": "playwright test --ui"`
+- `"test:e2e:auth": "playwright test tests/e2e/auth.spec.ts"`
 
-**5. `.gitignore`:** adicionar `.lighthouseci/`
+**5. `.github/workflows/ci.yml`:** ajustar job `e2e-tests`:
+- Adicionar env: `SUPABASE_SERVICE_ROLE_KEY`, `SUPABASE_URL`, `SUPABASE_ANON_KEY` (do secrets do repo)
+- Step: `npm run build && npm run preview &` (background) + wait + `npx playwright test`
+- Sem secrets → step skipa graciosamente (mensagem clara no log)
 
-**6. `docs/RUNBOOK.md`:** seção "Performance Budget — Lighthouse CI":
-- Como rodar local (`npm run lhci:local`)
-- Tabela de assertions e limites
-- Como ajustar budget (PR dedicado)
-- Como ler o report HTML
+**6. `docs/RUNBOOK.md`:** seção "Auth E2E Tests":
+- Como rodar local (env + `npm run test:e2e`)
+- Cenários cobertos (tabela)
+- Política: usuário sintético dedicado, nunca produção
+- Como debugar (UI mode, traces, screenshots on failure)
 
-**7. `mem://features/audit-improvements`:** Sprint 21 logged + `Next candidates` reduzido para 1 (Playwright E2E).
+**7. `mem://features/audit-improvements`:** Sprint 22 logged + **`Next candidates` zerado** — auditoria 100% completa.
 
 ## Arquivos
-- `package.json` (1 dep + 2 scripts)
-- `lighthouserc.json` (novo)
-- `.github/workflows/ci.yml` (novo job)
-- `.gitignore` (1 linha)
+- `tests/e2e/auth.spec.ts` (novo)
+- `tests/e2e/helpers/auth-fixtures.ts` (novo)
+- `playwright.config.ts` (ajuste se necessário)
+- `package.json` (3 scripts)
+- `.github/workflows/ci.yml` (env + ajuste do job e2e)
 - `docs/RUNBOOK.md` (seção)
-- `.lovable/memory/features/audit-improvements.md` (append)
+- `.lovable/memory/features/audit-improvements.md` (append final)
 
 ## Validação
-- `npm run lhci:local` gera report local em `.lighthouseci/`
-- CI falha se performance/a11y caírem abaixo dos thresholds
-- Link público do report aparece no log do PR
+- `npm run test:e2e` local com env passa todos os 5 cenários
+- Sem env: suite skipa com warning, CI verde
+- Após merge, fila de auditoria = vazia, score 10/10 consolidado
