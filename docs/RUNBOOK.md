@@ -285,3 +285,48 @@ Após executar, os reports HTML ficam em `.lighthouseci/` e um link público tem
 - Roteamento client-side: Lighthouse audita só o HTML estático servido — não navega para rotas SPA pós-hidratação. Para auditar rotas autenticadas, use Playwright + Lighthouse programático (futuro Sprint).
 - Tempo de CI: +60-90s no pipeline. Job roda em paralelo com `e2e-tests` para minimizar wall-clock.
 - Variação entre runs: usar `numberOfRuns: 3` (média) reduz mas não elimina ruído. Re-run em caso de flake suspeita.
+
+## Auth E2E Tests
+
+Cobertura E2E real do fluxo de autenticação usando **usuários sintéticos criados via service role**. Suite: `e2e/auth-flows.spec.ts` (login real). Complementa `e2e/auth.spec.ts` que cobre validação de UI sem backend.
+
+### Estratégia
+Cada teste cria um usuário `*@e2e-tests.invalid` via `auth.admin.createUser` (email_confirm: true), faz login via UI com email+senha clássico, e deleta o usuário no `afterAll`. Sem dependência de OTP, inbox ou OAuth real.
+
+### Rodar localmente
+
+```bash
+SUPABASE_SERVICE_ROLE_KEY=eyJ... \
+SUPABASE_URL=https://xxx.supabase.co \
+SUPABASE_ANON_KEY=eyJ... \
+npm run test:e2e:auth
+```
+
+Outros comandos:
+```bash
+npm run test:e2e          # roda todos os specs em e2e/
+npm run test:e2e:ui       # modo UI (debug interativo, traces, time-travel)
+```
+
+> ⚠️ Use **service role do projeto de teste**, nunca produção. Os usuários sintéticos são deletados no `afterAll`, mas em caso de falha do hook eles ficam identificáveis pelo TLD `@e2e-tests.invalid`.
+
+### Cenários cobertos
+| Cenário | Asserção |
+|---------|----------|
+| Login válido | Redirect para fora de `/auth` em ≤15s |
+| Login inválido | Permanece em `/auth` + mensagem de erro visível |
+| Rota protegida sem auth | `/agents` → redirect para `/auth` |
+| Sessão persiste em reload | `page.reload()` mantém pathname autenticado |
+| Logout | Click em botão sair → redirect para `/auth` |
+
+### Comportamento sem env
+Sem `SUPABASE_SERVICE_ROLE_KEY` o suite `auth-flows.spec.ts` faz `test.skip` com mensagem clara. CI continua verde — opt-in só quando o secret estiver disponível no runner. O job `e2e-tests` no CI imprime warning explícito no log quando skip ocorre.
+
+### CI
+Para ativar em CI, adicionar 3 secrets ao repo: `SUPABASE_SERVICE_ROLE_KEY`, `SUPABASE_URL`, `SUPABASE_ANON_KEY`. Recomendado apontar para projeto Supabase **dedicado a testes**.
+
+### Debug
+- **UI mode**: `npm run test:e2e:ui` abre o inspector com time-travel de cada step
+- **Traces**: configurados em `playwright.config.ts` via `lovable-agent-playwright-config` — gerados on-failure
+- **Screenshots**: capturados automaticamente no momento da falha e anexados ao `playwright-report/`
+- **CI artifacts**: report HTML disponível em "Artifacts" do run do GitHub Actions (retenção padrão 90 dias)
