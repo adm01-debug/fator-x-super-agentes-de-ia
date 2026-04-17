@@ -165,6 +165,23 @@ export async function deleteGuardrailPolicy(id: string) {
   }
 }
 
+export async function installGuardrailPreset(
+  preset: { id: string; name: string; type: string; config: Record<string, unknown>; severity?: string; tags?: string[] },
+  workspaceId: string | null,
+) {
+  const { error } = await supabaseExternal.from('guardrail_policies').insert({
+    name: preset.name,
+    type: preset.type as 'content_filter' | 'pii_detection' | 'prompt_injection' | 'toxicity' | 'custom',
+    workspace_id: workspaceId,
+    is_enabled: true,
+    config: { ...preset.config, preset_id: preset.id, severity: preset.severity, tags: preset.tags },
+  });
+  if (error) {
+    logger.error('installGuardrailPreset failed', { error: error.message, preset: preset.id });
+    throw error;
+  }
+}
+
 export async function testGuardrails(
   text: string,
   checks: string[] = ['pii', 'injection', 'toxicity', 'content'],

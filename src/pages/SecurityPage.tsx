@@ -19,6 +19,7 @@ import { RedTeamingPanel } from '@/components/security/RedTeamingPanel';
 import { PIIScannerPanel } from '@/components/security/PIIScannerPanel';
 import { TwoFactorSetup } from '@/components/security/TwoFactorSetup';
 import { AccessControlPanel } from '@/components/security/AccessControlPanel';
+import { GuardrailsLibrary } from '@/components/security/GuardrailsLibrary';
 
 interface ApiKey {
   id: string;
@@ -155,6 +156,7 @@ export default function SecurityPage() {
       <TwoFactorSetup />
       <AccessControlPanel />
       <ApiKeysPanel />
+      <GuardrailsLibrary />
       <GuardrailsConfig />
       <ComplianceFrameworks />
       <GuardrailPolicies />
