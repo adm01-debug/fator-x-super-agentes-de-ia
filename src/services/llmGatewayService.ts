@@ -44,7 +44,13 @@ async function tracedInvoke<T = unknown>(
   span.setInput(body);
 
   try {
-    const { data, error } = await supabase.functions.invoke(functionName, { body: body as Record<string, unknown> });
+    // Propagate W3C traceparent so edge function can continue the same trace (Sprint 26)
+    // Format: 00-{32 hex traceId}-{16 hex spanId}-{2 hex flags}
+    const traceparent = `00-${ctx.traceId.padEnd(32, '0').slice(0, 32)}-${span.id.padEnd(16, '0').slice(0, 16)}-01`;
+    const { data, error } = await supabase.functions.invoke(functionName, {
+      body: body as Record<string, unknown>,
+      headers: { traceparent },
+    });
     if (error) {
       span.setStatus('error', error.message);
       ctx.endSpan(span, 'error');
