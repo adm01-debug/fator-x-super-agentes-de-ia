@@ -24,6 +24,8 @@
     "test:e2e:auth": "playwright test e2e/auth-flows.spec.ts",
     "test:e2e:visual": "playwright test e2e/visual.spec.ts",
     "test:e2e:update": "playwright test --update-snapshots",
+    "test:load": "k6 run tests/load/llm-gateway.k6.js",
+    "test:load:smoke": "k6 run --vus 1 --duration 30s tests/load/llm-gateway.k6.js",
     "prepare": "husky"
   },
   "lint-staged": {
