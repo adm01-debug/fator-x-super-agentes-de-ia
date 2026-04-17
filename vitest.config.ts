@@ -14,9 +14,11 @@ export default defineConfig({
     exclude: ["node_modules", "dist", "tests/rls/**", "e2e/**"],
     coverage: {
       provider: "v8",
-      reporter: ["text", "lcov", "json-summary"],
+      reporter: ["text", "lcov", "json-summary", "html"],
+      reportsDirectory: "coverage",
+      all: true,
       include: ["src/services/**", "src/lib/**", "src/hooks/**"],
-      exclude: ["src/**/*.test.*", "src/test/**"],
+      exclude: ["src/**/*.test.*", "src/test/**", "src/tests/**"],
       thresholds: {
         lines: 70,
         functions: 70,
