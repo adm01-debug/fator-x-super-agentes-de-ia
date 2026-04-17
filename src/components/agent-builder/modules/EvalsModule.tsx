@@ -1,6 +1,6 @@
 import { useState, useMemo } from 'react';
 import { useParams } from 'react-router-dom';
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
@@ -18,12 +18,12 @@ import {
   useRunEval,
   type EvalItem,
 } from '@/hooks/useAgentEvals';
-import { useCurrentWorkspace } from '@/hooks/useCurrentWorkspace';
+import { useWorkspaceId } from '@/hooks/use-data';
 import { toast } from 'sonner';
 
 export function EvalsModule() {
   const { id: agentId } = useParams();
-  const { workspace } = useCurrentWorkspace();
+  const { data: workspaceId } = useWorkspaceId();
   const { data: datasets = [], isLoading: loadingDs } = useEvalDatasets(agentId);
   const { data: runs = [], isLoading: loadingRuns } = useEvalRuns(agentId);
   const createDs = useCreateEvalDataset();
@@ -37,12 +37,12 @@ export function EvalsModule() {
   const [selectedRunId, setSelectedRunId] = useState<string | null>(null);
 
   const handleCreate = async () => {
-    if (!workspace?.id) return toast.error('Workspace não encontrado');
+    if (!workspaceId) return toast.error('Workspace não encontrado');
     if (!name.trim()) return toast.error('Informe o nome');
     const valid = items.filter((i) => i.input.trim() && i.expected_output.trim());
     if (valid.length === 0) return toast.error('Adicione ao menos um item válido');
     await createDs.mutateAsync({
-      workspace_id: workspace.id,
+      workspace_id: workspaceId,
       agent_id: agentId,
       name: name.trim(),
       description: description.trim(),
