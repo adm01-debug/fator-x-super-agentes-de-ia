@@ -1,42 +1,41 @@
 
-Próximo da fila: **#8 Voice/Realtime Agents** (OpenAI Realtime API style, P1, esforço médio).
+Próximo da fila: **#9 Computer Use / Browser Automation Agent** (Anthropic Computer Use style, P1).
 
-Estado atual: zero infra de voz. Sem captura de áudio, sem TTS/STT, sem sessões realtime.
+Estado atual: zero infra de browser automation. Sem Playwright, sem screenshots, sem ações em DOM.
 
 ## Plano
 
 **Backend:**
-1. Migration: tabela `voice_sessions` (id, user_id, workspace_id, agent_id, status: active/ended, started_at, ended_at, duration_ms, transcript jsonb [{role, text, ts}], audio_in_seconds, audio_out_seconds, cost_cents). RLS por user_id + workspace.
-2. Edge function `voice-transcribe`: recebe áudio base64 (webm/wav, ≤10MB) + valida JWT/Zod → chama Lovable AI `google/gemini-2.5-flash` com input multimodal de áudio → retorna texto. Persiste turno no transcript.
-3. Edge function `voice-synthesize`: recebe texto (≤2KB) → chama Lovable AI `google/gemini-2.5-flash` para gerar resposta + usa Web Speech API no cliente (TTS nativo do browser, zero custo extra) OU Gemini TTS quando disponível. Retorna texto da resposta + metadata.
-4. Edge function `voice-session`: cria/encerra sessão, calcula custo agregado, persiste.
+1. Migration: tabela `browser_sessions` (id, user_id, workspace_id, agent_id, goal text, status: running/completed/failed/cancelled, started_at, ended_at, steps jsonb [{action, target, screenshot_url, reasoning, ts}], final_result text, screenshots_count int, cost_cents int). RLS por user_id + workspace.
+2. Edge function `browser-agent-run`: recebe `{goal, start_url, max_steps}` → loop server-side com Gemini 2.5 Pro multimodal:
+   - Fetch URL → render simplificado (extrair HTML/texto via fetch + cheerio-like parsing no Deno)
+   - Capturar "screenshot" textual (DOM serializado + lista de elementos clicáveis numerados)
+   - LLM decide próxima ação: `click(n)`, `type(n, text)`, `navigate(url)`, `extract(selector)`, `done(result)`
+   - Persiste cada step. Para em `done`, `max_steps` ou erro.
+3. Edge function `browser-session-cancel`: marca cancelled.
 
-**Service `voiceAgentService.ts`:**
-- startSession(agentId), endSession(id), transcribeAudio(blob), synthesizeReply(text), listSessions(), getSession(id).
+**Service `browserAgentService.ts`:**
+- runAgent(goal, startUrl, agentId), cancelSession(id), listSessions(), getSession(id), deleteSession(id).
 
-**Frontend — nova `VoiceAgentsPage.tsx` em `/voice-agents`:**
-- Hero: seletor de agente + botão grande "🎙 Iniciar conversa".
-- Painel ativo: visualizador de waveform (canvas + AnalyserNode), indicador "ouvindo / processando / falando", transcript ao vivo com bubbles.
-- Captura via `MediaRecorder` (webm/opus), VAD simples (silêncio 1.5s = enviar turno).
-- TTS via `SpeechSynthesisUtterance` (voz pt-BR quando disponível).
-- Histórico de sessões: duração, custo, link para replay (transcript completo).
-- Métricas: total de minutos, custo acumulado.
+**Frontend — nova `BrowserAgentPage.tsx` em `/browser-agent`:**
+- Hero: textarea "Qual o objetivo?" + input URL inicial + seletor de agente + botão "▶ Executar".
+- Painel ao vivo: indicador de step atual, lista de ações executadas com reasoning, "screenshot" textual do DOM atual, botão "Cancelar".
+- Histórico de sessões: tabela com goal, status badge, steps count, custo, link para replay.
+- Replay modal: timeline step-by-step com reasoning de cada decisão.
 
 **Integração:**
-- Rota `/voice-agents` em `App.tsx`.
-- Item no sidebar (ícone `Mic`).
+- Rota `/browser-agent` em `App.tsx`.
+- Item no sidebar (ícone `Globe` ou `MousePointer`).
 
-**Validação:** `tsc` clean, fluxo end-to-end: gravar → transcrever → resposta → TTS → persistir.
+**Validação:** `tsc` clean, executar goal simples ("buscar preço de X em Y") → ver steps → resultado final.
 
 **Arquivos:**
-- migration `voice_sessions`
-- `supabase/functions/voice-transcribe/index.ts` (novo)
-- `supabase/functions/voice-synthesize/index.ts` (novo)
-- `supabase/functions/voice-session/index.ts` (novo)
-- `src/services/voiceAgentService.ts` (novo)
-- `src/pages/VoiceAgentsPage.tsx` (novo)
-- `src/components/voice/VoiceWaveform.tsx` (novo)
+- migration `browser_sessions`
+- `supabase/functions/browser-agent-run/index.ts` (novo)
+- `supabase/functions/browser-session-cancel/index.ts` (novo)
+- `src/services/browserAgentService.ts` (novo)
+- `src/pages/BrowserAgentPage.tsx` (novo)
 - `src/App.tsx` (rota)
 - `src/components/layout/AppSidebar.tsx` (item menu)
 
-**Nota:** TTS browser-side é zero custo e funciona offline; STT real via Gemini multimodal. Trocar por OpenAI Realtime WebRTC fica para iteração futura quando houver budget de baixa latência.
+**Nota:** "Computer Use" real (Playwright + screenshots PNG) requer container persistente fora do Deno edge runtime. Esta entrega é DOM-based agent (texto + elementos numerados) — funciona para 80% dos casos (formulários, scraping, navegação) com zero overhead. Trocar por Browserbase/E2B Desktop fica para iteração futura quando houver budget.
