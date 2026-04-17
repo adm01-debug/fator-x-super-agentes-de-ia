@@ -83,10 +83,10 @@ export function OrchestratorModule() {
   };
 
   const handleCreate = () => {
-    if (!workspace) return toast.error('Sem workspace ativo');
+    if (!workspaceId) return toast.error('Sem workspace ativo');
     const name = prompt('Nome do workflow?');
     if (!name) return;
-    createWorkflow.mutate({ name, workspace_id: workspace.id }, {
+    createWorkflow.mutate({ name, workspace_id: workspaceId }, {
       onSuccess: (w: any) => setActiveId(w.id),
     });
   };
