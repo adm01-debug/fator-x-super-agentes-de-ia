@@ -2361,6 +2361,128 @@ export type Database = {
         }
         Relationships: []
       }
+      prompt_experiment_runs: {
+        Row: {
+          cost_cents: number
+          created_at: string
+          experiment_id: string
+          id: string
+          latency_ms: number
+          prompt_version_id: string | null
+          quality_score: number | null
+          session_key: string | null
+          success: boolean
+          tokens_input: number
+          tokens_output: number
+          trace_id: string | null
+          variant: string
+        }
+        Insert: {
+          cost_cents?: number
+          created_at?: string
+          experiment_id: string
+          id?: string
+          latency_ms?: number
+          prompt_version_id?: string | null
+          quality_score?: number | null
+          session_key?: string | null
+          success?: boolean
+          tokens_input?: number
+          tokens_output?: number
+          trace_id?: string | null
+          variant: string
+        }
+        Update: {
+          cost_cents?: number
+          created_at?: string
+          experiment_id?: string
+          id?: string
+          latency_ms?: number
+          prompt_version_id?: string | null
+          quality_score?: number | null
+          session_key?: string | null
+          success?: boolean
+          tokens_input?: number
+          tokens_output?: number
+          trace_id?: string | null
+          variant?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "prompt_experiment_runs_experiment_id_fkey"
+            columns: ["experiment_id"]
+            isOneToOne: false
+            referencedRelation: "prompt_experiments"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      prompt_experiments: {
+        Row: {
+          agent_id: string
+          created_at: string
+          created_by: string
+          description: string | null
+          ended_at: string | null
+          guardrails: Json
+          id: string
+          name: string
+          started_at: string | null
+          status: string
+          success_metric: string
+          traffic_split: number
+          updated_at: string
+          variant_a_label: string
+          variant_a_version_id: string
+          variant_b_label: string
+          variant_b_version_id: string
+          winner: string | null
+          workspace_id: string
+        }
+        Insert: {
+          agent_id: string
+          created_at?: string
+          created_by: string
+          description?: string | null
+          ended_at?: string | null
+          guardrails?: Json
+          id?: string
+          name: string
+          started_at?: string | null
+          status?: string
+          success_metric?: string
+          traffic_split?: number
+          updated_at?: string
+          variant_a_label?: string
+          variant_a_version_id: string
+          variant_b_label?: string
+          variant_b_version_id: string
+          winner?: string | null
+          workspace_id: string
+        }
+        Update: {
+          agent_id?: string
+          created_at?: string
+          created_by?: string
+          description?: string | null
+          ended_at?: string | null
+          guardrails?: Json
+          id?: string
+          name?: string
+          started_at?: string | null
+          status?: string
+          success_metric?: string
+          traffic_split?: number
+          updated_at?: string
+          variant_a_label?: string
+          variant_a_version_id?: string
+          variant_b_label?: string
+          variant_b_version_id?: string
+          winner?: string | null
+          workspace_id?: string
+        }
+        Relationships: []
+      }
       prompt_versions: {
         Row: {
           agent_id: string
@@ -3670,6 +3792,14 @@ export type Database = {
         Args: { p_member_id: string }
         Returns: undefined
       }
+      assign_variant: {
+        Args: { p_experiment_id: string; p_session_key?: string }
+        Returns: string
+      }
+      compute_experiment_stats: {
+        Args: { p_experiment_id: string }
+        Returns: Json
+      }
       get_creator_earnings: { Args: { p_creator_id?: string }; Returns: Json }
       get_masked_secrets: {
         Args: { p_workspace_id: string }
@@ -3698,6 +3828,10 @@ export type Database = {
           p_metadata?: Json
         }
         Returns: undefined
+      }
+      promote_experiment_winner: {
+        Args: { p_experiment_id: string; p_winner: string }
+        Returns: Json
       }
       purchase_skill: { Args: { p_skill_id: string }; Returns: Json }
     }
