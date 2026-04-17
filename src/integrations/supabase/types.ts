@@ -1179,6 +1179,60 @@ export type Database = {
           },
         ]
       }
+      code_executions: {
+        Row: {
+          code: string
+          created_at: string
+          duration_ms: number | null
+          error_message: string | null
+          exit_code: number | null
+          files: Json | null
+          id: string
+          memory_mb: number | null
+          runtime: string
+          simulated: boolean
+          status: string
+          stderr: string | null
+          stdout: string | null
+          user_id: string
+          workspace_id: string | null
+        }
+        Insert: {
+          code: string
+          created_at?: string
+          duration_ms?: number | null
+          error_message?: string | null
+          exit_code?: number | null
+          files?: Json | null
+          id?: string
+          memory_mb?: number | null
+          runtime: string
+          simulated?: boolean
+          status?: string
+          stderr?: string | null
+          stdout?: string | null
+          user_id: string
+          workspace_id?: string | null
+        }
+        Update: {
+          code?: string
+          created_at?: string
+          duration_ms?: number | null
+          error_message?: string | null
+          exit_code?: number | null
+          files?: Json | null
+          id?: string
+          memory_mb?: number | null
+          runtime?: string
+          simulated?: boolean
+          status?: string
+          stderr?: string | null
+          stdout?: string | null
+          user_id?: string
+          workspace_id?: string | null
+        }
+        Relationships: []
+      }
       collections: {
         Row: {
           created_at: string | null
