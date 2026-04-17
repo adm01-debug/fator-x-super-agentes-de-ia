@@ -1,5 +1,6 @@
 /**
  * Chaos Engineering service — list, create, disable experiments
+ * Uses local Supabase (where chaos_experiments table lives).
  */
 import { supabase } from '@/integrations/supabase/client';
 
@@ -25,9 +26,9 @@ export interface CreateChaosInput {
   name: string;
   target: ChaosTarget;
   fault_type: ChaosFaultType;
-  probability: number; // 0..0.5
+  probability: number;
   latency_ms?: number;
-  duration_seconds: number; // 1..3600
+  duration_seconds: number;
 }
 
 const MAX_PROBABILITY = 0.5;
@@ -59,13 +60,13 @@ export async function listActiveChaosExperiments(workspaceId: string): Promise<C
 
 export async function createChaosExperiment(input: CreateChaosInput): Promise<ChaosExperiment> {
   if (input.probability < 0 || input.probability > MAX_PROBABILITY) {
-    throw new Error(`probability must be between 0 and ${MAX_PROBABILITY}`);
+    throw new Error(`probabilidade deve estar entre 0 e ${MAX_PROBABILITY * 100}%`);
   }
   if (input.duration_seconds < 1 || input.duration_seconds > MAX_DURATION_SEC) {
-    throw new Error(`duration must be between 1 and ${MAX_DURATION_SEC} seconds`);
+    throw new Error(`duração deve estar entre 1 e ${MAX_DURATION_SEC} segundos`);
   }
   const { data: userData } = await supabase.auth.getUser();
-  if (!userData.user) throw new Error('not authenticated');
+  if (!userData.user) throw new Error('não autenticado');
 
   const expires_at = new Date(Date.now() + input.duration_seconds * 1000).toISOString();
   const { data, error } = await supabase
