@@ -1,29 +1,32 @@
 
-Próxima melhoria da fila da auditoria: 🔴 **Wave 1 — Quick Win #1: Mascarar emails em `workspace_members`** (ação top de ROI: alto impacto / baixo esforço, fecha o único finding ERROR do scan de segurança).
+Próxima melhoria: 🔴 **Wave 1 — Quick Win #2: Injetar headers de segurança (CSP, HSTS, X-Content-Type-Options, Referrer-Policy, Permissions-Policy)**.
 
 ## Problema
-`workspace_members.email` exposto a qualquer membro do workspace via RLS atual → harvesting de emails para phishing/spam. Único finding **ERROR** do scan.
+`index.html` não envia headers de segurança modernos. CSP foi removido anteriormente para destravar o Vite, ficou pendente reintrodução em modo compatível. Sem CSP/HSTS o app fica exposto a XSS reflexivo, clickjacking via iframe terceiro e downgrade TLS.
 
 ## Plano
 
-**Migration:**
-1. Criar view `public.workspace_members_safe` com email mascarado (`a***@domain.com`) para membros não-admin; admins veem email completo.
-2. Revogar SELECT direto de `workspace_members.email` para usuários comuns via policy reescrita: política atual permite ver todos os membros do workspace → trocar por política que separa SELECT de colunas sensíveis.
-   - Estratégia escolhida: manter RLS atual (permite ver linhas), mas criar **função `get_workspace_member_email(member_id)`** SECURITY DEFINER que retorna email completo só para admin/dono, senão mascarado.
-   - Frontend passa a usar a view `workspace_members_safe` em listagens.
-3. Função utilitária `mask_email(text)` em SQL: `left(local,1) || '***@' || domain`.
+**1. `index.html` — injetar via `<meta http-equiv>` (compatível com Lovable preview):**
+- `Content-Security-Policy` permissivo o suficiente para Vite + Supabase + Lovable preview:
+  - `default-src 'self'`
+  - `script-src 'self' 'unsafe-inline' 'unsafe-eval' https://cdn.gpteng.co https://*.lovable.app https://*.lovable.dev`
+  - `style-src 'self' 'unsafe-inline' https://fonts.googleapis.com`
+  - `font-src 'self' data: https://fonts.gstatic.com`
+  - `img-src 'self' data: blob: https:`
+  - `connect-src 'self' https://*.supabase.co wss://*.supabase.co https://*.lovable.app https://*.lovable.dev`
+  - `frame-ancestors 'self' https://*.lovable.app https://*.lovable.dev` (permite preview embed)
+- `Referrer-Policy: strict-origin-when-cross-origin`
+- `X-Content-Type-Options: nosniff`
+- `Permissions-Policy: camera=(), microphone=(self), geolocation=(), payment=()` — microphone permitido pra Voice Agent (#8)
+- ⚠️ HSTS e X-Frame-Options **não funcionam via meta** — só via header HTTP. Documentar em `RUNBOOK.md` que produção (Lovable hosting) já injeta HSTS automaticamente via CDN.
 
-**Frontend:**
-- `src/services/workspaceService.ts` (ou equivalente): trocar `from('workspace_members')` por `from('workspace_members_safe')` em listagens de membros.
-- Localizar componentes que renderizam lista de membros (provável `src/pages/admin/` ou `src/components/workspace/`) e atualizar tipos.
+**2. `RUNBOOK.md` (criar se não existir):** seção "Security Headers" listando o que está em meta vs o que vem do edge.
 
 **Validação:**
-- `tsc` clean.
-- Re-run security scan → finding `workspace_members_email_exposed` deve sair de ERROR.
-- Mark finding as fixed.
+- Abrir DevTools → Network → ver response headers do HTML.
+- Console sem erros de CSP bloqueando assets legítimos.
+- Re-run security scan.
 
 **Arquivos:**
-- migration nova (mask_email + view + grants)
-- `src/services/workspaceService.ts` (ajuste de query)
-- 1-2 componentes de UI (ajuste de tipo)
-- `src/integrations/supabase/types.ts` (auto-regen)
+- `index.html` (injeção de 5 metas)
+- `RUNBOOK.md` (nova seção ou criar arquivo)
