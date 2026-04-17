@@ -8,6 +8,7 @@ export const TABS = [
   { id: 'tools',          label: 'Ferramentas & MCP',  icon: '🔧', order: 5 },
   { id: 'prompt',         label: 'Prompts & Versões',  icon: '✍️', order: 6 },
   { id: 'orchestration',  label: 'Orquestração',       icon: '🎼', order: 7 },
+  { id: 'orchestrator',   label: 'Visual Orchestrator',icon: '🎨', order: 7.5 },
   { id: 'guardrails',     label: 'Guardrails',         icon: '🛡️', order: 8 },
   { id: 'testing',        label: 'Avaliação & Testes', icon: '🧪', order: 9 },
   { id: 'evals',          label: 'Eval Suite (Auto)',  icon: '🤖', order: 9.5 },
