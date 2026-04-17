@@ -1,5 +1,5 @@
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.57.4';
-import { startEdgeTrace, type EdgeTraceContext } from '../_shared/otel.ts';
+import { startEdgeTrace } from '../_shared/otel.ts';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
