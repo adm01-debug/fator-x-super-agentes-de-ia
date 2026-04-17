@@ -1,51 +1,60 @@
 
-Sprint 25 (k6 load test) completo ✅. Score 10/10 mantido. Próximo da fila Continuous Hardening: 🟢 **Sprint 26 — OpenTelemetry tracing nas edge functions críticas**.
+Sprint 26 (OTel tracing) completo ✅. Score 10/10 mantido. Próximo da fila Continuous Hardening: 🟢 **Sprint 27 — SLO Dashboards & Alerting**.
 
 ## Por quê
-- Já temos tracing client-side (`src/lib/tracing.ts`) com spans, attributes e exporters (Supabase + Langfuse)
-- Edge functions (`llm-gateway`, agent execution) são caixa-preta: sem visibilidade de latência por etapa, falhas de provider, retry overhead
-- OTel-compatible spans permitem correlacionar trace client → edge function → LLM provider em um único waterfall
-- Fecha o tripé observabilidade: client traces (✅) + edge traces (Sprint 26) + load metrics (✅ Sprint 25)
+- Temos traces (Sprint 26), load tests (Sprint 25), visual regression (Sprint 24) — mas **nenhuma view consolidada de saúde do sistema em tempo real**
+- SLOs (Service Level Objectives) traduzem métricas brutas em "estamos OK ou não?" para o usuário/admin
+- Fecha o ciclo observabilidade: traces (debug) + load (capacidade) + SLO dashboard (saúde contínua)
+- Reuso total: dados já existem em `traces`/`spans` tables — só falta agregação + UI
 
 ## Plano
 
-**1. `supabase/functions/_shared/otel.ts` (novo):** mini-tracer compatível com OTel semantic conventions
-- `startSpan(name, kind, parentTraceId?)` retorna handle com `setAttribute`, `setStatus`, `end`
-- `withSpan(name, kind, fn)` helper async
-- Exporta para Supabase via `traces`/`spans` tables (mesmo schema do client)
-- Aceita `traceparent` header (W3C Trace Context) para continuação cross-tier
-- Lê env `LANGFUSE_PUBLIC_KEY` opcional para forward direto
+**1. SQL — view de agregação (`supabase/migrations/`):**
+- View `slo_metrics_hourly` agregando `traces` + `spans` por hora:
+  - `success_rate` = traces ok / total
+  - `p50_latency_ms`, `p95_latency_ms`, `p99_latency_ms` (via `percentile_cont`)
+  - `error_count`, `total_traces`, `total_cost_usd`
+  - Particionada por `agent_id` (nullable)
+- RPC `get_slo_summary(p_window_hours int)` retorna resumo + targets
+- RLS: somente workspace members veem dados do próprio workspace
 
-**2. Instrumentar `supabase/functions/llm-gateway/index.ts`:**
-- Span raiz `llm-gateway.handle` (kind=`server`)
-- Sub-spans: `auth.verify`, `quota.check`, `provider.call` (com `gen_ai.request.model`, `gen_ai.usage.*`, `cost.usd`), `response.format`
-- Propagar `traceparent` se cliente enviou
-- Status `error` em qualquer throw + `status_message`
+**2. Targets de SLO (constantes no client):**
+- `src/lib/slo/sloTargets.ts`: latência P95 < 2000ms, success rate > 99%, error budget mensal de 0.1%
+- Tipo `SLOStatus = 'healthy' | 'warning' | 'breached'` com thresholds
 
-**3. Instrumentar 1 edge function de agent execution** (descobrir qual via `code--list_dir supabase/functions/`):
-- Span raiz por execução
-- Sub-spans por tool call / step
+**3. UI — `src/pages/SLODashboard.tsx` (nova rota `/observability/slo`):**
+- 4 cards principais (success rate, P95, P99, error budget restante) com semáforo color-coded
+- Gráfico recharts: linha temporal P95 das últimas 24h com banda de target
+- Tabela: agentes com pior performance (top 5)
+- Botão "Refresh" + auto-refresh 60s
+- Empty state se sem dados
 
-**4. Client tracing — propagação:**
-- Atualizar `src/lib/tracing.ts` ou wrapper de chamada a edge function para enviar header `traceparent: 00-{traceId}-{spanId}-01`
-- Buscar onde `supabase.functions.invoke('llm-gateway', ...)` é chamado e injetar header
+**4. Sidebar:** adicionar item "SLO Dashboard" sob seção Observability/Admin (ícone `Activity`)
 
-**5. `docs/RUNBOOK.md`:** seção "Distributed Tracing"
-- Diagrama waterfall esperado
-- Como debugar trace em Langfuse/Supabase
-- Convenções de naming OTel
+**5. Alerting client-side (lightweight):**
+- `src/hooks/useSLOAlerts.ts`: polling RPC a cada 5min, dispara `toast.error` se algum SLO breached
+- Hook montado em `App.tsx` (apenas para admin)
 
-**6. `mem://features/audit-improvements`:** Sprint 26 logged + nova fila (Sprint 27 SLO dashboards, Sprint 28 chaos testing).
+**6. `docs/RUNBOOK.md`:** seção "SLO Monitoring"
+- Tabela de SLOs com targets
+- Como interpretar burn rate
+- Resposta a breach
+
+**7. `mem://features/audit-improvements`:** Sprint 27 logged + fila atualizada (Sprint 28 chaos testing, Sprint 29 sintetic monitoring).
 
 ## Arquivos
-- `supabase/functions/_shared/otel.ts` (novo)
-- `supabase/functions/llm-gateway/index.ts` (instrumentar)
-- 1 outra edge function crítica (descobrir + instrumentar)
-- `src/lib/tracing.ts` ou call site (propagação `traceparent`)
+- `supabase/migrations/<timestamp>_slo_view.sql` (view + RPC + RLS)
+- `src/lib/slo/sloTargets.ts` (novo)
+- `src/lib/slo/sloService.ts` (novo, fetch via RPC)
+- `src/pages/SLODashboard.tsx` (nova)
+- `src/hooks/useSLOAlerts.ts` (novo)
+- `src/components/Sidebar.tsx` (item menu)
+- `src/App.tsx` (rota + hook)
 - `docs/RUNBOOK.md` (seção)
 - `.lovable/memory/features/audit-improvements.md` (append)
 
 ## Validação
-- Chamada do client a `llm-gateway` gera trace único com 5+ spans encadeados
-- Erro injetado no provider = span com status `error` + message preservada
-- Header `traceparent` ausente = trace novo gerado (não quebra)
+- Rota `/observability/slo` mostra 4 cards + gráfico com dados reais de `traces`
+- Sem dados: empty state com CTA "Execute um agente para gerar métricas"
+- SLO breached = card vermelho + toast de alerta para admin
+- RPC respeita RLS (workspace isolation)
