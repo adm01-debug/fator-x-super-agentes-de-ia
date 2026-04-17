@@ -60,6 +60,7 @@ const SearchPage = lazy(() => import("./pages/SearchPage"));
 const NLPPipelinePage = lazy(() => import("./pages/NLPPipelinePage"));
 const TracesTimelinePage = lazy(() => import("./pages/TracesTimelinePage"));
 const VoiceAgentStudioPage = lazy(() => import("./pages/VoiceAgentStudioPage"));
+const VoiceAgentsPage = lazy(() => import("./pages/VoiceAgentsPage"));
 const ReplayForkPage = lazy(() => import("./pages/ReplayForkPage"));
 const EnterpriseSSOPage = lazy(() => import("./pages/EnterpriseSSOPage"));
 const DataResidencyPage = lazy(() => import("./pages/DataResidencyPage"));
@@ -189,6 +190,7 @@ const App = () => (
                       <Route path="/nlp" element={<SafePage><NLPPipelinePage /></SafePage>} />
                       <Route path="/traces" element={<SafePage><TracesTimelinePage /></SafePage>} />
                       <Route path="/voice" element={<SafePage><VoiceAgentStudioPage /></SafePage>} />
+                      <Route path="/voice-agents" element={<SafePage><VoiceAgentsPage /></SafePage>} />
                       <Route path="/replay" element={<SafePage><ReplayForkPage /></SafePage>} />
                       <Route path="/sso" element={<SafePage><ProtectedRoute permission="settings.api_keys"><EnterpriseSSOPage /></ProtectedRoute></SafePage>} />
                       <Route path="/residency" element={<SafePage><ProtectedRoute permission="settings.api_keys"><DataResidencyPage /></ProtectedRoute></SafePage>} />

@@ -3252,6 +3252,75 @@ export type Database = {
           },
         ]
       }
+      voice_sessions: {
+        Row: {
+          agent_id: string | null
+          audio_in_seconds: number
+          audio_out_seconds: number
+          cost_cents: number
+          created_at: string
+          duration_ms: number
+          ended_at: string | null
+          id: string
+          metadata: Json
+          started_at: string
+          status: string
+          transcript: Json
+          updated_at: string
+          user_id: string
+          workspace_id: string | null
+        }
+        Insert: {
+          agent_id?: string | null
+          audio_in_seconds?: number
+          audio_out_seconds?: number
+          cost_cents?: number
+          created_at?: string
+          duration_ms?: number
+          ended_at?: string | null
+          id?: string
+          metadata?: Json
+          started_at?: string
+          status?: string
+          transcript?: Json
+          updated_at?: string
+          user_id: string
+          workspace_id?: string | null
+        }
+        Update: {
+          agent_id?: string | null
+          audio_in_seconds?: number
+          audio_out_seconds?: number
+          cost_cents?: number
+          created_at?: string
+          duration_ms?: number
+          ended_at?: string | null
+          id?: string
+          metadata?: Json
+          started_at?: string
+          status?: string
+          transcript?: Json
+          updated_at?: string
+          user_id?: string
+          workspace_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "voice_sessions_agent_id_fkey"
+            columns: ["agent_id"]
+            isOneToOne: false
+            referencedRelation: "agents"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "voice_sessions_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       workflow_runs: {
         Row: {
           completed_at: string | null
