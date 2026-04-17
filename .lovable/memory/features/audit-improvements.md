@@ -97,7 +97,20 @@ type: feature
 - .github/workflows/ci.yml: env vars adicionados ao job e2e-tests + warning step quando service key ausente
 - RUNBOOK.md: Auth E2E Tests section (estratégia, comandos, tabela de cenários, política, debug)
 
-## Next candidates
-- (vazio) — Auditoria 100% completa ✅
+## Completed — Sprint 23 (Mobile Lighthouse + Runtime A11y) — Continuous Hardening
+- lighthouserc.mobile.json: preset mobile, throttling 4G, perf ≥0.75, LCP ≤4000ms, TBT ≤600ms (a11y/CLS mantidos rígidos)
+- @axe-core/playwright dep adicionada
+- e2e/helpers/a11y.ts: expectNoA11yViolations() com tags wcag2a+wcag2aa+wcag21aa, falha em serious/critical, warn em moderate/minor, anexa JSON ao testInfo
+- e2e/auth.spec.ts: 1 assertion axe no render inicial
+- e2e/auth-flows.spec.ts: 1 assertion axe pós-login (cobre shell autenticado + sidebar)
+- .github/workflows/ci.yml: job lighthouse refatorado para matrix [desktop, mobile] com artifacts separados
+- package.json: scripts lhci, lhci:mobile, lhci:local (roda os dois)
+- RUNBOOK.md: seção "Mobile Performance + Runtime A11y" com tabela comparativa de budgets + política de impact levels
 
-## Score Final: 10/10 ✅ (Sprint 22 complete — fila zerada)
+## Continuous Hardening Queue
+- Sprint 24 — Visual regression (Playwright screenshots baseline)
+- Sprint 25 — k6 load test do edge function crítico (chat completion)
+- Sprint 26 — OpenTelemetry tracing distribuído (frontend → edge → DB)
+
+## Score: 10/10 ✅ mantido (Sprint 23 — primeiro hardening além da auditoria original)
+
