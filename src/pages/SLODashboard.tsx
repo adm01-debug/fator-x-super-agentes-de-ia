@@ -208,35 +208,19 @@ export default function SLODashboard() {
                     Sem dados temporais para esta janela
                   </div>
                 ) : (
-                  <ResponsiveContainer width="100%" height={280}>
-                    <AreaChart data={chartData}>
-                      <defs>
-                        <linearGradient id="p95g" x1="0" y1="0" x2="0" y2="1">
-                          <stop offset="5%" stopColor="hsl(var(--primary))" stopOpacity={0.4} />
-                          <stop offset="95%" stopColor="hsl(var(--primary))" stopOpacity={0} />
-                        </linearGradient>
-                      </defs>
-                      <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" opacity={0.3} />
-                      <XAxis dataKey="time" stroke="hsl(var(--muted-foreground))" fontSize={11} />
-                      <YAxis stroke="hsl(var(--muted-foreground))" fontSize={11} />
-                      <Tooltip
-                        contentStyle={{
-                          background: 'hsl(var(--popover))',
-                          border: '1px solid hsl(var(--border))',
-                          borderRadius: 8,
-                          fontSize: 12,
-                        }}
-                      />
-                      <ReferenceLine
-                        y={SLO_TARGETS.p95LatencyMs}
-                        stroke="hsl(var(--destructive))"
-                        strokeDasharray="4 4"
-                        label={{ value: 'Alvo', fill: 'hsl(var(--destructive))', fontSize: 10, position: 'right' }}
-                      />
-                      <Area type="monotone" dataKey="p95" stroke="hsl(var(--primary))" fill="url(#p95g)" strokeWidth={2} />
-                      <Area type="monotone" dataKey="p50" stroke="hsl(var(--muted-foreground))" fill="transparent" strokeWidth={1.5} strokeDasharray="3 3" />
-                    </AreaChart>
-                  </ResponsiveContainer>
+                  <LightAreaChart
+                    data={chartData}
+                    xKey="time"
+                    height={280}
+                    yFormatter={(v) => `${v}ms`}
+                    tooltipFormatter={(v, name) => `${v}ms (${name})`}
+                    showLegend
+                    series={[
+                      { dataKey: 'p95', name: 'P95', stroke: 'hsl(var(--primary))', strokeWidth: 2 },
+                      { dataKey: 'p50', name: 'P50', stroke: 'hsl(var(--muted-foreground))', fill: 'transparent', strokeWidth: 1.5 },
+                      { dataKey: 'target', name: `Alvo ${SLO_TARGETS.p95LatencyMs}ms`, stroke: 'hsl(var(--destructive))', fill: 'transparent', strokeWidth: 1 },
+                    ]}
+                  />
                 )}
               </CardContent>
             </Card>
