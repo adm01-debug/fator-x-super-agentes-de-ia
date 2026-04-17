@@ -83,6 +83,7 @@ const navSections = [
       { title: "Traces & Spans", url: "/traces", icon: Activity },
       { title: "Replay & Fork", url: "/replay", icon: GitBranchIcon },
       { title: "Voice Agent", url: "/voice", icon: Mic },
+      { title: "Voice Realtime", url: "/voice-agents", icon: Mic },
       { title: "Dados & Storage", url: "/data-storage", icon: Database },
       { title: "DataHub", url: "/datahub", icon: ServerCog },
     ],
