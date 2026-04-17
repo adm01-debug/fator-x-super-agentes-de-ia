@@ -157,9 +157,53 @@ export function CommandPalette() {
 
   return (
     <CommandDialog open={open} onOpenChange={setOpen}>
-      <CommandInput placeholder="Buscar agentes, bases de conhecimento, workflows, páginas..." />
+      <CommandInput
+        placeholder="Buscar em todo o workspace — agentes, bases, artigos, workflows..."
+        value={search}
+        onValueChange={setSearch}
+      />
       <CommandList>
-        <CommandEmpty>Nenhum resultado encontrado.</CommandEmpty>
+        <CommandEmpty>
+          {isSearching ? (
+            <div className="flex items-center justify-center gap-2 text-muted-foreground">
+              <Loader2 className="h-3.5 w-3.5 animate-spin" /> Buscando…
+            </div>
+          ) : (
+            "Nenhum resultado encontrado."
+          )}
+        </CommandEmpty>
+
+        {/* Global semantic search results */}
+        {globalHits.length > 0 && (
+          <>
+            <CommandGroup heading={`Resultados${isSearching ? " (atualizando…)" : ""}`}>
+              {globalHits.map((hit) => {
+                const meta = TYPE_META[hit.type] ?? TYPE_META.document;
+                const Icon = meta.icon;
+                return (
+                  <CommandItem
+                    key={`${hit.type}-${hit.id}`}
+                    value={`${hit.type}-${hit.id}-${hit.title}`}
+                    onSelect={() => go(hit.url)}
+                    className="gap-2"
+                  >
+                    <Icon className={`h-4 w-4 ${meta.color}`} />
+                    <div className="flex flex-col min-w-0 flex-1">
+                      <span className="truncate">{hit.title}</span>
+                      {hit.snippet && (
+                        <span className="text-[11px] text-muted-foreground truncate">{hit.snippet}</span>
+                      )}
+                    </div>
+                    <span className="ml-auto text-[10px] uppercase tracking-wide text-muted-foreground/70 shrink-0">
+                      {meta.label}
+                    </span>
+                  </CommandItem>
+                );
+              })}
+            </CommandGroup>
+            <CommandSeparator />
+          </>
+        )}
 
         {/* Recent */}
         {recentItems.length > 0 && (
