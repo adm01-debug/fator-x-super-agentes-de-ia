@@ -209,7 +209,8 @@ export class EdgeTraceContext {
     }
   }
 
-  end(status: "ok" | "error" = "ok"): TraceRecord {
+  end(status: "ok" | "error" = "ok"): TraceRecord | null {
+    if (this.endTime != null) return null; // idempotent — already ended
     this.status = status;
     this.endTime = Date.now();
     // Auto-close any orphan spans
