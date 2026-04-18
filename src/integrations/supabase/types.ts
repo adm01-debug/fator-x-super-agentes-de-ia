@@ -6879,6 +6879,16 @@ export type Database = {
           workspace_id: string
         }[]
       }
+      get_pending_invites_for_email: {
+        Args: { _email: string }
+        Returns: {
+          id: string
+          invited_at: string
+          name: string
+          role: string
+          workspace_id: string
+        }[]
+      }
       get_pentest_summary: { Args: { p_workspace_id: string }; Returns: Json }
       get_risk_summary: { Args: { p_workspace_id: string }; Returns: Json }
       get_secrets_status_summary: {
