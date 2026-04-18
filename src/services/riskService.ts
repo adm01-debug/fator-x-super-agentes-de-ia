@@ -114,7 +114,7 @@ export async function registerRisk(params: {
   const { data, error } = await supabase.rpc('register_risk', {
     p_workspace_id: params.workspaceId,
     p_title: params.title,
-    p_description: params.description ?? undefined,
+    p_description: params.description ?? '',
     p_category: params.category,
     p_likelihood: params.likelihood,
     p_impact: params.impact,
