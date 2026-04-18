@@ -104,6 +104,8 @@ const navSections = [
     key: "admin",
     items: [
       { title: "Segurança", url: "/security", icon: Shield },
+      { title: "SBOM", url: "/security/sbom", icon: Package },
+      { title: "Vulnerabilidades", url: "/security/vulnerabilities", icon: ShieldAlert },
       { title: "SSO Enterprise", url: "/sso", icon: KeyRound },
       { title: "Data Residency", url: "/residency", icon: Globe2 },
       { title: "LGPD", url: "/lgpd", icon: ShieldCheck },
