@@ -15,7 +15,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useAuth } from "@/contexts/AuthContext";
-import { getWorkspaceInfo } from "@/lib/agentService";
+import { getWorkspaceId } from "@/lib/agentService";
 import {
   type BusinessSystem, type BcpTestRun, type BcpSummary,
   type BcpCategory, type BcpCriticality, type BcpSystemStatus, type BcpTestType,
@@ -76,9 +76,7 @@ export default function BCPPage() {
 
   useEffect(() => {
     if (!user) return;
-    getWorkspaceInfo().then((info) => {
-      if (info && (info as { id?: string }).id) setWorkspaceId((info as { id: string }).id);
-    });
+    getWorkspaceId().then((id) => { if (id) setWorkspaceId(id); });
   }, [user]);
 
   const refresh = async () => {
