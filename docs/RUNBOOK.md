@@ -794,3 +794,44 @@ Admin pode desativar playbook a qualquer momento via toggle. Para emergências, 
 ### Cadência recomendada
 - **Mensal**: revisar `incident_runs` e ajustar cooldown/actions
 - **Trimestral**: rotacionar on-call e validar cobertura 24/7
+
+---
+
+## Disaster Recovery Drills
+
+Validação programada de backup → restore para garantir continuidade real do negócio.
+
+### Cadência recomendada
+- **Semanal**: drill de tabelas críticas (`agents`, `agent_traces`, `workspaces`, `workspace_members`)
+- **Mensal**: drill de workspace completo (todas as tabelas dependentes de um workspace)
+- **Trimestral**: drill full DR (simulação de perda total de região)
+
+### Targets RTO/RPO recomendados
+| Escopo | RTO | RPO |
+|---|---|---|
+| Tabelas críticas | ≤ 5 min | ≤ 1 min |
+| Workspace | ≤ 15 min | ≤ 5 min |
+| Full DR | ≤ 30 min | ≤ 10 min |
+
+### Como executar
+1. Acessar `/observability/dr-drills` (workspace admin)
+2. Clicar "Agendar Drill" → escolher template ou customizar
+3. Definir RTO/RPO targets e tabelas alvo
+4. Executar manualmente via "Executar"
+5. Acompanhar timeline em tempo real (snapshots → isolate → restore → validate → cleanup)
+6. Revisar gauge RTO/RPO: ✓ verde (<80% target), ⚠ amber (80-100%), ✗ vermelho (>100%)
+
+### Procedimento real de recovery
+1. Identificar último snapshot bom em `dr_snapshots`
+2. Isolar shadow schema: `CREATE SCHEMA dr_restore_<timestamp>`
+3. Restaurar via `pg_restore` ou logical replay do PITR
+4. Validar checksums via `start_dr_drill` (compara row_count + md5)
+5. Promover schema isolado: `ALTER SCHEMA public RENAME TO public_corrupted; ALTER SCHEMA dr_restore_X RENAME TO public;`
+6. Notificar via incident playbook (`page_oncall`)
+
+### Drift detection
+Validation step falha se row count drift > 10% vs snapshot. Indica corrupção ou inconsistência.
+
+### Escalação
+- RTO > target em 2 drills consecutivos → revisão de arquitetura
+- Validation failed → bloquear deploys até root-cause analysis

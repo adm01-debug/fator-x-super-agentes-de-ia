@@ -1790,6 +1790,168 @@ export type Database = {
           },
         ]
       }
+      dr_drills: {
+        Row: {
+          actual_rpo_seconds: number | null
+          actual_rto_seconds: number | null
+          created_at: string
+          created_by: string
+          description: string | null
+          ended_at: string | null
+          error_message: string | null
+          executor_id: string | null
+          id: string
+          name: string
+          rpo_target_seconds: number
+          rto_target_seconds: number
+          scheduled_at: string
+          scope: string
+          started_at: string | null
+          status: string
+          success: boolean | null
+          target_tables: string[]
+          updated_at: string
+          workspace_id: string
+        }
+        Insert: {
+          actual_rpo_seconds?: number | null
+          actual_rto_seconds?: number | null
+          created_at?: string
+          created_by: string
+          description?: string | null
+          ended_at?: string | null
+          error_message?: string | null
+          executor_id?: string | null
+          id?: string
+          name: string
+          rpo_target_seconds?: number
+          rto_target_seconds?: number
+          scheduled_at?: string
+          scope: string
+          started_at?: string | null
+          status?: string
+          success?: boolean | null
+          target_tables?: string[]
+          updated_at?: string
+          workspace_id: string
+        }
+        Update: {
+          actual_rpo_seconds?: number | null
+          actual_rto_seconds?: number | null
+          created_at?: string
+          created_by?: string
+          description?: string | null
+          ended_at?: string | null
+          error_message?: string | null
+          executor_id?: string | null
+          id?: string
+          name?: string
+          rpo_target_seconds?: number
+          rto_target_seconds?: number
+          scheduled_at?: string
+          scope?: string
+          started_at?: string | null
+          status?: string
+          success?: boolean | null
+          target_tables?: string[]
+          updated_at?: string
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "dr_drills_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      dr_restore_logs: {
+        Row: {
+          drill_id: string
+          duration_ms: number | null
+          ended_at: string | null
+          error_message: string | null
+          id: string
+          metadata: Json
+          started_at: string
+          status: string
+          step: string
+        }
+        Insert: {
+          drill_id: string
+          duration_ms?: number | null
+          ended_at?: string | null
+          error_message?: string | null
+          id?: string
+          metadata?: Json
+          started_at?: string
+          status: string
+          step: string
+        }
+        Update: {
+          drill_id?: string
+          duration_ms?: number | null
+          ended_at?: string | null
+          error_message?: string | null
+          id?: string
+          metadata?: Json
+          started_at?: string
+          status?: string
+          step?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "dr_restore_logs_drill_id_fkey"
+            columns: ["drill_id"]
+            isOneToOne: false
+            referencedRelation: "dr_drills"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      dr_snapshots: {
+        Row: {
+          captured_at: string
+          checksum: string
+          drill_id: string
+          id: string
+          row_count: number
+          size_bytes: number
+          snapshot_data: Json
+          table_name: string
+        }
+        Insert: {
+          captured_at?: string
+          checksum?: string
+          drill_id: string
+          id?: string
+          row_count?: number
+          size_bytes?: number
+          snapshot_data?: Json
+          table_name: string
+        }
+        Update: {
+          captured_at?: string
+          checksum?: string
+          drill_id?: string
+          id?: string
+          row_count?: number
+          size_bytes?: number
+          snapshot_data?: Json
+          table_name?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "dr_snapshots_drill_id_fkey"
+            columns: ["drill_id"]
+            isOneToOne: false
+            referencedRelation: "dr_drills"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       environments: {
         Row: {
           config: Json | null
@@ -4721,6 +4883,16 @@ export type Database = {
         Returns: string
       }
       check_budget: { Args: { p_workspace_id: string }; Returns: Json }
+      complete_dr_drill: {
+        Args: {
+          p_actual_rpo_seconds: number
+          p_actual_rto_seconds: number
+          p_drill_id: string
+          p_error_message?: string
+          p_success: boolean
+        }
+        Returns: Json
+      }
       complete_game_day: {
         Args: {
           p_game_day_id: string
@@ -4810,6 +4982,16 @@ export type Database = {
         Returns: Json
       }
       purchase_skill: { Args: { p_skill_id: string }; Returns: Json }
+      record_dr_step: {
+        Args: {
+          p_drill_id: string
+          p_error?: string
+          p_metadata?: Json
+          p_status: string
+          p_step: string
+        }
+        Returns: string
+      }
       record_game_day_event: {
         Args: {
           p_description: string
@@ -4823,6 +5005,7 @@ export type Database = {
         Args: { p_workspace_id: string }
         Returns: Json
       }
+      start_dr_drill: { Args: { p_drill_id: string }; Returns: Json }
       start_game_day: {
         Args: { p_game_day_id: string; p_inject_chaos?: boolean }
         Returns: Json

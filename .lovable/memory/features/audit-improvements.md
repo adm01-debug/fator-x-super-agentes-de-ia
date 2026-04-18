@@ -243,6 +243,16 @@ type: feature
 - Cooldown enforcement at DB level (no double-trigger within window)
 - Runbook section: Incident Response Automation
 
+## Completed — Sprint 34 (Disaster Recovery Drills)
+- Tables: `dr_drills`, `dr_snapshots`, `dr_restore_logs` with RLS (members SELECT, admins ALL)
+- RPCs: `start_dr_drill` (snapshot row counts + md5 checksums), `record_dr_step`, `complete_dr_drill` (RTO/RPO calc + flags)
+- Edge function `dr-orchestrator`: snapshot → isolate → restore (simulated) → validate (re-count + drift check) → cleanup
+- UI: `/observability/dr-drills` (templates, scheduling, RTO/RPO gauges, expandable timeline)
+- 3 pre-built templates: Críticas semanal, Workspace mensal, Full DR trimestral
+- Realtime: live timeline updates as `dr_restore_logs` INSERT
+- Drift detection: validation fails if row count drift > 10%
+- Runbook section: Disaster Recovery (cadence, targets, procedures)
+
 ## Queue
-- Sprint 34: Disaster Recovery Drills (full backup→restore validation)
-- Sprint 35: Postmortem Templates (auto-generate from incident_runs)
+- Sprint 35: Postmortem Templates (auto-generate from incident_runs + game_days)
+- Sprint 36: Compliance Reports automation (SOC2/ISO evidence packs)
