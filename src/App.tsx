@@ -13,6 +13,7 @@ import { SLOAlertsMounter } from "@/components/shared/SLOAlertsMounter";
 import { SyntheticAlertsMounter } from "@/components/shared/SyntheticAlertsMounter";
 import { CostAnomalyAlertsMounter } from "@/components/shared/CostAnomalyAlertsMounter";
 import { BudgetEventsMounter } from "@/components/shared/BudgetEventsMounter";
+import { IncidentRunsMounter } from "@/components/shared/IncidentRunsMounter";
 import { ChaosBanner } from "@/components/shared/ChaosBanner";
 import { ErrorBoundary } from "@/components/shared/ErrorBoundary";
 import { AuthProvider } from "@/contexts/AuthContext";
@@ -93,6 +94,8 @@ const ObservabilityOTelPage = lazy(() => import("./pages/ObservabilityOTelPage")
 const DisasterRecoveryPage = lazy(() => import("./pages/DisasterRecoveryPage"));
 const GameDaysPage = lazy(() => import("./pages/GameDaysPage"));
 const GameDayLivePage = lazy(() => import("./pages/GameDayLivePage"));
+const IncidentPlaybooksPage = lazy(() => import("./pages/IncidentPlaybooksPage"));
+const OncallPage = lazy(() => import("./pages/OncallPage"));
 const SLODashboard = lazy(() => import("./pages/SLODashboard"));
 const ChaosLabPage = lazy(() => import("./pages/ChaosLabPage"));
 const SyntheticMonitoringPage = lazy(() => import("./pages/SyntheticMonitoringPage"));
@@ -146,6 +149,7 @@ const App = () => (
               <SyntheticAlertsMounter />
               <CostAnomalyAlertsMounter />
               <BudgetEventsMounter />
+              <IncidentRunsMounter />
           <TooltipProvider>
           <Toaster />
           <Sonner />
@@ -240,6 +244,8 @@ const App = () => (
                       <Route path="/observability/cost-anomalies" element={<SafePage><CostAnomaliesPage /></SafePage>} />
                       <Route path="/observability/game-days" element={<SafePage><GameDaysPage /></SafePage>} />
                       <Route path="/observability/game-days/:id/live" element={<SafePage><GameDayLivePage /></SafePage>} />
+                      <Route path="/observability/playbooks" element={<SafePage><IncidentPlaybooksPage /></SafePage>} />
+                      <Route path="/observability/oncall" element={<SafePage><OncallPage /></SafePage>} />
                       <Route path="/disaster-recovery" element={<SafePage><ProtectedRoute permission="settings.api_keys"><DisasterRecoveryPage /></ProtectedRoute></SafePage>} />
                       <Route path="*" element={<SafePage><NotFound /></SafePage>} />
                     </Routes>
