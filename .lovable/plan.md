@@ -1,52 +1,50 @@
 
-Sprint 40 (Risk Register) ✅. Próximo da fila: 🟢 **Sprint 41 — Vendor Risk Management (TPRM)**.
+Finalizar Sprint 41 (polish) + executar Sprint 42 (BCP).
 
-## Por quê
-- Temos riscos internos, pentests, SBOM, secrets — mas **não rastreamos terceiros** (SaaS, processadores, APIs externas)
-- SOC2 CC9.2 / ISO 27001 A.15 / LGPD Art.39 exigem due diligence + monitoramento contínuo de fornecedores
-- Sem inventário, DPAs vencidos e certs SOC2 expirados viram risco invisível
+## Parte A — Polish Sprint 41
+Substituir 3 ocorrências de `bg-emerald-500/...` em `VendorsPage.tsx` por tokens semânticos `bg-success/15 text-success border-success/30` (já existentes no design system) nos badges DPA "OK", SOC2 válido e ISO válido.
 
-## Plano
+## Parte B — Sprint 42: Business Continuity Plan (BCP)
 
-**1. Migração SQL — `vendors` + `vendor_assessments` + `vendor_documents`:**
-- `vendors`: id, workspace_id, name, vendor_type (`saas`|`processor`|`api`|`infra`|`consulting`|`other`), website, contact_email, criticality (`critical`|`high`|`medium`|`low`), data_classification (`pii`|`phi`|`financial`|`confidential`|`public`), status (`active`|`under_review`|`suspended`|`offboarded`), onboarded_at, offboarded_at, dpa_signed (bool), dpa_expires_at, soc2_valid_until, iso27001_valid_until, notes, owner_id
-- `vendor_assessments`: id, vendor_id, assessed_by, assessed_at, risk_score (1-25), security_score (1-5), compliance_score (1-5), operational_score (1-5), findings (text[]), recommendations, next_review_due
-- `vendor_documents`: id, vendor_id, doc_type (`dpa`|`soc2`|`iso27001`|`pentest_report`|`questionnaire`|`contract`|`other`), title, file_url, valid_until, uploaded_by, uploaded_at
+**Por quê:** Temos riscos, vendors, pentests, postmortems — mas não temos BIA (Business Impact Analysis) nem RTO/RPO documentados por sistema crítico. ISO 22301 / SOC2 A1.2 / NIST 800-34 exigem BCP formal com testes periódicos.
+
+### 1. Migração SQL
+- `business_systems`: id, workspace_id, name, description, category (`core`|`supporting`|`analytical`|`external`), criticality (`tier_1`|`tier_2`|`tier_3`|`tier_4`), rto_minutes, rpo_minutes, mtpd_hours (Maximum Tolerable Period of Disruption), dependencies text[], owner_id, recovery_strategy, status (`operational`|`degraded`|`down`|`retired`), last_tested_at, next_test_due
+- `bcp_test_runs`: id, system_id, test_type (`tabletop`|`walkthrough`|`simulation`|`full_failover`), executed_by, executed_at, scenario, actual_rto_minutes, actual_rpo_minutes, success (bool), gaps text[], action_items, notes
 - RLS: members SELECT, admins INSERT/UPDATE
-- Trigger: ao INSERT assessment, atualiza `vendors.next_review_due` (critical=90d, high=180d, demais=365d)
+- Trigger: ao INSERT em bcp_test_runs, atualiza `last_tested_at` e `next_test_due` (tier_1=90d, tier_2=180d, tier_3=365d)
 
-**2. RPCs:**
-- `register_vendor(...)` → cria vendor
-- `assess_vendor(vendor_id, scores, findings, recs)` → registra assessment
-- `offboard_vendor(vendor_id, notes)` → status offboarded
-- `get_vendor_summary(workspace_id)` → totais por criticality, DPAs vencendo (<30d), certs expirados, assessments overdue
+### 2. RPCs
+- `register_business_system(...)` → cria sistema
+- `record_bcp_test(system_id, ...)` → registra teste + recalcula prazos
+- `get_bcp_summary(workspace_id)` → totais por tier, RTO/RPO compliance (actual vs target), tests overdue, sistemas down/degraded
 
-**3. UI — `src/pages/VendorsPage.tsx` (`/security/vendors`):**
-- Stats: total ativos, críticos, DPAs vencendo, assessments overdue, certs expirados
-- Tabela com filtros (criticality, type, status) + badges visuais (DPA expired vermelho pulsante, <30d amber)
-- "Novo vendor": dialog com type, criticality, data classification, contato
-- Drill-in Sheet: tabs **Assessments** (histórico + novo), **Documentos** (upload metadata DPA/SOC2/etc com valid_until), **Detalhes**
+### 3. UI — `src/pages/BCPPage.tsx` (`/security/bcp`)
+- Stats: sistemas críticos (tier_1), tests overdue, RTO/RPO breaches, sistemas down/degraded
+- Tabela filtrável por tier/category/status com badges (RTO/RPO em min/h, breach pulsante)
+- Dialog "Novo sistema": tier, RTO/RPO sliders, dependências, recovery strategy
+- Drill-in Sheet: tabs **Detalhes** + **Histórico de testes** (com novo teste inline)
 
-**4. `src/services/vendorRiskService.ts`:** CRUD + assessments + summary + helpers de urgência (cert expiry)
-
-**5. Sidebar:** item "Fornecedores" sob Segurança (ícone `Building`)
-
-**6. `docs/RUNBOOK.md`:** seção "Vendor Risk Management" — questionário padrão, cadências por criticality, processo de offboarding
-
-**7. `mem://features/audit-improvements`:** Sprint 41 logged + fila (Sprint 42 BCP, Sprint 43 Change Management)
+### 4. Service & integração
+- `src/services/bcpService.ts`: CRUD + tests + summary + helpers (RTO breach, test overdue)
+- Sidebar: item "Continuidade" (ícone `LifeBuoy`) sob Segurança
+- Rota lazy em `src/App.tsx`
+- `docs/RUNBOOK.md`: seção BCP (tiers, cadência de testes, escalation)
+- `mem://features/audit-improvements`: log Sprint 42 + fila (Sprint 43 Change Management)
 
 ## Arquivos
-- `supabase/migrations/<ts>_vendor_risk.sql`
-- `src/services/vendorRiskService.ts` (novo)
-- `src/pages/VendorsPage.tsx` (nova)
+- `src/pages/VendorsPage.tsx` (polish 3 badges)
+- `supabase/migrations/<ts>_bcp.sql`
+- `src/services/bcpService.ts` (novo)
+- `src/pages/BCPPage.tsx` (nova)
 - `src/components/layout/AppSidebar.tsx` (item)
 - `src/App.tsx` (rota)
 - `docs/RUNBOOK.md` (seção)
 - `.lovable/memory/features/audit-improvements.md` (append)
 
 ## Validação
-- Registrar "OpenAI" type=api criticality=critical data=confidential → next_review_due=+90d
-- Adicionar assessment scores 4/5/4 → histórico criado
-- Adicionar doc DPA com valid_until=+15d → badge amber "vencendo"
-- Forçar SOC2 expirado → badge vermelho pulsante
-- RLS: non-admin vê vendors mas não cria/avalia
+- Polish: badges OK/SOC2/ISO usam `bg-success/15` (consistente com tokens)
+- Cadastrar "Auth Service" tier_1 RTO=15min RPO=5min → next_test_due=+90d
+- Registrar teste tipo `simulation` actual_rto=25min → breach badge pulsante
+- Forçar test overdue → aparece em "tests overdue" stat
+- RLS: non-admin vê sistemas mas não cadastra/testa
