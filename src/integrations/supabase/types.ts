@@ -2752,6 +2752,13 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "forum_posts_parent_post_id_fkey"
+            columns: ["parent_post_id"]
+            isOneToOne: false
+            referencedRelation: "forum_posts_safe"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "forum_posts_thread_id_fkey"
             columns: ["thread_id"]
             isOneToOne: false
@@ -2763,6 +2770,13 @@ export type Database = {
             columns: ["thread_id"]
             isOneToOne: false
             referencedRelation: "forum_threads_public"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "forum_posts_thread_id_fkey"
+            columns: ["thread_id"]
+            isOneToOne: false
+            referencedRelation: "forum_threads_safe"
             referencedColumns: ["id"]
           },
         ]
@@ -6273,6 +6287,13 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "forum_posts_parent_post_id_fkey"
+            columns: ["parent_post_id"]
+            isOneToOne: false
+            referencedRelation: "forum_posts_safe"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "forum_posts_thread_id_fkey"
             columns: ["thread_id"]
             isOneToOne: false
@@ -6284,6 +6305,95 @@ export type Database = {
             columns: ["thread_id"]
             isOneToOne: false
             referencedRelation: "forum_threads_public"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "forum_posts_thread_id_fkey"
+            columns: ["thread_id"]
+            isOneToOne: false
+            referencedRelation: "forum_threads_safe"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      forum_posts_safe: {
+        Row: {
+          author_id: string | null
+          author_name: string | null
+          body: string | null
+          created_at: string | null
+          id: string | null
+          is_answer: boolean | null
+          parent_post_id: string | null
+          thread_id: string | null
+          updated_at: string | null
+          upvotes: number | null
+        }
+        Insert: {
+          author_id?: string | null
+          author_name?: never
+          body?: string | null
+          created_at?: string | null
+          id?: string | null
+          is_answer?: boolean | null
+          parent_post_id?: string | null
+          thread_id?: string | null
+          updated_at?: string | null
+          upvotes?: number | null
+        }
+        Update: {
+          author_id?: string | null
+          author_name?: never
+          body?: string | null
+          created_at?: string | null
+          id?: string | null
+          is_answer?: boolean | null
+          parent_post_id?: string | null
+          thread_id?: string | null
+          updated_at?: string | null
+          upvotes?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "forum_posts_parent_post_id_fkey"
+            columns: ["parent_post_id"]
+            isOneToOne: false
+            referencedRelation: "forum_posts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "forum_posts_parent_post_id_fkey"
+            columns: ["parent_post_id"]
+            isOneToOne: false
+            referencedRelation: "forum_posts_public"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "forum_posts_parent_post_id_fkey"
+            columns: ["parent_post_id"]
+            isOneToOne: false
+            referencedRelation: "forum_posts_safe"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "forum_posts_thread_id_fkey"
+            columns: ["thread_id"]
+            isOneToOne: false
+            referencedRelation: "forum_threads"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "forum_posts_thread_id_fkey"
+            columns: ["thread_id"]
+            isOneToOne: false
+            referencedRelation: "forum_threads_public"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "forum_posts_thread_id_fkey"
+            columns: ["thread_id"]
+            isOneToOne: false
+            referencedRelation: "forum_threads_safe"
             referencedColumns: ["id"]
           },
         ]
@@ -6323,6 +6433,68 @@ export type Database = {
         }
         Update: {
           author_name?: string | null
+          body?: string | null
+          category?: string | null
+          created_at?: string | null
+          help_center_id?: string | null
+          id?: string | null
+          is_locked?: boolean | null
+          is_pinned?: boolean | null
+          is_resolved?: boolean | null
+          last_activity_at?: string | null
+          reply_count?: number | null
+          title?: string | null
+          upvotes?: number | null
+          view_count?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "forum_threads_help_center_id_fkey"
+            columns: ["help_center_id"]
+            isOneToOne: false
+            referencedRelation: "help_centers"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      forum_threads_safe: {
+        Row: {
+          author_id: string | null
+          author_name: string | null
+          body: string | null
+          category: string | null
+          created_at: string | null
+          help_center_id: string | null
+          id: string | null
+          is_locked: boolean | null
+          is_pinned: boolean | null
+          is_resolved: boolean | null
+          last_activity_at: string | null
+          reply_count: number | null
+          title: string | null
+          upvotes: number | null
+          view_count: number | null
+        }
+        Insert: {
+          author_id?: string | null
+          author_name?: never
+          body?: string | null
+          category?: string | null
+          created_at?: string | null
+          help_center_id?: string | null
+          id?: string | null
+          is_locked?: boolean | null
+          is_pinned?: boolean | null
+          is_resolved?: boolean | null
+          last_activity_at?: string | null
+          reply_count?: number | null
+          title?: string | null
+          upvotes?: number | null
+          view_count?: number | null
+        }
+        Update: {
+          author_id?: string | null
+          author_name?: never
           body?: string | null
           category?: string | null
           created_at?: string | null
@@ -6472,7 +6644,6 @@ export type Database = {
       workspace_members_safe: {
         Row: {
           accepted_at: string | null
-          email: string | null
           id: string | null
           invited_at: string | null
           name: string | null
@@ -6482,7 +6653,6 @@ export type Database = {
         }
         Insert: {
           accepted_at?: string | null
-          email?: never
           id?: string | null
           invited_at?: string | null
           name?: string | null
@@ -6492,7 +6662,6 @@ export type Database = {
         }
         Update: {
           accepted_at?: string | null
-          email?: never
           id?: string | null
           invited_at?: string | null
           name?: string | null
@@ -6688,6 +6857,28 @@ export type Database = {
           updated_at: string
         }[]
       }
+      get_my_2fa_status: {
+        Args: never
+        Returns: {
+          configured_at: string
+          enabled: boolean
+          last_verified_at: string
+        }[]
+      }
+      get_oncall_with_contacts: {
+        Args: { _workspace_id: string }
+        Returns: {
+          ends_at: string
+          escalation_order: number
+          id: string
+          notes: string
+          starts_at: string
+          user_email: string
+          user_id: string
+          user_name: string
+          workspace_id: string
+        }[]
+      }
       get_pentest_summary: { Args: { p_workspace_id: string }; Returns: Json }
       get_risk_summary: { Args: { p_workspace_id: string }; Returns: Json }
       get_secrets_status_summary: {
@@ -6701,6 +6892,19 @@ export type Database = {
       }
       get_user_workspace_ids: { Args: { _user_id: string }; Returns: string[] }
       get_vendor_summary: { Args: { p_workspace_id: string }; Returns: Json }
+      get_workspace_members_full: {
+        Args: { _workspace_id: string }
+        Returns: {
+          accepted_at: string
+          email: string
+          id: string
+          invited_at: string
+          name: string
+          role: string
+          user_id: string
+          workspace_id: string
+        }[]
+      }
       increment_skill_installs: {
         Args: { p_skill_id: string }
         Returns: undefined
