@@ -636,3 +636,47 @@ Pings periódicos automáticos 24/7 simulando jornadas críticas. Detecta degrad
 - Falhas constantes mas serviço OK → revisar threshold (latência alta?)
 - Toast spam → ajustar threshold para cima ou disable check temporariamente
 - Disable individual: switch no card; disable global: `UPDATE synthetic_checks SET enabled=false`
+
+---
+
+## Cost Anomaly Detection (Sprint 30)
+
+Detecção proativa de spikes anormais de custo via z-score estatístico contra baseline rolling de 14 dias.
+
+### Como funciona
+1. **Baselines** (`compute_cost_baselines`): cron diário 3h agrega `agent_traces` últimos 14 dias por (workspace, agent, hora-do-dia, dia-da-semana) → calcula avg + stddev
+2. **Detecção** (`detect_cost_anomalies`): cron 15min compara spend última hora vs baseline da mesma hora/dia → z-score = (observed - avg) / stddev
+3. **Alerta**: se z > 2σ E observed > $0.10 → insere `cost_alerts` (severity warning ≥2σ, critical ≥3σ); dedupe 1h por scope
+4. **Realtime**: toast global via `CostAnomalyAlertsMounter`
+
+### Interpretação de z-score
+| z-score | Severidade | Significado |
+|---------|-----------|-------------|
+| < 2σ | — | Dentro do esperado, sem alerta |
+| 2σ–3σ | warning | ~5% chance de ser ruído estatístico — investigar |
+| > 3σ | critical | <0.3% chance de ruído — quase certeza de anomalia real |
+
+### Causas comuns
+- **Loop de retry** em agente (mesma chamada N vezes por timeout/erro)
+- **Modelo errado em prod** (gpt-5 vs flash-lite — 50× mais caro)
+- **Prompt injection** inflando contexto (usuário malicioso adicionando instruções longas)
+- **RAG explosion** (top_k aumentado sem revisão)
+- **Spike legítimo** (lançamento, campanha) — acknowledge e ignore
+
+### Resposta a alerta crítico
+1. Abrir `/observability/cost-anomalies` → identificar agent/scope
+2. Click "Investigar traces" → ver últimas execuções com `cost_usd` alto
+3. Se loop de retry → pause agent (`status=paused`) imediatamente
+4. Se modelo errado → corrigir config + redeploy
+5. Acknowledge alerta após mitigação
+
+### Falsos positivos comuns
+- Primeiras 14 dias sem histórico → `sample_count < 3` ignorado pelo detector
+- Madrugada com tráfego ~0 → stddev ~0, z indefinido (filtro embutido)
+- Pico legítimo recorrente (ex: campanha semanal) → será absorvido pelo baseline em 1–2 semanas
+
+### Operação
+- Recomputar baseline manual: `SELECT public.compute_cost_baselines();`
+- Detectar agora: botão "Detectar agora" na UI ou `SELECT public.detect_cost_anomalies();`
+- Ver crons: `SELECT jobname, schedule FROM cron.job WHERE jobname LIKE 'cost-%';`
+- Acknowledge requer admin do workspace

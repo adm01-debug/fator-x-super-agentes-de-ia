@@ -1473,6 +1473,106 @@ export type Database = {
         }
         Relationships: []
       }
+      cost_alerts: {
+        Row: {
+          acknowledged_at: string | null
+          acknowledged_by: string | null
+          baseline_cost_usd: number
+          id: string
+          observed_cost_usd: number
+          scope: string
+          scope_id: string | null
+          scope_label: string | null
+          severity: string
+          triggered_at: string
+          workspace_id: string
+          z_score: number
+        }
+        Insert: {
+          acknowledged_at?: string | null
+          acknowledged_by?: string | null
+          baseline_cost_usd: number
+          id?: string
+          observed_cost_usd: number
+          scope: string
+          scope_id?: string | null
+          scope_label?: string | null
+          severity: string
+          triggered_at?: string
+          workspace_id: string
+          z_score: number
+        }
+        Update: {
+          acknowledged_at?: string | null
+          acknowledged_by?: string | null
+          baseline_cost_usd?: number
+          id?: string
+          observed_cost_usd?: number
+          scope?: string
+          scope_id?: string | null
+          scope_label?: string | null
+          severity?: string
+          triggered_at?: string
+          workspace_id?: string
+          z_score?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "cost_alerts_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      cost_baselines: {
+        Row: {
+          avg_cost_usd: number
+          computed_at: string
+          day_of_week: number
+          hour_of_day: number
+          id: string
+          sample_count: number
+          scope: string
+          scope_id: string | null
+          stddev_cost_usd: number
+          workspace_id: string
+        }
+        Insert: {
+          avg_cost_usd?: number
+          computed_at?: string
+          day_of_week: number
+          hour_of_day: number
+          id?: string
+          sample_count?: number
+          scope: string
+          scope_id?: string | null
+          stddev_cost_usd?: number
+          workspace_id: string
+        }
+        Update: {
+          avg_cost_usd?: number
+          computed_at?: string
+          day_of_week?: number
+          hour_of_day?: number
+          id?: string
+          sample_count?: number
+          scope?: string
+          scope_id?: string | null
+          stddev_cost_usd?: number
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "cost_baselines_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       creator_payouts: {
         Row: {
           created_at: string
@@ -4208,14 +4308,20 @@ export type Database = {
         Args: { p_member_id: string }
         Returns: undefined
       }
+      acknowledge_cost_alert: {
+        Args: { p_alert_id: string }
+        Returns: undefined
+      }
       assign_variant: {
         Args: { p_experiment_id: string; p_session_key?: string }
         Returns: string
       }
+      compute_cost_baselines: { Args: never; Returns: Json }
       compute_experiment_stats: {
         Args: { p_experiment_id: string }
         Returns: Json
       }
+      detect_cost_anomalies: { Args: never; Returns: Json }
       disable_all_chaos: { Args: { p_workspace_id: string }; Returns: number }
       get_active_chaos_faults: {
         Args: { p_target: string }
