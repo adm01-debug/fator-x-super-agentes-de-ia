@@ -16,7 +16,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { toast } from "sonner";
 import { AlertOctagon, Plus, ShieldCheck, Clock, AlertTriangle, CheckCircle2, X } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
-import { getActiveWorkspaceId } from "@/lib/agentService";
+import { getWorkspaceId } from "@/lib/agentService";
 import {
   type Risk, type RiskCategory, type RiskTreatment, type RiskSummary, type RiskReviewEvent,
   listRisks, listRiskReviews, registerRisk, reviewRisk, closeRisk, getRiskSummary,
