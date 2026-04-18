@@ -63,21 +63,19 @@ export async function listPlaybooks(workspaceId: string): Promise<IncidentPlaybo
 }
 
 export async function createPlaybook(input: Omit<IncidentPlaybook, 'id' | 'created_at' | 'updated_at' | 'run_count' | 'last_triggered_at'> & { created_by: string }): Promise<string> {
-  const { data, error } = await supabase
-    .from('incident_playbooks')
-    .insert({
-      workspace_id: input.workspace_id,
-      name: input.name,
-      description: input.description,
-      trigger_type: input.trigger_type,
-      trigger_config: input.trigger_config,
-      actions: input.actions as never,
-      enabled: input.enabled,
-      cooldown_minutes: input.cooldown_minutes,
-      created_by: input.created_by,
-    })
-    .select('id')
-    .single();
+  const payload = {
+    workspace_id: input.workspace_id,
+    name: input.name,
+    description: input.description,
+    trigger_type: input.trigger_type,
+    trigger_config: input.trigger_config as never,
+    actions: input.actions as never,
+    enabled: input.enabled,
+    cooldown_minutes: input.cooldown_minutes,
+    created_by: input.created_by,
+  };
+  const { data, error } = await (supabase.from('incident_playbooks') as never as { insert: (p: typeof payload) => { select: (c: string) => { single: () => Promise<{ data: { id: string } | null; error: unknown }> } } })
+    .insert(payload).select('id').single();
   if (error) throw error;
   return data!.id;
 }
