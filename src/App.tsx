@@ -250,6 +250,8 @@ const App = () => (
                       <Route path="/observability/playbooks" element={<SafePage><IncidentPlaybooksPage /></SafePage>} />
                       <Route path="/observability/oncall" element={<SafePage><OncallPage /></SafePage>} />
                       <Route path="/observability/dr-drills" element={<SafePage><ProtectedRoute permission="settings.api_keys"><DRDrillsPage /></ProtectedRoute></SafePage>} />
+                      <Route path="/observability/postmortems" element={<SafePage><PostmortemsPage /></SafePage>} />
+                      <Route path="/observability/postmortems/:id" element={<SafePage><PostmortemEditorPage /></SafePage>} />
                       <Route path="/disaster-recovery" element={<SafePage><ProtectedRoute permission="settings.api_keys"><DisasterRecoveryPage /></ProtectedRoute></SafePage>} />
                       <Route path="*" element={<SafePage><NotFound /></SafePage>} />
                     </Routes>
