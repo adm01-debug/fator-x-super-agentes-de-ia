@@ -19,7 +19,7 @@ import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { toast } from "sonner";
-import { KeyRound, RefreshCw, AlertTriangle, CheckCircle2, Clock, Archive, Plus, RotateCw, ShieldAlert } from "lucide-react";
+import { KeyRound, RefreshCw, CheckCircle2, Clock, Archive, Plus, RotateCw, ShieldAlert } from "lucide-react";
 import { logger } from "@/lib/logger";
 
 export default function SecretsRotationPage() {
@@ -413,7 +413,7 @@ function StatCard({ label, value, icon, tone, pulse }: { label: string; value: n
   );
 }
 
-function StatusBadge({ variant, status }: { variant: 'overdue' | 'urgent' | 'soon' | 'ok' | 'retired'; status: string }) {
+function StatusBadge({ variant }: { variant: 'overdue' | 'urgent' | 'soon' | 'ok' | 'retired' }) {
   const config = {
     overdue: { label: 'Overdue', cls: 'bg-destructive/15 text-destructive border-destructive/30 animate-pulse-subtle' },
     urgent: { label: '<7d', cls: 'bg-amber-500/15 text-amber-500 border-amber-500/30' },

@@ -79,12 +79,12 @@ export async function registerManagedSecret(input: RegisterSecretInput): Promise
     p_workspace_id: input.workspace_id,
     p_name: input.name,
     p_category: input.category,
-    p_provider: input.provider ?? null,
+    p_provider: input.provider ?? undefined,
     p_environment: input.environment ?? 'prod',
     p_rotation_interval_days: input.rotation_interval_days ?? 90,
-    p_owner_id: input.owner_id ?? null,
-    p_notes: input.notes ?? null,
-    p_last_rotated_at: input.last_rotated_at ?? null,
+    p_owner_id: input.owner_id ?? undefined,
+    p_notes: input.notes ?? undefined,
+    p_last_rotated_at: input.last_rotated_at ?? undefined,
   });
   if (error) throw error;
   return data as string;
@@ -94,7 +94,7 @@ export async function recordSecretRotation(secretId: string, reason: RotationRea
   const { data, error } = await supabase.rpc('record_secret_rotation', {
     p_secret_id: secretId,
     p_reason: reason,
-    p_notes: notes ?? null,
+    p_notes: notes ?? undefined,
   });
   if (error) throw error;
   return data as string;
@@ -103,7 +103,7 @@ export async function recordSecretRotation(secretId: string, reason: RotationRea
 export async function markSecretRetired(secretId: string, notes?: string): Promise<void> {
   const { error } = await supabase.rpc('mark_secret_retired', {
     p_secret_id: secretId,
-    p_notes: notes ?? null,
+    p_notes: notes ?? undefined,
   });
   if (error) throw error;
 }
