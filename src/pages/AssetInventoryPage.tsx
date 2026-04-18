@@ -3,7 +3,7 @@ import { Boxes, Plus, Search, ShieldAlert, AlertCircle, Calendar, Eye } from "lu
 import { logger } from "@/lib/logger";
 import { useAuth } from "@/contexts/AuthContext";
 import { getWorkspaceInfo } from "@/lib/agentService";
-import { supabase } from "@/integrations/supabase/client";
+import { getWorkspaceIdForUser, isWorkspaceOwner } from "@/services/workspaceContextService";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -101,11 +101,10 @@ export default function AssetInventoryPage() {
       if (!user) return;
       const info = await getWorkspaceInfo();
       const wsId = (info as { workspaceId?: string } | null)?.workspaceId
-        ?? (await supabase.from("workspaces").select("id").eq("owner_id", user.id).maybeSingle()).data?.id;
+        ?? (await getWorkspaceIdForUser(user.id));
       if (!wsId) return;
       setWorkspaceId(wsId);
-      const { data: ws } = await supabase.from("workspaces").select("owner_id").eq("id", wsId).maybeSingle();
-      setIsAdmin(ws?.owner_id === user.id);
+      setIsAdmin(await isWorkspaceOwner(wsId, user.id));
       await load(wsId);
     })();
   }, [user]);

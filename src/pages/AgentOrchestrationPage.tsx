@@ -10,7 +10,7 @@ import { toast } from 'sonner';
 import { agentGraphService, type AgentGraph, type GraphExecution, type GraphNode, type GraphEdge } from '@/services/agentGraphService';
 import { GraphCanvas } from '@/components/orchestration/GraphCanvas';
 import { NodeConfigPanel } from '@/components/orchestration/NodeConfigPanel';
-import { supabase } from '@/integrations/supabase/client';
+import { listAgentSummaries } from '@/services/agentsService';
 import { getWorkspaceId } from '@/lib/agentService';
 
 interface AgentLite { id: string; name: string }
@@ -34,10 +34,10 @@ export default function AgentOrchestrationPage() {
     if (wsId) {
       const [gs, ag] = await Promise.all([
         agentGraphService.listGraphs(wsId),
-        supabase.from('agents').select('id, name').order('name'),
+        listAgentSummaries(),
       ]);
       setGraphs(gs);
-      setAgents((ag.data as AgentLite[]) ?? []);
+      setAgents(ag);
     }
   })(); }, []);
 

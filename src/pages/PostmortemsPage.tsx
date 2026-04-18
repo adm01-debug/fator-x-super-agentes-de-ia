@@ -12,7 +12,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { toast } from "sonner";
 import { Plus, FileText, Wand2, ShieldAlert, Activity, ArchiveRestore } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
-import { supabase } from "@/integrations/supabase/client";
+import { getFirstWorkspaceId } from "@/services/workspaceContextService";
 import {
   listPostmortems, createManualPostmortem, generateFromIncident, generateFromGameday,
   listRecentIncidentRuns, listRecentGameDays,
@@ -64,8 +64,7 @@ export default function PostmortemsPage() {
   useEffect(() => {
     (async () => {
       try {
-        const { data: w } = await supabase.from("workspaces").select("id").limit(1).maybeSingle();
-        const wsId = w?.id ?? null;
+        const wsId = await getFirstWorkspaceId();
         setWorkspaceId(wsId);
         if (wsId) await refresh(wsId);
         else setLoading(false);

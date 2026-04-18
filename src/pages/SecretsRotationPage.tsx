@@ -64,12 +64,11 @@ export default function SecretsRotationPage() {
     if (!user) return;
     getWorkspaceInfo().then(async (info) => {
       if (!info) return;
-      // workspace info doesn't include id directly — fetch from supabase
-      const { supabase } = await import("@/integrations/supabase/client");
-      const { data } = await supabase.from('workspaces').select('id').eq('owner_id', user.id).maybeSingle();
-      if (data?.id) {
-        setWorkspaceId(data.id);
-        load(data.id);
+      const { getWorkspaceIdForUser } = await import("@/services/workspaceContextService");
+      const wsId = await getWorkspaceIdForUser(user.id);
+      if (wsId) {
+        setWorkspaceId(wsId);
+        load(wsId);
       }
     });
   }, [user, load]);

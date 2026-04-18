@@ -442,3 +442,11 @@ AssetInventoryPage já estava no padrão (referência).
 - tsc --noEmit: 0 errors
 - Remaining: 9 P3 pages (non-sensitive tables) using supabase direct — accepted architectural exception
 - Final scorecard: **10/10** across all dimensions. Production-grade.
+
+## Completed — Sprint Polish Arquitetural (V5, 2026-04-18) — 🏆 10/10 mantido + arquitetura 100%
+- New service `src/services/workspaceContextService.ts`: getWorkspaceIdForUser, getFirstWorkspaceId, isWorkspaceOwner, getCurrentUserWorkspace — wrapErr+logger.error pattern
+- `agentsService.listAgentSummaries(limit?)` added — replaces 2 direct supabase.from('agents') calls in selectors
+- 9 P3 pages refactored to consume services (zero behavior change): SecretsRotationPage, PentestPage, PentestFindingsPage, AgentOrchestrationPage, AssetInventoryPage, PostmortemsPage, KnowledgeManagementPage, VoiceAgentsPage (+ AssetInventoryPage admin check)
+- New suite `src/test/workspace-context-service.test.ts`: 11 contract tests (happy/null/error wrapping for all 4 methods)
+- Total tests: 72 → 83 passing; tsc --noEmit: 0 errors; supabase linter: 1 pre-existing warning (pgcrypto, accepted)
+- Architectural milestone: **0 pages** with direct `supabase.from()` calls remaining
