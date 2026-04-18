@@ -159,7 +159,7 @@ import type { TestCase, EvalResult, CLEARScore } from './types/evaluationsTypes'
  * Deterministic scoring — checks structural/content correctness.
  * Multiple criteria: containment, exact match, JSON structure, length.
  */
-function scoreDeterministic(expected: string, actual: string): number {
+export function scoreDeterministic(expected: string, actual: string): number {
   if (!expected || !actual) return 0;
 
   const weights: Array<{ score: number; weight: number }> = [];
@@ -214,7 +214,7 @@ function scoreDeterministic(expected: string, actual: string): number {
  * Statistical scoring — ROUGE-L based on Longest Common Subsequence.
  * More robust than simple word overlap: captures ordering and sequence.
  */
-function scoreStatistical(expected: string, actual: string): number {
+export function scoreStatistical(expected: string, actual: string): number {
   if (!expected || !actual) return 0;
 
   const expTokens = expected
