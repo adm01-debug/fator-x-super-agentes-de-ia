@@ -2,7 +2,7 @@
  * SyntheticMonitoringPage — manage canary checks running 24/7.
  * Route: /observability/synthetic
  */
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { Activity, Plus, Play, Trash2, Radar } from "lucide-react";
@@ -25,7 +25,7 @@ import {
   getSyntheticSummary, runSyntheticCheckNow,
   type SyntheticCheck, type SyntheticTarget, type SyntheticSummary,
 } from "@/services/syntheticService";
-import { getWorkspaceInfo } from "@/lib/agentService";
+import { getWorkspaceId } from "@/lib/agentService";
 
 function Sparkline({ data }: { data: SyntheticSummary["recent"] }) {
   if (!data.length) return <div className="text-xs text-muted-foreground">Sem dados</div>;
@@ -146,7 +146,7 @@ export default function SyntheticMonitoringPage() {
   const [threshold, setThreshold] = useState(3000);
 
   useEffect(() => {
-    getWorkspaceInfo().then((w) => setWorkspaceId(w?.id ?? null)).catch(() => {});
+    getWorkspaceId().then(setWorkspaceId).catch(() => {});
   }, []);
 
   const { data: checks = [], refetch } = useQuery({
@@ -179,7 +179,6 @@ export default function SyntheticMonitoringPage() {
       <PageHeader
         title="Synthetic Monitoring"
         description="Pings automáticos 24/7 simulando jornadas críticas. Detecta falhas mesmo sem tráfego real."
-        icon={Radar}
         actions={
           <Dialog open={open} onOpenChange={setOpen}>
             <DialogTrigger asChild>
