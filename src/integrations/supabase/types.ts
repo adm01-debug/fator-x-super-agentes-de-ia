@@ -3162,6 +3162,97 @@ export type Database = {
         }
         Relationships: []
       }
+      synthetic_checks: {
+        Row: {
+          consecutive_failures: number
+          created_at: string
+          created_by: string
+          enabled: boolean
+          expected_status_max_ms: number
+          id: string
+          interval_minutes: number
+          last_run_at: string | null
+          name: string
+          target: string
+          updated_at: string
+          workspace_id: string
+        }
+        Insert: {
+          consecutive_failures?: number
+          created_at?: string
+          created_by: string
+          enabled?: boolean
+          expected_status_max_ms?: number
+          id?: string
+          interval_minutes?: number
+          last_run_at?: string | null
+          name: string
+          target: string
+          updated_at?: string
+          workspace_id: string
+        }
+        Update: {
+          consecutive_failures?: number
+          created_at?: string
+          created_by?: string
+          enabled?: boolean
+          expected_status_max_ms?: number
+          id?: string
+          interval_minutes?: number
+          last_run_at?: string | null
+          name?: string
+          target?: string
+          updated_at?: string
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "synthetic_checks_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      synthetic_results: {
+        Row: {
+          check_id: string
+          error_message: string | null
+          id: string
+          latency_ms: number | null
+          ran_at: string
+          status_code: number | null
+          success: boolean
+        }
+        Insert: {
+          check_id: string
+          error_message?: string | null
+          id?: string
+          latency_ms?: number | null
+          ran_at?: string
+          status_code?: number | null
+          success: boolean
+        }
+        Update: {
+          check_id?: string
+          error_message?: string | null
+          id?: string
+          latency_ms?: number | null
+          ran_at?: string
+          status_code?: number | null
+          success?: boolean
+        }
+        Relationships: [
+          {
+            foreignKeyName: "synthetic_results_check_id_fkey"
+            columns: ["check_id"]
+            isOneToOne: false
+            referencedRelation: "synthetic_checks"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       test_cases: {
         Row: {
           created_at: string | null
@@ -4147,6 +4238,10 @@ export type Database = {
         }[]
       }
       get_slo_summary: { Args: { p_window_hours?: number }; Returns: Json }
+      get_synthetic_summary: {
+        Args: { p_check_id: string; p_window_hours?: number }
+        Returns: Json
+      }
       get_user_workspace_ids: { Args: { _user_id: string }; Returns: string[] }
       increment_skill_installs: {
         Args: { p_skill_id: string }
