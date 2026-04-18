@@ -1138,6 +1138,62 @@ export type Database = {
           },
         ]
       }
+      bcp_test_runs: {
+        Row: {
+          action_items: string | null
+          actual_rpo_minutes: number | null
+          actual_rto_minutes: number | null
+          created_at: string
+          executed_at: string
+          executed_by: string
+          gaps: string[]
+          id: string
+          notes: string | null
+          scenario: string
+          success: boolean
+          system_id: string
+          test_type: Database["public"]["Enums"]["bcp_test_type"]
+        }
+        Insert: {
+          action_items?: string | null
+          actual_rpo_minutes?: number | null
+          actual_rto_minutes?: number | null
+          created_at?: string
+          executed_at?: string
+          executed_by: string
+          gaps?: string[]
+          id?: string
+          notes?: string | null
+          scenario: string
+          success?: boolean
+          system_id: string
+          test_type?: Database["public"]["Enums"]["bcp_test_type"]
+        }
+        Update: {
+          action_items?: string | null
+          actual_rpo_minutes?: number | null
+          actual_rto_minutes?: number | null
+          created_at?: string
+          executed_at?: string
+          executed_by?: string
+          gaps?: string[]
+          id?: string
+          notes?: string | null
+          scenario?: string
+          success?: boolean
+          system_id?: string
+          test_type?: Database["public"]["Enums"]["bcp_test_type"]
+        }
+        Relationships: [
+          {
+            foreignKeyName: "bcp_test_runs_system_id_fkey"
+            columns: ["system_id"]
+            isOneToOne: false
+            referencedRelation: "business_systems"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       browser_sessions: {
         Row: {
           agent_id: string | null
@@ -1294,6 +1350,77 @@ export type Database = {
         Relationships: [
           {
             foreignKeyName: "budgets_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      business_systems: {
+        Row: {
+          category: Database["public"]["Enums"]["bcp_category"]
+          created_at: string
+          created_by: string
+          criticality: Database["public"]["Enums"]["bcp_criticality"]
+          dependencies: string[]
+          description: string | null
+          id: string
+          last_tested_at: string | null
+          mtpd_hours: number
+          name: string
+          next_test_due: string | null
+          owner_id: string | null
+          recovery_strategy: string | null
+          rpo_minutes: number
+          rto_minutes: number
+          status: Database["public"]["Enums"]["bcp_system_status"]
+          updated_at: string
+          workspace_id: string
+        }
+        Insert: {
+          category?: Database["public"]["Enums"]["bcp_category"]
+          created_at?: string
+          created_by: string
+          criticality?: Database["public"]["Enums"]["bcp_criticality"]
+          dependencies?: string[]
+          description?: string | null
+          id?: string
+          last_tested_at?: string | null
+          mtpd_hours?: number
+          name: string
+          next_test_due?: string | null
+          owner_id?: string | null
+          recovery_strategy?: string | null
+          rpo_minutes?: number
+          rto_minutes?: number
+          status?: Database["public"]["Enums"]["bcp_system_status"]
+          updated_at?: string
+          workspace_id: string
+        }
+        Update: {
+          category?: Database["public"]["Enums"]["bcp_category"]
+          created_at?: string
+          created_by?: string
+          criticality?: Database["public"]["Enums"]["bcp_criticality"]
+          dependencies?: string[]
+          description?: string | null
+          id?: string
+          last_tested_at?: string | null
+          mtpd_hours?: number
+          name?: string
+          next_test_due?: string | null
+          owner_id?: string | null
+          recovery_strategy?: string | null
+          rpo_minutes?: number
+          rto_minutes?: number
+          status?: Database["public"]["Enums"]["bcp_system_status"]
+          updated_at?: string
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "business_systems_workspace_id_fkey"
             columns: ["workspace_id"]
             isOneToOne: false
             referencedRelation: "workspaces"
@@ -6036,6 +6163,7 @@ export type Database = {
           probability: number
         }[]
       }
+      get_bcp_summary: { Args: { p_workspace_id: string }; Returns: Json }
       get_creator_earnings: { Args: { p_creator_id?: string }; Returns: Json }
       get_current_oncall: {
         Args: { p_workspace_id: string }
@@ -6114,6 +6242,20 @@ export type Database = {
       }
       publish_postmortem: { Args: { p_postmortem_id: string }; Returns: Json }
       purchase_skill: { Args: { p_skill_id: string }; Returns: Json }
+      record_bcp_test: {
+        Args: {
+          p_action_items?: string
+          p_actual_rpo_minutes?: number
+          p_actual_rto_minutes?: number
+          p_gaps?: string[]
+          p_notes?: string
+          p_scenario: string
+          p_success?: boolean
+          p_system_id: string
+          p_test_type: Database["public"]["Enums"]["bcp_test_type"]
+        }
+        Returns: string
+      }
       record_dr_step: {
         Args: {
           p_drill_id: string
@@ -6166,6 +6308,22 @@ export type Database = {
         Returns: string
       }
       refresh_secrets_status: { Args: never; Returns: Json }
+      register_business_system: {
+        Args: {
+          p_category?: Database["public"]["Enums"]["bcp_category"]
+          p_criticality?: Database["public"]["Enums"]["bcp_criticality"]
+          p_dependencies?: string[]
+          p_description?: string
+          p_mtpd_hours?: number
+          p_name: string
+          p_owner_id?: string
+          p_recovery_strategy?: string
+          p_rpo_minutes?: number
+          p_rto_minutes?: number
+          p_workspace_id: string
+        }
+        Returns: string
+      }
       register_managed_secret: {
         Args: {
           p_category: string
@@ -6259,6 +6417,10 @@ export type Database = {
         | "monitoring"
         | "deprecated"
         | "archived"
+      bcp_category: "core" | "supporting" | "analytical" | "external"
+      bcp_criticality: "tier_1" | "tier_2" | "tier_3" | "tier_4"
+      bcp_system_status: "operational" | "degraded" | "down" | "retired"
+      bcp_test_type: "tabletop" | "walkthrough" | "simulation" | "full_failover"
       trace_level: "debug" | "info" | "warning" | "error" | "critical"
     }
     CompositeTypes: {
@@ -6398,6 +6560,10 @@ export const Constants = {
         "deprecated",
         "archived",
       ],
+      bcp_category: ["core", "supporting", "analytical", "external"],
+      bcp_criticality: ["tier_1", "tier_2", "tier_3", "tier_4"],
+      bcp_system_status: ["operational", "degraded", "down", "retired"],
+      bcp_test_type: ["tabletop", "walkthrough", "simulation", "full_failover"],
       trace_level: ["debug", "info", "warning", "error", "critical"],
     },
   },

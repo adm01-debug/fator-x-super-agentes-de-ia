@@ -350,3 +350,17 @@ type: feature
 **Próxima fila:**
 - Sprint 42: Business Continuity Plan (BIA, RTO/RPO por sistema crítico, comm tree)
 - Sprint 43: Change Management (CAB, change windows, freeze periods)
+
+## Sprint 42 — Business Continuity Plan (BCP) ✅
+- Tabelas: `business_systems` (tier_1..4, RTO/RPO/MTPD, dependencies, status, next_test_due) + `bcp_test_runs` (tabletop/walkthrough/simulation/full_failover)
+- RPCs: `register_business_system`, `record_bcp_test`, `get_bcp_summary`
+- Trigger auto-recalcula `next_test_due` por tier (90/180/365/730d)
+- UI `/security/bcp`: stats (tier 1, vencidos, breaches RTO, down/degraded), tabela filtrável, drill-in Sheet com tabs Detalhes + Histórico + novo teste inline
+- Sidebar: "Continuidade (BCP)" sob Segurança (LifeBuoy)
+- Polish Sprint 41: 3 ocorrências `bg-emerald-500` → `bg-nexus-emerald` em VendorsPage (consistência com tokens)
+- Conformidade: ISO 22301 / SOC2 A1.2 / NIST 800-34
+
+## Próxima fila
+- Sprint 43: **Change Management** (CAB, change_requests, deployment_freeze_windows)
+- Sprint 44: **Incident Response Playbooks** (templates por categoria, MTTR tracking)
+- Sprint 45: **Asset Inventory** (devices, software licenses, network endpoints)

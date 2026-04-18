@@ -186,18 +186,18 @@ export default function VendorsPage() {
                         ) : dpaSoon ? (
                           <Badge variant="outline" className="bg-nexus-amber/15 text-nexus-amber border-nexus-amber/30">{daysUntil(v.dpa_expires_at)}d</Badge>
                         ) : (
-                          <Badge variant="outline" className="bg-emerald-500/15 text-emerald-500 border-emerald-500/30">OK</Badge>
+                          <Badge variant="outline" className="bg-nexus-emerald/15 text-nexus-emerald border-nexus-emerald/30">OK</Badge>
                         )}
                       </TableCell>
                       <TableCell>
                         <div className="flex gap-1 flex-wrap">
                           {v.soc2_valid_until && (
-                            <Badge variant="outline" className={soc2Exp ? "bg-destructive/15 text-destructive border-destructive/30 animate-pulse" : "bg-emerald-500/15 text-emerald-500 border-emerald-500/30"}>
+                            <Badge variant="outline" className={soc2Exp ? "bg-destructive/15 text-destructive border-destructive/30 animate-pulse" : "bg-nexus-emerald/15 text-nexus-emerald border-nexus-emerald/30"}>
                               SOC2
                             </Badge>
                           )}
                           {v.iso27001_valid_until && (
-                            <Badge variant="outline" className={isoExp ? "bg-destructive/15 text-destructive border-destructive/30 animate-pulse" : "bg-emerald-500/15 text-emerald-500 border-emerald-500/30"}>
+                            <Badge variant="outline" className={isoExp ? "bg-destructive/15 text-destructive border-destructive/30 animate-pulse" : "bg-nexus-emerald/15 text-nexus-emerald border-nexus-emerald/30"}>
                               ISO
                             </Badge>
                           )}
@@ -496,7 +496,7 @@ function AssessmentsTab({ vendor, onChanged }: { vendor: Vendor; onChanged: () =
                 <CardContent className="pt-4 text-sm space-y-2">
                   <div className="flex items-center justify-between">
                     <span className="text-xs text-muted-foreground">{new Date(a.assessed_at).toLocaleString("pt-BR")}</span>
-                    <Badge variant="outline" className={a.risk_score >= 15 ? "bg-destructive/15 text-destructive border-destructive/30" : a.risk_score >= 9 ? "bg-nexus-amber/15 text-nexus-amber border-nexus-amber/30" : "bg-emerald-500/15 text-emerald-500 border-emerald-500/30"}>
+                    <Badge variant="outline" className={a.risk_score >= 15 ? "bg-destructive/15 text-destructive border-destructive/30" : a.risk_score >= 9 ? "bg-nexus-amber/15 text-nexus-amber border-nexus-amber/30" : "bg-nexus-emerald/15 text-nexus-emerald border-nexus-emerald/30"}>
                       Risco {a.risk_score}
                     </Badge>
                   </div>
