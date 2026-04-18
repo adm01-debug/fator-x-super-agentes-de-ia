@@ -3948,7 +3948,6 @@ export type Database = {
           id: string
           notes: string | null
           starts_at: string
-          user_email: string | null
           user_id: string
           user_name: string | null
           workspace_id: string
@@ -3961,7 +3960,6 @@ export type Database = {
           id?: string
           notes?: string | null
           starts_at: string
-          user_email?: string | null
           user_id: string
           user_name?: string | null
           workspace_id: string
@@ -3974,7 +3972,6 @@ export type Database = {
           id?: string
           notes?: string | null
           starts_at?: string
-          user_email?: string | null
           user_id?: string
           user_name?: string | null
           workspace_id?: string
@@ -3982,6 +3979,52 @@ export type Database = {
         Relationships: [
           {
             foreignKeyName: "oncall_schedule_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      oncall_schedule_emails: {
+        Row: {
+          schedule_id: string
+          updated_at: string
+          user_email: string
+          user_id: string
+          workspace_id: string
+        }
+        Insert: {
+          schedule_id: string
+          updated_at?: string
+          user_email: string
+          user_id: string
+          workspace_id: string
+        }
+        Update: {
+          schedule_id?: string
+          updated_at?: string
+          user_email?: string
+          user_id?: string
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "oncall_schedule_emails_schedule_id_fkey"
+            columns: ["schedule_id"]
+            isOneToOne: true
+            referencedRelation: "oncall_schedule"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "oncall_schedule_emails_schedule_id_fkey"
+            columns: ["schedule_id"]
+            isOneToOne: true
+            referencedRelation: "oncall_schedule_safe"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "oncall_schedule_emails_workspace_id_fkey"
             columns: ["workspace_id"]
             isOneToOne: false
             referencedRelation: "workspaces"
@@ -6102,10 +6145,62 @@ export type Database = {
           },
         ]
       }
+      workspace_member_emails: {
+        Row: {
+          email: string
+          member_id: string
+          updated_at: string
+          user_id: string
+          workspace_id: string
+        }
+        Insert: {
+          email: string
+          member_id: string
+          updated_at?: string
+          user_id: string
+          workspace_id: string
+        }
+        Update: {
+          email?: string
+          member_id?: string
+          updated_at?: string
+          user_id?: string
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "workspace_member_emails_member_id_fkey"
+            columns: ["member_id"]
+            isOneToOne: true
+            referencedRelation: "workspace_members"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "workspace_member_emails_member_id_fkey"
+            columns: ["member_id"]
+            isOneToOne: true
+            referencedRelation: "workspace_members_directory"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "workspace_member_emails_member_id_fkey"
+            columns: ["member_id"]
+            isOneToOne: true
+            referencedRelation: "workspace_members_safe"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "workspace_member_emails_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       workspace_members: {
         Row: {
           accepted_at: string | null
-          email: string | null
           id: string
           invited_at: string | null
           name: string | null
@@ -6115,7 +6210,6 @@ export type Database = {
         }
         Insert: {
           accepted_at?: string | null
-          email?: string | null
           id?: string
           invited_at?: string | null
           name?: string | null
@@ -6125,7 +6219,6 @@ export type Database = {
         }
         Update: {
           accepted_at?: string | null
-          email?: string | null
           id?: string
           invited_at?: string | null
           name?: string | null
@@ -6519,6 +6612,30 @@ export type Database = {
           },
         ]
       }
+      oncall_schedule_safe: {
+        Row: {
+          created_at: string | null
+          created_by: string | null
+          ends_at: string | null
+          escalation_order: number | null
+          id: string | null
+          notes: string | null
+          starts_at: string | null
+          user_email: string | null
+          user_id: string | null
+          user_name: string | null
+          workspace_id: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "oncall_schedule_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       skill_registry_safe: {
         Row: {
           author: string | null
@@ -6613,24 +6730,6 @@ export type Database = {
           user_id: string | null
           workspace_id: string | null
         }
-        Insert: {
-          accepted_at?: string | null
-          email?: never
-          id?: string | null
-          name?: string | null
-          role?: string | null
-          user_id?: string | null
-          workspace_id?: string | null
-        }
-        Update: {
-          accepted_at?: string | null
-          email?: never
-          id?: string | null
-          name?: string | null
-          role?: string | null
-          user_id?: string | null
-          workspace_id?: string | null
-        }
         Relationships: [
           {
             foreignKeyName: "workspace_members_workspace_id_fkey"
@@ -6644,30 +6743,13 @@ export type Database = {
       workspace_members_safe: {
         Row: {
           accepted_at: string | null
+          email: string | null
           id: string | null
           invited_at: string | null
           name: string | null
           role: string | null
           user_id: string | null
           workspace_id: string | null
-        }
-        Insert: {
-          accepted_at?: string | null
-          id?: string | null
-          invited_at?: string | null
-          name?: string | null
-          role?: string | null
-          user_id?: string | null
-          workspace_id?: string | null
-        }
-        Update: {
-          accepted_at?: string | null
-          id?: string | null
-          invited_at?: string | null
-          name?: string | null
-          role?: string | null
-          user_id?: string | null
-          workspace_id?: string | null
         }
         Relationships: [
           {
@@ -6918,6 +7000,16 @@ export type Database = {
       increment_skill_installs: {
         Args: { p_skill_id: string }
         Returns: undefined
+      }
+      invite_workspace_member: {
+        Args: {
+          p_email: string
+          p_name?: string
+          p_role?: string
+          p_user_id?: string
+          p_workspace_id: string
+        }
+        Returns: string
       }
       is_workspace_admin: {
         Args: { _user_id: string; _workspace_id: string }
