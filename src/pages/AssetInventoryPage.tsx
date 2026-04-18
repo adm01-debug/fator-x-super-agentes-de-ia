@@ -3,7 +3,7 @@ import { Boxes, Plus, Search, ShieldAlert, AlertCircle, Calendar, Eye } from "lu
 import { logger } from "@/lib/logger";
 import { useAuth } from "@/contexts/AuthContext";
 import { getWorkspaceInfo } from "@/lib/agentService";
-import { supabase } from "@/integrations/supabase/client";
+import { getWorkspaceIdForUser, isWorkspaceOwner } from "@/services/workspaceContextService";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";

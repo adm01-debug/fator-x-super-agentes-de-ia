@@ -18,7 +18,7 @@ import {
   listQueryGaps, analyzeQueryGaps, updateGapStatus,
 } from "@/services/knowledgeManagementService";
 import { listKnowledgeBases } from "@/services/knowledgeService";
-import { supabase } from "@/integrations/supabase/client";
+import { getCurrentUserWorkspace } from "@/services/workspaceContextService";
 
 export default function KnowledgeManagementPage() {
   const navigate = useNavigate();

@@ -12,7 +12,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { toast } from "sonner";
 import { Plus, FileText, Wand2, ShieldAlert, Activity, ArchiveRestore } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
-import { supabase } from "@/integrations/supabase/client";
+import { getFirstWorkspaceId } from "@/services/workspaceContextService";
 import {
   listPostmortems, createManualPostmortem, generateFromIncident, generateFromGameday,
   listRecentIncidentRuns, listRecentGameDays,
