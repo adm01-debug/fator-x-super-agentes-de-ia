@@ -1,62 +1,58 @@
 
-Sprint 32 (Game Days) completo ✅. Score 10/10 mantido. Próximo da fila Continuous Hardening: 🟢 **Sprint 33 — Incident Response Automation (auto-remediação + paging)**.
+Sprint 33 (Incident Response Automation) completo ✅. Score 10/10 mantido. Próximo da fila Continuous Hardening: 🟢 **Sprint 34 — Disaster Recovery Drills (backup + restore validation)**.
 
 ## Por quê
-- Temos detecção completa (SLO, synthetic, cost anomaly, chaos) e treino (game days), mas resposta a incidente real ainda é 100% manual
-- Incident Response Automation = playbooks executáveis que disparam automaticamente em condições críticas: rotacionar provider LLM caído, pausar agente runaway, reabrir circuit breaker, paginar on-call
-- Reduz MTTR de minutos para segundos em cenários conhecidos
+- Temos detecção (SLO/synthetic/cost), enforcement (budget), treino (game days) e auto-remediação (playbooks)
+- **Mas nunca validamos** que conseguimos restaurar dados após corrupção/perda total
+- DR Drill = teste programado de backup→restore em ambiente isolado com métricas RTO/RPO
+- Garante continuidade real do negócio, não apenas teórica
 
 ## Plano
 
-**1. Migração SQL — `incident_playbooks` + `incident_runs` + `oncall_schedule`:**
-- `incident_playbooks`: id, workspace_id, name, trigger_type (`slo_breach`|`synthetic_fail`|`cost_anomaly`|`budget_block`|`manual`), trigger_config jsonb (thresholds), actions jsonb[] (steps: notify, disable_chaos, pause_agent, switch_provider, page_oncall), enabled bool, cooldown_minutes
-- `incident_runs`: id, playbook_id, triggered_by (event source id), status (`running`|`succeeded`|`failed`|`partial`), started_at, ended_at, action_results jsonb[], notes
-- `oncall_schedule`: id, workspace_id, user_id, starts_at, ends_at, escalation_order int
-- RLS: members SELECT, admins UPDATE; INSERT runs via SECURITY DEFINER
+**1. Migração SQL — `dr_drills` + `dr_snapshots` + `dr_restore_logs`:**
+- `dr_drills`: id, workspace_id, name, scope (`full`|`workspace`|`table`), target_tables text[], scheduled_at, status (`scheduled`|`snapshotting`|`restoring`|`validating`|`completed`|`failed`), rto_target_seconds, rpo_target_seconds, actual_rto_seconds, actual_rpo_seconds, executor_id
+- `dr_snapshots`: id, drill_id, table_name, row_count, snapshot_data jsonb (sample), checksum, captured_at
+- `dr_restore_logs`: id, drill_id, step (`snapshot`|`isolate`|`restore`|`validate`|`cleanup`), status, started_at, ended_at, error_message, metadata jsonb
+- RLS: members SELECT, admins INSERT/UPDATE; service role para snapshots
 
-**2. Edge function `incident-orchestrator`:**
-- Recebe POST `{playbook_id, trigger_event}` → executa actions sequencial
-- Action handlers: `notify` (toast realtime), `disable_chaos` (UPDATE chaos_experiments), `pause_agent` (agents.status), `switch_provider` (workspace_settings.preferred_llm), `page_oncall` (lookup current oncall + insert notification)
-- Registra cada step em `incident_runs.action_results`
-- Respeita cooldown (não dispara mesmo playbook 2× em N min)
+**2. RPCs:**
+- `start_dr_drill(drill_id)` → snapshot row counts + checksums das tabelas alvo
+- `record_dr_step(drill_id, step, status, metadata)` → log granular
+- `complete_dr_drill(drill_id, actual_rto, actual_rpo, success)` → calcula desvios vs targets
 
-**3. Auto-trigger:** triggers Postgres em `slo_alerts`/`synthetic_results`/`cost_alerts`/`budget_events` chamam `pg_net` → edge function
+**3. Edge function `dr-orchestrator`:**
+- Recebe `{drill_id}` → executa: snapshot → simulate restore (compare counts/checksums) → validate → cleanup
+- Registra cada step em `dr_restore_logs` com timing
+- Retorna RTO/RPO observados
 
-**4. UI — `src/pages/IncidentPlaybooksPage.tsx` (`/observability/playbooks`):**
-- Lista playbooks + toggle enabled
-- Editor: trigger picker, actions builder (drag-and-drop), cooldown, preview
-- Histórico de `incident_runs` com timeline de actions
-- Templates pré-prontos: "Provider down → switch", "Cost spike → notify+pause", "Synthetic fail → page oncall"
+**4. UI — `src/pages/DRDrillsPage.tsx` (`/observability/dr-drills`):**
+- Lista drills com status badges + RTO/RPO atual vs target
+- "Agendar drill": form com scope picker (full/workspace/table), target tables multi-select, RTO/RPO targets em segundos
+- Detalhes expandíveis: timeline de `dr_restore_logs`, snapshots capturados, gauge RTO/RPO (verde/amber/vermelho)
+- Templates: "Workspace mensal", "Tabelas críticas semanal", "Full quarterly"
 
-**5. UI — `src/pages/OncallPage.tsx` (`/observability/oncall`):**
-- Calendar view de plantões
-- "Quem está on-call agora" badge no topo
-- Form para adicionar turnos (user picker + datas)
+**5. `src/services/drDrillService.ts`:** CRUD drills, listSnapshots, listLogs, startDrill, manual trigger
 
-**6. `src/services/incidentService.ts`:** CRUD playbooks, runs, oncall + manual trigger
+**6. Sidebar:** item "DR Drills" sob Operações (ícone `DatabaseBackup` ou `Archive`)
 
-**7. Sidebar:** items "Playbooks" e "On-call" sob Operações (ícones `BookOpen`, `Phone`)
+**7. Realtime:** subscription em `dr_restore_logs` INSERT → atualiza timeline ao vivo
 
-**8. Realtime:** subscription em `incident_runs` INSERT → toast "Playbook X disparado"
+**8. `docs/RUNBOOK.md`:** seção "Disaster Recovery" — cadência (mensal critical, quarterly full), RTO/RPO targets recomendados, recovery procedures reais
 
-**9. `docs/RUNBOOK.md`:** seção "Incident Response Automation" — templates, escalation matrix, override manual
-
-**10. `mem://features/audit-improvements`:** Sprint 33 logged + fila (Sprint 34 DR Drills, Sprint 35 Postmortem Templates)
+**9. `mem://features/audit-improvements`:** Sprint 34 logged + fila (Sprint 35 Postmortem Templates, Sprint 36 Compliance Reports)
 
 ## Arquivos
-- `supabase/migrations/<ts>_incident_response.sql`
-- `supabase/functions/incident-orchestrator/index.ts` (nova)
-- `src/services/incidentService.ts` (novo)
-- `src/pages/IncidentPlaybooksPage.tsx` (nova)
-- `src/pages/OncallPage.tsx` (nova)
-- `src/components/shared/IncidentRunsMounter.tsx` (novo)
-- `src/components/layout/AppSidebar.tsx` (2 items)
-- `src/App.tsx` (2 rotas + mounter)
+- `supabase/migrations/<ts>_dr_drills.sql`
+- `supabase/functions/dr-orchestrator/index.ts` (nova)
+- `src/services/drDrillService.ts` (novo)
+- `src/pages/DRDrillsPage.tsx` (nova)
+- `src/components/layout/AppSidebar.tsx` (item)
+- `src/App.tsx` (rota)
 - `docs/RUNBOOK.md` (seção)
 - `.lovable/memory/features/audit-improvements.md` (append)
 
 ## Validação
-- Criar playbook "provider_outage → switch + notify" → simular SLO breach → run executado, agent switched, toast disparado
-- Cooldown impede double-trigger em 5min
-- Oncall lookup retorna usuário correto baseado em data atual
-- RLS: non-admin vê playbooks mas não edita
+- Agendar drill "tabelas críticas" → executar → snapshots capturados, restore simulado, RTO/RPO calculados
+- RTO acima do target → status amber, alerta no card
+- Realtime: timeline de logs aparece ao vivo conforme edge function progride
+- RLS: non-admin vê drills mas não agenda
