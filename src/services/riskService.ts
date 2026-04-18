@@ -114,14 +114,14 @@ export async function registerRisk(params: {
   const { data, error } = await supabase.rpc('register_risk', {
     p_workspace_id: params.workspaceId,
     p_title: params.title,
-    p_description: params.description ?? null,
+    p_description: params.description ?? undefined,
     p_category: params.category,
     p_likelihood: params.likelihood,
     p_impact: params.impact,
     p_treatment: params.treatment ?? 'mitigate',
-    p_mitigation_plan: params.mitigationPlan ?? null,
-    p_owner_id: params.ownerId ?? null,
-    p_related_finding_id: params.relatedFindingId ?? null,
+    p_mitigation_plan: params.mitigationPlan ?? undefined,
+    p_owner_id: params.ownerId ?? undefined,
+    p_related_finding_id: params.relatedFindingId ?? undefined,
   });
   if (error) throw error;
   return data as string;
@@ -131,14 +131,14 @@ export async function reviewRisk(riskId: string, newResidualScore: number, notes
   const { data, error } = await supabase.rpc('review_risk', {
     p_risk_id: riskId,
     p_new_residual_score: newResidualScore,
-    p_notes: notes ?? null,
+    p_notes: notes ?? undefined,
   });
   if (error) throw error;
   return data as string;
 }
 
 export async function closeRisk(riskId: string, notes?: string): Promise<void> {
-  const { error } = await supabase.rpc('close_risk', { p_risk_id: riskId, p_notes: notes ?? null });
+  const { error } = await supabase.rpc('close_risk', { p_risk_id: riskId, p_notes: notes ?? undefined });
   if (error) throw error;
 }
 
