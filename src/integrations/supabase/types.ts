@@ -3212,6 +3212,130 @@ export type Database = {
         }
         Relationships: []
       }
+      postmortem_action_items: {
+        Row: {
+          completed_at: string | null
+          created_at: string
+          description: string
+          due_date: string | null
+          id: string
+          owner_id: string | null
+          owner_name: string | null
+          postmortem_id: string
+          priority: string
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          completed_at?: string | null
+          created_at?: string
+          description: string
+          due_date?: string | null
+          id?: string
+          owner_id?: string | null
+          owner_name?: string | null
+          postmortem_id: string
+          priority?: string
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          completed_at?: string | null
+          created_at?: string
+          description?: string
+          due_date?: string | null
+          id?: string
+          owner_id?: string | null
+          owner_name?: string | null
+          postmortem_id?: string
+          priority?: string
+          status?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "postmortem_action_items_postmortem_id_fkey"
+            columns: ["postmortem_id"]
+            isOneToOne: false
+            referencedRelation: "postmortems"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      postmortems: {
+        Row: {
+          author_id: string
+          contributing_factors: string[]
+          created_at: string
+          id: string
+          incident_source: string
+          lessons_learned: string | null
+          published_at: string | null
+          reviewer_id: string | null
+          root_cause: string | null
+          severity: string
+          source_id: string | null
+          status: string
+          summary: string | null
+          timeline: Json
+          title: string
+          updated_at: string
+          what_went_well: string[]
+          what_went_wrong: string[]
+          workspace_id: string
+        }
+        Insert: {
+          author_id: string
+          contributing_factors?: string[]
+          created_at?: string
+          id?: string
+          incident_source?: string
+          lessons_learned?: string | null
+          published_at?: string | null
+          reviewer_id?: string | null
+          root_cause?: string | null
+          severity?: string
+          source_id?: string | null
+          status?: string
+          summary?: string | null
+          timeline?: Json
+          title: string
+          updated_at?: string
+          what_went_well?: string[]
+          what_went_wrong?: string[]
+          workspace_id: string
+        }
+        Update: {
+          author_id?: string
+          contributing_factors?: string[]
+          created_at?: string
+          id?: string
+          incident_source?: string
+          lessons_learned?: string | null
+          published_at?: string | null
+          reviewer_id?: string | null
+          root_cause?: string | null
+          severity?: string
+          source_id?: string | null
+          status?: string
+          summary?: string | null
+          timeline?: Json
+          title?: string
+          updated_at?: string
+          what_went_well?: string[]
+          what_went_wrong?: string[]
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "postmortems_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       prompt_experiment_runs: {
         Row: {
           cost_cents: number
@@ -4919,6 +5043,14 @@ export type Database = {
       detect_cost_anomalies: { Args: never; Returns: Json }
       disable_all_chaos: { Args: { p_workspace_id: string }; Returns: number }
       enforce_budget: { Args: never; Returns: Json }
+      generate_postmortem_from_gameday: {
+        Args: { p_game_day_id: string }
+        Returns: string
+      }
+      generate_postmortem_from_incident: {
+        Args: { p_incident_run_id: string }
+        Returns: string
+      }
       get_active_chaos_faults: {
         Args: { p_target: string }
         Returns: {
@@ -4981,6 +5113,7 @@ export type Database = {
         Args: { p_experiment_id: string; p_winner: string }
         Returns: Json
       }
+      publish_postmortem: { Args: { p_postmortem_id: string }; Returns: Json }
       purchase_skill: { Args: { p_skill_id: string }; Returns: Json }
       record_dr_step: {
         Args: {

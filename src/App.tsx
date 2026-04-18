@@ -97,6 +97,8 @@ const GameDayLivePage = lazy(() => import("./pages/GameDayLivePage"));
 const IncidentPlaybooksPage = lazy(() => import("./pages/IncidentPlaybooksPage"));
 const OncallPage = lazy(() => import("./pages/OncallPage"));
 const DRDrillsPage = lazy(() => import("./pages/DRDrillsPage"));
+const PostmortemsPage = lazy(() => import("./pages/PostmortemsPage"));
+const PostmortemEditorPage = lazy(() => import("./pages/PostmortemEditorPage"));
 const SLODashboard = lazy(() => import("./pages/SLODashboard"));
 const ChaosLabPage = lazy(() => import("./pages/ChaosLabPage"));
 const SyntheticMonitoringPage = lazy(() => import("./pages/SyntheticMonitoringPage"));
@@ -248,6 +250,8 @@ const App = () => (
                       <Route path="/observability/playbooks" element={<SafePage><IncidentPlaybooksPage /></SafePage>} />
                       <Route path="/observability/oncall" element={<SafePage><OncallPage /></SafePage>} />
                       <Route path="/observability/dr-drills" element={<SafePage><ProtectedRoute permission="settings.api_keys"><DRDrillsPage /></ProtectedRoute></SafePage>} />
+                      <Route path="/observability/postmortems" element={<SafePage><PostmortemsPage /></SafePage>} />
+                      <Route path="/observability/postmortems/:id" element={<SafePage><PostmortemEditorPage /></SafePage>} />
                       <Route path="/disaster-recovery" element={<SafePage><ProtectedRoute permission="settings.api_keys"><DisasterRecoveryPage /></ProtectedRoute></SafePage>} />
                       <Route path="*" element={<SafePage><NotFound /></SafePage>} />
                     </Routes>

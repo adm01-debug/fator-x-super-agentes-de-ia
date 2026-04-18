@@ -835,3 +835,43 @@ Validation step falha se row count drift > 10% vs snapshot. Indica corrupção o
 ### Escalação
 - RTO > target em 2 drills consecutivos → revisão de arquitetura
 - Validation failed → bloquear deploys até root-cause analysis
+
+---
+
+## Postmortem Process (Sprint 35)
+
+### Quando escrever
+- **Obrigatório**: toda SEV1 e SEV2 — incidentes reais, game days com score < 5, ou DR drills falhados
+- **Recomendado**: SEV3 com lições reutilizáveis; SEV4 só se houver padrão recorrente
+- **SLA de publicação**: 5 dias úteis após resolução do incidente
+
+### Princípios blameless
+- Foque em **sistemas e processos**, não em pessoas
+- Use linguagem neutra: "o deploy causou" em vez de "fulano causou"
+- Trate erros humanos como sintomas de falhas no sistema (treinamento, ferramentas, guardrails)
+- Inclua **o que deu certo** — reforça boas práticas
+
+### Fluxo
+1. **Geração**: ao finalizar incident run / game day, vá em `/observability/postmortems` → "Gerar de incidente" → seleciona origem → draft com timeline pré-preenchida
+2. **Edição**: complete resumo (≥10 chars), aplique 5 Whys na causa raiz, liste ≥1 action item
+3. **Revisão**: marque status `review` e compartilhe com o time de plantão
+4. **Publicação**: gate exige resumo + causa raiz + action items; publicar registra audit log
+
+### Estrutura mínima
+- **Resumo executivo** (2-4 frases): o que, quando, impacto, duração
+- **Timeline**: detection → diagnóstico → mitigação → resolução (datetime + evento + detalhe)
+- **Causa raiz** (5 Whys): cinco perguntas "por quê?" até o sistema/processo
+- **O que deu certo / errado**: aprendizados táticos
+- **Action items**: P0/P1/P2 com responsável e prazo
+- **Lições aprendidas**: conhecimento institucional
+
+### Templates por categoria
+- **SEV1 outage**: foco em RTO, escalation, customer comm, prevenção arquitetural
+- **Cost incident**: anomaly detection lag, budget enforcement, model selection
+- **Security breach**: contenção, disclosure timeline, hardening, audit
+- **Game day**: gaps no runbook, MTTR/MTTD vs target, melhorias de tooling
+
+### Cadência de revisão
+- **Semanal**: time de plantão revisa drafts pendentes
+- **Mensal**: leadership revisa action items P0/P1 atrasados
+- **Trimestral**: análise de tendências (categorias recorrentes, MTTR médio)

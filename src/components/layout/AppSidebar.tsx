@@ -91,6 +91,7 @@ const navSections = [
       { title: "Playbooks", url: "/observability/playbooks", icon: BookOpen },
       { title: "On-Call", url: "/observability/oncall", icon: Phone },
       { title: "DR Drills", url: "/observability/dr-drills", icon: Archive },
+      { title: "Postmortems", url: "/observability/postmortems", icon: FileText },
       { title: "Replay & Fork", url: "/replay", icon: GitBranchIcon },
       { title: "Voice Agent", url: "/voice", icon: Mic },
       { title: "Voice Realtime", url: "/voice-agents", icon: Mic },
