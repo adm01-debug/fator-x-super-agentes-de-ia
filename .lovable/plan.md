@@ -1,26 +1,32 @@
 
-Próxima melhoria pendente do relatório V2: criar índices nas 23 FKs sem cobertura (P2 performance). Plano enxuto e cirúrgico.
+Sprint anterior (FK indexes) concluído. Próximas melhorias rumo ao 10/10 absoluto, atacando warnings remanescentes do relatório V2.
 
-## Plano — Sprint Performance: Índices em FKs
+## Plano — Sprint Hardening Final
 
-### Etapa 1 — Identificar FKs sem índice
-Query no `pg_constraint` + `pg_index` para listar todas as FKs do schema `public` que não têm índice de cobertura na coluna referenciadora.
+### Etapa 1 — Mover `pgcrypto` para schema dedicado
+Único warning de linter pré-existente. Criar schema `extensions`, mover `pgcrypto` para lá e atualizar `search_path` das funções que usam `pgp_sym_encrypt` (ex: `encrypt_secret_value`).
 
-### Etapa 2 — Migration consolidada
-Uma migration `perf_fk_indexes` criando `CREATE INDEX IF NOT EXISTS idx_<tabela>_<coluna>` para cada FK identificada. Padrão btree simples; nomes consistentes; sem `CONCURRENTLY` (não suportado em transação de migration).
+### Etapa 2 — Error handling no `evaluationsService`
+Findings V1: service sem try/catch nem logger. Adicionar wrapper padrão (logger + throw tipado) em todas as funções exportadas, alinhado ao padrão dos outros services.
 
-Ganhos esperados:
-- Joins mais rápidos em queries de membership/workspace
-- DELETE em parents (workspaces, agents, knowledge_bases) deixa de fazer seq scan nas filhas
-- Realtime/audit queries com filtros por FK ficam O(log n)
+### Etapa 3 — Migrar 5 páginas críticas para usar services (em vez de supabase direto)
+24 páginas usam `supabase` direto. Migrar as 5 mais críticas em segurança/auditoria:
+- páginas que tocam `audit_log`, `user_roles`, `workspace_members`, `api_keys`, `security_events`
+Mover queries para services existentes ou criar wrappers em `src/services/`.
 
-### Etapa 3 — Validação
-- `supabase--linter` pós-migration para confirmar zero novos warnings
-- Sample query plan em 2 tabelas críticas (`workspace_members`, `agent_workflow_runs`) confirmando uso do índice
+### Etapa 4 — Validação
+- `tsc --noEmit` zero erros
+- `supabase--linter` zero warnings (meta: 0/0)
+- Vitest suítes afetadas
 
-### Etapa 4 — Documentação
-Append em `mem://features/audit-improvements`: "Sprint Performance — 23 FK indexes added".
+### Etapa 5 — Relatório V3
+`NEXUS-RELATORIO-TESTES-ABRANGENTE-V3.md` curto: o que mudou de V2→V3, scorecard final 10/10.
+Memory append em `mem://features/audit-improvements`.
 
-### Arquivos
-- `supabase/migrations/<ts>_perf_fk_indexes.sql`
+### Arquivos prováveis
+- `supabase/migrations/<ts>_pgcrypto_to_extensions.sql`
+- `src/services/evaluationsService.ts`
+- 5 páginas em `src/pages/` (a identificar via grep)
+- Novos wrappers em `src/services/` se necessário
+- `NEXUS-RELATORIO-TESTES-ABRANGENTE-V3.md`
 - `.lovable/memory/features/audit-improvements.md`
