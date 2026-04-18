@@ -6519,6 +6519,56 @@ export type Database = {
           },
         ]
       }
+      oncall_schedule_safe: {
+        Row: {
+          created_at: string | null
+          created_by: string | null
+          ends_at: string | null
+          escalation_order: number | null
+          id: string | null
+          notes: string | null
+          starts_at: string | null
+          user_email: string | null
+          user_id: string | null
+          user_name: string | null
+          workspace_id: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          created_by?: string | null
+          ends_at?: string | null
+          escalation_order?: number | null
+          id?: string | null
+          notes?: string | null
+          starts_at?: string | null
+          user_email?: never
+          user_id?: string | null
+          user_name?: string | null
+          workspace_id?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          created_by?: string | null
+          ends_at?: string | null
+          escalation_order?: number | null
+          id?: string | null
+          notes?: string | null
+          starts_at?: string | null
+          user_email?: never
+          user_id?: string | null
+          user_name?: string | null
+          workspace_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "oncall_schedule_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       skill_registry_safe: {
         Row: {
           author: string | null
@@ -6644,6 +6694,7 @@ export type Database = {
       workspace_members_safe: {
         Row: {
           accepted_at: string | null
+          email: string | null
           id: string | null
           invited_at: string | null
           name: string | null
@@ -6653,6 +6704,7 @@ export type Database = {
         }
         Insert: {
           accepted_at?: string | null
+          email?: never
           id?: string | null
           invited_at?: string | null
           name?: string | null
@@ -6662,6 +6714,7 @@ export type Database = {
         }
         Update: {
           accepted_at?: string | null
+          email?: never
           id?: string | null
           invited_at?: string | null
           name?: string | null
