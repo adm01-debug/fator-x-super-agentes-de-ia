@@ -1,53 +1,52 @@
 
-Sprint 39 (Pentest Tracking) completo ✅. Score 10/10 mantido. Próximo da fila: 🟢 **Sprint 40 — Risk Register (ISO 31000 / SOC2 CC3.2)**.
+Sprint 40 (Risk Register) ✅. Próximo da fila: 🟢 **Sprint 41 — Vendor Risk Management (TPRM)**.
 
 ## Por quê
-- Temos pentests, SBOM, secrets, postmortems, DR, compliance — tudo reativo/operacional
-- **Falta um registro centralizado de riscos** (estratégicos, operacionais, técnicos, regulatórios) com ownership, likelihood, impact e tratamento
-- ISO 31000 / SOC2 CC3.2 / ISO 27005 exigem risk register formal com revisão periódica
-- Hoje riscos vivem em planilhas/Notion soltos — sem auditoria, sem SLA de revisão, sem heatmap
+- Temos riscos internos, pentests, SBOM, secrets — mas **não rastreamos terceiros** (SaaS, processadores, APIs externas)
+- SOC2 CC9.2 / ISO 27001 A.15 / LGPD Art.39 exigem due diligence + monitoramento contínuo de fornecedores
+- Sem inventário, DPAs vencidos e certs SOC2 expirados viram risco invisível
 
 ## Plano
 
-**1. Migração SQL — `risk_register` + `risk_review_events`:**
-- `risk_register`: id, workspace_id, title, description, category (`strategic`|`operational`|`technical`|`security`|`compliance`|`financial`|`reputational`), likelihood (1-5), impact (1-5), inherent_score (likelihood×impact, generated), residual_score (após mitigation), treatment (`accept`|`mitigate`|`transfer`|`avoid`), mitigation_plan, owner_id, status (`identified`|`assessed`|`treated`|`monitored`|`closed`), identified_at, next_review_due, closed_at, related_finding_id (FK opcional para pentest_findings)
-- `risk_review_events`: id, risk_id, reviewed_by, reviewed_at, previous_residual_score, new_residual_score, notes
+**1. Migração SQL — `vendors` + `vendor_assessments` + `vendor_documents`:**
+- `vendors`: id, workspace_id, name, vendor_type (`saas`|`processor`|`api`|`infra`|`consulting`|`other`), website, contact_email, criticality (`critical`|`high`|`medium`|`low`), data_classification (`pii`|`phi`|`financial`|`confidential`|`public`), status (`active`|`under_review`|`suspended`|`offboarded`), onboarded_at, offboarded_at, dpa_signed (bool), dpa_expires_at, soc2_valid_until, iso27001_valid_until, notes, owner_id
+- `vendor_assessments`: id, vendor_id, assessed_by, assessed_at, risk_score (1-25), security_score (1-5), compliance_score (1-5), operational_score (1-5), findings (text[]), recommendations, next_review_due
+- `vendor_documents`: id, vendor_id, doc_type (`dpa`|`soc2`|`iso27001`|`pentest_report`|`questionnaire`|`contract`|`other`), title, file_url, valid_until, uploaded_by, uploaded_at
 - RLS: members SELECT, admins INSERT/UPDATE
-- Trigger: ao INSERT em risk_review_events, atualiza next_review_due (+90d) e residual_score
+- Trigger: ao INSERT assessment, atualiza `vendors.next_review_due` (critical=90d, high=180d, demais=365d)
 
 **2. RPCs:**
-- `register_risk(...)` → cria risco com inherent_score auto
-- `review_risk(risk_id, new_residual_score, notes)` → registra review + recalcula próximo prazo
-- `close_risk(risk_id, notes)` → status closed
-- `get_risk_summary(workspace_id)` → contagens por nível (critical/high/med/low), overdue reviews, treatment distribution
+- `register_vendor(...)` → cria vendor
+- `assess_vendor(vendor_id, scores, findings, recs)` → registra assessment
+- `offboard_vendor(vendor_id, notes)` → status offboarded
+- `get_vendor_summary(workspace_id)` → totais por criticality, DPAs vencendo (<30d), certs expirados, assessments overdue
 
-**3. UI — `src/pages/RiskRegisterPage.tsx` (`/security/risks`):**
-- Stats cards: total, critical (residual ≥15), overdue reviews, pendentes de tratamento
-- **Heatmap visual 5x5** (likelihood × impact) com bolhas dimensionadas por contagem
-- Tabela filtrável por categoria/status/treatment + ordenação por residual_score desc
-- "Novo risco": dialog com sliders 1-5 para likelihood/impact, dropdown treatment, mitigation_plan
-- Drill-in (Sheet): histórico de reviews, mitigation timeline, link para finding relacionado
+**3. UI — `src/pages/VendorsPage.tsx` (`/security/vendors`):**
+- Stats: total ativos, críticos, DPAs vencendo, assessments overdue, certs expirados
+- Tabela com filtros (criticality, type, status) + badges visuais (DPA expired vermelho pulsante, <30d amber)
+- "Novo vendor": dialog com type, criticality, data classification, contato
+- Drill-in Sheet: tabs **Assessments** (histórico + novo), **Documentos** (upload metadata DPA/SOC2/etc com valid_until), **Detalhes**
 
-**4. `src/services/riskService.ts`:** CRUD + reviews + summary + heatmap aggregation
+**4. `src/services/vendorRiskService.ts`:** CRUD + assessments + summary + helpers de urgência (cert expiry)
 
-**5. Sidebar:** item "Registro de Riscos" sob Administração (ícone `AlertOctagon`)
+**5. Sidebar:** item "Fornecedores" sob Segurança (ícone `Building`)
 
-**6. `docs/RUNBOOK.md`:** seção "Risk Management" — escala 1-5 likelihood/impact, cadência de review (90d default, 30d para critical), critérios de escalation
+**6. `docs/RUNBOOK.md`:** seção "Vendor Risk Management" — questionário padrão, cadências por criticality, processo de offboarding
 
-**7. `mem://features/audit-improvements`:** Sprint 40 logged + fila (Sprint 41 Vendor Risk Mgmt, Sprint 42 Business Continuity Plan)
+**7. `mem://features/audit-improvements`:** Sprint 41 logged + fila (Sprint 42 BCP, Sprint 43 Change Management)
 
 ## Arquivos
-- `supabase/migrations/<ts>_risk_register.sql`
-- `src/services/riskService.ts` (novo)
-- `src/pages/RiskRegisterPage.tsx` (nova)
+- `supabase/migrations/<ts>_vendor_risk.sql`
+- `src/services/vendorRiskService.ts` (novo)
+- `src/pages/VendorsPage.tsx` (nova)
 - `src/components/layout/AppSidebar.tsx` (item)
 - `src/App.tsx` (rota)
 - `docs/RUNBOOK.md` (seção)
 - `.lovable/memory/features/audit-improvements.md` (append)
 
 ## Validação
-- Registrar risco "Vazamento de PII via API" likelihood=4 impact=5 → inherent=20 (critical)
-- Treatment=mitigate + plan → review após implementação → residual=8 (medium)
-- Heatmap mostra bolha em (4,5) com contagem
-- Forçar overdue review → aparece em "overdue" stat
-- RLS: non-admin vê riscos mas não registra
+- Registrar "OpenAI" type=api criticality=critical data=confidential → next_review_due=+90d
+- Adicionar assessment scores 4/5/4 → histórico criado
+- Adicionar doc DPA com valid_until=+15d → badge amber "vencendo"
+- Forçar SOC2 expirado → badge vermelho pulsante
+- RLS: non-admin vê vendors mas não cria/avalia
