@@ -1,52 +1,45 @@
 
-Sprint 44 (IR Playbooks) ✅. Próximo da fila: 🟢 **Sprint 45 — Asset Inventory (CMDB-lite)**.
+## Sprint QA — Polimento Final & Quality Assurance
 
-## Por quê
-- Temos riscos, vendors, BCP, mudanças, IR playbooks — mas **não temos inventário de ativos**
-- ISO 27001 A.5.9 / SOC2 CC6.1 / NIST CSF ID.AM exigem inventário completo de hardware, software e cloud resources com owner e classificação
-- Sem CMDB, impossível mapear blast radius de mudanças/incidentes ou validar SBOM contra ativos reais
+Sistema maduro (45 sprints). Foco agora em **encontrar e corrigir inconsistências** acumuladas, sem adicionar features novas.
 
-## Plano
+### 1. Auditoria automatizada (read-only primeiro)
+- `supabase--linter` → detectar RLS faltando, policies frouxas, índices ausentes nas 45+ tabelas criadas
+- `security--run_security_scan` → varredura de exposição de dados
+- Buscar cores hardcoded (`bg-emerald-`, `text-red-`, `bg-blue-`) fora dos tokens nexus-* nas páginas recentes (Sprints 41-45)
+- Buscar `as any`, `console.log` esquecidos, TODOs órfãos
+- Verificar consistência de PT-BR nos títulos das páginas novas (BCP, CAB, IR, CMDB)
 
-### 1. Migração SQL
-- `assets`: id, workspace_id, name, asset_type (`hardware`|`software`|`cloud_resource`|`saas_account`|`network_device`|`mobile_device`|`iot`|`other`), category, owner_id, custodian_id, environment (`production`|`staging`|`development`|`testing`), classification (`public`|`internal`|`confidential`|`restricted`), status (`active`|`maintenance`|`decommissioned`|`lost`), location, vendor, model, serial_number, ip_address, hostname, os, version, purchased_at, warranty_until, last_seen_at, tags text[], metadata jsonb, linked_system_id (FK conceitual a business_systems), linked_vendor_id (FK conceitual a vendors)
-- `asset_audits`: id, asset_id, audited_by, audited_at, findings, status_after, notes
-- RLS: members SELECT, admins INSERT/UPDATE/DELETE
-- Trigger ao INSERT em asset_audits: atualiza `last_seen_at` no asset
+### 2. Consistência visual nas páginas de Segurança
+Padronizar as 6 páginas do módulo (Vendors, Risks, BCP, Changes, IR, Assets):
+- Mesma estrutura de stats cards (4 cards no topo)
+- Mesmos badges de severidade (`destructive` / `warning` / `success` tokens)
+- Mesma animação `animate-pulse` em badges críticos
+- Mesmo padding/spacing (`p-6 sm:p-8 lg:p-10`)
+- Empty states uniformes
 
-### 2. RPCs
-- `register_asset(...)` → cria ativo
-- `audit_asset(asset_id, findings, status_after, notes)` → registra auditoria + atualiza last_seen
-- `decommission_asset(asset_id, reason)` → status=decommissioned
-- `get_asset_summary(workspace_id)` → totais por type/classification/environment, ativos sem owner, sem auditoria 90d, warranty vencendo 30d
+### 3. Acessibilidade & UX
+- `aria-label` em botões icon-only
+- Focus rings consistentes (já temos token, validar uso)
+- Contraste WCAG AA nos badges custom
+- Dialogs com `aria-describedby`
 
-### 3. UI — `src/pages/AssetInventoryPage.tsx` (`/security/assets`)
-- Stats: total ativos, sem owner, sem auditoria 90d, warranty vencendo 30d
-- Filtros: type, environment, classification, status
-- Tabela com badges (classification, environment, status) + busca por hostname/serial
-- Dialog "Novo ativo": tipo, classificação, ambiente, owner, vendor, hostname, IP, OS, warranty
-- Drill-in Sheet: tabs **Detalhes** + **Auditorias** (histórico + nova auditoria inline)
-- Badge pulsante para warranty vencendo e ativos não auditados
+### 4. Performance
+- Lazy imports nas rotas novas (Sprints 41-45) — confirmar que estão lazy
+- Verificar bundle dos services novos
+- Memo em listas grandes (assets, changes podem crescer)
 
-### 4. Service & integração
-- `src/services/assetInventoryService.ts`: CRUD + audits + summary + helpers (warranty expiring, audit overdue)
-- Sidebar: "Inventário (CMDB)" sob Segurança (ícone `Boxes`)
-- Rota lazy em `src/App.tsx`
-- `docs/RUNBOOK.md`: seção Asset Inventory (taxonomia, classificação, cadência de auditoria)
-- `mem://features/audit-improvements`: log Sprint 45 + fila (Sprint 46 Privacy/DSAR, Sprint 47 Access Reviews)
+### 5. Documentação
+- `docs/RUNBOOK.md`: índice atualizado com todas as seções (BCP, CAB, IR, CMDB)
+- `mem://features/audit-improvements`: marcar QA pass
 
-## Arquivos
-- `supabase/migrations/<ts>_asset_inventory.sql`
-- `src/services/assetInventoryService.ts` (novo)
-- `src/pages/AssetInventoryPage.tsx` (nova)
-- `src/components/layout/AppSidebar.tsx` (item)
-- `src/App.tsx` (rota)
-- `docs/RUNBOOK.md` (seção)
-- `.lovable/memory/features/audit-improvements.md` (append)
+### Entregáveis
+- Lista de findings priorizados (P0/P1/P2)
+- Fixes aplicados em ordem de criticidade
+- Relatório final no memory
 
-## Validação
-- Cadastrar "MacBook Pro CTO" type=hardware classification=confidential env=production warranty=+10d → badge amber pulsante
-- Registrar auditoria status_after=active → last_seen_at atualizado
-- Forçar audit overdue (90d+ sem auditoria) → conta em "sem auditoria 90d"
-- Decommission → status=decommissioned, sai da lista ativa
-- RLS: non-admin vê ativos mas não cadastra/audita
+### Arquivos prováveis
+- Páginas Sprints 41-45 (correções pontuais de tokens/a11y)
+- `docs/RUNBOOK.md`
+- `mem://features/audit-improvements`
+- Migrações pequenas se linter apontar RLS gaps
