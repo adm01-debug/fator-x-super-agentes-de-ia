@@ -106,6 +106,7 @@ const PentestPage = lazy(() => import("./pages/PentestPage"));
 const PentestFindingsPage = lazy(() => import("./pages/PentestFindingsPage"));
 const RiskRegisterPage = lazy(() => import("./pages/RiskRegisterPage"));
 const VendorsPage = lazy(() => import("./pages/VendorsPage"));
+const BCPPage = lazy(() => import("./pages/BCPPage"));
 const SLODashboard = lazy(() => import("./pages/SLODashboard"));
 const ChaosLabPage = lazy(() => import("./pages/ChaosLabPage"));
 const SyntheticMonitoringPage = lazy(() => import("./pages/SyntheticMonitoringPage"));
@@ -266,6 +267,7 @@ const App = () => (
                       <Route path="/security/pentest-findings" element={<SafePage><ProtectedRoute permission="settings.api_keys"><PentestFindingsPage /></ProtectedRoute></SafePage>} />
                       <Route path="/security/risks" element={<SafePage><ProtectedRoute permission="settings.api_keys"><RiskRegisterPage /></ProtectedRoute></SafePage>} />
                       <Route path="/security/vendors" element={<SafePage><ProtectedRoute permission="settings.api_keys"><VendorsPage /></ProtectedRoute></SafePage>} />
+                      <Route path="/security/bcp" element={<SafePage><ProtectedRoute permission="settings.api_keys"><BCPPage /></ProtectedRoute></SafePage>} />
                       <Route path="/disaster-recovery" element={<SafePage><ProtectedRoute permission="settings.api_keys"><DisasterRecoveryPage /></ProtectedRoute></SafePage>} />
                       <Route path="*" element={<SafePage><NotFound /></SafePage>} />
                     </Routes>
