@@ -113,6 +113,7 @@ const navSections = [
       { title: "Fornecedores", url: "/security/vendors", icon: Building2 },
       { title: "Continuidade (BCP)", url: "/security/bcp", icon: LifeBuoy },
       { title: "Mudanças (CAB)", url: "/security/changes", icon: GitPullRequest },
+      { title: "Playbooks (IR)", url: "/security/ir", icon: BookOpen },
       { title: "SSO Enterprise", url: "/sso", icon: KeyRound },
       { title: "Data Residency", url: "/residency", icon: Globe2 },
       { title: "LGPD", url: "/lgpd", icon: ShieldCheck },
