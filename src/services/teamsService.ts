@@ -33,8 +33,8 @@ export async function inviteMember(
     p_workspace_id: workspaceId,
     p_email: email,
     p_role: role,
-    p_name: name ?? null,
-    p_user_id: null,
+    p_name: name ?? undefined,
+    p_user_id: undefined,
   });
   if (error) throw error;
 
@@ -88,8 +88,8 @@ export async function insertWorkspaceMember(member: {
     p_workspace_id: member.workspace_id,
     p_email: member.email,
     p_role: member.role,
-    p_name: member.name ?? null,
-    p_user_id: member.user_id ?? null,
+    p_name: member.name ?? undefined,
+    p_user_id: member.user_id ?? undefined,
   });
   if (error) throw error;
 }
