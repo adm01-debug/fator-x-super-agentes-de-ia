@@ -111,22 +111,6 @@ export async function registerBusinessSystem(input: {
   if (error) throw error;
   return data as string;
 }
-  const { data, error } = await supabase.rpc("register_business_system", {
-    p_workspace_id: input.workspace_id,
-    p_name: input.name,
-    p_description: input.description ?? null,
-    p_category: input.category ?? "core",
-    p_criticality: input.criticality ?? "tier_3",
-    p_rto_minutes: input.rto_minutes ?? 240,
-    p_rpo_minutes: input.rpo_minutes ?? 60,
-    p_mtpd_hours: input.mtpd_hours ?? 24,
-    p_dependencies: input.dependencies ?? [],
-    p_owner_id: input.owner_id ?? null,
-    p_recovery_strategy: input.recovery_strategy ?? null,
-  });
-  if (error) throw error;
-  return data as string;
-}
 
 export async function recordBcpTest(input: {
   system_id: string;
@@ -149,20 +133,6 @@ export async function recordBcpTest(input: {
     p_gaps: input.gaps ?? [],
     p_action_items: input.action_items ?? undefined,
     p_notes: input.notes ?? undefined,
-  });
-  if (error) throw error;
-  return data as string;
-}
-  const { data, error } = await supabase.rpc("record_bcp_test", {
-    p_system_id: input.system_id,
-    p_test_type: input.test_type,
-    p_scenario: input.scenario,
-    p_actual_rto_minutes: input.actual_rto_minutes ?? null,
-    p_actual_rpo_minutes: input.actual_rpo_minutes ?? null,
-    p_success: input.success ?? true,
-    p_gaps: input.gaps ?? [],
-    p_action_items: input.action_items ?? null,
-    p_notes: input.notes ?? null,
   });
   if (error) throw error;
   return data as string;
