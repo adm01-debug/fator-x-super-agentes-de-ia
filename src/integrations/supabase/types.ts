@@ -995,6 +995,148 @@ export type Database = {
           },
         ]
       }
+      asset_audits: {
+        Row: {
+          asset_id: string
+          audited_at: string
+          audited_by: string
+          created_at: string
+          findings: string | null
+          id: string
+          notes: string | null
+          status_after: Database["public"]["Enums"]["asset_status"]
+        }
+        Insert: {
+          asset_id: string
+          audited_at?: string
+          audited_by: string
+          created_at?: string
+          findings?: string | null
+          id?: string
+          notes?: string | null
+          status_after?: Database["public"]["Enums"]["asset_status"]
+        }
+        Update: {
+          asset_id?: string
+          audited_at?: string
+          audited_by?: string
+          created_at?: string
+          findings?: string | null
+          id?: string
+          notes?: string | null
+          status_after?: Database["public"]["Enums"]["asset_status"]
+        }
+        Relationships: [
+          {
+            foreignKeyName: "asset_audits_asset_id_fkey"
+            columns: ["asset_id"]
+            isOneToOne: false
+            referencedRelation: "assets"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      assets: {
+        Row: {
+          asset_type: Database["public"]["Enums"]["asset_type"]
+          category: string | null
+          classification: Database["public"]["Enums"]["asset_classification"]
+          created_at: string
+          created_by: string
+          custodian_id: string | null
+          environment: Database["public"]["Enums"]["asset_environment"]
+          hostname: string | null
+          id: string
+          ip_address: string | null
+          last_seen_at: string | null
+          linked_system_id: string | null
+          linked_vendor_id: string | null
+          location: string | null
+          metadata: Json
+          model: string | null
+          name: string
+          os: string | null
+          owner_id: string | null
+          purchased_at: string | null
+          serial_number: string | null
+          status: Database["public"]["Enums"]["asset_status"]
+          tags: string[]
+          updated_at: string
+          vendor: string | null
+          version: string | null
+          warranty_until: string | null
+          workspace_id: string
+        }
+        Insert: {
+          asset_type?: Database["public"]["Enums"]["asset_type"]
+          category?: string | null
+          classification?: Database["public"]["Enums"]["asset_classification"]
+          created_at?: string
+          created_by: string
+          custodian_id?: string | null
+          environment?: Database["public"]["Enums"]["asset_environment"]
+          hostname?: string | null
+          id?: string
+          ip_address?: string | null
+          last_seen_at?: string | null
+          linked_system_id?: string | null
+          linked_vendor_id?: string | null
+          location?: string | null
+          metadata?: Json
+          model?: string | null
+          name: string
+          os?: string | null
+          owner_id?: string | null
+          purchased_at?: string | null
+          serial_number?: string | null
+          status?: Database["public"]["Enums"]["asset_status"]
+          tags?: string[]
+          updated_at?: string
+          vendor?: string | null
+          version?: string | null
+          warranty_until?: string | null
+          workspace_id: string
+        }
+        Update: {
+          asset_type?: Database["public"]["Enums"]["asset_type"]
+          category?: string | null
+          classification?: Database["public"]["Enums"]["asset_classification"]
+          created_at?: string
+          created_by?: string
+          custodian_id?: string | null
+          environment?: Database["public"]["Enums"]["asset_environment"]
+          hostname?: string | null
+          id?: string
+          ip_address?: string | null
+          last_seen_at?: string | null
+          linked_system_id?: string | null
+          linked_vendor_id?: string | null
+          location?: string | null
+          metadata?: Json
+          model?: string | null
+          name?: string
+          os?: string | null
+          owner_id?: string | null
+          purchased_at?: string | null
+          serial_number?: string | null
+          status?: Database["public"]["Enums"]["asset_status"]
+          tags?: string[]
+          updated_at?: string
+          vendor?: string | null
+          version?: string | null
+          warranty_until?: string | null
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "assets_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       audit_log: {
         Row: {
           action: string
@@ -6401,6 +6543,15 @@ export type Database = {
         Args: { p_experiment_id: string; p_session_key?: string }
         Returns: string
       }
+      audit_asset: {
+        Args: {
+          p_asset_id: string
+          p_findings: string
+          p_notes?: string
+          p_status_after?: Database["public"]["Enums"]["asset_status"]
+        }
+        Returns: string
+      }
       check_budget: { Args: { p_workspace_id: string }; Returns: Json }
       close_risk: {
         Args: { p_notes?: string; p_risk_id: string }
@@ -6470,6 +6621,10 @@ export type Database = {
         }
         Returns: undefined
       }
+      decommission_asset: {
+        Args: { p_asset_id: string; p_reason: string }
+        Returns: undefined
+      }
       detect_cost_anomalies: { Args: never; Returns: Json }
       disable_all_chaos: { Args: { p_workspace_id: string }; Returns: number }
       enforce_budget: { Args: never; Returns: Json }
@@ -6504,6 +6659,7 @@ export type Database = {
           probability: number
         }[]
       }
+      get_asset_summary: { Args: { p_workspace_id: string }; Returns: Json }
       get_bcp_summary: { Args: { p_workspace_id: string }; Returns: Json }
       get_change_summary: { Args: { p_workspace_id: string }; Returns: Json }
       get_creator_earnings: { Args: { p_creator_id?: string }; Returns: Json }
@@ -6651,6 +6807,29 @@ export type Database = {
         Returns: string
       }
       refresh_secrets_status: { Args: never; Returns: Json }
+      register_asset: {
+        Args: {
+          p_asset_type: Database["public"]["Enums"]["asset_type"]
+          p_category?: string
+          p_classification?: Database["public"]["Enums"]["asset_classification"]
+          p_environment?: Database["public"]["Enums"]["asset_environment"]
+          p_hostname?: string
+          p_ip_address?: string
+          p_location?: string
+          p_model?: string
+          p_name: string
+          p_os?: string
+          p_owner_id?: string
+          p_purchased_at?: string
+          p_serial_number?: string
+          p_tags?: string[]
+          p_vendor?: string
+          p_version?: string
+          p_warranty_until?: string
+          p_workspace_id: string
+        }
+        Returns: string
+      }
       register_business_system: {
         Args: {
           p_category?: Database["public"]["Enums"]["bcp_category"]
@@ -6778,6 +6957,22 @@ export type Database = {
         | "monitoring"
         | "deprecated"
         | "archived"
+      asset_classification:
+        | "public"
+        | "internal"
+        | "confidential"
+        | "restricted"
+      asset_environment: "production" | "staging" | "development" | "testing"
+      asset_status: "active" | "maintenance" | "decommissioned" | "lost"
+      asset_type:
+        | "hardware"
+        | "software"
+        | "cloud_resource"
+        | "saas_account"
+        | "network_device"
+        | "mobile_device"
+        | "iot"
+        | "other"
       bcp_category: "core" | "supporting" | "analytical" | "external"
       bcp_criticality: "tier_1" | "tier_2" | "tier_3" | "tier_4"
       bcp_system_status: "operational" | "degraded" | "down" | "retired"
@@ -6946,6 +7141,24 @@ export const Constants = {
         "monitoring",
         "deprecated",
         "archived",
+      ],
+      asset_classification: [
+        "public",
+        "internal",
+        "confidential",
+        "restricted",
+      ],
+      asset_environment: ["production", "staging", "development", "testing"],
+      asset_status: ["active", "maintenance", "decommissioned", "lost"],
+      asset_type: [
+        "hardware",
+        "software",
+        "cloud_resource",
+        "saas_account",
+        "network_device",
+        "mobile_device",
+        "iot",
+        "other",
       ],
       bcp_category: ["core", "supporting", "analytical", "external"],
       bcp_criticality: ["tier_1", "tier_2", "tier_3", "tier_4"],
