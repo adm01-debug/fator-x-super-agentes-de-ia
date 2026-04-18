@@ -1057,3 +1057,30 @@ Cada assessment deve atribuir nota 1–5 em três dimensões:
 - Vendor **critical** sem assessment há >90d → escalation para CISO
 - DPA **expirado** em vendor processando PII → bloqueio operacional imediato
 - Mais de 3 vendors críticos com certs SOC2/ISO expirados → revisão de portfolio
+
+## Business Continuity Plan (BCP) — ISO 22301 / SOC2 A1.2
+
+### Tiers de criticidade & cadência de testes
+| Tier | Definição | Cadência | RTO típico | RPO típico |
+|------|-----------|----------|------------|------------|
+| **Tier 1** | Sistemas core revenue-impacting (auth, API gateway, billing) | **90 dias** | ≤ 15 min | ≤ 5 min |
+| **Tier 2** | Sistemas de suporte essenciais (notifications, search) | **180 dias** | ≤ 1 h | ≤ 30 min |
+| **Tier 3** | Sistemas analíticos / não-críticos | **365 dias** | ≤ 4 h | ≤ 1 h |
+| **Tier 4** | Tooling interno, ambientes de dev | **730 dias** | ≤ 24 h | ≤ 24 h |
+
+### Tipos de teste
+- **Tabletop**: discussão guiada por cenário, sem execução técnica
+- **Walkthrough**: revisão step-by-step do runbook com infra-team
+- **Simulation**: execução parcial em staging (DR drill)
+- **Full failover**: failover real para região alternativa (planejado)
+
+### Workflow ao registrar um teste
+1. Acessar `/security/bcp` → selecionar sistema → aba **Testes**
+2. Preencher cenário, RTO/RPO real, gaps e action items
+3. Sistema recalcula `last_tested_at` e `next_test_due` automaticamente
+4. Se RTO/RPO real > target → badge **breach** vermelho pulsante; abrir item no Risk Register
+
+### Escalation em incident real
+1. Status do sistema → `degraded` ou `down` (drill-in Sheet)
+2. Alerta automático em `incidents` + on-call paginado
+3. Pós-incident: registrar `simulation` ou `full_failover` retrospectivo com gaps reais
