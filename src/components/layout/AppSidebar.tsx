@@ -85,6 +85,7 @@ const navSections = [
       { title: "Traces & Spans", url: "/traces", icon: Activity },
       { title: "SLO Dashboard", url: "/observability/slo", icon: Activity },
       { title: "Chaos Lab", url: "/observability/chaos", icon: Zap },
+      { title: "Synthetic Monitoring", url: "/observability/synthetic", icon: Radar },
       { title: "Replay & Fork", url: "/replay", icon: GitBranchIcon },
       { title: "Voice Agent", url: "/voice", icon: Mic },
       { title: "Voice Realtime", url: "/voice-agents", icon: Mic },
