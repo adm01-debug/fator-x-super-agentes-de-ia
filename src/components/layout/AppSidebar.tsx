@@ -10,7 +10,7 @@ import {
   Mic, GitBranch as GitBranchIcon, KeyRound, Globe2, Monitor, Eye, Smartphone, TestTube2,
   Store, Cpu, Wand2, GitMerge, Terminal, Mail, Bug, FileCheck2,
   PhoneCall, Network, FlaskRound, TrendingDown,
-  Share2, Building2, Radar, ShieldAlert, Wallet, Swords, Phone, Archive, AlertOctagon, LifeBuoy, GitPullRequest,
+  Share2, Building2, Radar, ShieldAlert, Wallet, Swords, Phone, Archive, AlertOctagon, LifeBuoy, GitPullRequest, Boxes,
 } from "lucide-react";
 import {
   Sidebar, SidebarContent, SidebarGroup, SidebarGroupContent, SidebarGroupLabel,
@@ -114,6 +114,7 @@ const navSections = [
       { title: "Continuidade (BCP)", url: "/security/bcp", icon: LifeBuoy },
       { title: "Mudanças (CAB)", url: "/security/changes", icon: GitPullRequest },
       { title: "Playbooks (IR)", url: "/security/ir", icon: BookOpen },
+      { title: "Inventário (CMDB)", url: "/security/assets", icon: Boxes },
       { title: "SSO Enterprise", url: "/sso", icon: KeyRound },
       { title: "Data Residency", url: "/residency", icon: Globe2 },
       { title: "LGPD", url: "/lgpd", icon: ShieldCheck },

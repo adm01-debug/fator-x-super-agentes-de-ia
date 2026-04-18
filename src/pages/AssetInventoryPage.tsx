@@ -22,7 +22,7 @@ import {
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { toast } from "@/hooks/use-toast";
-import { PageHeader } from "@/components/PageHeader";
+import { PageHeader } from "@/components/shared/PageHeader";
 import {
   type Asset, type AssetAudit, type AssetSummary, type AssetType,
   type AssetEnvironment, type AssetClassification, type AssetStatus,
@@ -212,7 +212,6 @@ export default function AssetInventoryPage() {
   return (
     <div className="p-6 sm:p-8 lg:p-10 space-y-6 max-w-[1400px] mx-auto animate-page-enter">
       <PageHeader
-        icon={Boxes}
         title="Inventário (CMDB)"
         description="Inventário de ativos — hardware, software, cloud, SaaS e dispositivos. ISO 27001 A.5.9 / SOC2 CC6.1 / NIST CSF ID.AM."
         actions={
