@@ -10,7 +10,7 @@ import {
   Mic, GitBranch as GitBranchIcon, KeyRound, Globe2, Monitor, Eye, Smartphone, TestTube2,
   Store, Cpu, Wand2, GitMerge, Terminal, Mail, Bug, FileCheck2,
   PhoneCall, Network, FlaskRound, TrendingDown,
-  Share2, Building2, Radar, ShieldAlert, Wallet,
+  Share2, Building2, Radar, ShieldAlert, Wallet, Swords,
 } from "lucide-react";
 import {
   Sidebar, SidebarContent, SidebarGroup, SidebarGroupContent, SidebarGroupLabel,
@@ -87,6 +87,7 @@ const navSections = [
       { title: "Chaos Lab", url: "/observability/chaos", icon: Zap },
       { title: "Synthetic Monitoring", url: "/observability/synthetic", icon: Radar },
       { title: "Anomalias de Custo", url: "/observability/cost-anomalies", icon: TrendingDown },
+      { title: "Game Days", url: "/observability/game-days", icon: Swords },
       { title: "Replay & Fork", url: "/replay", icon: GitBranchIcon },
       { title: "Voice Agent", url: "/voice", icon: Mic },
       { title: "Voice Realtime", url: "/voice-agents", icon: Mic },

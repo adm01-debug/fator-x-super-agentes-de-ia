@@ -91,6 +91,8 @@ const FederatedLearningPage = lazy(() => import("./pages/FederatedLearningPage")
 const MultiTenancyPage = lazy(() => import("./pages/MultiTenancyPage"));
 const ObservabilityOTelPage = lazy(() => import("./pages/ObservabilityOTelPage"));
 const DisasterRecoveryPage = lazy(() => import("./pages/DisasterRecoveryPage"));
+const GameDaysPage = lazy(() => import("./pages/GameDaysPage"));
+const GameDayLivePage = lazy(() => import("./pages/GameDayLivePage"));
 const SLODashboard = lazy(() => import("./pages/SLODashboard"));
 const ChaosLabPage = lazy(() => import("./pages/ChaosLabPage"));
 const SyntheticMonitoringPage = lazy(() => import("./pages/SyntheticMonitoringPage"));

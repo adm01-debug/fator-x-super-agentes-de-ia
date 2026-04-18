@@ -118,7 +118,7 @@ export async function recordEvent(
     p_game_day_id: gameDayId,
     p_event_type: type,
     p_description: description,
-    p_metadata: metadata,
+    p_metadata: metadata as never,
   });
   if (error) throw error;
   return data as string;
