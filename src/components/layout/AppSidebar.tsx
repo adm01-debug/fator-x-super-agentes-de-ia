@@ -107,6 +107,8 @@ const navSections = [
       { title: "SBOM", url: "/security/sbom", icon: Package },
       { title: "Vulnerabilidades", url: "/security/vulnerabilities", icon: ShieldAlert },
       { title: "Rotação de Secrets", url: "/security/secrets-rotation", icon: KeyRound },
+      { title: "Pentests", url: "/security/pentests", icon: Bug },
+      { title: "Findings de Pentest", url: "/security/pentest-findings", icon: Swords },
       { title: "SSO Enterprise", url: "/sso", icon: KeyRound },
       { title: "Data Residency", url: "/residency", icon: Globe2 },
       { title: "LGPD", url: "/lgpd", icon: ShieldCheck },

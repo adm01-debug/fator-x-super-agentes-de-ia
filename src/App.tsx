@@ -102,6 +102,8 @@ const PostmortemEditorPage = lazy(() => import("./pages/PostmortemEditorPage"));
 const SBOMPage = lazy(() => import("./pages/SBOMPage"));
 const VulnerabilitiesPage = lazy(() => import("./pages/VulnerabilitiesPage"));
 const SecretsRotationPage = lazy(() => import("./pages/SecretsRotationPage"));
+const PentestPage = lazy(() => import("./pages/PentestPage"));
+const PentestFindingsPage = lazy(() => import("./pages/PentestFindingsPage"));
 const SLODashboard = lazy(() => import("./pages/SLODashboard"));
 const ChaosLabPage = lazy(() => import("./pages/ChaosLabPage"));
 const SyntheticMonitoringPage = lazy(() => import("./pages/SyntheticMonitoringPage"));
@@ -258,6 +260,8 @@ const App = () => (
                       <Route path="/observability/postmortems/:id" element={<SafePage><PostmortemEditorPage /></SafePage>} />
                       <Route path="/security/sbom" element={<SafePage><ProtectedRoute permission="settings.api_keys"><SBOMPage /></ProtectedRoute></SafePage>} />
                       <Route path="/security/vulnerabilities" element={<SafePage><ProtectedRoute permission="settings.api_keys"><VulnerabilitiesPage /></ProtectedRoute></SafePage>} />
+                      <Route path="/security/pentests" element={<SafePage><ProtectedRoute permission="settings.api_keys"><PentestPage /></ProtectedRoute></SafePage>} />
+                      <Route path="/security/pentest-findings" element={<SafePage><ProtectedRoute permission="settings.api_keys"><PentestFindingsPage /></ProtectedRoute></SafePage>} />
                       <Route path="/disaster-recovery" element={<SafePage><ProtectedRoute permission="settings.api_keys"><DisasterRecoveryPage /></ProtectedRoute></SafePage>} />
                       <Route path="*" element={<SafePage><NotFound /></SafePage>} />
                     </Routes>
