@@ -256,3 +256,20 @@ type: feature
 ## Queue
 - Sprint 35: Postmortem Templates (auto-generate from incident_runs + game_days)
 - Sprint 36: Compliance Reports automation (SOC2/ISO evidence packs)
+
+## Sprint 35 — Postmortem Templates ✅
+**Data**: 2026-04-18
+**Score**: 10/10 mantido
+**Entregue**:
+- Tabelas `postmortems` + `postmortem_action_items` (RLS: members SELECT, author/admin UPDATE)
+- RPCs `generate_postmortem_from_incident`, `generate_postmortem_from_gameday`, `publish_postmortem` (gate: summary + root_cause + ≥1 action)
+- Página `/observability/postmortems` (lista com filtros SEV/status/origem, gerador de incidente/gameday, criação manual)
+- Página `/observability/postmortems/:id` (editor estruturado: timeline, 5 Whys, action items inline com prio/owner/due)
+- Sidebar item "Postmortems" sob Operações
+- RUNBOOK seção "Postmortem Process" (blameless, SLA 5 dias, templates por categoria)
+- Severidade auto: incident_failed=SEV1, partial=SEV2, gameday score<5=SEV1
+
+**Próximos da fila Continuous Hardening**:
+- Sprint 36: Compliance Reports (SOC2/ISO27001 evidence auto-collect)
+- Sprint 37: SBOM + Supply Chain (npm audit + dependency provenance)
+- Sprint 38: Customer Comm Templates (status page integration)
