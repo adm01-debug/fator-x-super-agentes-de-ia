@@ -7001,6 +7001,16 @@ export type Database = {
         Args: { p_skill_id: string }
         Returns: undefined
       }
+      invite_workspace_member: {
+        Args: {
+          p_email: string
+          p_name?: string
+          p_role?: string
+          p_user_id?: string
+          p_workspace_id: string
+        }
+        Returns: string
+      }
       is_workspace_admin: {
         Args: { _user_id: string; _workspace_id: string }
         Returns: boolean
