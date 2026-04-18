@@ -11,8 +11,7 @@ import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle, DialogT
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { PageHeader } from "@/components/shared/PageHeader";
 import { toast } from "sonner";
-import { useAuth } from "@/contexts/AuthContext";
-import { getWorkspaceInfo } from "@/lib/agentService";
+import { useWorkspaceId } from "@/hooks/use-data";
 import { complianceService, type ComplianceFramework, type ComplianceReport, type ComplianceControl, type ComplianceEvidence } from "@/services/complianceService";
 
 function statusColor(status: string) {
