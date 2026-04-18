@@ -107,7 +107,6 @@ export default function SBOMPage() {
       <PageHeader
         title="SBOM / Supply Chain"
         description="Inventário de dependências e detecção de vulnerabilidades conhecidas (CVEs)"
-        icon={Package}
         actions={
           <Button onClick={() => setCreateOpen(true)} disabled={!workspaceId}>
             <Plus className="h-4 w-4 mr-2" /> Novo SBOM
