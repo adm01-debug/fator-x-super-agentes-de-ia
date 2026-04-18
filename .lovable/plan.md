@@ -1,45 +1,42 @@
 
-## Sprint QA — Polimento Final & Quality Assurance
+QA Sprint já teve fase 1 (RLS P1 fixes aplicados). Próxima fase: **consistência visual + a11y** nas 6 páginas de Segurança (Sprints 41-45) sem mexer em backend.
 
-Sistema maduro (45 sprints). Foco agora em **encontrar e corrigir inconsistências** acumuladas, sem adicionar features novas.
+## Plano — QA Fase 2: Polimento Visual & A11y
 
-### 1. Auditoria automatizada (read-only primeiro)
-- `supabase--linter` → detectar RLS faltando, policies frouxas, índices ausentes nas 45+ tabelas criadas
-- `security--run_security_scan` → varredura de exposição de dados
-- Buscar cores hardcoded (`bg-emerald-`, `text-red-`, `bg-blue-`) fora dos tokens nexus-* nas páginas recentes (Sprints 41-45)
-- Buscar `as any`, `console.log` esquecidos, TODOs órfãos
-- Verificar consistência de PT-BR nos títulos das páginas novas (BCP, CAB, IR, CMDB)
+### 1. Auditoria das 6 páginas de Segurança
+Ler e comparar: `VendorsPage`, `RisksPage`, `BCPPage`, `ChangeManagementPage`, `IncidentResponsePage`, `AssetInventoryPage`.
 
-### 2. Consistência visual nas páginas de Segurança
-Padronizar as 6 páginas do módulo (Vendors, Risks, BCP, Changes, IR, Assets):
-- Mesma estrutura de stats cards (4 cards no topo)
-- Mesmos badges de severidade (`destructive` / `warning` / `success` tokens)
-- Mesma animação `animate-pulse` em badges críticos
-- Mesmo padding/spacing (`p-6 sm:p-8 lg:p-10`)
-- Empty states uniformes
-
-### 3. Acessibilidade & UX
-- `aria-label` em botões icon-only
-- Focus rings consistentes (já temos token, validar uso)
-- Contraste WCAG AA nos badges custom
+Checar:
+- Header com `PageHeader` + descrição PT-BR
+- Container: `p-6 sm:p-8 lg:p-10 space-y-6 max-w-[1400px] mx-auto animate-page-enter`
+- Stats: 4 cards no topo com mesma estrutura
+- Badges de severidade usando tokens (`destructive`, `nexus-amber`, `emerald-500`, `primary`)
+- `animate-pulse` em badges críticos (overdue, expiring, pending)
+- Empty states com ícone + título + descrição
+- Botões icon-only com `aria-label`
 - Dialogs com `aria-describedby`
 
-### 4. Performance
-- Lazy imports nas rotas novas (Sprints 41-45) — confirmar que estão lazy
-- Verificar bundle dos services novos
-- Memo em listas grandes (assets, changes podem crescer)
+### 2. Fixes pontuais
+Aplicar correções somente onde houver inconsistência detectada:
+- Padronizar spacing/container
+- Uniformizar badge helpers (cores via tokens, não hex)
+- Adicionar `aria-label` em botões icon-only faltantes
+- Garantir `animate-pulse` consistente em badges críticos
 
-### 5. Documentação
-- `docs/RUNBOOK.md`: índice atualizado com todas as seções (BCP, CAB, IR, CMDB)
-- `mem://features/audit-improvements`: marcar QA pass
+### 3. Verificação de lazy loading
+Confirmar em `src/App.tsx` que rotas Sprints 41-45 (`/security/bcp`, `/security/changes`, `/security/ir`, `/security/assets`) usam `lazy()`.
+
+### 4. Documentação final
+- `docs/RUNBOOK.md`: índice atualizado se faltar alguma seção
+- `mem://features/audit-improvements`: append "QA Fase 2 — visual consistency pass"
 
 ### Entregáveis
-- Lista de findings priorizados (P0/P1/P2)
-- Fixes aplicados em ordem de criticidade
-- Relatório final no memory
+- Lista curta de findings por página
+- Fixes mínimos cirúrgicos (sem refactor)
+- Memory atualizado
 
 ### Arquivos prováveis
-- Páginas Sprints 41-45 (correções pontuais de tokens/a11y)
+- `src/pages/VendorsPage.tsx`, `RisksPage.tsx`, `BCPPage.tsx`, `ChangeManagementPage.tsx`, `IncidentResponsePage.tsx`, `AssetInventoryPage.tsx` (correções pontuais)
+- `src/App.tsx` (verificar lazy)
 - `docs/RUNBOOK.md`
-- `mem://features/audit-improvements`
-- Migrações pequenas se linter apontar RLS gaps
+- `.lovable/memory/features/audit-improvements.md`
