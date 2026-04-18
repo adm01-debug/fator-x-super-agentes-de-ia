@@ -1,58 +1,53 @@
 
-Sprint 33 (Incident Response Automation) completo ✅. Score 10/10 mantido. Próximo da fila Continuous Hardening: 🟢 **Sprint 34 — Disaster Recovery Drills (backup + restore validation)**.
+Sprint 34 (DR Drills) completo ✅. Score 10/10 mantido. Próximo da fila Continuous Hardening: 🟢 **Sprint 35 — Postmortem Templates (auto-geração a partir de incidentes)**.
 
 ## Por quê
-- Temos detecção (SLO/synthetic/cost), enforcement (budget), treino (game days) e auto-remediação (playbooks)
-- **Mas nunca validamos** que conseguimos restaurar dados após corrupção/perda total
-- DR Drill = teste programado de backup→restore em ambiente isolado com métricas RTO/RPO
-- Garante continuidade real do negócio, não apenas teórica
+- Temos detecção, treino, auto-remediação e DR validation, mas **aprendizado pós-incidente** ainda é manual
+- Postmortem = documento estruturado (timeline, root cause, action items) que transforma incidente em conhecimento
+- Auto-geração reduz fricção e garante que **todo** incidente sério gere aprendizado
 
 ## Plano
 
-**1. Migração SQL — `dr_drills` + `dr_snapshots` + `dr_restore_logs`:**
-- `dr_drills`: id, workspace_id, name, scope (`full`|`workspace`|`table`), target_tables text[], scheduled_at, status (`scheduled`|`snapshotting`|`restoring`|`validating`|`completed`|`failed`), rto_target_seconds, rpo_target_seconds, actual_rto_seconds, actual_rpo_seconds, executor_id
-- `dr_snapshots`: id, drill_id, table_name, row_count, snapshot_data jsonb (sample), checksum, captured_at
-- `dr_restore_logs`: id, drill_id, step (`snapshot`|`isolate`|`restore`|`validate`|`cleanup`), status, started_at, ended_at, error_message, metadata jsonb
-- RLS: members SELECT, admins INSERT/UPDATE; service role para snapshots
+**1. Migração SQL — `postmortems` + `postmortem_action_items`:**
+- `postmortems`: id, workspace_id, title, incident_source (`incident_run`|`game_day`|`dr_drill`|`manual`), source_id, severity (`SEV1`|`SEV2`|`SEV3`|`SEV4`), status (`draft`|`review`|`published`), summary, timeline jsonb (events array), root_cause, contributing_factors text[], what_went_well text[], what_went_wrong text[], lessons_learned text, author_id, reviewer_id, published_at
+- `postmortem_action_items`: id, postmortem_id, description, owner_id, due_date, priority (`P0`|`P1`|`P2`), status (`open`|`in_progress`|`done`|`cancelled`), completed_at
+- RLS: members SELECT, author/admins UPDATE
 
 **2. RPCs:**
-- `start_dr_drill(drill_id)` → snapshot row counts + checksums das tabelas alvo
-- `record_dr_step(drill_id, step, status, metadata)` → log granular
-- `complete_dr_drill(drill_id, actual_rto, actual_rpo, success)` → calcula desvios vs targets
+- `generate_postmortem_from_incident(incident_run_id)` → cria draft com timeline preenchida via action_results + duration
+- `generate_postmortem_from_gameday(game_day_id)` → usa game_day_events + scorecard
+- `publish_postmortem(id)` → muda status, marca published_at, registra audit
 
-**3. Edge function `dr-orchestrator`:**
-- Recebe `{drill_id}` → executa: snapshot → simulate restore (compare counts/checksums) → validate → cleanup
-- Registra cada step em `dr_restore_logs` com timing
-- Retorna RTO/RPO observados
+**3. UI — `src/pages/PostmortemsPage.tsx` (`/observability/postmortems`):**
+- Lista com filtros (severity, status, source)
+- "Gerar postmortem": picker de incident/gameday/drill recente → cria draft
+- Templates manuais: SEV1 outage, cost incident, security breach
 
-**4. UI — `src/pages/DRDrillsPage.tsx` (`/observability/dr-drills`):**
-- Lista drills com status badges + RTO/RPO atual vs target
-- "Agendar drill": form com scope picker (full/workspace/table), target tables multi-select, RTO/RPO targets em segundos
-- Detalhes expandíveis: timeline de `dr_restore_logs`, snapshots capturados, gauge RTO/RPO (verde/amber/vermelho)
-- Templates: "Workspace mensal", "Tabelas críticas semanal", "Full quarterly"
+**4. UI — `src/pages/PostmortemEditorPage.tsx` (`/observability/postmortems/:id`):**
+- Editor estruturado: summary (textarea), timeline (lista cronológica editável), root cause (markdown), 5 whys helper
+- Action items: tabela inline com owner/due_date/priority
+- "Publicar" gate: requer summary + root_cause + ≥1 action item
 
-**5. `src/services/drDrillService.ts`:** CRUD drills, listSnapshots, listLogs, startDrill, manual trigger
+**5. `src/services/postmortemService.ts`:** CRUD + auto-generators + action item management
 
-**6. Sidebar:** item "DR Drills" sob Operações (ícone `DatabaseBackup` ou `Archive`)
+**6. Sidebar:** item "Postmortems" sob Observability (ícone `FileText` ou `BookText`)
 
-**7. Realtime:** subscription em `dr_restore_logs` INSERT → atualiza timeline ao vivo
+**7. `docs/RUNBOOK.md`:** seção "Postmortem Process" — quando escrever (toda SEV1/SEV2), template de blameless postmortem, SLA de publicação (5 dias úteis)
 
-**8. `docs/RUNBOOK.md`:** seção "Disaster Recovery" — cadência (mensal critical, quarterly full), RTO/RPO targets recomendados, recovery procedures reais
-
-**9. `mem://features/audit-improvements`:** Sprint 34 logged + fila (Sprint 35 Postmortem Templates, Sprint 36 Compliance Reports)
+**8. `mem://features/audit-improvements`:** Sprint 35 logged + fila (Sprint 36 Compliance Reports, Sprint 37 SBOM/Supply Chain)
 
 ## Arquivos
-- `supabase/migrations/<ts>_dr_drills.sql`
-- `supabase/functions/dr-orchestrator/index.ts` (nova)
-- `src/services/drDrillService.ts` (novo)
-- `src/pages/DRDrillsPage.tsx` (nova)
+- `supabase/migrations/<ts>_postmortems.sql`
+- `src/services/postmortemService.ts` (novo)
+- `src/pages/PostmortemsPage.tsx` (nova)
+- `src/pages/PostmortemEditorPage.tsx` (nova)
 - `src/components/layout/AppSidebar.tsx` (item)
-- `src/App.tsx` (rota)
+- `src/App.tsx` (2 rotas)
 - `docs/RUNBOOK.md` (seção)
 - `.lovable/memory/features/audit-improvements.md` (append)
 
 ## Validação
-- Agendar drill "tabelas críticas" → executar → snapshots capturados, restore simulado, RTO/RPO calculados
-- RTO acima do target → status amber, alerta no card
-- Realtime: timeline de logs aparece ao vivo conforme edge function progride
-- RLS: non-admin vê drills mas não agenda
+- Selecionar incident_run completed → "Gerar postmortem" → draft com timeline pré-preenchida
+- Editar root cause + adicionar 2 action items → publicar (gate funciona)
+- Filtro por SEV1 retorna apenas críticos
+- RLS: non-member não vê postmortems do workspace
