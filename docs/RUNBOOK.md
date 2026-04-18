@@ -904,3 +904,41 @@ Validation step falha se row count drift > 10% vs snapshot. Indica corrupção o
   - Low (CVSS < 4): próxima janela de manutenção
 - **Workflow**: Novo SBOM (cole `package.json`) → Escanear → triagem em `/security/vulnerabilities` → Reconhecer ou Marcar como corrigida
 - **Compliance**: SBOM atende SOC2 CC7.1, ISO 27001 A.12.6.1, US EO 14028
+
+## Secrets Rotation
+
+Página: `/security/secrets-rotation` — inventário e cadência de rotação de credenciais.
+
+**Compliance:** SOC2 CC6.1, ISO 27001 A.9.2.4, PCI-DSS 3.6.
+
+**Cadências recomendadas por categoria:**
+- API keys (OpenAI/Anthropic/etc): **90 dias**
+- DB passwords: **180 dias**
+- JWT signing keys: **30 dias**
+- OAuth client secrets: **365 dias**
+- Webhook signing secrets: **90 dias**
+- Encryption keys (KEK): **365 dias** (com DEK rotation mensal)
+- SSH keys: **180 dias**
+- Certificates: **conforme expiry** (renovar 30 dias antes)
+
+**Status visuais:**
+- 🔴 Overdue (vermelho pulsante) — rotação atrasada, ação imediata
+- 🟠 <7d (amber) — agendar rotação esta semana
+- 🟡 <30d (yellow) — incluir no próximo ciclo
+- 🟢 OK — dentro do prazo
+- ⚪ Aposentado — descomissionado
+
+**Procedimento de rotação emergencial (compromise):**
+1. Marcar status como `compromised` no rotate dialog (motivo)
+2. Revogar valor antigo no provedor (console OpenAI/AWS/etc)
+3. Gerar novo valor → atualizar Vault/Cloud Secrets
+4. Registrar rotação na página → next_rotation_due recalculado
+5. Notificar incident channel + abrir postmortem se SEV1/SEV2
+
+**Checklist offboarding (employee):**
+1. Listar todos secrets com `owner_id = <user>` (filtrar por dono)
+2. Para cada um: rotacionar com motivo `employee_offboarding`
+3. Verificar audit log para confirmar todas as rotações
+4. Reassign owner_id para gestor ou time
+
+**Cron sugerido:** rodar `refresh_secrets_status()` diariamente às 06:00 para auto-marcar overdue/pending.
