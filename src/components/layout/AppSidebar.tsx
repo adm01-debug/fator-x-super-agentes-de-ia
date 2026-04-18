@@ -10,7 +10,7 @@ import {
   Mic, GitBranch as GitBranchIcon, KeyRound, Globe2, Monitor, Eye, Smartphone, TestTube2,
   Store, Cpu, Wand2, GitMerge, Terminal, Mail, Bug, FileCheck2,
   PhoneCall, Network, FlaskRound, TrendingDown,
-  Share2, Building2, Radar, ShieldAlert,
+  Share2, Building2, Radar, ShieldAlert, Wallet,
 } from "lucide-react";
 import {
   Sidebar, SidebarContent, SidebarGroup, SidebarGroupContent, SidebarGroupLabel,
@@ -105,6 +105,7 @@ const navSections = [
       { title: "Aprovações", url: "/approvals", icon: CircleCheckBig },
       { title: "Equipe", url: "/team", icon: Users },
       { title: "Faturamento", url: "/billing", icon: CreditCard },
+      { title: "Orçamento", url: "/settings/budget", icon: Wallet },
       { title: "Configurações", url: "/settings", icon: Settings },
       { title: "Admin BD", url: "/admin", icon: ServerCog },
     ],
