@@ -16,7 +16,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { toast } from 'sonner';
 import { Plus, Play, Trash2, BookOpen, Activity, Sparkles } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
-import { getMyWorkspaceId } from '@/lib/agentService';
+import { getWorkspaceId } from '@/lib/agentService';
 import {
   listPlaybooks, createPlaybook, togglePlaybook, deletePlaybook,
   listRuns, triggerPlaybookManually, PLAYBOOK_TEMPLATES,
@@ -58,7 +58,7 @@ export default function IncidentPlaybooksPage() {
     if (!user) return;
     (async () => {
       try {
-        const wid = await getMyWorkspaceId();
+        const wid = await getWorkspaceId();
         if (!wid) return;
         setWorkspaceId(wid);
         const [pb, rn] = await Promise.all([listPlaybooks(wid), listRuns(wid, 30)]);

@@ -12,7 +12,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, Dialog
 import { toast } from 'sonner';
 import { Phone, Plus, Trash2, ShieldAlert } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
-import { getMyWorkspaceId } from '@/lib/agentService';
+import { getWorkspaceId } from '@/lib/agentService';
 import { listOncall, addOncallEntry, deleteOncallEntry, getCurrentOncall, type OncallEntry } from '@/services/incidentService';
 import { logger } from '@/lib/logger';
 import { format } from 'date-fns';
@@ -31,7 +31,7 @@ export default function OncallPage() {
     if (!user) return;
     (async () => {
       try {
-        const wid = await getMyWorkspaceId();
+        const wid = await getWorkspaceId();
         if (!wid) return;
         setWorkspaceId(wid);
         const [list, now] = await Promise.all([listOncall(wid), getCurrentOncall(wid)]);
