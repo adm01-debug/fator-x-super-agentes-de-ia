@@ -172,3 +172,18 @@ type: feature
 ## Score: 10/10 ✅ mantido (Sprint 28 — fecha ciclo resiliência: observabilidade SABE + chaos VALIDA resposta a falhas)
 
 ## Score: 10/10 ✅ mantido (Sprint 27 — observabilidade fecha o ciclo: traces (debug) + load (capacidade) + SLO (saúde contínua))
+
+## Sprint 29 — Synthetic Monitoring (canary checks 24/7) ✅
+
+- Migração: `synthetic_checks` + `synthetic_results` com RLS (members SELECT, admins CRUD), realtime habilitado, RPC `get_synthetic_summary` para uptime/P95/sparkline
+- Edge function `synthetic-runner`: cron a cada 1min, suporta on-demand `{ check_id }`, threshold-aware (latência > expected = falha), 4xx não conta como falha (= serviço vivo)
+- Cron job pg_cron `synthetic-runner-every-minute` agendado
+- UI `/observability/synthetic`: cards com sparkline (60 últimas execuções, vermelho=fail), uptime % 24h colorido (≥99 verde / ≥95 amber / <95 vermelho), P95, total runs, botão "Executar agora", switch enable/disable
+- `SyntheticAlertsMounter` no App.tsx: realtime subscription em `synthetic_results` com `success=false` → toast.error global
+- Sidebar: "Synthetic Monitoring" sob Operações com ícone Radar
+- Targets suportados: `llm-gateway`, `agent-workflow-runner`, `health` (REST ping)
+- Validações: probability+threshold + interval (1-60min) check constraints na DB
+
+## Score: 10/10 ✅ mantido (Sprint 29 — fecha tripé observabilidade: chaos PROATIVO + SLO REATIVO TRÁFEGO + synthetic REATIVO 24/7)
+
+## Próximo: Sprint 30 — Game Days (drills coordenados de incidente) ou Sprint 31 — Cost Anomaly Detection

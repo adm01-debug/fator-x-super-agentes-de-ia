@@ -607,3 +607,32 @@ Injeção controlada de falhas (latência, erros 500/429, timeouts) nas edge fun
 - Tabela `chaos_experiments` indisponível → `maybeInjectFault` retorna `null`, zero impacto
 - RPC `get_active_chaos_faults` falha → cache vazio, próxima tentativa em 5s
 - Sem experimentos ativos → 1 query rápida (filtered index `idx_chaos_active`), depois cache
+
+## Synthetic Monitoring (Sprint 29)
+
+Pings periódicos automáticos 24/7 simulando jornadas críticas. Detecta degradação **mesmo sem tráfego real** — fecha o ciclo: chaos (proativo) + SLO (reativo a tráfego) + synthetic (reativo 24/7).
+
+### Como criar um check
+1. UI: `/observability/synthetic` → "Novo check"
+2. Targets disponíveis: `llm-gateway`, `agent-workflow-runner`, `health` (REST ping)
+3. Intervalo: 1–60 minutos (recomendado: 5min)
+4. Threshold latência: 100–30000ms (recomendado: 3000ms para LLM, 1000ms para health)
+
+### Como funciona
+- pg_cron dispara `synthetic-runner` a cada 1 minuto
+- Edge function lê todos os checks `enabled=true` cujo `last_run_at + interval ≤ now()`
+- Para cada um: faz request real ao target, mede latência, insere `synthetic_results`
+- Falhas (5xx + network errors + latência > threshold) incrementam `consecutive_failures`
+- `success=false` é propagado via Supabase Realtime → toast global no app (`SyntheticAlertsMounter`)
+
+### Política de threshold
+- LLM endpoints: 3000–5000ms (provider variabilidade alta)
+- Workflow runner: 5000ms (pode incluir múltiplas chamadas LLM)
+- Health REST: 1000ms (deve ser instantâneo)
+- 4xx **não conta como falha** (auth/validation = serviço vivo)
+
+### Troubleshooting
+- 0 runs após 5min → verificar `synthetic_runner` cron job: `SELECT * FROM cron.job WHERE jobname='synthetic-runner-every-minute'`
+- Falhas constantes mas serviço OK → revisar threshold (latência alta?)
+- Toast spam → ajustar threshold para cima ou disable check temporariamente
+- Disable individual: switch no card; disable global: `UPDATE synthetic_checks SET enabled=false`
