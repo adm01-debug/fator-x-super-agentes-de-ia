@@ -1,56 +1,62 @@
 
-Sprint 31 (Budget Enforcement) completo ✅. Score 10/10 mantido. Próximo da fila Continuous Hardening: 🟢 **Sprint 32 — Game Days (incident drills programados)**.
+Sprint 32 (Game Days) completo ✅. Score 10/10 mantido. Próximo da fila Continuous Hardening: 🟢 **Sprint 33 — Incident Response Automation (auto-remediação + paging)**.
 
 ## Por quê
-- Temos toda a infraestrutura defensiva: chaos (proativo), SLO (reativo), synthetic (canários 24/7), cost anomaly (alerta), budget (enforcement)
-- **Mas nunca treinamos a equipe** a responder incidentes reais sob pressão
-- Game Day = exercício programado onde injetamos falha controlada em horário planejado, equipe responde seguindo runbook, registramos métricas (MTTR, decisões, gaps no runbook)
-- Output: scorecard objetivo da maturidade operacional + identificação de gaps no runbook/tooling
+- Temos detecção completa (SLO, synthetic, cost anomaly, chaos) e treino (game days), mas resposta a incidente real ainda é 100% manual
+- Incident Response Automation = playbooks executáveis que disparam automaticamente em condições críticas: rotacionar provider LLM caído, pausar agente runaway, reabrir circuit breaker, paginar on-call
+- Reduz MTTR de minutos para segundos em cenários conhecidos
 
 ## Plano
 
-**1. Migração SQL — `game_days` + `game_day_events` + `game_day_scorecards`:**
-- `game_days`: id, workspace_id, title, scenario (`provider_outage`|`cost_spike`|`db_slowdown`|`auth_failure`|`custom`), status (`scheduled`|`running`|`completed`|`aborted`), scheduled_at, started_at, ended_at, facilitator_id, participants uuid[], runbook_section text
-- `game_day_events`: id, game_day_id, event_type (`fault_injected`|`detection`|`mitigation`|`resolution`|`note`), actor_id, occurred_at, description, metadata jsonb
-- `game_day_scorecards`: id, game_day_id, mttr_seconds, mttd_seconds (mean-time-to-detect), runbook_followed bool, gaps_found text[], score INT (1-10), retrospective_notes
-- RLS: members SELECT do workspace; facilitator + admins UPDATE; INSERT events por participantes
+**1. Migração SQL — `incident_playbooks` + `incident_runs` + `oncall_schedule`:**
+- `incident_playbooks`: id, workspace_id, name, trigger_type (`slo_breach`|`synthetic_fail`|`cost_anomaly`|`budget_block`|`manual`), trigger_config jsonb (thresholds), actions jsonb[] (steps: notify, disable_chaos, pause_agent, switch_provider, page_oncall), enabled bool, cooldown_minutes
+- `incident_runs`: id, playbook_id, triggered_by (event source id), status (`running`|`succeeded`|`failed`|`partial`), started_at, ended_at, action_results jsonb[], notes
+- `oncall_schedule`: id, workspace_id, user_id, starts_at, ends_at, escalation_order int
+- RLS: members SELECT, admins UPDATE; INSERT runs via SECURITY DEFINER
 
-**2. RPCs:**
-- `start_game_day(id)` → muda status, marca `started_at`, opcionalmente cria `chaos_experiment` automático conforme scenario
-- `record_game_day_event(id, type, description)` → insere event com `actor_id=auth.uid()`
-- `complete_game_day(id, scorecard_data)` → marca completed + insere scorecard + calcula MTTR automático (resolution_time - fault_injected_time)
+**2. Edge function `incident-orchestrator`:**
+- Recebe POST `{playbook_id, trigger_event}` → executa actions sequencial
+- Action handlers: `notify` (toast realtime), `disable_chaos` (UPDATE chaos_experiments), `pause_agent` (agents.status), `switch_provider` (workspace_settings.preferred_llm), `page_oncall` (lookup current oncall + insert notification)
+- Registra cada step em `incident_runs.action_results`
+- Respeita cooldown (não dispara mesmo playbook 2× em N min)
 
-**3. UI — `src/pages/GameDaysPage.tsx` (`/observability/game-days`):**
-- Lista de game days (passados + agendados) com badges status
-- "Agendar novo": form com scenario picker, data/hora, participantes (multi-select de workspace members), runbook section
-- Detalhes expandíveis: timeline de events, scorecard com gauge MTTR, gaps identificados
+**3. Auto-trigger:** triggers Postgres em `slo_alerts`/`synthetic_results`/`cost_alerts`/`budget_events` chamam `pg_net` → edge function
 
-**4. `src/pages/GameDayLivePage.tsx` (`/observability/game-days/:id/live`):**
-- Modo "war room": timer ao vivo desde `started_at`
-- Botões grandes: "Detectado", "Mitigando", "Resolvido", "Adicionar nota"
-- Timeline em tempo real (realtime subscription)
-- Botão "Encerrar e gerar scorecard"
+**4. UI — `src/pages/IncidentPlaybooksPage.tsx` (`/observability/playbooks`):**
+- Lista playbooks + toggle enabled
+- Editor: trigger picker, actions builder (drag-and-drop), cooldown, preview
+- Histórico de `incident_runs` com timeline de actions
+- Templates pré-prontos: "Provider down → switch", "Cost spike → notify+pause", "Synthetic fail → page oncall"
 
-**5. `src/services/gameDayService.ts`:** CRUD completo + start/record/complete
+**5. UI — `src/pages/OncallPage.tsx` (`/observability/oncall`):**
+- Calendar view de plantões
+- "Quem está on-call agora" badge no topo
+- Form para adicionar turnos (user picker + datas)
 
-**6. Sidebar:** item "Game Days" sob Observability (ícone `Swords` ou `Shield`)
+**6. `src/services/incidentService.ts`:** CRUD playbooks, runs, oncall + manual trigger
 
-**7. `docs/RUNBOOK.md`:** seção "Game Days" — cadência recomendada (mensal), templates de cenários, critérios de score
+**7. Sidebar:** items "Playbooks" e "On-call" sob Operações (ícones `BookOpen`, `Phone`)
 
-**8. `mem://features/audit-improvements`:** Sprint 32 logged + fila (Sprint 33 incident response automation, Sprint 34 disaster recovery drills)
+**8. Realtime:** subscription em `incident_runs` INSERT → toast "Playbook X disparado"
+
+**9. `docs/RUNBOOK.md`:** seção "Incident Response Automation" — templates, escalation matrix, override manual
+
+**10. `mem://features/audit-improvements`:** Sprint 33 logged + fila (Sprint 34 DR Drills, Sprint 35 Postmortem Templates)
 
 ## Arquivos
-- `supabase/migrations/<ts>_game_days.sql`
-- `src/services/gameDayService.ts` (novo)
-- `src/pages/GameDaysPage.tsx` (nova)
-- `src/pages/GameDayLivePage.tsx` (nova)
-- `src/components/layout/AppSidebar.tsx` (item)
-- `src/App.tsx` (2 rotas)
+- `supabase/migrations/<ts>_incident_response.sql`
+- `supabase/functions/incident-orchestrator/index.ts` (nova)
+- `src/services/incidentService.ts` (novo)
+- `src/pages/IncidentPlaybooksPage.tsx` (nova)
+- `src/pages/OncallPage.tsx` (nova)
+- `src/components/shared/IncidentRunsMounter.tsx` (novo)
+- `src/components/layout/AppSidebar.tsx` (2 items)
+- `src/App.tsx` (2 rotas + mounter)
 - `docs/RUNBOOK.md` (seção)
 - `.lovable/memory/features/audit-improvements.md` (append)
 
 ## Validação
-- Agendar game day "provider_outage" → start → injeta chaos automático → registrar 4 events → complete
-- Scorecard mostra MTTR calculado automaticamente
-- Realtime: 2 abas abertas em /live → evento de uma aparece imediato na outra
-- RLS: não-membro do workspace não vê game days
+- Criar playbook "provider_outage → switch + notify" → simular SLO breach → run executado, agent switched, toast disparado
+- Cooldown impede double-trigger em 5min
+- Oncall lookup retorna usuário correto baseado em data atual
+- RLS: non-admin vê playbooks mas não edita
