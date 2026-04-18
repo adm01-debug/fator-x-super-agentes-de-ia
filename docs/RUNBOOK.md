@@ -680,3 +680,36 @@ Detecção proativa de spikes anormais de custo via z-score estatístico contra 
 - Detectar agora: botão "Detectar agora" na UI ou `SELECT public.detect_cost_anomalies();`
 - Ver crons: `SELECT jobname, schedule FROM cron.job WHERE jobname LIKE 'cost-%';`
 - Acknowledge requer admin do workspace
+
+## Budget Enforcement (Sprint 31)
+
+Sistema de orçamento com bloqueio automático em `/settings/budget`.
+
+### Conceito
+- **Soft warning**: ao atingir `soft_threshold_pct` (default 80%) → toast amber + header `X-Budget-Warning`
+- **Hard stop**: ao atingir 100% (se `hard_stop=true`) → 402 Payment Required + agentes ativos pausados automaticamente
+- Períodos independentes: mensal e diário (qualquer um pode disparar)
+
+### Fluxo de enforcement
+1. Cron `enforce-budget-every-5min` chama `enforce_budget()`
+2. RPC agrega gasto do período via `agent_traces.cost_usd`
+3. Se ≥ limite com `hard_stop`: insere `budget_events.hard_block` + `UPDATE agents SET status='paused'` + insere `agent_paused`
+4. Se ≥ threshold: insere `soft_warning` (dedupe 6h)
+5. `BudgetEventsMounter` (realtime) emite toast global
+
+### Resposta a hard_block
+1. Verificar se gasto é legítimo (revisar traces)
+2. Se sim → aumentar limite em `/settings/budget` e clicar "Resetar e reativar agentes"
+3. Se não → investigar causa (loop runaway? prompt injection?) ANTES de resetar
+4. Reset chama `reset_workspace_budget()`: reativa agents + registra evento
+
+### Operação
+- Verificação manual: `SELECT public.check_budget('WORKSPACE_ID');`
+- Forçar enforce: `SELECT public.enforce_budget();`
+- Reset: `SELECT public.reset_workspace_budget('WORKSPACE_ID');` (requer admin)
+- Ver crons: `SELECT jobname, schedule FROM cron.job WHERE jobname LIKE '%budget%';`
+
+### Boas práticas
+- Sempre configurar limite diário ~ 1/15 do mensal (evita queima do mês em 1 dia)
+- Manter `hard_stop=false` em dev/staging, `true` em produção
+- Threshold 80% dá ~6h de margem para reagir antes do hard block

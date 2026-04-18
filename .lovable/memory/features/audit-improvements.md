@@ -201,5 +201,23 @@ type: feature
 
 ## Score: 10/10 ✅ mantido (Sprint 30 — fecha ciclo FinOps: tracking (traces) + alerting (anomaly detection) → próximo budget enforcement)
 
-## Próximo: Sprint 31 — Budget Enforcement (hard caps + auto-pause agentes ao estourar) ou Sprint 32 — Game Days
+## Sprint 31 — Budget Enforcement ✅
+
+- Migração: `workspace_budgets` (UNIQUE workspace_id, monthly+daily limits, hard_stop, soft_threshold_pct 1-100, notify_emails) + `budget_events` (event_type soft_warning|hard_block|agent_paused|reset, period daily|monthly, pct_used, metadata jsonb) + índices triggered_at DESC
+- RLS: members SELECT em ambas; admins INSERT/UPDATE/DELETE em workspace_budgets; INSERT de events só via SECURITY DEFINER
+- Realtime habilitado em `budget_events`
+- RPC `get_current_spend(workspace, period)` agrega `agent_traces.cost_usd` do mês ou dia atual
+- RPC `check_budget(workspace)` retorna `{allowed, configured, warning, monthly_spend/limit/pct, daily_spend/limit/pct}` — usado pelo llm-gateway antes do provider
+- RPC `enforce_budget()` cron 5min: marca workspaces over-limit, pausa agents (`agents.status='paused'`) e insere `budget_events` (com dedupe por período)
+- RPC `reset_workspace_budget(workspace)` admin-only: reativa agents pausados + registra evento `reset`
+- llm-gateway: nova `checkBudget()` chama RPC primeiro; retorna 402 com `reason` se hard_stop atingido; setup de header `X-Budget-Warning: NN% used` quando soft threshold ultrapassado
+- UI `/settings/budget`: form (monthly/daily limits + threshold slider + hard_stop switch + notify emails CSV); cards "Gasto mensal/diário" com Progress + cor green/amber/red; histórico de eventos com badges severity-coded; botão Reset
+- `BudgetEventsMounter` global: realtime INSERT → toast.error (hard_block/agent_paused), toast.warning (soft_warning), toast.success (reset)
+- `BudgetWidget` para Dashboard: progress bar mensal + % usage + link
+- Sidebar: "Orçamento" sob Configurações com ícone Wallet
+- Cron `enforce-budget-every-5min` agendado via pg_cron
+
+## Score: 10/10 ✅ mantido (Sprint 31 — ciclo FinOps completo: tracking → alerting → enforcement)
+
+## Próximo: Sprint 32 — Game Days (incident drills) ou Sprint 33 — Incident Response Automation
 
