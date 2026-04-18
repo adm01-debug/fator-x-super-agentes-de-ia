@@ -186,4 +186,20 @@ type: feature
 
 ## Score: 10/10 ✅ mantido (Sprint 29 — fecha tripé observabilidade: chaos PROATIVO + SLO REATIVO TRÁFEGO + synthetic REATIVO 24/7)
 
-## Próximo: Sprint 30 — Game Days (drills coordenados de incidente) ou Sprint 31 — Cost Anomaly Detection
+## Sprint 30 — Cost Anomaly Detection ✅
+
+- Migração: `cost_baselines` (rolling 14 dias por scope+hour+dow, UNIQUE constraint para UPSERT) + `cost_alerts` (severity info/warning/critical, scope_label desnormalizado para UI rápida)
+- RLS: members SELECT em ambas, admins UPDATE em alerts (acknowledge); INSERT só via SECURITY DEFINER RPCs
+- Realtime habilitado em `cost_alerts`
+- RPC `compute_cost_baselines()` agrega `agent_traces` últimos 14d por workspace/agent + hora-do-dia × dia-da-semana, calcula avg+stddev, UPSERT em baselines — schedulada via pg_cron diário 3h
+- RPC `detect_cost_anomalies()`: pega spend última hora por agente, compara com baseline mesma hora/dow, calcula z-score; insere alerta se z>2 e observed>$0.10 (filtro ruído); dedupe 1h — schedulada pg_cron a cada 15min
+- RPC `acknowledge_cost_alert(p_alert_id)` com check de admin
+- UI `/observability/cost-anomalies`: cards severity-coded com observed vs baseline + z-score + delta % + botão Acknowledge + link "Investigar traces"; filtro severity + toggle ativos/tratados; empty state "Sem anomalias ✅"
+- `CostAnomalyAlertsMounter` global em App.tsx: realtime INSERT → toast.error (critical) ou toast.warning (warning) com label do scope + observed/baseline/z
+- `CostAnomalyWidget` para Dashboard: count de alertas ativos (refetch 60s) com cor verde/amber
+- Sidebar: "Anomalias de Custo" sob Operações com ícone TrendingDown
+
+## Score: 10/10 ✅ mantido (Sprint 30 — fecha ciclo FinOps: tracking (traces) + alerting (anomaly detection) → próximo budget enforcement)
+
+## Próximo: Sprint 31 — Budget Enforcement (hard caps + auto-pause agentes ao estourar) ou Sprint 32 — Game Days
+
