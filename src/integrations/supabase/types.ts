@@ -3245,6 +3245,68 @@ export type Database = {
           },
         ]
       }
+      managed_secrets: {
+        Row: {
+          category: string
+          created_at: string
+          created_by: string
+          environment: string
+          id: string
+          last_rotated_at: string | null
+          name: string
+          next_rotation_due: string | null
+          notes: string | null
+          owner_id: string | null
+          provider: string | null
+          rotation_interval_days: number
+          status: string
+          updated_at: string
+          workspace_id: string
+        }
+        Insert: {
+          category: string
+          created_at?: string
+          created_by: string
+          environment?: string
+          id?: string
+          last_rotated_at?: string | null
+          name: string
+          next_rotation_due?: string | null
+          notes?: string | null
+          owner_id?: string | null
+          provider?: string | null
+          rotation_interval_days?: number
+          status?: string
+          updated_at?: string
+          workspace_id: string
+        }
+        Update: {
+          category?: string
+          created_at?: string
+          created_by?: string
+          environment?: string
+          id?: string
+          last_rotated_at?: string | null
+          name?: string
+          next_rotation_due?: string | null
+          notes?: string | null
+          owner_id?: string | null
+          provider?: string | null
+          rotation_interval_days?: number
+          status?: string
+          updated_at?: string
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "managed_secrets_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       model_pricing: {
         Row: {
           created_at: string
@@ -3930,6 +3992,47 @@ export type Database = {
             columns: ["workspace_id"]
             isOneToOne: false
             referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      secret_rotation_events: {
+        Row: {
+          created_at: string
+          id: string
+          notes: string | null
+          previous_age_days: number | null
+          reason: string
+          rotated_at: string
+          rotated_by: string
+          secret_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          notes?: string | null
+          previous_age_days?: number | null
+          reason: string
+          rotated_at?: string
+          rotated_by: string
+          secret_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          notes?: string | null
+          previous_age_days?: number | null
+          reason?: string
+          rotated_at?: string
+          rotated_by?: string
+          secret_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "secret_rotation_events_secret_id_fkey"
+            columns: ["secret_id"]
+            isOneToOne: false
+            referencedRelation: "managed_secrets"
             referencedColumns: ["id"]
           },
         ]
@@ -5476,6 +5579,10 @@ export type Database = {
           updated_at: string
         }[]
       }
+      get_secrets_status_summary: {
+        Args: { p_workspace_id: string }
+        Returns: Json
+      }
       get_slo_summary: { Args: { p_window_hours?: number }; Returns: Json }
       get_synthetic_summary: {
         Args: { p_check_id: string; p_window_hours?: number }
@@ -5497,6 +5604,10 @@ export type Database = {
           p_entity_type: string
           p_metadata?: Json
         }
+        Returns: undefined
+      }
+      mark_secret_retired: {
+        Args: { p_notes?: string; p_secret_id: string }
         Returns: undefined
       }
       mark_vulnerability_fixed: {
@@ -5533,6 +5644,10 @@ export type Database = {
         }
         Returns: string
       }
+      record_secret_rotation: {
+        Args: { p_notes?: string; p_reason: string; p_secret_id: string }
+        Returns: string
+      }
       record_vulnerability: {
         Args: {
           p_component_id: string
@@ -5543,6 +5658,21 @@ export type Database = {
           p_severity: string
           p_snapshot_id: string
           p_summary: string
+        }
+        Returns: string
+      }
+      refresh_secrets_status: { Args: never; Returns: Json }
+      register_managed_secret: {
+        Args: {
+          p_category: string
+          p_environment?: string
+          p_last_rotated_at?: string
+          p_name: string
+          p_notes?: string
+          p_owner_id?: string
+          p_provider?: string
+          p_rotation_interval_days?: number
+          p_workspace_id: string
         }
         Returns: string
       }
