@@ -3843,6 +3843,97 @@ export type Database = {
         }
         Relationships: []
       }
+      sbom_components: {
+        Row: {
+          created_at: string
+          direct: boolean
+          ecosystem: string
+          id: string
+          license: string | null
+          name: string
+          purl: string | null
+          snapshot_id: string
+          supplier: string | null
+          version: string
+        }
+        Insert: {
+          created_at?: string
+          direct?: boolean
+          ecosystem?: string
+          id?: string
+          license?: string | null
+          name: string
+          purl?: string | null
+          snapshot_id: string
+          supplier?: string | null
+          version: string
+        }
+        Update: {
+          created_at?: string
+          direct?: boolean
+          ecosystem?: string
+          id?: string
+          license?: string | null
+          name?: string
+          purl?: string | null
+          snapshot_id?: string
+          supplier?: string | null
+          version?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "sbom_components_snapshot_id_fkey"
+            columns: ["snapshot_id"]
+            isOneToOne: false
+            referencedRelation: "sbom_snapshots"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      sbom_snapshots: {
+        Row: {
+          created_at: string
+          format: string
+          generated_by: string
+          id: string
+          name: string
+          notes: string | null
+          source: string
+          total_components: number
+          workspace_id: string
+        }
+        Insert: {
+          created_at?: string
+          format?: string
+          generated_by: string
+          id?: string
+          name: string
+          notes?: string | null
+          source?: string
+          total_components?: number
+          workspace_id: string
+        }
+        Update: {
+          created_at?: string
+          format?: string
+          generated_by?: string
+          id?: string
+          name?: string
+          notes?: string | null
+          source?: string
+          total_components?: number
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "sbom_snapshots_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       session_traces: {
         Row: {
           cost_usd: number | null
@@ -4584,6 +4675,85 @@ export type Database = {
           },
         ]
       }
+      vulnerability_findings: {
+        Row: {
+          acknowledged_by: string | null
+          component_id: string | null
+          cve_id: string
+          cvss_score: number | null
+          discovered_at: string
+          fixed_version: string | null
+          id: string
+          notes: string | null
+          reference_url: string | null
+          resolved_at: string | null
+          resolved_by: string | null
+          severity: string
+          snapshot_id: string
+          status: string
+          summary: string | null
+          workspace_id: string
+        }
+        Insert: {
+          acknowledged_by?: string | null
+          component_id?: string | null
+          cve_id: string
+          cvss_score?: number | null
+          discovered_at?: string
+          fixed_version?: string | null
+          id?: string
+          notes?: string | null
+          reference_url?: string | null
+          resolved_at?: string | null
+          resolved_by?: string | null
+          severity: string
+          snapshot_id: string
+          status?: string
+          summary?: string | null
+          workspace_id: string
+        }
+        Update: {
+          acknowledged_by?: string | null
+          component_id?: string | null
+          cve_id?: string
+          cvss_score?: number | null
+          discovered_at?: string
+          fixed_version?: string | null
+          id?: string
+          notes?: string | null
+          reference_url?: string | null
+          resolved_at?: string | null
+          resolved_by?: string | null
+          severity?: string
+          snapshot_id?: string
+          status?: string
+          summary?: string | null
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "vulnerability_findings_component_id_fkey"
+            columns: ["component_id"]
+            isOneToOne: false
+            referencedRelation: "sbom_components"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "vulnerability_findings_snapshot_id_fkey"
+            columns: ["snapshot_id"]
+            isOneToOne: false
+            referencedRelation: "sbom_snapshots"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "vulnerability_findings_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       workflow_runs: {
         Row: {
           completed_at: string | null
@@ -5199,6 +5369,10 @@ export type Database = {
         Args: { p_alert_id: string }
         Returns: undefined
       }
+      acknowledge_vulnerability: {
+        Args: { p_finding_id: string; p_notes: string }
+        Returns: undefined
+      }
       assign_variant: {
         Args: { p_experiment_id: string; p_session_key?: string }
         Returns: string
@@ -5234,6 +5408,16 @@ export type Database = {
           p_playbook_id: string
           p_trigger_event?: Json
           p_triggered_by: string
+        }
+        Returns: string
+      }
+      create_sbom_snapshot: {
+        Args: {
+          p_components: Json
+          p_format: string
+          p_name: string
+          p_source: string
+          p_workspace_id: string
         }
         Returns: string
       }
@@ -5315,6 +5499,10 @@ export type Database = {
         }
         Returns: undefined
       }
+      mark_vulnerability_fixed: {
+        Args: { p_finding_id: string; p_notes: string }
+        Returns: undefined
+      }
       mask_email: { Args: { p_email: string }; Returns: string }
       promote_experiment_winner: {
         Args: { p_experiment_id: string; p_winner: string }
@@ -5342,6 +5530,19 @@ export type Database = {
           p_event_type: string
           p_game_day_id: string
           p_metadata?: Json
+        }
+        Returns: string
+      }
+      record_vulnerability: {
+        Args: {
+          p_component_id: string
+          p_cve_id: string
+          p_cvss_score: number
+          p_fixed_version: string
+          p_reference_url: string
+          p_severity: string
+          p_snapshot_id: string
+          p_summary: string
         }
         Returns: string
       }
