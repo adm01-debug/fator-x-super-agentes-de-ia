@@ -10,7 +10,7 @@ import {
   Mic, GitBranch as GitBranchIcon, KeyRound, Globe2, Monitor, Eye, Smartphone, TestTube2,
   Store, Cpu, Wand2, GitMerge, Terminal, Mail, Bug, FileCheck2,
   PhoneCall, Network, FlaskRound, TrendingDown,
-  Share2, Building2, Radar, ShieldAlert, Wallet, Swords, Phone,
+  Share2, Building2, Radar, ShieldAlert, Wallet, Swords, Phone, Archive,
 } from "lucide-react";
 import {
   Sidebar, SidebarContent, SidebarGroup, SidebarGroupContent, SidebarGroupLabel,
@@ -90,6 +90,7 @@ const navSections = [
       { title: "Game Days", url: "/observability/game-days", icon: Swords },
       { title: "Playbooks", url: "/observability/playbooks", icon: BookOpen },
       { title: "On-Call", url: "/observability/oncall", icon: Phone },
+      { title: "DR Drills", url: "/observability/dr-drills", icon: Archive },
       { title: "Replay & Fork", url: "/replay", icon: GitBranchIcon },
       { title: "Voice Agent", url: "/voice", icon: Mic },
       { title: "Voice Realtime", url: "/voice-agents", icon: Mic },
