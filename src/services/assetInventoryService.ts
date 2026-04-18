@@ -92,7 +92,7 @@ export async function auditAsset(
     p_asset_id: assetId,
     p_findings: findings,
     p_status_after: statusAfter,
-    p_notes: notes ?? null,
+    p_notes: notes ?? undefined,
   });
   if (error) throw error;
   return data as string;
