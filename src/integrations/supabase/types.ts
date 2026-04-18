@@ -1428,6 +1428,112 @@ export type Database = {
           },
         ]
       }
+      change_approvals: {
+        Row: {
+          approver_id: string
+          change_id: string
+          comment: string | null
+          decided_at: string
+          decision: Database["public"]["Enums"]["change_decision"]
+          id: string
+        }
+        Insert: {
+          approver_id: string
+          change_id: string
+          comment?: string | null
+          decided_at?: string
+          decision: Database["public"]["Enums"]["change_decision"]
+          id?: string
+        }
+        Update: {
+          approver_id?: string
+          change_id?: string
+          comment?: string | null
+          decided_at?: string
+          decision?: Database["public"]["Enums"]["change_decision"]
+          id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "change_approvals_change_id_fkey"
+            columns: ["change_id"]
+            isOneToOne: false
+            referencedRelation: "change_requests"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      change_requests: {
+        Row: {
+          affected_systems: string[]
+          assigned_to: string | null
+          change_type: Database["public"]["Enums"]["change_type"]
+          completed_at: string | null
+          created_at: string
+          description: string | null
+          executed_at: string | null
+          id: string
+          post_mortem_url: string | null
+          requested_by: string
+          risk_level: Database["public"]["Enums"]["change_risk_level"]
+          rollback_plan: string | null
+          scheduled_for: string | null
+          status: Database["public"]["Enums"]["change_status"]
+          title: string
+          updated_at: string
+          validation_steps: string | null
+          workspace_id: string
+        }
+        Insert: {
+          affected_systems?: string[]
+          assigned_to?: string | null
+          change_type?: Database["public"]["Enums"]["change_type"]
+          completed_at?: string | null
+          created_at?: string
+          description?: string | null
+          executed_at?: string | null
+          id?: string
+          post_mortem_url?: string | null
+          requested_by: string
+          risk_level?: Database["public"]["Enums"]["change_risk_level"]
+          rollback_plan?: string | null
+          scheduled_for?: string | null
+          status?: Database["public"]["Enums"]["change_status"]
+          title: string
+          updated_at?: string
+          validation_steps?: string | null
+          workspace_id: string
+        }
+        Update: {
+          affected_systems?: string[]
+          assigned_to?: string | null
+          change_type?: Database["public"]["Enums"]["change_type"]
+          completed_at?: string | null
+          created_at?: string
+          description?: string | null
+          executed_at?: string | null
+          id?: string
+          post_mortem_url?: string | null
+          requested_by?: string
+          risk_level?: Database["public"]["Enums"]["change_risk_level"]
+          rollback_plan?: string | null
+          scheduled_for?: string | null
+          status?: Database["public"]["Enums"]["change_status"]
+          title?: string
+          updated_at?: string
+          validation_steps?: string | null
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "change_requests_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       chaos_experiments: {
         Row: {
           created_at: string
@@ -2577,6 +2683,50 @@ export type Database = {
             columns: ["help_center_id"]
             isOneToOne: false
             referencedRelation: "help_centers"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      freeze_windows: {
+        Row: {
+          allow_emergency: boolean
+          created_at: string
+          created_by: string
+          ends_at: string
+          id: string
+          name: string
+          reason: string | null
+          starts_at: string
+          workspace_id: string
+        }
+        Insert: {
+          allow_emergency?: boolean
+          created_at?: string
+          created_by: string
+          ends_at: string
+          id?: string
+          name: string
+          reason?: string | null
+          starts_at: string
+          workspace_id: string
+        }
+        Update: {
+          allow_emergency?: boolean
+          created_at?: string
+          created_by?: string
+          ends_at?: string
+          id?: string
+          name?: string
+          reason?: string | null
+          starts_at?: string
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "freeze_windows_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
             referencedColumns: ["id"]
           },
         ]
@@ -6133,9 +6283,21 @@ export type Database = {
         }
         Returns: string
       }
+      decide_change: {
+        Args: {
+          p_change_id: string
+          p_comment: string
+          p_decision: Database["public"]["Enums"]["change_decision"]
+        }
+        Returns: undefined
+      }
       detect_cost_anomalies: { Args: never; Returns: Json }
       disable_all_chaos: { Args: { p_workspace_id: string }; Returns: number }
       enforce_budget: { Args: never; Returns: Json }
+      execute_change: {
+        Args: { p_change_id: string; p_success: boolean }
+        Returns: undefined
+      }
       generate_compliance_report: {
         Args: {
           _framework_code: string
@@ -6164,6 +6326,7 @@ export type Database = {
         }[]
       }
       get_bcp_summary: { Args: { p_workspace_id: string }; Returns: Json }
+      get_change_summary: { Args: { p_workspace_id: string }; Returns: Json }
       get_creator_earnings: { Args: { p_creator_id?: string }; Returns: Json }
       get_current_oncall: {
         Args: { p_workspace_id: string }
@@ -6383,10 +6546,28 @@ export type Database = {
         }
         Returns: string
       }
+      rollback_change: {
+        Args: { p_change_id: string; p_post_mortem_url: string }
+        Returns: undefined
+      }
       start_dr_drill: { Args: { p_drill_id: string }; Returns: Json }
       start_game_day: {
         Args: { p_game_day_id: string; p_inject_chaos?: boolean }
         Returns: Json
+      }
+      submit_change_request: {
+        Args: {
+          p_affected_systems: string[]
+          p_change_type: Database["public"]["Enums"]["change_type"]
+          p_description: string
+          p_risk_level: Database["public"]["Enums"]["change_risk_level"]
+          p_rollback_plan: string
+          p_scheduled_for: string
+          p_title: string
+          p_validation_steps: string
+          p_workspace_id: string
+        }
+        Returns: string
       }
       update_incident_run: {
         Args: {
@@ -6421,6 +6602,19 @@ export type Database = {
       bcp_criticality: "tier_1" | "tier_2" | "tier_3" | "tier_4"
       bcp_system_status: "operational" | "degraded" | "down" | "retired"
       bcp_test_type: "tabletop" | "walkthrough" | "simulation" | "full_failover"
+      change_decision: "approve" | "reject" | "request_changes"
+      change_risk_level: "low" | "medium" | "high" | "critical"
+      change_status:
+        | "draft"
+        | "pending_approval"
+        | "approved"
+        | "rejected"
+        | "scheduled"
+        | "in_progress"
+        | "completed"
+        | "rolled_back"
+        | "failed"
+      change_type: "standard" | "normal" | "emergency"
       trace_level: "debug" | "info" | "warning" | "error" | "critical"
     }
     CompositeTypes: {
@@ -6564,6 +6758,20 @@ export const Constants = {
       bcp_criticality: ["tier_1", "tier_2", "tier_3", "tier_4"],
       bcp_system_status: ["operational", "degraded", "down", "retired"],
       bcp_test_type: ["tabletop", "walkthrough", "simulation", "full_failover"],
+      change_decision: ["approve", "reject", "request_changes"],
+      change_risk_level: ["low", "medium", "high", "critical"],
+      change_status: [
+        "draft",
+        "pending_approval",
+        "approved",
+        "rejected",
+        "scheduled",
+        "in_progress",
+        "completed",
+        "rolled_back",
+        "failed",
+      ],
+      change_type: ["standard", "normal", "emergency"],
       trace_level: ["debug", "info", "warning", "error", "critical"],
     },
   },
