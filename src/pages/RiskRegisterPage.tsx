@@ -178,7 +178,7 @@ export default function RiskRegisterPage() {
   const inherentLevel = getRiskLevel(inherentScore);
 
   return (
-    <div className="page-enter container mx-auto p-6 space-y-6 max-w-7xl">
+    <div className="p-6 sm:p-8 lg:p-10 space-y-6 max-w-[1400px] mx-auto animate-page-enter">
       <div className="flex items-start justify-between gap-4 flex-wrap">
         <div>
           <h1 className="text-3xl font-bold flex items-center gap-2">

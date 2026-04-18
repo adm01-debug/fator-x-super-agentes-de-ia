@@ -202,7 +202,7 @@ export default function ChangeManagementPage() {
   });
 
   return (
-    <div className="container max-w-7xl py-8 space-y-6 page-enter">
+    <div className="p-6 sm:p-8 lg:p-10 space-y-6 max-w-[1400px] mx-auto animate-page-enter">
       <header className="flex items-start justify-between gap-4 flex-wrap">
         <div>
           <h1 className="text-3xl font-heading font-bold tracking-tight bg-gradient-to-r from-foreground to-foreground/70 bg-clip-text">

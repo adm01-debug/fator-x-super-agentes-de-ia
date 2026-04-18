@@ -129,7 +129,7 @@ export default function IncidentPlaybooksPage() {
   }));
 
   return (
-    <div className="space-y-6 animate-fade-in">
+    <div className="p-6 sm:p-8 lg:p-10 space-y-6 max-w-[1400px] mx-auto animate-page-enter">
       <div className="flex items-center justify-between flex-wrap gap-4">
         <div>
           <h1 className="text-3xl font-heading font-bold bg-gradient-to-r from-foreground to-primary bg-clip-text text-transparent">
