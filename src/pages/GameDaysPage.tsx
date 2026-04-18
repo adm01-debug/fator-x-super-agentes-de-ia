@@ -12,7 +12,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, Dialog
 import { Switch } from '@/components/ui/switch';
 import { toast } from 'sonner';
 import { listGameDays, createGameDay, deleteGameDay, startGameDay, type GameDay, type GameDayScenario, SCENARIO_LABELS } from '@/services/gameDayService';
-import { getCurrentWorkspaceId } from '@/lib/agentService';
+import { getWorkspaceId } from '@/lib/agentService';
 import { logger } from '@/lib/logger';
 
 const STATUS_VARIANTS: Record<string, 'default' | 'secondary' | 'destructive' | 'outline'> = {
@@ -44,7 +44,7 @@ export default function GameDaysPage() {
   const loadData = async () => {
     setLoading(true);
     try {
-      const wsId = await getCurrentWorkspaceId();
+      const wsId = await getWorkspaceId();
       setWorkspaceId(wsId);
       const data = await listGameDays(wsId);
       setGameDays(data);

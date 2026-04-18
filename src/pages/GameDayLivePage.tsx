@@ -22,7 +22,7 @@ const EVENT_META: Record<GameDayEventType, { label: string; icon: typeof Eye; co
   fault_injected: { label: 'Falha injetada', icon: AlertTriangle, color: 'text-destructive' },
   detection: { label: 'Detectado', icon: Eye, color: 'text-nexus-amber' },
   mitigation: { label: 'Mitigando', icon: Wrench, color: 'text-primary' },
-  resolution: { label: 'Resolvido', icon: CheckCircle2, color: 'text-green-500' },
+  resolution: { label: 'Resolvido', icon: CheckCircle2, color: 'text-nexus-success' },
   note: { label: 'Nota', icon: MessageSquare, color: 'text-muted-foreground' },
 };
 
@@ -168,9 +168,9 @@ export default function GameDayLivePage() {
       )}
 
       {isCompleted && scorecard && (
-        <Card className="p-6 border-green-500/30 bg-gradient-to-br from-green-500/5 to-transparent">
+        <Card className="p-6 border-primary/30 bg-gradient-to-br from-primary/5 to-transparent">
           <div className="flex items-center gap-3 mb-4">
-            <Trophy className="h-6 w-6 text-green-500" />
+            <Trophy className="h-6 w-6 text-primary" />
             <h2 className="text-lg font-semibold">Scorecard</h2>
           </div>
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
