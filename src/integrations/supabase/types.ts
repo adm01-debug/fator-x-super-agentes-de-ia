@@ -1210,6 +1210,50 @@ export type Database = {
           },
         ]
       }
+      budget_events: {
+        Row: {
+          event_type: string
+          id: string
+          metadata: Json
+          pct_used: number
+          period: string
+          period_limit_usd: number
+          period_spend_usd: number
+          triggered_at: string
+          workspace_id: string
+        }
+        Insert: {
+          event_type: string
+          id?: string
+          metadata?: Json
+          pct_used?: number
+          period: string
+          period_limit_usd?: number
+          period_spend_usd?: number
+          triggered_at?: string
+          workspace_id: string
+        }
+        Update: {
+          event_type?: string
+          id?: string
+          metadata?: Json
+          pct_used?: number
+          period?: string
+          period_limit_usd?: number
+          period_spend_usd?: number
+          triggered_at?: string
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "budget_events_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       budgets: {
         Row: {
           alert_threshold: number | null
@@ -3880,6 +3924,53 @@ export type Database = {
           },
         ]
       }
+      workspace_budgets: {
+        Row: {
+          created_at: string
+          created_by: string
+          daily_limit_usd: number | null
+          hard_stop: boolean
+          id: string
+          monthly_limit_usd: number | null
+          notify_emails: string[]
+          soft_threshold_pct: number
+          updated_at: string
+          workspace_id: string
+        }
+        Insert: {
+          created_at?: string
+          created_by: string
+          daily_limit_usd?: number | null
+          hard_stop?: boolean
+          id?: string
+          monthly_limit_usd?: number | null
+          notify_emails?: string[]
+          soft_threshold_pct?: number
+          updated_at?: string
+          workspace_id: string
+        }
+        Update: {
+          created_at?: string
+          created_by?: string
+          daily_limit_usd?: number | null
+          hard_stop?: boolean
+          id?: string
+          monthly_limit_usd?: number | null
+          notify_emails?: string[]
+          soft_threshold_pct?: number
+          updated_at?: string
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "workspace_budgets_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: true
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       workspace_members: {
         Row: {
           accepted_at: string | null
@@ -4316,6 +4407,7 @@ export type Database = {
         Args: { p_experiment_id: string; p_session_key?: string }
         Returns: string
       }
+      check_budget: { Args: { p_workspace_id: string }; Returns: Json }
       compute_cost_baselines: { Args: never; Returns: Json }
       compute_experiment_stats: {
         Args: { p_experiment_id: string }
@@ -4323,6 +4415,7 @@ export type Database = {
       }
       detect_cost_anomalies: { Args: never; Returns: Json }
       disable_all_chaos: { Args: { p_workspace_id: string }; Returns: number }
+      enforce_budget: { Args: never; Returns: Json }
       get_active_chaos_faults: {
         Args: { p_target: string }
         Returns: {
@@ -4333,6 +4426,10 @@ export type Database = {
         }[]
       }
       get_creator_earnings: { Args: { p_creator_id?: string }; Returns: Json }
+      get_current_spend: {
+        Args: { p_period?: string; p_workspace_id: string }
+        Returns: number
+      }
       get_masked_secrets: {
         Args: { p_workspace_id: string }
         Returns: {
@@ -4372,6 +4469,10 @@ export type Database = {
         Returns: Json
       }
       purchase_skill: { Args: { p_skill_id: string }; Returns: Json }
+      reset_workspace_budget: {
+        Args: { p_workspace_id: string }
+        Returns: Json
+      }
     }
     Enums: {
       agent_status:
