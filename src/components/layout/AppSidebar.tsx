@@ -110,6 +110,7 @@ const navSections = [
       { title: "Pentests", url: "/security/pentests", icon: Bug },
       { title: "Findings de Pentest", url: "/security/pentest-findings", icon: Swords },
       { title: "Registro de Riscos", url: "/security/risks", icon: AlertOctagon },
+      { title: "Fornecedores", url: "/security/vendors", icon: Building2 },
       { title: "SSO Enterprise", url: "/sso", icon: KeyRound },
       { title: "Data Residency", url: "/residency", icon: Globe2 },
       { title: "LGPD", url: "/lgpd", icon: ShieldCheck },
