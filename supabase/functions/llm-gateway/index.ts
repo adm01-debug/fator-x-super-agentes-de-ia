@@ -190,15 +190,27 @@ async function checkGuardrails(supabase: SupabaseClient, agentId: string | undef
   } catch { return { passed: true, triggered: [] }; }
 }
 
-// ═══ Budget Check ═══
-async function checkBudget(supabase: any, workspaceId: string | undefined, agentId: string | undefined): Promise<{ allowed: boolean; reason?: string }> {
+// ═══ Budget Check (legacy `budgets` + new `workspace_budgets` enforcement) ═══
+async function checkBudget(supabase: any, workspaceId: string | undefined, agentId: string | undefined): Promise<{ allowed: boolean; reason?: string; warning?: boolean; pct?: number }> {
   if (!workspaceId) return { allowed: true };
+  // 1) New workspace_budgets enforcement (Sprint 31)
+  try {
+    const { data: bs } = await supabase.rpc('check_budget', { p_workspace_id: workspaceId });
+    if (bs && bs.configured) {
+      if (!bs.allowed) {
+        return { allowed: false, reason: bs.reason || 'budget_exceeded', pct: Number(bs.monthly_pct ?? bs.daily_pct ?? 100) };
+      }
+      if (bs.warning) {
+        return { allowed: true, warning: true, pct: Number(bs.monthly_pct ?? bs.daily_pct ?? 0) };
+      }
+    }
+  } catch { /* fallthrough */ }
+  // 2) Legacy per-budget records (kept for back-compat)
   try {
     const { data: budgets } = await supabase.from('budgets').select('*').eq('workspace_id', workspaceId).eq('is_active', true);
     if (budgets) {
       for (const b of budgets) {
         if (Number(b.current_usd) >= Number(b.limit_usd)) {
-          // Check agent-level kill switch OR workspace-level (over 120% = always block)
           const overBy = Number(b.current_usd) / Number(b.limit_usd);
           if (overBy >= 1.2) {
             return { allowed: false, reason: `Budget "${b.name}" critically exceeded (${(overBy*100).toFixed(0)}%): $${Number(b.current_usd).toFixed(4)} / $${b.limit_usd}` };
@@ -548,6 +560,7 @@ serve(async (req) => {
     // ═══ BUDGET ═══
     const budget = await checkBudget(supabase, workspaceId ?? undefined, agent_id);
     if (!budget.allowed) return new Response(JSON.stringify({ error: 'Budget exceeded', reason: budget.reason }), { status: 402, headers: { ...getCorsHeaders(req), 'Content-Type': 'application/json' } });
+    const budgetWarningHeader: Record<string, string> = budget.warning ? { 'X-Budget-Warning': `${(budget.pct ?? 0).toFixed(0)}% used` } : {};
 
     // ═══ RESOLVE PROVIDER CHAIN ═══
     const chain = await resolveFallbackChain(supabase, workspaceId ?? undefined, model);
