@@ -273,3 +273,13 @@ type: feature
 - Sprint 36: Compliance Reports (SOC2/ISO27001 evidence auto-collect)
 - Sprint 37: SBOM + Supply Chain (npm audit + dependency provenance)
 - Sprint 38: Customer Comm Templates (status page integration)
+
+## Sprint 36 — Compliance Reports (SOC2/ISO27001/LGPD) ✅
+- Tabelas: compliance_frameworks, compliance_controls, compliance_reports, compliance_evidence
+- Catálogo seed: 8 controles SOC2, 6 ISO27001, 4 LGPD
+- RPC generate_compliance_report: executa auto_check_query por controle, calcula score
+- RPC publish_compliance_report: gate admin
+- Página /compliance-reports refeita com dados reais (substituiu stub estático)
+- Service: src/services/complianceService.ts
+- RLS: members SELECT, admins INSERT/UPDATE/DELETE
+- Próximo: Sprint 37 — SBOM/Supply Chain Security

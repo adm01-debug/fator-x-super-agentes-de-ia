@@ -1484,6 +1484,203 @@ export type Database = {
           },
         ]
       }
+      compliance_controls: {
+        Row: {
+          auto_check_query: string | null
+          category: string
+          code: string
+          created_at: string
+          description: string | null
+          evidence_type: string
+          framework_id: string
+          id: string
+          title: string
+        }
+        Insert: {
+          auto_check_query?: string | null
+          category: string
+          code: string
+          created_at?: string
+          description?: string | null
+          evidence_type?: string
+          framework_id: string
+          id?: string
+          title: string
+        }
+        Update: {
+          auto_check_query?: string | null
+          category?: string
+          code?: string
+          created_at?: string
+          description?: string | null
+          evidence_type?: string
+          framework_id?: string
+          id?: string
+          title?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "compliance_controls_framework_id_fkey"
+            columns: ["framework_id"]
+            isOneToOne: false
+            referencedRelation: "compliance_frameworks"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      compliance_evidence: {
+        Row: {
+          collected_at: string
+          control_id: string
+          evidence_data: Json
+          id: string
+          notes: string | null
+          report_id: string
+          reviewed_at: string | null
+          reviewed_by: string | null
+          status: string
+        }
+        Insert: {
+          collected_at?: string
+          control_id: string
+          evidence_data?: Json
+          id?: string
+          notes?: string | null
+          report_id: string
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          status?: string
+        }
+        Update: {
+          collected_at?: string
+          control_id?: string
+          evidence_data?: Json
+          id?: string
+          notes?: string | null
+          report_id?: string
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          status?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "compliance_evidence_control_id_fkey"
+            columns: ["control_id"]
+            isOneToOne: false
+            referencedRelation: "compliance_controls"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "compliance_evidence_report_id_fkey"
+            columns: ["report_id"]
+            isOneToOne: false
+            referencedRelation: "compliance_reports"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      compliance_frameworks: {
+        Row: {
+          code: string
+          created_at: string
+          description: string | null
+          id: string
+          name: string
+          version: string | null
+        }
+        Insert: {
+          code: string
+          created_at?: string
+          description?: string | null
+          id?: string
+          name: string
+          version?: string | null
+        }
+        Update: {
+          code?: string
+          created_at?: string
+          description?: string | null
+          id?: string
+          name?: string
+          version?: string | null
+        }
+        Relationships: []
+      }
+      compliance_reports: {
+        Row: {
+          created_at: string
+          failed_controls: number
+          framework_id: string
+          generated_by: string
+          id: string
+          na_controls: number
+          name: string
+          notes: string | null
+          passed_controls: number
+          period_end: string
+          period_start: string
+          published_at: string | null
+          score: number | null
+          status: string
+          total_controls: number
+          updated_at: string
+          workspace_id: string
+        }
+        Insert: {
+          created_at?: string
+          failed_controls?: number
+          framework_id: string
+          generated_by: string
+          id?: string
+          na_controls?: number
+          name: string
+          notes?: string | null
+          passed_controls?: number
+          period_end: string
+          period_start: string
+          published_at?: string | null
+          score?: number | null
+          status?: string
+          total_controls?: number
+          updated_at?: string
+          workspace_id: string
+        }
+        Update: {
+          created_at?: string
+          failed_controls?: number
+          framework_id?: string
+          generated_by?: string
+          id?: string
+          na_controls?: number
+          name?: string
+          notes?: string | null
+          passed_controls?: number
+          period_end?: string
+          period_start?: string
+          published_at?: string | null
+          score?: number | null
+          status?: string
+          total_controls?: number
+          updated_at?: string
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "compliance_reports_framework_id_fkey"
+            columns: ["framework_id"]
+            isOneToOne: false
+            referencedRelation: "compliance_frameworks"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "compliance_reports_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       consent_records: {
         Row: {
           consent_type: string
@@ -5043,6 +5240,16 @@ export type Database = {
       detect_cost_anomalies: { Args: never; Returns: Json }
       disable_all_chaos: { Args: { p_workspace_id: string }; Returns: number }
       enforce_budget: { Args: never; Returns: Json }
+      generate_compliance_report: {
+        Args: {
+          _framework_code: string
+          _name: string
+          _period_end: string
+          _period_start: string
+          _workspace_id: string
+        }
+        Returns: string
+      }
       generate_postmortem_from_gameday: {
         Args: { p_game_day_id: string }
         Returns: string
@@ -5112,6 +5319,10 @@ export type Database = {
       promote_experiment_winner: {
         Args: { p_experiment_id: string; p_winner: string }
         Returns: Json
+      }
+      publish_compliance_report: {
+        Args: { _report_id: string }
+        Returns: undefined
       }
       publish_postmortem: { Args: { p_postmortem_id: string }; Returns: Json }
       purchase_skill: { Args: { p_skill_id: string }; Returns: Json }
