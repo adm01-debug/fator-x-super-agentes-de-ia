@@ -2444,6 +2444,122 @@ export type Database = {
           },
         ]
       }
+      incident_playbooks: {
+        Row: {
+          actions: Json
+          cooldown_minutes: number
+          created_at: string
+          created_by: string
+          description: string | null
+          enabled: boolean
+          id: string
+          last_triggered_at: string | null
+          name: string
+          run_count: number
+          trigger_config: Json
+          trigger_type: string
+          updated_at: string
+          workspace_id: string
+        }
+        Insert: {
+          actions?: Json
+          cooldown_minutes?: number
+          created_at?: string
+          created_by: string
+          description?: string | null
+          enabled?: boolean
+          id?: string
+          last_triggered_at?: string | null
+          name: string
+          run_count?: number
+          trigger_config?: Json
+          trigger_type: string
+          updated_at?: string
+          workspace_id: string
+        }
+        Update: {
+          actions?: Json
+          cooldown_minutes?: number
+          created_at?: string
+          created_by?: string
+          description?: string | null
+          enabled?: boolean
+          id?: string
+          last_triggered_at?: string | null
+          name?: string
+          run_count?: number
+          trigger_config?: Json
+          trigger_type?: string
+          updated_at?: string
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "incident_playbooks_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      incident_runs: {
+        Row: {
+          action_results: Json
+          ended_at: string | null
+          id: string
+          notes: string | null
+          playbook_id: string
+          started_at: string
+          status: string
+          trigger_event: Json | null
+          triggered_by: string | null
+          triggered_by_user: string | null
+          workspace_id: string
+        }
+        Insert: {
+          action_results?: Json
+          ended_at?: string | null
+          id?: string
+          notes?: string | null
+          playbook_id: string
+          started_at?: string
+          status?: string
+          trigger_event?: Json | null
+          triggered_by?: string | null
+          triggered_by_user?: string | null
+          workspace_id: string
+        }
+        Update: {
+          action_results?: Json
+          ended_at?: string | null
+          id?: string
+          notes?: string | null
+          playbook_id?: string
+          started_at?: string
+          status?: string
+          trigger_event?: Json | null
+          triggered_by?: string | null
+          triggered_by_user?: string | null
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "incident_runs_playbook_id_fkey"
+            columns: ["playbook_id"]
+            isOneToOne: false
+            referencedRelation: "incident_playbooks"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "incident_runs_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       ip_whitelist: {
         Row: {
           created_at: string
@@ -2793,6 +2909,56 @@ export type Database = {
           output_cost_per_1k?: number
         }
         Relationships: []
+      }
+      oncall_schedule: {
+        Row: {
+          created_at: string
+          created_by: string
+          ends_at: string
+          escalation_order: number
+          id: string
+          notes: string | null
+          starts_at: string
+          user_email: string | null
+          user_id: string
+          user_name: string | null
+          workspace_id: string
+        }
+        Insert: {
+          created_at?: string
+          created_by: string
+          ends_at: string
+          escalation_order?: number
+          id?: string
+          notes?: string | null
+          starts_at: string
+          user_email?: string | null
+          user_id: string
+          user_name?: string | null
+          workspace_id: string
+        }
+        Update: {
+          created_at?: string
+          created_by?: string
+          ends_at?: string
+          escalation_order?: number
+          id?: string
+          notes?: string | null
+          starts_at?: string
+          user_email?: string | null
+          user_id?: string
+          user_name?: string | null
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "oncall_schedule_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       oracle_history: {
         Row: {
@@ -4570,6 +4736,14 @@ export type Database = {
         Args: { p_experiment_id: string }
         Returns: Json
       }
+      create_incident_run: {
+        Args: {
+          p_playbook_id: string
+          p_trigger_event?: Json
+          p_triggered_by: string
+        }
+        Returns: string
+      }
       detect_cost_anomalies: { Args: never; Returns: Json }
       disable_all_chaos: { Args: { p_workspace_id: string }; Returns: number }
       enforce_budget: { Args: never; Returns: Json }
@@ -4583,6 +4757,16 @@ export type Database = {
         }[]
       }
       get_creator_earnings: { Args: { p_creator_id?: string }; Returns: Json }
+      get_current_oncall: {
+        Args: { p_workspace_id: string }
+        Returns: {
+          ends_at: string
+          escalation_order: number
+          user_email: string
+          user_id: string
+          user_name: string
+        }[]
+      }
       get_current_spend: {
         Args: { p_period?: string; p_workspace_id: string }
         Returns: number
@@ -4642,6 +4826,15 @@ export type Database = {
       start_game_day: {
         Args: { p_game_day_id: string; p_inject_chaos?: boolean }
         Returns: Json
+      }
+      update_incident_run: {
+        Args: {
+          p_action_results: Json
+          p_notes?: string
+          p_run_id: string
+          p_status: string
+        }
+        Returns: undefined
       }
     }
     Enums: {
