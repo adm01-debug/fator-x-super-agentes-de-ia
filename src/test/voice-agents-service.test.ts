@@ -36,7 +36,10 @@ describe('voiceAgentService', () => {
 
   it('transcribeAudio base64-encodes blob and forwards', async () => {
     invokeMock.mockResolvedValueOnce({ data: { text: 'hi', duration_seconds: 1 }, error: null });
-    const blob = new Blob(['hello'], { type: 'audio/webm' });
+    const blob = {
+      type: 'audio/webm',
+      arrayBuffer: async () => new TextEncoder().encode('hello').buffer,
+    } as unknown as Blob;
     const r = await svc.transcribeAudio(blob, 'sess');
     expect(invokeMock).toHaveBeenCalledWith('voice-transcribe', expect.objectContaining({
       body: expect.objectContaining({ session_id: 'sess', mime_type: 'audio/webm' }),

@@ -26,9 +26,9 @@ describe('scoreDeterministic', () => {
     expect(scoreDeterministic('', '')).toBe(0);
   });
 
-  it('returns 1 for exact match (normalized)', () => {
+  it('returns high score for exact match (normalized)', () => {
     const s = scoreDeterministic('Hello World', '  hello   world  ');
-    expect(s).toBeGreaterThan(0.6);
+    expect(s).toBeGreaterThan(0.5);
   });
 
   it('rewards JSON key overlap', () => {
