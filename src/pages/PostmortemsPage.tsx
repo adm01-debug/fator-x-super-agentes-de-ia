@@ -64,8 +64,7 @@ export default function PostmortemsPage() {
   useEffect(() => {
     (async () => {
       try {
-        const { data: w } = await supabase.from("workspaces").select("id").limit(1).maybeSingle();
-        const wsId = w?.id ?? null;
+        const wsId = await getFirstWorkspaceId();
         setWorkspaceId(wsId);
         if (wsId) await refresh(wsId);
         else setLoading(false);

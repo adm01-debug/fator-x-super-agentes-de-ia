@@ -6,7 +6,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Mic, Square, Trash2, Clock, DollarSign, Bot, Loader2 } from "lucide-react";
 import { toast } from "sonner";
-import { supabase } from "@/integrations/supabase/client";
+import { listAgentSummaries } from "@/services/agentsService";
 import {
   startSession, endSession, transcribeAudio, synthesizeReply,
   listSessions, deleteSession, speakText, stopSpeaking,
@@ -31,8 +31,7 @@ export default function VoiceAgentsPage() {
   const audioCtxRef = useRef<AudioContext | null>(null);
 
   useEffect(() => {
-    supabase.from("agents").select("id, name").order("updated_at", { ascending: false }).limit(50)
-      .then(({ data }) => { if (data) setAgents(data as any); });
+    listAgentSummaries(50).then(setAgents).catch(() => {});
     refreshHistory();
   }, []);
 

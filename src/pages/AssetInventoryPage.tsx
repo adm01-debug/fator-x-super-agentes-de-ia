@@ -101,11 +101,10 @@ export default function AssetInventoryPage() {
       if (!user) return;
       const info = await getWorkspaceInfo();
       const wsId = (info as { workspaceId?: string } | null)?.workspaceId
-        ?? (await supabase.from("workspaces").select("id").eq("owner_id", user.id).maybeSingle()).data?.id;
+        ?? (await getWorkspaceIdForUser(user.id));
       if (!wsId) return;
       setWorkspaceId(wsId);
-      const { data: ws } = await supabase.from("workspaces").select("owner_id").eq("id", wsId).maybeSingle();
-      setIsAdmin(ws?.owner_id === user.id);
+      setIsAdmin(await isWorkspaceOwner(wsId, user.id));
       await load(wsId);
     })();
   }, [user]);

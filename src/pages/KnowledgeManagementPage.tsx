@@ -27,12 +27,7 @@ export default function KnowledgeManagementPage() {
 
   const { data: workspace } = useQuery({
     queryKey: ["my_workspace"],
-    queryFn: async () => {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) return null;
-      const { data } = await supabase.from("workspaces").select("id, name").eq("owner_id", user.id).maybeSingle();
-      return data;
-    },
+    queryFn: getCurrentUserWorkspace,
   });
 
   const { data: kbs = [] } = useQuery({ queryKey: ["knowledge_bases"], queryFn: listKnowledgeBases });
