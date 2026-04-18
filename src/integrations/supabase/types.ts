@@ -2095,6 +2095,153 @@ export type Database = {
           },
         ]
       }
+      game_day_events: {
+        Row: {
+          actor_id: string
+          description: string
+          event_type: string
+          game_day_id: string
+          id: string
+          metadata: Json
+          occurred_at: string
+        }
+        Insert: {
+          actor_id: string
+          description: string
+          event_type: string
+          game_day_id: string
+          id?: string
+          metadata?: Json
+          occurred_at?: string
+        }
+        Update: {
+          actor_id?: string
+          description?: string
+          event_type?: string
+          game_day_id?: string
+          id?: string
+          metadata?: Json
+          occurred_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "game_day_events_game_day_id_fkey"
+            columns: ["game_day_id"]
+            isOneToOne: false
+            referencedRelation: "game_days"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      game_day_scorecards: {
+        Row: {
+          created_at: string
+          created_by: string
+          game_day_id: string
+          gaps_found: string[]
+          id: string
+          mttd_seconds: number | null
+          mttr_seconds: number | null
+          retrospective_notes: string | null
+          runbook_followed: boolean
+          score: number | null
+        }
+        Insert: {
+          created_at?: string
+          created_by: string
+          game_day_id: string
+          gaps_found?: string[]
+          id?: string
+          mttd_seconds?: number | null
+          mttr_seconds?: number | null
+          retrospective_notes?: string | null
+          runbook_followed?: boolean
+          score?: number | null
+        }
+        Update: {
+          created_at?: string
+          created_by?: string
+          game_day_id?: string
+          gaps_found?: string[]
+          id?: string
+          mttd_seconds?: number | null
+          mttr_seconds?: number | null
+          retrospective_notes?: string | null
+          runbook_followed?: boolean
+          score?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "game_day_scorecards_game_day_id_fkey"
+            columns: ["game_day_id"]
+            isOneToOne: true
+            referencedRelation: "game_days"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      game_days: {
+        Row: {
+          chaos_experiment_id: string | null
+          created_at: string
+          description: string | null
+          ended_at: string | null
+          facilitator_id: string
+          id: string
+          participants: string[]
+          runbook_section: string | null
+          scenario: string
+          scheduled_at: string
+          started_at: string | null
+          status: string
+          title: string
+          updated_at: string
+          workspace_id: string
+        }
+        Insert: {
+          chaos_experiment_id?: string | null
+          created_at?: string
+          description?: string | null
+          ended_at?: string | null
+          facilitator_id: string
+          id?: string
+          participants?: string[]
+          runbook_section?: string | null
+          scenario: string
+          scheduled_at: string
+          started_at?: string | null
+          status?: string
+          title: string
+          updated_at?: string
+          workspace_id: string
+        }
+        Update: {
+          chaos_experiment_id?: string | null
+          created_at?: string
+          description?: string | null
+          ended_at?: string | null
+          facilitator_id?: string
+          id?: string
+          participants?: string[]
+          runbook_section?: string | null
+          scenario?: string
+          scheduled_at?: string
+          started_at?: string | null
+          status?: string
+          title?: string
+          updated_at?: string
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "game_days_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       geo_allowed_countries: {
         Row: {
           country_code: string
@@ -4408,6 +4555,16 @@ export type Database = {
         Returns: string
       }
       check_budget: { Args: { p_workspace_id: string }; Returns: Json }
+      complete_game_day: {
+        Args: {
+          p_game_day_id: string
+          p_gaps_found?: string[]
+          p_retrospective?: string
+          p_runbook_followed?: boolean
+          p_score?: number
+        }
+        Returns: Json
+      }
       compute_cost_baselines: { Args: never; Returns: Json }
       compute_experiment_stats: {
         Args: { p_experiment_id: string }
@@ -4469,8 +4626,21 @@ export type Database = {
         Returns: Json
       }
       purchase_skill: { Args: { p_skill_id: string }; Returns: Json }
+      record_game_day_event: {
+        Args: {
+          p_description: string
+          p_event_type: string
+          p_game_day_id: string
+          p_metadata?: Json
+        }
+        Returns: string
+      }
       reset_workspace_budget: {
         Args: { p_workspace_id: string }
+        Returns: Json
+      }
+      start_game_day: {
+        Args: { p_game_day_id: string; p_inject_chaos?: boolean }
         Returns: Json
       }
     }
