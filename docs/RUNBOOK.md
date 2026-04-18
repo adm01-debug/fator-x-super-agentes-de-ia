@@ -756,3 +756,41 @@ Drills programados de resposta a incidentes em `/observability/game-days`. Trein
 - Iniciar via SQL: `SELECT public.start_game_day('GAMEDAY_ID', true);` (true = injeta chaos)
 - Encerrar manualmente: `SELECT public.complete_game_day('GAMEDAY_ID', true, ARRAY['gap1','gap2'], 8, 'notas');`
 - Limpar chaos após game day: chaos_experiment é desabilitado automaticamente no `complete_game_day`
+
+## Sprint 33 — Incident Response Automation
+
+Playbooks executáveis disparam automaticamente em condições críticas para reduzir MTTR.
+
+### Componentes
+- **Playbooks** (`/observability/playbooks`): definição de trigger + actions sequenciais
+- **On-Call** (`/observability/oncall`): escala de plantões com ordem de escalação
+- **Edge function**: `incident-orchestrator` executa cada action e registra em `incident_runs`
+
+### Tipos de trigger
+- `slo_breach` — quando SLO violado (latência ou success rate)
+- `synthetic_fail` — quando synthetic check falha N vezes
+- `cost_anomaly` — quando z-score de custo > 2σ
+- `budget_block` — quando budget hard cap atingido
+- `manual` — disparo manual via UI
+
+### Actions disponíveis
+- `notify` — toast realtime para todos os usuários conectados
+- `disable_chaos` — desativa todos os chaos experiments do workspace
+- `pause_agent` — pausa agente específico (config.agent_id) ou todos os ativos
+- `switch_provider` — troca provider LLM (logged para config manual)
+- `page_oncall` — busca on-call atual via `get_current_oncall`
+
+### Cooldown
+Cada playbook tem `cooldown_minutes` (padrão 5min). Não dispara 2× dentro da janela, evita storms.
+
+### Templates pré-prontos
+1. **Provider down → switch + notify**: SLO breach → troca provider + notifica
+2. **Cost spike → notify + pause runaway**: anomalia crítica → pausa agentes + notifica
+3. **Synthetic fail → page on-call**: 3 falhas consecutivas → aciona plantão
+
+### Override manual
+Admin pode desativar playbook a qualquer momento via toggle. Para emergências, `disable_all_chaos(workspace_id)` desliga todo chaos.
+
+### Cadência recomendada
+- **Mensal**: revisar `incident_runs` e ajustar cooldown/actions
+- **Trimestral**: rotacionar on-call e validar cobertura 24/7

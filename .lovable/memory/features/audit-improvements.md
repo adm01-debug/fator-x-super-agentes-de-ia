@@ -232,3 +232,17 @@ type: feature
 - Sidebar: "Game Days" sob Operações (ícone Swords)
 - RUNBOOK.md: cadência mensal, critérios de score, fluxo war room
 - Fila restante: Sprint 33 (Incident Response Automation), Sprint 34 (DR Drills)
+
+## Completed — Sprint 33 (Incident Response Automation)
+- Tables: `incident_playbooks`, `incident_runs`, `oncall_schedule` with RLS
+- RPCs: `create_incident_run` (cooldown-aware), `update_incident_run`, `get_current_oncall`
+- Edge function `incident-orchestrator`: executes 5 action types (notify, disable_chaos, pause_agent, switch_provider, page_oncall)
+- UI: `/observability/playbooks` (CRUD + templates + history) and `/observability/oncall` (rotation calendar)
+- Realtime mounter: toast on new `incident_runs` INSERT
+- 3 pre-built templates: Provider down→switch, Cost spike→pause, Synthetic fail→page on-call
+- Cooldown enforcement at DB level (no double-trigger within window)
+- Runbook section: Incident Response Automation
+
+## Queue
+- Sprint 34: Disaster Recovery Drills (full backup→restore validation)
+- Sprint 35: Postmortem Templates (auto-generate from incident_runs)
