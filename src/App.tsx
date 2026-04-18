@@ -101,6 +101,7 @@ const PostmortemsPage = lazy(() => import("./pages/PostmortemsPage"));
 const PostmortemEditorPage = lazy(() => import("./pages/PostmortemEditorPage"));
 const SBOMPage = lazy(() => import("./pages/SBOMPage"));
 const VulnerabilitiesPage = lazy(() => import("./pages/VulnerabilitiesPage"));
+const SecretsRotationPage = lazy(() => import("./pages/SecretsRotationPage"));
 const SLODashboard = lazy(() => import("./pages/SLODashboard"));
 const ChaosLabPage = lazy(() => import("./pages/ChaosLabPage"));
 const SyntheticMonitoringPage = lazy(() => import("./pages/SyntheticMonitoringPage"));
@@ -236,6 +237,7 @@ const App = () => (
                       <Route path="/email-triggers" element={<SafePage><EmailCalendarTriggersPage /></SafePage>} />
                       <Route path="/debugger" element={<SafePage><AgentDebuggerPage /></SafePage>} />
                       <Route path="/compliance-reports" element={<SafePage><ProtectedRoute permission="settings.api_keys"><ComplianceReportsPage /></ProtectedRoute></SafePage>} />
+                      <Route path="/security/secrets-rotation" element={<SafePage><ProtectedRoute permission="settings.api_keys"><SecretsRotationPage /></ProtectedRoute></SafePage>} />
                       <Route path="/voice-telephony" element={<SafePage><VoiceTelephonyPage /></SafePage>} />
                       <Route path="/knowledge-graph" element={<SafePage><KnowledgeGraphPage /></SafePage>} />
                       <Route path="/simulation" element={<SafePage><AgentSimulationPage /></SafePage>} />

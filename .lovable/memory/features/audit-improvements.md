@@ -292,3 +292,16 @@ type: feature
 - Sidebar: "SBOM" + "Vulnerabilidades" under Administração
 - Runbook updated: weekly scan, SLA critical 24h/high 7d/medium 30d
 - Queue: Sprint 38 Secrets Rotation, Sprint 39 Pentest Tracking
+
+## Sprint 38 — Secrets Rotation Tracking ✅
+- Tables: managed_secrets (metadata only, never values), secret_rotation_events
+- RPCs: register_managed_secret, record_secret_rotation, mark_secret_retired, get_secrets_status_summary, refresh_secrets_status
+- Trigger: rotation event auto-updates last_rotated_at + recalculates next_rotation_due
+- Page: /security/secrets-rotation — 5 stat cards, filters, templates, rotate dialog, retire flow
+- Visual badges: overdue (pulsante vermelho), <7d (amber), <30d (yellow), ok (emerald), retired (muted)
+- Templates: OpenAI/Anthropic API (90d), DB password (180d), JWT signing (30d), OAuth (365d), Webhook (90d)
+- Sidebar: "Rotação de Secrets" sob Administração (KeyRound icon)
+- RLS: members SELECT, admins INSERT/UPDATE; trigger auto-status (overdue/pending) via refresh RPC
+- Audit log: secret.registered / secret.rotated / secret.retired
+- Compliance: SOC2 CC6.1, ISO 27001 A.9.2.4, PCI-DSS 3.6
+- Queue: Sprint 39 Pentest Tracking, Sprint 40 Risk Register
