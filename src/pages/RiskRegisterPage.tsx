@@ -71,7 +71,7 @@ export default function RiskRegisterPage() {
 
   useEffect(() => {
     if (!user) return;
-    getActiveWorkspaceId().then(setWorkspaceId).catch(err => logger.error("ws fetch failed:", err));
+    getWorkspaceId().then(setWorkspaceId).catch((err: unknown) => logger.error("ws fetch failed:", err));
   }, [user]);
 
   const refresh = async () => {
