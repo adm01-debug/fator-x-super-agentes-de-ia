@@ -942,3 +942,30 @@ Página: `/security/secrets-rotation` — inventário e cadência de rotação d
 4. Reassign owner_id para gestor ou time
 
 **Cron sugerido:** rodar `refresh_secrets_status()` diariamente às 06:00 para auto-marcar overdue/pending.
+
+## Penetration Testing
+
+Pentests são contratados anualmente (e após mudanças críticas de arquitetura). Registrados em `/security/pentests`.
+
+### Cadência
+- **Anual obrigatório** (SOC2 CC4.1 / ISO 27001 A.12.6.1 / PCI-DSS 11.3)
+- **Após mudanças críticas:** novo módulo de auth, redesign de API pública, nova superfície (mobile, IoT)
+- **Red team:** opcional, recomendado a cada 18 meses
+
+### SLA de remediação por severidade
+| Severidade | Prazo | Calculado a partir de |
+|------------|-------|----------------------|
+| Critical   | 7 dias  | discovered_at |
+| High       | 30 dias | discovered_at |
+| Medium     | 90 dias | discovered_at |
+| Low        | 180 dias | discovered_at |
+| Info       | 365 dias | discovered_at |
+
+### Processo de retest
+1. Dev marca finding como `in_remediation` ao iniciar correção
+2. Após PR aprovado e deploy em prod, marca como `fixed` com `verification_notes` (PR #, commit, ambiente)
+3. Vendor faz retest dentro de 30 dias e confirma fechamento
+4. Se finding reaparecer: novo finding, status `open`, due_date recalculado
+
+### Aceitação de risco
+Use `accepted_risk` somente com aprovação documentada do CISO/equivalente. Adicione justificativa em `verification_notes`.
