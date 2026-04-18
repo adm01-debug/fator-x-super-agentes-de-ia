@@ -27,8 +27,7 @@ function statusIcon(status: string) {
 }
 
 export default function ComplianceReportsPage() {
-  const { user } = useAuth();
-  const [workspaceId, setWorkspaceId] = useState<string | null>(null);
+  const { data: workspaceId } = useWorkspaceId();
   const [frameworks, setFrameworks] = useState<ComplianceFramework[]>([]);
   const [reports, setReports] = useState<ComplianceReport[]>([]);
   const [loading, setLoading] = useState(true);
@@ -47,18 +46,6 @@ export default function ComplianceReportsPage() {
   });
 
   useEffect(() => {
-    if (!user) return;
-    (async () => {
-      try {
-        const ws = await getWorkspaceInfo(user.id);
-        setWorkspaceId(ws.id);
-      } catch (e) {
-        toast.error("Não foi possível carregar workspace");
-      }
-    })();
-  }, [user]);
-
-  useEffect(() => {
     (async () => {
       try {
         const fw = await complianceService.listFrameworks();
@@ -72,6 +59,7 @@ export default function ComplianceReportsPage() {
   useEffect(() => {
     if (!workspaceId) return;
     refresh();
+     
   }, [workspaceId]);
 
   async function refresh() {
