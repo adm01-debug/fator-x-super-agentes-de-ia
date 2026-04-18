@@ -4986,6 +4986,183 @@ export type Database = {
           },
         ]
       }
+      vendor_assessments: {
+        Row: {
+          assessed_at: string
+          assessed_by: string
+          compliance_score: number
+          created_at: string
+          findings: string[]
+          id: string
+          next_review_due: string | null
+          operational_score: number
+          recommendations: string | null
+          risk_score: number | null
+          security_score: number
+          vendor_id: string
+        }
+        Insert: {
+          assessed_at?: string
+          assessed_by: string
+          compliance_score: number
+          created_at?: string
+          findings?: string[]
+          id?: string
+          next_review_due?: string | null
+          operational_score: number
+          recommendations?: string | null
+          risk_score?: number | null
+          security_score: number
+          vendor_id: string
+        }
+        Update: {
+          assessed_at?: string
+          assessed_by?: string
+          compliance_score?: number
+          created_at?: string
+          findings?: string[]
+          id?: string
+          next_review_due?: string | null
+          operational_score?: number
+          recommendations?: string | null
+          risk_score?: number | null
+          security_score?: number
+          vendor_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "vendor_assessments_vendor_id_fkey"
+            columns: ["vendor_id"]
+            isOneToOne: false
+            referencedRelation: "vendors"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      vendor_documents: {
+        Row: {
+          doc_type: string
+          file_url: string | null
+          id: string
+          notes: string | null
+          title: string
+          uploaded_at: string
+          uploaded_by: string
+          valid_until: string | null
+          vendor_id: string
+        }
+        Insert: {
+          doc_type: string
+          file_url?: string | null
+          id?: string
+          notes?: string | null
+          title: string
+          uploaded_at?: string
+          uploaded_by: string
+          valid_until?: string | null
+          vendor_id: string
+        }
+        Update: {
+          doc_type?: string
+          file_url?: string | null
+          id?: string
+          notes?: string | null
+          title?: string
+          uploaded_at?: string
+          uploaded_by?: string
+          valid_until?: string | null
+          vendor_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "vendor_documents_vendor_id_fkey"
+            columns: ["vendor_id"]
+            isOneToOne: false
+            referencedRelation: "vendors"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      vendors: {
+        Row: {
+          contact_email: string | null
+          created_at: string
+          created_by: string
+          criticality: string
+          data_classification: string
+          dpa_expires_at: string | null
+          dpa_signed: boolean
+          id: string
+          iso27001_valid_until: string | null
+          name: string
+          next_review_due: string | null
+          notes: string | null
+          offboarded_at: string | null
+          onboarded_at: string
+          owner_id: string | null
+          soc2_valid_until: string | null
+          status: string
+          updated_at: string
+          vendor_type: string
+          website: string | null
+          workspace_id: string
+        }
+        Insert: {
+          contact_email?: string | null
+          created_at?: string
+          created_by: string
+          criticality?: string
+          data_classification?: string
+          dpa_expires_at?: string | null
+          dpa_signed?: boolean
+          id?: string
+          iso27001_valid_until?: string | null
+          name: string
+          next_review_due?: string | null
+          notes?: string | null
+          offboarded_at?: string | null
+          onboarded_at?: string
+          owner_id?: string | null
+          soc2_valid_until?: string | null
+          status?: string
+          updated_at?: string
+          vendor_type: string
+          website?: string | null
+          workspace_id: string
+        }
+        Update: {
+          contact_email?: string | null
+          created_at?: string
+          created_by?: string
+          criticality?: string
+          data_classification?: string
+          dpa_expires_at?: string | null
+          dpa_signed?: boolean
+          id?: string
+          iso27001_valid_until?: string | null
+          name?: string
+          next_review_due?: string | null
+          notes?: string | null
+          offboarded_at?: string | null
+          onboarded_at?: string
+          owner_id?: string | null
+          soc2_valid_until?: string | null
+          status?: string
+          updated_at?: string
+          vendor_type?: string
+          website?: string | null
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "vendors_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       voice_sessions: {
         Row: {
           agent_id: string | null
@@ -5753,6 +5930,17 @@ export type Database = {
         Args: { p_finding_id: string; p_notes: string }
         Returns: undefined
       }
+      assess_vendor: {
+        Args: {
+          p_compliance_score: number
+          p_findings?: string[]
+          p_operational_score: number
+          p_recommendations?: string
+          p_security_score: number
+          p_vendor_id: string
+        }
+        Returns: string
+      }
       assign_variant: {
         Args: { p_experiment_id: string; p_session_key?: string }
         Returns: string
@@ -5885,6 +6073,7 @@ export type Database = {
         Returns: Json
       }
       get_user_workspace_ids: { Args: { _user_id: string }; Returns: string[] }
+      get_vendor_summary: { Args: { p_workspace_id: string }; Returns: Json }
       increment_skill_installs: {
         Args: { p_skill_id: string }
         Returns: undefined
@@ -5911,6 +6100,10 @@ export type Database = {
         Returns: undefined
       }
       mask_email: { Args: { p_email: string }; Returns: string }
+      offboard_vendor: {
+        Args: { p_notes?: string; p_vendor_id: string }
+        Returns: undefined
+      }
       promote_experiment_winner: {
         Args: { p_experiment_id: string; p_winner: string }
         Returns: Json
@@ -5998,6 +6191,24 @@ export type Database = {
           p_related_finding_id?: string
           p_title: string
           p_treatment?: string
+          p_workspace_id: string
+        }
+        Returns: string
+      }
+      register_vendor: {
+        Args: {
+          p_contact_email?: string
+          p_criticality?: string
+          p_data_classification?: string
+          p_dpa_expires_at?: string
+          p_dpa_signed?: boolean
+          p_iso27001_valid_until?: string
+          p_name: string
+          p_notes?: string
+          p_owner_id?: string
+          p_soc2_valid_until?: string
+          p_vendor_type: string
+          p_website?: string
           p_workspace_id: string
         }
         Returns: string

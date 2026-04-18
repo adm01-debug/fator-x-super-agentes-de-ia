@@ -1011,3 +1011,49 @@ Use `accepted_risk` somente com aprovação documentada do CISO/equivalente. Adi
 - Risco **critical** sem residual_score após 7 dias → escalation para CISO
 - Review **vencido** há >30 dias → escalation para workspace admin
 - Mais de 5 riscos critical ativos simultaneamente → revisão de portfolio com leadership
+
+## Vendor Risk Management (TPRM)
+
+Gestão de risco de fornecedores conforme **SOC 2 CC9.2 / ISO 27001 A.15 / LGPD Art.39**.
+
+### Inventário obrigatório
+Todo terceiro com acesso a dados, infraestrutura ou que processa transações críticas DEVE ser cadastrado em `/security/vendors` com:
+- Nome, tipo (saas/processor/api/infra/consulting/other)
+- **Criticality:** critical / high / medium / low
+- **Data classification:** pii / phi / financial / confidential / public
+- DPA assinado (com data de validade) — obrigatório se processa PII/PHI
+- Certificações vigentes (SOC 2, ISO 27001) com `valid_until`
+
+### Cadência de assessment
+| Criticality | Cadência | Justificativa |
+|---|---|---|
+| Critical | 90 dias | Acesso a dados sensíveis ou caminho crítico |
+| High | 180 dias | Impacto operacional moderado |
+| Medium / Low | 365 dias | Baixo impacto, anual |
+
+`next_review_due` é recalculado automaticamente após cada assessment registrado (trigger `handle_vendor_assessment`).
+
+### Questionário padrão (mínimo)
+Cada assessment deve atribuir nota 1–5 em três dimensões:
+- **Security:** controles técnicos (encryption at rest/transit, MFA, segregação)
+- **Compliance:** certificações vigentes, DPA, sub-processadores declarados
+- **Operational:** SLA, suporte, redundância, incident response
+
+`risk_score = (6 - security) × (6 - compliance)` (0 = ótimo, 25 = crítico)
+
+### Badges visuais (urgência)
+- **DPA expirado:** vermelho pulsante
+- **DPA vence em <30d:** amber
+- **SOC2/ISO expirados:** vermelho pulsante na coluna Certificações
+- **Review atrasada:** vermelho pulsante na coluna Próxima review
+
+### Processo de offboarding
+1. Marcar status como `offboarded` via `offboard_vendor(vendor_id, notes)`
+2. Documentar nas notas: data de revogação de credenciais, exclusão de dados, NDA pós-término
+3. Anexar comprovante de exclusão de dados (LGPD Art.18 §V) como `vendor_documents.doc_type='other'`
+4. Histórico de assessments e documentos é preservado para auditoria
+
+### Critérios de escalation
+- Vendor **critical** sem assessment há >90d → escalation para CISO
+- DPA **expirado** em vendor processando PII → bloqueio operacional imediato
+- Mais de 3 vendors críticos com certs SOC2/ISO expirados → revisão de portfolio

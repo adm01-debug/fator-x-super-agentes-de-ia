@@ -331,6 +331,22 @@ type: feature
 - Audit log entries: risk.registered, risk.reviewed, risk.closed
 
 **Próxima fila:**
-- Sprint 41: Vendor Risk Management (third-party assessments, DPA tracking, SOC2/ISO certs por vendor)
+- Sprint 42: Business Continuity Plan (BIA, RTO/RPO por sistema crítico, comm tree)
+- Sprint 43: Change Management (CAB, change windows, freeze periods)
+
+## Sprint 41 — Vendor Risk Management (TPRM) ✅
+**Status:** Completo · Score 10/10 mantido
+
+**Entregue:**
+- Tabelas `vendors` (type/criticality/data_classification/status, DPA + SOC2 + ISO27001 com datas), `vendor_assessments` (security/compliance/operational scores 1-5 + risk_score gerado), `vendor_documents` (DPA/SOC2/ISO/pentest/contract com valid_until)
+- RPCs: `register_vendor`, `assess_vendor`, `offboard_vendor`, `get_vendor_summary`
+- Trigger `handle_vendor_assessment`: agenda próxima review por criticality (critical=90d, high=180d, demais=365d)
+- UI `/security/vendors`: 5 stats cards (total/críticos/DPAs vencendo/certs expirados/reviews overdue), tabela filtrável por criticality+type+status, badges de urgência (DPA expirado vermelho pulsante, <30d amber, certs expirados pulsante), drill-in Sheet com tabs Detalhes/Assessments/Documentos
+- Sidebar item "Fornecedores" (ícone `Building2`) sob Administração
+- RLS: members SELECT, admins INSERT/UPDATE; assessments+documents só por admins
+- Audit log: vendor.registered, vendor.assessed, vendor.offboarded
+- Compliance: SOC2 CC9.2, ISO 27001 A.15, LGPD Art.39
+
+**Próxima fila:**
 - Sprint 42: Business Continuity Plan (BIA, RTO/RPO por sistema crítico, comm tree)
 - Sprint 43: Change Management (CAB, change windows, freeze periods)
