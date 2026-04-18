@@ -99,6 +99,8 @@ const OncallPage = lazy(() => import("./pages/OncallPage"));
 const DRDrillsPage = lazy(() => import("./pages/DRDrillsPage"));
 const PostmortemsPage = lazy(() => import("./pages/PostmortemsPage"));
 const PostmortemEditorPage = lazy(() => import("./pages/PostmortemEditorPage"));
+const SBOMPage = lazy(() => import("./pages/SBOMPage"));
+const VulnerabilitiesPage = lazy(() => import("./pages/VulnerabilitiesPage"));
 const SLODashboard = lazy(() => import("./pages/SLODashboard"));
 const ChaosLabPage = lazy(() => import("./pages/ChaosLabPage"));
 const SyntheticMonitoringPage = lazy(() => import("./pages/SyntheticMonitoringPage"));
