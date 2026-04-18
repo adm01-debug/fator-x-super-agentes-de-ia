@@ -254,6 +254,8 @@ const App = () => (
                       <Route path="/observability/dr-drills" element={<SafePage><ProtectedRoute permission="settings.api_keys"><DRDrillsPage /></ProtectedRoute></SafePage>} />
                       <Route path="/observability/postmortems" element={<SafePage><PostmortemsPage /></SafePage>} />
                       <Route path="/observability/postmortems/:id" element={<SafePage><PostmortemEditorPage /></SafePage>} />
+                      <Route path="/security/sbom" element={<SafePage><ProtectedRoute permission="settings.api_keys"><SBOMPage /></ProtectedRoute></SafePage>} />
+                      <Route path="/security/vulnerabilities" element={<SafePage><ProtectedRoute permission="settings.api_keys"><VulnerabilitiesPage /></ProtectedRoute></SafePage>} />
                       <Route path="/disaster-recovery" element={<SafePage><ProtectedRoute permission="settings.api_keys"><DisasterRecoveryPage /></ProtectedRoute></SafePage>} />
                       <Route path="*" element={<SafePage><NotFound /></SafePage>} />
                     </Routes>
