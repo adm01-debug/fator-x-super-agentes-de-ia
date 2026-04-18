@@ -1,59 +1,53 @@
 
-Sprint 38 (Secrets Rotation) completo ✅. Score 10/10 mantido. Próximo da fila: 🟢 **Sprint 39 — Penetration Test Tracking**.
+Sprint 39 (Pentest Tracking) completo ✅. Score 10/10 mantido. Próximo da fila: 🟢 **Sprint 40 — Risk Register (ISO 31000 / SOC2 CC3.2)**.
 
 ## Por quê
-- Temos SBOM/CVEs (vulns conhecidas), secrets rotation, postmortems, DR e compliance
-- **Mas não rastreamos pentests** (testes ofensivos manuais por terceiros) nem findings derivados
-- SOC2 CC4.1 / ISO 27001 A.12.6.1 / PCI-DSS 11.3 exigem pentest anual + remediação documentada
-- Sem registro centralizado, findings de pentest viram tickets soltos e prazos de remediação são perdidos
+- Temos pentests, SBOM, secrets, postmortems, DR, compliance — tudo reativo/operacional
+- **Falta um registro centralizado de riscos** (estratégicos, operacionais, técnicos, regulatórios) com ownership, likelihood, impact e tratamento
+- ISO 31000 / SOC2 CC3.2 / ISO 27005 exigem risk register formal com revisão periódica
+- Hoje riscos vivem em planilhas/Notion soltos — sem auditoria, sem SLA de revisão, sem heatmap
 
 ## Plano
 
-**1. Migração SQL — `pentest_engagements` + `pentest_findings`:**
-- `pentest_engagements`: id, workspace_id, name, vendor (ex: "Bishop Fox"), scope (jsonb: domains/apps/IPs), engagement_type (`black_box`|`grey_box`|`white_box`|`red_team`), started_at, completed_at, status (`scoping`|`in_progress`|`reporting`|`completed`|`cancelled`), report_url, executive_summary, total_findings, lead_contact, notes
-- `pentest_findings`: id, engagement_id, title, severity (`critical`|`high`|`medium`|`low`|`info`), cvss_score, category (`auth`|`injection`|`xss`|`csrf`|`crypto`|`config`|`logic`|`info_disclosure`|`other`), description, reproduction_steps, impact, recommendation, affected_assets text[], status (`open`|`in_remediation`|`fixed`|`accepted_risk`|`false_positive`), discovered_at, due_date (auto: critical 7d, high 30d, medium 90d, low 180d), assigned_to, fixed_at, verification_notes
+**1. Migração SQL — `risk_register` + `risk_review_events`:**
+- `risk_register`: id, workspace_id, title, description, category (`strategic`|`operational`|`technical`|`security`|`compliance`|`financial`|`reputational`), likelihood (1-5), impact (1-5), inherent_score (likelihood×impact, generated), residual_score (após mitigation), treatment (`accept`|`mitigate`|`transfer`|`avoid`), mitigation_plan, owner_id, status (`identified`|`assessed`|`treated`|`monitored`|`closed`), identified_at, next_review_due, closed_at, related_finding_id (FK opcional para pentest_findings)
+- `risk_review_events`: id, risk_id, reviewed_by, reviewed_at, previous_residual_score, new_residual_score, notes
 - RLS: members SELECT, admins INSERT/UPDATE
-- Trigger: ao INSERT finding, calcula `due_date` baseado em severity
+- Trigger: ao INSERT em risk_review_events, atualiza next_review_due (+90d) e residual_score
 
 **2. RPCs:**
-- `create_pentest_engagement(...)` → cria engagement
-- `record_pentest_finding(engagement_id, ...)` → registra finding com due_date auto
-- `update_finding_status(id, status, notes)` → transição de status + audit
-- `get_pentest_summary(workspace_id)` → contagens por severity/status, MTTR, overdue
+- `register_risk(...)` → cria risco com inherent_score auto
+- `review_risk(risk_id, new_residual_score, notes)` → registra review + recalcula próximo prazo
+- `close_risk(risk_id, notes)` → status closed
+- `get_risk_summary(workspace_id)` → contagens por nível (critical/high/med/low), overdue reviews, treatment distribution
 
-**3. UI — `src/pages/PentestPage.tsx` (`/security/pentests`):**
-- Stats cards: engagements totais, findings abertos, critical/high overdue, MTTR médio
-- Lista de engagements com status badges + counts por severity
-- "Novo engagement": dialog com vendor, scope, tipo, datas
-- Drill-in (Sheet) com tab "Findings" — lista filtrável por severity/status
+**3. UI — `src/pages/RiskRegisterPage.tsx` (`/security/risks`):**
+- Stats cards: total, critical (residual ≥15), overdue reviews, pendentes de tratamento
+- **Heatmap visual 5x5** (likelihood × impact) com bolhas dimensionadas por contagem
+- Tabela filtrável por categoria/status/treatment + ordenação por residual_score desc
+- "Novo risco": dialog com sliders 1-5 para likelihood/impact, dropdown treatment, mitigation_plan
+- Drill-in (Sheet): histórico de reviews, mitigation timeline, link para finding relacionado
 
-**4. UI — `src/pages/PentestFindingsPage.tsx` (`/security/pentest-findings`):**
-- View consolidada de todos os findings ativos (multi-engagement)
-- Filtros: severity, status, category, engagement
-- Badges visuais: overdue (vermelho pulsante), <7d (amber), on-track (verde)
-- Ações inline: marcar em remediação, fixed (com notes), accepted_risk
+**4. `src/services/riskService.ts`:** CRUD + reviews + summary + heatmap aggregation
 
-**5. `src/services/pentestService.ts`:** CRUD + summary + status transitions
+**5. Sidebar:** item "Registro de Riscos" sob Administração (ícone `AlertOctagon`)
 
-**6. Sidebar:** items "Pentests" e "Findings" sob Segurança (ícones `Bug`, `Target`)
+**6. `docs/RUNBOOK.md`:** seção "Risk Management" — escala 1-5 likelihood/impact, cadência de review (90d default, 30d para critical), critérios de escalation
 
-**7. `docs/RUNBOOK.md`:** seção "Penetration Testing" — cadência (anual + após mudanças críticas), SLAs por severity, processo de retest
-
-**8. `mem://features/audit-improvements`:** Sprint 39 logged + fila (Sprint 40 Risk Register, Sprint 41 Vendor Risk Mgmt)
+**7. `mem://features/audit-improvements`:** Sprint 40 logged + fila (Sprint 41 Vendor Risk Mgmt, Sprint 42 Business Continuity Plan)
 
 ## Arquivos
-- `supabase/migrations/<ts>_pentests.sql`
-- `src/services/pentestService.ts` (novo)
-- `src/pages/PentestPage.tsx` (nova)
-- `src/pages/PentestFindingsPage.tsx` (nova)
-- `src/components/layout/AppSidebar.tsx` (2 items)
-- `src/App.tsx` (2 rotas)
+- `supabase/migrations/<ts>_risk_register.sql`
+- `src/services/riskService.ts` (novo)
+- `src/pages/RiskRegisterPage.tsx` (nova)
+- `src/components/layout/AppSidebar.tsx` (item)
+- `src/App.tsx` (rota)
 - `docs/RUNBOOK.md` (seção)
 - `.lovable/memory/features/audit-improvements.md` (append)
 
 ## Validação
-- Criar engagement "Pentest Q2 2026" → registrar 3 findings (critical/high/medium)
-- due_date auto-calculado: critical=+7d, high=+30d, medium=+90d
-- Transição open → in_remediation → fixed (com verification_notes)
-- Forçar overdue (data antiga) → badge vermelho pulsante, conta em "overdue" stat
-- RLS: non-admin vê findings mas não cria engagements
+- Registrar risco "Vazamento de PII via API" likelihood=4 impact=5 → inherent=20 (critical)
+- Treatment=mitigate + plan → review após implementação → residual=8 (medium)
+- Heatmap mostra bolha em (4,5) com contagem
+- Forçar overdue review → aparece em "overdue" stat
+- RLS: non-admin vê riscos mas não registra
