@@ -11,6 +11,7 @@ import { PageLoading } from "@/components/shared/PageLoading";
 import { HealthAlertsMounter } from "@/components/shared/HealthAlertsMounter";
 import { SLOAlertsMounter } from "@/components/shared/SLOAlertsMounter";
 import { SyntheticAlertsMounter } from "@/components/shared/SyntheticAlertsMounter";
+import { CostAnomalyAlertsMounter } from "@/components/shared/CostAnomalyAlertsMounter";
 import { ChaosBanner } from "@/components/shared/ChaosBanner";
 import { ErrorBoundary } from "@/components/shared/ErrorBoundary";
 import { AuthProvider } from "@/contexts/AuthContext";
@@ -92,6 +93,7 @@ const DisasterRecoveryPage = lazy(() => import("./pages/DisasterRecoveryPage"));
 const SLODashboard = lazy(() => import("./pages/SLODashboard"));
 const ChaosLabPage = lazy(() => import("./pages/ChaosLabPage"));
 const SyntheticMonitoringPage = lazy(() => import("./pages/SyntheticMonitoringPage"));
+const CostAnomaliesPage = lazy(() => import("./pages/CostAnomaliesPage"));
 const KnowledgeManagementPage = lazy(() => import("./pages/KnowledgeManagementPage"));
 const ArticleEditorPage = lazy(() => import("./pages/ArticleEditorPage"));
 const PublicHelpCenterPage = lazy(() => import("./pages/PublicHelpCenterPage"));
@@ -137,7 +139,8 @@ const App = () => (
         <AuthProvider>
           <HealthAlertsMounter />
           <SLOAlertsMounter />
-          <SyntheticAlertsMounter />
+              <SyntheticAlertsMounter />
+              <CostAnomalyAlertsMounter />
           <TooltipProvider>
           <Toaster />
           <Sonner />
@@ -228,6 +231,7 @@ const App = () => (
                       <Route path="/observability/slo" element={<SafePage><SLODashboard /></SafePage>} />
                       <Route path="/observability/chaos" element={<SafePage><ProtectedRoute permission="settings.api_keys"><ChaosLabPage /></ProtectedRoute></SafePage>} />
                       <Route path="/observability/synthetic" element={<SafePage><SyntheticMonitoringPage /></SafePage>} />
+                      <Route path="/observability/cost-anomalies" element={<SafePage><CostAnomaliesPage /></SafePage>} />
                       <Route path="/disaster-recovery" element={<SafePage><ProtectedRoute permission="settings.api_keys"><DisasterRecoveryPage /></ProtectedRoute></SafePage>} />
                       <Route path="*" element={<SafePage><NotFound /></SafePage>} />
                     </Routes>
