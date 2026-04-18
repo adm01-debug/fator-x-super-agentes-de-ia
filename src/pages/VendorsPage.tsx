@@ -13,13 +13,13 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
-import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { EmptyState } from "@/components/shared/EmptyState";
 import { useAuth } from "@/contexts/AuthContext";
-import { getDefaultWorkspaceId } from "@/lib/agentService";
+import { getWorkspaceId } from "@/lib/agentService";
 import {
   listVendors, getVendorSummary, registerVendor, assessVendor, offboardVendor,
   listAssessments, listDocuments, uploadVendorDocument,
@@ -64,7 +64,7 @@ export default function VendorsPage() {
   const [selected, setSelected] = useState<Vendor | null>(null);
 
   useEffect(() => {
-    if (user) getDefaultWorkspaceId().then(setWorkspaceId).catch((e) => logger.error("ws", e));
+    if (user) getWorkspaceId().then(setWorkspaceId).catch((e: unknown) => logger.error("ws", e));
   }, [user]);
 
   const { data: vendors = [], isLoading } = useQuery({
@@ -94,7 +94,6 @@ export default function VendorsPage() {
       <PageHeader
         title="Fornecedores"
         description="Gestão de risco de terceiros (TPRM) — SOC 2 CC9.2 / ISO 27001 A.15 / LGPD Art.39"
-        icon={Building2}
         actions={
           <div className="flex gap-2">
             <Button variant="outline" size="sm" onClick={refresh} aria-label="Atualizar">
@@ -108,11 +107,11 @@ export default function VendorsPage() {
       />
 
       <div className="grid gap-3 md:grid-cols-2 lg:grid-cols-5">
-        <MetricCard label="Ativos" value={summary?.active ?? 0} icon={Building2} />
-        <MetricCard label="Críticos" value={summary?.critical ?? 0} icon={AlertTriangle} variant={summary?.critical ? "warning" : "default"} />
-        <MetricCard label="DPAs vencendo" value={summary?.dpa_expiring ?? 0} icon={Clock} variant={summary?.dpa_expiring ? "warning" : "default"} />
-        <MetricCard label="DPAs/Certs expirados" value={(summary?.dpa_expired ?? 0) + (summary?.certs_expired ?? 0)} icon={FileText} variant={(summary?.dpa_expired ?? 0) + (summary?.certs_expired ?? 0) > 0 ? "destructive" : "default"} />
-        <MetricCard label="Reviews atrasados" value={summary?.overdue_reviews ?? 0} icon={ShieldCheck} variant={summary?.overdue_reviews ? "destructive" : "default"} />
+        <MetricCard title="Ativos" value={summary?.active ?? 0} icon={Building2} />
+        <MetricCard title="Críticos" value={summary?.critical ?? 0} icon={AlertTriangle} />
+        <MetricCard title="DPAs vencendo" value={summary?.dpa_expiring ?? 0} icon={Clock} />
+        <MetricCard title="DPAs/Certs expirados" value={(summary?.dpa_expired ?? 0) + (summary?.certs_expired ?? 0)} icon={FileText} />
+        <MetricCard title="Reviews atrasados" value={summary?.overdue_reviews ?? 0} icon={ShieldCheck} />
       </div>
 
       <Card>
