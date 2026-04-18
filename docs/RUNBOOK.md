@@ -875,3 +875,21 @@ Validation step falha se row count drift > 10% vs snapshot. Indica corrupção o
 - **Semanal**: time de plantão revisa drafts pendentes
 - **Mensal**: leadership revisa action items P0/P1 atrasados
 - **Trimestral**: análise de tendências (categorias recorrentes, MTTR médio)
+
+## Compliance Reports (Sprint 36)
+**Frameworks:** SOC 2 Type II, ISO/IEC 27001:2022, LGPD Brasil.
+
+**Como gerar:**
+1. Acesse `/compliance-reports` (requer permissão admin).
+2. Clique em "Novo relatório", selecione framework, defina período (último mês recomendado).
+3. O sistema executa `generate_compliance_report` que coleta evidências automáticas via SQL queries dos controles (audit_log, RLS policies, incident_playbooks, dr_drills, postmortems, consent_records, etc).
+4. Score é calculado: `passed / total * 100`.
+5. Revise as evidências no Sheet de detalhes.
+6. Quando satisfeito, clique "Publicar" — registra timestamp e bloqueia edição.
+
+**Cadência recomendada:**
+- SOC 2: trimestral (Q1/Q2/Q3/Q4)
+- ISO 27001: semestral
+- LGPD: mensal (com revisão DPO)
+
+**Controles manuais:** Frameworks têm controles `manual` (ex: A.5.1 políticas, Art.37 DPO) que ficam `pending` e exigem revisão humana antes de publicar.
