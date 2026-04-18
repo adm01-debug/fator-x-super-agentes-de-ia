@@ -110,8 +110,9 @@ export async function triggerPlaybookManually(playbookId: string): Promise<{ run
 }
 
 export async function listOncall(workspaceId: string): Promise<OncallEntry[]> {
+  // Uses the safe view: emails only resolved for self/admin.
   const { data, error } = await supabase
-    .from('oncall_schedule')
+    .from('oncall_schedule_safe')
     .select('*')
     .eq('workspace_id', workspaceId)
     .order('starts_at', { ascending: true });
@@ -126,13 +127,28 @@ export async function getCurrentOncall(workspaceId: string): Promise<Array<{ use
 }
 
 export async function addOncallEntry(input: Omit<OncallEntry, 'id'> & { created_by: string }): Promise<string> {
+  // Split PII (email) into the isolated table.
+  const { user_email, ...scheduleRow } = input;
   const { data, error } = await supabase
     .from('oncall_schedule')
-    .insert(input)
+    .insert(scheduleRow)
     .select('id')
     .single();
   if (error) throw error;
-  return data!.id;
+  const scheduleId = data!.id;
+
+  if (user_email) {
+    const { error: emailError } = await supabase
+      .from('oncall_schedule_emails')
+      .insert({
+        schedule_id: scheduleId,
+        workspace_id: input.workspace_id,
+        user_id: input.user_id,
+        user_email,
+      });
+    if (emailError) throw emailError;
+  }
+  return scheduleId;
 }
 
 export async function deleteOncallEntry(id: string): Promise<void> {

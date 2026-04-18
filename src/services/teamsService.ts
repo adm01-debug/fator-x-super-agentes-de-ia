@@ -21,17 +21,22 @@ export async function inviteMember(
   workspaceId: string,
   email: string,
   role: RoleKey = 'agent_viewer',
+  name?: string,
 ) {
   const {
     data: { user },
   } = await supabase.auth.getUser();
   if (!user) throw new Error('Not authenticated');
 
-  await insertWorkspaceMember({
-    workspace_id: workspaceId,
-    email,
-    role,
+  // Atomic RPC: creates member + isolated email row, with admin check.
+  const { error } = await supabaseExternal.rpc('invite_workspace_member', {
+    p_workspace_id: workspaceId,
+    p_email: email,
+    p_role: role,
+    p_name: name ?? null,
+    p_user_id: null,
   });
+  if (error) throw error;
 
   return { invited: true, email, role, workspace_id: workspaceId };
 }
@@ -78,11 +83,13 @@ export async function insertWorkspaceMember(member: {
   name?: string;
   user_id?: string;
 }) {
-  // user_id is required by DB; for pending invitations use a deterministic UUID based on email
-  const userId = member.user_id ?? crypto.randomUUID();
-  const { error } = await supabaseExternal.from('workspace_members').insert({
-    ...member,
-    user_id: userId,
+  // Delegates to RPC so the email is written to the isolated PII table.
+  const { error } = await supabaseExternal.rpc('invite_workspace_member', {
+    p_workspace_id: member.workspace_id,
+    p_email: member.email,
+    p_role: member.role,
+    p_name: member.name ?? null,
+    p_user_id: member.user_id ?? null,
   });
   if (error) throw error;
 }
