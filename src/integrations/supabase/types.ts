@@ -3438,6 +3438,161 @@ export type Database = {
         }
         Relationships: []
       }
+      pentest_engagements: {
+        Row: {
+          completed_at: string | null
+          created_at: string
+          created_by: string
+          engagement_type: string
+          executive_summary: string | null
+          id: string
+          lead_contact: string | null
+          name: string
+          notes: string | null
+          report_url: string | null
+          scope: Json
+          started_at: string | null
+          status: string
+          total_findings: number
+          updated_at: string
+          vendor: string
+          workspace_id: string
+        }
+        Insert: {
+          completed_at?: string | null
+          created_at?: string
+          created_by: string
+          engagement_type: string
+          executive_summary?: string | null
+          id?: string
+          lead_contact?: string | null
+          name: string
+          notes?: string | null
+          report_url?: string | null
+          scope?: Json
+          started_at?: string | null
+          status?: string
+          total_findings?: number
+          updated_at?: string
+          vendor: string
+          workspace_id: string
+        }
+        Update: {
+          completed_at?: string | null
+          created_at?: string
+          created_by?: string
+          engagement_type?: string
+          executive_summary?: string | null
+          id?: string
+          lead_contact?: string | null
+          name?: string
+          notes?: string | null
+          report_url?: string | null
+          scope?: Json
+          started_at?: string | null
+          status?: string
+          total_findings?: number
+          updated_at?: string
+          vendor?: string
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "pentest_engagements_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      pentest_findings: {
+        Row: {
+          affected_assets: string[]
+          assigned_to: string | null
+          category: string
+          created_at: string
+          created_by: string
+          cvss_score: number | null
+          description: string | null
+          discovered_at: string
+          due_date: string | null
+          engagement_id: string
+          fixed_at: string | null
+          id: string
+          impact: string | null
+          recommendation: string | null
+          reproduction_steps: string | null
+          severity: string
+          status: string
+          title: string
+          updated_at: string
+          verification_notes: string | null
+          workspace_id: string
+        }
+        Insert: {
+          affected_assets?: string[]
+          assigned_to?: string | null
+          category: string
+          created_at?: string
+          created_by: string
+          cvss_score?: number | null
+          description?: string | null
+          discovered_at?: string
+          due_date?: string | null
+          engagement_id: string
+          fixed_at?: string | null
+          id?: string
+          impact?: string | null
+          recommendation?: string | null
+          reproduction_steps?: string | null
+          severity: string
+          status?: string
+          title: string
+          updated_at?: string
+          verification_notes?: string | null
+          workspace_id: string
+        }
+        Update: {
+          affected_assets?: string[]
+          assigned_to?: string | null
+          category?: string
+          created_at?: string
+          created_by?: string
+          cvss_score?: number | null
+          description?: string | null
+          discovered_at?: string
+          due_date?: string | null
+          engagement_id?: string
+          fixed_at?: string | null
+          id?: string
+          impact?: string | null
+          recommendation?: string | null
+          reproduction_steps?: string | null
+          severity?: string
+          status?: string
+          title?: string
+          updated_at?: string
+          verification_notes?: string | null
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "pentest_findings_engagement_id_fkey"
+            columns: ["engagement_id"]
+            isOneToOne: false
+            referencedRelation: "pentest_engagements"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "pentest_findings_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       permissions: {
         Row: {
           category: string | null
@@ -5514,6 +5669,19 @@ export type Database = {
         }
         Returns: string
       }
+      create_pentest_engagement: {
+        Args: {
+          p_engagement_type: string
+          p_lead_contact?: string
+          p_name: string
+          p_notes?: string
+          p_scope?: Json
+          p_started_at?: string
+          p_vendor: string
+          p_workspace_id: string
+        }
+        Returns: string
+      }
       create_sbom_snapshot: {
         Args: {
           p_components: Json
@@ -5579,6 +5747,7 @@ export type Database = {
           updated_at: string
         }[]
       }
+      get_pentest_summary: { Args: { p_workspace_id: string }; Returns: Json }
       get_secrets_status_summary: {
         Args: { p_workspace_id: string }
         Returns: Json
@@ -5644,6 +5813,21 @@ export type Database = {
         }
         Returns: string
       }
+      record_pentest_finding: {
+        Args: {
+          p_affected_assets?: string[]
+          p_category: string
+          p_cvss_score?: number
+          p_description?: string
+          p_engagement_id: string
+          p_impact?: string
+          p_recommendation?: string
+          p_reproduction_steps?: string
+          p_severity: string
+          p_title: string
+        }
+        Returns: string
+      }
       record_secret_rotation: {
         Args: { p_notes?: string; p_reason: string; p_secret_id: string }
         Returns: string
@@ -5691,6 +5875,14 @@ export type Database = {
           p_notes?: string
           p_run_id: string
           p_status: string
+        }
+        Returns: undefined
+      }
+      update_pentest_finding_status: {
+        Args: {
+          p_finding_id: string
+          p_status: string
+          p_verification_notes?: string
         }
         Returns: undefined
       }
