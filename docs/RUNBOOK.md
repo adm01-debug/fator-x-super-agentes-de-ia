@@ -1114,3 +1114,40 @@ Rastreamento formal de mudanças em produção (ITIL 4 / SOC2 CC8.1 / ISO 27001 
 
 ### Rota
 - UI: `/security/changes`
+
+## Incident Response Playbooks (Sprint 44)
+
+Playbooks formais de IR seguindo NIST SP 800-61 (5 fases) — endereça SOC2 CC7.4 e ISO 27035.
+
+### Tipos de incidente cobertos
+- `data_breach` — vazamento de dados (LGPD Art.48 — 72h ANPD)
+- `ddos` — ataque volumétrico
+- `ransomware` — criptografia maliciosa
+- `account_takeover` — sequestro de conta
+- `insider_threat` — ameaça interna
+- `service_outage` — indisponibilidade prolongada
+- `supply_chain` — comprometimento de fornecedor
+- `other`
+
+### Fases NIST (cada playbook precisa cobrir as 5)
+1. **Detect** — identificar indicadores, validar incidente
+2. **Contain** — isolar dano, congelar evidências
+3. **Eradicate** — remover causa raiz
+4. **Recover** — restaurar serviços, validar normalidade
+5. **Postmortem** — RCA, lições aprendidas, action items
+
+### Cadência de tabletop exercises
+- Severidade `critical` → 90 dias
+- Severidade `high` → 180 dias
+- Severidade `medium`/`low` → 365 dias
+
+Reviews vencidos aparecem com badge pulsante vermelho em `/security/ir`.
+
+### Escalation
+- Severity `critical` → on-call imediato + DPO + CTO
+- Severity `high` → on-call em 15min
+- Severity `medium`/`low` → tracker de mudanças durante horário comercial
+
+### Evidências para auditoria
+- Cada exercício registra: cenário, participantes, MTTR real, gaps, action items
+- Histórico completo via `ir_tabletop_exercises` (RLS workspace-scoped)

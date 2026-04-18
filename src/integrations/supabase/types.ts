@@ -3237,6 +3237,181 @@ export type Database = {
           },
         ]
       }
+      ir_playbook_steps: {
+        Row: {
+          automation_hint: string | null
+          created_at: string
+          expected_duration_minutes: number | null
+          id: string
+          instructions: string | null
+          phase: Database["public"]["Enums"]["ir_phase"]
+          playbook_id: string
+          responsible_role: string | null
+          step_order: number
+          title: string
+        }
+        Insert: {
+          automation_hint?: string | null
+          created_at?: string
+          expected_duration_minutes?: number | null
+          id?: string
+          instructions?: string | null
+          phase: Database["public"]["Enums"]["ir_phase"]
+          playbook_id: string
+          responsible_role?: string | null
+          step_order?: number
+          title: string
+        }
+        Update: {
+          automation_hint?: string | null
+          created_at?: string
+          expected_duration_minutes?: number | null
+          id?: string
+          instructions?: string | null
+          phase?: Database["public"]["Enums"]["ir_phase"]
+          playbook_id?: string
+          responsible_role?: string | null
+          step_order?: number
+          title?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ir_playbook_steps_playbook_id_fkey"
+            columns: ["playbook_id"]
+            isOneToOne: false
+            referencedRelation: "ir_playbooks"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      ir_playbooks: {
+        Row: {
+          created_at: string
+          created_by: string
+          description: string | null
+          id: string
+          incident_type: Database["public"]["Enums"]["ir_incident_type"]
+          last_reviewed_at: string | null
+          name: string
+          next_review_due: string | null
+          owner_id: string | null
+          severity_default: Database["public"]["Enums"]["ir_severity"]
+          status: Database["public"]["Enums"]["ir_playbook_status"]
+          updated_at: string
+          version: number
+          workspace_id: string
+        }
+        Insert: {
+          created_at?: string
+          created_by: string
+          description?: string | null
+          id?: string
+          incident_type?: Database["public"]["Enums"]["ir_incident_type"]
+          last_reviewed_at?: string | null
+          name: string
+          next_review_due?: string | null
+          owner_id?: string | null
+          severity_default?: Database["public"]["Enums"]["ir_severity"]
+          status?: Database["public"]["Enums"]["ir_playbook_status"]
+          updated_at?: string
+          version?: number
+          workspace_id: string
+        }
+        Update: {
+          created_at?: string
+          created_by?: string
+          description?: string | null
+          id?: string
+          incident_type?: Database["public"]["Enums"]["ir_incident_type"]
+          last_reviewed_at?: string | null
+          name?: string
+          next_review_due?: string | null
+          owner_id?: string | null
+          severity_default?: Database["public"]["Enums"]["ir_severity"]
+          status?: Database["public"]["Enums"]["ir_playbook_status"]
+          updated_at?: string
+          version?: number
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ir_playbooks_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      ir_tabletop_exercises: {
+        Row: {
+          action_items: string | null
+          created_at: string
+          created_by: string
+          executed_at: string | null
+          facilitator_id: string | null
+          gaps: string[]
+          id: string
+          mttr_actual_minutes: number | null
+          notes: string | null
+          outcome: Database["public"]["Enums"]["ir_tabletop_outcome"]
+          participants: string[]
+          playbook_id: string
+          scenario: string
+          scheduled_for: string
+          workspace_id: string
+        }
+        Insert: {
+          action_items?: string | null
+          created_at?: string
+          created_by: string
+          executed_at?: string | null
+          facilitator_id?: string | null
+          gaps?: string[]
+          id?: string
+          mttr_actual_minutes?: number | null
+          notes?: string | null
+          outcome?: Database["public"]["Enums"]["ir_tabletop_outcome"]
+          participants?: string[]
+          playbook_id: string
+          scenario: string
+          scheduled_for: string
+          workspace_id: string
+        }
+        Update: {
+          action_items?: string | null
+          created_at?: string
+          created_by?: string
+          executed_at?: string | null
+          facilitator_id?: string | null
+          gaps?: string[]
+          id?: string
+          mttr_actual_minutes?: number | null
+          notes?: string | null
+          outcome?: Database["public"]["Enums"]["ir_tabletop_outcome"]
+          participants?: string[]
+          playbook_id?: string
+          scenario?: string
+          scheduled_for?: string
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ir_tabletop_exercises_playbook_id_fkey"
+            columns: ["playbook_id"]
+            isOneToOne: false
+            referencedRelation: "ir_playbooks"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ir_tabletop_exercises_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       kb_article_versions: {
         Row: {
           article_id: string
@@ -6207,6 +6382,10 @@ export type Database = {
         Args: { p_finding_id: string; p_notes: string }
         Returns: undefined
       }
+      activate_ir_playbook: {
+        Args: { p_playbook_id: string }
+        Returns: undefined
+      }
       assess_vendor: {
         Args: {
           p_compliance_score: number
@@ -6342,6 +6521,7 @@ export type Database = {
         Args: { p_period?: string; p_workspace_id: string }
         Returns: number
       }
+      get_ir_summary: { Args: { p_workspace_id: string }; Returns: Json }
       get_masked_secrets: {
         Args: { p_workspace_id: string }
         Returns: {
@@ -6615,6 +6795,19 @@ export type Database = {
         | "rolled_back"
         | "failed"
       change_type: "standard" | "normal" | "emergency"
+      ir_incident_type:
+        | "data_breach"
+        | "ddos"
+        | "ransomware"
+        | "account_takeover"
+        | "insider_threat"
+        | "service_outage"
+        | "supply_chain"
+        | "other"
+      ir_phase: "detect" | "contain" | "eradicate" | "recover" | "postmortem"
+      ir_playbook_status: "draft" | "active" | "archived"
+      ir_severity: "low" | "medium" | "high" | "critical"
+      ir_tabletop_outcome: "pass" | "partial" | "fail" | "scheduled"
       trace_level: "debug" | "info" | "warning" | "error" | "critical"
     }
     CompositeTypes: {
@@ -6772,6 +6965,20 @@ export const Constants = {
         "failed",
       ],
       change_type: ["standard", "normal", "emergency"],
+      ir_incident_type: [
+        "data_breach",
+        "ddos",
+        "ransomware",
+        "account_takeover",
+        "insider_threat",
+        "service_outage",
+        "supply_chain",
+        "other",
+      ],
+      ir_phase: ["detect", "contain", "eradicate", "recover", "postmortem"],
+      ir_playbook_status: ["draft", "active", "archived"],
+      ir_severity: ["low", "medium", "high", "critical"],
+      ir_tabletop_outcome: ["pass", "partial", "fail", "scheduled"],
       trace_level: ["debug", "info", "warning", "error", "critical"],
     },
   },

@@ -380,3 +380,18 @@ type: feature
 ## Próximos da fila
 - Sprint 44 — IR Playbooks (incident response templates + tabletop scheduling)
 - Sprint 45 — Asset Inventory (CMDB unificada com vendors + business_systems)
+
+## Completed — Sprint 44 (Incident Response Playbooks)
+- 3 tables: ir_playbooks, ir_playbook_steps, ir_tabletop_exercises
+- 5 enums: ir_incident_type (8 types), ir_severity, ir_playbook_status, ir_phase (NIST 5), ir_tabletop_outcome
+- Trigger handle_ir_tabletop: ao registrar exercício recalcula next_review_due (90d crit / 180d high / 365d demais)
+- RPCs: activate_ir_playbook, get_ir_summary
+- RLS: members SELECT, admins INSERT/UPDATE
+- UI /security/ir: stats (active/overdue/MTTR/gaps) + tabs Playbooks/Exercícios + drill-in Sheet (Steps NIST + Exercícios + Detalhes)
+- Sidebar: "Playbooks (IR)" com ícone BookOpen sob Administração
+- Compliance: NIST SP 800-61, SOC2 CC7.4, ISO 27035
+- Badge pulsante vermelho quando review vencido
+
+## Próxima fila
+- Sprint 45: Asset Inventory (CMDB-lite — hardware, software, cloud resources)
+- Sprint 46: Privacy/DSAR (LGPD Art.18 — direitos do titular)
