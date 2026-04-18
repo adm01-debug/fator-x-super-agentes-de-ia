@@ -305,3 +305,15 @@ type: feature
 - Audit log: secret.registered / secret.rotated / secret.retired
 - Compliance: SOC2 CC6.1, ISO 27001 A.9.2.4, PCI-DSS 3.6
 - Queue: Sprint 39 Pentest Tracking, Sprint 40 Risk Register
+
+## Sprint 39 — Penetration Test Tracking ✅
+- Tables: pentest_engagements, pentest_findings (RLS: members SELECT, admins write)
+- RPCs: create_pentest_engagement, record_pentest_finding, update_pentest_finding_status, get_pentest_summary
+- Trigger: auto due_date by severity (critical 7d / high 30d / medium 90d / low 180d / info 365d)
+- Trigger: maintains total_findings count on engagements
+- Pages: /security/pentests (engagements + drill-in sheet), /security/pentest-findings (consolidated triage)
+- Sidebar: "Pentests" (Bug) + "Findings de Pentest" (Swords) sob Administração
+- Visual: severity color chips, urgency badges (overdue pulsante, <7d amber, <30d yellow)
+- Audit log: pentest.engagement_created, pentest.finding_recorded, pentest.finding_status_changed
+- Compliance: SOC2 CC4.1, ISO 27001 A.12.6.1, PCI-DSS 11.3
+- Queue: Sprint 40 Risk Register, Sprint 41 Vendor Risk Mgmt
