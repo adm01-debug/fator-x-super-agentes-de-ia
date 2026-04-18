@@ -1084,3 +1084,33 @@ Cada assessment deve atribuir nota 1–5 em três dimensões:
 1. Status do sistema → `degraded` ou `down` (drill-in Sheet)
 2. Alerta automático em `incidents` + on-call paginado
 3. Pós-incident: registrar `simulation` ou `full_failover` retrospectivo com gaps reais
+
+## Change Management (CAB) — Sprint 43
+
+Rastreamento formal de mudanças em produção (ITIL 4 / SOC2 CC8.1 / ISO 27001 A.12.1.2).
+
+### Tipos de mudança
+- **Standard**: pré-aprovada, baixo risco, processo conhecido (ex: rotação de logs)
+- **Normal**: requer aprovação do CAB, agendada com antecedência
+- **Emergency**: resposta a incidente, pode bypassar freeze (se janela permitir)
+
+### SLA de aprovação
+- Low/Medium: 48h
+- High: 24h
+- Critical: 4h
+- Emergency: imediato (com retro-aprovação em 24h)
+
+### Janelas de freeze
+- Períodos de bloqueio de mudanças não-emergenciais (ex: Black Friday, fechamento contábil)
+- Trigger no banco bloqueia INSERT/UPDATE de change_requests com `scheduled_for` dentro da janela
+- Mudanças `emergency` passam apenas se a janela tiver `allow_emergency=true`
+
+### Workflow
+1. Solicitante cria change_request → `pending_approval`
+2. Admin (CAB) decide via `decide_change` → `approved` | `rejected`
+3. Executor inicia via `execute_change(success=true)` → `in_progress`
+4. Conclui via `execute_change(success)` → `completed` | `failed`
+5. Em caso de falha: `rollback_change(post_mortem_url)` → `rolled_back` (post-mortem obrigatório)
+
+### Rota
+- UI: `/security/changes`

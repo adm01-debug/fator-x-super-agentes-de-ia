@@ -364,3 +364,19 @@ type: feature
 - Sprint 43: **Change Management** (CAB, change_requests, deployment_freeze_windows)
 - Sprint 44: **Incident Response Playbooks** (templates por categoria, MTTR tracking)
 - Sprint 45: **Asset Inventory** (devices, software licenses, network endpoints)
+
+## Completed — Sprint 43 (Change Management / CAB)
+- Tables: change_requests, change_approvals, freeze_windows
+- Enums: change_type (standard/normal/emergency), risk_level, change_status (9 states), change_decision
+- RLS: members SELECT, requesters create/update own, admins approve/execute/rollback
+- Trigger `enforce_freeze_window` blocks scheduled non-emergency changes during active freezes
+- RPCs: submit_change_request, decide_change, execute_change, rollback_change, get_change_summary
+- Service: src/services/changeManagementService.ts (CRUD, freeze check, status/risk variants)
+- Page: src/pages/ChangeManagementPage.tsx (`/security/changes`) with stats, filters, freeze timeline, drill-in sheet (details/approvals/execution)
+- Sidebar: "Mudanças (CAB)" with GitPullRequest icon under Administração
+- Rollback enforces post_mortem_url
+- Standards: ITIL 4 / SOC2 CC8.1 / ISO 27001 A.12.1.2
+
+## Próximos da fila
+- Sprint 44 — IR Playbooks (incident response templates + tabletop scheduling)
+- Sprint 45 — Asset Inventory (CMDB unificada com vendors + business_systems)
