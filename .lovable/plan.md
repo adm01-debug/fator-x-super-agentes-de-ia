@@ -1,51 +1,59 @@
 
-Sprint 37 (SBOM) completo ✅. Score 10/10 mantido. Próximo da fila: 🟢 **Sprint 38 — Secrets Rotation Tracking**.
+Sprint 38 (Secrets Rotation) completo ✅. Score 10/10 mantido. Próximo da fila: 🟢 **Sprint 39 — Penetration Test Tracking**.
 
 ## Por quê
-- Temos SBOM/CVEs, postmortems, DR, compliance — mas **não rastreamos rotação de credenciais** (API keys, JWT signing keys, DB passwords, OAuth client secrets)
-- SOC2 CC6.1 / ISO 27001 A.9.2.4 / PCI-DSS 3.6 exigem rotação periódica documentada
-- Sem inventário, secrets antigos viram "shadow risk" — vazaram em 2024 e ninguém sabe que ainda funcionam
+- Temos SBOM/CVEs (vulns conhecidas), secrets rotation, postmortems, DR e compliance
+- **Mas não rastreamos pentests** (testes ofensivos manuais por terceiros) nem findings derivados
+- SOC2 CC4.1 / ISO 27001 A.12.6.1 / PCI-DSS 11.3 exigem pentest anual + remediação documentada
+- Sem registro centralizado, findings de pentest viram tickets soltos e prazos de remediação são perdidos
 
 ## Plano
 
-**1. Migração SQL — `managed_secrets` + `secret_rotation_events`:**
-- `managed_secrets`: id, workspace_id, name, category (`api_key`|`oauth_client`|`db_password`|`jwt_signing`|`webhook_secret`|`encryption_key`), provider, environment (`prod`|`staging`|`dev`), rotation_interval_days, last_rotated_at, next_rotation_due, status (`active`|`pending_rotation`|`overdue`|`retired`), owner_id, notes
-- `secret_rotation_events`: id, secret_id, rotated_by, rotated_at, reason (`scheduled`|`compromised`|`employee_offboarding`|`manual`), previous_age_days, notes
+**1. Migração SQL — `pentest_engagements` + `pentest_findings`:**
+- `pentest_engagements`: id, workspace_id, name, vendor (ex: "Bishop Fox"), scope (jsonb: domains/apps/IPs), engagement_type (`black_box`|`grey_box`|`white_box`|`red_team`), started_at, completed_at, status (`scoping`|`in_progress`|`reporting`|`completed`|`cancelled`), report_url, executive_summary, total_findings, lead_contact, notes
+- `pentest_findings`: id, engagement_id, title, severity (`critical`|`high`|`medium`|`low`|`info`), cvss_score, category (`auth`|`injection`|`xss`|`csrf`|`crypto`|`config`|`logic`|`info_disclosure`|`other`), description, reproduction_steps, impact, recommendation, affected_assets text[], status (`open`|`in_remediation`|`fixed`|`accepted_risk`|`false_positive`), discovered_at, due_date (auto: critical 7d, high 30d, medium 90d, low 180d), assigned_to, fixed_at, verification_notes
 - RLS: members SELECT, admins INSERT/UPDATE
-- Trigger: ao INSERT em `secret_rotation_events`, atualiza `managed_secrets.last_rotated_at` + recalcula `next_rotation_due`
+- Trigger: ao INSERT finding, calcula `due_date` baseado em severity
 
 **2. RPCs:**
-- `register_managed_secret(...)` → cria entrada (sem armazenar valor — apenas metadata)
-- `record_secret_rotation(secret_id, reason, notes)` → registra evento + atualiza próximo prazo
-- `mark_secret_retired(secret_id, notes)` → status retired
-- `get_secrets_status_summary(workspace_id)` → contagens active/pending/overdue para dashboard
+- `create_pentest_engagement(...)` → cria engagement
+- `record_pentest_finding(engagement_id, ...)` → registra finding com due_date auto
+- `update_finding_status(id, status, notes)` → transição de status + audit
+- `get_pentest_summary(workspace_id)` → contagens por severity/status, MTTR, overdue
 
-**3. UI — `src/pages/SecretsRotationPage.tsx` (`/security/secrets-rotation`):**
-- Stats cards: total managed, overdue (vermelho), pending (amber), active (verde)
-- Tabela com filtros (categoria, environment, status) + ordenação por `next_rotation_due`
-- Badges visuais: overdue (vermelho pulsante), <7 dias (amber), <30 dias (yellow), ok (verde)
-- Ações: "Registrar rotação" (dialog com reason + notes) | "Aposentar" | editar metadata
-- Templates: "API key OpenAI (90d)", "DB password (180d)", "JWT signing (30d)", "OAuth client (365d)"
+**3. UI — `src/pages/PentestPage.tsx` (`/security/pentests`):**
+- Stats cards: engagements totais, findings abertos, critical/high overdue, MTTR médio
+- Lista de engagements com status badges + counts por severity
+- "Novo engagement": dialog com vendor, scope, tipo, datas
+- Drill-in (Sheet) com tab "Findings" — lista filtrável por severity/status
 
-**4. `src/services/secretsRotationService.ts`:** CRUD + rotation tracking + summary
+**4. UI — `src/pages/PentestFindingsPage.tsx` (`/security/pentest-findings`):**
+- View consolidada de todos os findings ativos (multi-engagement)
+- Filtros: severity, status, category, engagement
+- Badges visuais: overdue (vermelho pulsante), <7d (amber), on-track (verde)
+- Ações inline: marcar em remediação, fixed (com notes), accepted_risk
 
-**5. Sidebar:** item "Rotação de Secrets" sob Administração (ícone `KeyRound` ou `RefreshCw`)
+**5. `src/services/pentestService.ts`:** CRUD + summary + status transitions
 
-**6. `docs/RUNBOOK.md`:** seção "Secrets Rotation" — cadências recomendadas por categoria, procedimento de rotação emergencial (compromise), checklist offboarding
+**6. Sidebar:** items "Pentests" e "Findings" sob Segurança (ícones `Bug`, `Target`)
 
-**7. `mem://features/audit-improvements`:** Sprint 38 logged + fila (Sprint 39 Pentest Tracking, Sprint 40 Risk Register)
+**7. `docs/RUNBOOK.md`:** seção "Penetration Testing" — cadência (anual + após mudanças críticas), SLAs por severity, processo de retest
+
+**8. `mem://features/audit-improvements`:** Sprint 39 logged + fila (Sprint 40 Risk Register, Sprint 41 Vendor Risk Mgmt)
 
 ## Arquivos
-- `supabase/migrations/<ts>_secrets_rotation.sql`
-- `src/services/secretsRotationService.ts` (novo)
-- `src/pages/SecretsRotationPage.tsx` (nova)
-- `src/components/layout/AppSidebar.tsx` (item)
-- `src/App.tsx` (rota)
+- `supabase/migrations/<ts>_pentests.sql`
+- `src/services/pentestService.ts` (novo)
+- `src/pages/PentestPage.tsx` (nova)
+- `src/pages/PentestFindingsPage.tsx` (nova)
+- `src/components/layout/AppSidebar.tsx` (2 items)
+- `src/App.tsx` (2 rotas)
 - `docs/RUNBOOK.md` (seção)
 - `.lovable/memory/features/audit-improvements.md` (append)
 
 ## Validação
-- Registrar secret "OpenAI API Key" com intervalo 90d → next_rotation_due = +90d
-- Registrar rotação → evento criado, next_rotation_due recalculado
-- Forçar overdue (data antiga) → badge vermelho pulsante, aparece em "overdue" stat
-- RLS: non-admin vê secrets mas não registra rotação
+- Criar engagement "Pentest Q2 2026" → registrar 3 findings (critical/high/medium)
+- due_date auto-calculado: critical=+7d, high=+30d, medium=+90d
+- Transição open → in_remediation → fixed (com verification_notes)
+- Forçar overdue (data antiga) → badge vermelho pulsante, conta em "overdue" stat
+- RLS: non-admin vê findings mas não cria engagements
