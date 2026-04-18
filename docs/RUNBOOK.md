@@ -713,3 +713,46 @@ Sistema de orçamento com bloqueio automático em `/settings/budget`.
 - Sempre configurar limite diário ~ 1/15 do mensal (evita queima do mês em 1 dia)
 - Manter `hard_stop=false` em dev/staging, `true` em produção
 - Threshold 80% dá ~6h de margem para reagir antes do hard block
+
+## Game Days
+
+Drills programados de resposta a incidentes em `/observability/game-days`. Treinam a equipe sob pressão controlada.
+
+### Cadência recomendada
+- **Mensal**: 1 game day por mês, alternando cenários (provider_outage → cost_spike → db_slowdown → auth_failure)
+- **Pré-release**: drill antes de releases major
+- **Pós-incidente**: replay do incidente real como game day para validar fix do runbook
+
+### Cenários disponíveis
+| Cenário | Chaos automático | Runbook section |
+|---|---|---|
+| `provider_outage` | `llm-gateway` × `error_500` × 50% | "LLM Provider Falhou" |
+| `db_slowdown` | `agent-workflow-runner` × `latency` × 2s | Resposta a degradação |
+| `auth_failure` | `llm-gateway` × `error_429` × 50% | "Rate limit / 429" |
+| `cost_spike` | sem chaos auto (manual via cost-anomalies) | "Anomalia de Custo" |
+| `custom` | sem chaos auto | livre |
+
+### Fluxo de execução
+1. **Agendar** com 48h+ de antecedência, notificar participantes
+2. **Iniciar** (botão "Iniciar"): muda status → running, opcionalmente injeta chaos
+3. **War room** em `/observability/game-days/:id/live`:
+   - Timer ao vivo
+   - Botões: "Detectado" / "Mitigando" / "Resolvido" / "Adicionar nota"
+   - Timeline em realtime (todos veem ao mesmo tempo)
+4. **Encerrar**: gera scorecard com MTTR/MTTD calculados automaticamente
+
+### Critérios de score (1-10)
+- **9-10**: MTTR < 5min, runbook seguido 100%, zero gaps
+- **7-8**: MTTR < 15min, runbook seguido com pequenos desvios, 1-2 gaps menores
+- **5-6**: MTTR < 30min, alguns passos improvisados, gaps em ferramentas
+- **1-4**: MTTR > 30min OU runbook insuficiente OU gap crítico (sem alerta, sem permissão, etc.)
+
+### Obrigatório no scorecard
+- Listar TODOS os gaps (mesmo cosméticos): tooling, runbook, alerta, comunicação
+- Retrospectiva com ações concretas + dono + prazo
+- Score honesto: prefira 6 com lições aprendidas a 10 inflado
+
+### Operação
+- Iniciar via SQL: `SELECT public.start_game_day('GAMEDAY_ID', true);` (true = injeta chaos)
+- Encerrar manualmente: `SELECT public.complete_game_day('GAMEDAY_ID', true, ARRAY['gap1','gap2'], 8, 'notas');`
+- Limpar chaos após game day: chaos_experiment é desabilitado automaticamente no `complete_game_day`
