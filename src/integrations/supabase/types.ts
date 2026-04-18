@@ -3982,6 +3982,128 @@ export type Database = {
         }
         Relationships: []
       }
+      risk_register: {
+        Row: {
+          category: string
+          closed_at: string | null
+          created_at: string
+          created_by: string
+          description: string | null
+          id: string
+          identified_at: string
+          impact: number
+          inherent_score: number | null
+          likelihood: number
+          mitigation_plan: string | null
+          next_review_due: string
+          owner_id: string | null
+          related_finding_id: string | null
+          residual_score: number | null
+          status: string
+          title: string
+          treatment: string
+          updated_at: string
+          workspace_id: string
+        }
+        Insert: {
+          category: string
+          closed_at?: string | null
+          created_at?: string
+          created_by: string
+          description?: string | null
+          id?: string
+          identified_at?: string
+          impact: number
+          inherent_score?: number | null
+          likelihood: number
+          mitigation_plan?: string | null
+          next_review_due?: string
+          owner_id?: string | null
+          related_finding_id?: string | null
+          residual_score?: number | null
+          status?: string
+          title: string
+          treatment?: string
+          updated_at?: string
+          workspace_id: string
+        }
+        Update: {
+          category?: string
+          closed_at?: string | null
+          created_at?: string
+          created_by?: string
+          description?: string | null
+          id?: string
+          identified_at?: string
+          impact?: number
+          inherent_score?: number | null
+          likelihood?: number
+          mitigation_plan?: string | null
+          next_review_due?: string
+          owner_id?: string | null
+          related_finding_id?: string | null
+          residual_score?: number | null
+          status?: string
+          title?: string
+          treatment?: string
+          updated_at?: string
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "risk_register_related_finding_id_fkey"
+            columns: ["related_finding_id"]
+            isOneToOne: false
+            referencedRelation: "pentest_findings"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "risk_register_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      risk_review_events: {
+        Row: {
+          id: string
+          new_residual_score: number | null
+          notes: string | null
+          previous_residual_score: number | null
+          reviewed_at: string
+          reviewed_by: string
+          risk_id: string
+        }
+        Insert: {
+          id?: string
+          new_residual_score?: number | null
+          notes?: string | null
+          previous_residual_score?: number | null
+          reviewed_at?: string
+          reviewed_by: string
+          risk_id: string
+        }
+        Update: {
+          id?: string
+          new_residual_score?: number | null
+          notes?: string | null
+          previous_residual_score?: number | null
+          reviewed_at?: string
+          reviewed_by?: string
+          risk_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "risk_review_events_risk_id_fkey"
+            columns: ["risk_id"]
+            isOneToOne: false
+            referencedRelation: "risk_register"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       role_permissions: {
         Row: {
           created_at: string
@@ -5636,6 +5758,10 @@ export type Database = {
         Returns: string
       }
       check_budget: { Args: { p_workspace_id: string }; Returns: Json }
+      close_risk: {
+        Args: { p_notes?: string; p_risk_id: string }
+        Returns: undefined
+      }
       complete_dr_drill: {
         Args: {
           p_actual_rpo_seconds: number
@@ -5748,6 +5874,7 @@ export type Database = {
         }[]
       }
       get_pentest_summary: { Args: { p_workspace_id: string }; Returns: Json }
+      get_risk_summary: { Args: { p_workspace_id: string }; Returns: Json }
       get_secrets_status_summary: {
         Args: { p_workspace_id: string }
         Returns: Json
@@ -5860,9 +5987,32 @@ export type Database = {
         }
         Returns: string
       }
+      register_risk: {
+        Args: {
+          p_category: string
+          p_description: string
+          p_impact: number
+          p_likelihood: number
+          p_mitigation_plan?: string
+          p_owner_id?: string
+          p_related_finding_id?: string
+          p_title: string
+          p_treatment?: string
+          p_workspace_id: string
+        }
+        Returns: string
+      }
       reset_workspace_budget: {
         Args: { p_workspace_id: string }
         Returns: Json
+      }
+      review_risk: {
+        Args: {
+          p_new_residual_score: number
+          p_notes?: string
+          p_risk_id: string
+        }
+        Returns: string
       }
       start_dr_drill: { Args: { p_drill_id: string }; Returns: Json }
       start_game_day: {

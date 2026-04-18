@@ -969,3 +969,45 @@ Pentests são contratados anualmente (e após mudanças críticas de arquitetura
 
 ### Aceitação de risco
 Use `accepted_risk` somente com aprovação documentada do CISO/equivalente. Adicione justificativa em `verification_notes`.
+
+## Risk Management (ISO 31000 / SOC2 CC3.2)
+
+### Escala de avaliação
+**Likelihood (probabilidade) — 1 a 5:**
+- 1: Raro (esperado <1×/ano)
+- 2: Improvável (1–2×/ano)
+- 3: Possível (várias vezes/ano)
+- 4: Provável (mensal)
+- 5: Quase certo (semanal+)
+
+**Impact (impacto) — 1 a 5:**
+- 1: Negligível (sem impacto perceptível)
+- 2: Baixo (degradação menor)
+- 3: Médio (downtime parcial, perda <$10k)
+- 4: Alto (downtime crítico, perda <$100k, dano reputacional)
+- 5: Catastrófico (perda >$100k, ação regulatória, dano reputacional grave)
+
+**Score = Likelihood × Impact (1–25)**
+- 1–3: Low (verde)
+- 4–8: Medium (amarelo)
+- 9–14: High (âmbar)
+- 15–25: Critical (vermelho)
+
+### Cadência de review
+| Severidade residual | Cadência |
+|---|---|
+| Critical (≥15) | 30 dias |
+| Outros | 90 dias |
+
+`next_review_due` é recalculado automaticamente após cada review registrado.
+
+### Tratamentos
+- **Mitigate:** implementar controles para reduzir likelihood ou impact (default)
+- **Accept:** aceitar formalmente — requer aprovação documentada do owner
+- **Transfer:** seguro, contrato com terceiro, SLA contratual
+- **Avoid:** descontinuar a atividade que origina o risco
+
+### Critérios de escalation
+- Risco **critical** sem residual_score após 7 dias → escalation para CISO
+- Review **vencido** há >30 dias → escalation para workspace admin
+- Mais de 5 riscos critical ativos simultaneamente → revisão de portfolio com leadership

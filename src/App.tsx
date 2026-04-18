@@ -104,6 +104,7 @@ const VulnerabilitiesPage = lazy(() => import("./pages/VulnerabilitiesPage"));
 const SecretsRotationPage = lazy(() => import("./pages/SecretsRotationPage"));
 const PentestPage = lazy(() => import("./pages/PentestPage"));
 const PentestFindingsPage = lazy(() => import("./pages/PentestFindingsPage"));
+const RiskRegisterPage = lazy(() => import("./pages/RiskRegisterPage"));
 const SLODashboard = lazy(() => import("./pages/SLODashboard"));
 const ChaosLabPage = lazy(() => import("./pages/ChaosLabPage"));
 const SyntheticMonitoringPage = lazy(() => import("./pages/SyntheticMonitoringPage"));
@@ -262,6 +263,7 @@ const App = () => (
                       <Route path="/security/vulnerabilities" element={<SafePage><ProtectedRoute permission="settings.api_keys"><VulnerabilitiesPage /></ProtectedRoute></SafePage>} />
                       <Route path="/security/pentests" element={<SafePage><ProtectedRoute permission="settings.api_keys"><PentestPage /></ProtectedRoute></SafePage>} />
                       <Route path="/security/pentest-findings" element={<SafePage><ProtectedRoute permission="settings.api_keys"><PentestFindingsPage /></ProtectedRoute></SafePage>} />
+                      <Route path="/security/risks" element={<SafePage><ProtectedRoute permission="settings.api_keys"><RiskRegisterPage /></ProtectedRoute></SafePage>} />
                       <Route path="/disaster-recovery" element={<SafePage><ProtectedRoute permission="settings.api_keys"><DisasterRecoveryPage /></ProtectedRoute></SafePage>} />
                       <Route path="*" element={<SafePage><NotFound /></SafePage>} />
                     </Routes>

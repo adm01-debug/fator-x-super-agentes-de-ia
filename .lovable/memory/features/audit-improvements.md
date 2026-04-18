@@ -317,3 +317,20 @@ type: feature
 - Audit log: pentest.engagement_created, pentest.finding_recorded, pentest.finding_status_changed
 - Compliance: SOC2 CC4.1, ISO 27001 A.12.6.1, PCI-DSS 11.3
 - Queue: Sprint 40 Risk Register, Sprint 41 Vendor Risk Mgmt
+
+## Sprint 40 — Risk Register (ISO 31000 / SOC2 CC3.2)
+**Status:** ✅ Completo · Score 10/10 mantido
+
+**Entregue:**
+- Tabelas `risk_register` (likelihood/impact 1–5, inherent_score gerado, residual_score, treatment, status, next_review_due, related_finding_id → pentest_findings) e `risk_review_events` (audit trail)
+- RPCs: `register_risk`, `review_risk`, `close_risk`, `get_risk_summary` (heatmap aggregation incluído)
+- Trigger `handle_risk_review_event`: 30d cycle para critical (≥15), 90d para demais; auto-promove status `identified → assessed`
+- UI `/security/risks`: stats (total/critical/overdue/untreated), heatmap 5×5 visual com bolhas dimensionadas, tabela filtrável (categoria/status/overdue), dialog de criação com sliders L/I, drill-in Sheet com histórico de reviews e ação de fechamento
+- Sidebar item "Registro de Riscos" (ícone `AlertOctagon`) sob Administração
+- RUNBOOK seção "Risk Management" — escala, cadência, tratamentos, escalation
+- Audit log entries: risk.registered, risk.reviewed, risk.closed
+
+**Próxima fila:**
+- Sprint 41: Vendor Risk Management (third-party assessments, DPA tracking, SOC2/ISO certs por vendor)
+- Sprint 42: Business Continuity Plan (BIA, RTO/RPO por sistema crítico, comm tree)
+- Sprint 43: Change Management (CAB, change windows, freeze periods)

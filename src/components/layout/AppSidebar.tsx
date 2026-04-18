@@ -10,7 +10,7 @@ import {
   Mic, GitBranch as GitBranchIcon, KeyRound, Globe2, Monitor, Eye, Smartphone, TestTube2,
   Store, Cpu, Wand2, GitMerge, Terminal, Mail, Bug, FileCheck2,
   PhoneCall, Network, FlaskRound, TrendingDown,
-  Share2, Building2, Radar, ShieldAlert, Wallet, Swords, Phone, Archive,
+  Share2, Building2, Radar, ShieldAlert, Wallet, Swords, Phone, Archive, AlertOctagon,
 } from "lucide-react";
 import {
   Sidebar, SidebarContent, SidebarGroup, SidebarGroupContent, SidebarGroupLabel,
@@ -109,6 +109,7 @@ const navSections = [
       { title: "Rotação de Secrets", url: "/security/secrets-rotation", icon: KeyRound },
       { title: "Pentests", url: "/security/pentests", icon: Bug },
       { title: "Findings de Pentest", url: "/security/pentest-findings", icon: Swords },
+      { title: "Registro de Riscos", url: "/security/risks", icon: AlertOctagon },
       { title: "SSO Enterprise", url: "/sso", icon: KeyRound },
       { title: "Data Residency", url: "/residency", icon: Globe2 },
       { title: "LGPD", url: "/lgpd", icon: ShieldCheck },
