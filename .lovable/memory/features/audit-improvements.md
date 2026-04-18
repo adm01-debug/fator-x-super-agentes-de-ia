@@ -283,3 +283,12 @@ type: feature
 - Service: src/services/complianceService.ts
 - RLS: members SELECT, admins INSERT/UPDATE/DELETE
 - Próximo: Sprint 37 — SBOM/Supply Chain Security
+
+## Sprint 37 — SBOM/Supply Chain Security ✅
+- Tables: sbom_snapshots, sbom_components, vulnerability_findings (RLS: members SELECT, admins write)
+- RPCs: create_sbom_snapshot, record_vulnerability, acknowledge_vulnerability, mark_vulnerability_fixed
+- Edge function `sbom-scanner`: queries OSV.dev for each component
+- Pages: /security/sbom (snapshots + scan), /security/vulnerabilities (consolidated triage)
+- Sidebar: "SBOM" + "Vulnerabilidades" under Administração
+- Runbook updated: weekly scan, SLA critical 24h/high 7d/medium 30d
+- Queue: Sprint 38 Secrets Rotation, Sprint 39 Pentest Tracking
