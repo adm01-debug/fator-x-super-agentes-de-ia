@@ -1,66 +1,54 @@
 
-Sprint 27 (SLO Dashboards) completo ✅. Score 10/10 mantido. Próximo da fila Continuous Hardening: 🟢 **Sprint 28 — Chaos Engineering (fault injection controlada)**.
+Sprint 28 (Chaos Engineering) completo ✅. Score 10/10 mantido. Próximo da fila Continuous Hardening: 🟢 **Sprint 29 — Synthetic Monitoring (canary checks 24/7)**.
 
 ## Por quê
-- Temos observabilidade completa (traces + load + SLO) mas **nunca testamos como o sistema reage a falhas reais**: provider LLM down, timeout, rate limit 429, network blip
-- Chaos engineering injeta falhas controladas em ambiente seguro para validar: retry funciona? fallback ativa? error budget é consumido como esperado? alertas disparam?
-- Fecha o ciclo resiliência: observabilidade (saber) + chaos (validar resposta a falhas)
-- Light-weight: feature flag + middleware no edge function — sem ferramenta externa (Gremlin, Litmus)
+- Temos chaos (validamos resposta a falhas), SLO (medimos saúde quando há tráfego) e load tests (validamos sob carga sintética em CI)
+- **Mas**: se ninguém usar o sistema por 1 hora e ele quebrar, ninguém sabe até o primeiro usuário real reclamar
+- Synthetic monitoring = pings periódicos automáticos simulando jornada crítica do usuário (ex: "fazer 1 chamada ao llm-gateway"); registra latência+sucesso e dispara alerta se cair
+- Fecha o ciclo: chaos (proativo) + SLO (reativo a tráfego real) + synthetic (reativo 24/7 mesmo sem tráfego)
 
 ## Plano
 
-**1. Tabela `chaos_experiments` (migração SQL):**
-- Colunas: `id`, `workspace_id`, `name`, `target` (`llm-gateway` | `agent-workflow-runner`), `fault_type` (`latency` | `error_500` | `error_429` | `timeout`), `probability` (0–1), `enabled`, `created_by`, `created_at`, `expires_at`
-- RLS: somente workspace admins criam/editam; membros visualizam
-- Auto-disable via `expires_at < now()` (safety)
+**1. Migração SQL — `synthetic_checks` + `synthetic_results`:**
+- `synthetic_checks`: id, workspace_id, name, target (`llm-gateway` | `agent-workflow-runner` | `health`), interval_minutes (5–60), enabled, expected_status_max_ms, created_by, created_at
+- `synthetic_results`: id, check_id, ran_at, success bool, latency_ms, status_code, error_message
+- RLS: members SELECT, admins CRUD em checks; members SELECT em results (filtrado via check_id)
+- Índices: `(check_id, ran_at DESC)` para query de histórico
 
-**2. `supabase/functions/_shared/chaos.ts` (novo):**
-- `maybeInjectFault(target, supabaseAdmin)`: lê experimentos ativos para o target, sorteia por probability, retorna `{ inject: true, type, delayMs? } | null`
-- `applyFault(fault)`: aplica latência (sleep) ou throw com status code apropriado
-- Span OTel `chaos.inject` quando ativo (rastreável)
+**2. Edge function `synthetic-runner` (cron):**
+- Schedule via pg_cron a cada 1min; lê checks `enabled=true` cujo `last_run_at + interval ≤ now()`
+- Para cada check: chama target (HEAD/POST mínimo), mede latência, insere `synthetic_results`
+- Se falha 3x consecutivas → insere alerta (reusa toast via realtime ou cria `synthetic_alerts`)
 
-**3. Instrumentar `llm-gateway/index.ts` + `agent-workflow-runner/index.ts`:**
-- No início do handler: `const fault = await maybeInjectFault(...)` 
-- Antes da chamada externa: `if (fault) applyFault(fault)`
-- Sem chaos ativo = zero overhead (early return)
+**3. UI — `src/pages/SyntheticMonitoringPage.tsx` (`/observability/synthetic`):**
+- Lista de checks com sparkline (últimas 60 execuções), uptime % 24h, P95
+- Form criar: target, intervalo, threshold latência
+- Botão "Executar agora" (dispara edge function on-demand)
+- Histórico expandível por check
 
-**4. UI — `src/pages/ChaosLabPage.tsx` (rota `/observability/chaos`):**
-- Lista de experimentos ativos + histórico
-- Form criar: target, fault type, probability slider (0–10% típico), duração (max 1h, hardcoded safety)
-- Botão "Pânico — Desativar Tudo" (kill switch)
-- Badge warning persistente quando há experimento ativo
-- Empty state explicando o que é chaos engineering
+**4. `src/services/syntheticService.ts`:** CRUD + fetch results agregados
 
-**5. `src/services/chaosService.ts`:**
-- `listChaosExperiments`, `createChaosExperiment`, `disableChaosExperiment`, `disableAllChaos`
-- Validação client: probability ≤ 0.5 (proibe >50%), duração ≤ 3600s
+**5. Sidebar:** item "Synthetic Monitoring" sob Operações (ícone `Radar` ou `Activity`)
 
-**6. Sidebar:** item "Chaos Lab" sob Operações/Observability (ícone `Zap` ou `AlertTriangle`)
+**6. Realtime alerts:** subscription em `synthetic_results` com `success=false` → toast.error global (mountado em App.tsx via novo `SyntheticAlertsMounter`)
 
-**7. Indicador global:** banner amber no topo do app quando experimento ativo (`ChaosBanner.tsx` em `App.tsx`)
+**7. `docs/RUNBOOK.md`:** seção "Synthetic Monitoring" — checks recomendados, troubleshooting de falhas, política de threshold
 
-**8. `docs/RUNBOOK.md`:** seção "Chaos Engineering"
-- Como executar primeiro experimento (5% latency injection no llm-gateway)
-- Validações esperadas: SLO dashboard mostra degradação, alerta dispara, retry logs aparecem
-- Política: nunca rodar em produção sem comunicação prévia + sempre `expires_at`
-
-**9. `mem://features/audit-improvements`:** Sprint 28 logged + fila atualizada (Sprint 29 synthetic monitoring, Sprint 30 game days).
+**8. `mem://features/audit-improvements`:** Sprint 29 logged + fila (Sprint 30 game days, Sprint 31 cost anomaly detection)
 
 ## Arquivos
-- `supabase/migrations/<timestamp>_chaos_experiments.sql` (nova tabela + RLS + index)
-- `supabase/functions/_shared/chaos.ts` (novo)
-- `supabase/functions/llm-gateway/index.ts` (instrumentar)
-- `supabase/functions/agent-workflow-runner/index.ts` (instrumentar)
-- `src/services/chaosService.ts` (novo)
-- `src/pages/ChaosLabPage.tsx` (nova)
-- `src/components/shared/ChaosBanner.tsx` (novo)
+- `supabase/migrations/<ts>_synthetic_monitoring.sql`
+- `supabase/functions/synthetic-runner/index.ts` (novo)
+- `src/services/syntheticService.ts` (novo)
+- `src/pages/SyntheticMonitoringPage.tsx` (nova)
+- `src/components/shared/SyntheticAlertsMounter.tsx` (novo)
 - `src/components/layout/AppSidebar.tsx` (item)
-- `src/App.tsx` (rota + banner)
+- `src/App.tsx` (rota + mounter)
 - `docs/RUNBOOK.md` (seção)
 - `.lovable/memory/features/audit-improvements.md` (append)
 
 ## Validação
-- Criar experimento `latency 500ms @ 10%` no llm-gateway → SLO dashboard mostra P95 subir
-- Kill switch desativa todos os experimentos em 1 click
-- Banner amber visível em toda navegação enquanto ativo
-- `expires_at` no passado = fault não injetado (auto-safety)
+- Criar check `llm-gateway @ 5min` → após 5min, primeira linha em `synthetic_results`
+- Sparkline mostra histórico, uptime % calculado corretamente
+- Forçar falha (chaos error_500 ativo) → 3 falhas consecutivas → toast global de alerta
+- Disable check = cron pula
