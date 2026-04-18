@@ -418,3 +418,9 @@ Padronizado container das 6 páginas de Segurança/Observabilidade para `p-6 sm:
 - BCPPage, ChangeManagementPage, IncidentPlaybooksPage, IRPlaybooksPage, RiskRegisterPage, VendorsPage
 Confirmado: todas as rotas Sprints 41-45 já usam lazy() em App.tsx.
 AssetInventoryPage já estava no padrão (referência).
+
+## Completed — Sprint Performance (FK Indexes)
+- 26 btree indexes added on previously uncovered FK columns
+- Tables: agent_installed_skills, agent_memories, alerts, api_keys, browser_sessions, compliance_evidence, compliance_reports, deploy_connections, environments, evaluation_datasets, forum_posts, graph_executions, help_centers (x2), kb_query_gaps, risk_register, session_traces, test_cases, tool_policies (x2), trace_events, usage_records, vector_indexes, vulnerability_findings, workflow_steps, workspaces.owner_id
+- Eliminates seq scans on parent DELETEs and FK-filtered joins
+- Linter: 0 new warnings (pgcrypto-in-public pre-existing, out of scope)
