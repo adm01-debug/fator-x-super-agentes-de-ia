@@ -333,7 +333,7 @@ export default function SecretsRotationPage() {
                         ) : '—'}
                       </TableCell>
                       <TableCell>
-                        <StatusBadge variant={variant} status={s.status} />
+                        <StatusBadge variant={variant} />
                       </TableCell>
                       <TableCell className="text-right">
                         {s.status !== 'retired' && (
