@@ -11,7 +11,7 @@ import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/component
 import { Progress } from "@/components/ui/progress";
 import { toast } from "sonner";
 import { Archive, Play, Trash2, ChevronDown, CheckCircle2, XCircle, Clock, Database, AlertTriangle, Sparkles } from "lucide-react";
-import { useWorkspace } from "@/hooks/useWorkspace";
+import { useWorkspaceId } from "@/hooks/use-data";
 import { supabase } from "@/integrations/supabase/client";
 import {
   listDrills, createDrill, deleteDrill, listSnapshots, listRestoreLogs, executeDrill,
@@ -46,7 +46,8 @@ function rtoStatus(actual: number | null, target: number): { color: string; labe
 }
 
 export default function DRDrillsPage() {
-  const { workspace } = useWorkspace();
+  const { data: workspaceId } = useWorkspaceId();
+  const workspace = workspaceId ? { id: workspaceId } : null;
   const [drills, setDrills] = useState<DRDrill[]>([]);
   const [loading, setLoading] = useState(true);
   const [running, setRunning] = useState<Record<string, boolean>>({});

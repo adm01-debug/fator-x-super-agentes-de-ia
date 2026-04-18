@@ -247,6 +247,7 @@ const App = () => (
                       <Route path="/observability/game-days/:id/live" element={<SafePage><GameDayLivePage /></SafePage>} />
                       <Route path="/observability/playbooks" element={<SafePage><IncidentPlaybooksPage /></SafePage>} />
                       <Route path="/observability/oncall" element={<SafePage><OncallPage /></SafePage>} />
+                      <Route path="/observability/dr-drills" element={<SafePage><ProtectedRoute permission="settings.api_keys"><DRDrillsPage /></ProtectedRoute></SafePage>} />
                       <Route path="/disaster-recovery" element={<SafePage><ProtectedRoute permission="settings.api_keys"><DisasterRecoveryPage /></ProtectedRoute></SafePage>} />
                       <Route path="*" element={<SafePage><NotFound /></SafePage>} />
                     </Routes>
