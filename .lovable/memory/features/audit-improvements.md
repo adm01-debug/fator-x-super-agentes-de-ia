@@ -412,3 +412,9 @@ type: feature
 ## Próxima fila
 - Sprint 46: Privacy/DSAR (LGPD Art.18 — direitos do titular)
 - Sprint 47: Access Reviews (revisão periódica de permissões)
+
+## QA Fase 2 — Visual consistency pass (2026-04-18)
+Padronizado container das 6 páginas de Segurança/Observabilidade para `p-6 sm:p-8 lg:p-10 space-y-6 max-w-[1400px] mx-auto animate-page-enter`:
+- BCPPage, ChangeManagementPage, IncidentPlaybooksPage, IRPlaybooksPage, RiskRegisterPage, VendorsPage
+Confirmado: todas as rotas Sprints 41-45 já usam lazy() em App.tsx.
+AssetInventoryPage já estava no padrão (referência).

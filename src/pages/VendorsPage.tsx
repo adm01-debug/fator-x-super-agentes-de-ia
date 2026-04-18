@@ -90,7 +90,7 @@ export default function VendorsPage() {
   };
 
   return (
-    <div className="space-y-6 page-enter">
+    <div className="p-6 sm:p-8 lg:p-10 space-y-6 max-w-[1400px] mx-auto animate-page-enter">
       <PageHeader
         title="Fornecedores"
         description="Gestão de risco de terceiros (TPRM) — SOC 2 CC9.2 / ISO 27001 A.15 / LGPD Art.39"
