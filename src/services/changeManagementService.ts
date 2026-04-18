@@ -109,13 +109,13 @@ export async function submitChangeRequest(input: {
   const { data, error } = await supabase.rpc("submit_change_request", {
     p_workspace_id: input.workspace_id,
     p_title: input.title,
-    p_description: input.description,
+    p_description: input.description ?? "",
     p_change_type: input.change_type,
     p_risk_level: input.risk_level,
     p_affected_systems: input.affected_systems,
-    p_scheduled_for: input.scheduled_for,
-    p_rollback_plan: input.rollback_plan,
-    p_validation_steps: input.validation_steps,
+    p_scheduled_for: input.scheduled_for as string,
+    p_rollback_plan: input.rollback_plan ?? "",
+    p_validation_steps: input.validation_steps ?? "",
   });
   if (error) throw error;
   return data as string;
@@ -125,7 +125,7 @@ export async function decideChange(changeId: string, decision: ChangeDecision, c
   const { error } = await supabase.rpc("decide_change", {
     p_change_id: changeId,
     p_decision: decision,
-    p_comment: comment,
+    p_comment: comment ?? "",
   });
   if (error) throw error;
 }
