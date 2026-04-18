@@ -221,3 +221,14 @@ type: feature
 
 ## Próximo: Sprint 32 — Game Days (incident drills) ou Sprint 33 — Incident Response Automation
 
+
+## Sprint 32 — Game Days (Incident Drills) ✅
+- Tabelas `game_days`, `game_day_events`, `game_day_scorecards` com RLS por workspace
+- RPCs: `start_game_day` (auto-injeta chaos por scenario), `record_game_day_event`, `complete_game_day` (calcula MTTR/MTTD automático)
+- Páginas: `/observability/game-days` (lista + agendar) e `/observability/game-days/:id/live` (war room com timer realtime, botões grandes)
+- Realtime subscription em `game_day_events` para sincronizar timeline entre participantes
+- Cenários: provider_outage, cost_spike, db_slowdown, auth_failure, custom — cada um mapeia para chaos experiment apropriado
+- Scorecard com MTTR, gaps, score 1-10, retrospectiva
+- Sidebar: "Game Days" sob Operações (ícone Swords)
+- RUNBOOK.md: cadência mensal, critérios de score, fluxo war room
+- Fila restante: Sprint 33 (Incident Response Automation), Sprint 34 (DR Drills)
