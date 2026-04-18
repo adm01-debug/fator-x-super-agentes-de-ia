@@ -893,3 +893,14 @@ Validation step falha se row count drift > 10% vs snapshot. Indica corrupção o
 - LGPD: mensal (com revisão DPO)
 
 **Controles manuais:** Frameworks têm controles `manual` (ex: A.5.1 políticas, Art.37 DPO) que ficam `pending` e exigem revisão humana antes de publicar.
+
+## Supply Chain Security (SBOM)
+
+- **Scan cadence**: weekly via `/security/sbom` → "Escanear" (queries OSV.dev)
+- **SLA por severidade**:
+  - Critical (CVSS ≥ 9): fix em **24h**
+  - High (CVSS 7-8.9): fix em **7 dias**
+  - Medium (CVSS 4-6.9): fix em **30 dias**
+  - Low (CVSS < 4): próxima janela de manutenção
+- **Workflow**: Novo SBOM (cole `package.json`) → Escanear → triagem em `/security/vulnerabilities` → Reconhecer ou Marcar como corrigida
+- **Compliance**: SBOM atende SOC2 CC7.1, ISO 27001 A.12.6.1, US EO 14028
