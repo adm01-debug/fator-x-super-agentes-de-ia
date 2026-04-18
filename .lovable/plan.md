@@ -1,66 +1,61 @@
 
-Sprint 29 (Synthetic Monitoring) completo ✅. Score 10/10 mantido. Próximo da fila Continuous Hardening: 🟢 **Sprint 30 — Cost Anomaly Detection (alertas proativos de custo)**.
+Sprint 30 (Cost Anomaly Detection) completo ✅. Score 10/10 mantido. Próximo da fila: 🟢 **Sprint 31 — Budget Enforcement (hard caps + auto-pause)**.
 
 ## Por quê
-- Temos observabilidade completa: traces, SLO, chaos, synthetic — sabemos quando o **sistema** quebra
-- **Mas** não sabemos quando o **custo** explode silenciosamente: prompt injection inflando tokens, loop de retry em agente, modelo errado em prod (gpt-5 ao invés de flash-lite)
-- Cost anomaly detection = baseline rolling de spend por hora/agente/modelo + detecção estatística (z-score) de outliers + alerta antes da fatura chegar
-- Fecha o ciclo FinOps: tracking (já existe via `agent_traces.cost_usd`) + alerting (novo) + budget enforcement (futuro Sprint 31)
+- Sprint 30 nos avisa quando custo explode, mas **não impede** — fatura ainda chega
+- Budget enforcement = limites duros por workspace/agent: ao atingir threshold → bloqueia chamadas LLM (soft 80%, hard 100%)
+- Auto-pause de agentes runaway evita prejuízo financeiro real
+- Fecha o ciclo FinOps completo: tracking → alerting → enforcement
 
 ## Plano
 
-**1. Migração SQL — `cost_baselines` + `cost_alerts`:**
-- `cost_baselines`: id, workspace_id, scope (`workspace`|`agent`|`model`), scope_id (nullable), hour_of_day (0-23), day_of_week (0-6), avg_cost_usd, stddev_cost_usd, sample_count, computed_at — **rolling 14 dias**
-- `cost_alerts`: id, workspace_id, scope, scope_id, observed_cost_usd, baseline_cost_usd, z_score, severity (`info`|`warning`|`critical`), triggered_at, acknowledged_at
-- RLS: members SELECT, admins UPDATE (acknowledge); INSERT só via SECURITY DEFINER
-- Índices: `(workspace_id, triggered_at DESC)` + `(scope, scope_id)`
+**1. Migração SQL — `workspace_budgets` + `budget_events`:**
+- `workspace_budgets`: id, workspace_id (UNIQUE), monthly_limit_usd, daily_limit_usd, hard_stop bool, soft_threshold_pct (default 80), notify_emails text[], created_by, updated_at
+- `budget_events`: id, workspace_id, event_type (`soft_warning`|`hard_block`|`agent_paused`|`reset`), period_spend_usd, period_limit_usd, triggered_at, metadata jsonb
+- RLS: members SELECT, admins UPDATE; INSERT só via SECURITY DEFINER
 
-**2. RPC `compute_cost_baselines()`:**
-- Agrega `agent_traces` últimos 14 dias agrupando por (workspace, scope, hour_of_day, day_of_week)
-- Calcula avg + stddev — armazena em `cost_baselines` (UPSERT)
-- Schedulada via pg_cron 1x/dia (3h da manhã)
+**2. RPCs:**
+- `get_current_spend(workspace_id, period)` → agrega `agent_traces.cost_usd` do mês/dia atual
+- `check_budget(workspace_id)` → retorna `{allowed, reason, spend, limit, pct}` — usado pelo llm-gateway antes de chamar provider
+- `enforce_budget()` → cron 5min: marca workspaces over-limit, pausa agents (`agents.status='paused'`), insere `budget_events`
 
-**3. RPC `detect_cost_anomalies()`:**
-- Pega última hora de spend por workspace/agent/model
-- Compara com baseline da mesma hora/dia da semana
-- Z-score = (observed - baseline) / stddev; severity: z>2 warning, z>3 critical
-- Insere em `cost_alerts` se z>2 e observed > $0.10 (filtro ruído)
-- Schedulada via pg_cron a cada 15min
+**3. Instrumentar `llm-gateway/index.ts`:**
+- Antes de chamar provider: `const budget = await check_budget(workspace_id)`
+- Se `!allowed` → retorna 402 Payment Required com mensagem explicativa
+- Se soft warning → adiciona header `X-Budget-Warning: 85% used`
 
-**4. UI — `src/pages/CostAnomaliesPage.tsx` (`/observability/cost-anomalies`):**
-- Lista de alertas ativos (não-acknowledged) ordenados por severity
-- Card: scope + observed vs baseline + z-score visual + mini-gráfico (custo última 24h)
-- Botão "Acknowledge" + "Investigar" (link para traces filtrados)
-- Filtro: severity, scope type, período
-- Empty state: "Sem anomalias detectadas — custos dentro do esperado ✅"
+**4. UI — `src/pages/BudgetSettingsPage.tsx` (`/settings/budget`):**
+- Form: monthly limit, daily limit, soft threshold slider, hard stop toggle, notify emails
+- Card "Spend atual": progress bar mensal + diário (verde/amber/vermelho conforme %)
+- Histórico de `budget_events` (timeline)
+- Empty state se sem budget configurado
 
-**5. `src/services/costAnomalyService.ts`:** listAlerts, acknowledgeAlert, getBaselines
+**5. `src/services/budgetService.ts`:** getBudget, upsertBudget, getCurrentSpend, listEvents
 
-**6. Sidebar:** item "Cost Anomalies" sob Observability (ícone `TrendingUp` ou `AlertTriangle`)
+**6. Widget Dashboard `BudgetWidget.tsx`:** progress bar com % usage + link
 
-**7. Realtime alerts:** subscription em `cost_alerts` INSERT → toast.warning/error global (`CostAnomalyAlertsMounter` em App.tsx)
+**7. Sidebar:** item "Orçamento" sob Configurações (ícone `Wallet`)
 
-**8. Widget no Dashboard principal:** card "Anomalias de custo (24h)" com count + link
+**8. Realtime:** subscription em `budget_events` INSERT → toast severity-coded global (`BudgetEventsMounter`)
 
-**9. `docs/RUNBOOK.md`:** seção "Cost Anomaly Detection" — interpretação de z-score, falsos positivos comuns, resposta a alerta crítico
+**9. `docs/RUNBOOK.md`:** seção "Budget Enforcement" — interpretação, reset mensal, recovery após hard-stop
 
-**10. `mem://features/audit-improvements`:** Sprint 30 logged + fila (Sprint 31 budget enforcement, Sprint 32 game days)
+**10. `mem://features/audit-improvements`:** Sprint 31 logged + fila (Sprint 32 game days, Sprint 33 incident response automation)
 
 ## Arquivos
-- `supabase/migrations/<ts>_cost_anomaly_detection.sql` (tabelas + RPCs + RLS + cron)
-- `src/services/costAnomalyService.ts` (novo)
-- `src/pages/CostAnomaliesPage.tsx` (nova)
-- `src/components/shared/CostAnomalyAlertsMounter.tsx` (novo)
-- `src/components/dashboard/CostAnomalyWidget.tsx` (novo)
+- `supabase/migrations/<ts>_budget_enforcement.sql`
+- `src/services/budgetService.ts` (novo)
+- `src/pages/BudgetSettingsPage.tsx` (nova)
+- `src/components/dashboard/BudgetWidget.tsx` (novo)
+- `src/components/shared/BudgetEventsMounter.tsx` (novo)
 - `src/components/layout/AppSidebar.tsx` (item)
 - `src/App.tsx` (rota + mounter)
-- `src/pages/Dashboard.tsx` (widget — se existir)
+- `supabase/functions/llm-gateway/index.ts` (check antes do provider)
 - `docs/RUNBOOK.md` (seção)
 - `.lovable/memory/features/audit-improvements.md` (append)
 
 ## Validação
-- Cron 3h roda → `cost_baselines` populado com 14 dias × 24h × 7 dias por scope
-- Cron 15min roda → se spend última hora > baseline + 2σ → linha em `cost_alerts`
-- UI mostra alerta com z-score e mini-gráfico; acknowledge marca como tratado
-- Realtime: novo alerta crítico → toast vermelho global
-- Empty state se sem alertas
+- Configurar budget $10/mês → fazer chamadas até atingir 80% → toast warning + header
+- Atingir 100% → 402 retornado pelo gateway, agents pausados, evento registrado
+- Reset manual via UI ou cron mensal automático
+- RLS: member não-admin não consegue alterar budget
