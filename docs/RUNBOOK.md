@@ -1151,3 +1151,35 @@ Reviews vencidos aparecem com badge pulsante vermelho em `/security/ir`.
 ### Evidências para auditoria
 - Cada exercício registra: cenário, participantes, MTTR real, gaps, action items
 - Histórico completo via `ir_tabletop_exercises` (RLS workspace-scoped)
+
+## Asset Inventory (CMDB-lite) — Sprint 45
+
+Inventário centralizado de ativos para conformidade ISO 27001 A.5.9, SOC2 CC6.1 e NIST CSF ID.AM. Acessível em `/security/assets`.
+
+### Taxonomia de tipos
+- `hardware` — notebooks, servidores, periféricos
+- `software` — aplicações instaladas, licenças
+- `cloud_resource` — VMs, buckets, databases gerenciados
+- `saas_account` — contas em ferramentas SaaS (GitHub, Notion, Slack)
+- `network_device` — switches, roteadores, firewalls
+- `mobile_device` — celulares corporativos, tablets
+- `iot` — câmeras, sensores, dispositivos embarcados
+- `other` — demais ativos
+
+### Classificação de dados
+- `public` — informação pública sem restrição
+- `internal` — uso interno padrão
+- `confidential` — sensível, acesso restrito a equipes
+- `restricted` — altamente sensível (PII, financeiro, segredos)
+
+### Cadência de auditoria
+Recomenda-se auditoria a cada 90 dias para ativos `production`. Ativos sem auditoria há mais de 90 dias aparecem com badge "Atrasada" pulsante vermelho.
+
+### Garantia
+Garantias vencendo nos próximos 30 dias aparecem destacadas em amber pulsante. Planeje renovação ou substituição com antecedência.
+
+### Decomissionamento
+Ao decomissionar um ativo:
+- Status muda para `decommissioned`
+- Auditoria automática com motivo é registrada
+- Ativo sai dos filtros padrão mas permanece para histórico/auditoria

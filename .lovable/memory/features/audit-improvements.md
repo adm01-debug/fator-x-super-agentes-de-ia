@@ -395,3 +395,20 @@ type: feature
 ## Próxima fila
 - Sprint 45: Asset Inventory (CMDB-lite — hardware, software, cloud resources)
 - Sprint 46: Privacy/DSAR (LGPD Art.18 — direitos do titular)
+
+## Completed — Sprint 45 (Asset Inventory / CMDB-lite)
+- 2 tables: assets, asset_audits
+- 4 enums: asset_type (8 types), asset_environment, asset_classification, asset_status
+- Trigger handle_asset_audit: ao registrar auditoria atualiza last_seen_at + status no ativo
+- RPCs: register_asset, audit_asset, decommission_asset, get_asset_summary
+- RLS: members SELECT, admins INSERT/UPDATE/DELETE
+- Service: src/services/assetInventoryService.ts (CRUD, summary, helpers warranty/audit overdue)
+- UI /security/assets: stats (total/no-owner/audit-overdue/warranty-expiring) + filtros (type/env/class/status) + busca + tabela com badges + drill-in Sheet (Detalhes/Auditorias)
+- Sidebar: "Inventário (CMDB)" com ícone Boxes sob Administração
+- Compliance: ISO 27001 A.5.9, SOC2 CC6.1, NIST CSF ID.AM
+- Badge pulsante amber para warranty <=30d e destrutivo para audit overdue >90d
+- Decommission via Sheet com motivo obrigatório, gera auditoria automática
+
+## Próxima fila
+- Sprint 46: Privacy/DSAR (LGPD Art.18 — direitos do titular)
+- Sprint 47: Access Reviews (revisão periódica de permissões)
