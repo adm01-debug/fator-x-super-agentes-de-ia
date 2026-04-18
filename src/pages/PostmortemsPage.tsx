@@ -63,20 +63,18 @@ export default function PostmortemsPage() {
   const [creating, setCreating] = useState(false);
 
   useEffect(() => {
-    getWorkspaceInfo()
-      .then((ws) => {
-        if (ws) return ws;
-        return supabase.from("workspaces").select("id").limit(1).maybeSingle().then(r => r.data ? { id: r.data.id } as never : null);
-      })
-      .then(async (ws: { id?: string } | null) => {
-        // getWorkspaceInfo returns no id directly; fallback fetch
+    (async () => {
+      try {
         const { data: w } = await supabase.from("workspaces").select("id").limit(1).maybeSingle();
         const wsId = w?.id ?? null;
         setWorkspaceId(wsId);
         if (wsId) await refresh(wsId);
         else setLoading(false);
-      })
-      .catch((e) => { logger.error("ws fetch failed", e); setLoading(false); });
+      } catch (e) {
+        logger.error("ws fetch failed", e);
+        setLoading(false);
+      }
+    })();
   }, []);
 
   async function refresh(wsId: string) {
