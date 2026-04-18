@@ -1,78 +1,66 @@
 
-## Plano — Bateria Abrangente de Testes (QA Total)
+Continuação da bateria QA. Fase 1-2 já feitas (linter, security scan, tsc, build, vitest parcial). Findings P0 críticos identificados. Executar agora em sequência: fixes P0 → fases restantes → relatório final.
 
-Sistema com 45 sprints, 60+ suítes existentes, 137 verificações no último relatório. Vou executar uma rodada completa cobrindo backend, frontend, segurança, performance e UI real.
+## Plano — QA Total Fases 3-7 + P0 Fixes
 
-### Fase 1 — Auditoria estática (read-only, paralelo)
-- `supabase--linter` → todas as RLS/índices/policies (290+ tabelas)
-- `security--run_security_scan` → exposição de dados, secrets
-- `tsc --noEmit` → 0 erros TS em ~290 arquivos
-- `vite build` → build de produção + tamanho de bundles
-- ESLint full pass
+### Etapa 1 — Migration P0 (segurança crítica)
+Uma migration consolidando os 5 findings:
+1. **`workspace_members.email`**: revogar SELECT da coluna `email` para `authenticated`; criar RPC `get_workspace_members_with_email(workspace_id)` que retorna email apenas para admins via `is_workspace_admin`
+2. **`oncall_schedule`**: idem — remover email/phone direto, criar RPC `get_oncall_with_contacts` admin-only
+3. **`user_2fa`**: revogar SELECT de `totp_secret` e `backup_codes`; políticas só permitem ler `is_enabled, created_at`; secrets só via edge function server-side
+4. **`user_roles` privilege escalation**: policy de UPDATE/INSERT exigindo `is_workspace_admin(auth.uid(), workspace_id)` — usuário não pode auto-promover
+5. **`compliance_frameworks`**: adicionar workspace_id + RLS scoped (se ainda global, manter SELECT público mas restringir write)
+6. **Forums metadata**: revisar policies de SELECT em `forum_posts`/`forum_threads` para não vazar emails de autores (join via view safe)
 
-### Fase 2 — Suítes unitárias & integração
-- `vitest run --coverage` → executar TODAS as 60+ suítes em `src/test/` + `src/tests/`
-  - Services automação (15 suítes)
-  - Services domínio (17 suítes: agents, oracle, rag, billing, rbac, etc.)
-  - Lib & infra (10 suítes)
-  - Components & UI (20+ suítes)
-- Coletar: total testes, pass/fail, coverage lines/branches/functions
+Nota: `realtime.messages` é schema reservado Supabase — não tocar; documentar no relatório como aceito-com-mitigação (RLS herda das tabelas publicadas).
 
-### Fase 3 — Edge Functions (27 funções)
-- `supabase--test_edge_functions` → rodar todos os `*_test.ts`
-- `supabase--curl_edge_functions` em endpoints críticos:
-  - `llm-gateway` (ping)
-  - `synthetic-runner` (health check)
-  - `test-runner` (smoke)
-  - `workflow-engine-v2` (validação)
-- Logs: `supabase--edge_function_logs` para últimas execuções com erro
+### Etapa 2 — Fase 3: Edge Functions
+- `supabase--test_edge_functions` (todas, timeout 240s)
+- `supabase--curl_edge_functions` smoke em: `llm-gateway`, `health-check`, `synthetic-runner`, `workflow-engine-v2`, `guardrails-engine`
+- `supabase--edge_function_logs` últimos erros nas 5 funções mais usadas
 
-### Fase 4 — Banco de dados (read-only)
-- Contagens por tabela crítica (agents, workflows, runs, audit_log)
-- Verificação de índices em FKs
-- Detecção de migrations órfãs
-- RLS policies sample test via `supabase--read_query` em diferentes contextos
+### Etapa 3 — Fase 4: DB read-only
+- `supabase--read_query`: contagens (agents, workflows, agent_workflow_runs, audit_log, traces, assets, risks, incidents)
+- Verificar índices em FKs críticas (workflow_id, agent_id, workspace_id)
+- Detectar tabelas sem `created_at` index
 
-### Fase 5 — Browser E2E (smoke real no preview)
-Testar fluxos principais com `browser--navigate_to_sandbox` + `act`:
-1. `/dashboard` → carrega, stats visíveis
-2. `/agents` → lista, criar agente (wizard)
-3. `/oracle` → query simples
-4. `/automations` → listar workflows
-5. `/security/risks` → listar riscos
-6. `/security/bcp` → listar planos
-7. `/security/changes` → CAB
-8. `/security/ir` → playbooks
-9. `/security/assets` → CMDB
-10. `/monitoring` → métricas
-11. Mobile viewport (375px) → 3 páginas-chave
-12. Console errors / network 4xx-5xx
+### Etapa 4 — Fase 5: Browser E2E (10 fluxos)
+Smoke real no preview:
+1. `/dashboard` — stats carregam, sem erro console
+2. `/agents` — lista renderiza
+3. `/oracle` — input visível
+4. `/automations` — workflows listam
+5. `/security/risks`
+6. `/security/bcp`
+7. `/security/changes`
+8. `/security/ir`
+9. `/security/assets`
+10. `/monitoring`
 
-### Fase 6 — Performance
-- `browser--performance_profile` em 3 páginas pesadas (Dashboard, AgentBuilder, DataHub)
-- Bundle analyzer já roda no `vite build`
-- Heap, DOM nodes, layout time
+Para cada: navigate → screenshot → console errors → network 4xx/5xx.
+Mobile (375px) em 3 páginas-chave (/dashboard, /agents, /oracle).
 
-### Fase 7 — Acessibilidade spot-check
-- Focus rings, aria-labels, contraste em badges
-- Navegação por teclado em formulários
+### Etapa 5 — Fase 6: Performance
+- `browser--performance_profile` em `/dashboard`, `/agents`, `/datahub`
+- Coletar: TTI, heap, DOM nodes, layout time
 
-### Entregáveis
-- Relatório final em `NEXUS-RELATORIO-TESTES-ABRANGENTE-V2.md` com:
-  - Total verificações executadas
-  - Passa/Falha/Warning por categoria
-  - P0/P1/P2 findings
-  - Comparativo vs relatório anterior (137 checks)
-- Memory update em `mem://features/audit-improvements`
-- Fixes inline para bugs P0 encontrados (se houver)
+### Etapa 6 — Fase 7: A11y spot-check
+- Tab navigation em form de criar agente
+- Focus rings visíveis
+- Aria-labels em icon buttons das páginas Security
 
-### Estimativa
-- ~2.000-3.000 verificações automatizadas (vitest sozinho gera centenas de asserts)
-- ~30 fluxos E2E
-- Tempo estimado: 8-12 min de execução paralela
+### Etapa 7 — Relatório final
+`NEXUS-RELATORIO-TESTES-ABRANGENTE-V2.md`:
+- Sumário executivo (verificações totais, pass/fail)
+- Comparativo vs V1 (137 checks)
+- Fixes P0 aplicados
+- Findings restantes P1/P2 priorizados
+- Recomendações próximos sprints
+
+Update `mem://features/audit-improvements` com QA Total Pass.
 
 ### Arquivos prováveis
+- `supabase/migrations/<timestamp>_qa_p0_security.sql` (RLS + RPCs)
 - `NEXUS-RELATORIO-TESTES-ABRANGENTE-V2.md` (novo)
 - `.lovable/memory/features/audit-improvements.md` (append)
-- Migrações pequenas se linter apontar P0
-- Fixes pontuais em páginas se browser detectar erros
+- Ajustes pontuais em services se RPCs novas (ex: `teamsService.listMembers` apontar para nova RPC)
