@@ -58,6 +58,8 @@ export function AgentRichMetrics({ agentId, days = 14 }: Props) {
 
   const activeAlerts = alerts.filter((a) => !a.is_resolved).length;
 
+  const [selectedDay, setSelectedDay] = useState<DailyPoint | null>(null);
+
   if (usageLoading || tracesLoading) {
     return (
       <div className="flex items-center justify-center py-16">
