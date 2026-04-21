@@ -1,93 +1,81 @@
 
 
-## Wizard Rápido de Criação de Agente (4 passos)
+## Página de Detalhes do Agente Enriquecida
 
-Vou criar um **wizard enxuto e focado** com 4 etapas (identidade → tipo → modelo → prompt), validações inline por campo via Zod + react-hook-form, e templates mockados que pré-preenchem todos os campos automaticamente.
+Refatoro `src/pages/AgentDetailPage.tsx` substituindo o bloco básico `AgentMetrics` por um painel rico de métricas, gráficos diários e SLO usando os dados mockados que já existem em `agent_usage`, `agent_traces` e `alerts`.
 
-O wizard avançado atual (8 passos com templates, ferramentas, memória, knowledge, deploy) **continua existindo** — adiciono o novo como uma terceira opção na tela de escolha inicial.
-
-### Fluxo do usuário
+### Visão final da página
 
 ```text
-/agents/new (tela de escolha)
-   ├─ Usar template     → wizard atual (3 passos)
-   ├─ Criar do zero     → wizard atual (8 passos)
-   └─ Criação rápida ⚡ → NOVO wizard (4 passos)  ← foco desta entrega
+PageHeader (nome, missão, ações)
+Avatar + status + meta (modelo · persona · v#)
 
-NOVO Wizard:
-  Passo 1 — Identidade   nome*, emoji, missão*, descrição
-  Passo 2 — Tipo         7 tipos (chatbot, copilot, analyst, sdr, support, researcher, orchestrator)
-                         + botão "Aplicar template" que pré-preenche tudo
-  Passo 3 — Modelo       6 modelos com custo/velocidade/qualidade visíveis
-  Passo 4 — Prompt       editor com counter de caracteres, template visual,
-                         botão "Restaurar template do tipo"
-  → Salvar → /agents
+[Configuração]   [Tags]                                        ← já existe
+
+═══ NOVO: Métricas Ricas ═══
+┌─ MetricCards com sparklines (4 cards) ────────────────────┐
+│ Requisições · Custo · Latência p95 · Taxa de sucesso      │
+│ + variação % vs semana anterior + sparkline               │
+└────────────────────────────────────────────────────────────┘
+
+┌─ Gráficos de tendência (grid 2x2) ────────────────────────┐
+│ [Area] Requests/dia          [Bar]  Custo USD/dia         │
+│ [Area] Latência média/dia    [Bar]  Tokens/dia            │
+└────────────────────────────────────────────────────────────┘
+
+┌─ Painel SLO (2/3) ─────────────┬─ Distribuição (1/3) ────┐
+│ Disponibilidade   99.5% target │ ████ Sucesso 87%        │
+│ Taxa de erro      <1% target   │ ██   Avisos  8%         │
+│ Latência p95      <2000ms      │ █    Erros   5%         │
+│ Latência p99      <5000ms      │ Custo médio/req         │
+│ (cards coloridos por saúde)    │ Tokens totais           │
+└────────────────────────────────┴─────────────────────────┘
+
+┌─ Histórico por dia (tabela) ──────────────────────────────┐
+│ Data | Requests | Tokens | Custo | Latência               │
+│ (14 linhas, hover, badge de alertas ativos)               │
+└────────────────────────────────────────────────────────────┘
+
+[Histórico de Versões]                                        ← já existe
 ```
 
-### Templates mockados (pré-preenchidos por tipo)
+### Cálculos (client-side, zero migrações)
 
-Cada um dos 7 tipos tem um **template completo** em `quickAgentTemplates.ts` com nome sugerido, emoji, missão, modelo recomendado e system prompt rico (8-15 linhas com Persona / Escopo / Formato / Regras). Exemplos:
+- **Percentis p50/p95/p99** sobre `traces[].latency_ms`
+- **Série diária preenchida** com zeros para os 14 dias (usa `agent_usage`)
+- **Tendência semana vs semana anterior** (variação %)
+- **SLO health**: `healthy` / `warning` / `critical` por target padrão da indústria
+- **Distribuição de status** dos traces por `level`
 
-- **Chatbot** → "Aurora" 💬 / GPT-4o / prompt focado em atendimento conversacional
-- **SDR** → "Pink Sales" 💼 / GPT-5 / prompt de qualificação BANT no Bitrix24
-- **Analyst** → "Atlas" 📊 / Claude Sonnet 4.6 / prompt de análise de dados
-- **Support** → "Scout" 🎧 / Gemini 2.5 Flash / prompt L1 com triagem
-- **Researcher** → "Sherlock" 🔎 / Claude Opus 4.6 / prompt de pesquisa documental
-- **Copilot** → "Nova" ✨ / GPT-4o / prompt de assistente interno
-- **Orchestrator** → "Maestro" 🎼 / Claude Opus 4.6 / prompt de roteamento entre sub-agentes
+### Arquivos a criar
 
-Ao escolher o tipo, o usuário pode clicar em **"Aplicar template"** para auto-preencher nome, emoji, missão, modelo e prompt — ou continuar editando manualmente.
+- `src/components/agents/detail/agentMetricsHelpers.ts` — `percentile()`, `buildDailySeries()`, `computeSLO()`, `buildSLOTargets()`, `formatCost()`, `formatNumber()`
+- `src/components/agents/detail/SLOPanel.tsx` — 4 cards SLO coloridos por saúde com barra de progresso vs alvo
+- `src/components/agents/detail/AgentRichMetrics.tsx` — componente principal: 4 MetricCards + 4 gráficos + SLO + distribuição + tabela diária
 
-### Validações (Zod + react-hook-form, inline em tempo real)
+### Arquivo a alterar
 
-| Campo    | Regra                                                | Mensagem PT-BR                          |
-|----------|------------------------------------------------------|-----------------------------------------|
-| nome     | obrigatório, 2-60 chars, sem caracteres especiais    | "Use 2 a 60 letras, números ou espaços" |
-| emoji    | obrigatório, 1-4 chars                               | "Escolha um emoji"                       |
-| missão   | obrigatório, 10-500 chars                            | "Mínimo 10 caracteres"                   |
-| tipo     | obrigatório (1 dos 7)                                | "Selecione um tipo"                      |
-| modelo   | obrigatório (1 dos 6)                                | "Selecione um modelo"                    |
-| prompt   | obrigatório, 50-8000 chars                           | "Mínimo 50 caracteres" + counter visual  |
+- `src/pages/AgentDetailPage.tsx` — substituir `<AgentMetrics />` por `<AgentRichMetrics agentId={id!} days={14} />`. Remover a função `AgentMetrics` interna (vira código morto).
 
-- Botão "Próximo" desabilitado até campos do passo serem válidos
-- Erros mostrados embaixo do campo (estilo `FormMessage` do shadcn)
-- Toast de erro consolidado se tentar pular passo
+### Reaproveitamentos (sem reinventar)
 
-### Recursos extras
-
-- **Stepper clicável** no topo (volta para passos já visitados)
-- **Atalhos**: `Enter` → próximo, `Esc` → voltar, `Ctrl+Enter` no último → criar
-- **Preview ao vivo** do agente no rodapé do passo de prompt (card com emoji, nome, primeiras linhas do prompt)
-- **Auto-save em localStorage** (rascunho recuperado se o usuário sair e voltar)
-- **Animação de entrada** entre passos (já segue padrão `animate-page-enter`)
-
-### Arquivos a criar/alterar
-
-**Novos:**
-- `src/data/quickAgentTemplates.ts` — 7 templates mockados ricos por tipo
-- `src/lib/validations/quickAgentSchema.ts` — schemas Zod por passo + schema completo
-- `src/components/agents/wizard/QuickCreateWizard.tsx` — componente principal (~250 linhas)
-- `src/components/agents/wizard/quickSteps/StepQuickIdentity.tsx`
-- `src/components/agents/wizard/quickSteps/StepQuickType.tsx`
-- `src/components/agents/wizard/quickSteps/StepQuickModel.tsx`
-- `src/components/agents/wizard/quickSteps/StepQuickPrompt.tsx`
-
-**Alterados:**
-- `src/components/agents/CreateAgentWizard.tsx` — adiciona terceiro card "Criação rápida ⚡" na tela de escolha (`mode === "choose"`) e novo `mode === "quick"` que renderiza `<QuickCreateWizard />`
-
-### Persistência
-
-Salva via `supabaseExternal.from("agents").insert(...)` (mesmo padrão do wizard atual) com:
-- `status: 'draft'`
-- `persona`: derivada do tipo (sdr→specialist, analyst→analyst, etc.)
-- `config.system_prompt`, `config.type`, `config.created_via: 'quick_wizard'`
-- Redireciona para `/agents` com toast de sucesso
+- `MetricCard` com sparkline e trend (já existe em `src/components/shared/`)
+- `LightAreaChart` e `LightBarChart` (já existem em `src/components/charts/`)
+- `getAgentDetailTraces`, `getAgentUsage`, `getAgentRecentAlerts` (já existem em `agentsService`)
+- React Query (cache automático, key separada por `agentId + days`)
 
 ### Detalhes técnicos
 
-- **react-hook-form** já está no projeto (`src/components/ui/form.tsx`)
-- **zod** já em uso em `src/lib/validations/agentSchema.ts` — estendo seguindo o mesmo padrão
-- **Sem mudanças de schema do banco** — usa tabela `agents` existente
-- **Design tokens semânticos** apenas (primary, secondary, muted, nexus-emerald, nexus-amber, destructive) — sem cores hard-coded
-- **Acessibilidade**: `aria-invalid`, `aria-describedby` automáticos via `<FormControl>`, navegação 100% por teclado
+- **Empty states** elegantes em cada gráfico se não houver dados no período
+- **Loading state** unificado (Loader2 spinner) enquanto traces+usage carregam em paralelo
+- **Cores semânticas** apenas: `--primary`, `--nexus-amber`, `--nexus-emerald`, `--destructive`, `--muted-foreground`
+- **Tabela responsiva** com `overflow-x-auto`, `tabular-nums`, hover state
+- **Acessibilidade**: ícones com `aria-hidden`, percentuais formatados em PT-BR, badge de alertas com contagem
+
+### Impacto
+
+- Zero migrações de banco, zero novos serviços, zero alterações em rotas
+- Página de detalhes passa de 4 métricas planas → 4 KPIs + 4 gráficos + SLO + tabela
+- Carrega 200 traces (vs 50) para percentis mais confiáveis
+- Janela de 14 dias permite cálculo de tendência semana vs semana
 
