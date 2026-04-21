@@ -125,7 +125,7 @@ export function validateAgentVersion(
       name: (agent.name ?? '') as string,
       emoji: (agent.avatar_emoji ?? '') as string,
       mission: (agent.mission ?? '') as string,
-      description: (agent as Record<string, unknown>).description as string | undefined,
+      description: (agent as unknown as Record<string, unknown>).description as string | undefined,
       type: (agent.persona ?? '') as string,
       model: (agent.model ?? '') as string,
       prompt,
@@ -145,7 +145,7 @@ export function validateAgentVersion(
 
   // ─── Inconsistências (apenas warnings) ──────────────────
   const ragSources = Array.isArray(agent.rag_sources) ? agent.rag_sources : [];
-  const ragArch = (agent as Record<string, unknown>).rag_architecture as string | undefined;
+  const ragArch = (agent as unknown as Record<string, unknown>).rag_architecture as string | undefined;
   if (ragSources.length === 0 && ragArch && ragArch !== 'none' && ragArch !== 'naive') {
     warnings.push({
       level: 'warning',
@@ -157,7 +157,7 @@ export function validateAgentVersion(
 
   const tools = Array.isArray(agent.tools) ? agent.tools : [];
   const enabledTools = tools.filter((t: { enabled?: boolean }) => t?.enabled);
-  const reasoning = (agent as Record<string, unknown>).reasoning as string | undefined;
+  const reasoning = (agent as unknown as Record<string, unknown>).reasoning as string | undefined;
   if (enabledTools.length === 0 && reasoning === 'react') {
     warnings.push({
       level: 'warning',
@@ -192,7 +192,7 @@ export function validateAgentVersion(
     });
   }
 
-  const a = agent as Record<string, unknown>;
+  const a = agent as unknown as Record<string, unknown>;
   const longTermMemory = Boolean(a.memory_episodic) || Boolean(a.memory_semantic);
   const shortTermMemory = Boolean(a.memory_short_term);
   if (longTermMemory && !shortTermMemory) {
