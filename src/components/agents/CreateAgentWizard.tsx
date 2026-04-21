@@ -131,11 +131,22 @@ export function CreateAgentWizard() {
     return true;
   };
 
+  if (mode === "quick") {
+    return <QuickCreateWizard onBack={() => setMode("choose")} />;
+  }
+
   if (mode === "choose") {
     return (
-      <div className="p-6 max-w-[900px] mx-auto space-y-8">
+      <div className="p-6 max-w-[1100px] mx-auto space-y-8">
         <PageHeader title="Criar novo agente" description="Escolha como deseja começar" backTo="/agents" />
-        <div className="grid gap-4 sm:grid-cols-2">
+        <div className="grid gap-4 md:grid-cols-3">
+          <button onClick={() => { setMode("quick"); setStep(0); }} className="nexus-card text-left transition-all hover:ring-2 hover:ring-primary/50 space-y-3 p-6 relative">
+            <span className="absolute top-3 right-3 text-[10px] font-semibold text-primary bg-primary/10 border border-primary/20 px-1.5 py-0.5 rounded-full">RECOMENDADO</span>
+            <div className="h-12 w-12 rounded-xl bg-gradient-to-br from-primary/30 to-primary/10 flex items-center justify-center"><Zap className="h-6 w-6 text-primary" /></div>
+            <h2 className="text-lg font-heading font-semibold text-foreground">Criação rápida</h2>
+            <p className="text-sm text-muted-foreground">4 passos guiados com templates pré-preenchidos por tipo e validações em tempo real.</p>
+            <p className="text-xs text-muted-foreground/80">Identidade → Tipo → Modelo → Prompt</p>
+          </button>
           <button onClick={() => { setMode("template"); setStep(0); }} className="nexus-card text-left transition-all hover:ring-2 hover:ring-primary/50 space-y-3 p-6">
             <div className="h-12 w-12 rounded-xl bg-primary/15 flex items-center justify-center"><LayoutTemplate className="h-6 w-6 text-primary" /></div>
             <h2 className="text-lg font-heading font-semibold text-foreground">Usar template</h2>
@@ -147,8 +158,8 @@ export function CreateAgentWizard() {
           </button>
           <button onClick={() => { setMode("scratch"); setStep(0); }} className="nexus-card text-left transition-all hover:ring-2 hover:ring-primary/50 space-y-3 p-6">
             <div className="h-12 w-12 rounded-xl bg-secondary flex items-center justify-center"><PenTool className="h-6 w-6 text-muted-foreground" /></div>
-            <h2 className="text-lg font-heading font-semibold text-foreground">Criar do zero</h2>
-            <p className="text-sm text-muted-foreground">Configure cada detalhe manualmente em 8 etapas com controle total.</p>
+            <h2 className="text-lg font-heading font-semibold text-foreground">Avançado (do zero)</h2>
+            <p className="text-sm text-muted-foreground">Configure cada detalhe manualmente em 8 etapas com controle total: ferramentas, memória, knowledge, deploy.</p>
           </button>
         </div>
       </div>
