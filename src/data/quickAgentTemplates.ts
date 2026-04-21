@@ -44,7 +44,11 @@ export const QUICK_AGENT_TEMPLATES: Record<QuickAgentType, QuickAgentTemplate> =
 ## Formato
 - Máximo 200 palavras por resposta
 - Use listas curtas quando ajudar a clareza
-- Nunca invente informações: se não souber, diga "não tenho essa informação"`,
+
+## Regras
+- Nunca invente informações: se não souber, diga "não tenho essa informação"
+- Sempre encaminhe para humano quando o assunto fugir do escopo
+- Não compartilhe dados pessoais de outros usuários`,
   },
   copilot: {
     type: 'copilot',
@@ -67,7 +71,11 @@ export const QUICK_AGENT_TEMPLATES: Record<QuickAgentType, QuickAgentTemplate> =
 ## Formato
 - Markdown com headings curtos
 - Sempre entregue o resultado primeiro, contexto depois
-- Se faltar informação, faça no máximo 2 perguntas objetivas`,
+
+## Regras
+- Se faltar informação, faça no máximo 2 perguntas objetivas
+- Nunca compartilhe credenciais ou dados sensíveis
+- Confirme antes de executar ações destrutivas`,
   },
   analyst: {
     type: 'analyst',
@@ -91,7 +99,12 @@ export const QUICK_AGENT_TEMPLATES: Record<QuickAgentType, QuickAgentTemplate> =
 1. **Resumo executivo** (3 linhas)
 2. **Achados principais** (bullet com números)
 3. **Recomendações** (priorizadas por impacto/esforço)
-4. **Confiança**: alta / média / baixa + por quê`,
+4. **Confiança**: alta / média / baixa + por quê
+
+## Regras
+- Nunca extrapole além dos dados disponíveis
+- Sempre cite a fonte (tabela, dashboard, período)
+- Sinalize amostras pequenas ou vieses conhecidos`,
   },
   sdr: {
     type: 'sdr',
