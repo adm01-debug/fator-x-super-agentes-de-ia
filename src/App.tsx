@@ -186,6 +186,7 @@ const App = () => (
                       <Route path="/agents/new" element={<SafePage><CreateAgentPage /></SafePage>} />
                       <Route path="/agents/templates" element={<SafePage><AgentTemplatesPage /></SafePage>} />
                       <Route path="/agents/:id" element={<SafePage><AgentDetailPage /></SafePage>} />
+                      <Route path="/agents/:id/versions" element={<SafePage><AgentVersioningPage /></SafePage>} />
                       <Route path="/builder" element={<SafePage><AgentBuilder /></SafePage>} />
                       <Route path="/builder/:id" element={<SafePage><AgentBuilder /></SafePage>} />
                       <Route path="/brain" element={<SafePage><SuperCerebroPage /></SafePage>} />

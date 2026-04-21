@@ -15,8 +15,6 @@ import {
   generateChangelog,
   summarizeChangelog,
   getVersionPrompt,
-  getVersionTools,
-  getVersionGuardrails,
   type VersionLike,
 } from "@/lib/agentChangelog";
 
