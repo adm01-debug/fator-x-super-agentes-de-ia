@@ -76,6 +76,9 @@ export function StepQuickPrompt({ form, errors, update, onRestore }: Props) {
           </div>
         </div>
       </div>
+
+      {/* Consolidated prompt preview — final text the LLM will receive */}
+      <CompiledPromptPreview form={form} />
     </div>
   );
 }
