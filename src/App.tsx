@@ -26,6 +26,7 @@ import type { ReactNode } from "react";
 const DashboardPage = lazy(() => import("./pages/DashboardPage"));
 const AgentsPage = lazy(() => import("./pages/AgentsPage"));
 const AgentDetailPage = lazy(() => import("./pages/AgentDetailPage"));
+const AgentVersioningPage = lazy(() => import("./pages/AgentVersioningPage"));
 const CreateAgentPage = lazy(() => import("./pages/CreateAgentPage"));
 const AgentTemplatesPage = lazy(() => import("./pages/AgentTemplatesPage"));
 const AgentBuilder = lazy(() => import("./pages/AgentBuilder"));
