@@ -14,6 +14,7 @@ import {
 } from './agentMetricsHelpers';
 import { InteractiveSLOPanel } from './InteractiveSLOPanel';
 import { DayDrillDownDrawer } from './DayDrillDownDrawer';
+import { AgentFailuresTable } from './AgentFailuresTable';
 
 interface Props {
   agentId: string;
@@ -245,6 +246,8 @@ export function AgentRichMetrics({ agentId, days = 14 }: Props) {
           </table>
         </div>
       </div>
+
+      <AgentFailuresTable agentId={agentId} />
 
       <DayDrillDownDrawer
         open={!!selectedDay}
