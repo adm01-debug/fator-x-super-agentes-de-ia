@@ -224,8 +224,12 @@ function diffConfig(
 export function diffGuardrails(prev: VersionLike, next: VersionLike): GuardrailDiff {
   const prevList = getVersionGuardrailObjects(prev);
   const nextList = getVersionGuardrailObjects(next);
-  const prevMap = new Map(prevList.map((g) => [guardrailKey(g), g]).filter(([k]) => k));
-  const nextMap = new Map(nextList.map((g) => [guardrailKey(g), g]).filter(([k]) => k));
+  const prevMap = new Map<string, GuardrailLike>(
+    prevList.map((g) => [guardrailKey(g), g] as const).filter(([k]) => !!k),
+  );
+  const nextMap = new Map<string, GuardrailLike>(
+    nextList.map((g) => [guardrailKey(g), g] as const).filter(([k]) => !!k),
+  );
 
   const added: GuardrailLike[] = [];
   const removed: GuardrailLike[] = [];
