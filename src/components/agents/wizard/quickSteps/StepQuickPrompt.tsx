@@ -6,6 +6,7 @@ import type { QuickAgentForm } from '@/lib/validations/quickAgentSchema';
 import { CompiledPromptPreview } from './CompiledPromptPreview';
 import { PromptSectionChecklist } from './PromptSectionChecklist';
 import { PromptVariantSelector } from './PromptVariantSelector';
+import { QuickAgentTestPanel } from './QuickAgentTestPanel';
 import {
   detectPromptVariant,
   type QuickAgentType,
@@ -98,6 +99,9 @@ export function StepQuickPrompt({ form, errors, update, onRestore, onApplyVarian
 
       {/* Consolidated prompt preview — final text the LLM will receive */}
       <CompiledPromptPreview form={form} />
+
+      {/* Live test against the LLM with mock payload */}
+      <QuickAgentTestPanel form={form} />
     </div>
   );
 }

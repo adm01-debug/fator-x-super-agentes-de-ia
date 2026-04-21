@@ -669,3 +669,38 @@ export function detectPromptVariant(
   }
   return null;
 }
+
+/**
+ * Mensagens mockadas por tipo de agente para o painel de teste rápido no wizard.
+ * Cada tipo tem 2 mocks: o default já preenche o textarea; o segundo aparece no dropdown.
+ */
+export const QUICK_AGENT_MOCK_INPUTS: Record<QuickAgentType, Array<{ label: string; input: string }>> = {
+  chatbot: [
+    { label: 'Saudação inicial', input: 'Olá! Como você pode me ajudar hoje?' },
+    { label: 'Dúvida frequente', input: 'Como faço para alterar meu plano?' },
+  ],
+  copilot: [
+    { label: 'Resumo de thread', input: 'Resuma essa thread em 3 bullets:\n- João: precisamos definir o escopo do MVP\n- Maria: sugiro foco em onboarding e billing\n- João: concordo, mas billing pode ficar pra v2\n- Maria: ok, vou abrir um RFC ainda hoje' },
+    { label: 'Sugestão de próximos passos', input: 'Acabei de receber feedback negativo sobre nosso onboarding. Quais 3 próximos passos você sugere?' },
+  ],
+  analyst: [
+    { label: 'Análise de vendas', input: 'Vendas: Jan R$120k (+8%), Fev R$98k (-18%), Mar R$145k (+47%). O que aconteceu e o que recomendar?' },
+    { label: 'Anomalia em métrica', input: 'Nossa taxa de conversão caiu de 4,2% para 2,8% nas últimas 2 semanas. Como investigar?' },
+  ],
+  sdr: [
+    { label: 'Lead inbound', input: 'Oi! Vi vocês no LinkedIn. Somos uma logtech com 80 funcionários e queremos automatizar nosso atendimento.' },
+    { label: 'Lead pedindo preço', input: 'Quanto custa? Preciso de uma proposta hoje.' },
+  ],
+  support: [
+    { label: 'Erro de login', input: 'Não consigo logar há 2 dias. Já troquei a senha 3 vezes mas continua dando "credenciais inválidas".' },
+    { label: 'Bug em funcionalidade', input: 'O botão de exportar relatório não funciona no Chrome. Aparece um erro vermelho mas não consigo ler.' },
+  ],
+  researcher: [
+    { label: 'Pesquisa técnica', input: 'Quais os principais frameworks de orquestração de agentes em 2025? Compare por adoção e maturidade.' },
+    { label: 'Fact-checking', input: 'É verdade que o Brasil é o 3º maior mercado de IA generativa do mundo? Cite fontes.' },
+  ],
+  orchestrator: [
+    { label: 'Pedido multi-domínio', input: 'Preciso de uma análise de churn dos últimos 90 dias com recomendações acionáveis e um draft de e-mail para os clientes em risco.' },
+    { label: 'Triagem de tarefa', input: 'Cliente acabou de reclamar no Twitter sobre cobrança duplicada. Como proceder?' },
+  ],
+};
