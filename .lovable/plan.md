@@ -1,69 +1,93 @@
 
-Vou criar `docs/FUNCIONALIDADES-SEM-INTERFACE-VISUAL-V2.md` — auditoria atualizada (V2) cruzando o estado real do código pós-V6 com o que está exposto no frontend.
 
-## Conteúdo do documento
+## Wizard Rápido de Criação de Agente (4 passos)
 
-### 1. Sumário executivo
-Tabela com totais e % de cobertura por camada (edge functions, services, libs).
+Vou criar um **wizard enxuto e focado** com 4 etapas (identidade → tipo → modelo → prompt), validações inline por campo via Zod + react-hook-form, e templates mockados que pré-preenchem todos os campos automaticamente.
 
-### 2. Edge Functions órfãs (12 — não chamadas em `src/`)
-**ALTA severidade (6):**
-- `oracle-council` / `oracle-research` — Oráculo usa wrapper antigo, não invoca diretamente
-- `guardrails-engine` — só `guardrails-ml` é chamado
-- `bitrix24-api` / `bitrix24-oauth` / `bitrix24-webhook` — integração Bitrix sem UI ativa
-- `whatsapp-webhook` — sem console de inbound
-- `a2a-server` — protocolo A2A sem painel
-- `agent-conversational-builder` — builder conversacional sem entrada
+O wizard avançado atual (8 passos com templates, ferramentas, memória, knowledge, deploy) **continua existindo** — adiciono o novo como uma terceira opção na tela de escolha inicial.
 
-**MÉDIA severidade (3):**
-- `doc-ocr` — sem botão "OCR" em KnowledgePage
-- `rag-ingest` — ingestão direta sem wizard
-- `text-to-speech` — endpoint TTS standalone sem UI
+### Fluxo do usuário
 
-### 3. Services com UI parcial ou ausente (~25)
-Agrupados em **5 clusters** (com tabela: service → cluster → onde deveria estar):
+```text
+/agents/new (tela de escolha)
+   ├─ Usar template     → wizard atual (3 passos)
+   ├─ Criar do zero     → wizard atual (8 passos)
+   └─ Criação rápida ⚡ → NOVO wizard (4 passos)  ← foco desta entrega
 
-**Cluster Automação (10):** cronSchedulerService, webhookTriggerService, retryEngineService, credentialVaultService, notificationEngineService, automationTemplateService, executionHistoryService, queueManagerService, batchProcessorService, connectorRegistryService — usados em demos isolados, sem abas dedicadas no AutomationCenterPage.
+NOVO Wizard:
+  Passo 1 — Identidade   nome*, emoji, missão*, descrição
+  Passo 2 — Tipo         7 tipos (chatbot, copilot, analyst, sdr, support, researcher, orchestrator)
+                         + botão "Aplicar template" que pré-preenche tudo
+  Passo 3 — Modelo       6 modelos com custo/velocidade/qualidade visíveis
+  Passo 4 — Prompt       editor com counter de caracteres, template visual,
+                         botão "Restaurar template do tipo"
+  → Salvar → /agents
+```
 
-**Cluster Memória avançada (5):** temporalKnowledgeService, entityResolutionService, knowledgeDecayService, contextTiersService, progressiveSkillLoader — sem abas no SuperCerebroPage.
+### Templates mockados (pré-preenchidos por tipo)
 
-**Cluster A2A & Multimodal (4):** agentCardService, agentHandoffService, productMockupService, widgetService — sem páginas próprias.
+Cada um dos 7 tipos tem um **template completo** em `quickAgentTemplates.ts` com nome sugerido, emoji, missão, modelo recomendado e system prompt rico (8-15 linhas com Persona / Escopo / Formato / Regras). Exemplos:
 
-**Cluster Pipelines & Middleware (3):** middlewarePipelineService (0 refs), nlpPipelineService, ragPipelineService — sem console de pipeline.
+- **Chatbot** → "Aurora" 💬 / GPT-4o / prompt focado em atendimento conversacional
+- **SDR** → "Pink Sales" 💼 / GPT-5 / prompt de qualificação BANT no Bitrix24
+- **Analyst** → "Atlas" 📊 / Claude Sonnet 4.6 / prompt de análise de dados
+- **Support** → "Scout" 🎧 / Gemini 2.5 Flash / prompt L1 com triagem
+- **Researcher** → "Sherlock" 🔎 / Claude Opus 4.6 / prompt de pesquisa documental
+- **Copilot** → "Nova" ✨ / GPT-4o / prompt de assistente interno
+- **Orchestrator** → "Maestro" 🎼 / Claude Opus 4.6 / prompt de roteamento entre sub-agentes
 
-**Cluster Observabilidade & Custos (3):** costCalculatorService, healthAlertsService, fineTuningService — widget/wizard ausentes.
+Ao escolher o tipo, o usuário pode clicar em **"Aplicar template"** para auto-preencher nome, emoji, missão, modelo e prompt — ou continuar editando manualmente.
 
-### 4. Libs de infraestrutura sem exposição UI (8)
-- `lib/ag-ui` (0 refs) — UI generativa sem showcase
-- `lib/tracing` (0 refs) — NexusTracer sem visualizador
-- `lib/otel-genai` (0 refs) — semantic conventions OTel
-- `lib/webVitals` (0 refs) — métricas RUM
-- `lib/normalize` (0 refs) — utilitário sem uso
-- `lib/auditService` (0 refs) — wrapper de audit antigo
-- `lib/middlewarePipelineService` (0 refs)
-- `lib/mcp` (1 ref apenas) — MCP Registry com 5.800+ servers, sem tela "MCP Servers" em Settings
+### Validações (Zod + react-hook-form, inline em tempo real)
 
-### 5. Páginas placeholder/incompletas
-Lista de páginas que existem mas têm UI mínima vs backend rico:
-- `RoutingConfigPage` — 3 webhook services prontos, UI básica
-- `EmailCalendarTriggersPage` — sem ações reais
-- `MobileSDKPage` — somente documentação estática
+| Campo    | Regra                                                | Mensagem PT-BR                          |
+|----------|------------------------------------------------------|-----------------------------------------|
+| nome     | obrigatório, 2-60 chars, sem caracteres especiais    | "Use 2 a 60 letras, números ou espaços" |
+| emoji    | obrigatório, 1-4 chars                               | "Escolha um emoji"                       |
+| missão   | obrigatório, 10-500 chars                            | "Mínimo 10 caracteres"                   |
+| tipo     | obrigatório (1 dos 7)                                | "Selecione um tipo"                      |
+| modelo   | obrigatório (1 dos 6)                                | "Selecione um modelo"                    |
+| prompt   | obrigatório, 50-8000 chars                           | "Mínimo 50 caracteres" + counter visual  |
 
-### 6. Comparativo V1 (auditoria anterior) vs V2 (atual)
-Tabela mostrando o que foi resolvido entre V1 → V2:
-- Edge functions órfãs: 13 → 12
-- Services órfãos: 24 → ~25 (mas 9 foram migrados em V5)
-- Stores parcialmente integrados: 2 → 0 (uiStore + datahubStore agora consumidos)
-- Hooks subutilizados: 5 → 0 ✅ (todos os hooks são consumidos)
+- Botão "Próximo" desabilitado até campos do passo serem válidos
+- Erros mostrados embaixo do campo (estilo `FormMessage` do shadcn)
+- Toast de erro consolidado se tentar pular passo
 
-### 7. Plano sugerido — 4 sprints rumo a 100% UI coverage
-- **Sprint 1 — Painéis administrativos:** abas no AutomationCenter + SuperCerebro
-- **Sprint 2 — Conectividade externa:** Bitrix24 + WhatsApp + A2A
-- **Sprint 3 — Multimodal & Polimento:** TTS, OCR, Mockup, Widget Builder
-- **Sprint 4 — Observabilidade:** MCP Servers UI, Tracing visualizer, OTel viewer, web vitals dashboard
+### Recursos extras
 
-### 8. Impacto esperado
-Tabela: capacidade exposta atual ~75% → 100% pós-plano.
+- **Stepper clicável** no topo (volta para passos já visitados)
+- **Atalhos**: `Enter` → próximo, `Esc` → voltar, `Ctrl+Enter` no último → criar
+- **Preview ao vivo** do agente no rodapé do passo de prompt (card com emoji, nome, primeiras linhas do prompt)
+- **Auto-save em localStorage** (rascunho recuperado se o usuário sair e voltar)
+- **Animação de entrada** entre passos (já segue padrão `animate-page-enter`)
 
-### Arquivo gerado
-- `docs/FUNCIONALIDADES-SEM-INTERFACE-VISUAL-V2.md` (~400 linhas)
+### Arquivos a criar/alterar
+
+**Novos:**
+- `src/data/quickAgentTemplates.ts` — 7 templates mockados ricos por tipo
+- `src/lib/validations/quickAgentSchema.ts` — schemas Zod por passo + schema completo
+- `src/components/agents/wizard/QuickCreateWizard.tsx` — componente principal (~250 linhas)
+- `src/components/agents/wizard/quickSteps/StepQuickIdentity.tsx`
+- `src/components/agents/wizard/quickSteps/StepQuickType.tsx`
+- `src/components/agents/wizard/quickSteps/StepQuickModel.tsx`
+- `src/components/agents/wizard/quickSteps/StepQuickPrompt.tsx`
+
+**Alterados:**
+- `src/components/agents/CreateAgentWizard.tsx` — adiciona terceiro card "Criação rápida ⚡" na tela de escolha (`mode === "choose"`) e novo `mode === "quick"` que renderiza `<QuickCreateWizard />`
+
+### Persistência
+
+Salva via `supabaseExternal.from("agents").insert(...)` (mesmo padrão do wizard atual) com:
+- `status: 'draft'`
+- `persona`: derivada do tipo (sdr→specialist, analyst→analyst, etc.)
+- `config.system_prompt`, `config.type`, `config.created_via: 'quick_wizard'`
+- Redireciona para `/agents` com toast de sucesso
+
+### Detalhes técnicos
+
+- **react-hook-form** já está no projeto (`src/components/ui/form.tsx`)
+- **zod** já em uso em `src/lib/validations/agentSchema.ts` — estendo seguindo o mesmo padrão
+- **Sem mudanças de schema do banco** — usa tabela `agents` existente
+- **Design tokens semânticos** apenas (primary, secondary, muted, nexus-emerald, nexus-amber, destructive) — sem cores hard-coded
+- **Acessibilidade**: `aria-invalid`, `aria-describedby` automáticos via `<FormControl>`, navegação 100% por teclado
+
