@@ -45,12 +45,66 @@ export const quickModelSchema = z.object({
     ),
 });
 
+/**
+ * Seções obrigatórias no system prompt do wizard rápido.
+ * Detectadas via heading markdown (#, ##, ###) cujo título contém uma das aliases
+ * (case-insensitive, sem acento).
+ */
+export const REQUIRED_PROMPT_SECTIONS = [
+  { key: 'persona', label: 'Persona', aliases: ['persona', 'identidade', 'role', 'voce e', 'voce eh'] },
+  { key: 'scope', label: 'Escopo', aliases: ['escopo', 'scope', 'objetivo', 'responsabilidade', 'metodo', 'fluxo'] },
+  { key: 'format', label: 'Formato', aliases: ['formato', 'format', 'estilo', 'tom', 'output', 'saida'] },
+  { key: 'rules', label: 'Regras', aliases: ['regras', 'rules', 'restricao', 'constraints', 'guardrails', 'nunca', 'sempre'] },
+] as const;
+
+export type PromptSectionKey = typeof REQUIRED_PROMPT_SECTIONS[number]['key'];
+
+function stripAccents(s: string): string {
+  return s.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase();
+}
+
+function extractHeadings(prompt: string): string[] {
+  const out: string[] = [];
+  for (const raw of prompt.split('\n')) {
+    const m = raw.match(/^\s{0,3}#{1,3}\s+(.+?)\s*#*\s*$/);
+    if (m) out.push(stripAccents(m[1]));
+  }
+  return out;
+}
+
+/** Retorna { key: true|false } indicando quais seções foram detectadas. */
+export function detectPromptSections(prompt: string): Record<PromptSectionKey, boolean> {
+  const headings = extractHeadings(prompt);
+  const result = {} as Record<PromptSectionKey, boolean>;
+  for (const sec of REQUIRED_PROMPT_SECTIONS) {
+    result[sec.key] = headings.some((h) => sec.aliases.some((a) => h.includes(a)));
+  }
+  return result;
+}
+
+export function getMissingSections(prompt: string): PromptSectionKey[] {
+  const detected = detectPromptSections(prompt);
+  return REQUIRED_PROMPT_SECTIONS.filter((s) => !detected[s.key]).map((s) => s.key);
+}
+
 export const quickPromptSchema = z.object({
   prompt: z
     .string()
     .trim()
     .min(50, 'Mínimo 50 caracteres')
-    .max(8000, 'Máximo 8.000 caracteres'),
+    .max(8000, 'Máximo 8.000 caracteres')
+    .superRefine((value, ctx) => {
+      const missing = getMissingSections(value);
+      if (missing.length > 0) {
+        const labels = missing
+          .map((k) => REQUIRED_PROMPT_SECTIONS.find((s) => s.key === k)?.label ?? k)
+          .join(', ');
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          message: `Faltam seções obrigatórias: ${labels}. Use headings markdown (## Persona, ## Escopo, ## Formato, ## Regras).`,
+        });
+      }
+    }),
 });
 
 export const quickAgentFullSchema = quickIdentitySchema
