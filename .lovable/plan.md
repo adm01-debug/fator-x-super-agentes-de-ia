@@ -1,74 +1,76 @@
 
 
-## Validações de seções obrigatórias no prompt do wizard rápido
+## Seletor de variações de templates de prompt por tipo
 
-Adiciono validação estrutural ao prompt do wizard rápido: ele só passa para "criar" quando contiver as 4 seções obrigatórias — **Persona, Escopo, Formato e Regras** —, com checklist visual ao vivo no editor e bloqueio de envio quando faltar alguma.
+Atualmente o passo 4 do wizard rápido tem só **um** prompt por tipo (via `QUICK_AGENT_TEMPLATES[type].systemPrompt`) e um botão "Restaurar template" que sobrescreve com essa única opção. Vou expandir para **3 variações por tipo** (estilos diferentes de prompt) com um seletor visual no topo do editor que aplica automaticamente ao clicar.
 
 ### Visão final no passo Prompt
 
 ```text
-[ Editor de prompt ]
-
-┌─ Checklist do prompt ─────────────────────── 2/4 ✓ ──┐
-│ ✓ Persona      detectada em "## Persona"             │
-│ ✓ Escopo       detectada em "## Escopo"              │
-│ ✗ Formato      adicione "## Formato" — [+ Inserir]   │
-│ ✗ Regras       adicione "## Regras"  — [+ Inserir]   │
-│                                                       │
-│ ⚠ Faltam 2 seções. Inclua-as antes de criar.         │
+┌─ Variações de prompt para "Chatbot" ────────────────┐
+│ [● Equilibrado]  [○ Conciso]  [○ Detalhado]         │
+│   atual              curto         estendido         │
 └──────────────────────────────────────────────────────┘
+
+[ Editor de prompt — preenchido com a variação ativa ]
+
+[ Checklist 4/4 ✓ ]
+[ Pré-visualização do agente ]
+[ Prompt consolidado ]
 ```
 
-Cada item faltante traz um botão **+ Inserir**: anexa um esqueleto da seção ao final do prompt (`\n\n## Formato\n- ...`) para o usuário preencher.
+### Os 3 estilos (mesmos para todos os tipos)
 
-### Detecção (case-insensitive, sem acento)
+| Estilo          | Tom                                              | Tamanho aproximado |
+| --------------- | ------------------------------------------------ | ------------------ |
+| **Equilibrado** | versão atual — sweet spot persona+regras+formato | ~600-900 chars     |
+| **Conciso**     | enxuto, bullets curtos, mínimo viável            | ~300-450 chars     |
+| **Detalhado**   | extensivo, com exemplos, anti-padrões e métricas | ~1.200-1.800 chars |
 
-Procura headings markdown (`#`, `##`, `###`) cujo título contém alguma das aliases:
-
-| Seção    | Aliases reconhecidas                                                |
-| -------- | ------------------------------------------------------------------- |
-| Persona  | persona, identidade, role, "você é"                                 |
-| Escopo   | escopo, scope, objetivo, responsabilidades                          |
-| Formato  | formato, format, estilo, tom, output                                |
-| Regras   | regras, rules, restrições, constraints, guardrails, nunca, sempre   |
+Todos passam no checklist (Persona/Escopo/Formato/Regras) e referem o `suggestedName` do tipo.
 
 ### Mudanças
 
-**`src/lib/validations/quickAgentSchema.ts`**:
-- Exportar `REQUIRED_PROMPT_SECTIONS`, `PromptSectionKey`, `detectPromptSections(prompt)`, `getMissingSections(prompt)`.
-- Estender `quickPromptSchema` com `.superRefine()` que falha quando faltarem seções, com mensagem listando o que falta.
+**`src/data/quickAgentTemplates.ts`**:
+- Adicionar tipo `PromptVariantId = 'balanced' | 'concise' | 'detailed'`.
+- Adicionar interface `PromptVariant { id, label, description, prompt }`.
+- Estender cada `QuickAgentTemplate` com `promptVariants: Record<PromptVariantId, PromptVariant>` (3 variações por tipo × 7 tipos = 21 prompts).
+- Manter `systemPrompt` apontando para `promptVariants.balanced.prompt` (backward-compat com `applyTemplate` no QuickCreateWizard).
+- Exportar constante `PROMPT_VARIANT_META: Record<PromptVariantId, { label, description, icon }>` para a UI.
 
-**`src/components/agents/wizard/quickSteps/PromptSectionChecklist.tsx`** (novo):
-- Recebe `prompt` e `onInsert(snippet)`.
-- Renderiza 4 linhas com ícone (`CheckCircle2` verde / `XCircle` muted), label e botão **+ Inserir** quando faltar.
-- Cabeçalho com contador `N/4 ✓` e bordas semânticas (`border-nexus-emerald/30` quando completo, `border-nexus-amber/40` quando parcial).
-- `aria-live="polite"` para anunciar mudanças de status.
+**`src/components/agents/wizard/quickSteps/PromptVariantSelector.tsx`** (novo):
+- Recebe `type: QuickAgentType`, `activeVariant: PromptVariantId`, `onSelect(id, prompt)`.
+- 3 chips/cards horizontais (radio-like) com label, descrição curta e ícone (`Scale`, `Minus`, `Plus`).
+- Cartão ativo: `ring-2 ring-primary bg-primary/10`; demais: `hover:bg-secondary/60`.
+- Texto auxiliar: "Aplicar substitui o prompt atual."
+- `aria-pressed` para acessibilidade; tab navegável.
 
 **`src/components/agents/wizard/quickSteps/StepQuickPrompt.tsx`**:
-- Importar e renderizar `PromptSectionChecklist` entre o editor e a pré-visualização.
-- `onInsert(snippet)` → `update('prompt', form.prompt + snippet)`.
-- Snippets pré-prontos por seção (ex.: `\n\n## Formato\n- Máximo 200 palavras\n- Use listas curtas\n`).
+- Adicionar prop opcional `onVariantApply?: (variantId, prompt) => void`.
+- Estado local `activeVariant` (default `'balanced'`); detecção: se o prompt atual bate com alguma variação, marca como ativa; senão fica "custom" (nenhuma chip pintada).
+- Renderizar `PromptVariantSelector` no topo, antes do textarea.
+- Manter botão "Restaurar template" (continua restaurando a variação ativa).
 
-**`src/data/quickAgentTemplates.ts`**:
-- Auditar os 7 templates e garantir `## Regras` em todos (alguns só têm Persona/Escopo/Formato), para que "Restaurar template" sempre produza um prompt válido.
+**`src/components/agents/wizard/QuickCreateWizard.tsx`**:
+- `applyTemplate` continua aplicando a variação `balanced` (default).
+- Adicionar handler `applyPromptVariant(variantId)` que faz `update('prompt', variant.prompt)` + toast `Variação "{label}" aplicada`.
+- Passar para `<StepQuickPrompt>` via prop.
 
-### Comportamento de bloqueio
+### Detecção de variação ativa
 
-- Botão **Criar agente** já chama `validateStep(3)` antes de salvar; com o schema estendido, ele falha com a mensagem explicando o que falta.
-- O erro inline existente abaixo do textarea continua mostrando a mensagem do schema (agora mais descritiva).
-- O checklist é o feedback principal — o usuário vê em tempo real o que falta.
+Comparação simples: `prompt.trim() === variant.prompt.trim()` para cada variação do tipo atual. Se nenhuma bater → "Custom" (nenhum chip ativo, mas chips continuam clicáveis para sobrescrever). Evita que pequenas edições do usuário sejam perdidas silenciosamente — clicar numa chip mostra um `confirm` inline ("Substituir prompt atual?") só quando o prompt foi modificado em relação à variação detectada.
 
-### Detalhes técnicos
+### UX e acessibilidade
 
-- Sem dependência nova, sem migração, sem rotas.
-- Detecção é O(n) sobre as linhas — barato a cada keystroke.
-- `stripAccents` via `normalize('NFD')` para casar "restrições" e "restricoes".
-- Backward-compatible: prompts já salvos no banco não são afetados (validação só roda no wizard).
-- Acessibilidade: itens do checklist com `role="status"`, botões "+ Inserir" com `aria-label` descritivo.
+- Chips com `role="radio"` dentro de `role="radiogroup"`, `aria-checked` no ativo.
+- Toast Sonner ao trocar: `Variação "{label}" aplicada` com `description: "Você pode editar livremente depois."`.
+- Sem cores hard-coded — tokens semânticos (`--primary`, `--secondary`, `--muted-foreground`).
+- Mobile: chips quebram em 2 colunas abaixo de 480px.
 
 ### Impacto
 
-- Usuário ganha feedback claro sobre a estrutura mínima de um bom system prompt.
-- Templates continuam funcionando após a auditoria de "Regras".
-- Zero impacto nos modos "Avançado" ou "Template" do wizard maior.
+- Zero migração, zero mudança de schema, zero impacto em outros wizards.
+- Backward-compatible: `QUICK_AGENT_TEMPLATES[t].systemPrompt` continua existindo e aponta pra `balanced`.
+- Usuário ganha 3× mais opções de partida sem precisar escrever do zero.
+- Reusable: a estrutura `promptVariants` pode ser usada depois pelo modo Avançado e pelo playground.
 
