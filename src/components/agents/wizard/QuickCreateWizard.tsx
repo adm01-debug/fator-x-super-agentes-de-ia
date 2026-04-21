@@ -11,6 +11,7 @@ import {
   quickModelSchema,
   quickPromptSchema,
   QUICK_AGENT_DEFAULTS,
+  isDraftMeaningful,
   type QuickAgentForm,
 } from '@/lib/validations/quickAgentSchema';
 import {
