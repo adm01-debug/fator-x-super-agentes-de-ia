@@ -9,6 +9,7 @@ import { CompiledPromptPreview } from './CompiledPromptPreview';
 import { PromptSectionChecklist } from './PromptSectionChecklist';
 import { PromptVariantSelector } from './PromptVariantSelector';
 import { PromptValidationFeedback } from './PromptValidationFeedback';
+import { AgentLivePreviewCard } from './AgentLivePreviewCard';
 import { QuickAgentTestPanel } from './QuickAgentTestPanel';
 import { sanitizePromptInput, PROMPT_LIMITS } from '@/lib/validations/promptSanitizer';
 import {
@@ -123,21 +124,7 @@ export function StepQuickPrompt({ form, errors, update, onRestore, onApplyVarian
         onInsert={(snippet) => update('prompt', form.prompt + snippet)}
       />
 
-      <div className="nexus-card">
-        <p className="text-xs uppercase tracking-wider text-muted-foreground mb-3">Pré-visualização</p>
-        <div className="flex items-start gap-3">
-          <div className="h-12 w-12 rounded-xl bg-primary/15 flex items-center justify-center text-2xl shrink-0">
-            {form.emoji || '🤖'}
-          </div>
-          <div className="min-w-0 flex-1">
-            <p className="font-semibold text-foreground">{form.name || 'Sem nome'}</p>
-            <p className="text-xs text-muted-foreground mt-0.5 line-clamp-2">{form.mission || 'Sem missão definida'}</p>
-            <p className="text-[11px] text-muted-foreground mt-2 font-mono">
-              modelo: {form.model} · tipo: {form.type}
-            </p>
-          </div>
-        </div>
-      </div>
+      <AgentLivePreviewCard form={form} />
 
       {/* Consolidated prompt preview — final text the LLM will receive */}
       <CompiledPromptPreview form={form} />
