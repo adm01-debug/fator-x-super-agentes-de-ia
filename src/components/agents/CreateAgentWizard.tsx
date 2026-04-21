@@ -18,8 +18,10 @@ import { AGENT_TEMPLATES as STATIC_TEMPLATES, type AgentTemplate } from "@/data/
 import {
   STEPS, TEMPLATE_STEPS, AGENT_TYPES, MODELS, TOOLS, MEMORY_OPTIONS,
 } from "./wizard/wizardConstants";
+import { QuickCreateWizard } from "./wizard/QuickCreateWizard";
+import { Zap } from "lucide-react";
 
-type WizardMode = "choose" | "template" | "scratch";
+type WizardMode = "choose" | "template" | "scratch" | "quick";
 
 export function CreateAgentWizard() {
   const navigate = useNavigate();

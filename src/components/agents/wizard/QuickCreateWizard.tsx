@@ -15,7 +15,6 @@ import {
 } from '@/lib/validations/quickAgentSchema';
 import {
   QUICK_AGENT_TEMPLATES,
-  QUICK_AGENT_TYPES,
   PERSONA_FROM_TYPE,
   type QuickAgentType,
 } from '@/data/quickAgentTemplates';
