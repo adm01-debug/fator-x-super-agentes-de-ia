@@ -1,4 +1,4 @@
-import { useMemo } from 'react';
+import { useMemo, useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { Activity, DollarSign, Zap, ShieldCheck, AlertCircle, Cpu, Loader2 } from 'lucide-react';
 import { MetricCard } from '@/components/shared/MetricCard';
@@ -11,8 +11,10 @@ import {
   buildSLOTargets,
   formatCost,
   formatNumber,
+  type DailyPoint,
 } from './agentMetricsHelpers';
 import { SLOPanel } from './SLOPanel';
+import { DayDrillDownDrawer } from './DayDrillDownDrawer';
 
 interface Props {
   agentId: string;
