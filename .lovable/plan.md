@@ -1,68 +1,69 @@
 
-Vou criar um documento markdown completo (`FUNCIONALIDADES-DO-SISTEMA.md`) na raiz do projeto, mapeando exaustivamente todas as funcionalidades do Nexus Agents Studio com base na análise de:
+Vou criar `docs/FUNCIONALIDADES-SEM-INTERFACE-VISUAL-V2.md` — auditoria atualizada (V2) cruzando o estado real do código pós-V6 com o que está exposto no frontend.
 
-- **98 páginas** em `src/pages/`
-- **93 services** em `src/services/`
-- **63 edge functions** em `supabase/functions/`
-- Rotas em `src/App.tsx`
-- Schema Supabase (tabelas, RLS, RPCs)
-- Documentação existente (ADRs, relatórios V1-V6, memory files)
+## Conteúdo do documento
 
-## Estrutura do documento
+### 1. Sumário executivo
+Tabela com totais e % de cobertura por camada (edge functions, services, libs).
 
-### 1. Visão Geral
-Plataforma multi-tenant de criação, deploy e governança de agentes de IA (Fator X), PT-BR, com backend Supabase Cloud.
+### 2. Edge Functions órfãs (12 — não chamadas em `src/`)
+**ALTA severidade (6):**
+- `oracle-council` / `oracle-research` — Oráculo usa wrapper antigo, não invoca diretamente
+- `guardrails-engine` — só `guardrails-ml` é chamado
+- `bitrix24-api` / `bitrix24-oauth` / `bitrix24-webhook` — integração Bitrix sem UI ativa
+- `whatsapp-webhook` — sem console de inbound
+- `a2a-server` — protocolo A2A sem painel
+- `agent-conversational-builder` — builder conversacional sem entrada
 
-### 2. Funcionalidades organizadas por domínio (12 grandes áreas)
+**MÉDIA severidade (3):**
+- `doc-ocr` — sem botão "OCR" em KnowledgePage
+- `rag-ingest` — ingestão direta sem wizard
+- `text-to-speech` — endpoint TTS standalone sem UI
 
-**A. Construção de Agentes**
-Wizard, builder visual, templates, prompt editor/versioning, A/B testing, simulação, debugger, orquestração multi-agente, sub-agentes, handoff, cards A2A.
+### 3. Services com UI parcial ou ausente (~25)
+Agrupados em **5 clusters** (com tabela: service → cluster → onde deveria estar):
 
-**B. Inteligência & Modelos**
-Oracle (multi-LLM council), LLM Gateway, smart model router, fine-tuning (HF AutoTrain), federated learning, smolagent runtime, NLP pipeline, vision agents, voice agents (telephony/studio), browser agents, computer use, code interpreter.
+**Cluster Automação (10):** cronSchedulerService, webhookTriggerService, retryEngineService, credentialVaultService, notificationEngineService, automationTemplateService, executionHistoryService, queueManagerService, batchProcessorService, connectorRegistryService — usados em demos isolados, sem abas dedicadas no AutomationCenterPage.
 
-**C. Memória & Conhecimento**
-6 tipos de memória (short-term, episodic, semantic, procedural, profile, shared), RAG v2 (embed/rerank), knowledge graph, knowledge management, knowledge decay, temporal knowledge, entity resolution, busca global/semântica/visual, gap analysis.
+**Cluster Memória avançada (5):** temporalKnowledgeService, entityResolutionService, knowledgeDecayService, contextTiersService, progressiveSkillLoader — sem abas no SuperCerebroPage.
 
-**D. Dados & Integrações**
-DataHub (4 bancos externos), Cerebro (super brain), Bitrix24 (API/OAuth/webhook), WhatsApp (in/out), Email/Calendar triggers, MCP servers, custom APIs, connector registry, widget proxy.
+**Cluster A2A & Multimodal (4):** agentCardService, agentHandoffService, productMockupService, widgetService — sem páginas próprias.
 
-**E. Workflows & Automação**
-Workflow engine v2, graph execute, automation pipeline, automation center/templates, cron scheduler, webhook triggers/receiver, queue worker, batch processor, retry engine, checkpoints, replay fork.
+**Cluster Pipelines & Middleware (3):** middlewarePipelineService (0 refs), nlpPipelineService, ragPipelineService — sem console de pipeline.
 
-**F. Avaliação & Qualidade**
-Eval engine v2, eval judge, CLEAR scoring (deterministic/statistical), test runner, synthetic data/runner, prompt experiments, agent evolution.
+**Cluster Observabilidade & Custos (3):** costCalculatorService, healthAlertsService, fineTuningService — widget/wizard ausentes.
 
-**G. Observabilidade & Monitoramento**
-Traces timeline, OTel observability, SLO dashboard, synthetic monitoring, health checks/alerts, cost anomalies/optimizer, monitoring KPIs, dashboards.
+### 4. Libs de infraestrutura sem exposição UI (8)
+- `lib/ag-ui` (0 refs) — UI generativa sem showcase
+- `lib/tracing` (0 refs) — NexusTracer sem visualizador
+- `lib/otel-genai` (0 refs) — semantic conventions OTel
+- `lib/webVitals` (0 refs) — métricas RUM
+- `lib/normalize` (0 refs) — utilitário sem uso
+- `lib/auditService` (0 refs) — wrapper de audit antigo
+- `lib/middlewarePipelineService` (0 refs)
+- `lib/mcp` (1 ref apenas) — MCP Registry com 5.800+ servers, sem tela "MCP Servers" em Settings
 
-**H. Segurança & Governança**
-RBAC + roles/permissions, RLS multi-tenant, guardrails (engine + ML), pentest + findings, vulnerabilities, SBOM scanner, secrets rotation, credential vault, asset inventory, vendor risk, access control, audit log, validate-access edge.
+### 5. Páginas placeholder/incompletas
+Lista de páginas que existem mas têm UI mínima vs backend rico:
+- `RoutingConfigPage` — 3 webhook services prontos, UI básica
+- `EmailCalendarTriggersPage` — sem ações reais
+- `MobileSDKPage` — somente documentação estática
 
-**I. Compliance & Risco**
-LGPD manager, compliance reports, data residency, risk register, change management, approval queue.
+### 6. Comparativo V1 (auditoria anterior) vs V2 (atual)
+Tabela mostrando o que foi resolvido entre V1 → V2:
+- Edge functions órfãs: 13 → 12
+- Services órfãos: 24 → ~25 (mas 9 foram migrados em V5)
+- Stores parcialmente integrados: 2 → 0 (uiStore + datahubStore agora consumidos)
+- Hooks subutilizados: 5 → 0 ✅ (todos os hooks são consumidos)
 
-**J. Resiliência & Operações**
-Disaster recovery, DR drills, BCP, chaos lab, game days (live), incident playbooks, IR playbooks, postmortems, on-call schedule, notification engine.
+### 7. Plano sugerido — 4 sprints rumo a 100% UI coverage
+- **Sprint 1 — Painéis administrativos:** abas no AutomationCenter + SuperCerebro
+- **Sprint 2 — Conectividade externa:** Bitrix24 + WhatsApp + A2A
+- **Sprint 3 — Multimodal & Polimento:** TTS, OCR, Mockup, Widget Builder
+- **Sprint 4 — Observabilidade:** MCP Servers UI, Tracing visualizer, OTel viewer, web vitals dashboard
 
-**K. Deploy & Distribuição**
-Multi-channel deploy (API, WhatsApp, Web Chat, Slack, Email, Bitrix24, Telegram, Discord, HF Space), canary deployments, openclaw deploy, mobile SDK, widget embed, marketplace (monetizado + skills).
-
-**L. Plataforma & Admin**
-Multi-tenancy, Enterprise SSO, billing, budget settings, team management, workspaces, settings, admin CRUD, public help center, public forum, article editor.
-
-### 3. Mapeamento técnico (apêndice)
-- Tabela: 98 páginas → rota → service principal
-- Tabela: 63 edge functions → propósito → secrets necessárias
-- Stack: React 18 + Vite + TS strict + Tailwind + Supabase Cloud + Lovable AI Gateway
-- Arquitetura dual-client (auth local + data external)
-- Status produção: 10/10 (V6)
-
-### 4. Estatísticas finais
-Linhas de código aproximadas, cobertura de testes (83 testes), número de RPCs, número de tabelas com RLS.
-
-### Sobre o GitHub
-O conteúdo do repositório GitHub é **idêntico** ao código atual do projeto (sync bidirecional automático do Lovable). Portanto, a análise do código local cobre 100% do que está no GitHub — não há divergência possível. Mencionarei isso explicitamente no documento.
+### 8. Impacto esperado
+Tabela: capacidade exposta atual ~75% → 100% pós-plano.
 
 ### Arquivo gerado
-- `FUNCIONALIDADES-DO-SISTEMA.md` na raiz do projeto (~600-900 linhas, navegável por TOC)
+- `docs/FUNCIONALIDADES-SEM-INTERFACE-VISUAL-V2.md` (~400 linhas)
