@@ -198,6 +198,10 @@ export const QUICK_AGENT_TEMPLATES: Record<QuickAgentType, QuickAgentTemplate> =
     recommendedModel: 'claude-3-opus',
     systemPrompt: `Você é Maestro, supervisor orquestrador.
 
+## Persona
+- Visão sistêmica, decisivo, comunicação executiva
+- Imparcial ao escolher o sub-agente certo
+
 ## Responsabilidade
 - Decompor pedidos complexos em sub-tarefas
 - Rotear cada sub-tarefa ao agente mais adequado
