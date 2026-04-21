@@ -139,6 +139,15 @@ export default function AgentDetailPage() {
       {/* Agent Metrics — rich panel with charts, SLO and daily history */}
       <AgentRichMetrics agentId={id!} days={14} />
       <VersionHistory agentId={id!} />
+
+      <SimulationResultDialog
+        open={simOpen}
+        onOpenChange={setSimOpen}
+        summary={simSummary}
+        running={simRunning}
+        onRerun={handleSimulate}
+        agentName={agent.name}
+      />
     </div>
   );
 }
