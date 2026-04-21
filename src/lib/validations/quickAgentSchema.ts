@@ -69,3 +69,21 @@ export const QUICK_AGENT_DEFAULTS: QuickAgentForm = {
   model: 'gpt-4o',
   prompt: '',
 };
+
+/**
+ * Returns true if the form has any user-provided content beyond defaults.
+ * Used to decide whether a saved draft is worth offering for recovery.
+ */
+export function isDraftMeaningful(form: Partial<QuickAgentForm> | null | undefined): boolean {
+  if (!form) return false;
+  const f = { ...QUICK_AGENT_DEFAULTS, ...form };
+  return (
+    f.name.trim().length > 0 ||
+    f.mission.trim().length > 0 ||
+    (f.description ?? '').trim().length > 0 ||
+    f.prompt.trim().length > 0 ||
+    f.emoji !== QUICK_AGENT_DEFAULTS.emoji ||
+    f.type !== QUICK_AGENT_DEFAULTS.type ||
+    f.model !== QUICK_AGENT_DEFAULTS.model
+  );
+}
