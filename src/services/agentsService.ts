@@ -153,7 +153,7 @@ export async function getAgentFailures(agentId: string, perSourceLimit = 200): P
       .from('agent_traces')
       .select('id, level, event, metadata, created_at')
       .eq('agent_id', agentId)
-      .in('level', ['error', 'critical', 'warning', 'warn'])
+      .in('level', ['error', 'critical', 'warning'])
       .order('created_at', { ascending: false })
       .limit(perSourceLimit),
   ]);
@@ -167,7 +167,7 @@ export async function getAgentFailures(agentId: string, perSourceLimit = 200): P
     category: a.severity ?? 'info',
     message: a.message ?? a.title ?? '(sem mensagem)',
     is_resolved: a.is_resolved ?? false,
-    created_at: a.created_at,
+    created_at: a.created_at ?? new Date().toISOString(),
   }));
 
   const fromTraces: FailureRecord[] = (tracesRes.data ?? []).map((t) => {
