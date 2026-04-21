@@ -8,6 +8,8 @@ import { getAgentDetailTraces, getAgentUsage, getAgentRecentAlerts } from '@/ser
 import {
   buildDailySeries,
   computeSLO,
+  compareWindows,
+  compareSuccessRateWindows,
   formatCost,
   formatNumber,
   type DailyPoint,
@@ -15,6 +17,7 @@ import {
 import { InteractiveSLOPanel } from './InteractiveSLOPanel';
 import { DayDrillDownDrawer } from './DayDrillDownDrawer';
 import { AgentFailuresTable } from './AgentFailuresTable';
+import { TrendInsightsBanner } from './TrendInsightsBanner';
 
 interface Props {
   agentId: string;
