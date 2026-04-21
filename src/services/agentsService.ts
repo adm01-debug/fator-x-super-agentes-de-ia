@@ -255,18 +255,64 @@ export async function createAgentVersion(input: CreateAgentVersionInput): Promis
   return data as unknown as AgentVersion;
 }
 
+export interface RestoreOptions {
+  copyPrompt?: boolean;
+  copyTools?: boolean;
+  copyModel?: boolean;
+}
+
 /**
- * Restores by creating a NEW version that copies the chosen one.
- * Preserves auditability — never overwrites or deletes history.
+ * Restores by creating a NEW version (v{N+1}) that copies the chosen parts
+ * from `sourceVersion` over `currentVersion`. Preserves auditability — never
+ * overwrites or deletes history. The changelog records exactly what was restored.
  */
-export async function restoreAgentVersion(agentId: string, sourceVersion: AgentVersion): Promise<AgentVersion> {
+export async function restoreAgentVersion(
+  agentId: string,
+  sourceVersion: AgentVersion,
+  currentVersion?: AgentVersion | null,
+  options: RestoreOptions = { copyPrompt: true, copyTools: true, copyModel: true },
+): Promise<AgentVersion> {
+  const base = currentVersion ?? sourceVersion;
+  const baseConfig = (base.config ?? {}) as Record<string, unknown>;
+  const srcConfig = (sourceVersion.config ?? {}) as Record<string, unknown>;
+  const merged: Record<string, unknown> = { ...baseConfig };
+
+  let model = base.model;
+  let persona = base.persona;
+  let mission = base.mission;
+
+  const parts: string[] = [];
+
+  if (options.copyPrompt) {
+    mission = sourceVersion.mission;
+    if ('system_prompt' in srcConfig) merged.system_prompt = srcConfig.system_prompt;
+    if ('prompt' in srcConfig) merged.prompt = srcConfig.prompt;
+    parts.push('prompt');
+  }
+  if (options.copyTools) {
+    if ('tools' in srcConfig) merged.tools = srcConfig.tools;
+    parts.push('ferramentas');
+  }
+  if (options.copyModel) {
+    model = sourceVersion.model;
+    persona = sourceVersion.persona;
+    if ('temperature' in srcConfig) merged.temperature = srcConfig.temperature;
+    if ('max_tokens' in srcConfig) merged.max_tokens = srcConfig.max_tokens;
+    if ('reasoning' in srcConfig) merged.reasoning = srcConfig.reasoning;
+    parts.push('modelo');
+  }
+
+  const change_summary = parts.length > 0
+    ? `Restaurado de v${sourceVersion.version} (${parts.join(' + ')})`
+    : `Restaurado de v${sourceVersion.version} (sem alterações)`;
+
   return createAgentVersion({
     agentId,
-    model: sourceVersion.model,
-    persona: sourceVersion.persona,
-    mission: sourceVersion.mission,
-    config: (sourceVersion.config ?? {}) as Record<string, unknown>,
-    change_summary: `Restaurado de v${sourceVersion.version}`,
+    model,
+    persona,
+    mission,
+    config: merged,
+    change_summary,
   });
 }
 
