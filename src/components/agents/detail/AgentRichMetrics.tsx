@@ -122,7 +122,7 @@ export function AgentRichMetrics({ agentId, days = 14 }: Props) {
           )}
         </ChartCard>
 
-        <ChartCard title="Custo por dia (USD)" subtitle="Gasto diário com modelos" icon={DollarSign}>
+        <ChartCard title="Custo por dia (USD)" subtitle="Clique em uma barra para detalhar o dia" icon={DollarSign}>
           {daily.some((d) => d.cost > 0) ? (
             <LightBarChart
               data={daily}
@@ -131,6 +131,7 @@ export function AgentRichMetrics({ agentId, days = 14 }: Props) {
               height={200}
               tooltipFormatter={(v) => formatCost(v)}
               yFormatter={(v) => v < 1 ? `$${v.toFixed(2)}` : `$${v.toFixed(0)}`}
+              onBarClick={(d) => setSelectedDay(d as DailyPoint)}
             />
           ) : (
             <EmptyChart label="Sem custos registrados" />
@@ -152,7 +153,7 @@ export function AgentRichMetrics({ agentId, days = 14 }: Props) {
           )}
         </ChartCard>
 
-        <ChartCard title="Tokens por dia" subtitle="Input + output" icon={Cpu}>
+        <ChartCard title="Tokens por dia" subtitle="Clique em uma barra para detalhar o dia" icon={Cpu}>
           {daily.some((d) => d.tokens > 0) ? (
             <LightBarChart
               data={daily}
@@ -161,6 +162,7 @@ export function AgentRichMetrics({ agentId, days = 14 }: Props) {
               height={200}
               tooltipFormatter={(v) => `${formatNumber(v)} tokens`}
               yFormatter={(v) => v >= 1000 ? `${(v / 1000).toFixed(0)}k` : String(v)}
+              onBarClick={(d) => setSelectedDay(d as DailyPoint)}
             />
           ) : (
             <EmptyChart label="Sem consumo de tokens" />
