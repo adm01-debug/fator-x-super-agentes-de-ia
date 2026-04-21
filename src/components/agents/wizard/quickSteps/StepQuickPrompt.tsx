@@ -3,6 +3,7 @@ import { Label } from '@/components/ui/label';
 import { Button } from '@/components/ui/button';
 import { RefreshCw } from 'lucide-react';
 import type { QuickAgentForm } from '@/lib/validations/quickAgentSchema';
+import { CompiledPromptPreview } from './CompiledPromptPreview';
 
 interface Props {
   form: QuickAgentForm;
