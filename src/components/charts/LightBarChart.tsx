@@ -129,6 +129,11 @@ export function LightBarChart({
               return (
                 <g
                   key={di}
+                  className={onBarClick ? 'cursor-pointer' : undefined}
+                  role={onBarClick ? 'button' : undefined}
+                  tabIndex={onBarClick ? 0 : undefined}
+                  onClick={onBarClick ? () => onBarClick(d, di) : undefined}
+                  onKeyDown={onBarClick ? (e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onBarClick(d, di); } } : undefined}
                   onMouseEnter={() => {
                     const rect = ref.current?.getBoundingClientRect();
                     if (!rect) return;
@@ -165,7 +170,11 @@ export function LightBarChart({
                       height={Math.max(0, barH)}
                       fill={s.color}
                       rx={r}
-                      className="transition-opacity hover:opacity-80"
+                      className={`transition-opacity hover:opacity-80 ${onBarClick ? 'cursor-pointer' : ''}`}
+                      role={onBarClick ? 'button' : undefined}
+                      tabIndex={onBarClick ? 0 : undefined}
+                      onClick={onBarClick ? () => onBarClick(d, di) : undefined}
+                      onKeyDown={onBarClick ? (e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onBarClick(d, di); } } : undefined}
                       onMouseEnter={() => {
                         setTooltip({
                           x: m.left + x + barW / 2,
