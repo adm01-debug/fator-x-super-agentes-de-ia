@@ -3,14 +3,18 @@ import { useParams, useNavigate } from "react-router-dom";
 import { PageHeader } from "@/components/shared/PageHeader";
 import { StatusBadge } from "@/components/shared/StatusBadge";
 import { Button } from "@/components/ui/button";
-import { Bot, Loader2, GitCompare, GitBranch, Activity, Bell, Play } from "lucide-react";
-import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { getAgentById, getAgentVersions, getAgentDetailTraces, type AgentTrace } from "@/services/agentsService";
+import { Bot, Loader2, GitCompare, GitBranch, Activity, Bell, Play, Undo2 } from "lucide-react";
+import { useQuery, useQueryClient, useMutation } from "@tanstack/react-query";
+import { getAgentById, getAgentVersions, getAgentDetailTraces, restoreAgentVersion, type AgentTrace, type AgentVersion } from "@/services/agentsService";
 import { VersionDiffDialog } from "@/components/agents/VersionDiffDialog";
 import { AgentCardViewer } from "@/components/agents/AgentCardViewer";
 import { AgentRichMetrics } from "@/components/agents/detail/AgentRichMetrics";
 import { SimulationResultDialog } from "@/components/agents/detail/SimulationResultDialog";
 import { simulateAgentRun, type SimulationSummary } from "@/services/agentTestSimulationService";
+import {
+  AlertDialog, AlertDialogContent, AlertDialogHeader, AlertDialogFooter,
+  AlertDialogTitle, AlertDialogDescription, AlertDialogAction, AlertDialogCancel,
+} from "@/components/ui/alert-dialog";
 import { toast } from "sonner";
 
 export default function AgentDetailPage() {
@@ -154,19 +158,51 @@ export default function AgentDetailPage() {
 
 function VersionHistory({ agentId }: { agentId: string }) {
   const navigate = useNavigate();
+  const queryClient = useQueryClient();
   const [diffOpen, setDiffOpen] = useState(false);
+  const [rollbackOpen, setRollbackOpen] = useState(false);
   const { data: versions = [], isLoading } = useQuery({
     queryKey: ['agent_versions', agentId],
     queryFn: () => getAgentVersions(agentId, 20),
   });
 
+  const current: AgentVersion | undefined = versions[0];
+  const previous: AgentVersion | undefined = versions[1];
+  const nextVersionNumber = (current?.version ?? 0) + 1;
+
+  const rollbackMut = useMutation({
+    mutationFn: () => restoreAgentVersion(agentId, previous!, current, { copyPrompt: true, copyTools: true, copyModel: true }),
+    onSuccess: (data) => {
+      toast.success(`Rollback concluído — v${data.version} criada a partir de v${previous!.version}`);
+      queryClient.invalidateQueries({ queryKey: ['agent_versions', agentId] });
+      queryClient.invalidateQueries({ queryKey: ['agent', agentId] });
+      setRollbackOpen(false);
+    },
+    onError: (e: Error) => toast.error(e.message || 'Falha no rollback'),
+  });
+
   if (isLoading || versions.length === 0) return null;
+
+  const canRollback = !!previous && !!current;
 
   return (
     <div className="nexus-card">
       <div className="flex items-center justify-between mb-3">
         <h3 className="text-sm font-heading font-semibold text-foreground">Histórico de Versões</h3>
         <div className="flex items-center gap-1.5">
+          {canRollback && (
+            <Button
+              variant="outline"
+              size="sm"
+              className="gap-1.5 text-xs h-7 border-nexus-amber/40 text-nexus-amber hover:bg-nexus-amber/10 hover:text-nexus-amber"
+              onClick={() => setRollbackOpen(true)}
+              disabled={rollbackMut.isPending}
+              title={`Restaurar v${previous.version} criando v${nextVersionNumber}`}
+            >
+              {rollbackMut.isPending ? <Loader2 className="h-3 w-3 animate-spin" /> : <Undo2 className="h-3 w-3" />}
+              Rollback v{previous.version}
+            </Button>
+          )}
           <Button variant="outline" size="sm" className="gap-1.5 text-xs h-7" onClick={() => navigate(`/agents/${agentId}/versions`)}>
             <GitBranch className="h-3 w-3" /> Gerenciar versões
           </Button>
@@ -192,6 +228,54 @@ function VersionHistory({ agentId }: { agentId: string }) {
         ))}
       </div>
       <VersionDiffDialog open={diffOpen} onOpenChange={setDiffOpen} agentId={agentId} versions={versions as unknown as Array<{ id: string; version: number; model: string | null; persona: string | null; mission: string | null; config: Record<string, unknown>; change_summary: string | null; created_at: string }>} />
+
+      <AlertDialog open={rollbackOpen} onOpenChange={setRollbackOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle className="flex items-center gap-2">
+              <Undo2 className="h-4 w-4 text-nexus-amber" aria-hidden />
+              Rollback rápido para v{previous?.version}
+            </AlertDialogTitle>
+            <AlertDialogDescription asChild>
+              <div className="space-y-3 text-sm">
+                <p>
+                  Será criada uma nova versão <span className="font-mono font-semibold text-foreground">v{nextVersionNumber}</span>{' '}
+                  copiando prompt, ferramentas e modelo de{' '}
+                  <span className="font-mono font-semibold text-foreground">v{previous?.version}</span>.
+                </p>
+                <div className="rounded-lg bg-secondary/40 p-3 text-xs space-y-1.5">
+                  <div className="flex justify-between">
+                    <span className="text-muted-foreground">Atual</span>
+                    <span className="font-mono text-foreground">v{current?.version} · {String(current?.model ?? '—')}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-muted-foreground">Origem do rollback</span>
+                    <span className="font-mono text-foreground">v{previous?.version} · {String(previous?.model ?? '—')}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-muted-foreground">Nova versão</span>
+                    <span className="font-mono text-nexus-emerald">v{nextVersionNumber}</span>
+                  </div>
+                </div>
+                <p className="text-xs text-muted-foreground">
+                  Nenhum histórico será apagado — o rollback é não destrutivo.
+                </p>
+              </div>
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={rollbackMut.isPending}>Cancelar</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={(e) => { e.preventDefault(); rollbackMut.mutate(); }}
+              disabled={rollbackMut.isPending}
+              className="gap-1.5"
+            >
+              {rollbackMut.isPending ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Undo2 className="h-3.5 w-3.5" />}
+              Confirmar rollback
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }
