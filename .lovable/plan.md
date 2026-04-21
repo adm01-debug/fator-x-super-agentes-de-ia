@@ -1,105 +1,95 @@
 
 
-## Validação pré-save de versão (rascunho) com placeholders, limites e inconsistências
+## Diff visual de guardrails com resumo por categoria, severidade e thresholds
 
-Adiciono uma camada de validação reutilizável que roda **antes** de salvar um rascunho de versão no `DraftVersionsDialog`. Ela detecta:
+Hoje a comparação de versões mostra guardrails como uma simples tabela "está / não está" pelo nome. Vou trocar essa tabela por um painel rico que destaca:
 
-1. **Placeholders ausentes** no `system_prompt` (ex.: `{{name}}`, `{{mission}}`, `{{custom_var}}` que não resolvem).
-2. **Tamanho mínimo/máximo** do prompt (reusa `PROMPT_LIMITS` já existente) e do **label/nota** do rascunho.
-3. **Inconsistências de configuração** entre os módulos do agente.
+1. **Resumo por categoria** (`input_validation`, `output_safety`, `access_control`, `operational`).
+2. **Mudanças de severidade** (`block` ↔ `warn` ↔ `log`) em guardrails que continuam ativos.
+3. **Mudanças de threshold/config** (qualquer chave dentro de `config: Record<string, unknown>`).
+4. **Adições, remoções e itens estáveis** com badges visuais.
 
-### Visão final no dialog
+### Visão final
 
 ```text
-┌─ Salvar estado atual ─────────────────────── local ─┐
-│ [ Título do rascunho ........................... ] │
-│ [ Anotação opcional ............................ ] │
-│                                                     │
-│ ⚠ Validação antes de salvar         3 itens        │
-│ ─────────────────────────────────────────────────── │
-│ ✕ Erro    Prompt abaixo do mínimo (32/50 chars)    │
-│ ✕ Erro    Placeholders não resolvidos: {{tone}},   │
-│           {{customer_name}}                        │
-│ ⚠ Aviso   RAG ativo mas nenhuma fonte cadastrada   │
-│ ⚠ Aviso   Modelo "claude-opus" + 0 tools — caro    │
-│           para baixa capacidade efetiva            │
-│                                                     │
-│ [ Salvar mesmo assim ]      [ Salvar rascunho ▸ ]  │
-└─────────────────────────────────────────────────────┘
+┌─ Guardrails ──────────────── 12 totais · 3 mudanças ─┐
+│  + 1 adicionada    − 1 removida    ⚙ 1 alterada      │
+│                                                       │
+│  Por categoria                                        │
+│  🛡 input_validation     v3:  4 → v5:  4   (=)        │
+│  🚫 output_safety        v3:  3 → v5:  4   (+1)       │
+│  🔐 access_control       v3:  2 → v5:  1   (−1)       │
+│  ⚙ operational          v3:  3 → v5:  3   (=)        │
+│                                                       │
+│  Severidade (apenas itens em ambas)                   │
+│  pii_detection           warn → block   ↑ mais estrito│
+│  toxicity                block → warn   ↓ mais leve   │
+│                                                       │
+│  Thresholds / config                                  │
+│  pii_detection           confidence  0.7 → 0.85       │
+│  rate_limiter            max_rpm    60 → 30           │
+│                                                       │
+│  ▸ Ver detalhes de todos os guardrails                │
+│  ┌─ tabela colapsável (estado atual: nome/cat/sev) ─┐ │
+└───────────────────────────────────────────────────────┘
 ```
-
-- **Erros bloqueiam** o botão principal "Salvar rascunho" por padrão.
-- Botão secundário **"Salvar mesmo assim"** aparece só quando há erros e permite override consciente (snapshot continua sendo só local).
-- Avisos nunca bloqueiam — apenas alertam.
 
 ### Componentes / mudanças
 
-**1. Novo `src/lib/validations/agentVersionValidator.ts`** (puro, sem dependências de UI):
-```ts
-export interface VersionValidationIssue {
-  level: 'error' | 'warning';
-  code: string;          // 'prompt.too_short' | 'prompt.unresolved_vars' | 'config.rag_no_sources' | ...
-  field?: string;        // 'label' | 'note' | 'system_prompt' | 'rag' | 'tools' | 'model'
-  message: string;       // PT-BR
-}
-export interface VersionValidationResult {
-  errors: VersionValidationIssue[];
-  warnings: VersionValidationIssue[];
-  canSave: boolean;      // === errors.length === 0
-}
-export function validateAgentVersion(
-  agent: AgentConfig,
-  meta: { label: string; note?: string },
-): VersionValidationResult
-```
+**1. Estender `src/lib/agentChangelog.ts`** (puro, sem UI):
+- Novo tipo `GuardrailLike { id?, name?, category?, severity?, enabled?, config? }`.
+- Novo helper `getVersionGuardrailObjects(v)` retornando array completo de guardrails (não só nomes).
+- Novo `diffGuardrails(prev, next): GuardrailDiff` com:
+  ```ts
+  interface GuardrailDiff {
+    added: GuardrailLike[];
+    removed: GuardrailLike[];
+    kept: Array<{
+      key: string;             // name||id
+      prev: GuardrailLike;
+      next: GuardrailLike;
+      severityChanged?: { from: string; to: string };
+      configChanges: Array<{ key: string; from: unknown; to: unknown }>;
+    }>;
+    byCategory: Record<string, { prev: number; next: number; delta: number }>;
+    summary: { added: number; removed: number; modified: number; total: number };
+  }
+  ```
+- `generateChangelog` continua funcionando como hoje (compat); o painel novo usa `diffGuardrails` direto para riqueza extra.
 
-Regras implementadas:
-- **Label**: `trim` 3–80 chars; obrigatório se usuário digitou algo (vazio = ok, usa auto-label).
-- **Nota**: máx 500 chars.
-- **Prompt mínimo/máximo**: reusa `analyzePromptStructure` + `PROMPT_LIMITS` (`MIN_TOTAL`, `MAX_TOTAL`, `MAX_LINES`). `belowMin` e `exceedsCharLimit` viram **erro**, `consecutiveEmptyBlocks` vira **aviso**.
-- **Placeholders ausentes**: chama `compilePrompt({...})` (já existe em `src/lib/promptCompiler.ts`) com os campos atuais do agente; o array `unresolvedVariables` retornado vira erro `prompt.unresolved_vars` listando as variáveis (ex.: `{{tone}}, {{customer_name}}`).
-- **Inconsistências de configuração** (todos warnings):
-  - `rag_sources.length === 0` mas `rag_architecture` ≠ `none` → "RAG ativo sem fontes".
-  - Nenhum tool habilitado mas `reasoning === 'react'` → "ReAct sem tools disponíveis".
-  - Modelo caro (`claude-opus-4.6` ou `gpt-4o`) com 0 tools e prompt < 200 chars → "Modelo caro para uso simples".
-  - Nenhum guardrail ativo + `status === 'production'` → "Produção sem guardrails".
-  - `memory_episodic` ou `memory_semantic` ativos mas nenhuma `memory_*` curto-prazo → "Memória de longo prazo sem curto prazo".
-  - `system_prompt` não menciona `{{name}}` nem o nome literal do agente → "Prompt não referencia identidade do agente".
+**2. Novo `src/components/agents/versioning/GuardrailsDiffPanel.tsx`**:
+- Recebe `versionA`, `versionB`.
+- Header com contagem total + mini-badges (`+N`, `-N`, `⚙ N`).
+- **Bloco "Por categoria"**: lista das 4 categorias conhecidas com contagem antes/depois, delta colorido (verde se cresceu em safety, neutro caso contrário).
+- **Bloco "Severidade"**: só itens em ambas as versões com mudança; ícone de seta + rótulo "mais estrito"/"mais leve" (block > warn > log).
+- **Bloco "Thresholds / config"**: lista plana `nome · key   from → to` (formata números, booleanos, strings curtos; `JSON.stringify` truncado para objetos).
+- **Detalhes colapsável** (`<details>` nativo): tabela com nome, categoria, severidade, status (`+ adicionada`, `− removida`, `⚙ alterada`, `=`).
+- Tudo com tokens semânticos (`--nexus-emerald`, `--destructive`, `--nexus-amber`, `--primary`, `--muted-foreground`).
+- Empty state amigável quando não há guardrails em nenhuma versão.
 
-**2. Novo `src/components/agent-builder/VersionValidationPanel.tsx`**:
-- Recebe `result: VersionValidationResult`.
-- Renderiza header com contagem `N erros, M avisos` e ícones (`ShieldAlert` / `AlertTriangle`).
-- Lista compacta com cor por nível (token semântico `--destructive` / `--nexus-amber`), texto da regra e código pequeno em `font-mono` (ex.: `prompt.unresolved_vars`).
-- Quando vazio: card discreto verde "Validações OK" (`--nexus-emerald`), sem ocupar espaço excessivo.
-- Acessível: `role="alert"` para erros, `role="status"` para avisos.
-
-**3. Editar `src/components/agent-builder/DraftVersionsDialog.tsx`**:
-- Importar `validateAgentVersion` + `VersionValidationPanel`.
-- Calcular `validation` via `useMemo` dependente de `[agent, label, note]`.
-- Renderizar `<VersionValidationPanel result={validation} />` entre o textarea e os botões.
-- Estado local `forceSave: boolean` (reset toda vez que o dialog abre).
-- Botão "Salvar rascunho" `disabled={!validation.canSave && !forceSave}`.
-- Quando `errors.length > 0`, mostrar botão secundário ghost "Salvar mesmo assim" que faz `setForceSave(true)` e dispara o save no clique seguinte (ou direto, com `toast` de aviso).
-- `handleSave` permanece chamando `saveDraftVersion` (sem mudança de assinatura), mas só roda quando habilitado.
+**3. Editar `src/components/agents/versioning/VersionComparePanel.tsx`**:
+- Substituir o atual `<DiffTable title="Guardrails" ... />` por `<GuardrailsDiffPanel versionA={versionA} versionB={versionB} />`.
+- Manter o `DiffTable` existente para "Ferramentas" intacto (escopo isolado).
+- Layout: o painel de guardrails vira full-width abaixo do prompt (em vez de dividir o grid 50/50 com Tools), porque tem mais conteúdo. Tools fica acima sozinho num card largo, ou em grid 2-col com um espaço reservado vazio — escolho **stack vertical** (Tools full-width, depois Guardrails full-width) para legibilidade.
 
 ### Detalhes técnicos
 
-- **Sem alteração de schema, sem backend**, sem mudança em `agentDraftVersionsService` (a validação fica fora — separação clara entre regra e armazenamento).
-- **Reuso máximo**: `analyzePromptStructure`, `PROMPT_LIMITS`, `compilePrompt` já existentes.
-- **Tokens semânticos**: `--destructive`, `--nexus-amber`, `--nexus-emerald`, `--muted-foreground`. Zero cor hard-coded.
-- **i18n**: mensagens PT-BR diretas (alinhadas ao padrão atual de `getPromptIssues`).
-- **Testabilidade**: validador é função pura → fácil de cobrir com vitest no futuro (`src/test/agent-version-validator.test.ts`, opcional, fora do escopo desta entrega).
-- **Reusabilidade**: a função `validateAgentVersion` poderá ser plugada também no `savePromptVersion` do store e no fluxo "Criar versão real" (botão Salvar do builder) em um próximo passo, sem refator.
+- **Compatibilidade retroativa**: versões antigas que guardam guardrails só como `{ name, enabled }` continuam funcionando — campos faltantes viram "—" nas células e simplesmente não geram entradas em "Severidade" ou "Thresholds".
+- **Identidade do guardrail**: chave de matching = `name || id` (igual ao `enabledNames` atual), garantindo que comparação não quebre quando IDs são gerados em runtime.
+- **Sem mudança de schema, sem backend, sem migração** — leitura pura de `version.config.guardrails`.
+- **Reaproveitamento**: a função `diffGuardrails` fica em `agentChangelog.ts` e pode ser usada futuramente em alertas de auditoria (ex.: "guardrail X foi enfraquecido na v7").
+- **Acessibilidade**: cada bloco tem heading `<h4>`, ícones `aria-hidden`, mudanças de severidade com texto descritivo (não só cor).
+- **Performance**: diff é O(n) no nº de guardrails (tipicamente <30); roda sincronamente no render.
 
 ### Arquivos
 
-- **Criar**: `src/lib/validations/agentVersionValidator.ts`
-- **Criar**: `src/components/agent-builder/VersionValidationPanel.tsx`
-- **Editar**: `src/components/agent-builder/DraftVersionsDialog.tsx` — integrar painel, bloquear save com erros, opção de override.
+- **Editar**: `src/lib/agentChangelog.ts` — adicionar `diffGuardrails`, `getVersionGuardrailObjects`, tipo `GuardrailDiff`.
+- **Criar**: `src/components/agents/versioning/GuardrailsDiffPanel.tsx`.
+- **Editar**: `src/components/agents/versioning/VersionComparePanel.tsx` — trocar a `DiffTable` de guardrails pelo novo painel e ajustar o layout para stack vertical.
 
 ### Impacto
 
-- Usuário recebe feedback claro **antes** de salvar versão sobre prompt incompleto, variáveis não resolvidas e configuração suspeita do agente.
-- Reduz rascunhos "lixo" (vazios, com placeholders crus, inconsistentes) sem impedir flexibilidade (override consciente).
-- Base reutilizável para validar futuros saves reais (versão persistida no backend).
+- Revisor de versão vê em segundos **o que mudou em proteção** (não só "quantos itens"): se pii_detection ficou mais estrito, se um guardrail crítico foi removido, se thresholds foram afrouxados.
+- Resumo por categoria revela rapidamente desequilíbrios (ex.: "v5 removeu access_control sem ganhar nada em troca").
+- Zero impacto fora do painel de comparação; ferramentas, prompt e changelog automático seguem idênticos.
 
