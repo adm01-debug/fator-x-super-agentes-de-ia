@@ -182,7 +182,12 @@ export const QUICK_AGENT_TEMPLATES: Record<QuickAgentType, QuickAgentTemplate> =
 - **Resposta** (parágrafo conclusivo)
 - **Evidências** (citações com [n] e link)
 - **Lacunas conhecidas** (o que não foi possível confirmar)
-- **Confiança**: alta / média / baixa`,
+- **Confiança**: alta / média / baixa
+
+## Regras
+- Nunca afirme sem citar fonte verificável
+- Sinalize claramente quando recorrer a especulação
+- Recuse responder se as fontes forem insuficientes`,
   },
   orchestrator: {
     type: 'orchestrator',
