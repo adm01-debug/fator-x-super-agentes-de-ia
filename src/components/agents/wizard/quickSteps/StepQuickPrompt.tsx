@@ -99,6 +99,9 @@ export function StepQuickPrompt({ form, errors, update, onRestore, onApplyVarian
 
       {/* Consolidated prompt preview — final text the LLM will receive */}
       <CompiledPromptPreview form={form} />
+
+      {/* Live test against the LLM with mock payload */}
+      <QuickAgentTestPanel form={form} />
     </div>
   );
 }
