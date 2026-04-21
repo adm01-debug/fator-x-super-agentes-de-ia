@@ -33,6 +33,40 @@ const STEPS = [
 ] as const;
 
 const DRAFT_KEY = 'quick-agent-wizard-draft';
+const DRAFT_TTL_MS = 7 * 24 * 60 * 60 * 1000; // 7 dias
+
+interface DraftEnvelope {
+  form: QuickAgentForm;
+  savedAt: string;
+}
+
+function readDraftEnvelope(): DraftEnvelope | null {
+  try {
+    const raw = localStorage.getItem(DRAFT_KEY);
+    if (!raw) return null;
+    const parsed = JSON.parse(raw);
+    if (parsed && typeof parsed === 'object' && 'form' in parsed && 'savedAt' in parsed) {
+      const env = parsed as DraftEnvelope;
+      return { form: { ...QUICK_AGENT_DEFAULTS, ...env.form }, savedAt: env.savedAt };
+    }
+    return { form: { ...QUICK_AGENT_DEFAULTS, ...parsed }, savedAt: new Date().toISOString() };
+  } catch {
+    return null;
+  }
+}
+
+function summarize(form: QuickAgentForm): DraftSummary {
+  return {
+    name: form.name,
+    hasIdentity:
+      form.name.trim().length > 0 ||
+      form.mission.trim().length > 0 ||
+      (form.description ?? '').trim().length > 0,
+    hasType: quickTypeSchema.safeParse(form).success,
+    hasModel: quickModelSchema.safeParse(form).success,
+    hasPrompt: form.prompt.trim().length >= 10,
+  };
+}
 
 interface QuickCreateWizardProps {
   onBack: () => void;
@@ -45,18 +79,52 @@ export function QuickCreateWizard({ onBack }: QuickCreateWizardProps) {
   const [saving, setSaving] = useState(false);
   const [errors, setErrors] = useState<Partial<Record<keyof QuickAgentForm, string>>>({});
 
-  const [form, setForm] = useState<QuickAgentForm>(() => {
-    try {
-      const draft = localStorage.getItem(DRAFT_KEY);
-      if (draft) return { ...QUICK_AGENT_DEFAULTS, ...JSON.parse(draft) };
-    } catch {/* ignore */}
-    return QUICK_AGENT_DEFAULTS;
-  });
+  const [form, setForm] = useState<QuickAgentForm>(QUICK_AGENT_DEFAULTS);
+  const [pendingDraft, setPendingDraft] = useState<DraftEnvelope | null>(null);
+  const [draftDecided, setDraftDecided] = useState(false);
 
-  // Auto-save draft
+  // On mount: check for a meaningful, non-expired draft and offer recovery.
   useEffect(() => {
-    try { localStorage.setItem(DRAFT_KEY, JSON.stringify(form)); } catch {/* ignore */}
-  }, [form]);
+    const env = readDraftEnvelope();
+    if (!env) { setDraftDecided(true); return; }
+    const ageMs = Date.now() - new Date(env.savedAt).getTime();
+    if (!Number.isFinite(ageMs) || ageMs > DRAFT_TTL_MS || !isDraftMeaningful(env.form)) {
+      try { localStorage.removeItem(DRAFT_KEY); } catch {/* ignore */}
+      setDraftDecided(true);
+      return;
+    }
+    setPendingDraft(env);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  // Auto-save draft only after the user decided what to do with any prior draft.
+  useEffect(() => {
+    if (!draftDecided) return;
+    try {
+      const envelope: DraftEnvelope = { form, savedAt: new Date().toISOString() };
+      localStorage.setItem(DRAFT_KEY, JSON.stringify(envelope));
+    } catch {/* ignore */}
+  }, [form, draftDecided]);
+
+  const restoreDraft = () => {
+    if (!pendingDraft) return;
+    setForm(pendingDraft.form);
+    const resumeIdx = STEPS.findIndex((s) => !s.schema.safeParse(pendingDraft.form).success);
+    const target = resumeIdx === -1 ? STEPS.length - 1 : resumeIdx;
+    setStep(target);
+    setPendingDraft(null);
+    setDraftDecided(true);
+    toast.success('Rascunho restaurado', {
+      description: `Continuando do passo: ${STEPS[target].label}`,
+    });
+  };
+
+  const discardDraft = () => {
+    try { localStorage.removeItem(DRAFT_KEY); } catch {/* ignore */}
+    setPendingDraft(null);
+    setDraftDecided(true);
+    toast('Rascunho descartado');
+  };
 
   const update = <K extends keyof QuickAgentForm>(key: K, value: QuickAgentForm[K]) => {
     setForm((prev) => ({ ...prev, [key]: value }));
