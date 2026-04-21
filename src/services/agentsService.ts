@@ -26,6 +26,8 @@ export interface AgentTrace {
   cost_usd: number | null;
   level: string | null;
   created_at: string;
+  event?: string | null;
+  metadata?: Record<string, unknown> | null;
 }
 
 export interface AgentUsage {
@@ -126,6 +128,66 @@ export async function getAgentRecentAlerts(agentId: string, limit = 5): Promise<
     throw error;
   }
   return (data ?? []) as AgentAlert[];
+}
+
+export interface FailureRecord {
+  id: string;
+  source: 'alert' | 'trace';
+  category: string;
+  message: string;
+  event?: string | null;
+  is_resolved?: boolean;
+  created_at: string;
+}
+
+/** Junta alerts + traces de erro/aviso para a tabela de falhas no Agent Details. */
+export async function getAgentFailures(agentId: string, perSourceLimit = 200): Promise<FailureRecord[]> {
+  const [alertsRes, tracesRes] = await Promise.all([
+    supabaseExternal
+      .from('alerts')
+      .select('id, severity, title, message, is_resolved, created_at')
+      .eq('agent_id', agentId)
+      .order('created_at', { ascending: false })
+      .limit(perSourceLimit),
+    supabaseExternal
+      .from('agent_traces')
+      .select('id, level, event, metadata, created_at')
+      .eq('agent_id', agentId)
+      .in('level', ['error', 'critical', 'warning'])
+      .order('created_at', { ascending: false })
+      .limit(perSourceLimit),
+  ]);
+
+  if (alertsRes.error) logger.error('Failed to fetch failure alerts', { agentId, error: alertsRes.error.message });
+  if (tracesRes.error) logger.error('Failed to fetch failure traces', { agentId, error: tracesRes.error.message });
+
+  const fromAlerts: FailureRecord[] = (alertsRes.data ?? []).map((a) => ({
+    id: `alert-${a.id}`,
+    source: 'alert' as const,
+    category: a.severity ?? 'info',
+    message: a.message ?? a.title ?? '(sem mensagem)',
+    is_resolved: a.is_resolved ?? false,
+    created_at: a.created_at ?? new Date().toISOString(),
+  }));
+
+  const fromTraces: FailureRecord[] = (tracesRes.data ?? []).map((t) => {
+    const meta = (t.metadata ?? {}) as Record<string, unknown>;
+    const errMsg = typeof meta.error === 'string' ? meta.error
+      : typeof meta.message === 'string' ? meta.message
+      : null;
+    return {
+      id: `trace-${t.id}`,
+      source: 'trace' as const,
+      category: t.level ?? 'error',
+      message: errMsg ?? t.event ?? '(sem mensagem)',
+      event: t.event,
+      created_at: t.created_at ?? new Date().toISOString(),
+    };
+  });
+
+  return [...fromAlerts, ...fromTraces].sort(
+    (a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime(),
+  );
 }
 
 export interface CreateAgentVersionInput {
