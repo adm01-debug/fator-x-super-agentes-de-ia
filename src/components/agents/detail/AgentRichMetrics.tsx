@@ -8,12 +8,11 @@ import { getAgentDetailTraces, getAgentUsage, getAgentRecentAlerts } from '@/ser
 import {
   buildDailySeries,
   computeSLO,
-  buildSLOTargets,
   formatCost,
   formatNumber,
   type DailyPoint,
 } from './agentMetricsHelpers';
-import { SLOPanel } from './SLOPanel';
+import { InteractiveSLOPanel } from './InteractiveSLOPanel';
 import { DayDrillDownDrawer } from './DayDrillDownDrawer';
 
 interface Props {
@@ -39,7 +38,6 @@ export function AgentRichMetrics({ agentId, days = 14 }: Props) {
 
   const daily = useMemo(() => buildDailySeries(usage, days), [usage, days]);
   const slo = useMemo(() => computeSLO(traces), [traces]);
-  const sloTargets = useMemo(() => buildSLOTargets(slo), [slo]);
 
   const totals = useMemo(() => {
     const totalRequests = daily.reduce((s, d) => s + d.requests, 0);
@@ -173,7 +171,13 @@ export function AgentRichMetrics({ agentId, days = 14 }: Props) {
       {/* SLO + status distribution */}
       <div className="grid lg:grid-cols-3 gap-4">
         <div className="lg:col-span-2">
-          <SLOPanel targets={sloTargets} />
+          <InteractiveSLOPanel
+            agentId={agentId}
+            slo={slo}
+            traces={traces}
+            daily={daily}
+            onDayClick={setSelectedDay}
+          />
         </div>
 
         <div className="nexus-card">

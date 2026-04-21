@@ -122,3 +122,70 @@ export function formatCost(v: number): string {
 export function formatNumber(v: number): string {
   return v.toLocaleString('pt-BR');
 }
+
+/** Calcula consumo de error budget mensal e ETA de exaustão. */
+export function computeBudgetBurn(
+  slo: SLOMetrics,
+  errorBudgetPct: number,
+): { consumedPct: number; daysToExhaustion: number | null; status: 'healthy' | 'warning' | 'critical' } {
+  if (slo.totalTraces === 0 || errorBudgetPct <= 0) {
+    return { consumedPct: 0, daysToExhaustion: null, status: 'healthy' };
+  }
+  const consumedPct = Math.min(999, (slo.errorRate / errorBudgetPct) * 100);
+  // assume janela observada = ~14 dias; mês = 30 dias
+  const burnRatePerDay = slo.errorRate / 14;
+  const remainingBudget = Math.max(0, errorBudgetPct - slo.errorRate);
+  const daysToExhaustion = burnRatePerDay > 0 ? Math.round(remainingBudget / burnRatePerDay) : null;
+  const status: 'healthy' | 'warning' | 'critical' =
+    consumedPct >= 100 ? 'critical' : consumedPct >= 70 ? 'warning' : 'healthy';
+  return { consumedPct, daysToExhaustion, status };
+}
+
+export interface ViolationDay {
+  date: string;
+  label: string;
+  p95Violations: number;
+  p99Violations: number;
+  errors: number;
+  total: number;
+}
+
+/** Agrupa traces por dia e conta violações vs. metas. */
+export function buildViolationTimeline(
+  traces: AgentTrace[],
+  targets: { p95: number; p99: number },
+  days = 14,
+): ViolationDay[] {
+  const map = new Map<string, ViolationDay>();
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+
+  for (let i = days - 1; i >= 0; i--) {
+    const d = new Date(today);
+    d.setDate(today.getDate() - i);
+    const iso = d.toISOString().split('T')[0];
+    map.set(iso, {
+      date: iso,
+      label: `${String(d.getDate()).padStart(2, '0')}/${String(d.getMonth() + 1).padStart(2, '0')}`,
+      p95Violations: 0,
+      p99Violations: 0,
+      errors: 0,
+      total: 0,
+    });
+  }
+
+  traces.forEach((t) => {
+    const created = (t as { created_at?: string }).created_at;
+    if (!created) return;
+    const iso = new Date(created).toISOString().split('T')[0];
+    const day = map.get(iso);
+    if (!day) return;
+    day.total += 1;
+    const lat = Number(t.latency_ms ?? 0);
+    if (lat > targets.p99) day.p99Violations += 1;
+    else if (lat > targets.p95) day.p95Violations += 1;
+    if (t.level === 'error' || t.level === 'critical') day.errors += 1;
+  });
+
+  return Array.from(map.values());
+}
