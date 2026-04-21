@@ -159,12 +159,14 @@ export default function AgentVersioningPage() {
               </Button>
             </div>
 
-            {mode === 'detail' && selected && (
+            {mode === 'detail' && selected && current && (
               <VersionDetailPanel
                 version={selected}
-                isCurrent={versions[0]?.id === selected.id}
+                isCurrent={current.id === selected.id}
+                currentVersion={current}
+                nextVersionNumber={nextVersionNumber}
                 restoring={restoreMut.isPending}
-                onRestore={() => restoreMut.mutate(selected)}
+                onRestore={(options) => restoreMut.mutate({ source: selected, options })}
                 onDuplicate={() => handleDuplicateAsDraft(selected)}
               />
             )}
