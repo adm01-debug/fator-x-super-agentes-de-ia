@@ -3,12 +3,15 @@ import { useParams, useNavigate } from "react-router-dom";
 import { PageHeader } from "@/components/shared/PageHeader";
 import { StatusBadge } from "@/components/shared/StatusBadge";
 import { Button } from "@/components/ui/button";
-import { Bot, Loader2, GitCompare, GitBranch, Activity, Bell } from "lucide-react";
-import { useQuery } from "@tanstack/react-query";
-import { getAgentById, getAgentVersions } from "@/services/agentsService";
+import { Bot, Loader2, GitCompare, GitBranch, Activity, Bell, Play } from "lucide-react";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { getAgentById, getAgentVersions, getAgentDetailTraces, type AgentTrace } from "@/services/agentsService";
 import { VersionDiffDialog } from "@/components/agents/VersionDiffDialog";
 import { AgentCardViewer } from "@/components/agents/AgentCardViewer";
 import { AgentRichMetrics } from "@/components/agents/detail/AgentRichMetrics";
+import { SimulationResultDialog } from "@/components/agents/detail/SimulationResultDialog";
+import { simulateAgentRun, type SimulationSummary } from "@/services/agentTestSimulationService";
+import { toast } from "sonner";
 
 export default function AgentDetailPage() {
   const { id } = useParams();
