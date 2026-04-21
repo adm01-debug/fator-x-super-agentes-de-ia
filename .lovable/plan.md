@@ -1,70 +1,104 @@
 
 
-## Prévia ao vivo detalhada do agente no passo Prompt
+## Painel SLO interativo com metas ajustáveis e timeline de violações
 
-Substituo o card simples atual por um **AgentLivePreviewCard** rico que atualiza em tempo real (debounce 200ms) conforme o usuário edita qualquer campo do form.
+Substituo o `SLOPanel` estático atual por um **InteractiveSLOPanel** rico, no Agent Details, que permite ajustar metas via sliders, mostra p50/p95/p99 e budget burn, e desenha um timeline de violações ao longo dos últimos 14 dias usando os traces já carregados.
 
 ### Visão final
 
 ```text
-┌─ Prévia ao vivo ─────────────────────── atualiza ao vivo ─┐
-│  ╭───╮  Marina SDR                          [chatbot]      │
-│  │ 🤖│  modelo: gpt-4o · 4 seções ✓ · 2.140 chars         │
-│  ╰───╯                                                      │
-│                                                             │
-│  Missão                                                     │
-│  Qualificar leads inbound e agendar reuniões com SDRs...   │
-│                                                             │
-│  ─────────────────────────────────────────────────────     │
-│                                                             │
-│  Resumo do system prompt                  [ver completo ▾] │
-│                                                             │
-│  ## Persona                                                 │
-│  Você é a Marina, SDR consultiva especializada em SaaS B2B │
-│  ## Escopo                                                  │
-│  • Qualificar leads via BANT                                │
-│  • Agendar reuniões de discovery                            │
-│  ## Formato                                                 │
-│  Tom consultivo, respostas em até 3 parágrafos...          │
-│  …+ 18 linhas                                               │
-└────────────────────────────────────────────────────────────┘
+┌─ Painel SLO ─────────────────────────── [Resetar] [Salvar metas] ─┐
+│                                                                    │
+│  ┌─ Latência p50 ────┐ ┌─ Latência p95 ───┐ ┌─ Latência p99 ───┐  │
+│  │ 412ms  ✓ Saudável │ │ 1.840ms ⚠ Atenção│ │ 4.210ms ✓ OK     │  │
+│  │ alvo: [====●===] │ │ alvo: [======●=] │ │ alvo: [=====●==] │  │
+│  │ 1000ms           │ │ 2000ms           │ │ 5000ms           │  │
+│  └──────────────────┘ └──────────────────┘ └──────────────────┘  │
+│                                                                    │
+│  ┌─ Disponibilidade ─┐ ┌─ Error Budget Burn ──────────────────┐   │
+│  │ 99.2% ⚠           │ │  Consumido: 80% do budget mensal     │   │
+│  │ alvo: [======●==] │ │  ████████████████░░░░ 0.8% / 1.0%    │   │
+│  │ 99.5%             │ │  Em ritmo de exaustão em ~3 dias  ⚠ │   │
+│  └──────────────────┘ └──────────────────────────────────────┘   │
+│                                                                    │
+│  ─── Timeline de violações (últimos 14 dias) ────────────────────  │
+│  12/04 ▮▮▮▯▯▯▯▯▯▯▯▯▯▯  3 violações p95                            │
+│  13/04 ▯▯▯▯▯▯▯▯▯▯▯▯▯▯  sem violações                              │
+│  14/04 ▮▮▮▮▮▮▮▮▯▯▯▯▯▯  8 violações (p95 + erro)  ← pior dia      │
+│  ...                                                              │
+│                                                                    │
+│  Hover em qualquer dia → tooltip com nº de violações por tipo     │
+│  Clique em um dia → abre o DayDrillDownDrawer existente           │
+└────────────────────────────────────────────────────────────────────┘
 ```
 
-### Conteúdo do card
+### Componentes novos
 
-1. **Cabeçalho** — emoji grande (h-14 w-14), nome em destaque, badge do tipo, linha de meta (modelo · seções detectadas X/4 · contagem de chars com cor semântica conforme limite).
-2. **Missão** — bloco curto com a missão truncada em 2 linhas (`line-clamp-2`).
-3. **Resumo do system prompt** — **primeiras 12 linhas não vazias** do prompt em mono, com fade-out no final se houver mais e contador `+N linhas`. Botão "ver completo" expande para mostrar tudo (até 40 linhas, com scroll interno).
-4. **Indicador "atualiza ao vivo"** com dot pulsante quando houve mudança nos últimos 500ms.
+1. **`InteractiveSLOPanel.tsx`** (substitui `SLOPanel` na tela de detalhes; o antigo permanece para outros usos):
+   - 5 cards de meta (p50, p95, p99, disponibilidade, error budget)
+   - Cada card com slider (`@/components/ui/slider`) para ajustar a meta em tempo real
+   - Cores semânticas: `--nexus-emerald` (saudável), `--nexus-amber` (atenção), `--destructive` (crítico)
+   - Status calculado pelo helper `sloHealth` existente
+   - Budget burn card mostra: % do budget consumido + barra + ETA de exaustão (extrapolação linear)
+   - Botões "Resetar" (volta para alvos default) e "Salvar metas" (persiste em `localStorage` por agentId)
 
-### Arquivos a alterar
+2. **`SLOViolationTimeline.tsx`**:
+   - Recebe `traces` e `targets`, agrupa por dia
+   - Para cada dia calcula violações: latência > p95-target, latência > p99-target, level=error/critical
+   - Renderiza linha por dia com mini-barras horizontais (14 segmentos representando "intensidade" da violação)
+   - Tooltip on hover (`@/components/ui/tooltip`) com breakdown por tipo
+   - Click → reusa `setSelectedDay` do parent → abre `DayDrillDownDrawer`
 
-**1. `src/components/agents/wizard/quickSteps/AgentLivePreviewCard.tsx` (novo)**
-- Props: `form: QuickAgentForm`.
-- Usa `useDebounce(form, 200)` para evitar re-render por keystroke.
-- Lógica `summarizePrompt(text, max=12)`: split por `\n`, filtra linhas com algo (mas preserva headings `##`), pega as primeiras N, devolve `{ preview: string, totalLines: number, hiddenLines: number }`.
-- Estado local `expanded` para alternar 12 ↔ 40 linhas.
-- Detecta seções via `detectPromptSections` (já existe em `quickAgentSchema`) e mostra contador X/4.
-- Pulse de "atualizou agora" via `useEffect` que liga um `recentlyUpdated` por 500ms quando o debounced muda.
+### Helpers novos em `agentMetricsHelpers.ts`
 
-**2. `src/components/agents/wizard/quickSteps/StepQuickPrompt.tsx`**
-- Remove o bloco antigo de "Pré-visualização" (`nexus-card` com emoji + name + mission) — substituído.
-- Insere `<AgentLivePreviewCard form={form} />` no mesmo lugar.
-- Mantém `CompiledPromptPreview` e `QuickAgentTestPanel` abaixo (são finalidades diferentes — um é o texto consolidado para o LLM, o outro é o teste real).
+```typescript
+// Calcula budget burn mensal e ETA de exaustão
+export function computeBudgetBurn(slo: SLOMetrics, errorBudgetPct: number): {
+  consumedPct: number;
+  daysToExhaustion: number | null;
+  status: 'healthy' | 'warning' | 'critical';
+}
+
+// Agrupa violações por dia para o timeline
+export function buildViolationTimeline(
+  traces: AgentTrace[],
+  targets: { p95: number; p99: number },
+  days: number
+): Array<{ date: string; label: string; p95Violations: number; p99Violations: number; errors: number; total: number }>
+```
+
+### Persistência das metas ajustáveis
+
+- Chave: `nexus-slo-targets-${agentId}` em `localStorage`
+- Schema: `{ p50: number; p95: number; p99: number; availability: number; errorBudget: number }`
+- Hook custom `useAgentSLOTargets(agentId)` retorna `{ targets, setTargets, reset }`
+- Defaults vêm de `SLO_TARGETS` em `@/lib/slo/sloTargets.ts` (já existe)
+
+### Integração
+
+- **`AgentRichMetrics.tsx`**: troca `<SLOPanel targets={sloTargets} />` por `<InteractiveSLOPanel agentId={agentId} slo={slo} traces={traces} onDayClick={setSelectedDay} daily={daily} />`. O grid `lg:grid-cols-3` passa para layout vertical (timeline ocupa toda a largura abaixo dos cards de meta).
+- O card "Distribuição de traces" continua ao lado dos cards SLO (ou logo abaixo em mobile).
 
 ### Detalhes técnicos
 
-- **Debounce**: usa `useDebounce(form, 200)` (já existe em `src/hooks/use-debounce.ts`) para prévia suave sem travar digitação.
-- **Tipos**: `import type { QuickAgentForm } from '@/lib/validations/quickAgentSchema'`.
-- **Tokens semânticos**: `bg-card`, `border-border/50`, `text-muted-foreground`, `bg-primary/15`, `text-primary`, `bg-nexus-amber` para indicador "atualiza ao vivo". Zero hex.
-- **Acessibilidade**: dot pulsante com `aria-label="Atualizado agora"`; botão expandir com `aria-expanded`.
-- **Performance**: `summarizePrompt` é O(n) em chars (prompt máx 8KB → irrelevante). Sem `useMemo`.
-- **Responsivo**: card empilha em mobile (`flex-col sm:flex-row` no header).
-- **Reuso**: o card pode ser arrastado depois para o modo Avançado sem mudanças.
+- **Sliders**: `min/max` ajustados por métrica (p50: 100–3000ms, p95: 500–5000ms, p99: 1000–10000ms, disponibilidade: 95–100%, errorBudget: 0.1–5%). `step` apropriado.
+- **Debounce 150ms** ao ajustar slider para evitar re-render do timeline em cada pixel.
+- **Acessibilidade**: cada slider com `aria-label`, cards com `role="region"`, timeline com `role="list"` e cada linha `role="listitem"` + `tabIndex={0}` + `onKeyDown` (Enter/Space).
+- **Tokens semânticos** apenas: `--nexus-emerald`, `--nexus-amber`, `--destructive`, `--secondary`, `--muted-foreground`. Sem cores hard-coded.
+- **Sem migração, sem schema, sem rotas novas**. Tudo client-side com dados já carregados pelos `useQuery` existentes.
+
+### Arquivos
+
+- **Criar**: `src/components/agents/detail/InteractiveSLOPanel.tsx`
+- **Criar**: `src/components/agents/detail/SLOViolationTimeline.tsx`
+- **Criar**: `src/hooks/useAgentSLOTargets.ts`
+- **Editar**: `src/components/agents/detail/agentMetricsHelpers.ts` (adicionar `computeBudgetBurn` e `buildViolationTimeline`)
+- **Editar**: `src/components/agents/detail/AgentRichMetrics.tsx` (trocar `SLOPanel` por `InteractiveSLOPanel`, repassar `traces`/`daily`/`onDayClick`)
 
 ### Impacto
 
-- Usuário vê em tempo real como o agente está ficando enquanto edita o prompt (reduz "context switching" mental).
-- Zero migração, zero impacto no schema, zero mudança em outros wizards.
-- Reusa `useDebounce` e `detectPromptSections` já existentes.
+- Usuário pode calibrar SLOs por agente sem deploy, ver o impacto imediatamente nos cards e no timeline.
+- Timeline visual evidencia os "piores dias" e abre drill-down direto via drawer existente.
+- Budget burn alerta antes da exaustão (não só pós-violação).
+- Zero backend, reusa `DayDrillDownDrawer`, `sloHealth`, `SLO_TARGETS` e dados já em cache.
 
