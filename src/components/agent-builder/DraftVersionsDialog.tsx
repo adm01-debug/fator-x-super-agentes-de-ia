@@ -130,8 +130,30 @@ export function DraftVersionsDialog({ open, onOpenChange }: DraftVersionsDialogP
             className="text-xs resize-none"
             aria-label="Anotação"
           />
-          <div className="flex justify-end">
-            <Button size="sm" onClick={handleSave} className="gap-1.5">
+
+          <VersionValidationPanel result={validation} />
+
+          <div className="flex justify-end gap-2">
+            {!validation.canSave && (
+              <Button
+                size="sm"
+                variant="ghost"
+                onClick={() => {
+                  setForceSave(true);
+                  handleSave({ override: true });
+                }}
+                className="gap-1.5 text-destructive hover:text-destructive"
+                title="Ignorar erros e salvar mesmo assim"
+              >
+                Salvar mesmo assim
+              </Button>
+            )}
+            <Button
+              size="sm"
+              onClick={() => handleSave()}
+              disabled={!validation.canSave && !forceSave}
+              className="gap-1.5"
+            >
               <Save className="h-3.5 w-3.5" /> Salvar rascunho
             </Button>
           </div>
