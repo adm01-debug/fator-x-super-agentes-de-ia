@@ -87,6 +87,8 @@ export function getMissingSections(prompt: string): PromptSectionKey[] {
   return REQUIRED_PROMPT_SECTIONS.filter((s) => !detected[s.key]).map((s) => s.key);
 }
 
+import { analyzePromptStructure, PROMPT_LIMITS } from './promptSanitizer';
+
 export const quickPromptSchema = z.object({
   prompt: z
     .string()
@@ -102,6 +104,20 @@ export const quickPromptSchema = z.object({
         ctx.addIssue({
           code: z.ZodIssueCode.custom,
           message: `Faltam seções obrigatórias: ${labels}. Use headings markdown (## Persona, ## Escopo, ## Formato, ## Regras).`,
+        });
+      }
+      const struct = analyzePromptStructure(value);
+      if (struct.exceedsLineLimit) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          message: `Máximo ${PROMPT_LIMITS.MAX_LINES} linhas (atual: ${struct.lineCount}).`,
+        });
+      }
+      if (struct.longLines.length > 0) {
+        const first = struct.longLines[0];
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          message: `Linha ${first.line} excede ${PROMPT_LIMITS.MAX_LINE_LENGTH} caracteres (${first.length}). Quebre em parágrafos menores.`,
         });
       }
     }),

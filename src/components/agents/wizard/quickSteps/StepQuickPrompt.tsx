@@ -1,3 +1,5 @@
+import { useRef, type ChangeEvent, type ClipboardEvent } from 'react';
+import { toast } from 'sonner';
 import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
 import { Button } from '@/components/ui/button';
@@ -6,7 +8,9 @@ import type { QuickAgentForm } from '@/lib/validations/quickAgentSchema';
 import { CompiledPromptPreview } from './CompiledPromptPreview';
 import { PromptSectionChecklist } from './PromptSectionChecklist';
 import { PromptVariantSelector } from './PromptVariantSelector';
+import { PromptValidationFeedback } from './PromptValidationFeedback';
 import { QuickAgentTestPanel } from './QuickAgentTestPanel';
+import { sanitizePromptInput, PROMPT_LIMITS } from '@/lib/validations/promptSanitizer';
 import {
   detectPromptVariant,
   type QuickAgentType,
@@ -23,10 +27,51 @@ interface Props {
 
 export function StepQuickPrompt({ form, errors, update, onRestore, onApplyVariant }: Props) {
   const activeVariant = detectPromptVariant(form.type as QuickAgentType, form.prompt);
-  const len = form.prompt.length;
-  const min = 50;
-  const max = 8000;
-  const pct = Math.min(100, (len / max) * 100);
+  const textareaRef = useRef<HTMLTextAreaElement>(null);
+
+  const handleChange = (e: ChangeEvent<HTMLTextAreaElement>) => {
+    const raw = e.target.value;
+    // Sanitize silently against control/zero-width chars and dangerous tags.
+    const result = sanitizePromptInput(raw, PROMPT_LIMITS.MAX_TOTAL);
+    if (result.removedTags > 0) {
+      toast.warning('Conteúdo removido por segurança', {
+        description: 'Tags HTML perigosas foram filtradas do prompt.',
+      });
+    }
+    update('prompt', result.clean);
+  };
+
+  const handlePaste = (e: ClipboardEvent<HTMLTextAreaElement>) => {
+    const pasted = e.clipboardData.getData('text');
+    if (!pasted) return;
+    e.preventDefault();
+
+    const ta = textareaRef.current;
+    const selStart = ta?.selectionStart ?? form.prompt.length;
+    const selEnd = ta?.selectionEnd ?? form.prompt.length;
+    const before = form.prompt.slice(0, selStart);
+    const after = form.prompt.slice(selEnd);
+    const remainingBudget = PROMPT_LIMITS.MAX_TOTAL - (before.length + after.length);
+
+    const result = sanitizePromptInput(pasted, Math.max(0, remainingBudget));
+    const next = before + result.clean + after;
+    update('prompt', next);
+
+    // Restore caret after the pasted block on next tick.
+    requestAnimationFrame(() => {
+      if (textareaRef.current) {
+        const pos = before.length + result.clean.length;
+        textareaRef.current.selectionStart = pos;
+        textareaRef.current.selectionEnd = pos;
+      }
+    });
+
+    if (result.warnings.length > 0) {
+      toast.warning('Texto colado ajustado', {
+        description: result.warnings.join(' '),
+      });
+    }
+  };
 
   return (
     <div className="space-y-4">
@@ -46,33 +91,30 @@ export function StepQuickPrompt({ form, errors, update, onRestore, onApplyVarian
         onSelect={onApplyVariant}
       />
 
-      <div className="nexus-card space-y-2">
+      <div className="nexus-card space-y-3">
         <Label htmlFor="qa-prompt" className="sr-only">System prompt</Label>
         <Textarea
+          ref={textareaRef}
           id="qa-prompt"
           value={form.prompt}
-          onChange={(e) => update('prompt', e.target.value)}
+          onChange={handleChange}
+          onPaste={handlePaste}
           rows={16}
-          maxLength={max}
+          maxLength={PROMPT_LIMITS.MAX_TOTAL}
           aria-invalid={!!errors.prompt}
-          placeholder="## Persona&#10;...&#10;&#10;## Escopo&#10;...&#10;&#10;## Formato&#10;..."
+          aria-describedby="qa-prompt-feedback"
+          placeholder="## Persona&#10;...&#10;&#10;## Escopo&#10;...&#10;&#10;## Formato&#10;...&#10;&#10;## Regras&#10;..."
           className={`bg-secondary/50 border-border/50 font-mono text-xs leading-relaxed resize-none ${
             errors.prompt ? 'border-destructive' : ''
           }`}
         />
-        <div className="flex items-center justify-between text-[11px]">
-          <div className="text-destructive">{errors.prompt}</div>
-          <div className="flex items-center gap-2 ml-auto">
-            <div className="h-1 w-24 bg-secondary rounded-full overflow-hidden">
-              <div
-                className={`h-full transition-all ${
-                  len < min ? 'bg-destructive' : len > max * 0.9 ? 'bg-nexus-amber' : 'bg-primary'
-                }`}
-                style={{ width: `${pct}%` }}
-              />
-            </div>
-            <span className="font-mono text-muted-foreground">{len.toLocaleString('pt-BR')} / {max.toLocaleString('pt-BR')}</span>
+        {errors.prompt && (
+          <div className="text-[11px] text-destructive" role="alert">
+            {errors.prompt}
           </div>
+        )}
+        <div id="qa-prompt-feedback">
+          <PromptValidationFeedback prompt={form.prompt} />
         </div>
       </div>
 
