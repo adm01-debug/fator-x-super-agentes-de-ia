@@ -3,7 +3,7 @@ import { useParams, useNavigate } from "react-router-dom";
 import { PageHeader } from "@/components/shared/PageHeader";
 import { StatusBadge } from "@/components/shared/StatusBadge";
 import { Button } from "@/components/ui/button";
-import { Bot, Loader2, GitCompare, GitBranch } from "lucide-react";
+import { Bot, Loader2, GitCompare, GitBranch, Activity } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
 import { getAgentById, getAgentVersions } from "@/services/agentsService";
 import { VersionDiffDialog } from "@/components/agents/VersionDiffDialog";
@@ -44,6 +44,9 @@ export default function AgentDetailPage() {
         actions={
           <div className="flex items-center gap-2">
             <AgentCardViewer agentId={agent.id} agentName={agent.name} />
+            <Button variant="outline" size="sm" onClick={() => navigate(`/agents/${agent.id}/traces`)}>
+              <Activity className="h-3.5 w-3.5 mr-1.5" /> Ver traces
+            </Button>
             <Button variant="outline" size="sm" onClick={() => navigate(`/builder/${agent.id}`)}>
               Editar no Builder
             </Button>
