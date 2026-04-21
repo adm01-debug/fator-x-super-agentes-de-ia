@@ -1,0 +1,75 @@
+import { ScrollArea } from '@/components/ui/scroll-area';
+import { Activity, AlertTriangle, CheckCircle2, Clock, DollarSign, Filter, XCircle } from 'lucide-react';
+import type { ExecutionGroup } from '@/services/agentTracesService';
+
+interface Props {
+  executions: ExecutionGroup[];
+  selectedId: string | null;
+  onSelect: (e: ExecutionGroup) => void;
+  loading: boolean;
+}
+
+export function ExecutionList({ executions, selectedId, onSelect, loading }: Props) {
+  if (loading) {
+    return <div className="p-6 text-center text-sm text-muted-foreground">Carregando execuções…</div>;
+  }
+  if (executions.length === 0) {
+    return (
+      <div className="p-8 text-center text-sm text-muted-foreground">
+        <Filter className="h-8 w-8 mx-auto mb-2 opacity-40" />
+        Nenhuma execução encontrada com esses filtros.
+      </div>
+    );
+  }
+
+  return (
+    <ScrollArea className="h-[640px]">
+      <ul className="divide-y divide-border/40" role="listbox" aria-label="Execuções">
+        {executions.map((e) => {
+          const active = selectedId === e.session_id;
+          const dotColor =
+            e.counts.error > 0 ? 'bg-destructive' :
+            e.counts.warning > 0 ? 'bg-nexus-amber' : 'bg-nexus-emerald';
+          return (
+            <li key={e.session_id}>
+              <button
+                onClick={() => onSelect(e)}
+                aria-selected={active}
+                role="option"
+                className={`w-full text-left p-3 transition-colors hover:bg-muted/40 ${
+                  active ? 'bg-primary/8 border-l-2 border-l-primary' : 'border-l-2 border-l-transparent'
+                }`}
+              >
+                <div className="flex items-center justify-between mb-1.5">
+                  <div className="flex items-center gap-2 min-w-0">
+                    <span className={`h-1.5 w-1.5 rounded-full shrink-0 ${dotColor}`} aria-hidden />
+                    <span className="text-[11px] font-mono text-muted-foreground truncate max-w-[200px]">
+                      {e.session_id.startsWith('auto-') ? '∅ sem session' : e.session_id.slice(0, 18)}
+                    </span>
+                  </div>
+                  <span className="text-[10px] text-muted-foreground shrink-0">
+                    {new Date(e.started_at).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}
+                  </span>
+                </div>
+                <div className="flex items-center gap-3 text-[10px] text-muted-foreground flex-wrap">
+                  <span className="flex items-center gap-1"><Activity className="h-2.5 w-2.5" />{e.traces.length}</span>
+                  <span className="flex items-center gap-1 text-nexus-emerald"><CheckCircle2 className="h-2.5 w-2.5" />{e.counts.info}</span>
+                  {e.counts.warning > 0 && (
+                    <span className="flex items-center gap-1 text-nexus-amber"><AlertTriangle className="h-2.5 w-2.5" />{e.counts.warning}</span>
+                  )}
+                  {e.counts.error > 0 && (
+                    <span className="flex items-center gap-1 text-destructive"><XCircle className="h-2.5 w-2.5" />{e.counts.error}</span>
+                  )}
+                  <span className="flex items-center gap-1"><Clock className="h-2.5 w-2.5" />{e.total_ms}ms</span>
+                  {e.total_cost > 0 && (
+                    <span className="flex items-center gap-1"><DollarSign className="h-2.5 w-2.5" />${e.total_cost.toFixed(4)}</span>
+                  )}
+                </div>
+              </button>
+            </li>
+          );
+        })}
+      </ul>
+    </ScrollArea>
+  );
+}
