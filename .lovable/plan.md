@@ -1,76 +1,91 @@
 
 
-## Tabela detalhada de falhas e erros no Agent Details
+## Comparação automática 7d vs 7d anteriores em todos os KPIs
 
-Adiciono uma seção **"Falhas e erros"** ao `AgentRichMetrics` que consolida `alerts` + `agent_traces` (níveis error/critical/warning) em uma tabela única com filtros, busca e paginação client-side.
+Estendo o painel `AgentRichMetrics` para que **todos os 4 cards de KPI** mostrem comparação automática entre os últimos 7 dias e os 7 dias anteriores, com delta percentual, ícone de tendência e uma faixa de **insights textuais** acima dos cards destacando as mudanças mais relevantes.
 
 ### Visão final
 
 ```text
-┌─ Falhas e erros ─────────────────────── 47 resultados de 312 ─┐
-│  [3 Críticos] [12 Erros] [29 Avisos] [8 Não resolvidos]        │
-│                                                                 │
-│  [🔍 buscar mensagem…] [Fontes ▾] [Categoria ▾] [Status ▾] [×] │
-│                                                                 │
-│  Categoria   Fonte    Mensagem                  Status   Quando│
-│  ────────────────────────────────────────────────────────────  │
-│  ✕ Erro     🔔 Alert  Timeout no LLM gateway     Aberto  14/04 │
-│  ⚠ Aviso    📊 Trace  Latência > 3s               —      14/04 │
-│  ✕ Crítico  🔔 Alert  Budget mensal excedido     Resolv. 13/04 │
-│  ...                                                           │
-│                                                                │
-│  Mostrando 1–25 de 47   [Por página: 25 ▾]   ← 1/2 →           │
+┌─ Insights de tendência (7d vs 7d ant.) ───────────────────────┐
+│  ↗ Volume cresceu +18,4% (1.2k → 1.4k req)                     │
+│  ↘ Custo caiu -12,1% (boa eficiência)                          │
+│  ⚠ Latência p95 piorou +24% (1.6s → 2.0s)                      │
 └────────────────────────────────────────────────────────────────┘
+
+┌─ Requisições ──┐ ┌─ Custo ────────┐ ┌─ Latência p95 ─┐ ┌─ Sucesso ──────┐
+│ 1.420          │ │ $12,40         │ │ 1.980ms        │ │ 98,2%          │
+│ ↗ +18,4%       │ │ ↘ -12,1% bom   │ │ ↗ +24% ruim    │ │ ↘ -0,4% ruim   │
+│ vs 1.200 (7d)  │ │ vs $14,11 (7d) │ │ vs 1.598ms (7d)│ │ vs 98,6% (7d)  │
+│ ▁▂▃▅▇          │ │ ▇▅▃▂▁          │ │ ▂▃▄▆▇          │ │ ▇▇▆▇▇          │
+└────────────────┘ └────────────────┘ └────────────────┘ └────────────────┘
 ```
 
-### Componente novo
+### Mudanças
 
-**`src/components/agents/detail/AgentFailuresTable.tsx`**
-- Recebe `agentId`, busca via `useQuery(['agent_failures', agentId])`.
-- 4 chips de resumo (Críticos, Erros, Avisos, Não resolvidos) calculados sobre o conjunto completo.
-- Filtros (estado local):
-  - **Busca**: input com ícone, casa em `message + event + category` (case-insensitive).
-  - **Fonte**: Todas / Alerts / Traces.
-  - **Categoria**: dinâmica a partir das categorias presentes (severity dos alerts + level dos traces).
-  - **Status**: Todos / Não resolvidos / Resolvidos (aplica só a alerts; traces ignoram este filtro quando "Todos").
-  - Botão **Limpar** aparece quando algum filtro está ativo.
-- **Paginação client-side**: tamanhos 10/25/50, contador "X–Y de Z", botões Anterior/Próxima e indicador `página / total`.
-- Cada linha mostra: badge colorida da categoria (com ícone), fonte com ícone (Bell/Activity), mensagem truncada com `title` (tooltip nativo) + evento em fonte mono quando trace, status (Aberto/Resolvido/—) e timestamp `dd/MM HH:mm`.
-- Estados: skeleton enquanto carrega; vazio diferenciado ("nenhuma falha registrada" vs "nenhum resultado para os filtros").
+**1. `agentMetricsHelpers.ts`** — adicionar utilitário puro de comparação:
 
-### Service novo
+```ts
+export interface KPIComparison {
+  current: number;
+  previous: number;
+  deltaAbs: number;
+  deltaPct: number;          // 0 quando previous=0 e current=0; null-safe via `hasPrev`
+  hasPrev: boolean;
+  trend: 'up' | 'down' | 'flat';   // baseado em |deltaPct| > 1
+  isPositive: boolean;        // true = bom, false = ruim (respeita `inverted`)
+}
 
-**`src/services/agentsService.ts`** ganha `getAgentFailures(agentId, perSourceLimit = 200)`:
-- Faz **2 queries em paralelo**:
-  - `alerts` por `agent_id` selecionando `id, severity, title, message, is_resolved, created_at` (limit 200).
-  - `agent_traces` por `agent_id` com `level IN ('error','critical','warning','warn')` selecionando `id, level, event, metadata, created_at` (limit 200).
-- Normaliza ambos para `FailureRecord { id, source, category, message, event?, is_resolved?, created_at }`.
-- Para traces, prioriza `metadata.error → metadata.message → event` como mensagem.
-- Retorna concatenado e ordenado por `created_at desc`.
+export function compareWindows(
+  daily: DailyPoint[],
+  pick: (d: DailyPoint) => number,
+  opts?: { inverted?: boolean; window?: number },
+): KPIComparison
+```
 
-`AgentTrace` ganha campos opcionais `event?: string | null` e `metadata?: Record<string, unknown> | null` (já existem na tabela; só faltam no tipo TS).
+- Agrega `last7` e `prev7` via `daily.slice(-7)` / `daily.slice(-14, -7)`.
+- `inverted=true` para latência e erro (menor é melhor).
+- `trend='flat'` quando |delta%| ≤ 1.
+- Para taxa de sucesso, calcular separado a partir de `traces` agrupados por dia (helper `computeSuccessRateByWindow(traces)` que retorna `{ current, previous }`) — será uma função adicional no mesmo arquivo.
 
-### Integração
+**2. `AgentRichMetrics.tsx`** — ampliar o `useMemo` `totals` para produzir 4 `KPIComparison` (req, cost, latency p95 via daily.avgLatency, success via traces) e usar nos 4 cards. Cada card recebe um `trend` rico:
 
-`AgentRichMetrics.tsx` ganha `<AgentFailuresTable agentId={agentId} />` logo abaixo do bloco "Histórico por dia" e acima do `<DayDrillDownDrawer>`.
+```tsx
+trend={cmp.hasPrev ? {
+  value: `${cmp.deltaPct >= 0 ? '+' : ''}${cmp.deltaPct.toFixed(1)}% vs 7d ant.`,
+  positive: cmp.isPositive,
+} : undefined}
+```
+
+**3. Novo componente `TrendInsightsBanner.tsx`** (em `src/components/agents/detail/`):
+
+- Recebe os 4 `KPIComparison` + nomes/formatadores.
+- Gera até 3 frases priorizadas por **magnitude de impacto** (|deltaPct|), filtrando `trend !== 'flat'`.
+- Ordem de prioridade quando empate: erros/sucesso → latência → custo → volume.
+- Cada linha: ícone (`TrendingUp`/`TrendingDown`), texto curto com cor semântica (`text-nexus-emerald` quando positivo, `text-destructive` quando negativo).
+- Se nenhum delta relevante: mostra "Métricas estáveis nos últimos 7 dias vs 7 dias anteriores."
+- Quando não há dado prévio (`!hasPrev` em todos): banner não renderiza.
+
+Renderizado **acima** dos 4 cards de KPI no `AgentRichMetrics`.
+
+**4. `MetricCard`** (sem mudança de API) — já aceita `trend.positive` para colorir verde/vermelho. Apenas confirmar que quando `inverted=true` invertemos `positive` corretamente em `compareWindows`.
 
 ### Detalhes técnicos
 
-- **Tokens semânticos** apenas: `--destructive`, `--nexus-amber`, `--nexus-emerald`, `--secondary`, `--muted-foreground`, `--border`. Sem cores hard-coded.
-- **Acessibilidade**: `role="region"` + `aria-label`, `aria-label` na busca, badges com ícone+texto (não dependem só de cor).
-- **Performance**: filtros e paginação puramente em memória sobre até ~400 linhas (200 alerts + 200 traces) → `useMemo` para `filtered`, `categories` e `counts`. Sem refetch ao mudar filtros.
-- **Responsivo**: filtros usam `flex-wrap`; tabela em `overflow-x-auto`; chips de resumo quebram em mobile.
-- **Sem migração, sem schema novo, sem rotas novas.** Reusa `useQuery`, `Input`, `Select`, `Button`.
+- **Tokens semânticos**: `--nexus-emerald` (positivo), `--destructive` (negativo), `--muted-foreground` (neutro/flat). Sem cor hard-coded.
+- **Acessibilidade**: banner com `role="status"` + `aria-label="Insights de tendência"`. Ícones com `aria-hidden`. Direção descrita por texto, não só cor.
+- **Performance**: tudo client-side em `useMemo` sobre os 14 pontos já carregados — zero refetch, zero query nova.
+- **Edge cases**: período sem dados prévios oculta o trend chip; divisão por zero protegida via `hasPrev`; `traces` sem `created_at` ignorados na comparação de sucesso.
 
 ### Arquivos
 
-- **Criar**: `src/components/agents/detail/AgentFailuresTable.tsx`
-- **Editar**: `src/services/agentsService.ts` — adicionar `FailureRecord`, `getAgentFailures`, e ampliar `AgentTrace` com `event?`/`metadata?`.
-- **Editar**: `src/components/agents/detail/AgentRichMetrics.tsx` — montar `<AgentFailuresTable>` ao final.
+- **Editar**: `src/components/agents/detail/agentMetricsHelpers.ts` — adicionar `KPIComparison`, `compareWindows`, `computeSuccessByWindow`.
+- **Criar**: `src/components/agents/detail/TrendInsightsBanner.tsx`.
+- **Editar**: `src/components/agents/detail/AgentRichMetrics.tsx` — usar `compareWindows` para 4 KPIs, renderizar `TrendInsightsBanner` acima dos cards, passar `trend` rico em todos os 4 `MetricCard`.
 
 ### Impacto
 
-- Usuário tem em um lugar só toda fonte de problema do agente (alerts + traces ruins), com busca textual e drill por categoria/status.
-- Zero impacto em outras telas; o service é reusável (Observability, Alerts page, etc).
-- Reaproveita o cache do React Query — abrir o Agent Details já dispara o fetch em paralelo aos charts.
+- Usuário identifica em segundos se a semana atual está melhor/pior que a anterior em cada métrica chave.
+- Banner de insights resume o que importa em 1–3 frases, sem precisar comparar números mentalmente.
+- Reusa estrutura existente (`MetricCard.trend`, `daily`, `traces`) — zero backend, zero schema, zero migração.
 
