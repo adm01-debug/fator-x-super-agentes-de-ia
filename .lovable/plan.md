@@ -1,104 +1,105 @@
 
 
-## Botão "Simular run de teste" no Agent Details com dialog de resultados
+## Validação pré-save de versão (rascunho) com placeholders, limites e inconsistências
 
-Adiciono um botão de ação na barra do `PageHeader` em `AgentDetailPage` que dispara uma simulação client-side (usando os traces/usage já carregados como base estatística) e abre um dialog com **resumo de latência, custo estimado, taxa de sucesso e tabela das execuções simuladas**.
+Adiciono uma camada de validação reutilizável que roda **antes** de salvar um rascunho de versão no `DraftVersionsDialog`. Ela detecta:
 
-### Visão final
+1. **Placeholders ausentes** no `system_prompt` (ex.: `{{name}}`, `{{mission}}`, `{{custom_var}}` que não resolvem).
+2. **Tamanho mínimo/máximo** do prompt (reusa `PROMPT_LIMITS` já existente) e do **label/nota** do rascunho.
+3. **Inconsistências de configuração** entre os módulos do agente.
+
+### Visão final no dialog
 
 ```text
-[ Cartão ] [ Ver traces ] [ Alertas ] [▶ Simular run] [ Editar no Builder ]
-
-  ↓ clique abre dialog ↓
-
-┌─ Resultado da simulação ──────────────── 10 execuções ─ x ─┐
-│  ✓ 9 OK   ✕ 1 erro     Sucesso 90%                          │
-│                                                              │
-│  ┌─ Latência ─┐ ┌─ Custo est. ─┐ ┌─ Tokens ──┐ ┌─ p95 ────┐ │
-│  │ avg 1.2s   │ │ $0,0420       │ │ 12.430    │ │ 2.1s     │ │
-│  └────────────┘ └───────────────┘ └───────────┘ └──────────┘ │
-│                                                              │
-│  #  Status  Input            Latência  Tokens  Custo         │
-│  1  ✓ ok    "Olá, preciso…"  980ms     1.120  $0,0038        │
-│  2  ✓ ok    "Quanto custa…"  1.340ms   1.580  $0,0054        │
-│  3  ✕ err   "Comprar 500…"   3.220ms   0      $0,0000        │
-│  ...                                                         │
-│                                                              │
-│  [Repetir simulação]                          [Fechar]       │
-└──────────────────────────────────────────────────────────────┘
+┌─ Salvar estado atual ─────────────────────── local ─┐
+│ [ Título do rascunho ........................... ] │
+│ [ Anotação opcional ............................ ] │
+│                                                     │
+│ ⚠ Validação antes de salvar         3 itens        │
+│ ─────────────────────────────────────────────────── │
+│ ✕ Erro    Prompt abaixo do mínimo (32/50 chars)    │
+│ ✕ Erro    Placeholders não resolvidos: {{tone}},   │
+│           {{customer_name}}                        │
+│ ⚠ Aviso   RAG ativo mas nenhuma fonte cadastrada   │
+│ ⚠ Aviso   Modelo "claude-opus" + 0 tools — caro    │
+│           para baixa capacidade efetiva            │
+│                                                     │
+│ [ Salvar mesmo assim ]      [ Salvar rascunho ▸ ]  │
+└─────────────────────────────────────────────────────┘
 ```
+
+- **Erros bloqueiam** o botão principal "Salvar rascunho" por padrão.
+- Botão secundário **"Salvar mesmo assim"** aparece só quando há erros e permite override consciente (snapshot continua sendo só local).
+- Avisos nunca bloqueiam — apenas alertam.
 
 ### Componentes / mudanças
 
-**1. Novo `src/services/agentTestSimulationService.ts`** (puro, client-side, sem rede):
+**1. Novo `src/lib/validations/agentVersionValidator.ts`** (puro, sem dependências de UI):
 ```ts
-export interface SimulatedRun {
-  id: number;
-  input: string;
-  status: 'success' | 'error';
-  latency_ms: number;
-  tokens_used: number;
-  cost_usd: number;
+export interface VersionValidationIssue {
+  level: 'error' | 'warning';
+  code: string;          // 'prompt.too_short' | 'prompt.unresolved_vars' | 'config.rag_no_sources' | ...
+  field?: string;        // 'label' | 'note' | 'system_prompt' | 'rag' | 'tools' | 'model'
+  message: string;       // PT-BR
 }
-export interface SimulationSummary {
-  runs: SimulatedRun[];
-  total: number;
-  passed: number;
-  failed: number;
-  successRate: number;     // %
-  avgLatency: number;      // ms
-  p95Latency: number;
-  totalCost: number;
-  totalTokens: number;
+export interface VersionValidationResult {
+  errors: VersionValidationIssue[];
+  warnings: VersionValidationIssue[];
+  canSave: boolean;      // === errors.length === 0
 }
-export function simulateAgentRun(
-  agent: Pick<AgentDetail, 'id' | 'name' | 'model'>,
-  baseTraces: AgentTrace[],
-  count = 10,
-): SimulationSummary
+export function validateAgentVersion(
+  agent: AgentConfig,
+  meta: { label: string; note?: string },
+): VersionValidationResult
 ```
 
-- Deriva latência/custo/tokens de base a partir das estatísticas reais dos traces (média + desvio). Se traces vazios, usa defaults razoáveis (~800ms, ~1k tokens, custo via `llmPricing` se disponível, senão $0,003/req).
-- Taxa de erro mockada a partir da `errorRate` real dos traces (mín 5%, máx 25%) — quando há erros zero nos traces, mantém ~5% para realismo.
-- Inputs mockados: 8 prompts curtos pré-definidos em PT (rotativo): "Olá, preciso de ajuda", "Quanto custa o produto X?", "Pode me mandar um orçamento?", etc.
-- Cada run sorteia latência via `base ± 30%`, tokens via `base ± 20%`, custo proporcional.
+Regras implementadas:
+- **Label**: `trim` 3–80 chars; obrigatório se usuário digitou algo (vazio = ok, usa auto-label).
+- **Nota**: máx 500 chars.
+- **Prompt mínimo/máximo**: reusa `analyzePromptStructure` + `PROMPT_LIMITS` (`MIN_TOTAL`, `MAX_TOTAL`, `MAX_LINES`). `belowMin` e `exceedsCharLimit` viram **erro**, `consecutiveEmptyBlocks` vira **aviso**.
+- **Placeholders ausentes**: chama `compilePrompt({...})` (já existe em `src/lib/promptCompiler.ts`) com os campos atuais do agente; o array `unresolvedVariables` retornado vira erro `prompt.unresolved_vars` listando as variáveis (ex.: `{{tone}}, {{customer_name}}`).
+- **Inconsistências de configuração** (todos warnings):
+  - `rag_sources.length === 0` mas `rag_architecture` ≠ `none` → "RAG ativo sem fontes".
+  - Nenhum tool habilitado mas `reasoning === 'react'` → "ReAct sem tools disponíveis".
+  - Modelo caro (`claude-opus-4.6` ou `gpt-4o`) com 0 tools e prompt < 200 chars → "Modelo caro para uso simples".
+  - Nenhum guardrail ativo + `status === 'production'` → "Produção sem guardrails".
+  - `memory_episodic` ou `memory_semantic` ativos mas nenhuma `memory_*` curto-prazo → "Memória de longo prazo sem curto prazo".
+  - `system_prompt` não menciona `{{name}}` nem o nome literal do agente → "Prompt não referencia identidade do agente".
 
-**2. Novo `src/components/agents/detail/SimulationResultDialog.tsx`**:
-- Usa `Dialog` do shadcn (já existente no projeto).
-- Recebe `open`, `onOpenChange`, `summary: SimulationSummary | null`, `running: boolean`, `onRerun: () => void`.
-- Header: título + chip "X execuções".
-- Bloco de status: "✓ N OK · ✕ M erro" + badge grande de Taxa de sucesso colorida (verde ≥90%, amber 70-89%, vermelho <70%).
-- 4 mini-cards (avg latency, custo total, tokens totais, p95) usando `nexus-card` inline simples.
-- Tabela compacta (max-h scroll) com #, ícone status, input truncado, latência, tokens, custo.
-- Footer: botão "Repetir simulação" (chama `onRerun`) e "Fechar".
-- Estado loading: spinner centralizado com texto "Executando 10 simulações…".
+**2. Novo `src/components/agent-builder/VersionValidationPanel.tsx`**:
+- Recebe `result: VersionValidationResult`.
+- Renderiza header com contagem `N erros, M avisos` e ícones (`ShieldAlert` / `AlertTriangle`).
+- Lista compacta com cor por nível (token semântico `--destructive` / `--nexus-amber`), texto da regra e código pequeno em `font-mono` (ex.: `prompt.unresolved_vars`).
+- Quando vazio: card discreto verde "Validações OK" (`--nexus-emerald`), sem ocupar espaço excessivo.
+- Acessível: `role="alert"` para erros, `role="status"` para avisos.
 
-**3. Editar `src/pages/AgentDetailPage.tsx`**:
-- Importar `simulateAgentRun`, `SimulationResultDialog`, ícone `Play` de lucide.
-- Adicionar estados: `simOpen`, `simRunning`, `simSummary`.
-- Adicionar `handleSimulate()`:
-  - Set `simRunning=true`, `simOpen=true`, busca traces via `queryClient.getQueryData(['agent_traces_rich', id]) ?? []` ou refetch leve via `getAgentDetailTraces`.
-  - `setTimeout(() => { setSimSummary(simulateAgentRun(agent, traces, 10)); setSimRunning(false); }, 900)` para sensação de execução.
-- Adicionar botão `<Button variant="outline" size="sm" onClick={handleSimulate}><Play /> Simular run</Button>` na barra de ações.
-- Renderizar `<SimulationResultDialog ... />` ao final.
+**3. Editar `src/components/agent-builder/DraftVersionsDialog.tsx`**:
+- Importar `validateAgentVersion` + `VersionValidationPanel`.
+- Calcular `validation` via `useMemo` dependente de `[agent, label, note]`.
+- Renderizar `<VersionValidationPanel result={validation} />` entre o textarea e os botões.
+- Estado local `forceSave: boolean` (reset toda vez que o dialog abre).
+- Botão "Salvar rascunho" `disabled={!validation.canSave && !forceSave}`.
+- Quando `errors.length > 0`, mostrar botão secundário ghost "Salvar mesmo assim" que faz `setForceSave(true)` e dispara o save no clique seguinte (ou direto, com `toast` de aviso).
+- `handleSave` permanece chamando `saveDraftVersion` (sem mudança de assinatura), mas só roda quando habilitado.
 
 ### Detalhes técnicos
 
-- **Tokens semânticos** somente: `--nexus-emerald`, `--nexus-amber`, `--destructive`, `--muted-foreground`, `--primary`. Sem cor hard-coded.
-- **Acessibilidade**: dialog herda focus-trap do shadcn; tabela com `<th scope="col">`; ícones com `aria-hidden`; status badges trazem texto, não só cor.
-- **Performance**: simulação puramente em memória (~10 runs); reusa cache do React Query para os traces base; sem refetch ao reabrir.
-- **Reuso**: serviço fica desacoplado e pode ser usado depois em `AgentBuilder` como "smoke test" rápido.
-- **Sem backend, sem migração, sem schema novo**, sem chamada à edge function `test-runner` (que exige agente salvo + auth + custo real). Esta é a versão "preview" mockada.
+- **Sem alteração de schema, sem backend**, sem mudança em `agentDraftVersionsService` (a validação fica fora — separação clara entre regra e armazenamento).
+- **Reuso máximo**: `analyzePromptStructure`, `PROMPT_LIMITS`, `compilePrompt` já existentes.
+- **Tokens semânticos**: `--destructive`, `--nexus-amber`, `--nexus-emerald`, `--muted-foreground`. Zero cor hard-coded.
+- **i18n**: mensagens PT-BR diretas (alinhadas ao padrão atual de `getPromptIssues`).
+- **Testabilidade**: validador é função pura → fácil de cobrir com vitest no futuro (`src/test/agent-version-validator.test.ts`, opcional, fora do escopo desta entrega).
+- **Reusabilidade**: a função `validateAgentVersion` poderá ser plugada também no `savePromptVersion` do store e no fluxo "Criar versão real" (botão Salvar do builder) em um próximo passo, sem refator.
 
 ### Arquivos
 
-- **Criar**: `src/services/agentTestSimulationService.ts`
-- **Criar**: `src/components/agents/detail/SimulationResultDialog.tsx`
-- **Editar**: `src/pages/AgentDetailPage.tsx` — botão de ação + estados + dialog.
+- **Criar**: `src/lib/validations/agentVersionValidator.ts`
+- **Criar**: `src/components/agent-builder/VersionValidationPanel.tsx`
+- **Editar**: `src/components/agent-builder/DraftVersionsDialog.tsx` — integrar painel, bloquear save com erros, opção de override.
 
 ### Impacto
 
-- Usuário consegue, em 1 clique no Agent Details, ver como o agente "se comportaria" em uma rajada de 10 execuções típicas, com números coerentes com seus traces reais.
-- Fornece sensação tangível de QA sem custo real de LLM.
-- Zero impacto em outras telas; dialog isolado, dispensável.
+- Usuário recebe feedback claro **antes** de salvar versão sobre prompt incompleto, variáveis não resolvidas e configuração suspeita do agente.
+- Reduz rascunhos "lixo" (vazios, com placeholders crus, inconsistentes) sem impedir flexibilidade (override consciente).
+- Base reutilizável para validar futuros saves reais (versão persistida no backend).
 
