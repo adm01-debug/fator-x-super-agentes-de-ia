@@ -1,91 +1,104 @@
 
 
-## Comparação automática 7d vs 7d anteriores em todos os KPIs
+## Botão "Simular run de teste" no Agent Details com dialog de resultados
 
-Estendo o painel `AgentRichMetrics` para que **todos os 4 cards de KPI** mostrem comparação automática entre os últimos 7 dias e os 7 dias anteriores, com delta percentual, ícone de tendência e uma faixa de **insights textuais** acima dos cards destacando as mudanças mais relevantes.
+Adiciono um botão de ação na barra do `PageHeader` em `AgentDetailPage` que dispara uma simulação client-side (usando os traces/usage já carregados como base estatística) e abre um dialog com **resumo de latência, custo estimado, taxa de sucesso e tabela das execuções simuladas**.
 
 ### Visão final
 
 ```text
-┌─ Insights de tendência (7d vs 7d ant.) ───────────────────────┐
-│  ↗ Volume cresceu +18,4% (1.2k → 1.4k req)                     │
-│  ↘ Custo caiu -12,1% (boa eficiência)                          │
-│  ⚠ Latência p95 piorou +24% (1.6s → 2.0s)                      │
-└────────────────────────────────────────────────────────────────┘
+[ Cartão ] [ Ver traces ] [ Alertas ] [▶ Simular run] [ Editar no Builder ]
 
-┌─ Requisições ──┐ ┌─ Custo ────────┐ ┌─ Latência p95 ─┐ ┌─ Sucesso ──────┐
-│ 1.420          │ │ $12,40         │ │ 1.980ms        │ │ 98,2%          │
-│ ↗ +18,4%       │ │ ↘ -12,1% bom   │ │ ↗ +24% ruim    │ │ ↘ -0,4% ruim   │
-│ vs 1.200 (7d)  │ │ vs $14,11 (7d) │ │ vs 1.598ms (7d)│ │ vs 98,6% (7d)  │
-│ ▁▂▃▅▇          │ │ ▇▅▃▂▁          │ │ ▂▃▄▆▇          │ │ ▇▇▆▇▇          │
-└────────────────┘ └────────────────┘ └────────────────┘ └────────────────┘
+  ↓ clique abre dialog ↓
+
+┌─ Resultado da simulação ──────────────── 10 execuções ─ x ─┐
+│  ✓ 9 OK   ✕ 1 erro     Sucesso 90%                          │
+│                                                              │
+│  ┌─ Latência ─┐ ┌─ Custo est. ─┐ ┌─ Tokens ──┐ ┌─ p95 ────┐ │
+│  │ avg 1.2s   │ │ $0,0420       │ │ 12.430    │ │ 2.1s     │ │
+│  └────────────┘ └───────────────┘ └───────────┘ └──────────┘ │
+│                                                              │
+│  #  Status  Input            Latência  Tokens  Custo         │
+│  1  ✓ ok    "Olá, preciso…"  980ms     1.120  $0,0038        │
+│  2  ✓ ok    "Quanto custa…"  1.340ms   1.580  $0,0054        │
+│  3  ✕ err   "Comprar 500…"   3.220ms   0      $0,0000        │
+│  ...                                                         │
+│                                                              │
+│  [Repetir simulação]                          [Fechar]       │
+└──────────────────────────────────────────────────────────────┘
 ```
 
-### Mudanças
+### Componentes / mudanças
 
-**1. `agentMetricsHelpers.ts`** — adicionar utilitário puro de comparação:
-
+**1. Novo `src/services/agentTestSimulationService.ts`** (puro, client-side, sem rede):
 ```ts
-export interface KPIComparison {
-  current: number;
-  previous: number;
-  deltaAbs: number;
-  deltaPct: number;          // 0 quando previous=0 e current=0; null-safe via `hasPrev`
-  hasPrev: boolean;
-  trend: 'up' | 'down' | 'flat';   // baseado em |deltaPct| > 1
-  isPositive: boolean;        // true = bom, false = ruim (respeita `inverted`)
+export interface SimulatedRun {
+  id: number;
+  input: string;
+  status: 'success' | 'error';
+  latency_ms: number;
+  tokens_used: number;
+  cost_usd: number;
 }
-
-export function compareWindows(
-  daily: DailyPoint[],
-  pick: (d: DailyPoint) => number,
-  opts?: { inverted?: boolean; window?: number },
-): KPIComparison
+export interface SimulationSummary {
+  runs: SimulatedRun[];
+  total: number;
+  passed: number;
+  failed: number;
+  successRate: number;     // %
+  avgLatency: number;      // ms
+  p95Latency: number;
+  totalCost: number;
+  totalTokens: number;
+}
+export function simulateAgentRun(
+  agent: Pick<AgentDetail, 'id' | 'name' | 'model'>,
+  baseTraces: AgentTrace[],
+  count = 10,
+): SimulationSummary
 ```
 
-- Agrega `last7` e `prev7` via `daily.slice(-7)` / `daily.slice(-14, -7)`.
-- `inverted=true` para latência e erro (menor é melhor).
-- `trend='flat'` quando |delta%| ≤ 1.
-- Para taxa de sucesso, calcular separado a partir de `traces` agrupados por dia (helper `computeSuccessRateByWindow(traces)` que retorna `{ current, previous }`) — será uma função adicional no mesmo arquivo.
+- Deriva latência/custo/tokens de base a partir das estatísticas reais dos traces (média + desvio). Se traces vazios, usa defaults razoáveis (~800ms, ~1k tokens, custo via `llmPricing` se disponível, senão $0,003/req).
+- Taxa de erro mockada a partir da `errorRate` real dos traces (mín 5%, máx 25%) — quando há erros zero nos traces, mantém ~5% para realismo.
+- Inputs mockados: 8 prompts curtos pré-definidos em PT (rotativo): "Olá, preciso de ajuda", "Quanto custa o produto X?", "Pode me mandar um orçamento?", etc.
+- Cada run sorteia latência via `base ± 30%`, tokens via `base ± 20%`, custo proporcional.
 
-**2. `AgentRichMetrics.tsx`** — ampliar o `useMemo` `totals` para produzir 4 `KPIComparison` (req, cost, latency p95 via daily.avgLatency, success via traces) e usar nos 4 cards. Cada card recebe um `trend` rico:
+**2. Novo `src/components/agents/detail/SimulationResultDialog.tsx`**:
+- Usa `Dialog` do shadcn (já existente no projeto).
+- Recebe `open`, `onOpenChange`, `summary: SimulationSummary | null`, `running: boolean`, `onRerun: () => void`.
+- Header: título + chip "X execuções".
+- Bloco de status: "✓ N OK · ✕ M erro" + badge grande de Taxa de sucesso colorida (verde ≥90%, amber 70-89%, vermelho <70%).
+- 4 mini-cards (avg latency, custo total, tokens totais, p95) usando `nexus-card` inline simples.
+- Tabela compacta (max-h scroll) com #, ícone status, input truncado, latência, tokens, custo.
+- Footer: botão "Repetir simulação" (chama `onRerun`) e "Fechar".
+- Estado loading: spinner centralizado com texto "Executando 10 simulações…".
 
-```tsx
-trend={cmp.hasPrev ? {
-  value: `${cmp.deltaPct >= 0 ? '+' : ''}${cmp.deltaPct.toFixed(1)}% vs 7d ant.`,
-  positive: cmp.isPositive,
-} : undefined}
-```
-
-**3. Novo componente `TrendInsightsBanner.tsx`** (em `src/components/agents/detail/`):
-
-- Recebe os 4 `KPIComparison` + nomes/formatadores.
-- Gera até 3 frases priorizadas por **magnitude de impacto** (|deltaPct|), filtrando `trend !== 'flat'`.
-- Ordem de prioridade quando empate: erros/sucesso → latência → custo → volume.
-- Cada linha: ícone (`TrendingUp`/`TrendingDown`), texto curto com cor semântica (`text-nexus-emerald` quando positivo, `text-destructive` quando negativo).
-- Se nenhum delta relevante: mostra "Métricas estáveis nos últimos 7 dias vs 7 dias anteriores."
-- Quando não há dado prévio (`!hasPrev` em todos): banner não renderiza.
-
-Renderizado **acima** dos 4 cards de KPI no `AgentRichMetrics`.
-
-**4. `MetricCard`** (sem mudança de API) — já aceita `trend.positive` para colorir verde/vermelho. Apenas confirmar que quando `inverted=true` invertemos `positive` corretamente em `compareWindows`.
+**3. Editar `src/pages/AgentDetailPage.tsx`**:
+- Importar `simulateAgentRun`, `SimulationResultDialog`, ícone `Play` de lucide.
+- Adicionar estados: `simOpen`, `simRunning`, `simSummary`.
+- Adicionar `handleSimulate()`:
+  - Set `simRunning=true`, `simOpen=true`, busca traces via `queryClient.getQueryData(['agent_traces_rich', id]) ?? []` ou refetch leve via `getAgentDetailTraces`.
+  - `setTimeout(() => { setSimSummary(simulateAgentRun(agent, traces, 10)); setSimRunning(false); }, 900)` para sensação de execução.
+- Adicionar botão `<Button variant="outline" size="sm" onClick={handleSimulate}><Play /> Simular run</Button>` na barra de ações.
+- Renderizar `<SimulationResultDialog ... />` ao final.
 
 ### Detalhes técnicos
 
-- **Tokens semânticos**: `--nexus-emerald` (positivo), `--destructive` (negativo), `--muted-foreground` (neutro/flat). Sem cor hard-coded.
-- **Acessibilidade**: banner com `role="status"` + `aria-label="Insights de tendência"`. Ícones com `aria-hidden`. Direção descrita por texto, não só cor.
-- **Performance**: tudo client-side em `useMemo` sobre os 14 pontos já carregados — zero refetch, zero query nova.
-- **Edge cases**: período sem dados prévios oculta o trend chip; divisão por zero protegida via `hasPrev`; `traces` sem `created_at` ignorados na comparação de sucesso.
+- **Tokens semânticos** somente: `--nexus-emerald`, `--nexus-amber`, `--destructive`, `--muted-foreground`, `--primary`. Sem cor hard-coded.
+- **Acessibilidade**: dialog herda focus-trap do shadcn; tabela com `<th scope="col">`; ícones com `aria-hidden`; status badges trazem texto, não só cor.
+- **Performance**: simulação puramente em memória (~10 runs); reusa cache do React Query para os traces base; sem refetch ao reabrir.
+- **Reuso**: serviço fica desacoplado e pode ser usado depois em `AgentBuilder` como "smoke test" rápido.
+- **Sem backend, sem migração, sem schema novo**, sem chamada à edge function `test-runner` (que exige agente salvo + auth + custo real). Esta é a versão "preview" mockada.
 
 ### Arquivos
 
-- **Editar**: `src/components/agents/detail/agentMetricsHelpers.ts` — adicionar `KPIComparison`, `compareWindows`, `computeSuccessByWindow`.
-- **Criar**: `src/components/agents/detail/TrendInsightsBanner.tsx`.
-- **Editar**: `src/components/agents/detail/AgentRichMetrics.tsx` — usar `compareWindows` para 4 KPIs, renderizar `TrendInsightsBanner` acima dos cards, passar `trend` rico em todos os 4 `MetricCard`.
+- **Criar**: `src/services/agentTestSimulationService.ts`
+- **Criar**: `src/components/agents/detail/SimulationResultDialog.tsx`
+- **Editar**: `src/pages/AgentDetailPage.tsx` — botão de ação + estados + dialog.
 
 ### Impacto
 
-- Usuário identifica em segundos se a semana atual está melhor/pior que a anterior em cada métrica chave.
-- Banner de insights resume o que importa em 1–3 frases, sem precisar comparar números mentalmente.
-- Reusa estrutura existente (`MetricCard.trend`, `daily`, `traces`) — zero backend, zero schema, zero migração.
+- Usuário consegue, em 1 clique no Agent Details, ver como o agente "se comportaria" em uma rajada de 10 execuções típicas, com números coerentes com seus traces reais.
+- Fornece sensação tangível de QA sem custo real de LLM.
+- Zero impacto em outras telas; dialog isolado, dispensável.
 
