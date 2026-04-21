@@ -1,81 +1,95 @@
 
 
-## Visualização de Traces por Execução
+## Regras de Alertas Configuráveis (Agentes) — com Prévia & Simulação
 
-Crio uma nova página **`/agents/:id/traces`** dedicada a inspecionar as execuções do agente registradas em `agent_traces` (1815 info / 438 warning / 37 error já mockados), com filtros por **nível**, **evento** e **agente**, agrupamento por **session_id** (= execução) e botão **Replay** que abre um modal com o contexto reidratado.
+Crio uma página dedicada **`/agents/:id/alerts`** para criar, editar e simular regras de alerta por agente, cobrindo as 4 métricas pedidas: **latência (p95/p99/média)**, **custo (por execução / janela)**, **falhas de tool** e **memória excedida**. As regras são persistidas localmente (workspace-scoped) e a prévia/simulação roda **100% client-side** contra os 2.290 traces mockados em `agent_traces`.
 
 ### Visão final da tela
 
 ```text
-PageHeader: "Traces de execução — {agente}"   [← Detalhes]  [Atualizar]
+PageHeader: "Alertas — {agente}"   [← Detalhes]   [+ Nova regra]
 
-┌─ Filtros (sticky) ─────────────────────────────────────────┐
-│ [🔍 buscar texto]  [Nível ▾]  [Evento ▾]  [Agente ▾]  [⏱ 24h ▾]│
-│ Resumo: 47 execuções · 1.2k traces · 34 erros · $0.42      │
-└────────────────────────────────────────────────────────────┘
+┌─ Resumo ────────────────────────────────────────────────────┐
+│  6 regras  •  4 ativas  •  Última checagem: agora           │
+│  Disparariam agora: 2 ⚠ warning · 1 ✗ critical              │
+└─────────────────────────────────────────────────────────────┘
 
-┌─ Lista de execuções (1/3) ─┬─ Detalhe da execução (2/3) ──┐
-│ ● exec_a91…  agora · 12    │ Header: session_id · agent     │
-│   ✓ 11  ⚠ 1  ✗ 0  · 320ms  │ duração · tokens · custo       │
-│ ─────────────────────────  │ [▶ Replay]  [⬇ JSON]           │
-│ ● exec_b04…  2min · 8      │                                 │
-│   ✓ 7  ⚠ 0  ✗ 1  · 540ms   │ ┌─ Linha do tempo de eventos ─┐│
-│ ─────────────────────────  │ │ 14:02:01 ℹ llm.completion   ││
-│ ...                        │ │ 14:02:02 ℹ rag.retrieve     ││
-│                            │ │ 14:02:02 ⚠ guardrail.check  ││
-│                            │ │ 14:02:03 ✗ tool.call FAIL   ││
-│                            │ │ ↳ click → input/output JSON ││
-│                            │ └─────────────────────────────┘│
+┌─ Regras (esquerda 1/2) ─────┬─ Detalhe / Simulação (1/2) ──┐
+│ ✓ Latência p95 alta         │ Regra: "Latência p95 alta"   │
+│   p95 > 800ms · 5min        │  ▸ Editor (live)              │
+│   ⚠ warning · ATIVA         │    métrica · agregação        │
+│ ─────────────────────────── │    operador · threshold       │
+│ ✓ Custo execução estourou   │    janela · severidade        │
+│   cost_per_exec > $0.05     │    canais (toast / ...)       │
+│ ─────────────────────────── │                                │
+│ ⚠ Tool failure rate         │  ▸ Prévia agora              │
+│   failure_rate > 10% · 1h   │    Valor atual: 12.4% ✗      │
+│   ✗ critical · ATIVA        │    Disparo: SIM (crítico)    │
+│ ─────────────────────────── │                                │
+│ ⏸ Memória excedida          │  ▸ Simulação 24h             │
+│   memory > 800MB · qualquer │    [▶ Rodar simulação]       │
+│   info · pausada            │    ┌──────────── chart ─────┐│
+│                             │    │ valor por hora c/ línea││
+│                             │    │ pontilhada do threshold││
+│                             │    └────────────────────────┘│
+│                             │    47 disparos em 24h         │
+│                             │    Primeiro: 14:22  Último:..│
+│                             │    Top eventos correlacionados│
 └─────────────────────────────┴────────────────────────────────┘
-
-┌─ Modal Replay ─────────────────────────────────────────────┐
-│ Replay da execução exec_a91… (12 eventos · 320ms total)    │
-│ [⏮][▶ Play][⏸][⏭][⟳ Reset]   Velocidade: 1x ▾   ████░░ 5/12│
-│ Atual: ⚠ guardrail.check (passo 5)                          │
-│   Input  (JSON, syntax highlight)                           │
-│   Output (JSON)                                              │
-│   Metadata · latência: 42ms · tokens: 18 · custo: $0.0001   │
-└────────────────────────────────────────────────────────────┘
 ```
 
-### Comportamento do Replay (mock)
+### Catálogo de métricas
 
-- Ordena traces da execução por `created_at` ascendente
-- Reproduz cada passo com delay = `latency_ms / velocidade` (capado entre 200–2000ms)
-- Mostra Input / Output / Metadata do passo atual em painéis JSON
-- Acumula custo / tokens / duração à medida que avança (counter em tempo real)
-- Controles: Play, Pause, Step+/−, Reset, slider de velocidade (0.5x / 1x / 2x / 4x), barra de progresso clicável
-- 100% client-side — não chama backend, usa o array já carregado
+| Métrica | Agregação | Origem (mockada) |
+|---------|-----------|------------------|
+| `latency_ms` | avg / p95 / p99 / max | `agent_traces.latency_ms` |
+| `cost_per_exec` | avg / sum / max | soma de `cost_usd` por `session_id` |
+| `cost_window` | sum | soma `cost_usd` na janela |
+| `tool_failure_rate` | % | traces `event='tool.call' AND level='error'` ÷ total `tool.call` |
+| `tool_failures_count` | count | traces `event='tool.call' AND level='error'` |
+| `memory_mb` | avg / max | `agent_traces.metadata->>memory_mb` (fallback: gera ruído determinístico) |
+| `error_rate` | % | traces `level='error'` ÷ total |
+
+Operadores: `>`, `>=`, `<`, `<=`, `==`. Janelas: 5min / 15min / 1h / 24h. Severidades: `info` / `warning` / `critical`. Canais: `toast` (Sonner — funcional), `email` / `webhook` (mock visual com badge "simulado").
+
+### Fluxos principais
+
+- **Prévia ao vivo (sempre visível no editor)**: a cada keystroke, recalcula o valor atual da métrica na janela escolhida e mostra "Disparo: SIM/NÃO" com cor semântica.
+- **Simulação 24h**: percorre traces em buckets (5min ou 1h) e marca buckets que disparariam, plotando linha temporal + linha do threshold + contagem de disparos + amostra dos 5 traces correlacionados.
+- **Toggle ATIVA / PAUSADA**: muda a aparência e o status — regras pausadas não entram nos cálculos do badge "disparariam agora".
+
+### Persistência
+
+Persistência **client-side via `localStorage`** chaveado por `workspace_id + agent_id` (chave: `nexus.alert_rules.<workspaceId>.<agentId>`). Justificativa: a tabela `alert_rules` referenciada no código antigo **não existe no banco** — adicionar migração + edge function de avaliação ultrapassa o escopo de "regras configuráveis com prévia". Mantenho o serviço com interface limpa (`alertRulesService`) para no futuro plugar persistência real sem refatorar UI.
 
 ### Arquivos a criar
 
-- `src/services/agentTracesService.ts` — `listAgentTraces({ agentId?, level?, event?, search?, since, limit })`, `groupBySession(traces): Execution[]`, `listAvailableEvents()` (DISTINCT mockado)
-- `src/components/agents/traces/TracesFilters.tsx` — barra sticky com 4 selects + busca + range temporal
-- `src/components/agents/traces/ExecutionList.tsx` — coluna esquerda agrupada por `session_id` com mini-stats (✓/⚠/✗ contagem, duração agregada)
-- `src/components/agents/traces/ExecutionTimeline.tsx` — coluna direita com linha do tempo de eventos clicáveis e detalhe expandível
-- `src/components/agents/traces/ReplayDialog.tsx` — modal com player de replay (timer interno, controles, JSON viewer)
-- `src/pages/AgentTracesPage.tsx` — página orquestradora
+- `src/services/alertRulesService.ts` — tipos `AlertRule`, `AlertMetric`, `AlertAggregation`, `AlertWindow`; CRUD via `localStorage` + funções puras `evaluateRule(rule, traces)`, `simulateRule24h(rule, traces, bucketMin)` e `formatThreshold(rule)`.
+- `src/lib/alertMetrics.ts` — implementações de `computeMetric(metric, agg, traces)` com `percentile`, `avg`, `sum`, `max`, `count`, `rate`.
+- `src/components/agents/alerts/AlertRuleEditor.tsx` — formulário (Sheet) com `react-hook-form` + Zod (estendendo `alertRuleSchema`) e prévia ao vivo.
+- `src/components/agents/alerts/AlertRulesList.tsx` — coluna esquerda com cards das regras (ícone por métrica, badge de severidade, toggle, ações).
+- `src/components/agents/alerts/AlertSimulationPanel.tsx` — coluna direita: prévia agora + botão "Rodar simulação" + chart (`recharts` `LineChart` já em uso) + tabela de disparos.
+- `src/pages/AgentAlertsPage.tsx` — orquestradora com layout de 2 colunas e header de resumo.
 
 ### Arquivos a alterar
 
-- `src/App.tsx` — adicionar rota `/agents/:id/traces` (lazy import)
-- `src/pages/AgentDetailPage.tsx` — adicionar botão "Ver traces" no header de ações que navega para `/agents/:id/traces`
+- `src/App.tsx` — adicionar rota `/agents/:id/alerts` (lazy).
+- `src/pages/AgentDetailPage.tsx` — adicionar botão "Alertas" no header de ações ao lado de "Ver traces".
+- `src/lib/validations/agentSchema.ts` — estender `alertRuleSchema` com `aggregation`, `window_minutes`, `channels[]`, `is_enabled`, `agent_id` (mantém compatibilidade).
 
 ### Detalhes técnicos
 
-- **Sem migração**: tabela `agent_traces` já existe com `level` (enum: info/warning/error), `event` (text), `session_id` (text), `input`/`output`/`metadata` (jsonb), `latency_ms`, `tokens_used`, `cost_usd`
-- **Agrupamento por execução** = `session_id` (fallback para chunks de 30s quando vazio)
-- **Range temporal**: 1h / 24h / 7d / 30d / tudo (default 24h)
-- **Filtro Agente**: pré-selecionado a partir da `:id` da rota; opção "Todos" desabilita o filtro e mostra dropdown com `listAgentSummaries()`
-- **React Query** com chave `['agent-traces', agentId, filters]` e `staleTime: 30s`
-- **Empty states** dedicados para "sem traces", "sem resultados após filtros" e "selecione uma execução"
-- **Cores semânticas**: `--nexus-emerald` (info ✓), `--nexus-amber` (warning ⚠), `--destructive` (error ✗), `--primary` (highlights)
-- **Acessibilidade**: filtros com `aria-label`, eventos navegáveis via teclado, replay com `aria-live="polite"` para anunciar passo atual
-- **Performance**: limit de 500 traces por load, paginação implícita via filtro temporal
+- **Sem migração de banco, sem edge function, sem dependência nova**.
+- Reaproveita `useAgentTraces` no padrão do `agentTracesService` (busca uma janela ampla — 24h — uma vez e simula em memória).
+- Quando regra dispara na **prévia**, opcionalmente injeta um toast Sonner real (com debounce) para validar comportamento.
+- **Acessibilidade**: editor navegável por teclado, prévia com `aria-live="polite"`, chart com tabela equivalente para screen readers.
+- **Design tokens semânticos**: `--nexus-emerald` / `--nexus-amber` / `--destructive` para severidade, `--primary` para regras ativas, `--muted` para pausadas. Sem cores hard-coded.
+- **Empty states**: lista vazia mostra CTA "Criar primeira regra" com 4 templates pré-prontos (latência alta, custo estourado, tool failures, memória).
+- **Templates pré-prontos** (botão "Usar template"): Latência p95 > 800ms (5min, warning) · Custo por execução > $0.05 (1h, warning) · Tool failure rate > 10% (1h, critical) · Memória máxima > 800MB (5min, info).
 
 ### Impacto
 
-- Zero migrações, zero edge functions, zero novas dependências
-- Página totalmente nova focada em debugging por execução (complementa a `TracesTimelinePage` global, que opera em `trace_events` workflow-level)
-- Replay funcional com dados mockados — base pronta para no futuro disparar re-execução real via edge function
+- Zero breaking changes; a tabela `alert_rules` continua referenciada apenas pelo painel global existente (que já não funcionava por falta da tabela).
+- Página totalmente nova focada em agente, complementando os alertas globais (`alerts` table) e cost anomalies (`cost_alerts` table).
+- Base limpa para no futuro promover `alertRulesService` a persistência real + avaliador server-side.
 
