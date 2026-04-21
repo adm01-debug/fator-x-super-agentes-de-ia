@@ -5,15 +5,23 @@ import { RefreshCw } from 'lucide-react';
 import type { QuickAgentForm } from '@/lib/validations/quickAgentSchema';
 import { CompiledPromptPreview } from './CompiledPromptPreview';
 import { PromptSectionChecklist } from './PromptSectionChecklist';
+import { PromptVariantSelector } from './PromptVariantSelector';
+import {
+  detectPromptVariant,
+  type QuickAgentType,
+  type PromptVariantId,
+} from '@/data/quickAgentTemplates';
 
 interface Props {
   form: QuickAgentForm;
   errors: Partial<Record<keyof QuickAgentForm, string>>;
   update: <K extends keyof QuickAgentForm>(key: K, value: QuickAgentForm[K]) => void;
   onRestore: () => void;
+  onApplyVariant: (id: PromptVariantId) => void;
 }
 
-export function StepQuickPrompt({ form, errors, update, onRestore }: Props) {
+export function StepQuickPrompt({ form, errors, update, onRestore, onApplyVariant }: Props) {
+  const activeVariant = detectPromptVariant(form.type as QuickAgentType, form.prompt);
   const len = form.prompt.length;
   const min = 50;
   const max = 8000;
@@ -30,6 +38,12 @@ export function StepQuickPrompt({ form, errors, update, onRestore }: Props) {
           <RefreshCw className="h-3.5 w-3.5" /> Restaurar template
         </Button>
       </div>
+
+      <PromptVariantSelector
+        type={form.type as QuickAgentType}
+        activeVariant={activeVariant}
+        onSelect={onApplyVariant}
+      />
 
       <div className="nexus-card space-y-2">
         <Label htmlFor="qa-prompt" className="sr-only">System prompt</Label>
