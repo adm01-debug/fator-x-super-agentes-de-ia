@@ -47,16 +47,13 @@ export function AgentRichMetrics({ agentId, days = 14 }: Props) {
     const totalRequests = daily.reduce((s, d) => s + d.requests, 0);
     const totalCost = daily.reduce((s, d) => s + d.cost, 0);
     const totalTokens = daily.reduce((s, d) => s + d.tokens, 0);
-    const last7 = daily.slice(-7);
-    const prev7 = daily.slice(-14, -7);
-    const last7Req = last7.reduce((s, d) => s + d.requests, 0);
-    const prev7Req = prev7.reduce((s, d) => s + d.requests, 0);
-    const reqTrend = prev7Req > 0 ? ((last7Req - prev7Req) / prev7Req) * 100 : 0;
-    const last7Cost = last7.reduce((s, d) => s + d.cost, 0);
-    const prev7Cost = prev7.reduce((s, d) => s + d.cost, 0);
-    const costTrend = prev7Cost > 0 ? ((last7Cost - prev7Cost) / prev7Cost) * 100 : 0;
-    return { totalRequests, totalCost, totalTokens, reqTrend, costTrend };
-  }, [daily]);
+    const reqCmp = compareWindows(daily, (d) => d.requests);
+    const costCmp = compareWindows(daily, (d) => d.cost, { inverted: true });
+    // latency p95 proxy: média da janela de avgLatency (menor = melhor)
+    const latCmp = compareWindows(daily, (d) => d.avgLatency, { inverted: true });
+    const successCmp = compareSuccessRateWindows(traces);
+    return { totalRequests, totalCost, totalTokens, reqCmp, costCmp, latCmp, successCmp };
+  }, [daily, traces]);
 
   const activeAlerts = alerts.filter((a) => !a.is_resolved).length;
 
@@ -72,6 +69,15 @@ export function AgentRichMetrics({ agentId, days = 14 }: Props) {
 
   return (
     <div className="space-y-6">
+      <TrendInsightsBanner
+        insights={[
+          { key: 'success', label: 'Taxa de sucesso', cmp: totals.successCmp, format: (v) => `${v.toFixed(1)}%`, priority: 1 },
+          { key: 'latency', label: 'Latência média', cmp: totals.latCmp, format: (v) => `${Math.round(v)}ms`, priority: 2 },
+          { key: 'cost', label: 'Custo', cmp: totals.costCmp, format: (v) => formatCost(v), priority: 3 },
+          { key: 'requests', label: 'Volume de requisições', cmp: totals.reqCmp, format: (v) => formatNumber(Math.round(v)), priority: 4 },
+        ]}
+      />
+
       {/* Top metric cards */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
         <MetricCard
@@ -79,7 +85,10 @@ export function AgentRichMetrics({ agentId, days = 14 }: Props) {
           value={formatNumber(totals.totalRequests)}
           subtitle={`Últimos ${days} dias`}
           icon={Activity}
-          trend={Math.abs(totals.reqTrend) > 0.5 ? { value: `${totals.reqTrend >= 0 ? '+' : ''}${totals.reqTrend.toFixed(1)}% vs sem. ant.`, positive: totals.reqTrend >= 0 } : undefined}
+          trend={totals.reqCmp.hasPrev && totals.reqCmp.trend !== 'flat' ? {
+            value: `${totals.reqCmp.deltaPct >= 0 ? '+' : ''}${totals.reqCmp.deltaPct.toFixed(1)}% vs 7d ant.`,
+            positive: totals.reqCmp.isPositive,
+          } : undefined}
           sparklineData={daily.map((d) => d.requests)}
         />
         <MetricCard
@@ -87,7 +96,10 @@ export function AgentRichMetrics({ agentId, days = 14 }: Props) {
           value={formatCost(totals.totalCost)}
           subtitle={`${formatNumber(totals.totalTokens)} tokens`}
           icon={DollarSign}
-          trend={Math.abs(totals.costTrend) > 0.5 ? { value: `${totals.costTrend >= 0 ? '+' : ''}${totals.costTrend.toFixed(1)}%`, positive: totals.costTrend < 0 } : undefined}
+          trend={totals.costCmp.hasPrev && totals.costCmp.trend !== 'flat' ? {
+            value: `${totals.costCmp.deltaPct >= 0 ? '+' : ''}${totals.costCmp.deltaPct.toFixed(1)}% vs 7d ant.`,
+            positive: totals.costCmp.isPositive,
+          } : undefined}
           sparklineData={daily.map((d) => d.cost)}
           sparklineColor="hsl(var(--nexus-amber))"
         />
@@ -96,6 +108,10 @@ export function AgentRichMetrics({ agentId, days = 14 }: Props) {
           value={`${formatNumber(slo.p95)}ms`}
           subtitle={`p50 ${slo.p50}ms · p99 ${slo.p99}ms`}
           icon={Zap}
+          trend={totals.latCmp.hasPrev && totals.latCmp.trend !== 'flat' ? {
+            value: `${totals.latCmp.deltaPct >= 0 ? '+' : ''}${totals.latCmp.deltaPct.toFixed(1)}% vs 7d ant.`,
+            positive: totals.latCmp.isPositive,
+          } : undefined}
           sparklineData={daily.map((d) => d.avgLatency)}
         />
         <MetricCard
@@ -103,7 +119,10 @@ export function AgentRichMetrics({ agentId, days = 14 }: Props) {
           value={`${slo.successRate.toFixed(1)}%`}
           subtitle={`${slo.successCount}/${slo.totalTraces} traces`}
           icon={ShieldCheck}
-          trend={{ value: `${slo.errorCount} erros`, positive: slo.errorCount === 0 }}
+          trend={totals.successCmp.hasPrev && totals.successCmp.trend !== 'flat' ? {
+            value: `${totals.successCmp.deltaPct >= 0 ? '+' : ''}${totals.successCmp.deltaPct.toFixed(1)}% vs 7d ant.`,
+            positive: totals.successCmp.isPositive,
+          } : { value: `${slo.errorCount} erros`, positive: slo.errorCount === 0 }}
         />
       </div>
 
