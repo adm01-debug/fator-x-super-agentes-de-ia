@@ -17,11 +17,45 @@ export default function AgentDetailPage() {
   const { id } = useParams();
   const navigate = useNavigate();
 
+  const queryClient = useQueryClient();
+  const [simOpen, setSimOpen] = useState(false);
+  const [simRunning, setSimRunning] = useState(false);
+  const [simSummary, setSimSummary] = useState<SimulationSummary | null>(null);
+
   const { data: agent, isLoading, error } = useQuery({
     queryKey: ['agent', id],
     queryFn: () => getAgentById(id!),
     enabled: !!id,
   });
+
+  const handleSimulate = async () => {
+    if (!agent || !id) return;
+    setSimOpen(true);
+    setSimRunning(true);
+    setSimSummary(null);
+    try {
+      let traces = queryClient.getQueryData<AgentTrace[]>(['agent_traces_rich', id]) ?? [];
+      if (traces.length === 0) {
+        traces = await queryClient.fetchQuery({
+          queryKey: ['agent_traces_rich', id],
+          queryFn: () => getAgentDetailTraces(id, 200),
+        });
+      }
+      setTimeout(() => {
+        const summary = simulateAgentRun(
+          { id: agent.id, name: agent.name, model: agent.model },
+          traces,
+          10,
+        );
+        setSimSummary(summary);
+        setSimRunning(false);
+        toast.success(`Simulação concluída: ${summary.passed}/${summary.total} aprovadas`);
+      }, 900);
+    } catch (e) {
+      setSimRunning(false);
+      toast.error(e instanceof Error ? e.message : 'Erro ao simular');
+    }
+  };
 
   if (isLoading) {
     return <div className="flex items-center justify-center h-[60vh]"><Loader2 className="h-8 w-8 animate-spin text-muted-foreground" /></div>;
