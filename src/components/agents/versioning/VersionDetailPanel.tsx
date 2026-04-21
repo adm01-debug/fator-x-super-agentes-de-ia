@@ -3,19 +3,23 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { ChevronDown, RotateCcw, Copy, Loader2, Wrench, Shield, FileText } from "lucide-react";
-import type { AgentVersion } from "@/services/agentsService";
+import type { AgentVersion, RestoreOptions } from "@/services/agentsService";
 import { getVersionTools, getVersionGuardrails, getVersionPrompt, getVersionScalar } from "@/lib/agentChangelog";
+import { RestoreVersionDialog } from "./RestoreVersionDialog";
 
 interface Props {
   version: AgentVersion;
   isCurrent: boolean;
-  onRestore: () => void;
+  currentVersion: AgentVersion;
+  nextVersionNumber: number;
+  onRestore: (options: RestoreOptions) => void;
   onDuplicate: () => void;
   restoring: boolean;
 }
 
-export function VersionDetailPanel({ version, isCurrent, onRestore, onDuplicate, restoring }: Props) {
+export function VersionDetailPanel({ version, isCurrent, currentVersion, nextVersionNumber, onRestore, onDuplicate, restoring }: Props) {
   const [promptOpen, setPromptOpen] = useState(true);
+  const [restoreOpen, setRestoreOpen] = useState(false);
   const tools = getVersionTools(version);
   const guardrails = getVersionGuardrails(version);
   const prompt = getVersionPrompt(version);
@@ -40,7 +44,7 @@ export function VersionDetailPanel({ version, isCurrent, onRestore, onDuplicate,
           </div>
           <div className="flex gap-1.5">
             {!isCurrent && (
-              <Button variant="outline" size="sm" className="gap-1.5 text-xs h-7" onClick={onRestore} disabled={restoring}>
+              <Button variant="outline" size="sm" className="gap-1.5 text-xs h-7" onClick={() => setRestoreOpen(true)} disabled={restoring}>
                 {restoring ? <Loader2 className="h-3 w-3 animate-spin" /> : <RotateCcw className="h-3 w-3" />}
                 Restaurar
               </Button>
@@ -58,6 +62,19 @@ export function VersionDetailPanel({ version, isCurrent, onRestore, onDuplicate,
           <Field label="Max tokens" value={maxTokens !== undefined ? String(maxTokens) : '—'} />
         </div>
       </div>
+
+      <RestoreVersionDialog
+        open={restoreOpen}
+        onOpenChange={setRestoreOpen}
+        source={version}
+        current={currentVersion}
+        nextVersionNumber={nextVersionNumber}
+        restoring={restoring}
+        onConfirm={(opts) => {
+          setRestoreOpen(false);
+          onRestore(opts);
+        }}
+      />
 
       <Collapsible open={promptOpen} onOpenChange={setPromptOpen}>
         <div className="nexus-card">

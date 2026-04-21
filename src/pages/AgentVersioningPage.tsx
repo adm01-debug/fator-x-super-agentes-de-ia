@@ -10,6 +10,7 @@ import {
   getAgentVersions,
   restoreAgentVersion,
   type AgentVersion,
+  type RestoreOptions,
 } from "@/services/agentsService";
 import { VersionTimeline } from "@/components/agents/versioning/VersionTimeline";
 import { VersionDetailPanel } from "@/components/agents/versioning/VersionDetailPanel";
@@ -55,10 +56,14 @@ export default function AgentVersioningPage() {
   const versionB = useMemo(() => versions.find(v => v.id === bId) ?? null, [versions, bId]);
   const canCompare = !!versionA && !!versionB && versionA.id !== versionB.id;
 
+  const current = versions[0] ?? null;
+  const nextVersionNumber = (current?.version ?? 0) + 1;
+
   const restoreMut = useMutation({
-    mutationFn: (v: AgentVersion) => restoreAgentVersion(id!, v),
+    mutationFn: ({ source, options }: { source: AgentVersion; options: RestoreOptions }) =>
+      restoreAgentVersion(id!, source, current, options),
     onSuccess: (data) => {
-      toast.success(`Versão v${data.version} criada (restauração)`);
+      toast.success(`Versão v${data.version} criada — ${data.change_summary ?? 'restauração'}`);
       queryClient.invalidateQueries({ queryKey: ['agent-versions', id] });
       queryClient.invalidateQueries({ queryKey: ['agent', id] });
       setSelectedId(data.id);
@@ -154,12 +159,14 @@ export default function AgentVersioningPage() {
               </Button>
             </div>
 
-            {mode === 'detail' && selected && (
+            {mode === 'detail' && selected && current && (
               <VersionDetailPanel
                 version={selected}
-                isCurrent={versions[0]?.id === selected.id}
+                isCurrent={current.id === selected.id}
+                currentVersion={current}
+                nextVersionNumber={nextVersionNumber}
                 restoring={restoreMut.isPending}
-                onRestore={() => restoreMut.mutate(selected)}
+                onRestore={(options) => restoreMut.mutate({ source: selected, options })}
                 onDuplicate={() => handleDuplicateAsDraft(selected)}
               />
             )}
