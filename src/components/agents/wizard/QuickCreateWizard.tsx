@@ -11,6 +11,7 @@ import {
   quickModelSchema,
   quickPromptSchema,
   QUICK_AGENT_DEFAULTS,
+  isDraftMeaningful,
   type QuickAgentForm,
 } from '@/lib/validations/quickAgentSchema';
 import {
@@ -22,6 +23,7 @@ import { StepQuickIdentity } from './quickSteps/StepQuickIdentity';
 import { StepQuickType } from './quickSteps/StepQuickType';
 import { StepQuickModel } from './quickSteps/StepQuickModel';
 import { StepQuickPrompt } from './quickSteps/StepQuickPrompt';
+import { DraftRecoveryBanner, type DraftSummary } from './DraftRecoveryBanner';
 
 const STEPS = [
   { key: 'identity', label: 'Identidade', schema: quickIdentitySchema, fields: ['name', 'emoji', 'mission', 'description'] },
@@ -31,6 +33,40 @@ const STEPS = [
 ] as const;
 
 const DRAFT_KEY = 'quick-agent-wizard-draft';
+const DRAFT_TTL_MS = 7 * 24 * 60 * 60 * 1000; // 7 dias
+
+interface DraftEnvelope {
+  form: QuickAgentForm;
+  savedAt: string;
+}
+
+function readDraftEnvelope(): DraftEnvelope | null {
+  try {
+    const raw = localStorage.getItem(DRAFT_KEY);
+    if (!raw) return null;
+    const parsed = JSON.parse(raw);
+    if (parsed && typeof parsed === 'object' && 'form' in parsed && 'savedAt' in parsed) {
+      const env = parsed as DraftEnvelope;
+      return { form: { ...QUICK_AGENT_DEFAULTS, ...env.form }, savedAt: env.savedAt };
+    }
+    return { form: { ...QUICK_AGENT_DEFAULTS, ...parsed }, savedAt: new Date().toISOString() };
+  } catch {
+    return null;
+  }
+}
+
+function summarize(form: QuickAgentForm): DraftSummary {
+  return {
+    name: form.name,
+    hasIdentity:
+      form.name.trim().length > 0 ||
+      form.mission.trim().length > 0 ||
+      (form.description ?? '').trim().length > 0,
+    hasType: quickTypeSchema.safeParse(form).success,
+    hasModel: quickModelSchema.safeParse(form).success,
+    hasPrompt: form.prompt.trim().length >= 10,
+  };
+}
 
 interface QuickCreateWizardProps {
   onBack: () => void;
@@ -43,18 +79,52 @@ export function QuickCreateWizard({ onBack }: QuickCreateWizardProps) {
   const [saving, setSaving] = useState(false);
   const [errors, setErrors] = useState<Partial<Record<keyof QuickAgentForm, string>>>({});
 
-  const [form, setForm] = useState<QuickAgentForm>(() => {
-    try {
-      const draft = localStorage.getItem(DRAFT_KEY);
-      if (draft) return { ...QUICK_AGENT_DEFAULTS, ...JSON.parse(draft) };
-    } catch {/* ignore */}
-    return QUICK_AGENT_DEFAULTS;
-  });
+  const [form, setForm] = useState<QuickAgentForm>(QUICK_AGENT_DEFAULTS);
+  const [pendingDraft, setPendingDraft] = useState<DraftEnvelope | null>(null);
+  const [draftDecided, setDraftDecided] = useState(false);
 
-  // Auto-save draft
+  // On mount: check for a meaningful, non-expired draft and offer recovery.
   useEffect(() => {
-    try { localStorage.setItem(DRAFT_KEY, JSON.stringify(form)); } catch {/* ignore */}
-  }, [form]);
+    const env = readDraftEnvelope();
+    if (!env) { setDraftDecided(true); return; }
+    const ageMs = Date.now() - new Date(env.savedAt).getTime();
+    if (!Number.isFinite(ageMs) || ageMs > DRAFT_TTL_MS || !isDraftMeaningful(env.form)) {
+      try { localStorage.removeItem(DRAFT_KEY); } catch {/* ignore */}
+      setDraftDecided(true);
+      return;
+    }
+    setPendingDraft(env);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  // Auto-save draft only after the user decided what to do with any prior draft.
+  useEffect(() => {
+    if (!draftDecided) return;
+    try {
+      const envelope: DraftEnvelope = { form, savedAt: new Date().toISOString() };
+      localStorage.setItem(DRAFT_KEY, JSON.stringify(envelope));
+    } catch {/* ignore */}
+  }, [form, draftDecided]);
+
+  const restoreDraft = () => {
+    if (!pendingDraft) return;
+    setForm(pendingDraft.form);
+    const resumeIdx = STEPS.findIndex((s) => !s.schema.safeParse(pendingDraft.form).success);
+    const target = resumeIdx === -1 ? STEPS.length - 1 : resumeIdx;
+    setStep(target);
+    setPendingDraft(null);
+    setDraftDecided(true);
+    toast.success('Rascunho restaurado', {
+      description: `Continuando do passo: ${STEPS[target].label}`,
+    });
+  };
+
+  const discardDraft = () => {
+    try { localStorage.removeItem(DRAFT_KEY); } catch {/* ignore */}
+    setPendingDraft(null);
+    setDraftDecided(true);
+    toast('Rascunho descartado');
+  };
 
   const update = <K extends keyof QuickAgentForm>(key: K, value: QuickAgentForm[K]) => {
     setForm((prev) => ({ ...prev, [key]: value }));
@@ -191,6 +261,14 @@ export function QuickCreateWizard({ onBack }: QuickCreateWizardProps) {
 
   return (
     <div className="p-6 max-w-[1100px] mx-auto space-y-6">
+      {pendingDraft && (
+        <DraftRecoveryBanner
+          savedAt={pendingDraft.savedAt}
+          summary={summarize(pendingDraft.form)}
+          onRestore={restoreDraft}
+          onDiscard={discardDraft}
+        />
+      )}
       <div className="flex items-center gap-3">
         <Button variant="ghost" size="icon" onClick={goPrev} className="text-muted-foreground" aria-label="Voltar">
           <ArrowLeft className="h-4 w-4" />
