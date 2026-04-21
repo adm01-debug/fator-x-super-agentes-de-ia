@@ -9,6 +9,7 @@ import { CompiledPromptPreview } from './CompiledPromptPreview';
 import { PromptSectionChecklist } from './PromptSectionChecklist';
 import { PromptVariantSelector } from './PromptVariantSelector';
 import { PromptValidationFeedback } from './PromptValidationFeedback';
+import { AgentLivePreviewCard } from './AgentLivePreviewCard';
 import { QuickAgentTestPanel } from './QuickAgentTestPanel';
 import { sanitizePromptInput, PROMPT_LIMITS } from '@/lib/validations/promptSanitizer';
 import {
