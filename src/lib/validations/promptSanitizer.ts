@@ -38,7 +38,7 @@ export interface SanitizeResult {
  * @param text   texto a sanitizar
  * @param budget caracteres ainda disponíveis (default = MAX_TOTAL)
  */
-export function sanitizePromptInput(text: string, budget = PROMPT_LIMITS.MAX_TOTAL): SanitizeResult {
+export function sanitizePromptInput(text: string, budget: number = PROMPT_LIMITS.MAX_TOTAL): SanitizeResult {
   let clean = text ?? '';
   const warnings: string[] = [];
 
