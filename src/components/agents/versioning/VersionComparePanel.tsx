@@ -5,10 +5,10 @@ import type { AgentVersion } from "@/services/agentsService";
 import {
   generateChangelog,
   getVersionTools,
-  getVersionGuardrails,
   getVersionPrompt,
   type ChangelogEntry,
 } from "@/lib/agentChangelog";
+import { GuardrailsDiffPanel } from "./GuardrailsDiffPanel";
 
 interface Props {
   versionA: AgentVersion;
@@ -38,7 +38,6 @@ export function VersionComparePanel({ versionA, versionB }: Props) {
   const promptA = getVersionPrompt(versionA);
   const promptB = getVersionPrompt(versionB);
   const toolsDiff = diffNamedLists(getVersionTools(versionA), getVersionTools(versionB));
-  const guardrailsDiff = diffNamedLists(getVersionGuardrails(versionA), getVersionGuardrails(versionB));
 
   return (
     <div className="space-y-4">
@@ -86,10 +85,9 @@ export function VersionComparePanel({ versionA, versionB }: Props) {
         )}
       </div>
 
-      <div className="grid md:grid-cols-2 gap-4">
-        <DiffTable title="Ferramentas" rows={toolsDiff} versionA={versionA.version} versionB={versionB.version} />
-        <DiffTable title="Guardrails" rows={guardrailsDiff} versionA={versionA.version} versionB={versionB.version} />
-      </div>
+      <DiffTable title="Ferramentas" rows={toolsDiff} versionA={versionA.version} versionB={versionB.version} />
+
+      <GuardrailsDiffPanel versionA={versionA} versionB={versionB} />
     </div>
   );
 }

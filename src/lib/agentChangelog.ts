@@ -142,3 +142,135 @@ export function getVersionPrompt(v: VersionLike): string {
 export function getVersionScalar<T = unknown>(v: VersionLike, key: string): T | undefined {
   return getCfg(v)[key] as T | undefined;
 }
+
+// ───────── Guardrails rich diff ─────────
+
+export interface GuardrailLike {
+  id?: string;
+  name?: string;
+  category?: string;
+  severity?: string;
+  enabled?: boolean;
+  config?: Record<string, unknown>;
+}
+
+export interface GuardrailConfigChange {
+  key: string;
+  from: unknown;
+  to: unknown;
+}
+
+export interface GuardrailKeptDiff {
+  key: string;
+  prev: GuardrailLike;
+  next: GuardrailLike;
+  severityChanged?: { from: string; to: string };
+  configChanges: GuardrailConfigChange[];
+}
+
+export interface GuardrailDiff {
+  added: GuardrailLike[];
+  removed: GuardrailLike[];
+  kept: GuardrailKeptDiff[];
+  byCategory: Record<string, { prev: number; next: number; delta: number }>;
+  summary: { added: number; removed: number; modified: number; total: number };
+}
+
+const SEVERITY_RANK: Record<string, number> = { log: 1, warn: 2, block: 3 };
+
+export function compareSeverity(from?: string, to?: string): 'stricter' | 'looser' | 'same' | 'unknown' {
+  if (!from || !to) return 'unknown';
+  const a = SEVERITY_RANK[from] ?? 0;
+  const b = SEVERITY_RANK[to] ?? 0;
+  if (a === 0 || b === 0) return 'unknown';
+  if (a === b) return 'same';
+  return b > a ? 'stricter' : 'looser';
+}
+
+export function getVersionGuardrailObjects(v: VersionLike): GuardrailLike[] {
+  const arr = getCfg(v).guardrails;
+  if (!Array.isArray(arr)) return [];
+  return arr
+    .filter((x): x is GuardrailLike => !!x && typeof x === 'object' && ((x as GuardrailLike).enabled ?? true))
+    .map((x) => ({
+      id: x.id ? String(x.id) : undefined,
+      name: x.name ? String(x.name) : undefined,
+      category: x.category ? String(x.category) : undefined,
+      severity: x.severity ? String(x.severity) : undefined,
+      enabled: x.enabled ?? true,
+      config: (x.config && typeof x.config === 'object' ? (x.config as Record<string, unknown>) : undefined),
+    }));
+}
+
+function guardrailKey(g: GuardrailLike): string {
+  return g.name || g.id || '';
+}
+
+function diffConfig(
+  a?: Record<string, unknown>,
+  b?: Record<string, unknown>,
+): GuardrailConfigChange[] {
+  const out: GuardrailConfigChange[] = [];
+  const keys = new Set<string>([...Object.keys(a ?? {}), ...Object.keys(b ?? {})]);
+  for (const k of keys) {
+    const av = a?.[k];
+    const bv = b?.[k];
+    const equal = JSON.stringify(av) === JSON.stringify(bv);
+    if (!equal) out.push({ key: k, from: av, to: bv });
+  }
+  return out.sort((x, y) => x.key.localeCompare(y.key));
+}
+
+export function diffGuardrails(prev: VersionLike, next: VersionLike): GuardrailDiff {
+  const prevList = getVersionGuardrailObjects(prev);
+  const nextList = getVersionGuardrailObjects(next);
+  const prevMap = new Map<string, GuardrailLike>(
+    prevList.map((g) => [guardrailKey(g), g] as const).filter(([k]) => !!k),
+  );
+  const nextMap = new Map<string, GuardrailLike>(
+    nextList.map((g) => [guardrailKey(g), g] as const).filter(([k]) => !!k),
+  );
+
+  const added: GuardrailLike[] = [];
+  const removed: GuardrailLike[] = [];
+  const kept: GuardrailKeptDiff[] = [];
+
+  for (const [k, g] of nextMap) if (!prevMap.has(k)) added.push(g);
+  for (const [k, g] of prevMap) if (!nextMap.has(k)) removed.push(g);
+  for (const [k, gPrev] of prevMap) {
+    const gNext = nextMap.get(k);
+    if (!gNext) continue;
+    const severityChanged =
+      gPrev.severity && gNext.severity && gPrev.severity !== gNext.severity
+        ? { from: gPrev.severity, to: gNext.severity }
+        : undefined;
+    const configChanges = diffConfig(gPrev.config, gNext.config);
+    if (severityChanged || configChanges.length > 0) {
+      kept.push({ key: k, prev: gPrev, next: gNext, severityChanged, configChanges });
+    }
+  }
+
+  const byCategory: Record<string, { prev: number; next: number; delta: number }> = {};
+  const allCats = new Set<string>([
+    ...prevList.map((g) => g.category || 'uncategorized'),
+    ...nextList.map((g) => g.category || 'uncategorized'),
+  ]);
+  for (const cat of allCats) {
+    const p = prevList.filter((g) => (g.category || 'uncategorized') === cat).length;
+    const n = nextList.filter((g) => (g.category || 'uncategorized') === cat).length;
+    byCategory[cat] = { prev: p, next: n, delta: n - p };
+  }
+
+  return {
+    added,
+    removed,
+    kept,
+    byCategory,
+    summary: {
+      added: added.length,
+      removed: removed.length,
+      modified: kept.length,
+      total: nextList.length,
+    },
+  };
+}
