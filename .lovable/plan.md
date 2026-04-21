@@ -1,103 +1,102 @@
 
 
-## Teste rápido do agente antes de criar
+## Validação em tempo real do editor de prompt
 
-Adiciono um botão **"Testar agente"** no passo 4 (Prompt) do wizard rápido que executa uma chamada real ao LLM com um payload de exemplo e mostra resposta, custo estimado e latência — tudo antes de salvar.
+Adiciono validação ativa ao `<Textarea>` do passo 4 (Prompt) do wizard rápido, com contagem por linhas, bloqueio de caracteres inválidos (incluindo colagem) e mensagens PT-BR inline antes de avançar.
 
-### UX no passo Prompt
+### Visão final do editor
 
 ```text
-[ Variações de prompt ]
-[ Editor de prompt ]
-[ Checklist 4/4 ✓ ]
-[ Pré-visualização do agente ]
-[ Prompt consolidado ]
-
-┌─ Teste rápido ───────────────────────────────────────┐
-│ Mensagem de teste (mock):                            │
-│ ┌──────────────────────────────────────────────────┐ │
-│ │ Olá! Você pode se apresentar?                    │ │  ← textarea editável
-│ └──────────────────────────────────────────────────┘ │
+┌─ System Prompt ──────────────────────────────────────┐
+│ [ Variações de prompt ]                              │
 │                                                       │
-│ [Mock por tipo ▾]   [▶ Executar teste]               │
+│ ## Persona                                            │
+│ Você é um SDR consultivo...                          │
+│ ...                                                   │
+│                                                       │
+│ ⚠ Linha 14 contém caracteres não permitidos: <script>│
+│                                                       │
+│  ▰▰▰▰▰▰▰▱▱  2.140 / 8.000   ·   42 linhas / 200      │
 └──────────────────────────────────────────────────────┘
-
-┌─ Resultado ──────────────────────────────────────────┐
-│  ⚡ 1.247ms     💰 ~R$ 0,012 (US$ 0,0021)            │
-│  📊 142 in / 386 out tokens  ·  modelo: gpt-4o       │
-│                                                       │
-│  Resposta:                                            │
-│  ┌────────────────────────────────────────────────┐  │
-│  │ Olá! Eu sou Aurora, sua assistente...          │  │
-│  └────────────────────────────────────────────────┘  │
-│                                                       │
-│  [Copiar resposta] [Executar novamente]              │
-└──────────────────────────────────────────────────────┘
+[ ✓ Persona  ✓ Escopo  ✓ Formato  ✗ Regras ]
 ```
 
-### Mocks por tipo de agente
+### Regras de validação (todas em tempo real)
 
-Cada `QuickAgentType` recebe um mock de input default que faz sentido pra ele:
+| Regra | Limite | Comportamento |
+|---|---|---|
+| Caracteres totais | 50–8.000 | já existe; mantém barra |
+| Linhas totais | máx 200 | nova; bloqueia digitação/colagem que ultrapasse |
+| Linha individual | máx 500 chars | nova; aviso inline com nº da linha |
+| Caracteres de controle | bloquear `\x00–\x08`, `\x0B–\x1F` exceto `\t \n \r` | strip silencioso na entrada/colagem |
+| Tags HTML/script | bloquear `<script`, `<iframe`, `<object`, `<embed`, `javascript:` | strip + toast "Conteúdo removido por segurança" |
+| Sequências zero-width | `\u200B \u200C \u200D \uFEFF` | strip silencioso (comum ao colar de Notion/Word) |
+| Colagem > 8.000 chars | acima do limite | trunca + toast "Texto colado foi truncado para 8.000 caracteres" |
+| Whitespace excessivo | >3 linhas em branco seguidas | aviso inline (não bloqueia) |
 
-| Tipo          | Mensagem mock                                                       |
-| ------------- | ------------------------------------------------------------------- |
-| chatbot       | "Olá! Como você pode me ajudar hoje?"                               |
-| copilot       | "Resuma essa thread em 3 bullets: [exemplo de thread curta]"        |
-| analyst       | "Vendas: Jan R$120k (+8%), Fev R$98k (-18%), Mar R$145k (+47%). O que aconteceu?" |
-| sdr           | "Oi! Vi vocês no LinkedIn, somos uma logtech com 80 funcionários e queremos automação." |
-| support       | "Não consigo logar há 2 dias. Já troquei a senha 3x."               |
-| researcher    | "Quais os principais frameworks de orquestração de agentes em 2025?" |
-| orchestrator  | "Preciso de uma análise de churn dos últimos 90 dias com recomendações." |
+### Mensagens PT-BR inline (abaixo do textarea)
 
-Dropdown deixa o usuário trocar entre os 7 mocks ou editar livremente o textarea.
+- `"Linha {n} excede 500 caracteres ({len})."`
+- `"Limite de 200 linhas atingido."`
+- `"Caracteres de controle removidos automaticamente."`
+- `"Tags HTML perigosas removidas (segurança)."`
+- `"Texto colado foi truncado: {removed} caracteres descartados."`
+- `"Mais de 3 linhas em branco consecutivas — considere limpar."`
 
-### Mudanças
+Erros bloqueantes em vermelho (`text-destructive`), avisos não-bloqueantes em âmbar (`text-nexus-amber`). Acumula em lista compacta com `role="alert"` para a11y.
 
-**`supabase/functions/quick-agent-test/index.ts`** (novo edge function):
-- POST `{ system_prompt, user_message, model }`
-- Chama Lovable AI Gateway (`https://ai.gateway.lovable.dev/v1/chat/completions`) com `LOVABLE_API_KEY`.
-- Mapeia o `model` do form (`gpt-4o`, `claude-3.5-sonnet`, etc.) para um modelo suportado pelo gateway:
-  - `gpt-4o`, `gpt-4-turbo` → `openai/gpt-5-mini`
-  - `claude-3.5-sonnet`, `claude-3-opus` → `google/gemini-2.5-pro`
-  - `gemini-1.5-pro` → `google/gemini-2.5-flash`
-  - `llama-3-70b` → `google/gemini-2.5-flash-lite`
-- Mede latência server-side (`Date.now()` antes/depois do fetch).
-- Retorna: `{ response, latency_ms, input_tokens, output_tokens, model_used }`.
-- Trata 429 (rate limit) e 402 (sem créditos) com mensagens claras.
-- CORS, validação Zod, sem JWT obrigatório (`verify_jwt = false`).
+### Bloqueio de avanço
 
-**`src/data/quickAgentTemplates.ts`**:
-- Adicionar `QUICK_AGENT_MOCK_INPUTS: Record<QuickAgentType, { label: string; input: string }[]>` com 1-2 mocks por tipo (default + alternativo).
+Wizard só permite "Próximo" quando:
+1. Schema atual passa (mín 50, máx 8.000, 4 seções) — **já existe**
+2. Nenhum erro bloqueante ativo (linha >500, >200 linhas)
 
-**`src/components/agents/wizard/quickSteps/QuickAgentTestPanel.tsx`** (novo):
-- Estado: `userInput`, `loading`, `result`, `error`.
-- Textarea controlada com o mock default do tipo.
-- Dropdown `Select` com mocks pré-prontos do tipo atual + opção "Limpar".
-- Botão **▶ Executar teste**: chama `supabase.functions.invoke('quick-agent-test', { body: { system_prompt: form.prompt, user_message: userInput, model: form.model } })`.
-- Calcula custo via `useCostEstimate({ model: form.model, systemPrompt: form.prompt, userInput, maxTokens: 1000 })` para a estimativa **pré-execução** (mostrada antes de rodar).
-- Após resposta, atualiza com **custo real** usando os tokens retornados pelo gateway × `getModelPrice(form.model)`.
-- Cards de métrica: ⚡ latência, 💰 custo (BRL+USD), 📊 tokens (in/out).
-- Bloco de resposta com `<pre>` ou markdown simples (mesmo renderer do `CompiledPromptPreview`).
-- Botões: "Copiar resposta", "Executar novamente".
-- Validação local: bloqueia execução se `prompt` for inválido (usa `quickPromptSchema.safeParse`) ou `userInput` vazio — mostra hint inline.
-- Toast Sonner em erro / sucesso com `latency_ms`.
+`StepQuickPrompt` expõe estado de erros via callback opcional ou o próprio `quickPromptSchema` ganha as novas regras (preferido — bloqueia automaticamente em `validateStep`).
 
-**`src/components/agents/wizard/quickSteps/StepQuickPrompt.tsx`**:
-- Renderizar `<QuickAgentTestPanel form={form} />` no final do step (depois do CompiledPromptPreview).
+### Arquivos a alterar
+
+**1. `src/lib/validations/promptSanitizer.ts` (novo)**
+- `sanitizePromptInput(text: string): { clean: string; warnings: string[]; removed: number }`
+- `analyzePromptStructure(text: string): { lineCount: number; longLines: Array<{line:number;len:number}>; emptyBlocks: number }`
+- Regex de strip para controle, zero-width e tags perigosas.
+- Constantes: `MAX_LINES = 200`, `MAX_LINE_LENGTH = 500`, `MAX_TOTAL = 8000`.
+
+**2. `src/lib/validations/quickAgentSchema.ts`**
+- Adicionar superRefine no `quickPromptSchema`:
+  - rejeita >200 linhas → `"Máximo 200 linhas (atual: {n})"`
+  - rejeita qualquer linha >500 chars → `"Linha {n} muito longa (máx 500)"`
+- Manter validações existentes (seções, length).
+
+**3. `src/components/agents/wizard/quickSteps/PromptValidationFeedback.tsx` (novo)**
+- Componente puro que recebe `prompt: string` e renderiza:
+  - Linha de status: `{chars} / 8000 · {lines} / 200 linhas`
+  - Lista compacta de erros/warnings com ícones (`AlertCircle` vermelho, `AlertTriangle` âmbar).
+- Usa `analyzePromptStructure` + `getMissingSections`.
+
+**4. `src/components/agents/wizard/quickSteps/StepQuickPrompt.tsx`**
+- Novo handler `handleChange` que aplica `sanitizePromptInput` antes de `update('prompt', …)`.
+- Novo handler `handlePaste` no Textarea: intercepta `e.clipboardData.getData('text')`, sanitiza, trunca para `MAX_TOTAL - currentLength`, insere na posição do cursor, dispara toast se houve corte/strip.
+- Substitui o atual contador inline pelo `<PromptValidationFeedback>`.
+- Mantém checklist de seções abaixo (já existe).
+
+**5. `src/test/validations.test.ts`** (estender se já existir, senão criar caso pequeno)
+- Casos: strip de `<script>`, truncamento em colagem, contagem de linhas longas, bloqueio em >200 linhas.
 
 ### Detalhes técnicos
 
-- **Sem mudanças no banco** — teste é stateless, não persiste nada.
-- **Sem mudanças no payload de save** — o teste é totalmente isolado do `saveAgent`.
-- **Custo**: usa `useCostEstimate` (já existente em `src/hooks/useCostEstimate.ts`) para a estimativa pré-call e recalcula com tokens reais via `getModelPrice` de `@/lib/llmPricing`.
-- **Tratamento de erros**: 429 → "Limite de requisições atingido, aguarde um instante"; 402 → "Adicione créditos em Configurações > Workspace > Uso"; 500+ → mensagem do gateway.
-- **Acessibilidade**: textarea com `aria-label`, botão com `aria-busy={loading}`, `role="status"` no resultado, foco volta pro botão depois.
-- **Tokens semânticos**: `--primary` (botão), `--nexus-emerald` (sucesso), `--nexus-rose` (erro), `--secondary` (fundos), sem cores hard-coded.
+- **Sanitização não destrutiva ao digitar normal**: regex só dispara quando padrão é detectado, então digitar texto comum é zero-overhead.
+- **`onPaste` com `preventDefault`**: necessário para truncar antes do React reconciliar; usa `document.execCommand('insertText', false, clean)` com fallback para `setRangeText` no `inputRef`.
+- **Performance**: `analyzePromptStructure` é O(n) em chars; rodado a cada keystroke (prompt máx 8KB, irrelevante). Sem `useMemo` — overhead seria maior que ganho.
+- **i18n**: strings PT-BR diretas (consistente com restante do wizard rápido, que não usa `useI18n`).
+- **Tokens semânticos**: `text-destructive`, `text-nexus-amber`, `bg-destructive/10`, `border-destructive/30`. Zero hex.
+- **Acessibilidade**: container de erros com `role="alert"` e `aria-live="polite"`; warnings em `role="status"`.
+- **Backward-compat**: prompts já salvos no banco não são reprocessados (sanitização só ocorre na entrada do wizard).
+- **Compat com variações**: `applyPromptVariant` continua passando texto direto via `update`; os templates são limpos por construção, então não acionam strip.
 
 ### Impacto
 
-- Zero migração, zero alteração de schema, zero rotas novas.
-- Usuário ganha confiança antes de salvar — vê resposta real, latência real e custo estimado.
-- Reusa infraestrutura existente: `useCostEstimate`, `llmPricing`, padrão de edge function do projeto.
-- Edge function `quick-agent-test` fica disponível pra reuso futuro (playground, modo Avançado).
+- Usuário não consegue mais colar HTML malicioso, planilhas gigantes ou texto com formatação invisível do Word/Notion sem perceber.
+- Wizard bloqueia avanço com mensagens claras em PT-BR antes do erro chegar ao backend.
+- Zero migração, zero impacto em modos Avançado/Template do wizard maior.
+- Reusable: `sanitizePromptInput` pode ser chamado depois em qualquer outro editor de prompt do app.
 
