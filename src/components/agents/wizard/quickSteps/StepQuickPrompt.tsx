@@ -4,6 +4,7 @@ import { Button } from '@/components/ui/button';
 import { RefreshCw } from 'lucide-react';
 import type { QuickAgentForm } from '@/lib/validations/quickAgentSchema';
 import { CompiledPromptPreview } from './CompiledPromptPreview';
+import { PromptSectionChecklist } from './PromptSectionChecklist';
 
 interface Props {
   form: QuickAgentForm;
@@ -60,7 +61,11 @@ export function StepQuickPrompt({ form, errors, update, onRestore }: Props) {
         </div>
       </div>
 
-      {/* Preview */}
+      <PromptSectionChecklist
+        prompt={form.prompt}
+        onInsert={(snippet) => update('prompt', form.prompt + snippet)}
+      />
+
       <div className="nexus-card">
         <p className="text-xs uppercase tracking-wider text-muted-foreground mb-3">Pré-visualização</p>
         <div className="flex items-start gap-3">
