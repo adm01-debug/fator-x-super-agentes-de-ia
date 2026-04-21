@@ -39,6 +39,12 @@ export function StepQuickPrompt({ form, errors, update, onRestore, onApplyVarian
         </Button>
       </div>
 
+      <PromptVariantSelector
+        type={form.type as QuickAgentType}
+        activeVariant={activeVariant}
+        onSelect={onApplyVariant}
+      />
+
       <div className="nexus-card space-y-2">
         <Label htmlFor="qa-prompt" className="sr-only">System prompt</Label>
         <Textarea

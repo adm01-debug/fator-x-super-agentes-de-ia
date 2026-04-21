@@ -155,6 +155,15 @@ export function QuickCreateWizard({ onBack }: QuickCreateWizardProps) {
     toast.success('Prompt restaurado do template');
   };
 
+  const applyPromptVariant = (variantId: import('@/data/quickAgentTemplates').PromptVariantId) => {
+    const t = QUICK_AGENT_TEMPLATES[form.type as QuickAgentType];
+    const variant = t.promptVariants[variantId];
+    update('prompt', variant.prompt);
+    toast.success(`Variação "${variant.label}" aplicada`, {
+      description: 'Você pode editar livremente depois.',
+    });
+  };
+
   const validateStep = (idx: number): boolean => {
     const def = STEPS[idx];
     const result = def.schema.safeParse(form);
@@ -253,7 +262,7 @@ export function QuickCreateWizard({ onBack }: QuickCreateWizardProps) {
       case 0: return <StepQuickIdentity form={form} errors={errors} update={update} />;
       case 1: return <StepQuickType form={form} errors={errors} update={update} applyTemplate={applyTemplate} />;
       case 2: return <StepQuickModel form={form} errors={errors} update={update} />;
-      case 3: return <StepQuickPrompt form={form} errors={errors} update={update} onRestore={restorePromptFromType} />;
+      case 3: return <StepQuickPrompt form={form} errors={errors} update={update} onRestore={restorePromptFromType} onApplyVariant={applyPromptVariant} />;
       default: return null;
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
