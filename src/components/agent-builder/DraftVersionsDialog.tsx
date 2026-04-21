@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -14,6 +14,8 @@ import {
   deleteDraftVersion,
 } from '@/services/agentDraftVersionsService';
 import { useAgentBuilderStore } from '@/stores/agentBuilderStore';
+import { validateAgentVersion } from '@/lib/validations/agentVersionValidator';
+import { VersionValidationPanel } from './VersionValidationPanel';
 
 interface DraftVersionsDialogProps {
   open: boolean;
@@ -45,6 +47,7 @@ export function DraftVersionsDialog({ open, onOpenChange }: DraftVersionsDialogP
   const [drafts, setDrafts] = useState<DraftVersion[]>([]);
   const [label, setLabel] = useState('');
   const [note, setNote] = useState('');
+  const [forceSave, setForceSave] = useState(false);
 
   const refresh = () => setDrafts(listDraftVersions(agent.id as string | undefined));
 
@@ -53,15 +56,31 @@ export function DraftVersionsDialog({ open, onOpenChange }: DraftVersionsDialogP
       refresh();
       setLabel('');
       setNote('');
+      setForceSave(false);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [open, agent.id]);
 
-  const handleSave = () => {
+  const validation = useMemo(
+    () => validateAgentVersion(agent, { label, note }),
+    [agent, label, note],
+  );
+
+  const handleSave = (opts?: { override?: boolean }) => {
+    if (!validation.canSave && !opts?.override) return;
     const draft = saveDraftVersion({ agent, label, note });
-    toast({ title: 'Rascunho salvo localmente', description: draft.label });
+    if (opts?.override) {
+      toast({
+        title: 'Rascunho salvo com erros pendentes',
+        description: `${draft.label} — ${validation.errors.length} validação(ões) ignorada(s).`,
+        variant: 'destructive',
+      });
+    } else {
+      toast({ title: 'Rascunho salvo localmente', description: draft.label });
+    }
     setLabel('');
     setNote('');
+    setForceSave(false);
     refresh();
   };
 
