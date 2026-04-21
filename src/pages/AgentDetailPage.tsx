@@ -3,22 +3,59 @@ import { useParams, useNavigate } from "react-router-dom";
 import { PageHeader } from "@/components/shared/PageHeader";
 import { StatusBadge } from "@/components/shared/StatusBadge";
 import { Button } from "@/components/ui/button";
-import { Bot, Loader2, GitCompare, GitBranch, Activity, Bell } from "lucide-react";
-import { useQuery } from "@tanstack/react-query";
-import { getAgentById, getAgentVersions } from "@/services/agentsService";
+import { Bot, Loader2, GitCompare, GitBranch, Activity, Bell, Play } from "lucide-react";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { getAgentById, getAgentVersions, getAgentDetailTraces, type AgentTrace } from "@/services/agentsService";
 import { VersionDiffDialog } from "@/components/agents/VersionDiffDialog";
 import { AgentCardViewer } from "@/components/agents/AgentCardViewer";
 import { AgentRichMetrics } from "@/components/agents/detail/AgentRichMetrics";
+import { SimulationResultDialog } from "@/components/agents/detail/SimulationResultDialog";
+import { simulateAgentRun, type SimulationSummary } from "@/services/agentTestSimulationService";
+import { toast } from "sonner";
 
 export default function AgentDetailPage() {
   const { id } = useParams();
   const navigate = useNavigate();
+
+  const queryClient = useQueryClient();
+  const [simOpen, setSimOpen] = useState(false);
+  const [simRunning, setSimRunning] = useState(false);
+  const [simSummary, setSimSummary] = useState<SimulationSummary | null>(null);
 
   const { data: agent, isLoading, error } = useQuery({
     queryKey: ['agent', id],
     queryFn: () => getAgentById(id!),
     enabled: !!id,
   });
+
+  const handleSimulate = async () => {
+    if (!agent || !id) return;
+    setSimOpen(true);
+    setSimRunning(true);
+    setSimSummary(null);
+    try {
+      let traces = queryClient.getQueryData<AgentTrace[]>(['agent_traces_rich', id]) ?? [];
+      if (traces.length === 0) {
+        traces = await queryClient.fetchQuery({
+          queryKey: ['agent_traces_rich', id],
+          queryFn: () => getAgentDetailTraces(id, 200),
+        });
+      }
+      setTimeout(() => {
+        const summary = simulateAgentRun(
+          { id: agent.id, name: agent.name, model: agent.model },
+          traces,
+          10,
+        );
+        setSimSummary(summary);
+        setSimRunning(false);
+        toast.success(`Simulação concluída: ${summary.passed}/${summary.total} aprovadas`);
+      }, 900);
+    } catch (e) {
+      setSimRunning(false);
+      toast.error(e instanceof Error ? e.message : 'Erro ao simular');
+    }
+  };
 
   if (isLoading) {
     return <div className="flex items-center justify-center h-[60vh]"><Loader2 className="h-8 w-8 animate-spin text-muted-foreground" /></div>;
@@ -49,6 +86,9 @@ export default function AgentDetailPage() {
             </Button>
             <Button variant="outline" size="sm" onClick={() => navigate(`/agents/${agent.id}/alerts`)}>
               <Bell className="h-3.5 w-3.5 mr-1.5" /> Alertas
+            </Button>
+            <Button variant="outline" size="sm" onClick={handleSimulate} disabled={simRunning}>
+              <Play className="h-3.5 w-3.5 mr-1.5" /> Simular run
             </Button>
             <Button variant="outline" size="sm" onClick={() => navigate(`/builder/${agent.id}`)}>
               Editar no Builder
@@ -99,6 +139,15 @@ export default function AgentDetailPage() {
       {/* Agent Metrics — rich panel with charts, SLO and daily history */}
       <AgentRichMetrics agentId={id!} days={14} />
       <VersionHistory agentId={id!} />
+
+      <SimulationResultDialog
+        open={simOpen}
+        onOpenChange={setSimOpen}
+        summary={simSummary}
+        running={simRunning}
+        onRerun={handleSimulate}
+        agentName={agent.name}
+      />
     </div>
   );
 }
