@@ -261,6 +261,14 @@ export function QuickCreateWizard({ onBack }: QuickCreateWizardProps) {
 
   return (
     <div className="p-6 max-w-[1100px] mx-auto space-y-6">
+      {pendingDraft && (
+        <DraftRecoveryBanner
+          savedAt={pendingDraft.savedAt}
+          summary={summarize(pendingDraft.form)}
+          onRestore={restoreDraft}
+          onDiscard={discardDraft}
+        />
+      )}
       <div className="flex items-center gap-3">
         <Button variant="ghost" size="icon" onClick={goPrev} className="text-muted-foreground" aria-label="Voltar">
           <ArrowLeft className="h-4 w-4" />
