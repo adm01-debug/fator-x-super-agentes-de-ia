@@ -1,4 +1,4 @@
-import { useMemo } from 'react';
+import { useMemo, useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { Activity, DollarSign, Zap, ShieldCheck, AlertCircle, Cpu, Loader2 } from 'lucide-react';
 import { MetricCard } from '@/components/shared/MetricCard';
@@ -11,8 +11,10 @@ import {
   buildSLOTargets,
   formatCost,
   formatNumber,
+  type DailyPoint,
 } from './agentMetricsHelpers';
 import { SLOPanel } from './SLOPanel';
+import { DayDrillDownDrawer } from './DayDrillDownDrawer';
 
 interface Props {
   agentId: string;
@@ -55,6 +57,8 @@ export function AgentRichMetrics({ agentId, days = 14 }: Props) {
   }, [daily]);
 
   const activeAlerts = alerts.filter((a) => !a.is_resolved).length;
+
+  const [selectedDay, setSelectedDay] = useState<DailyPoint | null>(null);
 
   if (usageLoading || tracesLoading) {
     return (
@@ -118,7 +122,7 @@ export function AgentRichMetrics({ agentId, days = 14 }: Props) {
           )}
         </ChartCard>
 
-        <ChartCard title="Custo por dia (USD)" subtitle="Gasto diário com modelos" icon={DollarSign}>
+        <ChartCard title="Custo por dia (USD)" subtitle="Clique em uma barra para detalhar o dia" icon={DollarSign}>
           {daily.some((d) => d.cost > 0) ? (
             <LightBarChart
               data={daily}
@@ -127,6 +131,7 @@ export function AgentRichMetrics({ agentId, days = 14 }: Props) {
               height={200}
               tooltipFormatter={(v) => formatCost(v)}
               yFormatter={(v) => v < 1 ? `$${v.toFixed(2)}` : `$${v.toFixed(0)}`}
+              onBarClick={(d) => setSelectedDay(d as DailyPoint)}
             />
           ) : (
             <EmptyChart label="Sem custos registrados" />
@@ -148,7 +153,7 @@ export function AgentRichMetrics({ agentId, days = 14 }: Props) {
           )}
         </ChartCard>
 
-        <ChartCard title="Tokens por dia" subtitle="Input + output" icon={Cpu}>
+        <ChartCard title="Tokens por dia" subtitle="Clique em uma barra para detalhar o dia" icon={Cpu}>
           {daily.some((d) => d.tokens > 0) ? (
             <LightBarChart
               data={daily}
@@ -157,6 +162,7 @@ export function AgentRichMetrics({ agentId, days = 14 }: Props) {
               height={200}
               tooltipFormatter={(v) => `${formatNumber(v)} tokens`}
               yFormatter={(v) => v >= 1000 ? `${(v / 1000).toFixed(0)}k` : String(v)}
+              onBarClick={(d) => setSelectedDay(d as DailyPoint)}
             />
           ) : (
             <EmptyChart label="Sem consumo de tokens" />
@@ -216,7 +222,14 @@ export function AgentRichMetrics({ agentId, days = 14 }: Props) {
             </thead>
             <tbody>
               {[...daily].reverse().map((d) => (
-                <tr key={d.date} className="border-b border-border/30 hover:bg-secondary/30 transition-colors">
+                <tr
+                  key={d.date}
+                  className="border-b border-border/30 hover:bg-secondary/30 transition-colors cursor-pointer"
+                  onClick={() => setSelectedDay(d)}
+                  role="button"
+                  tabIndex={0}
+                  onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); setSelectedDay(d); } }}
+                >
                   <td className="py-2 px-2 font-mono text-foreground">{d.label}</td>
                   <td className="py-2 px-2 text-right tabular-nums text-foreground">{formatNumber(d.requests)}</td>
                   <td className="py-2 px-2 text-right tabular-nums text-muted-foreground">{formatNumber(d.tokens)}</td>
@@ -228,6 +241,13 @@ export function AgentRichMetrics({ agentId, days = 14 }: Props) {
           </table>
         </div>
       </div>
+
+      <DayDrillDownDrawer
+        open={!!selectedDay}
+        onOpenChange={(o) => { if (!o) setSelectedDay(null); }}
+        agentId={agentId}
+        day={selectedDay}
+      />
     </div>
   );
 }

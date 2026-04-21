@@ -22,6 +22,8 @@ interface Props {
   tooltipFormatter?: (value: number, name: string) => string;
   showLegend?: boolean;
   showGrid?: boolean;
+  /** Optional click handler on a bar/group. Receives the datum and its index. */
+  onBarClick?: (datum: Record<string, any>, index: number) => void;
 }
 
 function niceMax(v: number) {
@@ -35,6 +37,7 @@ function niceMax(v: number) {
 export function LightBarChart({
   data, xKey, series, height = 220, margin,
   yFormatter = String, tooltipFormatter, showLegend = false, showGrid = true,
+  onBarClick,
 }: Props) {
   const { ref, width, margin: m, inner } = useChartDimensions(margin);
   const [tooltip, setTooltip] = useState<TooltipState | null>(null);
@@ -126,6 +129,11 @@ export function LightBarChart({
               return (
                 <g
                   key={di}
+                  className={onBarClick ? 'cursor-pointer' : undefined}
+                  role={onBarClick ? 'button' : undefined}
+                  tabIndex={onBarClick ? 0 : undefined}
+                  onClick={onBarClick ? () => onBarClick(d, di) : undefined}
+                  onKeyDown={onBarClick ? (e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onBarClick(d, di); } } : undefined}
                   onMouseEnter={() => {
                     const rect = ref.current?.getBoundingClientRect();
                     if (!rect) return;
@@ -162,7 +170,11 @@ export function LightBarChart({
                       height={Math.max(0, barH)}
                       fill={s.color}
                       rx={r}
-                      className="transition-opacity hover:opacity-80"
+                      className={`transition-opacity hover:opacity-80 ${onBarClick ? 'cursor-pointer' : ''}`}
+                      role={onBarClick ? 'button' : undefined}
+                      tabIndex={onBarClick ? 0 : undefined}
+                      onClick={onBarClick ? () => onBarClick(d, di) : undefined}
+                      onKeyDown={onBarClick ? (e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onBarClick(d, di); } } : undefined}
                       onMouseEnter={() => {
                         setTooltip({
                           x: m.left + x + barW / 2,
