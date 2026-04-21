@@ -181,7 +181,7 @@ export async function getAgentFailures(agentId: string, perSourceLimit = 200): P
       category: t.level ?? 'error',
       message: errMsg ?? t.event ?? '(sem mensagem)',
       event: t.event,
-      created_at: t.created_at,
+      created_at: t.created_at ?? new Date().toISOString(),
     };
   });
 
