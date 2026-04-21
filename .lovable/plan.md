@@ -1,76 +1,103 @@
 
 
-## Seletor de variações de templates de prompt por tipo
+## Teste rápido do agente antes de criar
 
-Atualmente o passo 4 do wizard rápido tem só **um** prompt por tipo (via `QUICK_AGENT_TEMPLATES[type].systemPrompt`) e um botão "Restaurar template" que sobrescreve com essa única opção. Vou expandir para **3 variações por tipo** (estilos diferentes de prompt) com um seletor visual no topo do editor que aplica automaticamente ao clicar.
+Adiciono um botão **"Testar agente"** no passo 4 (Prompt) do wizard rápido que executa uma chamada real ao LLM com um payload de exemplo e mostra resposta, custo estimado e latência — tudo antes de salvar.
 
-### Visão final no passo Prompt
+### UX no passo Prompt
 
 ```text
-┌─ Variações de prompt para "Chatbot" ────────────────┐
-│ [● Equilibrado]  [○ Conciso]  [○ Detalhado]         │
-│   atual              curto         estendido         │
-└──────────────────────────────────────────────────────┘
-
-[ Editor de prompt — preenchido com a variação ativa ]
-
+[ Variações de prompt ]
+[ Editor de prompt ]
 [ Checklist 4/4 ✓ ]
 [ Pré-visualização do agente ]
 [ Prompt consolidado ]
+
+┌─ Teste rápido ───────────────────────────────────────┐
+│ Mensagem de teste (mock):                            │
+│ ┌──────────────────────────────────────────────────┐ │
+│ │ Olá! Você pode se apresentar?                    │ │  ← textarea editável
+│ └──────────────────────────────────────────────────┘ │
+│                                                       │
+│ [Mock por tipo ▾]   [▶ Executar teste]               │
+└──────────────────────────────────────────────────────┘
+
+┌─ Resultado ──────────────────────────────────────────┐
+│  ⚡ 1.247ms     💰 ~R$ 0,012 (US$ 0,0021)            │
+│  📊 142 in / 386 out tokens  ·  modelo: gpt-4o       │
+│                                                       │
+│  Resposta:                                            │
+│  ┌────────────────────────────────────────────────┐  │
+│  │ Olá! Eu sou Aurora, sua assistente...          │  │
+│  └────────────────────────────────────────────────┘  │
+│                                                       │
+│  [Copiar resposta] [Executar novamente]              │
+└──────────────────────────────────────────────────────┘
 ```
 
-### Os 3 estilos (mesmos para todos os tipos)
+### Mocks por tipo de agente
 
-| Estilo          | Tom                                              | Tamanho aproximado |
-| --------------- | ------------------------------------------------ | ------------------ |
-| **Equilibrado** | versão atual — sweet spot persona+regras+formato | ~600-900 chars     |
-| **Conciso**     | enxuto, bullets curtos, mínimo viável            | ~300-450 chars     |
-| **Detalhado**   | extensivo, com exemplos, anti-padrões e métricas | ~1.200-1.800 chars |
+Cada `QuickAgentType` recebe um mock de input default que faz sentido pra ele:
 
-Todos passam no checklist (Persona/Escopo/Formato/Regras) e referem o `suggestedName` do tipo.
+| Tipo          | Mensagem mock                                                       |
+| ------------- | ------------------------------------------------------------------- |
+| chatbot       | "Olá! Como você pode me ajudar hoje?"                               |
+| copilot       | "Resuma essa thread em 3 bullets: [exemplo de thread curta]"        |
+| analyst       | "Vendas: Jan R$120k (+8%), Fev R$98k (-18%), Mar R$145k (+47%). O que aconteceu?" |
+| sdr           | "Oi! Vi vocês no LinkedIn, somos uma logtech com 80 funcionários e queremos automação." |
+| support       | "Não consigo logar há 2 dias. Já troquei a senha 3x."               |
+| researcher    | "Quais os principais frameworks de orquestração de agentes em 2025?" |
+| orchestrator  | "Preciso de uma análise de churn dos últimos 90 dias com recomendações." |
+
+Dropdown deixa o usuário trocar entre os 7 mocks ou editar livremente o textarea.
 
 ### Mudanças
 
-**`src/data/quickAgentTemplates.ts`**:
-- Adicionar tipo `PromptVariantId = 'balanced' | 'concise' | 'detailed'`.
-- Adicionar interface `PromptVariant { id, label, description, prompt }`.
-- Estender cada `QuickAgentTemplate` com `promptVariants: Record<PromptVariantId, PromptVariant>` (3 variações por tipo × 7 tipos = 21 prompts).
-- Manter `systemPrompt` apontando para `promptVariants.balanced.prompt` (backward-compat com `applyTemplate` no QuickCreateWizard).
-- Exportar constante `PROMPT_VARIANT_META: Record<PromptVariantId, { label, description, icon }>` para a UI.
+**`supabase/functions/quick-agent-test/index.ts`** (novo edge function):
+- POST `{ system_prompt, user_message, model }`
+- Chama Lovable AI Gateway (`https://ai.gateway.lovable.dev/v1/chat/completions`) com `LOVABLE_API_KEY`.
+- Mapeia o `model` do form (`gpt-4o`, `claude-3.5-sonnet`, etc.) para um modelo suportado pelo gateway:
+  - `gpt-4o`, `gpt-4-turbo` → `openai/gpt-5-mini`
+  - `claude-3.5-sonnet`, `claude-3-opus` → `google/gemini-2.5-pro`
+  - `gemini-1.5-pro` → `google/gemini-2.5-flash`
+  - `llama-3-70b` → `google/gemini-2.5-flash-lite`
+- Mede latência server-side (`Date.now()` antes/depois do fetch).
+- Retorna: `{ response, latency_ms, input_tokens, output_tokens, model_used }`.
+- Trata 429 (rate limit) e 402 (sem créditos) com mensagens claras.
+- CORS, validação Zod, sem JWT obrigatório (`verify_jwt = false`).
 
-**`src/components/agents/wizard/quickSteps/PromptVariantSelector.tsx`** (novo):
-- Recebe `type: QuickAgentType`, `activeVariant: PromptVariantId`, `onSelect(id, prompt)`.
-- 3 chips/cards horizontais (radio-like) com label, descrição curta e ícone (`Scale`, `Minus`, `Plus`).
-- Cartão ativo: `ring-2 ring-primary bg-primary/10`; demais: `hover:bg-secondary/60`.
-- Texto auxiliar: "Aplicar substitui o prompt atual."
-- `aria-pressed` para acessibilidade; tab navegável.
+**`src/data/quickAgentTemplates.ts`**:
+- Adicionar `QUICK_AGENT_MOCK_INPUTS: Record<QuickAgentType, { label: string; input: string }[]>` com 1-2 mocks por tipo (default + alternativo).
+
+**`src/components/agents/wizard/quickSteps/QuickAgentTestPanel.tsx`** (novo):
+- Estado: `userInput`, `loading`, `result`, `error`.
+- Textarea controlada com o mock default do tipo.
+- Dropdown `Select` com mocks pré-prontos do tipo atual + opção "Limpar".
+- Botão **▶ Executar teste**: chama `supabase.functions.invoke('quick-agent-test', { body: { system_prompt: form.prompt, user_message: userInput, model: form.model } })`.
+- Calcula custo via `useCostEstimate({ model: form.model, systemPrompt: form.prompt, userInput, maxTokens: 1000 })` para a estimativa **pré-execução** (mostrada antes de rodar).
+- Após resposta, atualiza com **custo real** usando os tokens retornados pelo gateway × `getModelPrice(form.model)`.
+- Cards de métrica: ⚡ latência, 💰 custo (BRL+USD), 📊 tokens (in/out).
+- Bloco de resposta com `<pre>` ou markdown simples (mesmo renderer do `CompiledPromptPreview`).
+- Botões: "Copiar resposta", "Executar novamente".
+- Validação local: bloqueia execução se `prompt` for inválido (usa `quickPromptSchema.safeParse`) ou `userInput` vazio — mostra hint inline.
+- Toast Sonner em erro / sucesso com `latency_ms`.
 
 **`src/components/agents/wizard/quickSteps/StepQuickPrompt.tsx`**:
-- Adicionar prop opcional `onVariantApply?: (variantId, prompt) => void`.
-- Estado local `activeVariant` (default `'balanced'`); detecção: se o prompt atual bate com alguma variação, marca como ativa; senão fica "custom" (nenhuma chip pintada).
-- Renderizar `PromptVariantSelector` no topo, antes do textarea.
-- Manter botão "Restaurar template" (continua restaurando a variação ativa).
+- Renderizar `<QuickAgentTestPanel form={form} />` no final do step (depois do CompiledPromptPreview).
 
-**`src/components/agents/wizard/QuickCreateWizard.tsx`**:
-- `applyTemplate` continua aplicando a variação `balanced` (default).
-- Adicionar handler `applyPromptVariant(variantId)` que faz `update('prompt', variant.prompt)` + toast `Variação "{label}" aplicada`.
-- Passar para `<StepQuickPrompt>` via prop.
+### Detalhes técnicos
 
-### Detecção de variação ativa
-
-Comparação simples: `prompt.trim() === variant.prompt.trim()` para cada variação do tipo atual. Se nenhuma bater → "Custom" (nenhum chip ativo, mas chips continuam clicáveis para sobrescrever). Evita que pequenas edições do usuário sejam perdidas silenciosamente — clicar numa chip mostra um `confirm` inline ("Substituir prompt atual?") só quando o prompt foi modificado em relação à variação detectada.
-
-### UX e acessibilidade
-
-- Chips com `role="radio"` dentro de `role="radiogroup"`, `aria-checked` no ativo.
-- Toast Sonner ao trocar: `Variação "{label}" aplicada` com `description: "Você pode editar livremente depois."`.
-- Sem cores hard-coded — tokens semânticos (`--primary`, `--secondary`, `--muted-foreground`).
-- Mobile: chips quebram em 2 colunas abaixo de 480px.
+- **Sem mudanças no banco** — teste é stateless, não persiste nada.
+- **Sem mudanças no payload de save** — o teste é totalmente isolado do `saveAgent`.
+- **Custo**: usa `useCostEstimate` (já existente em `src/hooks/useCostEstimate.ts`) para a estimativa pré-call e recalcula com tokens reais via `getModelPrice` de `@/lib/llmPricing`.
+- **Tratamento de erros**: 429 → "Limite de requisições atingido, aguarde um instante"; 402 → "Adicione créditos em Configurações > Workspace > Uso"; 500+ → mensagem do gateway.
+- **Acessibilidade**: textarea com `aria-label`, botão com `aria-busy={loading}`, `role="status"` no resultado, foco volta pro botão depois.
+- **Tokens semânticos**: `--primary` (botão), `--nexus-emerald` (sucesso), `--nexus-rose` (erro), `--secondary` (fundos), sem cores hard-coded.
 
 ### Impacto
 
-- Zero migração, zero mudança de schema, zero impacto em outros wizards.
-- Backward-compatible: `QUICK_AGENT_TEMPLATES[t].systemPrompt` continua existindo e aponta pra `balanced`.
-- Usuário ganha 3× mais opções de partida sem precisar escrever do zero.
-- Reusable: a estrutura `promptVariants` pode ser usada depois pelo modo Avançado e pelo playground.
+- Zero migração, zero alteração de schema, zero rotas novas.
+- Usuário ganha confiança antes de salvar — vê resposta real, latência real e custo estimado.
+- Reusa infraestrutura existente: `useCostEstimate`, `llmPricing`, padrão de edge function do projeto.
+- Edge function `quick-agent-test` fica disponível pra reuso futuro (playground, modo Avançado).
 
