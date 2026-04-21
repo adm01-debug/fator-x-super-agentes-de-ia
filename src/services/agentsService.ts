@@ -26,6 +26,8 @@ export interface AgentTrace {
   cost_usd: number | null;
   level: string | null;
   created_at: string;
+  event?: string | null;
+  metadata?: Record<string, unknown> | null;
 }
 
 export interface AgentUsage {
