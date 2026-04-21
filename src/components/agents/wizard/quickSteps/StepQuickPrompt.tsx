@@ -3,6 +3,7 @@ import { Label } from '@/components/ui/label';
 import { Button } from '@/components/ui/button';
 import { RefreshCw } from 'lucide-react';
 import type { QuickAgentForm } from '@/lib/validations/quickAgentSchema';
+import { CompiledPromptPreview } from './CompiledPromptPreview';
 
 interface Props {
   form: QuickAgentForm;
@@ -75,6 +76,9 @@ export function StepQuickPrompt({ form, errors, update, onRestore }: Props) {
           </div>
         </div>
       </div>
+
+      {/* Consolidated prompt preview — final text the LLM will receive */}
+      <CompiledPromptPreview form={form} />
     </div>
   );
 }
