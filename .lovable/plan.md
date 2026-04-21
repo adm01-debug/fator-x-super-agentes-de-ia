@@ -1,95 +1,53 @@
 
 
-## Regras de Alertas Configuráveis (Agentes) — com Prévia & Simulação
+## Recuperação automática do rascunho do wizard rápido
 
-Crio uma página dedicada **`/agents/:id/alerts`** para criar, editar e simular regras de alerta por agente, cobrindo as 4 métricas pedidas: **latência (p95/p99/média)**, **custo (por execução / janela)**, **falhas de tool** e **memória excedida**. As regras são persistidas localmente (workspace-scoped) e a prévia/simulação roda **100% client-side** contra os 2.290 traces mockados em `agent_traces`.
+Hoje o `QuickCreateWizard` já lê `localStorage['quick-agent-wizard-draft']` silenciosamente no mount — o usuário não percebe que foi restaurado e não consegue descartar. Vou tornar essa recuperação **explícita, visível e controlável**, restaurando identidade, tipo, modelo e prompt com confirmação clara.
 
-### Visão final da tela
+### Comportamento final
+
+1. Ao entrar em **Criação rápida** com um rascunho salvo (≤ 7 dias), o formulário **não preenche automaticamente**. Em vez disso, abre um banner no topo:
 
 ```text
-PageHeader: "Alertas — {agente}"   [← Detalhes]   [+ Nova regra]
-
-┌─ Resumo ────────────────────────────────────────────────────┐
-│  6 regras  •  4 ativas  •  Última checagem: agora           │
-│  Disparariam agora: 2 ⚠ warning · 1 ✗ critical              │
-└─────────────────────────────────────────────────────────────┘
-
-┌─ Regras (esquerda 1/2) ─────┬─ Detalhe / Simulação (1/2) ──┐
-│ ✓ Latência p95 alta         │ Regra: "Latência p95 alta"   │
-│   p95 > 800ms · 5min        │  ▸ Editor (live)              │
-│   ⚠ warning · ATIVA         │    métrica · agregação        │
-│ ─────────────────────────── │    operador · threshold       │
-│ ✓ Custo execução estourou   │    janela · severidade        │
-│   cost_per_exec > $0.05     │    canais (toast / ...)       │
-│ ─────────────────────────── │                                │
-│ ⚠ Tool failure rate         │  ▸ Prévia agora              │
-│   failure_rate > 10% · 1h   │    Valor atual: 12.4% ✗      │
-│   ✗ critical · ATIVA        │    Disparo: SIM (crítico)    │
-│ ─────────────────────────── │                                │
-│ ⏸ Memória excedida          │  ▸ Simulação 24h             │
-│   memory > 800MB · qualquer │    [▶ Rodar simulação]       │
-│   info · pausada            │    ┌──────────── chart ─────┐│
-│                             │    │ valor por hora c/ línea││
-│                             │    │ pontilhada do threshold││
-│                             │    └────────────────────────┘│
-│                             │    47 disparos em 24h         │
-│                             │    Primeiro: 14:22  Último:..│
-│                             │    Top eventos correlacionados│
-└─────────────────────────────┴────────────────────────────────┘
+┌─ 📝 Rascunho encontrado ───────────────────────────────┐
+│ Você começou um agente "Atlas Suporte" há 2 horas.    │
+│ Identidade ✓ · Tipo ✓ · Modelo ✓ · Prompt parcial     │
+│                                                        │
+│             [Descartar]  [Continuar de onde parei →]  │
+└────────────────────────────────────────────────────────┘
 ```
 
-### Catálogo de métricas
+2. **Continuar** → restaura `name`, `emoji`, `mission`, `description`, `type`, `model`, `prompt`, pula o usuário para o **primeiro passo com campo incompleto** e mostra toast `"Rascunho restaurado"`.
+3. **Descartar** → limpa o `localStorage`, mantém `QUICK_AGENT_DEFAULTS` e o banner some.
+4. Após o agente ser criado com sucesso, o draft é limpo (já acontece). Se o usuário sair no meio (unmount), o autosave continua salvando a cada keystroke (já acontece) com um carimbo `savedAt`.
+5. Drafts com mais de **7 dias** são tratados como expirados e descartados silenciosamente.
 
-| Métrica | Agregação | Origem (mockada) |
-|---------|-----------|------------------|
-| `latency_ms` | avg / p95 / p99 / max | `agent_traces.latency_ms` |
-| `cost_per_exec` | avg / sum / max | soma de `cost_usd` por `session_id` |
-| `cost_window` | sum | soma `cost_usd` na janela |
-| `tool_failure_rate` | % | traces `event='tool.call' AND level='error'` ÷ total `tool.call` |
-| `tool_failures_count` | count | traces `event='tool.call' AND level='error'` |
-| `memory_mb` | avg / max | `agent_traces.metadata->>memory_mb` (fallback: gera ruído determinístico) |
-| `error_rate` | % | traces `level='error'` ÷ total |
+### Mudanças técnicas
 
-Operadores: `>`, `>=`, `<`, `<=`, `==`. Janelas: 5min / 15min / 1h / 24h. Severidades: `info` / `warning` / `critical`. Canais: `toast` (Sonner — funcional), `email` / `webhook` (mock visual com badge "simulado").
+**`src/lib/validations/quickAgentSchema.ts`** — exportar helper `isDraftMeaningful(form)` que retorna `true` se qualquer campo difere de `QUICK_AGENT_DEFAULTS` (evita mostrar banner para rascunho vazio).
 
-### Fluxos principais
+**`src/components/agents/wizard/QuickCreateWizard.tsx`**:
+- Mudar formato persistido para `{ form, savedAt: ISOString }` (com migração transparente: se ler o formato antigo, embrulha com `savedAt = now`).
+- Trocar a inicialização silenciosa: `useState(QUICK_AGENT_DEFAULTS)` + novo state `pendingDraft: { form, savedAt } | null` lido do localStorage no mount via `useEffect`.
+- Validar idade (`now - savedAt < 7 dias`) e relevância (`isDraftMeaningful`); se falhar, descarta.
+- Calcular passo de retomada: primeiro `STEPS[i]` cujo `schema.safeParse(draft.form)` falha; default = 0.
 
-- **Prévia ao vivo (sempre visível no editor)**: a cada keystroke, recalcula o valor atual da métrica na janela escolhida e mostra "Disparo: SIM/NÃO" com cor semântica.
-- **Simulação 24h**: percorre traces em buckets (5min ou 1h) e marca buckets que disparariam, plotando linha temporal + linha do threshold + contagem de disparos + amostra dos 5 traces correlacionados.
-- **Toggle ATIVA / PAUSADA**: muda a aparência e o status — regras pausadas não entram nos cálculos do badge "disparariam agora".
+**`src/components/agents/wizard/DraftRecoveryBanner.tsx`** (novo):
+- Props: `savedAt: string`, `summary: { name, type, model, hasPrompt }`, `onRestore()`, `onDiscard()`.
+- Renderiza card com `nexus-card`, ícone `FileClock`, tempo relativo em PT-BR (`há 2 horas` via util simples inline), 4 chips de status (Identidade/Tipo/Modelo/Prompt: ✓ preenchido, — vazio), e dois botões. Animação `animate-page-enter`.
+- Acessível: `role="status"`, `aria-live="polite"`, foco inicial no botão "Continuar".
 
-### Persistência
+### Detalhes UX
 
-Persistência **client-side via `localStorage`** chaveado por `workspace_id + agent_id` (chave: `nexus.alert_rules.<workspaceId>.<agentId>`). Justificativa: a tabela `alert_rules` referenciada no código antigo **não existe no banco** — adicionar migração + edge function de avaliação ultrapassa o escopo de "regras configuráveis com prévia". Mantenho o serviço com interface limpa (`alertRulesService`) para no futuro plugar persistência real sem refatorar UI.
-
-### Arquivos a criar
-
-- `src/services/alertRulesService.ts` — tipos `AlertRule`, `AlertMetric`, `AlertAggregation`, `AlertWindow`; CRUD via `localStorage` + funções puras `evaluateRule(rule, traces)`, `simulateRule24h(rule, traces, bucketMin)` e `formatThreshold(rule)`.
-- `src/lib/alertMetrics.ts` — implementações de `computeMetric(metric, agg, traces)` com `percentile`, `avg`, `sum`, `max`, `count`, `rate`.
-- `src/components/agents/alerts/AlertRuleEditor.tsx` — formulário (Sheet) com `react-hook-form` + Zod (estendendo `alertRuleSchema`) e prévia ao vivo.
-- `src/components/agents/alerts/AlertRulesList.tsx` — coluna esquerda com cards das regras (ícone por métrica, badge de severidade, toggle, ações).
-- `src/components/agents/alerts/AlertSimulationPanel.tsx` — coluna direita: prévia agora + botão "Rodar simulação" + chart (`recharts` `LineChart` já em uso) + tabela de disparos.
-- `src/pages/AgentAlertsPage.tsx` — orquestradora com layout de 2 colunas e header de resumo.
-
-### Arquivos a alterar
-
-- `src/App.tsx` — adicionar rota `/agents/:id/alerts` (lazy).
-- `src/pages/AgentDetailPage.tsx` — adicionar botão "Alertas" no header de ações ao lado de "Ver traces".
-- `src/lib/validations/agentSchema.ts` — estender `alertRuleSchema` com `aggregation`, `window_minutes`, `channels[]`, `is_enabled`, `agent_id` (mantém compatibilidade).
-
-### Detalhes técnicos
-
-- **Sem migração de banco, sem edge function, sem dependência nova**.
-- Reaproveita `useAgentTraces` no padrão do `agentTracesService` (busca uma janela ampla — 24h — uma vez e simula em memória).
-- Quando regra dispara na **prévia**, opcionalmente injeta um toast Sonner real (com debounce) para validar comportamento.
-- **Acessibilidade**: editor navegável por teclado, prévia com `aria-live="polite"`, chart com tabela equivalente para screen readers.
-- **Design tokens semânticos**: `--nexus-emerald` / `--nexus-amber` / `--destructive` para severidade, `--primary` para regras ativas, `--muted` para pausadas. Sem cores hard-coded.
-- **Empty states**: lista vazia mostra CTA "Criar primeira regra" com 4 templates pré-prontos (latência alta, custo estourado, tool failures, memória).
-- **Templates pré-prontos** (botão "Usar template"): Latência p95 > 800ms (5min, warning) · Custo por execução > $0.05 (1h, warning) · Tool failure rate > 10% (1h, critical) · Memória máxima > 800MB (5min, info).
+- O banner aparece **acima do header de passos**, dentro do mesmo container `max-w-[1100px]`.
+- Tempo relativo: `agora`, `há X minutos`, `há X horas`, `há X dias` (cap em 7).
+- Resumo dos 4 campos: ícone `Check` verde se preenchido, `Minus` muted se vazio.
+- Toast Sonner ao restaurar: título `"Rascunho restaurado"`, descrição `"Continuando do passo: {label}"`.
+- Toast Sonner ao descartar: `"Rascunho descartado"`.
 
 ### Impacto
 
-- Zero breaking changes; a tabela `alert_rules` continua referenciada apenas pelo painel global existente (que já não funcionava por falta da tabela).
-- Página totalmente nova focada em agente, complementando os alertas globais (`alerts` table) e cost anomalies (`cost_alerts` table).
-- Base limpa para no futuro promover `alertRulesService` a persistência real + avaliador server-side.
+- Zero mudanças em rotas, schema do banco, ou outros wizards (template/scratch).
+- Comportamento de autosave inalterado — só muda **como o draft é apresentado** ao retornar.
+- Backward-compatible com drafts existentes no localStorage.
 
