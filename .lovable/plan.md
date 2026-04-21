@@ -1,102 +1,70 @@
 
 
-## Validação em tempo real do editor de prompt
+## Prévia ao vivo detalhada do agente no passo Prompt
 
-Adiciono validação ativa ao `<Textarea>` do passo 4 (Prompt) do wizard rápido, com contagem por linhas, bloqueio de caracteres inválidos (incluindo colagem) e mensagens PT-BR inline antes de avançar.
+Substituo o card simples atual por um **AgentLivePreviewCard** rico que atualiza em tempo real (debounce 200ms) conforme o usuário edita qualquer campo do form.
 
-### Visão final do editor
+### Visão final
 
 ```text
-┌─ System Prompt ──────────────────────────────────────┐
-│ [ Variações de prompt ]                              │
-│                                                       │
-│ ## Persona                                            │
-│ Você é um SDR consultivo...                          │
-│ ...                                                   │
-│                                                       │
-│ ⚠ Linha 14 contém caracteres não permitidos: <script>│
-│                                                       │
-│  ▰▰▰▰▰▰▰▱▱  2.140 / 8.000   ·   42 linhas / 200      │
-└──────────────────────────────────────────────────────┘
-[ ✓ Persona  ✓ Escopo  ✓ Formato  ✗ Regras ]
+┌─ Prévia ao vivo ─────────────────────── atualiza ao vivo ─┐
+│  ╭───╮  Marina SDR                          [chatbot]      │
+│  │ 🤖│  modelo: gpt-4o · 4 seções ✓ · 2.140 chars         │
+│  ╰───╯                                                      │
+│                                                             │
+│  Missão                                                     │
+│  Qualificar leads inbound e agendar reuniões com SDRs...   │
+│                                                             │
+│  ─────────────────────────────────────────────────────     │
+│                                                             │
+│  Resumo do system prompt                  [ver completo ▾] │
+│                                                             │
+│  ## Persona                                                 │
+│  Você é a Marina, SDR consultiva especializada em SaaS B2B │
+│  ## Escopo                                                  │
+│  • Qualificar leads via BANT                                │
+│  • Agendar reuniões de discovery                            │
+│  ## Formato                                                 │
+│  Tom consultivo, respostas em até 3 parágrafos...          │
+│  …+ 18 linhas                                               │
+└────────────────────────────────────────────────────────────┘
 ```
 
-### Regras de validação (todas em tempo real)
+### Conteúdo do card
 
-| Regra | Limite | Comportamento |
-|---|---|---|
-| Caracteres totais | 50–8.000 | já existe; mantém barra |
-| Linhas totais | máx 200 | nova; bloqueia digitação/colagem que ultrapasse |
-| Linha individual | máx 500 chars | nova; aviso inline com nº da linha |
-| Caracteres de controle | bloquear `\x00–\x08`, `\x0B–\x1F` exceto `\t \n \r` | strip silencioso na entrada/colagem |
-| Tags HTML/script | bloquear `<script`, `<iframe`, `<object`, `<embed`, `javascript:` | strip + toast "Conteúdo removido por segurança" |
-| Sequências zero-width | `\u200B \u200C \u200D \uFEFF` | strip silencioso (comum ao colar de Notion/Word) |
-| Colagem > 8.000 chars | acima do limite | trunca + toast "Texto colado foi truncado para 8.000 caracteres" |
-| Whitespace excessivo | >3 linhas em branco seguidas | aviso inline (não bloqueia) |
-
-### Mensagens PT-BR inline (abaixo do textarea)
-
-- `"Linha {n} excede 500 caracteres ({len})."`
-- `"Limite de 200 linhas atingido."`
-- `"Caracteres de controle removidos automaticamente."`
-- `"Tags HTML perigosas removidas (segurança)."`
-- `"Texto colado foi truncado: {removed} caracteres descartados."`
-- `"Mais de 3 linhas em branco consecutivas — considere limpar."`
-
-Erros bloqueantes em vermelho (`text-destructive`), avisos não-bloqueantes em âmbar (`text-nexus-amber`). Acumula em lista compacta com `role="alert"` para a11y.
-
-### Bloqueio de avanço
-
-Wizard só permite "Próximo" quando:
-1. Schema atual passa (mín 50, máx 8.000, 4 seções) — **já existe**
-2. Nenhum erro bloqueante ativo (linha >500, >200 linhas)
-
-`StepQuickPrompt` expõe estado de erros via callback opcional ou o próprio `quickPromptSchema` ganha as novas regras (preferido — bloqueia automaticamente em `validateStep`).
+1. **Cabeçalho** — emoji grande (h-14 w-14), nome em destaque, badge do tipo, linha de meta (modelo · seções detectadas X/4 · contagem de chars com cor semântica conforme limite).
+2. **Missão** — bloco curto com a missão truncada em 2 linhas (`line-clamp-2`).
+3. **Resumo do system prompt** — **primeiras 12 linhas não vazias** do prompt em mono, com fade-out no final se houver mais e contador `+N linhas`. Botão "ver completo" expande para mostrar tudo (até 40 linhas, com scroll interno).
+4. **Indicador "atualiza ao vivo"** com dot pulsante quando houve mudança nos últimos 500ms.
 
 ### Arquivos a alterar
 
-**1. `src/lib/validations/promptSanitizer.ts` (novo)**
-- `sanitizePromptInput(text: string): { clean: string; warnings: string[]; removed: number }`
-- `analyzePromptStructure(text: string): { lineCount: number; longLines: Array<{line:number;len:number}>; emptyBlocks: number }`
-- Regex de strip para controle, zero-width e tags perigosas.
-- Constantes: `MAX_LINES = 200`, `MAX_LINE_LENGTH = 500`, `MAX_TOTAL = 8000`.
+**1. `src/components/agents/wizard/quickSteps/AgentLivePreviewCard.tsx` (novo)**
+- Props: `form: QuickAgentForm`.
+- Usa `useDebounce(form, 200)` para evitar re-render por keystroke.
+- Lógica `summarizePrompt(text, max=12)`: split por `\n`, filtra linhas com algo (mas preserva headings `##`), pega as primeiras N, devolve `{ preview: string, totalLines: number, hiddenLines: number }`.
+- Estado local `expanded` para alternar 12 ↔ 40 linhas.
+- Detecta seções via `detectPromptSections` (já existe em `quickAgentSchema`) e mostra contador X/4.
+- Pulse de "atualizou agora" via `useEffect` que liga um `recentlyUpdated` por 500ms quando o debounced muda.
 
-**2. `src/lib/validations/quickAgentSchema.ts`**
-- Adicionar superRefine no `quickPromptSchema`:
-  - rejeita >200 linhas → `"Máximo 200 linhas (atual: {n})"`
-  - rejeita qualquer linha >500 chars → `"Linha {n} muito longa (máx 500)"`
-- Manter validações existentes (seções, length).
-
-**3. `src/components/agents/wizard/quickSteps/PromptValidationFeedback.tsx` (novo)**
-- Componente puro que recebe `prompt: string` e renderiza:
-  - Linha de status: `{chars} / 8000 · {lines} / 200 linhas`
-  - Lista compacta de erros/warnings com ícones (`AlertCircle` vermelho, `AlertTriangle` âmbar).
-- Usa `analyzePromptStructure` + `getMissingSections`.
-
-**4. `src/components/agents/wizard/quickSteps/StepQuickPrompt.tsx`**
-- Novo handler `handleChange` que aplica `sanitizePromptInput` antes de `update('prompt', …)`.
-- Novo handler `handlePaste` no Textarea: intercepta `e.clipboardData.getData('text')`, sanitiza, trunca para `MAX_TOTAL - currentLength`, insere na posição do cursor, dispara toast se houve corte/strip.
-- Substitui o atual contador inline pelo `<PromptValidationFeedback>`.
-- Mantém checklist de seções abaixo (já existe).
-
-**5. `src/test/validations.test.ts`** (estender se já existir, senão criar caso pequeno)
-- Casos: strip de `<script>`, truncamento em colagem, contagem de linhas longas, bloqueio em >200 linhas.
+**2. `src/components/agents/wizard/quickSteps/StepQuickPrompt.tsx`**
+- Remove o bloco antigo de "Pré-visualização" (`nexus-card` com emoji + name + mission) — substituído.
+- Insere `<AgentLivePreviewCard form={form} />` no mesmo lugar.
+- Mantém `CompiledPromptPreview` e `QuickAgentTestPanel` abaixo (são finalidades diferentes — um é o texto consolidado para o LLM, o outro é o teste real).
 
 ### Detalhes técnicos
 
-- **Sanitização não destrutiva ao digitar normal**: regex só dispara quando padrão é detectado, então digitar texto comum é zero-overhead.
-- **`onPaste` com `preventDefault`**: necessário para truncar antes do React reconciliar; usa `document.execCommand('insertText', false, clean)` com fallback para `setRangeText` no `inputRef`.
-- **Performance**: `analyzePromptStructure` é O(n) em chars; rodado a cada keystroke (prompt máx 8KB, irrelevante). Sem `useMemo` — overhead seria maior que ganho.
-- **i18n**: strings PT-BR diretas (consistente com restante do wizard rápido, que não usa `useI18n`).
-- **Tokens semânticos**: `text-destructive`, `text-nexus-amber`, `bg-destructive/10`, `border-destructive/30`. Zero hex.
-- **Acessibilidade**: container de erros com `role="alert"` e `aria-live="polite"`; warnings em `role="status"`.
-- **Backward-compat**: prompts já salvos no banco não são reprocessados (sanitização só ocorre na entrada do wizard).
-- **Compat com variações**: `applyPromptVariant` continua passando texto direto via `update`; os templates são limpos por construção, então não acionam strip.
+- **Debounce**: usa `useDebounce(form, 200)` (já existe em `src/hooks/use-debounce.ts`) para prévia suave sem travar digitação.
+- **Tipos**: `import type { QuickAgentForm } from '@/lib/validations/quickAgentSchema'`.
+- **Tokens semânticos**: `bg-card`, `border-border/50`, `text-muted-foreground`, `bg-primary/15`, `text-primary`, `bg-nexus-amber` para indicador "atualiza ao vivo". Zero hex.
+- **Acessibilidade**: dot pulsante com `aria-label="Atualizado agora"`; botão expandir com `aria-expanded`.
+- **Performance**: `summarizePrompt` é O(n) em chars (prompt máx 8KB → irrelevante). Sem `useMemo`.
+- **Responsivo**: card empilha em mobile (`flex-col sm:flex-row` no header).
+- **Reuso**: o card pode ser arrastado depois para o modo Avançado sem mudanças.
 
 ### Impacto
 
-- Usuário não consegue mais colar HTML malicioso, planilhas gigantes ou texto com formatação invisível do Word/Notion sem perceber.
-- Wizard bloqueia avanço com mensagens claras em PT-BR antes do erro chegar ao backend.
-- Zero migração, zero impacto em modos Avançado/Template do wizard maior.
-- Reusable: `sanitizePromptInput` pode ser chamado depois em qualquer outro editor de prompt do app.
+- Usuário vê em tempo real como o agente está ficando enquanto edita o prompt (reduz "context switching" mental).
+- Zero migração, zero impacto no schema, zero mudança em outros wizards.
+- Reusa `useDebounce` e `detectPromptSections` já existentes.
 
