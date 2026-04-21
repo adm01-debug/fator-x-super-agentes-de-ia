@@ -6,6 +6,7 @@ import type { QuickAgentForm } from '@/lib/validations/quickAgentSchema';
 import { CompiledPromptPreview } from './CompiledPromptPreview';
 import { PromptSectionChecklist } from './PromptSectionChecklist';
 import { PromptVariantSelector } from './PromptVariantSelector';
+import { QuickAgentTestPanel } from './QuickAgentTestPanel';
 import {
   detectPromptVariant,
   type QuickAgentType,
