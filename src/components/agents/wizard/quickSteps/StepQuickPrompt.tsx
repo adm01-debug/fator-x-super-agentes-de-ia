@@ -5,15 +5,23 @@ import { RefreshCw } from 'lucide-react';
 import type { QuickAgentForm } from '@/lib/validations/quickAgentSchema';
 import { CompiledPromptPreview } from './CompiledPromptPreview';
 import { PromptSectionChecklist } from './PromptSectionChecklist';
+import { PromptVariantSelector } from './PromptVariantSelector';
+import {
+  detectPromptVariant,
+  type QuickAgentType,
+  type PromptVariantId,
+} from '@/data/quickAgentTemplates';
 
 interface Props {
   form: QuickAgentForm;
   errors: Partial<Record<keyof QuickAgentForm, string>>;
   update: <K extends keyof QuickAgentForm>(key: K, value: QuickAgentForm[K]) => void;
   onRestore: () => void;
+  onApplyVariant: (id: PromptVariantId) => void;
 }
 
-export function StepQuickPrompt({ form, errors, update, onRestore }: Props) {
+export function StepQuickPrompt({ form, errors, update, onRestore, onApplyVariant }: Props) {
+  const activeVariant = detectPromptVariant(form.type as QuickAgentType, form.prompt);
   const len = form.prompt.length;
   const min = 50;
   const max = 8000;
