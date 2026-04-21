@@ -3,7 +3,7 @@ import { useParams, useNavigate } from "react-router-dom";
 import { PageHeader } from "@/components/shared/PageHeader";
 import { StatusBadge } from "@/components/shared/StatusBadge";
 import { Button } from "@/components/ui/button";
-import { Bot, Loader2, GitCompare } from "lucide-react";
+import { Bot, Loader2, GitCompare, GitBranch } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
 import { getAgentById, getAgentVersions } from "@/services/agentsService";
 import { VersionDiffDialog } from "@/components/agents/VersionDiffDialog";
@@ -98,6 +98,7 @@ export default function AgentDetailPage() {
 }
 
 function VersionHistory({ agentId }: { agentId: string }) {
+  const navigate = useNavigate();
   const [diffOpen, setDiffOpen] = useState(false);
   const { data: versions = [], isLoading } = useQuery({
     queryKey: ['agent_versions', agentId],
@@ -110,11 +111,16 @@ function VersionHistory({ agentId }: { agentId: string }) {
     <div className="nexus-card">
       <div className="flex items-center justify-between mb-3">
         <h3 className="text-sm font-heading font-semibold text-foreground">Histórico de Versões</h3>
-        {versions.length >= 2 && (
-          <Button variant="outline" size="sm" className="gap-1.5 text-xs h-7" onClick={() => setDiffOpen(true)}>
-            <GitCompare className="h-3 w-3" /> Comparar
+        <div className="flex items-center gap-1.5">
+          <Button variant="outline" size="sm" className="gap-1.5 text-xs h-7" onClick={() => navigate(`/agents/${agentId}/versions`)}>
+            <GitBranch className="h-3 w-3" /> Gerenciar versões
           </Button>
-        )}
+          {versions.length >= 2 && (
+            <Button variant="ghost" size="sm" className="gap-1.5 text-xs h-7" onClick={() => setDiffOpen(true)}>
+              <GitCompare className="h-3 w-3" /> Comparar
+            </Button>
+          )}
+        </div>
       </div>
       <div className="space-y-2 max-h-[250px] overflow-y-auto">
         {versions.map((v, i) => (

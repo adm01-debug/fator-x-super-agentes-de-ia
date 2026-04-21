@@ -128,6 +128,86 @@ export async function getAgentRecentAlerts(agentId: string, limit = 5): Promise<
   return (data ?? []) as AgentAlert[];
 }
 
+export interface CreateAgentVersionInput {
+  agentId: string;
+  model: string | null;
+  persona: string | null;
+  mission: string | null;
+  name?: string | null;
+  config: Record<string, unknown>;
+  change_summary: string;
+}
+
+/**
+ * Creates a new agent_versions row using max(version)+1 and bumps the
+ * agent's `version` column to keep them in sync.
+ */
+export async function createAgentVersion(input: CreateAgentVersionInput): Promise<AgentVersion> {
+  const { data: latest, error: latestErr } = await supabaseExternal
+    .from('agent_versions')
+    .select('version')
+    .eq('agent_id', input.agentId)
+    .order('version', { ascending: false })
+    .limit(1)
+    .maybeSingle();
+  if (latestErr) {
+    logger.error('Failed to fetch latest version', { agentId: input.agentId, error: latestErr.message });
+    throw latestErr;
+  }
+  const nextVersion = (latest?.version ?? 0) + 1;
+
+  const { data, error } = await supabaseExternal
+    .from('agent_versions')
+    .insert({
+      agent_id: input.agentId,
+      version: nextVersion,
+      model: input.model,
+      persona: input.persona,
+      mission: input.mission,
+      name: input.name ?? null,
+      config: input.config as never,
+      change_summary: input.change_summary,
+    })
+    .select('*')
+    .single();
+  if (error) {
+    logger.error('Failed to create agent version', { error: error.message });
+    throw error;
+  }
+
+  // Sync the agent row so detail/list views show the new version
+  const { error: syncErr } = await supabaseExternal
+    .from('agents')
+    .update({
+      version: nextVersion,
+      model: input.model,
+      persona: input.persona as never,
+      mission: input.mission,
+      config: input.config as never,
+    })
+    .eq('id', input.agentId);
+  if (syncErr) {
+    logger.error('Failed to sync agent after version create', { error: syncErr.message });
+  }
+
+  return data as unknown as AgentVersion;
+}
+
+/**
+ * Restores by creating a NEW version that copies the chosen one.
+ * Preserves auditability — never overwrites or deletes history.
+ */
+export async function restoreAgentVersion(agentId: string, sourceVersion: AgentVersion): Promise<AgentVersion> {
+  return createAgentVersion({
+    agentId,
+    model: sourceVersion.model,
+    persona: sourceVersion.persona,
+    mission: sourceVersion.mission,
+    config: (sourceVersion.config ?? {}) as Record<string, unknown>,
+    change_summary: `Restaurado de v${sourceVersion.version}`,
+  });
+}
+
 /**
  * Version history for a specific agent (latest N).
  */
