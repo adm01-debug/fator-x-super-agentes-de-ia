@@ -114,6 +114,78 @@ export function sloHealth(t: SLOTarget): 'healthy' | 'warning' | 'critical' {
   return 'critical';
 }
 
+export interface KPIComparison {
+  current: number;
+  previous: number;
+  deltaAbs: number;
+  deltaPct: number;
+  hasPrev: boolean;
+  trend: 'up' | 'down' | 'flat';
+  isPositive: boolean;
+  inverted: boolean;
+}
+
+/** Compara janela atual (últimos `window` dias) vs janela anterior. */
+export function compareWindows(
+  daily: DailyPoint[],
+  pick: (d: DailyPoint) => number,
+  opts: { inverted?: boolean; window?: number } = {},
+): KPIComparison {
+  const window = opts.window ?? 7;
+  const inverted = !!opts.inverted;
+  const last = daily.slice(-window);
+  const prev = daily.slice(-window * 2, -window);
+  const current = last.reduce((s, d) => s + pick(d), 0);
+  const previous = prev.reduce((s, d) => s + pick(d), 0);
+  const hasPrev = prev.length > 0 && previous > 0;
+  const deltaAbs = current - previous;
+  const deltaPct = hasPrev ? (deltaAbs / previous) * 100 : 0;
+  const absPct = Math.abs(deltaPct);
+  const trend: 'up' | 'down' | 'flat' = absPct <= 1 ? 'flat' : deltaPct > 0 ? 'up' : 'down';
+  // positivo = bom; quando inverted, queda é boa
+  const isPositive = inverted ? deltaPct < 0 : deltaPct > 0;
+  return { current, previous, deltaAbs, deltaPct, hasPrev, trend, isPositive, inverted };
+}
+
+/** Compara taxa de sucesso (%) entre últimos 7d e 7d anteriores a partir dos traces. */
+export function compareSuccessRateWindows(
+  traces: AgentTrace[],
+  window = 7,
+): KPIComparison {
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  const cutCurrent = new Date(today);
+  cutCurrent.setDate(today.getDate() - window + 1);
+  const cutPrev = new Date(today);
+  cutPrev.setDate(today.getDate() - window * 2 + 1);
+
+  let curTotal = 0, curErr = 0, prevTotal = 0, prevErr = 0;
+  for (const t of traces) {
+    const created = (t as { created_at?: string }).created_at;
+    if (!created) continue;
+    const d = new Date(created);
+    d.setHours(0, 0, 0, 0);
+    const isErr = t.level === 'error' || t.level === 'critical';
+    if (d >= cutCurrent && d <= today) {
+      curTotal++;
+      if (isErr) curErr++;
+    } else if (d >= cutPrev && d < cutCurrent) {
+      prevTotal++;
+      if (isErr) prevErr++;
+    }
+  }
+  const current = curTotal > 0 ? ((curTotal - curErr) / curTotal) * 100 : 0;
+  const previous = prevTotal > 0 ? ((prevTotal - prevErr) / prevTotal) * 100 : 0;
+  const hasPrev = prevTotal > 0;
+  const deltaAbs = current - previous;
+  const deltaPct = hasPrev && previous > 0 ? (deltaAbs / previous) * 100 : 0;
+  const absPct = Math.abs(deltaPct);
+  const trend: 'up' | 'down' | 'flat' = absPct <= 0.1 ? 'flat' : deltaPct > 0 ? 'up' : 'down';
+  // sucesso: maior é melhor
+  const isPositive = deltaPct > 0;
+  return { current, previous, deltaAbs, deltaPct, hasPrev, trend, isPositive, inverted: false };
+}
+
 export function formatCost(v: number): string {
   if (v >= 1) return `$${v.toFixed(2)}`;
   return `$${v.toFixed(4)}`;
