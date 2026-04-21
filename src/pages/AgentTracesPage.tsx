@@ -1,5 +1,5 @@
 import { useMemo, useState } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
+import { useParams } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import { Activity, AlertTriangle, DollarSign, Play, RefreshCw, Zap } from 'lucide-react';
 import { PageHeader } from '@/components/shared/PageHeader';
@@ -18,7 +18,6 @@ import { ReplayDialog } from '@/components/agents/traces/ReplayDialog';
 
 export default function AgentTracesPage() {
   const { id } = useParams();
-  const navigate = useNavigate();
 
   const [agentFilter, setAgentFilter] = useState<string>(id ?? 'all');
   const [level, setLevel] = useState<TraceLevel | 'all'>('all');
