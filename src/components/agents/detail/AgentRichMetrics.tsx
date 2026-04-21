@@ -222,7 +222,14 @@ export function AgentRichMetrics({ agentId, days = 14 }: Props) {
             </thead>
             <tbody>
               {[...daily].reverse().map((d) => (
-                <tr key={d.date} className="border-b border-border/30 hover:bg-secondary/30 transition-colors">
+                <tr
+                  key={d.date}
+                  className="border-b border-border/30 hover:bg-secondary/30 transition-colors cursor-pointer"
+                  onClick={() => setSelectedDay(d)}
+                  role="button"
+                  tabIndex={0}
+                  onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); setSelectedDay(d); } }}
+                >
                   <td className="py-2 px-2 font-mono text-foreground">{d.label}</td>
                   <td className="py-2 px-2 text-right tabular-nums text-foreground">{formatNumber(d.requests)}</td>
                   <td className="py-2 px-2 text-right tabular-nums text-muted-foreground">{formatNumber(d.tokens)}</td>
@@ -234,6 +241,13 @@ export function AgentRichMetrics({ agentId, days = 14 }: Props) {
           </table>
         </div>
       </div>
+
+      <DayDrillDownDrawer
+        open={!!selectedDay}
+        onOpenChange={(o) => { if (!o) setSelectedDay(null); }}
+        agentId={agentId}
+        day={selectedDay}
+      />
     </div>
   );
 }
