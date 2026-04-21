@@ -22,6 +22,8 @@ interface Props {
   tooltipFormatter?: (value: number, name: string) => string;
   showLegend?: boolean;
   showGrid?: boolean;
+  /** Optional click handler on a bar/group. Receives the datum and its index. */
+  onBarClick?: (datum: Record<string, any>, index: number) => void;
 }
 
 function niceMax(v: number) {
@@ -35,6 +37,7 @@ function niceMax(v: number) {
 export function LightBarChart({
   data, xKey, series, height = 220, margin,
   yFormatter = String, tooltipFormatter, showLegend = false, showGrid = true,
+  onBarClick,
 }: Props) {
   const { ref, width, margin: m, inner } = useChartDimensions(margin);
   const [tooltip, setTooltip] = useState<TooltipState | null>(null);
