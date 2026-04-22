@@ -1,5 +1,5 @@
 import { useMemo, useState } from 'react';
-import { CheckCircle2, Circle, Plus, Wand2, AlertTriangle, Crosshair, Lock, Sparkles, FileSearch } from 'lucide-react';
+import { CheckCircle2, Circle, Plus, Wand2, AlertTriangle, Crosshair, Lock, Sparkles, FileSearch, ChevronDown, FileText } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import {
   REQUIRED_PROMPT_SECTIONS,
@@ -16,6 +16,8 @@ import {
   SheetTitle,
   SheetTrigger,
 } from '@/components/ui/sheet';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import { SECTION_TEMPLATES, getDefaultTemplate, type SectionTemplate } from './sectionTemplates';
 
 interface Props {
   prompt: string;
@@ -43,11 +45,16 @@ interface Props {
   customLocked?: boolean;
 }
 
+/**
+ * Legacy export kept for backwards compatibility — now points to the *first*
+ * template per section (which is guaranteed to clear the depth check).
+ * New code should use `SECTION_TEMPLATES` from './sectionTemplates' instead.
+ */
 export const SECTION_SNIPPETS: Record<PromptSectionKey, string> = {
-  persona: `\n\n## Persona\n- Tom: profissional e direto\n- Idioma: português brasileiro\n- Trate o usuário como ...\n`,
-  scope: `\n\n## Escopo\n- Responder dúvidas sobre ...\n- Executar tarefas relacionadas a ...\n- Encaminhar para humano quando ...\n`,
-  format: `\n\n## Formato\n- Máximo 200 palavras por resposta\n- Use listas curtas quando ajudar\n- Sempre entregue a resposta antes do contexto\n`,
-  rules: `\n\n## Regras\n- Nunca invente informações; admita quando não souber\n- Não compartilhe dados sensíveis\n- Confirme antes de executar ações irreversíveis\n`,
+  persona: getDefaultTemplate('persona').body,
+  scope: getDefaultTemplate('scope').body,
+  format: getDefaultTemplate('format').body,
+  rules: getDefaultTemplate('rules').body,
 };
 
 /** Count words in a snippet (used for the "preencheria com ~N palavras" hint). */
