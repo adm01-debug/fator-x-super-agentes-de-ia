@@ -75,10 +75,12 @@ function ActiveModule({ tabId }: { tabId: string }) {
 
 export default function AgentBuilder() {
   const { id } = useParams();
+  const [searchParams] = useSearchParams();
   const activeTab = useAgentBuilderStore((s) => s.activeTab);
   const isLoading = useAgentBuilderStore((s) => s.isLoading);
   const loadAgentFromDB = useAgentBuilderStore((s) => s.loadAgentFromDB);
   const resetAgent = useAgentBuilderStore((s) => s.resetAgent);
+  const setActiveTab = useAgentBuilderStore((s) => s.setActiveTab);
 
   useEffect(() => {
     if (id) {
@@ -87,6 +89,17 @@ export default function AgentBuilder() {
       resetAgent();
     }
   }, [id]);
+
+  // Suporte a deep-link via ?tab=prompt|tools|brain etc. — usado por atalhos
+  // como "Editar prompt" / "Gerenciar tools" / "Ajustar modelo" no preview do
+  // dialog de restauração, levando o usuário direto para a aba correta.
+  useEffect(() => {
+    const tab = searchParams.get('tab');
+    if (tab && TABS.some((t) => t.id === tab)) {
+      setActiveTab(tab);
+    }
+    // Reaplica quando o agente termina de carregar (resetAgent volta para identity).
+  }, [searchParams, setActiveTab, isLoading]);
 
   if (isLoading) {
     return (
