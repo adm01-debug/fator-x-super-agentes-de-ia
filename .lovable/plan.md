@@ -1,60 +1,93 @@
 
 
-## Medidor de uso por seção (Persona, Escopo, Formato, Regras)
+## Correções automáticas com prévia ("Auto-fix")
 
-Hoje o checklist mostra apenas **palavras** por seção e o limite global do prompt aparece só no rodapé do editor. Não há visibilidade de **quanto cada seção pesa** no orçamento total — o usuário descobre que está perto do teto sem saber qual seção cortar.
+Hoje o `PromptValidationFeedback` mostra erros e warnings, mas a única forma de corrigir é **manualmente**: o usuário lê "Linha 47 excede 500 chars" e tem que ir achar e quebrar a linha sozinho. As funções de limpeza (`sanitizePromptInput`) só rodam em paste novo — conteúdo já no editor que tenha sujeira não é tocado.
+
+A mudança expõe os **fixers** como ações 1-clique no painel de validação, com **prévia diff** antes de aplicar.
 
 ### O que muda na visão do usuário
 
-Novo cartão **"Uso por seção"** entre o `PromptSectionChecklist` e o `PromptHistoryPanel`, com 4 linhas (Persona, Escopo, Formato, Regras):
+Quando há issues fixáveis, aparece uma nova seção **"Correções automáticas disponíveis"** dentro do `PromptValidationFeedback`, abaixo dos erros/warnings:
 
-1. **Stats numéricas** por seção: `chars · linhas · palavras · ~tokens`.
-2. **Barra de progresso horizontal** mostrando o % do **limite total** (`PROMPT_LIMITS.MAX_TOTAL`) que aquela seção ocupa. Cor escala: verde (<20%), amber (20–35%), vermelho (>35%).
-3. **Badge "🔥 Maior contribuinte"** na seção que mais consome chars (apenas se `chars > 0`).
-4. **Linha de "Outros"** ao final: chars que estão **fora** das 4 seções canônicas (header/identidade, comentários, espaço entre blocos) — útil para identificar gordura não atribuída.
-5. **Footer compacto**: `total: 4.230 / 8.000 chars (53%) · 4 seções somam 89%` — dá o panorama em uma linha.
-6. **Estado vazio por seção**: se `status === 'missing'`, mostra `— ausente` em cinza (sem barra), em vez de zeros confusos.
-7. **Click na linha** → reaproveita `onJumpToSection` para pular o cursor pra aquela seção no editor (fluxo já existente, sem código novo no parent).
+1. **Chips de fix** — um por correção aplicável, com badge do impacto:
+   - `🧹 Remover caracteres invisíveis` — `−12 chars` (só aparece se sanitizer detecta `removedControl + removedZeroWidth + removedTags > 0`).
+   - `📏 Compactar linhas em branco` — `−4 linhas` (se `consecutiveEmptyBlocks > 0`).
+   - `✂️ Quebrar linhas longas` — `3 linhas afetadas` (se `longLines.length > 0`, quebra em `MAX_LINE_LENGTH` no espaço mais próximo).
+   - `📐 Truncar para o limite` — `−1.230 chars do final` (se `exceedsCharLimit`).
+   - `🪄 Aplicar tudo` — botão primary que combina todos acima em uma transformação.
+2. **Botão "Pré-visualizar"** ao lado de cada chip → abre `Dialog` com **diff lado a lado** (antes vs. depois), contagem de mudanças, e botões `Aplicar` / `Cancelar`.
+3. **Aplicação direta** (sem prévia) por click simples no chip → toast com resumo (`"Removidos 12 caracteres invisíveis · prompt agora tem 3.420 chars"`) e ação **Desfazer** (5s) que restaura o estado anterior.
+4. **Estado vazio**: quando não há nada a corrigir, a seção não renderiza (UI limpa para prompts saudáveis).
 
 ### Como funciona (técnico)
 
-**Novo arquivo** `src/components/agents/wizard/quickSteps/PromptSectionUsage.tsx`:
+**Novo arquivo** `src/lib/promptAutoFixers.ts` — funções puras, testáveis:
 
-- Props: `{ prompt: string; onJumpToSection?: (key: PromptSectionKey) => void }`.
-- `useMemo([prompt])` para calcular, via `locateSections(prompt)` (já existente):
-  - Para cada `SectionLocation` com `status !== 'missing'`: extrai `prompt.slice(startChar, endChar)` → conta `chars`, `lines` (split `\n`), `words`, `estimatedTokens` (`Math.ceil(chars/4)`, mesma heurística do `promptCompiler`).
-  - Calcula `othersChars = totalChars - sum(sectionChars)`.
-  - `topKey` = chave com maior `chars` entre as presentes.
-- Renderização: `<ul>` com 4 `<li>` (canonical order) + linha "Outros". Cada item tem:
-  - Ícone do status (✓ ok / ⚠ thin / ○ missing) — reaproveita ícones do checklist para coerência visual.
-  - Label + stats em `font-mono text-[10px]`.
-  - Barra: `<div className="h-1.5 rounded bg-secondary"><div style={{width: pct%}} className={toneClass}/></div>`.
-  - Badge "🔥 Maior" se `key === topKey`.
-- Tones via classes Tailwind semânticas (`bg-nexus-emerald`, `bg-nexus-amber`, `bg-destructive`) — sem cores cruas.
+```ts
+export interface FixResult {
+  fixed: string;
+  removedChars: number;
+  removedLines: number;
+  affectedLines: number[];
+  description: string;
+}
+
+export function fixInvisibleChars(prompt: string): FixResult;     // reusa CONTROL_CHARS_RE/ZERO_WIDTH_RE/DANGEROUS_TAGS_RE
+export function fixEmptyBlocks(prompt: string): FixResult;        // colapsa runs >MAX_EMPTY_BLOCK em exatamente MAX_EMPTY_BLOCK
+export function fixLongLines(prompt: string): FixResult;          // quebra em MAX_LINE_LENGTH no último espaço, fallback hard-break
+export function fixExceedsCharLimit(prompt: string): FixResult;   // slice(0, MAX_TOTAL)
+export function applyAllFixes(prompt: string): FixResult;         // pipeline: invisíveis → linhas vazias → linhas longas → truncate
+
+export interface AvailableFix {
+  id: 'invisible' | 'empty' | 'longLines' | 'truncate';
+  label: string;
+  icon: string;
+  result: FixResult;
+}
+export function detectAvailableFixes(prompt: string): AvailableFix[];
+```
+
+**Novo componente** `src/components/agents/wizard/quickSteps/PromptAutoFixPanel.tsx`:
+
+- Props: `{ prompt: string; onApply: (fixed: string, summary: string) => void }`.
+- Usa `detectAvailableFixes(prompt)` em `useMemo([prompt])`.
+- Renderiza chips dos fixes disponíveis + botão "Aplicar tudo" + botão "Pré-visualizar" por chip.
+- `Dialog` interno (shadcn) com `<pre>` lado a lado: texto atual à esquerda, corrigido à direita; linhas alteradas marcadas com fundo amber/destructive. Mostra contagem `−X chars · −Y linhas` no header.
+
+**Editar** `src/components/agents/wizard/quickSteps/PromptValidationFeedback.tsx`:
+
+- Aceitar prop opcional `onApplyFix?: (fixed: string, summary: string) => void`.
+- Renderizar `<PromptAutoFixPanel prompt={prompt} onApply={onApplyFix} />` após a seção de warnings, **somente** se `onApplyFix` estiver presente e houver fixes disponíveis.
 
 **Editar** `src/components/agents/wizard/quickSteps/StepQuickPrompt.tsx`:
 
-- Importar `PromptSectionUsage` e renderizar após o `PromptSectionChecklist` (linha ~330), passando `prompt={form.prompt}` e `onJumpToSection={jumpToSection}`.
+- Manter `prevPromptRef = useRef<string>('')` atualizada antes de cada fix.
+- Passar `onApplyFix={(fixed, summary) => { prevPromptRef.current = form.prompt; handleManualEdit(fixed); toast.success(summary, { action: { label: 'Desfazer', onClick: () => handleManualEdit(prevPromptRef.current) } }); }}`.
 
 ### Casos cobertos
 
 | Cenário | Comportamento |
 |---|---|
-| Prompt vazio | Cartão renderiza com todas seções como "ausente", barras zeradas, footer `0 / 8.000`. |
-| Persona com 3.500 chars, outras curtas | Barra Persona vermelha (>35% do limite); badge "🔥 Maior contribuinte" em Persona. |
-| Seção thin (4 palavras) | Stats mostram chars reais + ícone amber (já que está presente mas curta). |
-| Seção missing | Linha cinza com "— ausente", sem barra; não conta para `topKey`. |
-| Conteúdo fora das 4 seções (preâmbulo, comentários) | Linha "Outros" com chars correspondentes; ajuda a explicar gap entre soma de seções e total. |
-| Click numa linha | Cursor pula para a seção no editor (mesma UX do checklist). |
+| Colei do Word com zero-width chars | Chip "Remover caracteres invisíveis · −7 chars"; click aplica; toast com Desfazer. |
+| Prompt com 8 linhas em branco seguidas | Chip "Compactar linhas em branco · −5 linhas"; prévia mostra onde colapsa. |
+| Linha 47 com 720 chars | Chip "Quebrar linhas longas · 1 linha afetada"; prévia mostra a linha quebrada em 2. |
+| Prompt 9.230 chars (limit 8.000) | Chip "Truncar para o limite · −1.230 chars do final"; prévia mostra o que será cortado. |
+| Múltiplos problemas | Botão "🪄 Aplicar tudo" roda o pipeline; prévia mostra resultado final. |
+| Click "Desfazer" no toast | `handleManualEdit(prevPromptRef.current)` restaura. |
+| Prompt já limpo | Seção inteira não aparece (sem ruído). |
 
 ### Arquivos tocados
 
-- **Criar** `src/components/agents/wizard/quickSteps/PromptSectionUsage.tsx` (~120 linhas).
-- **Editar** `src/components/agents/wizard/quickSteps/StepQuickPrompt.tsx` — 1 import + 1 render (~3 linhas).
+- **Criar** `src/lib/promptAutoFixers.ts` (~180 linhas, puro).
+- **Criar** `src/components/agents/wizard/quickSteps/PromptAutoFixPanel.tsx` (~200 linhas).
+- **Editar** `src/components/agents/wizard/quickSteps/PromptValidationFeedback.tsx` — nova prop opcional + render condicional.
+- **Editar** `src/components/agents/wizard/quickSteps/StepQuickPrompt.tsx` — wiring do callback com toast Desfazer.
 
 ### Impacto
 
-- Zero schema/backend, zero dependência nova.
-- Reaproveita 100% da lógica de `locateSections` já madura — sem duplicar parsers.
-- Resolve o ponto cego: agora dá pra ver de relance **qual seção cortar primeiro** quando o prompt fica grande.
+- Zero schema/backend.
+- Zero quebra: prop `onApplyFix` é opcional; sem ela o feedback segue só leitura como hoje.
+- Reaproveita regexes do `promptSanitizer` — fixers consistentes com a sanitização de paste.
+- Resolve o gap entre "detectar problema" e "consertar problema": um clique vs. caça manual no editor.
 
