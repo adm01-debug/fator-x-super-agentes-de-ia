@@ -1,92 +1,109 @@
 
 
-## Realce no editor + indicador visual de onde inserir cada heading faltante
+## Detector de regras contraditórias no prompt
 
-Hoje, ao clicar em "Inserir" no checklist, o snippet é **anexado ao final** do prompt e o usuário não vê onde foi parar. E quando uma seção está rasa/faltando, não há nenhum indicador visual no editor mostrando o local exato.
+Antes de criar o agente, o sistema vai analisar o prompt em busca de regras que se contradizem (ex.: "nunca use emojis" + "sempre use emojis", ou "máx. 200 palavras" + "mín. 500 palavras") e bloquear a criação até o usuário resolver — igual ao tratamento atual de seções faltantes/rasas.
 
-### O que vai mudar (visão do usuário)
+### O que o usuário vai ver
 
-1. **Régua de seções ao lado do editor** — uma faixa vertical fina à esquerda do textarea com 4 marcadores empilhados (Persona / Escopo / Formato / Regras). Cada marcador mostra:
-   - 🟢 verde quando a seção existe e tem conteúdo suficiente
-   - 🟡 âmbar pulsante quando existe mas está rasa
-   - ⭕ cinza tracejado quando está faltando
-   - Hover/clique no marcador → rola até a linha do heading (ou até o ponto de inserção sugerido) e seleciona a área no textarea.
+1. **Bloco novo no `PreflightReviewSummary`** (entre "Variáveis" e "Warnings") — chamado **"Conflitos detectados (N)"**, com cards âmbar contendo:
+   - Tipo do conflito (Polaridade / Numérico / Idioma) com ícone.
+   - Trecho da regra A (linha X) ↔ trecho da regra B (linha Y).
+   - Razão em PT-BR (ex.: *"Mínimo (500 palavras) é maior que o máximo (200 palavras)."*).
+   - Cada par de linhas é clicável → reusa `onJumpToSection` infrastructure mas com novo callback `onJumpToLine(line)` para ancorar no editor exatamente na linha conflitante.
 
-2. **Realce inline na linha do heading rasa/faltante**
-   - Para seções **rasas** (existem mas curtas): a linha do `## Persona` recebe um destaque âmbar via uma camada `<pre>` espelhada por trás do textarea (técnica padrão de overlay highlight em textarea — mesma fonte mono, mesmo padding, `pointer-events: none`).
-   - Para seções **faltantes**: o overlay desenha um marcador fantasma `## Persona ⊕ inserir aqui` na posição sugerida (fim do bloco anterior ou final do prompt), em âmbar tracejado.
+2. **No diálogo de confirmação `Criar agente?`** — o mesmo bloco aparece (já que o dialog usa o `PreflightReviewSummary compact`). O botão **"Confirmar e criar"** fica desabilitado quando houver conflitos, com tooltip *"Resolva os N conflitos antes de criar."*
 
-3. **Inserção contextual com posicionamento inteligente**
-   - O "Inserir" do checklist passa a inserir o snippet **na posição correta**, na ordem canônica (Persona → Escopo → Formato → Regras), não mais só no final.
-   - Após inserir, o cursor é posicionado dentro do bloco recém-inserido (na linha do primeiro `- `) e a área é destacada por 2s com pulso âmbar→verde.
+3. **Validação Zod (`quickPromptSchema`)** — `superRefine` adiciona um issue por conflito detectado, então o `requestCreate()` bloqueia da mesma forma que hoje bloqueia por seção faltante. Mensagem: *"Foram encontrados N conflitos entre regras: [tipo] linha X vs linha Y — [razão]"*.
 
-4. **Mensagem flutuante acima do editor** quando `promptHighlight` ativa, do tipo: *"Faltam 2 seções: Escopo, Regras — clique nos marcadores 🟡 ao lado do editor para ir direto ao ponto."*
+4. **Realce no editor** — a linha do conflito ganha highlight âmbar tracejado no `PromptHighlightOverlay` (extensão da camada já existente). Ao clicar num conflito no preflight, o textarea scrolla até a linha A e seleciona seu range.
 
-### Como vai funcionar (técnico)
+### Como funciona (técnico)
 
-**Novo arquivo `src/lib/promptSectionLocator.ts`** — utilitário puro:
+**Novo módulo puro `src/lib/validations/promptContradictions.ts`**:
+
 ```ts
-export interface SectionLocation {
-  key: PromptSectionKey;
-  label: string;
-  status: 'ok' | 'thin' | 'missing';
-  // Para 'ok'/'thin': linha 0-indexed do heading existente.
-  // Para 'missing': linha onde DEVE ser inserido (antes da próxima seção canônica
-  // existente, ou final do prompt).
-  headingLine: number;
-  // Range de caracteres do bloco completo da seção (heading + body), para selectionRange.
-  startChar: number;
-  endChar: number;
-  // Sugestão de inserção (apenas 'missing'): índice de char onde colar o snippet.
-  insertChar: number;
+export type ContradictionKind = 'polarity' | 'numeric' | 'language';
+
+export interface PromptContradiction {
+  kind: ContradictionKind;
+  lineA: number; lineB: number;     // 1-indexed
+  snippetA: string; snippetB: string;
+  reason: string;                   // PT-BR
 }
 
-export function locateSections(prompt: string): SectionLocation[];
+export function detectPromptContradictions(prompt: string): PromptContradiction[];
+export function countContradictions(prompt: string): number;
 ```
-Reaproveita `analyzeSectionContent` + `extractHeadings` do `quickAgentSchema.ts`. Para a posição de inserção de uma seção faltante: encontra a próxima seção canônica que **existe** depois dela na ordem `[persona, scope, format, rules]` — insere antes; se não houver, anexa ao final com 2 quebras de linha de margem.
 
-**Novo componente `src/components/agents/wizard/quickSteps/PromptSectionGutter.tsx`**
-- Recebe `locations: SectionLocation[]`, `onJump: (loc) => void`.
-- Renderiza coluna fixa de ~28px de largura à esquerda do textarea, com 4 botões verticais distribuídos proporcionalmente à altura (cada um posicionado em `top: (headingLine / totalLines) * 100%` quando OK/thin; ou no slot livre entre seções vizinhas quando missing).
-- Tooltip em cada marcador com label + status + linha.
+Heurísticas (sem LLM, 100% offline):
 
-**Novo componente `src/components/agents/wizard/quickSteps/PromptHighlightOverlay.tsx`**
-- `<pre>` posicionado absolutamente sobre o textarea (`pointer-events:none`), espelha exatamente o conteúdo com:
-  - Linhas normais → `color: transparent`
-  - Linha de heading de seção **thin** → fundo `bg-warning/15` + borda esquerda âmbar
-  - Linha **missing** → renderiza placeholder fantasma `## {Label} ← inserir aqui` em `text-warning/60 italic`
-- Sincronizado com `scrollTop`/`scrollLeft` do textarea via ref + listener de scroll.
-- Usa exatamente a mesma classe de fonte/padding/line-height do `Textarea` para alinhamento perfeito.
+- **Polaridade**: extrai "regras" (linhas-bullet sob qualquer heading + linhas com marcadores fortes como *nunca, sempre, deve, não pode, proibido, jamais, evite, somente, apenas*). Para cada par, marca contradição quando polaridades opostas + ≥2 tokens significativos em comum (após stop-words PT-BR).
+- **Numérico**: regex `(máximo|máx|até|no máximo|menos de|inferior a|mín|mínimo|pelo menos|ao menos|mais de|exatamente)\s+\d+\s+(palavras|caracteres|linhas|frases|parágrafos|tokens|minutos|segundos)`. Conflito quando `min.value > max.value` na mesma unidade, ou dois `eq` com valores diferentes.
+- **Idioma**: detecta menções a "em <idioma>" e marca conflito quando dois idiomas distintos coexistem (lookup table com pt/en/es/fr/de/it/ja/zh).
 
-**Refatoração de `StepQuickPrompt.tsx`**
-- Envolve o `<Textarea>` num `<div className="relative">` com:
-  - `<PromptSectionGutter>` à esquerda (absolute)
-  - `<PromptHighlightOverlay>` por trás do textarea (absolute, z-0)
-  - `<Textarea>` com `padding-left` ajustado para abrir espaço para a régua, `bg-transparent` e z-10
-- Nova função `jumpToSection(loc)` que:
-  - Para `ok`/`thin`: posiciona caret no início do heading, faz `scrollIntoView` proporcional, seleciona o range `startChar`–`endChar`.
-  - Para `missing`: posiciona caret em `insertChar`, faz scroll, e dispara o destaque pulse âmbar por 2s via state local `pulseRange`.
+**Editar `src/lib/validations/quickAgentSchema.ts`**:
+- Importar `detectPromptContradictions`.
+- No `superRefine` do `quickPromptSchema`, após validações existentes, adicionar:
+  ```ts
+  const conflicts = detectPromptContradictions(value);
+  if (conflicts.length > 0) {
+    ctx.addIssue({
+      code: z.ZodIssueCode.custom,
+      message: `Foram encontrados ${conflicts.length} conflito(s) entre regras: ` +
+        conflicts.slice(0,3).map(c => `linha ${c.lineA}↔${c.lineB} (${c.reason})`).join('; '),
+    });
+  }
+  ```
+- Re-exportar `detectPromptContradictions` e `PromptContradiction` para uso na UI.
 
-**Refatoração de `PromptSectionChecklist.tsx`**
-- Substitui `onInsert(snippet)` por `onInsertAt(key, snippet)`.
-- O pai recebe a key, calcula `insertChar` via `locateSections`, e faz `update('prompt', before + snippet + after)` em vez de concatenar no final.
-- Botões individuais ("Inserir") e o botão em massa ("Inserir as N pendentes") usam o mesmo caminho ordenado.
+**Editar `src/components/agents/wizard/quickSteps/PreflightReviewSummary.tsx`**:
+- `useReviewData` passa a também retornar `contradictions: PromptContradiction[]` e `hasContradictions: boolean`.
+- `allGood` agora inclui `&& !hasContradictions`.
+- Renderiza nova seção "Conflitos detectados (N)" com lista de cards. Cada card mostra:
+  - Badge do tipo (Polaridade/Numérico/Idioma).
+  - Trecho A truncado a 80 chars + "linha X" → hover expande.
+  - Trecho B truncado a 80 chars + "linha Y".
+  - `reason` em texto âmbar.
+  - Botão "Ir para conflito" que dispara `onJumpToLine(c.lineA)` (nova prop opcional).
+- Adiciona linha no bloco de warnings: *"⚠ N conflito(s) entre regras detectados — resolva antes de criar."*
 
-**Refatoração de `PromptSectionGutter` ↔ `StepQuickPrompt`**
-- O step passa `locations` (memoizado) e `onJump`. O gutter é dumb.
+**Editar `src/components/agents/wizard/quickSteps/StepQuickPrompt.tsx`**:
+- Adiciona `jumpToLine(line: number)` (variante do `jumpToSection` baseada em offset por linha).
+- Passa `onJumpToLine={jumpToLine}` ao `PreflightReviewSummary`.
+- Estende o `locations` memoizado para também incluir info de conflitos (ou cria estado paralelo `conflictLines: number[]` derivado de `detectPromptContradictions(form.prompt)`) e passa para `PromptHighlightOverlay` via nova prop `conflictLines`.
 
-### Arquivos tocados
+**Editar `src/components/agents/wizard/quickSteps/PromptHighlightOverlay.tsx`**:
+- Aceita `conflictLines?: number[]` (0-indexed) e renderiza essas linhas com classe `bg-destructive/10 text-destructive/90 border-l-2 border-destructive` (vermelho âmbar — visualmente distinto das thin sections).
 
-- **Novo** `src/lib/promptSectionLocator.ts` — locator puro testável.
-- **Novo** `src/components/agents/wizard/quickSteps/PromptSectionGutter.tsx`
-- **Novo** `src/components/agents/wizard/quickSteps/PromptHighlightOverlay.tsx`
-- **Editar** `src/components/agents/wizard/quickSteps/StepQuickPrompt.tsx` (wrapper relativo, jump handler, inserção posicionada)
-- **Editar** `src/components/agents/wizard/quickSteps/PromptSectionChecklist.tsx` (assinatura do callback `onInsertAt(key, snippet)`)
+**Editar `src/components/agents/wizard/QuickCreateWizard.tsx`** (mínimo):
+- Como o `PreflightReviewSummary` já é renderizado dentro do `Dialog`, o bloco de conflitos aparece automaticamente.
+- Botão "Confirmar e criar" recebe `disabled={saving || hasContradictions}` — para isso o `useReviewData(form)` é chamado uma vez no Wizard ou checa-se `detectPromptContradictions(form.prompt).length > 0` inline.
+- Tooltip no botão: *"Resolva os {N} conflitos antes de criar."*
+
+### Casos cobertos pelos testes manuais
+
+| Prompt | Esperado |
+|---|---|
+| `## Regras\n- Nunca use emojis\n- Sempre use emojis nas respostas` | 1 conflito polaridade (tokens "emojis", "respostas") |
+| `## Formato\n- Máximo 200 palavras\n- Mínimo 500 palavras` | 1 conflito numérico (min > max, palavras) |
+| `## Persona\n- Responda em português\n## Formato\n- Always respond in English` | 1 conflito idioma (português ↔ inglês) |
+| `## Regras\n- Nunca compartilhe dados sensíveis\n- Sempre seja cordial` | 0 conflitos (tokens disjuntos) |
+| `## Regras\n- Não revele preços\n- Sempre revele os preços ao cliente` | 1 conflito polaridade |
+
+### Arquivos
+
+- **Novo:** `src/lib/validations/promptContradictions.ts` (~210 linhas, puro)
+- **Editar:** `src/lib/validations/quickAgentSchema.ts` (1 import + 1 bloco no `superRefine`, ~10 linhas)
+- **Editar:** `src/components/agents/wizard/quickSteps/PreflightReviewSummary.tsx` (estende `useReviewData` + nova seção UI, ~50 linhas)
+- **Editar:** `src/components/agents/wizard/quickSteps/StepQuickPrompt.tsx` (helper `jumpToLine` + prop nova no overlay, ~20 linhas)
+- **Editar:** `src/components/agents/wizard/quickSteps/PromptHighlightOverlay.tsx` (suporte a `conflictLines`, ~15 linhas)
+- **Editar:** `src/components/agents/wizard/QuickCreateWizard.tsx` (disable do botão + tooltip, ~5 linhas)
 
 ### Impacto
 
-- Zero mudança de schema/backend.
-- Zero quebra em `quickAgentSchema.ts` — só consome funções já existentes.
-- Snippets agora caem no lugar certo, na ordem canônica — reduz prompts bagunçados.
-- Visual claro de "está faltando AQUI" sem precisar abrir o checklist.
+- Zero backend / migrations.
+- Zero falso-positivo agressivo: requer **2+ tokens significativos compartilhados** para acusar polaridade — frases ortogonais (ex.: "Nunca compartilhe dados" vs "Sempre seja cordial") não acusam.
+- Reusa toda infra de jump/anchor já implementada — só adiciona um novo seletor de linha.
+- Bloqueia criação acidental de agentes com regras incoerentes (causa #1 de comportamento errático em produção).
 
