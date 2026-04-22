@@ -388,6 +388,34 @@ export function StepQuickPrompt({ form, errors, onPromptManualEdit, onRestore, o
               pulsedSection ? 'border-nexus-amber/50' : ''
             }`}
           />
+          {(() => {
+            // Floating pending-sections pill — bottom-right of the editor box.
+            // Counts both 'missing' and 'thin' so the user sees a single
+            // actionable number; clicking jumps to the first incomplete one.
+            const pending = locations.filter((l) => l.status !== 'ok');
+            if (pending.length === 0) return null;
+            const first = pending[0];
+            return (
+              <button
+                type="button"
+                onClick={() =>
+                  jumpToSection(
+                    first.key,
+                    first.status === 'missing' ? `## ${first.label}\n- ` : undefined,
+                  )
+                }
+                aria-label={`${pending.length} seção(ões) pendente(s). Ir para ${first.label}.`}
+                className="absolute bottom-2 right-2 z-10 flex items-center gap-1.5 rounded-full bg-nexus-amber/15 hover:bg-nexus-amber/25 border border-nexus-amber/40 px-2.5 py-1 text-[11px] font-medium text-nexus-amber shadow-sm backdrop-blur transition-colors animate-fade-in"
+              >
+                <span className="relative flex h-2 w-2">
+                  <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-nexus-amber opacity-60" />
+                  <span className="relative inline-flex h-2 w-2 rounded-full bg-nexus-amber" />
+                </span>
+                {pending.length} {pending.length === 1 ? 'seção pendente' : 'seções pendentes'}
+                <span className="text-nexus-amber/70">· ir para {first.label}</span>
+              </button>
+            );
+          })()}
         </div>
         {errors.prompt && (
           <div className="text-[11px] text-destructive" role="alert">
