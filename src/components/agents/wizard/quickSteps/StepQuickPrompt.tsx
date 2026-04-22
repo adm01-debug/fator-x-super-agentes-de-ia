@@ -36,6 +36,9 @@ export function StepQuickPrompt({ form, errors, update, onRestore, onApplyVarian
   const activeVariant = detectPromptVariant(form.type as QuickAgentType, form.prompt);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const promptHighlight = highlightField === 'prompt';
+  // Section-level pulse highlight (set briefly after a "jump to section" action).
+  const [pulsedSection, setPulsedSection] = useState<PromptSectionKey | null>(null);
+  const sectionPulseRef = useRef<number | null>(null);
 
   useEffect(() => {
     if (!promptHighlight) return;
@@ -45,6 +48,55 @@ export function StepQuickPrompt({ form, errors, update, onRestore, onApplyVarian
       window.setTimeout(() => el.focus(), 250);
     }
   }, [promptHighlight]);
+
+  /**
+   * Scroll the textarea, place the caret on the section's heading line,
+   * select that line, and apply a brief pulse highlight on the editor.
+   * If the section heading isn't present yet, insert a snippet first then jump to it.
+   */
+  const jumpToSection = (key: PromptSectionKey, snippetIfMissing?: string) => {
+    let workingPrompt = form.prompt;
+    let lineIdx = findSectionLineIndex(workingPrompt, key);
+
+    if (lineIdx === -1 && snippetIfMissing) {
+      // Insert and immediately operate on the new value (textarea will reflect on next tick).
+      workingPrompt = workingPrompt + snippetIfMissing;
+      update('prompt', workingPrompt);
+      lineIdx = findSectionLineIndex(workingPrompt, key);
+    }
+
+    // Visual pulse — works even if the textarea isn't focusable yet.
+    setPulsedSection(key);
+    if (sectionPulseRef.current) window.clearTimeout(sectionPulseRef.current);
+    sectionPulseRef.current = window.setTimeout(() => setPulsedSection(null), 1500);
+
+    if (lineIdx === -1) return;
+
+    // Compute caret offset = sum of line lengths + newlines up to lineIdx.
+    const lines = workingPrompt.split('\n');
+    let offset = 0;
+    for (let i = 0; i < lineIdx; i++) offset += lines[i].length + 1;
+    const lineLen = lines[lineIdx].length;
+
+    // Need to wait for state to flush so textarea contains the newly-inserted snippet.
+    requestAnimationFrame(() => {
+      const el = textareaRef.current;
+      if (!el) return;
+      el.focus({ preventScroll: true });
+      // Approximate scroll: use line height heuristic on the textarea itself.
+      const lineHeight =
+        parseFloat(getComputedStyle(el).lineHeight || '0') || 16;
+      el.scrollTop = Math.max(0, lineIdx * lineHeight - el.clientHeight / 3);
+      try {
+        el.setSelectionRange(offset, offset + lineLen);
+      } catch {/* some browsers throw on huge values; ignore */}
+      el.scrollIntoView({ block: 'center', behavior: 'smooth' });
+    });
+  };
+
+  useEffect(() => () => {
+    if (sectionPulseRef.current) window.clearTimeout(sectionPulseRef.current);
+  }, []);
 
   const handleChange = (e: ChangeEvent<HTMLTextAreaElement>) => {
     const raw = e.target.value;
