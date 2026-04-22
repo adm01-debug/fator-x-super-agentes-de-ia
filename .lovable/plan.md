@@ -1,89 +1,83 @@
 
 
-## Persistir a variação de prompt selecionada no rascunho
+## Diff visual ao alternar entre variações de prompt
 
-Hoje o wizard usa `detectPromptVariant(type, prompt)` para inferir a chip ativa por **comparação textual exata** com o template. Resultado: ao voltar a um rascunho, se o prompt foi minimamente editado, a chip volta para "customizado" — e quando bate com algum template, sempre cai em "Equilibrado" (primeiro da ordem). A escolha explícita do usuário se perde.
+Hoje o `applyPromptVariant` se comporta assim:
+- Se o prompt está **custom-locked** (usuário editou) → abre `AlertDialog` "Substituir prompt customizado?" com só contagem de chars, **sem mostrar o que muda**.
+- Se **não está locked** → aplica direto, sem confirmação, sobrescrevendo o texto atual (que pode ter pequenas edições dentro do lock-off, ou ser uma variação anterior diferente).
 
-A solução é guardar a **variação efetivamente escolhida** (`selectedVariant`) ao lado do prompt, persistir no draft e usá-la como fonte de verdade para a chip ativa.
+A mudança mostra um **diff lado a lado** (atual ↔ nova variação) **antes** da substituição, em ambos os casos quando há diferença real.
 
 ### O que muda na visão do usuário
 
-1. Ao clicar em **Conciso** (ou outra variação), a escolha é gravada no rascunho. Ao recarregar a página/voltar mais tarde, a chip "Conciso" volta destacada — mesmo que o texto bata com outra variação ou tenha sido levemente editado dentro do lock.
-2. Quando o usuário **edita manualmente** o prompt (já existe `promptCustomLocked = true`), a chip "Customizado 🔒" aparece como hoje, mas a `selectedVariant` é zerada — porque a intenção do usuário deixou de ser uma variação fixa.
-3. Ao **trocar o tipo de agente**, `selectedVariant` reseta junto com o lock (estado coerente para o novo template).
-4. Ao clicar **"Restaurar template"** ou **"Sair do modo custom"**, `selectedVariant` é recalculada a partir do `detectPromptVariant` (auto) — comportamento atual preservado.
-5. Ao clicar em **"Aplicar"** uma variação a partir do estado custom-locked → confirma no AlertDialog → aplica e grava `selectedVariant = variantId`.
+1. Clico em **Conciso** estando em **Detalhado** → abre dialog "Trocar para Conciso?" com diff visual mostrando linhas removidas (vermelho, prefixo `−`) e linhas adicionadas (verde, prefixo `+`). Boto **Aplicar** confirma; **Cancelar** mantém o prompt atual.
+2. Clico em **Conciso** estando em **custom-locked** → mesmo dialog, header destaca o lock (`"Você editou o prompt manualmente"`) + diff completo do texto atual contra a variação alvo.
+3. Clico em **Conciso** estando **já em Conciso** sem nenhuma edição → não abre dialog (texto idêntico, no-op silencioso com toast "Já está usando Conciso").
+4. Clico em **Conciso** estando em Conciso **com edições leves** → abre dialog mostrando o diff entre o texto editado e o template puro de Conciso, para o usuário decidir se quer descartar as edições.
+5. Header do dialog mostra contagem agregada: `"12 linhas removidas, 8 adicionadas, 4 inalteradas"`.
 
 ### Como funciona (técnico)
 
-**Novo estado no `QuickCreateWizard`**:
+**Reaproveitar `src/components/prompts/PromptDiff.tsx`** — já faz diff LCS por linhas com cores (`destructive` para removido, `nexus-emerald` para adicionado), labels customizáveis e scroll. Zero código novo de diff.
+
+**Novo dialog `PromptVariantDiffDialog`** em `src/components/agents/wizard/quickSteps/PromptVariantDiffDialog.tsx`:
+- Props: `open`, `onOpenChange`, `currentPrompt`, `currentLabel` (ex: `"Detalhado"` / `"Customizado"`), `nextPrompt`, `nextLabel` (ex: `"Conciso"`), `customLocked`, `onConfirm`.
+- Layout: `AlertDialog` largo (`max-w-3xl`), header com título dinâmico + descrição contextual (lock vs. troca normal) + badge de stats (linhas +/−), corpo com `<PromptDiff textA={currentPrompt} textB={nextPrompt} labelA={currentLabel} labelB={nextLabel} />`, footer com Cancelar / Aplicar.
+- Stats calculadas via mesma `diffLines` (export adicional do `PromptDiff` ou recálculo local com helper extraído).
+
+**Alterar `applyPromptVariant` em `QuickCreateWizard.tsx`**:
 ```ts
-const [selectedVariant, setSelectedVariant] = useState<PromptVariantId | null>(null);
+const applyPromptVariant = (variantId: PromptVariantId) => {
+  const t = QUICK_AGENT_TEMPLATES[form.type as QuickAgentType];
+  const nextPrompt = t.promptVariants[variantId].prompt;
+  // No-op se idêntico
+  if (form.prompt.trim() === nextPrompt.trim()) {
+    toast.info(`Já está usando "${t.promptVariants[variantId].label}"`);
+    setSelectedVariant(variantId);
+    setPromptCustomLocked(false);
+    return;
+  }
+  // Sempre passa pelo dialog quando há diferença real
+  setPendingVariant(variantId);
+};
 ```
 
-**Resolução da chip ativa** (substitui o cálculo direto em `StepQuickPrompt`):
+**Substituir o `AlertDialog` inline atual** (linhas 607-638) pelo novo `PromptVariantDiffDialog`, propagando:
+- `currentPrompt={form.prompt}`
+- `currentLabel` derivado do `selectedVariant` ou `"Customizado"` se locked / `"Atual"` como fallback
+- `nextPrompt` / `nextLabel` resolvidos do `pendingVariant`
+- `customLocked={promptCustomLocked}`
+- `onConfirm={() => { doApplyPromptVariant(pendingVariant!); setPendingVariant(null); }}`
+
+**Helper de stats** — pequeno utilitário no topo do `PromptVariantDiffDialog`:
 ```ts
-// Em QuickCreateWizard, calculado e passado adiante:
-const detected = detectPromptVariant(form.type, form.prompt);
-const activeVariant = promptCustomLocked
-  ? null
-  : (selectedVariant ?? detected);
+function diffStats(a: string, b: string) {
+  // contar linhas iguais/adicionadas/removidas via mesma LCS do PromptDiff
+}
 ```
-- Prioriza a escolha explícita; cai no auto-detect só quando o usuário nunca clicou em variação para o tipo atual.
-- O `StepQuickPrompt` recebe `activeVariant` direto como prop em vez de calcular sozinho — fonte única de verdade.
-
-**Setters que mexem na variação**:
-| Ação | `selectedVariant` | `promptCustomLocked` |
-|---|---|---|
-| `doApplyPromptVariant(id)` | `setSelectedVariant(id)` | `false` |
-| `applyTemplate(type)` | `setSelectedVariant(null)` (template padrão = balanced via auto-detect) | `false` |
-| `restorePromptFromType()` | `setSelectedVariant(null)` | `false` |
-| `updatePromptManual(...)` | `setSelectedVariant(null)` | `true` |
-| Troca de `form.type` | `setSelectedVariant(null)` | `false` |
-| `setPromptCustomLocked(false)` (botão "Sair do custom") | mantém `null` (já era custom) | `false` |
-
-**Persistência no `DraftEntry`** (`draftStore.ts`):
-- Adicionar campo opcional `selectedVariant?: PromptVariantId | null`.
-- `upsertDraft({ form, promptCustomLocked, selectedVariant })` grava o campo.
-- `loadDrafts()` lê e normaliza (null se inválido).
-
-**Auto-save no wizard** (efeito atual de upsert):
-```ts
-upsertDraft(prev, { id, form, promptCustomLocked, selectedVariant })
-```
-
-**Restore** (`restoreDraft`):
-```ts
-setForm(target.form);
-setPromptCustomLocked(target.promptCustomLocked === true);
-setSelectedVariant(target.selectedVariant ?? null);
-```
-
-**`StepQuickPrompt`**:
-- Nova prop `activeVariant: PromptVariantId | null` (vinda do wizard).
-- Remove o cálculo local `detectPromptVariant(...)`; mantém `activeVariantPrompt` e `activeVariantLabel` derivados de `activeVariant`.
-- Passa `activeVariant` para `PromptVariantSelector` exatamente como hoje.
-
-### Arquivos tocados
-
-- **Editar** `src/components/agents/wizard/QuickCreateWizard.tsx` — novo estado `selectedVariant`, resolução `activeVariant` centralizada, setters em todos os pontos da tabela acima, propagar para `StepQuickPrompt`, persistir via `upsertDraft` e restaurar via `restoreDraft`.
-- **Editar** `src/components/agents/wizard/draftStore.ts` — campo `selectedVariant?: PromptVariantId | null` em `DraftEntry`, normalização em `loadDrafts`, leitura/escrita em `upsertDraft`.
-- **Editar** `src/components/agents/wizard/quickSteps/StepQuickPrompt.tsx` — receber `activeVariant` como prop em vez de calcular; derivar label/prompt a partir dele.
+Para evitar duplicar a LCS, exportar `diffLines` de `PromptDiff.tsx` (named export) e importar no dialog para gerar o resumo.
 
 ### Casos cobertos
 
 | Cenário | Comportamento |
 |---|---|
-| Aplico "Conciso" → fecho o navegador → volto | Chip "Conciso" destacada (não mais "Equilibrado" por auto-detect). |
-| Aplico "Conciso" → edito 1 char → fecho → volto | Chip "Customizado 🔒" travada (lock vence; `selectedVariant` zerada na edição). |
-| Nunca cliquei numa chip, prompt bate com "Detalhado" | Chip "Detalhado" via auto-detect (fallback). |
-| Troco o tipo de "chatbot" → "sdr" | `selectedVariant` reseta; auto-detect roda no novo template. |
-| Clico "Restaurar template" | `selectedVariant` zerada → auto-detect mostra "Equilibrado" (template padrão). |
-| Clico "Sair do modo custom" sem escolher variação | Auto-detect volta a rodar; se o texto bater, mostra a chip correspondente. |
+| Troca Equilibrado → Conciso | Dialog com diff mostrando seções encurtadas. |
+| Custom-locked → Detalhado | Dialog com badge "Você editou manualmente" + diff completo. |
+| Mesmo template, sem edições | No-op silencioso, sem dialog. |
+| Mesmo template, com edições | Dialog mostra diff entre edição e template puro. |
+| Cancelar no dialog | Prompt e estado de lock/variant preservados. |
+| Confirmar | `doApplyPromptVariant` roda como hoje (substitui, destrava lock, grava `selectedVariant`). |
+
+### Arquivos tocados
+
+- **Criar** `src/components/agents/wizard/quickSteps/PromptVariantDiffDialog.tsx` — novo dialog com diff, stats e confirmação.
+- **Editar** `src/components/prompts/PromptDiff.tsx` — exportar `diffLines` como named export para o dialog calcular stats sem duplicar LCS.
+- **Editar** `src/components/agents/wizard/QuickCreateWizard.tsx` — `applyPromptVariant` sempre dispara `pendingVariant` quando há diff (com early-return para no-op); substituir o `AlertDialog` inline pelo `PromptVariantDiffDialog`.
 
 ### Impacto
 
-- Zero mudança de schema/backend — só localStorage.
-- Backward-compat: drafts antigos sem `selectedVariant` continuam funcionando (campo opcional, `null` por padrão = comportamento atual de auto-detect).
-- Elimina a perda silenciosa da escolha do usuário entre sessões.
+- Zero mudança de schema/backend.
+- Zero quebra: o fluxo de confirmação para custom-locked continua funcionando (ganha diff visual em vez de só contagem de chars).
+- Adiciona uma confirmação onde antes não havia (variante → variante), mas com no-op silencioso quando texto é idêntico — não vira fricção em cliques redundantes.
+- Reaproveita componente `PromptDiff` já maduro do projeto (mesma UX visual de versionamento de agente).
 
