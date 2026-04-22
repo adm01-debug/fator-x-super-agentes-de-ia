@@ -32,9 +32,15 @@ export default function AgentDetailPage() {
     enabled: !!id,
   });
 
-  const handleSimulate = async () => {
+  // Abre o diálogo sem rodar — o usuário decide o prompt e dispara dentro do modal.
+  const handleOpenSimulator = () => {
     if (!agent || !id) return;
+    setSimSummary(null);
     setSimOpen(true);
+  };
+
+  const handleRunSimulation = async (customInput: string) => {
+    if (!agent || !id) return;
     setSimRunning(true);
     setSimSummary(null);
     try {
@@ -50,6 +56,7 @@ export default function AgentDetailPage() {
           { id: agent.id, name: agent.name, model: agent.model },
           traces,
           10,
+          { customInput },
         );
         setSimSummary(summary);
         setSimRunning(false);
