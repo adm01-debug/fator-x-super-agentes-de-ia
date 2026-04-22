@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { Loader2, CheckCircle2, XCircle, Zap, DollarSign, Cpu, TrendingUp, RefreshCw, Play, Pencil } from 'lucide-react';
+import { Loader2, CheckCircle2, XCircle, Zap, DollarSign, Cpu, TrendingUp, RefreshCw, Play, Pencil, Save } from 'lucide-react';
 import {
   Dialog,
   DialogContent,
@@ -9,8 +9,11 @@ import {
   DialogFooter,
 } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import type { SimulationSummary } from '@/services/agentTestSimulationService';
+import { saveRun } from '@/services/savedTestRunsStore';
+import { toast } from 'sonner';
 
 interface Props {
   open: boolean;
@@ -20,6 +23,12 @@ interface Props {
   /** Disparado quando o usuário aciona "Executar simulação". */
   onRun: (customInput: string, count: number) => void;
   agentName: string;
+  /** Quando definido, substitui o título padrão (modo "ver run salvo"). */
+  readOnlyTitle?: string;
+  /** Esconde editor de prompt, seletor de contagem e botão Executar. */
+  hideRunControls?: boolean;
+  /** Necessário para salvar — id do agente atual. */
+  agentId?: string;
 }
 
 const MAX_PROMPT_LEN = 1000;
