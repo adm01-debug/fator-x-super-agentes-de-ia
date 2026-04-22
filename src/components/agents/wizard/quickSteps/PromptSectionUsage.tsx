@@ -210,6 +210,7 @@ const computeUsage = (prompt: string): UsageSnapshot => {
   let sectionsSum = 0;
   let topKey: PromptSectionKey | null = null;
   let topChars = 0;
+  const allSuggestions: ReductionSuggestion[] = [];
 
   const sectionRows: SectionUsage[] = locations.map((loc) => {
     if (loc.status === 'missing') {
@@ -233,6 +234,11 @@ const computeUsage = (prompt: string): UsageSnapshot => {
     if (chars > topChars) {
       topChars = chars;
       topKey = loc.key;
+    }
+    // Only analyze sections that are at least somewhat substantial — tiny
+    // sections aren't worth surfacing reductions for.
+    if (chars >= 80) {
+      allSuggestions.push(...analyzeBlockReductions(block, loc.key, loc.label));
     }
     return {
       key: loc.key,
@@ -258,12 +264,18 @@ const computeUsage = (prompt: string): UsageSnapshot => {
     pctOfLimit: Math.min(100, (othersChars / limit) * 100),
   };
 
+  // Pick the top 1–2 highest-impact suggestions across all sections.
+  const suggestions = allSuggestions
+    .sort((a, b) => b.estCharsSaved - a.estCharsSaved)
+    .slice(0, 2);
+
   return {
     rows: [...sectionRows, othersRow],
     totalChars,
     sectionsSum,
     topKey,
     totalPct: Math.min(100, (totalChars / limit) * 100),
+    suggestions,
   };
 };
 
