@@ -23,7 +23,16 @@ import { StepQuickIdentity } from './quickSteps/StepQuickIdentity';
 import { StepQuickType } from './quickSteps/StepQuickType';
 import { StepQuickModel } from './quickSteps/StepQuickModel';
 import { StepQuickPrompt } from './quickSteps/StepQuickPrompt';
+import { PreflightReviewSummary } from './quickSteps/PreflightReviewSummary';
 import { DraftRecoveryBanner, type DraftBannerEntry } from './DraftRecoveryBanner';
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog';
 import {
   loadDrafts,
   saveDrafts,
@@ -81,6 +90,7 @@ export function QuickCreateWizard({ onBack }: QuickCreateWizardProps) {
   const [pendingDrafts, setPendingDrafts] = useState<DraftEntry[]>([]);
   const [draftDecided, setDraftDecided] = useState(false);
   const [highlightField, setHighlightField] = useState<keyof QuickAgentForm | null>(null);
+  const [confirmOpen, setConfirmOpen] = useState(false);
   const lastTypeRef = useRef<QuickAgentType | null>(null);
 
   // Auto-clear field highlight after 4s
@@ -310,7 +320,8 @@ export function QuickCreateWizard({ onBack }: QuickCreateWizardProps) {
     else if (validateStep(step)) setStep(idx);
   };
 
-  const saveAgent = async () => {
+  /** Validate everything; if OK, open the confirmation dialog. */
+  const requestCreate = () => {
     if (!user) {
       toast.error('Faça login para criar agentes');
       navigate('/auth');
@@ -322,6 +333,16 @@ export function QuickCreateWizard({ onBack }: QuickCreateWizardProps) {
         toast.error('Corrija os campos destacados');
         return;
       }
+    }
+    setConfirmOpen(true);
+  };
+
+  const saveAgent = async () => {
+    setConfirmOpen(false);
+    if (!user) {
+      toast.error('Faça login para criar agentes');
+      navigate('/auth');
+      return;
     }
     setSaving(true);
     const { error } = await supabaseExternal.from('agents').insert({
@@ -363,7 +384,7 @@ export function QuickCreateWizard({ onBack }: QuickCreateWizardProps) {
       const target = e.target as HTMLElement;
       const isTyping = target?.tagName === 'INPUT' || target?.tagName === 'TEXTAREA';
       if (e.key === 'Escape' && !isTyping) { e.preventDefault(); goPrev(); }
-      if (e.key === 'Enter' && (e.ctrlKey || e.metaKey) && isLast) { e.preventDefault(); void saveAgent(); }
+      if (e.key === 'Enter' && (e.ctrlKey || e.metaKey) && isLast) { e.preventDefault(); requestCreate(); }
     };
     window.addEventListener('keydown', onKey);
     return () => window.removeEventListener('keydown', onKey);
@@ -473,12 +494,37 @@ export function QuickCreateWizard({ onBack }: QuickCreateWizardProps) {
             Próximo <ArrowRight className="h-4 w-4" />
           </Button>
         ) : (
-          <Button onClick={saveAgent} disabled={saving} className="gap-2">
+          <Button onClick={requestCreate} disabled={saving} className="gap-2">
             {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : <Rocket className="h-4 w-4" />}
             {saving ? 'Criando…' : 'Criar agente'}
           </Button>
         )}
       </div>
+
+      <Dialog open={confirmOpen} onOpenChange={(o) => { if (!saving) setConfirmOpen(o); }}>
+        <DialogContent className="max-w-xl">
+          <DialogHeader>
+            <DialogTitle>
+              Criar {form.name.trim() ? `"${form.name.trim()}"` : 'agente'}?
+            </DialogTitle>
+            <DialogDescription>
+              Revise o resumo abaixo. Após confirmar, o agente será salvo como rascunho na sua biblioteca.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="max-h-[60vh] overflow-y-auto -mx-1 px-1">
+            <PreflightReviewSummary form={form} compact />
+          </div>
+          <DialogFooter>
+            <Button variant="ghost" onClick={() => setConfirmOpen(false)} disabled={saving}>
+              Cancelar
+            </Button>
+            <Button onClick={saveAgent} disabled={saving} className="gap-2">
+              {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : <Rocket className="h-4 w-4" />}
+              {saving ? 'Criando…' : 'Confirmar e criar'}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

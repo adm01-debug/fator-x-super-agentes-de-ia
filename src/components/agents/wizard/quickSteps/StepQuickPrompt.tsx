@@ -11,6 +11,7 @@ import { PromptVariantSelector } from './PromptVariantSelector';
 import { PromptValidationFeedback } from './PromptValidationFeedback';
 import { AgentLivePreviewCard } from './AgentLivePreviewCard';
 import { QuickAgentTestPanel } from './QuickAgentTestPanel';
+import { PreflightReviewSummary } from './PreflightReviewSummary';
 import { sanitizePromptInput, PROMPT_LIMITS } from '@/lib/validations/promptSanitizer';
 import {
   detectPromptVariant,
@@ -137,8 +138,11 @@ export function StepQuickPrompt({ form, errors, update, onRestore, onApplyVarian
 
       <AgentLivePreviewCard form={form} />
 
-      {/* Consolidated prompt preview — final text the LLM will receive */}
-      <CompiledPromptPreview form={form} />
+      {/* Pre-flight review summary — quick "ready to create?" snapshot */}
+      <PreflightReviewSummary form={form} />
+
+      {/* Consolidated prompt preview — final text the LLM will receive (open by default on the last step) */}
+      <CompiledPromptPreview form={form} defaultOpen />
 
       {/* Live test against the LLM with mock payload */}
       <QuickAgentTestPanel form={form} />
