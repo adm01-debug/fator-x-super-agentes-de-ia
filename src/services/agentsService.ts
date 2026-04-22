@@ -309,6 +309,20 @@ export async function restoreAgentVersion(
     : `Restaurado de v${sourceVersion.version} (sem alterações)`;
   const change_summary = options.customSummary?.trim() || autoSummary;
 
+  // Marca a nova versão como produto de um restore — usado pelo histórico de
+  // restaurações na página de detalhes (não requer tabela extra).
+  merged.restore_metadata = {
+    restored_from_version: sourceVersion.version,
+    restored_from_version_id: sourceVersion.id,
+    restored_at: new Date().toISOString(),
+    options: {
+      copyPrompt: !!options.copyPrompt,
+      copyTools: !!options.copyTools,
+      copyModel: !!options.copyModel,
+    },
+    custom_summary: options.customSummary?.trim() || null,
+  };
+
   return createAgentVersion({
     agentId,
     model,
