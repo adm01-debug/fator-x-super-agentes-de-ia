@@ -4,7 +4,7 @@
  * Real-time view of Service Level Objectives.
  * Sprint 27 — Continuous Hardening.
  */
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { Activity, AlertTriangle, Check, RefreshCw, TrendingUp, Zap } from 'lucide-react';
 import { LightAreaChart } from '@/components/charts';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -25,7 +25,25 @@ import {
 import { logger } from '@/lib/logger';
 import { toast } from 'sonner';
 
-const REFRESH_MS = 60_000;
+/** Auto-refresh interval options (ms). 0 = disabled. */
+const AUTO_REFRESH_OPTIONS: Array<{ value: number; label: string }> = [
+  { value: 0, label: 'Desligado' },
+  { value: 30_000, label: '30 segundos' },
+  { value: 60_000, label: '1 minuto' },
+];
+const AUTO_REFRESH_STORAGE_KEY = 'nexus.slo.autoRefreshMs';
+const DEFAULT_AUTO_REFRESH_MS = 60_000;
+
+function readStoredInterval(): number {
+  try {
+    const raw = localStorage.getItem(AUTO_REFRESH_STORAGE_KEY);
+    if (raw === null) return DEFAULT_AUTO_REFRESH_MS;
+    const n = Number(raw);
+    return AUTO_REFRESH_OPTIONS.some((o) => o.value === n) ? n : DEFAULT_AUTO_REFRESH_MS;
+  } catch {
+    return DEFAULT_AUTO_REFRESH_MS;
+  }
+}
 
 function StatusBadge({ status }: { status: SLOStatus }) {
   const Icon = status === 'healthy' ? Check : status === 'warning' ? AlertTriangle : AlertTriangle;
@@ -68,28 +86,77 @@ export default function SLODashboard() {
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [windowHours, setWindowHours] = useState<number>(24);
+  // User-controlled auto-refresh cadence. 0 = off. Persisted across visits
+  // so the operator's preference survives reloads/navigation.
+  const [autoRefreshMs, setAutoRefreshMs] = useState<number>(readStoredInterval);
+  const [lastRefreshAt, setLastRefreshAt] = useState<Date | null>(null);
+  // Re-renders the "X seg atrás" pill once a second without re-fetching data.
+  const [, setNowTick] = useState(0);
+  const isMountedRef = useRef(true);
+
+  useEffect(() => {
+    isMountedRef.current = true;
+    return () => {
+      isMountedRef.current = false;
+    };
+  }, []);
 
   const load = useCallback(async (showSpinner = false) => {
     if (showSpinner) setRefreshing(true);
     try {
       const data = await fetchSLOSummary(windowHours);
+      if (!isMountedRef.current) return;
       setSummary(data);
+      setLastRefreshAt(new Date());
     } catch (err) {
       logger.error('Failed to load SLO summary', err);
-      toast.error('Erro ao carregar métricas SLO', {
-        description: err instanceof Error ? err.message : 'Erro desconhecido',
-      });
+      // Silent on auto-refresh — only toast on user-initiated reloads to
+      // avoid spamming the operator if the backend hiccups for a beat.
+      if (showSpinner) {
+        toast.error('Erro ao carregar métricas SLO', {
+          description: err instanceof Error ? err.message : 'Erro desconhecido',
+        });
+      }
     } finally {
+      if (!isMountedRef.current) return;
       setLoading(false);
       setRefreshing(false);
     }
   }, [windowHours]);
 
+  // Initial load + scheduled auto-refresh. Runs invisibly (no spinner) so
+  // the page doesn't flash; the manual button still shows the spinning icon.
   useEffect(() => {
     load();
-    const id = window.setInterval(() => load(false), REFRESH_MS);
+    if (autoRefreshMs <= 0) return;
+    const id = window.setInterval(() => {
+      // Don't pile up requests in background tabs — browsers throttle the
+      // interval already, but skipping when hidden also saves the API call.
+      if (document.visibilityState === 'hidden') return;
+      load(false);
+    }, autoRefreshMs);
     return () => window.clearInterval(id);
-  }, [load]);
+  }, [load, autoRefreshMs]);
+
+  // Tick the relative-time label ("há Xs") every second.
+  useEffect(() => {
+    if (!lastRefreshAt) return;
+    const id = window.setInterval(() => setNowTick((n) => n + 1), 1000);
+    return () => window.clearInterval(id);
+  }, [lastRefreshAt]);
+
+  const handleAutoRefreshChange = (value: number) => {
+    setAutoRefreshMs(value);
+    try {
+      localStorage.setItem(AUTO_REFRESH_STORAGE_KEY, String(value));
+    } catch {/* quota / privacy mode — ignore */}
+    if (value > 0) {
+      const label = AUTO_REFRESH_OPTIONS.find((o) => o.value === value)?.label;
+      toast.success('Auto-atualização ativada', { description: `A cada ${label}` });
+    } else {
+      toast.info('Auto-atualização desligada');
+    }
+  };
 
   const isEmpty = !loading && summary && summary.total_traces === 0;
 
@@ -119,7 +186,43 @@ export default function SLODashboard() {
             Service Level Objectives — saúde do sistema em tempo real
           </p>
         </div>
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2 flex-wrap">
+          {/* Last-updated indicator + live pulse when auto-refresh is on */}
+          {lastRefreshAt && (
+            <span
+              className="hidden sm:inline-flex items-center gap-1.5 text-[11px] font-mono text-muted-foreground"
+              title={`Última atualização: ${lastRefreshAt.toLocaleString('pt-BR')}`}
+            >
+              {autoRefreshMs > 0 && (
+                <span
+                  className="relative inline-flex h-2 w-2"
+                  aria-hidden
+                >
+                  <span className="absolute inline-flex h-full w-full rounded-full bg-nexus-emerald opacity-60 animate-ping" />
+                  <span className="relative inline-flex h-2 w-2 rounded-full bg-nexus-emerald" />
+                </span>
+              )}
+              {(() => {
+                const seconds = Math.max(0, Math.round((Date.now() - lastRefreshAt.getTime()) / 1000));
+                if (seconds < 60) return `há ${seconds}s`;
+                const m = Math.floor(seconds / 60);
+                return `há ${m}min`;
+              })()}
+            </span>
+          )}
+          <select
+            value={autoRefreshMs}
+            onChange={(e) => handleAutoRefreshChange(Number(e.target.value))}
+            className="rounded-md border border-input bg-background px-3 py-1.5 text-sm focus-ring"
+            aria-label="Intervalo de auto-atualização"
+            title="Atualiza SLOs e timeline automaticamente"
+          >
+            {AUTO_REFRESH_OPTIONS.map((o) => (
+              <option key={o.value} value={o.value}>
+                Auto: {o.label}
+              </option>
+            ))}
+          </select>
           <select
             value={windowHours}
             onChange={(e) => setWindowHours(Number(e.target.value))}
@@ -136,7 +239,7 @@ export default function SLODashboard() {
             size="sm"
             onClick={() => load(true)}
             disabled={refreshing}
-            aria-label="Atualizar dados"
+            aria-label="Atualizar dados manualmente"
           >
             <RefreshCw className={`h-4 w-4 ${refreshing ? 'animate-spin' : ''}`} />
             <span className="ml-2">Atualizar</span>
