@@ -353,7 +353,7 @@ function PromptSectionUsageImpl({ prompt, onJumpToSection }: Props) {
     return fresh;
   }, [debouncedPrompt]);
 
-  const { rows, totalChars, sectionsSum, topKey, totalPct } = snapshot;
+  const { rows, totalChars, sectionsSum, topKey, totalPct, suggestions } = snapshot;
   const limit = PROMPT_LIMITS.MAX_TOTAL;
   const sectionsCoverage = totalChars > 0 ? Math.round((sectionsSum / totalChars) * 100) : 0;
   const totalTone = toneClass(totalPct);
