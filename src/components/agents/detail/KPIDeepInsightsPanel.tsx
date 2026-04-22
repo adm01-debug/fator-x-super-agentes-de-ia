@@ -5,6 +5,9 @@ import {
   CheckCircle2,
   ChevronDown,
   DollarSign,
+  Download,
+  FileSpreadsheet,
+  FileText,
   Lightbulb,
   Minus,
   ShieldCheck,
@@ -13,6 +16,13 @@ import {
   TrendingUp,
   Zap,
 } from 'lucide-react';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
+import { toast } from 'sonner';
 import type { AgentTrace } from '@/services/agentsService';
 import {
   compareWindows,
@@ -20,10 +30,12 @@ import {
   type DailyPoint,
 } from './agentMetricsHelpers';
 import { buildKPIInsights, type KPIInsight, type CauseTone } from './kpiInsights';
+import { exportKPIInsightsCSV, exportKPIInsightsPDF } from './exportKPIInsights';
 
 interface Props {
   daily: DailyPoint[];
   traces: AgentTrace[];
+  agentName?: string;
 }
 
 const THRESHOLD_PRESETS = [1, 5, 10, 20] as const;
