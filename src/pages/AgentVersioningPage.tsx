@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 import { useParams, useNavigate, useSearchParams } from "react-router-dom";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
-import { Loader2, Plus, GitCompare, Eye, GitBranch } from "lucide-react";
+import { Loader2, Plus, GitCompare, Eye, GitBranch, Link2 } from "lucide-react";
 import { PageHeader } from "@/components/shared/PageHeader";
 import { toast } from "sonner";
 import {
@@ -24,13 +24,31 @@ export default function AgentVersioningPage() {
   const [searchParams, setSearchParams] = useSearchParams();
   const focusId = searchParams.get('focus');
 
-  const [selectedId, setSelectedId] = useState<string | null>(null);
-  const [aId, setAId] = useState<string | null>(null);
-  const [bId, setBId] = useState<string | null>(null);
-  const [mode, setMode] = useState<'detail' | 'compare'>('detail');
+  // Estado da timeline persistido na URL para que o link possa ser compartilhado
+  // ao vivo. Lemos sempre dos searchParams e escrevemos via setSearchParams.
+  const selectedId = searchParams.get('sel');
+  const aId = searchParams.get('a');
+  const bId = searchParams.get('b');
+  const modeParam = searchParams.get('mode');
+  const mode: 'detail' | 'compare' = modeParam === 'compare' ? 'compare' : 'detail';
   const [newOpen, setNewOpen] = useState(false);
   // Quando vier um ?focus=<id>, destaca a versão por ~3s e remove o param da URL.
   const [highlightId, setHighlightId] = useState<string | null>(null);
+
+  // Helpers para atualizar a URL preservando os demais parâmetros.
+  const updateParams = (mutate: (p: URLSearchParams) => void, opts?: { replace?: boolean }) => {
+    const next = new URLSearchParams(searchParams);
+    mutate(next);
+    setSearchParams(next, { replace: opts?.replace ?? false });
+  };
+  const setSelectedId = (vid: string | null) =>
+    updateParams((p) => { vid ? p.set('sel', vid) : p.delete('sel'); });
+  const setAId = (vid: string | null) =>
+    updateParams((p) => { vid ? p.set('a', vid) : p.delete('a'); });
+  const setBId = (vid: string | null) =>
+    updateParams((p) => { vid ? p.set('b', vid) : p.delete('b'); });
+  const setMode = (m: 'detail' | 'compare') =>
+    updateParams((p) => { m === 'compare' ? p.set('mode', 'compare') : p.delete('mode'); });
 
   const { data: agent } = useQuery({
     queryKey: ['agent', id],
@@ -44,30 +62,32 @@ export default function AgentVersioningPage() {
     enabled: !!id,
   });
 
-  // Auto-select latest, and last 2 for compare
+  // Auto-select latest, and last 2 for compare — só preenche se a URL ainda não trouxer estado.
   useEffect(() => {
     if (versions.length === 0) return;
     // Prioridade 1: ?focus= vindo do Detail page após restore.
     if (focusId && versions.some(v => v.id === focusId)) {
-      setSelectedId(focusId);
+      updateParams((p) => {
+        p.set('sel', focusId);
+        p.delete('focus');
+      }, { replace: true });
       setHighlightId(focusId);
-      // Limpa o param para que refresh/voltar não re-destaque.
-      const next = new URLSearchParams(searchParams);
-      next.delete('focus');
-      setSearchParams(next, { replace: true });
       // Auto-fade do destaque após ~2.8s (cobre 1 ciclo da animação pulse).
       const t = setTimeout(() => setHighlightId(null), 2800);
       return () => clearTimeout(t);
     }
-    // Prioridade 2: seleção inicial padrão.
-    if (!selectedId) {
-      setSelectedId(versions[0].id);
-      if (versions.length >= 2) {
-        setAId(versions[1].id);
-        setBId(versions[0].id);
-      }
+    // Prioridade 2: seleção inicial padrão — só se a URL não trouxer nada.
+    if (!selectedId && !aId && !bId) {
+      updateParams((p) => {
+        p.set('sel', versions[0].id);
+        if (versions.length >= 2) {
+          p.set('a', versions[1].id);
+          p.set('b', versions[0].id);
+        }
+      }, { replace: true });
     }
-  }, [versions, focusId, selectedId, searchParams, setSearchParams]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [versions, focusId]);
 
   const selected = useMemo(() => versions.find(v => v.id === selectedId) ?? versions[0] ?? null, [versions, selectedId]);
   const versionA = useMemo(() => versions.find(v => v.id === aId) ?? null, [versions, aId]);
@@ -127,6 +147,22 @@ export default function AgentVersioningPage() {
         backTo={`/agents/${id}`}
         actions={
           <div className="flex items-center gap-2">
+            <Button
+              size="sm"
+              variant="outline"
+              className="gap-1.5"
+              onClick={async () => {
+                try {
+                  await navigator.clipboard.writeText(window.location.href);
+                  toast.success('Link copiado — a mesma visão da timeline será aberta');
+                } catch {
+                  toast.error('Não foi possível copiar o link');
+                }
+              }}
+              title="Copia a URL atual com a seleção da timeline (versão, A/B e modo)"
+            >
+              <Link2 className="h-3.5 w-3.5" /> Copiar link
+            </Button>
             <Button
               size="sm"
               className="gap-1.5 nexus-gradient-bg text-primary-foreground hover:opacity-90"
