@@ -51,21 +51,9 @@ export default function AgentTracesPage() {
     }
   };
 
-  // When the selected execution changes, restore its last viewed step (or 0).
-  useEffect(() => {
-    if (!selectedId) { setSelectedStep(0); return; }
-    const map = readStepMap();
-    setSelectedStep(map[selectedId] ?? 0);
-  }, [selectedId]);
-
-  // Persist whenever the user moves to a new step on a known session.
-  useEffect(() => {
-    if (!selectedId) return;
-    const map = readStepMap();
-    if (map[selectedId] === selectedStep) return;
-    map[selectedId] = selectedStep;
-    writeStepMap(map);
-  }, [selectedId, selectedStep]);
+  // When the *effective* selected execution changes, restore its last viewed step
+  // (clamped to the current trace count). Runs after `selected` is computed below.
+  // Persist whenever the step changes for a known effective session.
 
   const effectiveAgentId = agentFilter === 'all' ? undefined : agentFilter;
 
