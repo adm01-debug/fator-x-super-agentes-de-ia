@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { ArrowLeft, ArrowRight, Check, ChevronRight, Loader2, Rocket } from 'lucide-react';
 import { toast } from 'sonner';
@@ -121,6 +121,7 @@ interface QuickCreateWizardProps {
 
 export function QuickCreateWizard({ onBack }: QuickCreateWizardProps) {
   const navigate = useNavigate();
+  const [searchParams, setSearchParams] = useSearchParams();
   const { user } = useAuth();
   const [step, setStep] = useState(0);
   const [saving, setSaving] = useState(false);
@@ -195,6 +196,68 @@ export function QuickCreateWizard({ onBack }: QuickCreateWizardProps) {
   useEffect(() => {
     if (!highlightField && restoreFeedback) setRestoreFeedback(null);
   }, [highlightField, restoreFeedback]);
+
+  // Persistência via URL: serializa o restoreFeedback em query params para
+  // sobreviver a reload/share. Chaves curtas (rf_*) para manter URL legível.
+  // - Quando feedback ativo: grava rf_field/rf_step/rf_type/rf_msg/rf_mode/rf_label
+  // - Quando feedback limpo: remove os params
+  useEffect(() => {
+    const next = new URLSearchParams(searchParams);
+    const had = next.has('rf_field') || next.has('rf_step');
+    if (restoreFeedback?.field) {
+      next.set('rf_field', String(restoreFeedback.field));
+      next.set('rf_step', String(restoreFeedback.stepIdx));
+      if (restoreFeedback.errorType) next.set('rf_type', restoreFeedback.errorType);
+      else next.delete('rf_type');
+      if (restoreFeedback.errorMessage) next.set('rf_msg', restoreFeedback.errorMessage);
+      else next.delete('rf_msg');
+      next.set('rf_mode', restoreFeedback.mode);
+      if (restoreFeedback.stepLabel) next.set('rf_slabel', restoreFeedback.stepLabel);
+      else next.delete('rf_slabel');
+      setSearchParams(next, { replace: true });
+    } else if (had) {
+      next.delete('rf_field');
+      next.delete('rf_step');
+      next.delete('rf_type');
+      next.delete('rf_msg');
+      next.delete('rf_mode');
+      next.delete('rf_slabel');
+      setSearchParams(next, { replace: true });
+    }
+    // searchParams é controlado por nós aqui — só reagimos a mudanças no feedback.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [restoreFeedback]);
+
+  // Mount-only: se a URL já contém rf_field, reidrata o banner + highlight.
+  // Roda uma única vez; depois o efeito acima assume o controle bidirecional.
+  const didHydrateFromUrlRef = useRef(false);
+  useEffect(() => {
+    if (didHydrateFromUrlRef.current) return;
+    didHydrateFromUrlRef.current = true;
+    const field = searchParams.get('rf_field') as keyof QuickAgentForm | null;
+    const stepStr = searchParams.get('rf_step');
+    if (!field || stepStr == null) return;
+    const stepIdx = Number(stepStr);
+    if (!Number.isFinite(stepIdx) || stepIdx < 0 || stepIdx >= STEPS.length) return;
+    const errorType = (searchParams.get('rf_type') ?? undefined) as
+      | import('./draftStore').DraftResumeTarget['errorType']
+      | undefined;
+    const errorMessage = searchParams.get('rf_msg') ?? undefined;
+    const mode = (searchParams.get('rf_mode') as 'full' | 'partial' | null) ?? 'full';
+    const stepLabel = searchParams.get('rf_slabel') ?? STEPS[stepIdx].label;
+    setStep(stepIdx);
+    setHighlightField(field);
+    setRestoreFeedback({
+      stepIdx,
+      field,
+      errorType,
+      errorMessage,
+      stepLabel,
+      fieldLabel: FIELD_LABEL[field] ?? String(field),
+      mode,
+    });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   // On mount: load store, filter recoverable drafts.
   useEffect(() => {
