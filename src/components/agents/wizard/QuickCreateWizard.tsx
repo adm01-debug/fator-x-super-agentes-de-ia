@@ -48,12 +48,6 @@ const FIELD_LABEL: Partial<Record<keyof QuickAgentForm, string>> = {
   prompt: 'Prompt',
 };
 
-const STEP_FIELDS: Record<number, ReadonlyArray<keyof QuickAgentForm>> = {
-  0: ['name', 'emoji', 'mission', 'description'],
-  1: ['type'],
-  2: ['model'],
-  3: ['prompt'],
-};
 
 const STEPS = [
   { key: 'identity', label: 'Identidade', schema: quickIdentitySchema, fields: ['name', 'emoji', 'mission', 'description'] },
