@@ -220,6 +220,8 @@ export function StepQuickPrompt({ form, errors, update, onPromptManualEdit, onRe
         type={form.type as QuickAgentType}
         activeVariant={activeVariant}
         onSelect={onApplyVariant}
+        customLocked={customLocked}
+        onUnlock={onUnlockCustom}
       />
 
       <div
@@ -287,9 +289,9 @@ export function StepQuickPrompt({ form, errors, update, onPromptManualEdit, onRe
         onInsert={(snippet, key) => {
           if (key) {
             const { prompt: nextPrompt } = insertSectionAt(form.prompt, key, snippet);
-            update('prompt', nextPrompt);
+            onPromptManualEdit(nextPrompt);
           } else {
-            update('prompt', form.prompt + snippet);
+            onPromptManualEdit(form.prompt + snippet);
           }
         }}
         onJumpToSection={jumpToSection}
