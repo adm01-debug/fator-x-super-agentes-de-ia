@@ -22,7 +22,6 @@ import { PromptSectionGutter } from './PromptSectionGutter';
 import { PromptHighlightOverlay } from './PromptHighlightOverlay';
 import { sanitizePromptInput, PROMPT_LIMITS } from '@/lib/validations/promptSanitizer';
 import {
-  detectPromptVariant,
   QUICK_AGENT_TEMPLATES,
   PROMPT_VARIANT_META,
   type QuickAgentType,
@@ -45,12 +44,16 @@ interface Props {
   customLocked: boolean;
   /** Releases the lock without changing the prompt text. */
   onUnlockCustom: () => void;
+  /**
+   * The variant chip to highlight as active. Computed by the wizard from
+   * `selectedVariant ?? detectPromptVariant(...)` so the user's explicit
+   * choice persists across sessions.
+   */
+  activeVariant: PromptVariantId | null;
   highlightField?: keyof QuickAgentForm;
 }
 
-export function StepQuickPrompt({ form, errors, onPromptManualEdit, onRestore, onApplyVariant, customLocked, onUnlockCustom, highlightField }: Props) {
-  const detected = detectPromptVariant(form.type as QuickAgentType, form.prompt);
-  const activeVariant = customLocked ? null : detected;
+export function StepQuickPrompt({ form, errors, onPromptManualEdit, onRestore, onApplyVariant, customLocked, onUnlockCustom, activeVariant, highlightField }: Props) {
   // Active variant template + label — drives the checklist's per-section snippets
   // and the "Completar com X" CTA in real time.
   const activeVariantPrompt = activeVariant

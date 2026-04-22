@@ -18,6 +18,7 @@ import { detectPromptContradictions } from '@/lib/validations/promptContradictio
 import {
   QUICK_AGENT_TEMPLATES,
   PERSONA_FROM_TYPE,
+  detectPromptVariant,
   type QuickAgentType,
 } from '@/data/quickAgentTemplates';
 import { StepQuickIdentity } from './quickSteps/StepQuickIdentity';
@@ -104,6 +105,7 @@ export function QuickCreateWizard({ onBack }: QuickCreateWizardProps) {
   const [highlightField, setHighlightField] = useState<keyof QuickAgentForm | null>(null);
   const [confirmOpen, setConfirmOpen] = useState(false);
   const [promptCustomLocked, setPromptCustomLocked] = useState(false);
+  const [selectedVariant, setSelectedVariant] = useState<import('@/data/quickAgentTemplates').PromptVariantId | null>(null);
   const [pendingVariant, setPendingVariant] = useState<import('@/data/quickAgentTemplates').PromptVariantId | null>(null);
   const lastTypeRef = useRef<QuickAgentType | null>(null);
   const lastTypeForLockRef = useRef<string>(QUICK_AGENT_DEFAULTS.type);
@@ -148,12 +150,12 @@ export function QuickCreateWizard({ onBack }: QuickCreateWizardProps) {
     if (!draftDecided) return;
     if (!isDraftMeaningful(form) && !draftsStore.activeId) return;
     setDraftsStore((prev) => {
-      const { store } = upsertDraft(prev, { id: prev.activeId ?? undefined, form, promptCustomLocked });
+      const { store } = upsertDraft(prev, { id: prev.activeId ?? undefined, form, promptCustomLocked, selectedVariant });
       saveDrafts(store);
       return store;
     });
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [form, draftDecided, promptCustomLocked]);
+  }, [form, draftDecided, promptCustomLocked, selectedVariant]);
 
   // Heuristic: when user changes the type after editing a meaningful draft,
   // offer to fork into a new draft (one per type).
@@ -201,6 +203,7 @@ export function QuickCreateWizard({ onBack }: QuickCreateWizardProps) {
     }
     setForm(target.form);
     setPromptCustomLocked(target.promptCustomLocked === true);
+    setSelectedVariant(target.selectedVariant ?? null);
     lastTypeForLockRef.current = target.form.type;
     lastTypeRef.current = target.form.type as QuickAgentType;
     const resume = computeResumeTarget(target.form, STEPS);
@@ -272,13 +275,15 @@ export function QuickCreateWizard({ onBack }: QuickCreateWizardProps) {
     setErrors((prev) => ({ ...prev, prompt: undefined }));
     if (highlightField === 'prompt') setHighlightField(null);
     setPromptCustomLocked(true);
+    setSelectedVariant(null);
   };
 
-  // Reset lock automatically when the user changes the agent type.
+  // Reset lock + persisted variant when the user changes the agent type.
   useEffect(() => {
     if (lastTypeForLockRef.current !== form.type) {
       lastTypeForLockRef.current = form.type;
       setPromptCustomLocked(false);
+      setSelectedVariant(null);
     }
   }, [form.type]);
 
@@ -295,6 +300,7 @@ export function QuickCreateWizard({ onBack }: QuickCreateWizardProps) {
       prompt: t.systemPrompt,
     }));
     setPromptCustomLocked(false);
+    setSelectedVariant(null);
     toast.success(`Template "${t.suggestedName}" aplicado`, {
       description: 'Nome, missão, modelo e prompt foram preenchidos.',
     });
@@ -305,6 +311,7 @@ export function QuickCreateWizard({ onBack }: QuickCreateWizardProps) {
     const t = QUICK_AGENT_TEMPLATES[form.type as QuickAgentType];
     update('prompt', t.systemPrompt);
     setPromptCustomLocked(false);
+    setSelectedVariant(null);
     toast.success('Prompt restaurado do template');
   };
 
@@ -313,6 +320,7 @@ export function QuickCreateWizard({ onBack }: QuickCreateWizardProps) {
     const variant = t.promptVariants[variantId];
     update('prompt', variant.prompt);
     setPromptCustomLocked(false);
+    setSelectedVariant(variantId);
     toast.success(`Variação "${variant.label}" aplicada`, {
       description: 'Você pode editar livremente depois.',
     });
@@ -443,11 +451,15 @@ export function QuickCreateWizard({ onBack }: QuickCreateWizardProps) {
       case 0: return <StepQuickIdentity form={form} errors={errors} update={update} highlightField={hfFor(['name', 'emoji', 'mission', 'description'])} />;
       case 1: return <StepQuickType form={form} errors={errors} update={update} applyTemplate={applyTemplate} highlightField={hfFor(['type'])} />;
       case 2: return <StepQuickModel form={form} errors={errors} update={update} highlightField={hfFor(['model'])} />;
-      case 3: return <StepQuickPrompt form={form} errors={errors} onPromptManualEdit={updatePromptManual} onRestore={restorePromptFromType} onApplyVariant={applyPromptVariant} customLocked={promptCustomLocked} onUnlockCustom={() => setPromptCustomLocked(false)} highlightField={hfFor(['prompt'])} />;
+      case 3: {
+        const detected = detectPromptVariant(form.type as QuickAgentType, form.prompt);
+        const activeVariant = promptCustomLocked ? null : (selectedVariant ?? detected);
+        return <StepQuickPrompt form={form} errors={errors} onPromptManualEdit={updatePromptManual} onRestore={restorePromptFromType} onApplyVariant={applyPromptVariant} customLocked={promptCustomLocked} onUnlockCustom={() => { setPromptCustomLocked(false); setSelectedVariant(null); }} activeVariant={activeVariant} highlightField={hfFor(['prompt'])} />;
+      }
       default: return null;
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [step, form, errors, highlightField]);
+  }, [step, form, errors, highlightField, promptCustomLocked, selectedVariant]);
 
   const bannerEntries: DraftBannerEntry[] = useMemo(
     () => pendingDrafts.map((d) => {
