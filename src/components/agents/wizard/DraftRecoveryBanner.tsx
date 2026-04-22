@@ -385,9 +385,17 @@ export function DraftRecoveryBanner({
       </div>
 
       <div className="flex items-center justify-between gap-2 pt-1">
-        <Button variant="ghost" size="sm" onClick={onDiscardAll} className="gap-1.5 text-muted-foreground hover:text-destructive">
-          <X className="h-3.5 w-3.5" /> Descartar todos
-        </Button>
+        <ConfirmDialog
+          trigger={
+            <Button variant="ghost" size="sm" className="gap-1.5 text-muted-foreground hover:text-destructive">
+              <X className="h-3.5 w-3.5" /> Descartar todos
+            </Button>
+          }
+          title={`Descartar todos os ${drafts.length} rascunhos?`}
+          description="Todos os rascunhos serão removidos permanentemente. Esta ação não pode ser desfeita."
+          confirmLabel="Descartar todos"
+          onConfirm={onDiscardAll}
+        />
         {(() => {
           const selected = drafts.find((d) => d.id === selectedId);
           const blocked = selected?.restorable === false;
