@@ -1,14 +1,14 @@
-import { useEffect, useRef, useState, type ChangeEvent, type ClipboardEvent } from 'react';
+import { useEffect, useMemo, useRef, useState, type ChangeEvent, type ClipboardEvent } from 'react';
 import { toast } from 'sonner';
 import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
 import { Button } from '@/components/ui/button';
 import { RefreshCw } from 'lucide-react';
 import {
-  findSectionLineIndex,
   type PromptSectionKey,
   type QuickAgentForm,
 } from '@/lib/validations/quickAgentSchema';
+import { locateSections, insertSectionAt } from '@/lib/promptSectionLocator';
 import { CompiledPromptPreview } from './CompiledPromptPreview';
 import { PromptSectionChecklist } from './PromptSectionChecklist';
 import { PromptVariantSelector } from './PromptVariantSelector';
@@ -17,12 +17,16 @@ import { AgentLivePreviewCard } from './AgentLivePreviewCard';
 import { QuickAgentTestPanel } from './QuickAgentTestPanel';
 import { PreflightReviewSummary } from './PreflightReviewSummary';
 import { PromptHistoryPanel } from './PromptHistoryPanel';
+import { PromptSectionGutter } from './PromptSectionGutter';
+import { PromptHighlightOverlay } from './PromptHighlightOverlay';
 import { sanitizePromptInput, PROMPT_LIMITS } from '@/lib/validations/promptSanitizer';
 import {
   detectPromptVariant,
   type QuickAgentType,
   type PromptVariantId,
 } from '@/data/quickAgentTemplates';
+
+const EDITOR_PADDING_LEFT = 36; // px — leaves room for the gutter
 
 interface Props {
   form: QuickAgentForm;
@@ -50,47 +54,61 @@ export function StepQuickPrompt({ form, errors, update, onRestore, onApplyVarian
     }
   }, [promptHighlight]);
 
+  // Memoized section locations — drives gutter, overlay, and jump targets.
+  const locations = useMemo(() => locateSections(form.prompt), [form.prompt]);
+  const totalLines = useMemo(() => form.prompt.split('\n').length, [form.prompt]);
+
+  /**
+   * Insert a section snippet at its canonical position (Persona → Escopo →
+   * Formato → Regras), then return the inserted heading char range so the
+   * caller can focus / select it.
+   */
+  const insertSectionSnippet = (key: PromptSectionKey, snippet: string): [number, number] => {
+    const { prompt: nextPrompt, insertedRange } = insertSectionAt(form.prompt, key, snippet);
+    update('prompt', nextPrompt);
+    return insertedRange;
+  };
+
   /**
    * Scroll the textarea, place the caret on the section's heading line,
    * select that line, and apply a brief pulse highlight on the editor.
-   * If the section heading isn't present yet, insert a snippet first then jump to it.
+   * If the section heading isn't present yet, insert a snippet at its canonical
+   * position first then jump to it.
    */
   const jumpToSection = (key: PromptSectionKey, snippetIfMissing?: string) => {
     let workingPrompt = form.prompt;
-    let lineIdx = findSectionLineIndex(workingPrompt, key);
+    let selRange: [number, number] | null = null;
 
-    if (lineIdx === -1 && snippetIfMissing) {
-      // Insert and immediately operate on the new value (textarea will reflect on next tick).
-      workingPrompt = workingPrompt + snippetIfMissing;
-      update('prompt', workingPrompt);
-      lineIdx = findSectionLineIndex(workingPrompt, key);
+    const existing = locations.find((l) => l.key === key);
+    if ((!existing || existing.status === 'missing') && snippetIfMissing) {
+      const inserted = insertSectionSnippet(key, snippetIfMissing);
+      // Recompute working prompt locally for offset math (state hasn't flushed yet).
+      const { prompt: np, insertedRange } = insertSectionAt(form.prompt, key, snippetIfMissing);
+      workingPrompt = np;
+      selRange = insertedRange;
+      void inserted;
+    } else if (existing && existing.status !== 'missing') {
+      selRange = [existing.startChar, Math.min(workingPrompt.length, existing.endChar)];
     }
 
-    // Visual pulse — works even if the textarea isn't focusable yet.
+    // Visual pulse on the editor card.
     setPulsedSection(key);
     if (sectionPulseRef.current) window.clearTimeout(sectionPulseRef.current);
-    sectionPulseRef.current = window.setTimeout(() => setPulsedSection(null), 1500);
+    sectionPulseRef.current = window.setTimeout(() => setPulsedSection(null), 1800);
 
-    if (lineIdx === -1) return;
+    if (!selRange) return;
+    const [start, end] = selRange;
 
-    // Compute caret offset = sum of line lengths + newlines up to lineIdx.
-    const lines = workingPrompt.split('\n');
-    let offset = 0;
-    for (let i = 0; i < lineIdx; i++) offset += lines[i].length + 1;
-    const lineLen = lines[lineIdx].length;
+    // Approximate line index from char offset for scrollTop math.
+    const linesUpTo = workingPrompt.slice(0, start).split('\n').length - 1;
 
-    // Need to wait for state to flush so textarea contains the newly-inserted snippet.
     requestAnimationFrame(() => {
       const el = textareaRef.current;
       if (!el) return;
       el.focus({ preventScroll: true });
-      // Approximate scroll: use line height heuristic on the textarea itself.
-      const lineHeight =
-        parseFloat(getComputedStyle(el).lineHeight || '0') || 16;
-      el.scrollTop = Math.max(0, lineIdx * lineHeight - el.clientHeight / 3);
-      try {
-        el.setSelectionRange(offset, offset + lineLen);
-      } catch {/* some browsers throw on huge values; ignore */}
+      const lineHeight = parseFloat(getComputedStyle(el).lineHeight || '0') || 16;
+      el.scrollTop = Math.max(0, linesUpTo * lineHeight - el.clientHeight / 3);
+      try { el.setSelectionRange(start, end); } catch { /* ignore */ }
       el.scrollIntoView({ block: 'center', behavior: 'smooth' });
     });
   };
@@ -178,23 +196,38 @@ export function StepQuickPrompt({ form, errors, update, onRestore, onApplyVarian
             </span>
           </div>
         )}
-        <Textarea
-          ref={textareaRef}
-          id="qa-prompt"
-          value={form.prompt}
-          onChange={handleChange}
-          onPaste={handlePaste}
-          rows={16}
-          maxLength={PROMPT_LIMITS.MAX_TOTAL}
-          aria-invalid={!!errors.prompt}
-          aria-describedby="qa-prompt-feedback"
-          placeholder="## Persona&#10;...&#10;&#10;## Escopo&#10;...&#10;&#10;## Formato&#10;...&#10;&#10;## Regras&#10;..."
-          className={`bg-secondary/50 border-border/50 font-mono text-xs leading-relaxed resize-none ${
-            errors.prompt ? 'border-destructive' : ''
-          } ${promptHighlight ? 'ring-2 ring-warning ring-offset-2 ring-offset-background animate-pulse' : ''} ${
-            pulsedSection ? 'border-nexus-amber/50' : ''
-          }`}
-        />
+        <div className="relative">
+          <PromptSectionGutter
+            locations={locations}
+            totalLines={totalLines}
+            activeKey={pulsedSection}
+            onJump={(loc) => jumpToSection(loc.key, loc.status === 'missing' ? `## ${loc.label}\n- ` : undefined)}
+          />
+          <PromptHighlightOverlay
+            prompt={form.prompt}
+            locations={locations}
+            textareaRef={textareaRef}
+            paddingLeftPx={EDITOR_PADDING_LEFT}
+          />
+          <Textarea
+            ref={textareaRef}
+            id="qa-prompt"
+            value={form.prompt}
+            onChange={handleChange}
+            onPaste={handlePaste}
+            rows={16}
+            maxLength={PROMPT_LIMITS.MAX_TOTAL}
+            aria-invalid={!!errors.prompt}
+            aria-describedby="qa-prompt-feedback"
+            placeholder="## Persona&#10;...&#10;&#10;## Escopo&#10;...&#10;&#10;## Formato&#10;...&#10;&#10;## Regras&#10;..."
+            style={{ paddingLeft: EDITOR_PADDING_LEFT, position: 'relative', zIndex: 2, background: 'transparent' }}
+            className={`bg-secondary/50 border-border/50 font-mono text-xs leading-relaxed resize-none ${
+              errors.prompt ? 'border-destructive' : ''
+            } ${promptHighlight ? 'ring-2 ring-warning ring-offset-2 ring-offset-background animate-pulse' : ''} ${
+              pulsedSection ? 'border-nexus-amber/50' : ''
+            }`}
+          />
+        </div>
         {errors.prompt && (
           <div className="text-[11px] text-destructive" role="alert">
             {errors.prompt}
@@ -207,7 +240,14 @@ export function StepQuickPrompt({ form, errors, update, onRestore, onApplyVarian
 
       <PromptSectionChecklist
         prompt={form.prompt}
-        onInsert={(snippet) => update('prompt', form.prompt + snippet)}
+        onInsert={(snippet, key) => {
+          if (key) {
+            const { prompt: nextPrompt } = insertSectionAt(form.prompt, key, snippet);
+            update('prompt', nextPrompt);
+          } else {
+            update('prompt', form.prompt + snippet);
+          }
+        }}
         onJumpToSection={jumpToSection}
       />
 
