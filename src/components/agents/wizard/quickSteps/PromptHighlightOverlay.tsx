@@ -106,7 +106,7 @@ export function PromptHighlightOverlay({ prompt, locations, textareaRef, padding
     }
 
     return out;
-  }, [prompt, locations, conflictLines]);
+  }, [prompt, locations, conflictLines, pulseLines]);
 
   // Keep the overlay perfectly aligned with the textarea's scroll position.
   // We sync on multiple signals because the textarea can scroll without
