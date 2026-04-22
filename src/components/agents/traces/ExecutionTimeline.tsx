@@ -180,6 +180,8 @@ function ExecutionSummary({
             title="Último passo (End)"
           >
             <ChevronsRight className="h-3.5 w-3.5" />
+          </Button>
+          <span className="h-4 w-px bg-border/60 mx-1" aria-hidden />
           <Button
             type="button"
             size="icon"
