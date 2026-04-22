@@ -110,54 +110,86 @@ export function PromptContradictionAutoFixPanel({ prompt, onApply }: Props) {
 
   return (
     <>
-      <div className="rounded-lg border border-nexus-amber/40 bg-nexus-amber/5 p-2.5 space-y-2">
-        <div className="flex items-center justify-between gap-2 flex-wrap">
-          <p className="text-xs font-semibold text-nexus-amber flex items-center gap-1.5">
-            <GitMerge className="h-3.5 w-3.5" />
-            Corrigir contradições automaticamente ({fixes.length})
-          </p>
-          {allAtOnce && allAtOnce.resolved > 0 && (
-            <Button
-              type="button"
-              size="sm"
-              variant="default"
-              onClick={() =>
-                openPreview(
-                  'Aplicar todas as correções de contradições',
-                  allAtOnce.fixedPrompt,
-                  `${allAtOnce.resolved} contradição(ões) resolvida(s) em sequência.`,
-                )
-              }
-              className="h-7 gap-1.5 text-[11px] bg-nexus-amber hover:bg-nexus-amber/90 text-background"
-            >
-              <Sparkles className="h-3 w-3" />
-              🪄 Resolver tudo ({allAtOnce.resolved})
-            </Button>
-          )}
-        </div>
+      {fixes.length > 0 && (
+        <div className="rounded-lg border border-nexus-amber/40 bg-nexus-amber/5 p-2.5 space-y-2">
+          <div className="flex items-center justify-between gap-2 flex-wrap">
+            <p className="text-xs font-semibold text-nexus-amber flex items-center gap-1.5">
+              <GitMerge className="h-3.5 w-3.5" />
+              Corrigir contradições automaticamente ({fixes.length})
+            </p>
+            {allAtOnce && allAtOnce.resolved > 0 && (
+              <Button
+                type="button"
+                size="sm"
+                variant="default"
+                onClick={() =>
+                  openPreview(
+                    'Aplicar todas as correções de contradições',
+                    allAtOnce.fixedPrompt,
+                    `${allAtOnce.resolved} contradição(ões) resolvida(s) em sequência.`,
+                  )
+                }
+                className="h-7 gap-1.5 text-[11px] bg-nexus-amber hover:bg-nexus-amber/90 text-background"
+              >
+                <Sparkles className="h-3 w-3" />
+                🪄 Resolver tudo ({allAtOnce.resolved})
+              </Button>
+            )}
+          </div>
 
-        <ul className="space-y-1.5">
-          {fixes.map((fix, idx) => (
-            <FixRow
-              key={idx}
-              fix={fix}
-              onPreview={() =>
-                openPreview(
-                  `Unificar regras (${CONTRADICTION_KIND_LABEL[fix.conflict.kind]})`,
-                  fix.fixedPrompt,
-                  `Linhas ${fix.conflict.lineA} e ${fix.conflict.lineB} substituídas por uma única regra unificada.`,
-                )
-              }
-              onApply={() =>
-                onApply(
-                  fix.fixedPrompt,
-                  `Contradição (${CONTRADICTION_KIND_LABEL[fix.conflict.kind]}) resolvida nas linhas ${fix.conflict.lineA} ↔ ${fix.conflict.lineB}.`,
-                )
-              }
-            />
-          ))}
-        </ul>
-      </div>
+          <ul className="space-y-1.5">
+            {fixes.map((fix, idx) => (
+              <FixRow
+                key={idx}
+                fix={fix}
+                onPreview={() =>
+                  openPreview(
+                    `Unificar regras (${CONTRADICTION_KIND_LABEL[fix.conflict.kind]})`,
+                    fix.fixedPrompt,
+                    `Linhas ${fix.conflict.lineA} e ${fix.conflict.lineB} substituídas por uma única regra unificada.`,
+                  )
+                }
+                onApply={() =>
+                  applyAndRecord(
+                    fix.fixedPrompt,
+                    `Contradição (${CONTRADICTION_KIND_LABEL[fix.conflict.kind]}) resolvida nas linhas ${fix.conflict.lineA} ↔ ${fix.conflict.lineB}.`,
+                  )
+                }
+              />
+            ))}
+          </ul>
+        </div>
+      )}
+
+      {/* Banner de "Desfazer" — só aparece enquanto o prompt externo bate
+          com o que aplicamos por último (sem edição manual no meio). */}
+      {lastApplied && (
+        <div
+          role="status"
+          aria-live="polite"
+          className="flex items-start gap-2 rounded-lg border border-primary/30 bg-primary/5 px-2.5 py-2"
+        >
+          <Undo2 className="h-3.5 w-3.5 text-primary mt-0.5 shrink-0" aria-hidden />
+          <div className="min-w-0 flex-1 space-y-0.5">
+            <p className="text-[11px] font-semibold text-foreground">
+              Última correção de contradição aplicada
+            </p>
+            <p className="text-[10px] text-muted-foreground leading-snug truncate" title={lastApplied.summary}>
+              {lastApplied.summary}
+            </p>
+          </div>
+          <Button
+            type="button"
+            size="sm"
+            variant="outline"
+            onClick={undoLast}
+            className="h-7 gap-1 text-[11px] border-primary/40 text-primary hover:bg-primary/10 hover:text-primary shrink-0"
+            aria-label="Desfazer a última aplicação do painel de contradições"
+          >
+            <Undo2 className="h-3 w-3" /> Desfazer
+          </Button>
+        </div>
+      )}
 
       <AlertDialog
         open={preview.open}
