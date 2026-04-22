@@ -15,6 +15,8 @@ export interface DraftBannerEntry {
   savedAt: string;
   summary: DraftSummary;
   typeLabel?: string;
+  restorable?: boolean;
+  restoreBlockedReason?: string;
 }
 
 interface DraftRecoveryBannerProps {
@@ -76,6 +78,7 @@ export function DraftRecoveryBanner({
   // ───── Single-draft mode (compat) ─────
   if (drafts.length === 1) {
     const only = drafts[0];
+    const blocked = only.restorable === false;
     return (
       <div
         role="status"
@@ -101,6 +104,11 @@ export function DraftRecoveryBanner({
           <StatusChip label="Tipo" ok={only.summary.hasType} />
           <StatusChip label="Modelo" ok={only.summary.hasModel} />
           <StatusChip label="Prompt" ok={only.summary.hasPrompt} />
+          {blocked && (
+            <span className="inline-flex items-center gap-1 text-[11px] px-2 py-0.5 rounded-full border border-warning/30 bg-warning/10 text-warning">
+              Incompleto
+            </span>
+          )}
         </div>
 
         <div className="flex items-center justify-end gap-2 pt-1">
@@ -111,6 +119,8 @@ export function DraftRecoveryBanner({
             size="sm"
             onClick={() => onRestore(only.id)}
             autoFocus
+            disabled={blocked}
+            title={blocked ? (only.restoreBlockedReason ?? 'Rascunho incompleto demais para retomar') : undefined}
             className="gap-1.5 nexus-gradient-bg text-primary-foreground"
           >
             Continuar de onde parei
@@ -200,6 +210,14 @@ export function DraftRecoveryBanner({
                   <span className="text-[11px] text-muted-foreground">
                     {formatRelative(d.savedAt)}
                   </span>
+                  {d.restorable === false && (
+                    <span
+                      className="text-[10px] uppercase tracking-wide px-1.5 py-0.5 rounded border border-warning/30 bg-warning/10 text-warning"
+                      title={d.restoreBlockedReason ?? 'Incompleto demais para retomar'}
+                    >
+                      Incompleto
+                    </span>
+                  )}
                 </div>
                 <div className="flex flex-wrap gap-1">
                   <StatusChip label="Identidade" ok={d.summary.hasIdentity} />
@@ -230,14 +248,21 @@ export function DraftRecoveryBanner({
         <Button variant="ghost" size="sm" onClick={onDiscardAll} className="gap-1.5 text-muted-foreground hover:text-destructive">
           <X className="h-3.5 w-3.5" /> Descartar todos
         </Button>
-        <Button
-          size="sm"
-          onClick={() => selectedId && onRestore(selectedId)}
-          disabled={!selectedId}
-          className="gap-1.5 nexus-gradient-bg text-primary-foreground"
-        >
-          Continuar selecionado
-        </Button>
+        {(() => {
+          const selected = drafts.find((d) => d.id === selectedId);
+          const blocked = selected?.restorable === false;
+          return (
+            <Button
+              size="sm"
+              onClick={() => selectedId && onRestore(selectedId)}
+              disabled={!selectedId || blocked}
+              title={blocked ? (selected?.restoreBlockedReason ?? 'Rascunho incompleto demais para retomar') : undefined}
+              className="gap-1.5 nexus-gradient-bg text-primary-foreground"
+            >
+              Continuar selecionado
+            </Button>
+          );
+        })()}
       </div>
     </div>
   );

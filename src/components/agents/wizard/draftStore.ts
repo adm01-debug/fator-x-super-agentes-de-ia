@@ -1,9 +1,41 @@
 import {
   QUICK_AGENT_DEFAULTS,
+  quickIdentitySchema,
   quickTypeSchema,
   type QuickAgentForm,
 } from '@/lib/validations/quickAgentSchema';
 import type { DraftSummary } from './DraftRecoveryBanner';
+
+export interface DraftRestoreCheck {
+  canRestore: boolean;
+  reason?: string;
+  nextStep?: string;
+}
+
+/**
+ * Validates whether a draft has the minimum viable content to be restored.
+ * Requires at least the identity step (name + emoji + mission) to pass.
+ */
+export function checkDraftRestorable(form: QuickAgentForm): DraftRestoreCheck {
+  const result = quickIdentitySchema.safeParse(form);
+  if (result.success) return { canRestore: true };
+
+  const first = result.error.errors[0];
+  const field = String(first?.path?.[0] ?? '');
+  const fieldLabel: Record<string, string> = {
+    name: 'defina um nome para o agente',
+    emoji: 'escolha um emoji',
+    mission: 'escreva uma missão de pelo menos 10 caracteres',
+    description: 'ajuste a descrição',
+  };
+  const reason = 'Rascunho incompleto demais para retomar';
+  const hint = fieldLabel[field] ?? (first?.message ?? 'preencha a identidade básica');
+  return {
+    canRestore: false,
+    reason,
+    nextStep: `Identidade — ${hint}`,
+  };
+}
 
 export const DRAFTS_KEY = 'quick-agent-wizard-drafts';
 export const LEGACY_DRAFT_KEY = 'quick-agent-wizard-draft';

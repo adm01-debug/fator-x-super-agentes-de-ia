@@ -31,6 +31,7 @@ import {
   removeDraft,
   setActive,
   summarizeForm,
+  checkDraftRestorable,
   DRAFT_TTL_MS,
   type DraftsStoreV2,
   type DraftEntry,
@@ -147,6 +148,13 @@ export function QuickCreateWizard({ onBack }: QuickCreateWizardProps) {
   const restoreDraft = (id: string) => {
     const target = pendingDrafts.find((d) => d.id === id);
     if (!target) return;
+    const check = checkDraftRestorable(target.form);
+    if (!check.canRestore) {
+      toast.warning(check.reason ?? 'Rascunho incompleto demais para retomar', {
+        description: `Próximo passo necessário: ${check.nextStep ?? 'Identidade'}. Continue daqui ou descarte.`,
+      });
+      return;
+    }
     setForm(target.form);
     lastTypeRef.current = target.form.type as QuickAgentType;
     const resumeIdx = STEPS.findIndex((s) => !s.schema.safeParse(target.form).success);
@@ -335,12 +343,19 @@ export function QuickCreateWizard({ onBack }: QuickCreateWizardProps) {
   }, [step, form, errors]);
 
   const bannerEntries: DraftBannerEntry[] = useMemo(
-    () => pendingDrafts.map((d) => ({
-      id: d.id,
-      savedAt: d.savedAt,
-      summary: summarizeForm(d.form),
-      typeLabel: TYPE_LABEL[d.form.type as QuickAgentType] ?? String(d.form.type),
-    })),
+    () => pendingDrafts.map((d) => {
+      const check = checkDraftRestorable(d.form);
+      return {
+        id: d.id,
+        savedAt: d.savedAt,
+        summary: summarizeForm(d.form),
+        typeLabel: TYPE_LABEL[d.form.type as QuickAgentType] ?? String(d.form.type),
+        restorable: check.canRestore,
+        restoreBlockedReason: check.canRestore
+          ? undefined
+          : `${check.reason ?? 'Incompleto'} — ${check.nextStep ?? ''}`.trim(),
+      };
+    }),
     [pendingDrafts],
   );
 
