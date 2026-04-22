@@ -29,7 +29,7 @@ interface Props {
  *  - `pointer-events: none` so clicks fall through.
  *  - scrollTop syncs with the textarea on every scroll event.
  */
-export function PromptHighlightOverlay({ prompt, locations, textareaRef, paddingLeftPx, conflictLines }: Props) {
+export function PromptHighlightOverlay({ prompt, locations, textareaRef, paddingLeftPx, conflictLines, pulseLines }: Props) {
   const overlayRef = useRef<HTMLPreElement>(null);
 
   // Build the overlay content as a sequence of styled segments.
