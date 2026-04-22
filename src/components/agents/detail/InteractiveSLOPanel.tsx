@@ -72,6 +72,7 @@ export function InteractiveSLOPanel({ agentId, slo, traces, daily, onDayClick }:
   const { targets, setTargets, reset } = useAgentSLOTargets(agentId);
 
   const [windowKey, setWindowKey] = useState<EvalWindowKey>('14d');
+  const [compareMode, setCompareMode] = useState(false);
   const activeWindow = EVAL_WINDOWS.find((w) => w.key === windowKey) ?? EVAL_WINDOWS[4];
 
   // Filter traces by selected evaluation window and recompute SLO from that subset.
