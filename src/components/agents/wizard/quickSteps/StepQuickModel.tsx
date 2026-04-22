@@ -30,7 +30,7 @@ export function StepQuickModel({ form, errors, update, highlightField }: Props) 
         </p>
       </div>
 
-      <div ref={gridRef} className={`grid gap-3 sm:grid-cols-2 rounded-lg ${highlight ? 'ring-2 ring-warning ring-offset-4 ring-offset-background animate-pulse p-2' : ''}`}>
+      <div ref={gridRef} className={`grid gap-3 sm:grid-cols-2 rounded-lg p-2 ${pulsing ? FIELD_HIGHLIGHT_CLS : ''}`}>
         {MODELS.map((m) => {
           const selected = form.model === m.id;
           const isRecommended = recommended === m.id;
