@@ -1,0 +1,221 @@
+/**
+ * One-click auto-fix panel for detected rule contradictions.
+ *
+ * For each conflict we present a "unified" version of the rules (chosen
+ * deterministically by `buildContradictionAutoFixes`) plus actions to:
+ *   - Pré-visualizar (open a diff dialog showing before/after)
+ *   - Aplicar (splice the unified rule into the prompt and remove the conflicting line)
+ *   - Aplicar tudo (sequentially resolves every conflict, re-detecting after
+ *     each splice so line numbers stay consistent).
+ *
+ * Designed to sit ABOVE the existing PromptAutoFixPanel because contradictions
+ * block agent creation and have higher priority than housekeeping fixes.
+ */
+import { useMemo, useState } from 'react';
+import { GitMerge, Eye, Wand2, Sparkles } from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
+import { PromptDiff } from '@/components/prompts/PromptDiff';
+import {
+  buildContradictionAutoFixes,
+  applyAllContradictionFixes,
+  type ContradictionAutoFix,
+} from '@/lib/validations/contradictionSuggestions';
+import { CONTRADICTION_KIND_LABEL } from '@/lib/validations/promptContradictions';
+import { cn } from '@/lib/utils';
+
+interface Props {
+  prompt: string;
+  /** Same shape as PromptAutoFixPanel — receives the full new prompt + a toast summary. */
+  onApply: (fixed: string, summary: string) => void;
+}
+
+interface PreviewState {
+  open: boolean;
+  title: string;
+  fixedPrompt: string;
+  summary: string;
+}
+
+export function PromptContradictionAutoFixPanel({ prompt, onApply }: Props) {
+  const fixes = useMemo(() => buildContradictionAutoFixes(prompt), [prompt]);
+  const allAtOnce = useMemo(
+    () => (fixes.length > 1 ? applyAllContradictionFixes(prompt) : null),
+    [fixes.length, prompt],
+  );
+
+  const [preview, setPreview] = useState<PreviewState>({
+    open: false,
+    title: '',
+    fixedPrompt: '',
+    summary: '',
+  });
+
+  if (fixes.length === 0) return null;
+
+  const openPreview = (title: string, fixedPrompt: string, summary: string) => {
+    setPreview({ open: true, title, fixedPrompt, summary });
+  };
+
+  const applyFromPreview = () => {
+    onApply(preview.fixedPrompt, preview.summary);
+    setPreview({ open: false, title: '', fixedPrompt: '', summary: '' });
+  };
+
+  return (
+    <>
+      <div className="rounded-lg border border-nexus-amber/40 bg-nexus-amber/5 p-2.5 space-y-2">
+        <div className="flex items-center justify-between gap-2 flex-wrap">
+          <p className="text-xs font-semibold text-nexus-amber flex items-center gap-1.5">
+            <GitMerge className="h-3.5 w-3.5" />
+            Corrigir contradições automaticamente ({fixes.length})
+          </p>
+          {allAtOnce && allAtOnce.resolved > 0 && (
+            <Button
+              type="button"
+              size="sm"
+              variant="default"
+              onClick={() =>
+                openPreview(
+                  'Aplicar todas as correções de contradições',
+                  allAtOnce.fixedPrompt,
+                  `${allAtOnce.resolved} contradição(ões) resolvida(s) em sequência.`,
+                )
+              }
+              className="h-7 gap-1.5 text-[11px] bg-nexus-amber hover:bg-nexus-amber/90 text-background"
+            >
+              <Sparkles className="h-3 w-3" />
+              🪄 Resolver tudo ({allAtOnce.resolved})
+            </Button>
+          )}
+        </div>
+
+        <ul className="space-y-1.5">
+          {fixes.map((fix, idx) => (
+            <FixRow
+              key={idx}
+              fix={fix}
+              onPreview={() =>
+                openPreview(
+                  `Unificar regras (${CONTRADICTION_KIND_LABEL[fix.conflict.kind]})`,
+                  fix.fixedPrompt,
+                  `Linhas ${fix.conflict.lineA} e ${fix.conflict.lineB} substituídas por uma única regra unificada.`,
+                )
+              }
+              onApply={() =>
+                onApply(
+                  fix.fixedPrompt,
+                  `Contradição (${CONTRADICTION_KIND_LABEL[fix.conflict.kind]}) resolvida nas linhas ${fix.conflict.lineA} ↔ ${fix.conflict.lineB}.`,
+                )
+              }
+            />
+          ))}
+        </ul>
+      </div>
+
+      <AlertDialog
+        open={preview.open}
+        onOpenChange={(open) =>
+          !open && setPreview({ open: false, title: '', fixedPrompt: '', summary: '' })
+        }
+      >
+        <AlertDialogContent className="max-w-3xl">
+          <AlertDialogHeader>
+            <AlertDialogTitle className="flex items-center gap-2">
+              <Eye className="h-4 w-4 text-nexus-amber" />
+              {preview.title}
+            </AlertDialogTitle>
+            <AlertDialogDescription asChild>
+              <p className="text-xs">{preview.summary}</p>
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+
+          <div className="my-2 max-h-[420px] overflow-auto">
+            <PromptDiff
+              textA={prompt}
+              textB={preview.fixedPrompt}
+              labelA="Atual (com contradição)"
+              labelB="Após unificação"
+            />
+          </div>
+
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={applyFromPreview}
+              className="bg-nexus-amber hover:bg-nexus-amber/90 text-background"
+            >
+              Aplicar correção
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+    </>
+  );
+}
+
+/* ------------------------------- FixRow ------------------------------- */
+
+interface FixRowProps {
+  fix: ContradictionAutoFix;
+  onPreview: () => void;
+  onApply: () => void;
+}
+
+function FixRow({ fix, onPreview, onApply }: FixRowProps) {
+  const { conflict, unifiedRule, rationale } = fix;
+  return (
+    <li className="flex items-start justify-between gap-2 text-xs bg-background/60 rounded-md px-2 py-1.5 border border-border/40">
+      <div className="flex items-start gap-2 min-w-0 flex-1">
+        <span
+          className={cn(
+            'shrink-0 mt-0.5 px-1.5 py-0.5 rounded-full text-[9px] font-mono font-semibold uppercase tracking-wider',
+            'bg-nexus-amber/20 text-nexus-amber',
+          )}
+        >
+          {CONTRADICTION_KIND_LABEL[conflict.kind]}
+        </span>
+        <div className="min-w-0 space-y-0.5">
+          <p className="text-foreground font-medium">
+            Linhas {conflict.lineA} ↔ {conflict.lineB} → regra unificada
+          </p>
+          <p className="text-[10px] font-mono text-muted-foreground/90 truncate" title={unifiedRule}>
+            {unifiedRule}
+          </p>
+          <p className="text-[10px] text-muted-foreground/70 leading-snug">{rationale}</p>
+        </div>
+      </div>
+      <div className="flex items-center gap-1 shrink-0">
+        <Button
+          type="button"
+          size="sm"
+          variant="ghost"
+          onClick={onPreview}
+          className="h-7 gap-1 text-[11px]"
+          aria-label={`Pré-visualizar correção da contradição nas linhas ${conflict.lineA} e ${conflict.lineB}`}
+        >
+          <Eye className="h-3 w-3" /> Prévia
+        </Button>
+        <Button
+          type="button"
+          size="sm"
+          variant="outline"
+          onClick={onApply}
+          className="h-7 gap-1 text-[11px] border-nexus-amber/40 text-nexus-amber hover:bg-nexus-amber/10 hover:text-nexus-amber"
+          aria-label={`Aplicar correção da contradição nas linhas ${conflict.lineA} e ${conflict.lineB}`}
+        >
+          <Wand2 className="h-3 w-3" /> Aplicar
+        </Button>
+      </div>
+    </li>
+  );
+}

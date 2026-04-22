@@ -16,9 +16,10 @@
  * single explicit range.
  */
 
-import type {
-  PromptContradiction,
-  ContradictionKind,
+import {
+  detectPromptContradictions,
+  type PromptContradiction,
+  type ContradictionKind,
 } from './promptContradictions';
 
 export interface ContradictionSuggestion {
@@ -174,4 +175,125 @@ export function suggestContradictionRewrites(
   c: PromptContradiction,
 ): ContradictionSuggestion[] {
   return DISPATCH[c.kind](c);
+}
+
+/* ----------------------------- auto-fix ------------------------------ */
+
+export interface ContradictionAutoFix {
+  /** The original contradiction this fix targets. */
+  conflict: PromptContradiction;
+  /** Single unified rule line that replaces both conflicting lines. */
+  unifiedRule: string;
+  /** PT-BR explanation of why this is the canonical merge. */
+  rationale: string;
+  /** The full rewritten prompt with both lines replaced. */
+  fixedPrompt: string;
+  /** 1-indexed line numbers in the ORIGINAL prompt that were affected. */
+  affectedLines: number[];
+}
+
+/**
+ * Pick the canonical "unified" rewrite for a single contradiction. We always
+ * use the FIRST suggestion of each kind because those are the safest defaults:
+ *   - polarity → keep one rule, drop the other
+ *   - numeric  → fix the range or pick the first explicit value
+ *   - language → standardize on the first declared language
+ *
+ * The user can still pick a different rewrite manually from the per-conflict
+ * suggestion list if the default isn't right.
+ */
+function pickUnifiedRule(c: PromptContradiction): { line: string; rationale: string } {
+  const all = suggestContradictionRewrites(c);
+  const primary = all[0];
+  // Take the first non-comment, non-empty line of the rewrite as the unified rule.
+  const firstLine = primary.rewrite
+    .split('\n')
+    .map((l) => l.trim())
+    .find((l) => l.length > 0 && !l.startsWith('#'));
+  const unified = firstLine ?? primary.rewrite.trim();
+  return { line: unified, rationale: primary.rationale };
+}
+
+/**
+ * Replace the two conflicting lines (1-indexed `lineA` / `lineB`) with a single
+ * unified rule line. Inserts the unified rule at the position of the FIRST
+ * conflicting line and removes the second; preserves leading indentation.
+ */
+function spliceUnifiedRule(
+  prompt: string,
+  lineA: number,
+  lineB: number,
+  unified: string,
+): { fixedPrompt: string; affectedLines: number[] } {
+  const lines = prompt.split('\n');
+  const firstIdx = Math.min(lineA, lineB) - 1;
+  const secondIdx = Math.max(lineA, lineB) - 1;
+  if (firstIdx < 0 || secondIdx >= lines.length) {
+    return { fixedPrompt: prompt, affectedLines: [] };
+  }
+
+  // Preserve indentation of the first conflicting line.
+  const indentMatch = lines[firstIdx].match(/^(\s*)/);
+  const indent = indentMatch?.[1] ?? '';
+  const out = [...lines];
+  out[firstIdx] = indent + unified;
+  // Remove the second conflicting line.
+  out.splice(secondIdx, 1);
+
+  return {
+    fixedPrompt: out.join('\n'),
+    affectedLines: [Math.min(lineA, lineB), Math.max(lineA, lineB)],
+  };
+}
+
+/**
+ * Compute auto-fix proposals for every contradiction in the prompt. Each
+ * proposal can be applied independently, OR the consumer can apply them all
+ * sequentially via `applyAllContradictionFixes` (which re-detects after each
+ * splice to keep line numbers consistent).
+ */
+export function buildContradictionAutoFixes(prompt: string): ContradictionAutoFix[] {
+  const conflicts = detectPromptContradictions(prompt);
+  return conflicts.map((c) => {
+    const { line: unifiedRule, rationale } = pickUnifiedRule(c);
+    const { fixedPrompt, affectedLines } = spliceUnifiedRule(
+      prompt,
+      c.lineA,
+      c.lineB,
+      unifiedRule,
+    );
+    return {
+      conflict: c,
+      unifiedRule,
+      rationale,
+      fixedPrompt,
+      affectedLines,
+    };
+  });
+}
+
+/**
+ * Apply every contradiction fix sequentially. After each splice we re-detect
+ * conflicts so the next fix's line numbers stay valid against the freshly
+ * mutated prompt — important because each splice removes one line.
+ *
+ * Returns the final prompt + the count of conflicts actually resolved.
+ */
+export function applyAllContradictionFixes(prompt: string): {
+  fixedPrompt: string;
+  resolved: number;
+} {
+  let working = prompt;
+  let resolved = 0;
+  // Cap iterations defensively to avoid infinite loops if a fix re-introduces
+  // a conflict (shouldn't happen, but be safe).
+  for (let i = 0; i < 50; i++) {
+    const fixes = buildContradictionAutoFixes(working);
+    if (fixes.length === 0) break;
+    const next = fixes[0];
+    if (next.fixedPrompt === working) break; // no-op safeguard
+    working = next.fixedPrompt;
+    resolved += 1;
+  }
+  return { fixedPrompt: working, resolved };
 }

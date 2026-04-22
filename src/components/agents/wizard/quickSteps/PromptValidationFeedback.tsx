@@ -1,6 +1,7 @@
 import { AlertCircle, AlertTriangle, FileText } from 'lucide-react';
 import { analyzePromptStructure, getPromptIssues, PROMPT_LIMITS } from '@/lib/validations/promptSanitizer';
 import { PromptAutoFixPanel } from './PromptAutoFixPanel';
+import { PromptContradictionAutoFixPanel } from './PromptContradictionAutoFixPanel';
 import { PromptDiagnosticsPanel } from './PromptDiagnosticsPanel';
 
 interface Props {
@@ -96,6 +97,9 @@ export function PromptValidationFeedback({ prompt, onApplyFix, onJumpToLine }: P
 
       {/* Detailed diagnostics — explains exactly which rule fired, where, and a sample */}
       <PromptDiagnosticsPanel prompt={prompt} onJumpToLine={onJumpToLine} onApplyFix={onApplyFix} />
+
+      {/* Contradiction auto-fix — higher priority (blocks creation), shown above generic fixes */}
+      {onApplyFix && <PromptContradictionAutoFixPanel prompt={prompt} onApply={onApplyFix} />}
 
       {/* Auto-fix actions — surfaces 1-click corrections with diff preview */}
       {onApplyFix && <PromptAutoFixPanel prompt={prompt} onApply={onApplyFix} />}
