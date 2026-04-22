@@ -42,6 +42,19 @@ const STATUS = {
   critical: { color: 'text-destructive', bg: 'bg-destructive/10', border: 'border-destructive/30', Icon: XCircle, label: 'Crítico' },
 } as const;
 
+/**
+ * Baseline mockado representando "média do setor" para comparação.
+ * Valores fixos para que o usuário veja diferenças estáveis ao alternar o modo.
+ */
+const BASELINE_MOCK = {
+  p50: 620,
+  p95: 1850,
+  p99: 4400,
+  successRate: 99.0,
+  errorRate: 1.0,
+  label: 'Baseline (média do setor)',
+} as const;
+
 function latencyStatus(value: number, target: number): Status {
   if (value === 0) return 'healthy';
   if (value <= target) return 'healthy';
