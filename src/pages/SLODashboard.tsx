@@ -305,6 +305,23 @@ export default function SLODashboard() {
             <RefreshCw className={`h-4 w-4 ${refreshing ? 'animate-spin' : ''}`} />
             <span className="ml-2">Atualizar</span>
           </Button>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => {
+              try {
+                navigator.clipboard.writeText(window.location.href);
+                toast.success('Link copiado', { description: 'Janela e cadência preservadas na URL' });
+              } catch {
+                toast.error('Não foi possível copiar o link');
+              }
+            }}
+            aria-label="Copiar link compartilhável da visualização atual"
+            title="Copia URL com janela e auto-atualização preservadas"
+          >
+            <Link2 className="h-4 w-4" />
+            <span className="ml-2 hidden md:inline">Copiar link</span>
+          </Button>
         </div>
       </div>
 
