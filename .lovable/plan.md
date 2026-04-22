@@ -1,64 +1,93 @@
 
 
-## Estados vazios + "sem resultados após filtros" com CTA limpar na tela de Traces
+## Múltiplos rascunhos por sessão no Quick Wizard
 
-Hoje a `ExecutionList` mostra um único bloco genérico ("Nenhuma execução encontrada com esses filtros") tanto quando a base está vazia quanto quando os filtros eliminam tudo — sem CTA. O loading também é só um texto. Vou diferenciar os dois cenários, padronizar com `EmptyState` e oferecer "Limpar filtros".
+Hoje há **um único rascunho** salvo em `localStorage` na chave `quick-agent-wizard-draft`. O envelope é sobrescrito a cada autosave, então trocar de tipo de agente perde o trabalho anterior. Vou migrar para uma **coleção de rascunhos** identificados por `id`, com seleção visual no banner — sem mudar nada no backend.
 
 ### Visão final
 
-**Sem traces na base** (filtros padrão, nada existe):
+**Banner com 1 rascunho** (caso atual): mantém comportamento — "Continuar de onde parei" + Descartar.
+
+**Banner com 2+ rascunhos**:
 ```text
-        📊
-       [📥]
-   Sem traces ainda
-   Quando seus agentes começarem a executar,
-   as sessões aparecerão aqui em tempo real.
+┌──────────────────────────────────────────────────┐
+│ 📂 3 rascunhos encontrados                        │
+│                                                   │
+│ ◉ "Vendedor IA"          tipo · há 5 min          │
+│   ✓ Identidade ✓ Tipo ✓ Modelo ─ Prompt           │
+│                                                   │
+│ ○ "Suporte L1"           atendimento · há 2 h     │
+│   ✓ Identidade ✓ Tipo ─ Modelo ─ Prompt           │
+│                                                   │
+│ ○ sem nome ainda         pesquisa · há 1 dia      │
+│   ✓ Identidade ─ Tipo ─ Modelo ─ Prompt           │
+│                                                   │
+│ [✕] em cada linha para descartar individualmente  │
+│                                                   │
+│            [ Descartar todos ]  [ Continuar ]     │
+└──────────────────────────────────────────────────┘
 ```
 
-**Filtros ativos sem resultado**:
-```text
-        🔍
-       [⛛]
-   Nenhuma execução para esses filtros
-   Ajuste o nível, evento, agente ou janela
-   temporal para ampliar a busca.
-   [ Limpar filtros ]
+Ao restaurar, abre no passo onde aquele rascunho parou (lógica atual de `resumeIdx`).
+
+### Modelo de armazenamento
+
+Nova chave `quick-agent-wizard-drafts` (plural) com schema versionado:
+```ts
+interface DraftsStoreV2 {
+  version: 2;
+  activeId: string | null;     // rascunho em edição agora
+  drafts: Array<{
+    id: string;                 // crypto.randomUUID()
+    form: QuickAgentForm;
+    savedAt: string;            // ISO
+    createdAt: string;          // ISO
+  }>;
+}
 ```
 
-**Loading**: 5 skeletons pulsando no lugar do texto.
+**Migração transparente**: ao montar, se existir a chave antiga `quick-agent-wizard-draft` e nenhuma nova, converte para um rascunho único na coleção e remove a antiga.
+
+**Limite**: máximo 5 rascunhos. Ao criar o 6º, descarta o mais antigo automaticamente (LRU por `savedAt`).
+
+**Heurística de "novo rascunho"**: quando o usuário **muda o `type`** depois de já ter um rascunho meaningful em edição, oferece via toast de ação rápida: "Salvar como novo rascunho?" — assim o usuário pode manter um por tipo. Se ignorar, sobrescreve o ativo (comportamento normal).
 
 ### Mudanças
 
-**1. `src/components/agents/traces/ExecutionList.tsx`**
-- Novas props opcionais: `hasActiveFilters?: boolean`, `onClearFilters?: () => void`.
-- Loading: substituir o texto por 5 `<div>` skeleton com `animate-pulse`.
-- Empty: usar `<EmptyState>` (já existe em `@/components/shared/EmptyState`):
-  - Se `hasActiveFilters`: ícone `Filter`, ilustração `search`, título "Nenhuma execução para esses filtros", `actionLabel="Limpar filtros"` chamando `onClearFilters`.
-  - Caso contrário: ícone `Inbox`, ilustração `data`, título "Sem traces ainda", sem CTA.
+**1. `src/components/agents/wizard/draftStore.ts`** (novo) — utilitários puros:
+- `loadDrafts(): DraftsStoreV2` (com migração v1 → v2)
+- `saveDrafts(store)`, `upsertDraft(store, draft)`, `removeDraft(store, id)`, `setActive(store, id)`
+- `summarize(form)` movido para cá (reuso do banner)
+- `MAX_DRAFTS = 5`, `DRAFT_TTL_MS` mantido
 
-**2. `src/pages/AgentTracesPage.tsx`**
-- Computar `hasActiveFilters` a partir do estado atual:
-  ```ts
-  const hasActiveFilters =
-    debouncedSearch.trim() !== '' ||
-    level !== 'all' ||
-    event !== 'all' ||
-    (id ? agentFilter !== id : agentFilter !== 'all') ||
-    sinceHours !== 24;
-  ```
-- `handleClearFilters()`: reseta `search`, `level`, `event`, `agentFilter` (para `id ?? 'all'`), `sinceHours` (para 24) e `selectedId` (null).
-- Passar `hasActiveFilters` e `onClearFilters` para `<ExecutionList>`.
-- Painel da Linha do tempo: quando `executions.length === 0` mostrar um `EmptyState` consistente (mesma lógica filtros vs vazio) em vez do placeholder atual. Quando há execuções mas nenhuma selecionada, manter a mensagem curta atual com ícone `Activity`.
+**2. `src/components/agents/wizard/DraftRecoveryBanner.tsx`** — refatorar:
+- Aceitar `drafts: Array<{ id; savedAt; summary; typeLabel? }>` em vez de `savedAt + summary`.
+- Quando `drafts.length === 1`: mantém UI atual (compat).
+- Quando `drafts.length > 1`: lista com radio buttons (`role="radiogroup"`), um chip de tipo, chips de progresso compactos, botão `X` por linha, e CTAs `Descartar todos` + `Continuar` (usa o selecionado).
+- Props: `onRestore(id)`, `onDiscardOne(id)`, `onDiscardAll()`.
+- Acessibilidade: navegação por setas entre opções, `aria-checked`, foco inicial no primeiro item.
+
+**3. `src/components/agents/wizard/QuickCreateWizard.tsx`** — adaptar:
+- Substituir `pendingDraft: DraftEnvelope | null` por `pendingDrafts: DraftEntry[]`.
+- `useEffect` de mount: carrega via `loadDrafts()`, filtra por TTL + `isDraftMeaningful`, ordena por `savedAt desc`.
+- `restoreDraft(id)`: marca como `activeId`, hidrata `form`, calcula step de retomada.
+- `discardDraft(id)`: remove do store; se `id === activeId`, limpa.
+- `discardAllDrafts()`: zera coleção.
+- Autosave (`useEffect [form, draftDecided, activeId]`): faz `upsertDraft` no `activeId` (cria novo id se ausente e `isDraftMeaningful(form)`).
+- **Novo rascunho ao mudar tipo**: efeito que dispara quando `form.type` muda e o ativo já tinha tipo diferente meaningful → `toast` com ação "Salvar como novo" que cria entrada nova e troca `activeId`.
+- Após salvar agente com sucesso: remove **apenas** o rascunho ativo (não a coleção toda).
 
 ### Arquivos
 
-- **Editar**: `src/components/agents/traces/ExecutionList.tsx` — props de filtros, skeleton de loading, dois `EmptyState` distintos com CTA.
-- **Editar**: `src/pages/AgentTracesPage.tsx` — `hasActiveFilters`, `handleClearFilters`, repassar para a lista e usar `EmptyState` no painel da timeline.
+- **Novo**: `src/components/agents/wizard/draftStore.ts` — store, migração v1→v2, LRU, summarize.
+- **Editar**: `src/components/agents/wizard/DraftRecoveryBanner.tsx` — modo lista + modo single (compat).
+- **Editar**: `src/components/agents/wizard/QuickCreateWizard.tsx` — usar coleção, autosave por id, nova heurística de troca de tipo, descarte individual.
 
 ### Impacto
 
-- Usuário entende imediatamente se o problema é "ainda não rodou nada" ou "filtros restritivos demais".
-- 1 clique para resetar todos os filtros via CTA.
-- Loading com skeletons fica consistente com o resto do app.
-- Zero mudança em serviços, schema ou store.
+- Mantém múltiplos rascunhos paralelos (ex.: 1 vendedor + 1 suporte) sem perder trabalho ao trocar de tipo.
+- Compat retroativa: rascunho antigo aparece automaticamente como o primeiro da nova coleção.
+- Zero mudança de schema/serviço/backend — tudo `localStorage`.
+- LRU de 5 evita inflar storage; TTL de 7 dias preservado.
+- Banner totalmente acessível (`radiogroup`, setas, aria-checked).
 
