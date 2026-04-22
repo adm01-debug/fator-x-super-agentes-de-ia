@@ -94,17 +94,17 @@ export function InteractiveSLOPanel({ agentId, slo, traces, daily, onDayClick }:
     valueFmt: (v: number) => string;
     targetFmt: (v: number) => string;
   }> = [
-    { key: 'p50', label: 'Latência p50', value: slo.p50, unit: 'ms', min: 100, max: 3000, step: 50,
-      status: latencyStatus(slo.p50, targets.p50),
+    { key: 'p50', label: 'Latência p50', value: effectiveSlo.p50, unit: 'ms', min: 100, max: 3000, step: 50,
+      status: latencyStatus(effectiveSlo.p50, targets.p50),
       valueFmt: (v) => `${formatNumber(Math.round(v))}ms`, targetFmt: (v) => `${formatNumber(v)}ms` },
-    { key: 'p95', label: 'Latência p95', value: slo.p95, unit: 'ms', min: 500, max: 5000, step: 100,
-      status: latencyStatus(slo.p95, targets.p95),
+    { key: 'p95', label: 'Latência p95', value: effectiveSlo.p95, unit: 'ms', min: 500, max: 5000, step: 100,
+      status: latencyStatus(effectiveSlo.p95, targets.p95),
       valueFmt: (v) => `${formatNumber(Math.round(v))}ms`, targetFmt: (v) => `${formatNumber(v)}ms` },
-    { key: 'p99', label: 'Latência p99', value: slo.p99, unit: 'ms', min: 1000, max: 10000, step: 100,
-      status: latencyStatus(slo.p99, targets.p99),
+    { key: 'p99', label: 'Latência p99', value: effectiveSlo.p99, unit: 'ms', min: 1000, max: 10000, step: 100,
+      status: latencyStatus(effectiveSlo.p99, targets.p99),
       valueFmt: (v) => `${formatNumber(Math.round(v))}ms`, targetFmt: (v) => `${formatNumber(v)}ms` },
-    { key: 'availability', label: 'Disponibilidade', value: slo.successRate, unit: '%', min: 95, max: 100, step: 0.1,
-      status: availabilityStatus(slo.successRate, targets.availability),
+    { key: 'availability', label: 'Disponibilidade', value: effectiveSlo.successRate, unit: '%', min: 95, max: 100, step: 0.1,
+      status: availabilityStatus(effectiveSlo.successRate, targets.availability),
       valueFmt: (v) => `${v.toFixed(2)}%`, targetFmt: (v) => `${v.toFixed(1)}%` },
   ];
 
