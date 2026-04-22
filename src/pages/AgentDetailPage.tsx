@@ -15,6 +15,7 @@ import { SavedTestRunsPanel } from "@/components/agents/detail/SavedTestRunsPane
 import { RestoreDiffPreview } from "@/components/agents/detail/RestoreDiffPreview";
 import { RestoreChangelogEditor, buildAutoSummary } from "@/components/agents/detail/RestoreChangelogEditor";
 import { computeRestoreDiff } from "@/components/agents/detail/restoreDiffHelpers";
+import { RestoreHistorySection } from "@/components/agents/detail/RestoreHistorySection";
 import { simulateAgentRun, type SimulationSummary } from "@/services/agentTestSimulationService";
 import {
   AlertDialog, AlertDialogContent, AlertDialogHeader, AlertDialogFooter,
