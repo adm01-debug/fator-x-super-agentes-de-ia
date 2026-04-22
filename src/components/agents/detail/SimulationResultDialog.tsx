@@ -179,6 +179,8 @@ export function SimulationResultDialog({
             </span>
           </div>
         </div>
+        </>
+        )}
 
         {running && (
           <div className="flex flex-col items-center justify-center py-12 gap-3">
