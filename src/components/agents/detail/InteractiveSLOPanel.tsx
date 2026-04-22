@@ -13,7 +13,9 @@ import {
   type DailyPoint,
 } from './agentMetricsHelpers';
 import type { AgentTrace } from '@/services/agentsService';
-import { SLOViolationTimeline } from './SLOViolationTimeline';
+import { SLOViolationTimeline, type ViolationKind } from './SLOViolationTimeline';
+import { ViolationDrillDownDialog } from './ViolationDrillDownDialog';
+import type { ViolationDay } from './agentMetricsHelpers';
 import { generateSLOReportPdf } from './sloReportPdf';
 import { toast } from 'sonner';
 
