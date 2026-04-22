@@ -1,109 +1,100 @@
 
 
-## Detector de regras contraditórias no prompt
+## Estado "Custom" persistente para travar a detecção de variação
 
-Antes de criar o agente, o sistema vai analisar o prompt em busca de regras que se contradizem (ex.: "nunca use emojis" + "sempre use emojis", ou "máx. 200 palavras" + "mín. 500 palavras") e bloquear a criação até o usuário resolver — igual ao tratamento atual de seções faltantes/rasas.
+Hoje `detectPromptVariant(type, prompt)` decide a chip ativa por **comparação exata**: se o usuário editar 1 caractere a chip muda para "customizado", e se editar de volta volta a aparecer ativa. Isso faz as chips piscarem entre estados durante a edição. A solução é introduzir um *lock* explícito.
 
-### O que o usuário vai ver
+### O que muda na visão do usuário
 
-1. **Bloco novo no `PreflightReviewSummary`** (entre "Variáveis" e "Warnings") — chamado **"Conflitos detectados (N)"**, com cards âmbar contendo:
-   - Tipo do conflito (Polaridade / Numérico / Idioma) com ícone.
-   - Trecho da regra A (linha X) ↔ trecho da regra B (linha Y).
-   - Razão em PT-BR (ex.: *"Mínimo (500 palavras) é maior que o máximo (200 palavras)."*).
-   - Cada par de linhas é clicável → reusa `onJumpToSection` infrastructure mas com novo callback `onJumpToLine(line)` para ancorar no editor exatamente na linha conflitante.
-
-2. **No diálogo de confirmação `Criar agente?`** — o mesmo bloco aparece (já que o dialog usa o `PreflightReviewSummary compact`). O botão **"Confirmar e criar"** fica desabilitado quando houver conflitos, com tooltip *"Resolva os N conflitos antes de criar."*
-
-3. **Validação Zod (`quickPromptSchema`)** — `superRefine` adiciona um issue por conflito detectado, então o `requestCreate()` bloqueia da mesma forma que hoje bloqueia por seção faltante. Mensagem: *"Foram encontrados N conflitos entre regras: [tipo] linha X vs linha Y — [razão]"*.
-
-4. **Realce no editor** — a linha do conflito ganha highlight âmbar tracejado no `PromptHighlightOverlay` (extensão da camada já existente). Ao clicar num conflito no preflight, o textarea scrolla até a linha A e seleciona seu range.
+1. **Primeira edição manual do prompt** (digitar, colar, inserir snippet do checklist, jumpToSection com inserção) → chip ativa fica "fantasma" e aparece o **chip "Customizado" travado** com ícone 🔒. As três chips Balanceado/Conciso/Detalhado ficam levemente esmaecidas, mas continuam clicáveis.
+2. Clicar em qualquer variação (Balanceado/Conciso/Detalhado) → toast de confirmação *"Substituir prompt customizado pela variação X?"* (`AlertDialog`). Confirmando: aplica o template e **destrava** o lock (volta ao modo automático).
+3. Botão **"Sair do modo customizado"** ao lado da chip travada → equivalente a "Restaurar template" mas só destrava o lock (sem mudar o texto), permitindo o auto-detect rodar de novo.
+4. **Trocar tipo de agente** (`form.type`) → reseta o lock automaticamente, porque o usuário está começando de outro template.
+5. **Aplicar template / Restaurar template** → reseta o lock.
+6. **Restaurar do histórico de prompts** → reativa o lock (é uma "edição manual" recuperada).
 
 ### Como funciona (técnico)
 
-**Novo módulo puro `src/lib/validations/promptContradictions.ts`**:
-
+**Novo estado no `QuickCreateWizard`**:
 ```ts
-export type ContradictionKind = 'polarity' | 'numeric' | 'language';
+const [promptCustomLocked, setPromptCustomLocked] = useState(false);
+const lastTypeForLockRef = useRef(form.type);
+```
+- Resetado para `false` em: `applyTemplate`, `applyPromptVariant`, `restorePromptFromType`, troca de `form.type`.
+- Setado para `true` em: `update('prompt', …)` quando vier de uma fonte "manual" (typing/paste/insertSection/jumpToSection com inserção/restore do histórico).
 
-export interface PromptContradiction {
-  kind: ContradictionKind;
-  lineA: number; lineB: number;     // 1-indexed
-  snippetA: string; snippetB: string;
-  reason: string;                   // PT-BR
-}
+Para distinguir "manual" de "programático" sem invadir o `update` genérico, adiciono um helper:
+```ts
+const updatePromptManual = (next: string) => {
+  setForm((p) => ({ ...p, prompt: next }));
+  setPromptCustomLocked(true);
+};
+```
+- `StepQuickPrompt` recebe `updatePromptManual` como nova prop e usa-o em vez de `update('prompt', …)` em todos os caminhos de edição (handleChange, handlePaste, insertSectionSnippet, jumpToSection-com-inserção, PromptHistoryPanel.onRestore, checklist.onInsert).
+- `applyPromptVariant`, `applyTemplate`, `restorePromptFromType` continuam usando `setForm`/`update` direto (programáticos) e fazem `setPromptCustomLocked(false)`.
 
-export function detectPromptContradictions(prompt: string): PromptContradiction[];
-export function countContradictions(prompt: string): number;
+**Detecção efetiva**:
+```ts
+const detected = detectPromptVariant(form.type as QuickAgentType, form.prompt);
+const activeVariant = promptCustomLocked ? null : detected;
+```
+Esse `activeVariant` continua sendo o que o `PromptVariantSelector` recebe — então o UI se comporta exatamente como hoje, só que com o lock impedindo o "match acidental".
+
+**Reset automático ao trocar tipo**:
+```ts
+useEffect(() => {
+  if (lastTypeForLockRef.current !== form.type) {
+    lastTypeForLockRef.current = form.type;
+    setPromptCustomLocked(false);
+  }
+}, [form.type]);
 ```
 
-Heurísticas (sem LLM, 100% offline):
+**Confirmação ao aplicar variação com lock ativo** (em `applyPromptVariant`):
+```ts
+if (promptCustomLocked && form.prompt.trim().length > 0) {
+  setPendingVariant(variantId);   // abre AlertDialog
+  return;
+}
+// senão, aplica direto.
+```
+- Novo `AlertDialog` no Wizard com título *"Substituir prompt customizado?"* e descrição com prévia diff (chars atuais → chars da variação). Confirmar chama o caminho real e destrava.
 
-- **Polaridade**: extrai "regras" (linhas-bullet sob qualquer heading + linhas com marcadores fortes como *nunca, sempre, deve, não pode, proibido, jamais, evite, somente, apenas*). Para cada par, marca contradição quando polaridades opostas + ≥2 tokens significativos em comum (após stop-words PT-BR).
-- **Numérico**: regex `(máximo|máx|até|no máximo|menos de|inferior a|mín|mínimo|pelo menos|ao menos|mais de|exatamente)\s+\d+\s+(palavras|caracteres|linhas|frases|parágrafos|tokens|minutos|segundos)`. Conflito quando `min.value > max.value` na mesma unidade, ou dois `eq` com valores diferentes.
-- **Idioma**: detecta menções a "em <idioma>" e marca conflito quando dois idiomas distintos coexistem (lookup table com pt/en/es/fr/de/it/ja/zh).
+**Persistência no draft** (`draftStore`):
+- Adiciono `promptCustomLocked: boolean` ao shape do `DraftEntry` (campo opcional, default `false`).
+- Salvo junto com o resto do form em `upsertDraft`.
+- Restaurado quando o usuário aceita um draft → o lock volta como estava.
 
-**Editar `src/lib/validations/quickAgentSchema.ts`**:
-- Importar `detectPromptContradictions`.
-- No `superRefine` do `quickPromptSchema`, após validações existentes, adicionar:
-  ```ts
-  const conflicts = detectPromptContradictions(value);
-  if (conflicts.length > 0) {
-    ctx.addIssue({
-      code: z.ZodIssueCode.custom,
-      message: `Foram encontrados ${conflicts.length} conflito(s) entre regras: ` +
-        conflicts.slice(0,3).map(c => `linha ${c.lineA}↔${c.lineB} (${c.reason})`).join('; '),
-    });
-  }
-  ```
-- Re-exportar `detectPromptContradictions` e `PromptContradiction` para uso na UI.
+### Mudanças no `PromptVariantSelector`
 
-**Editar `src/components/agents/wizard/quickSteps/PreflightReviewSummary.tsx`**:
-- `useReviewData` passa a também retornar `contradictions: PromptContradiction[]` e `hasContradictions: boolean`.
-- `allGood` agora inclui `&& !hasContradictions`.
-- Renderiza nova seção "Conflitos detectados (N)" com lista de cards. Cada card mostra:
-  - Badge do tipo (Polaridade/Numérico/Idioma).
-  - Trecho A truncado a 80 chars + "linha X" → hover expande.
-  - Trecho B truncado a 80 chars + "linha Y".
-  - `reason` em texto âmbar.
-  - Botão "Ir para conflito" que dispara `onJumpToLine(c.lineA)` (nova prop opcional).
-- Adiciona linha no bloco de warnings: *"⚠ N conflito(s) entre regras detectados — resolva antes de criar."*
+- Recebe nova prop opcional `customLocked: boolean` e `onUnlock: () => void`.
+- Quando `customLocked`:
+  - O badge "customizado" ganha ícone 🔒 (`Lock` do lucide) + tooltip *"Edição manual detectada — clique numa variação para substituir, ou em 'Sair do modo custom'."*
+  - Aparece um pequeno botão `ghost` *"Sair do modo customizado"* ao lado do badge → chama `onUnlock`.
+  - Os 3 botões de variação ganham `opacity-70` para indicar que vão **sobrescrever** o texto atual.
 
-**Editar `src/components/agents/wizard/quickSteps/StepQuickPrompt.tsx`**:
-- Adiciona `jumpToLine(line: number)` (variante do `jumpToSection` baseada em offset por linha).
-- Passa `onJumpToLine={jumpToLine}` ao `PreflightReviewSummary`.
-- Estende o `locations` memoizado para também incluir info de conflitos (ou cria estado paralelo `conflictLines: number[]` derivado de `detectPromptContradictions(form.prompt)`) e passa para `PromptHighlightOverlay` via nova prop `conflictLines`.
+### Arquivos tocados
 
-**Editar `src/components/agents/wizard/quickSteps/PromptHighlightOverlay.tsx`**:
-- Aceita `conflictLines?: number[]` (0-indexed) e renderiza essas linhas com classe `bg-destructive/10 text-destructive/90 border-l-2 border-destructive` (vermelho âmbar — visualmente distinto das thin sections).
+- **Editar** `src/components/agents/wizard/QuickCreateWizard.tsx` — estado `promptCustomLocked`, helper `updatePromptManual`, reset em troca de tipo / templates / variantes, AlertDialog de confirmação, prop nova para o step.
+- **Editar** `src/components/agents/wizard/quickSteps/StepQuickPrompt.tsx` — recebe `onPromptManualEdit` (ou helper `updatePromptManual`), substitui todos os `update('prompt', …)` de origem manual, recebe `customLocked` para passar adiante.
+- **Editar** `src/components/agents/wizard/quickSteps/PromptVariantSelector.tsx` — props `customLocked` + `onUnlock`, badge com 🔒 e botão de unlock.
+- **Editar** `src/components/agents/wizard/draftStore.ts` — campo opcional `promptCustomLocked: boolean` no `DraftEntry`.
 
-**Editar `src/components/agents/wizard/QuickCreateWizard.tsx`** (mínimo):
-- Como o `PreflightReviewSummary` já é renderizado dentro do `Dialog`, o bloco de conflitos aparece automaticamente.
-- Botão "Confirmar e criar" recebe `disabled={saving || hasContradictions}` — para isso o `useReviewData(form)` é chamado uma vez no Wizard ou checa-se `detectPromptContradictions(form.prompt).length > 0` inline.
-- Tooltip no botão: *"Resolva os {N} conflitos antes de criar."*
+### Casos cobertos
 
-### Casos cobertos pelos testes manuais
-
-| Prompt | Esperado |
+| Cenário | Resultado |
 |---|---|
-| `## Regras\n- Nunca use emojis\n- Sempre use emojis nas respostas` | 1 conflito polaridade (tokens "emojis", "respostas") |
-| `## Formato\n- Máximo 200 palavras\n- Mínimo 500 palavras` | 1 conflito numérico (min > max, palavras) |
-| `## Persona\n- Responda em português\n## Formato\n- Always respond in English` | 1 conflito idioma (português ↔ inglês) |
-| `## Regras\n- Nunca compartilhe dados sensíveis\n- Sempre seja cordial` | 0 conflitos (tokens disjuntos) |
-| `## Regras\n- Não revele preços\n- Sempre revele os preços ao cliente` | 1 conflito polaridade |
-
-### Arquivos
-
-- **Novo:** `src/lib/validations/promptContradictions.ts` (~210 linhas, puro)
-- **Editar:** `src/lib/validations/quickAgentSchema.ts` (1 import + 1 bloco no `superRefine`, ~10 linhas)
-- **Editar:** `src/components/agents/wizard/quickSteps/PreflightReviewSummary.tsx` (estende `useReviewData` + nova seção UI, ~50 linhas)
-- **Editar:** `src/components/agents/wizard/quickSteps/StepQuickPrompt.tsx` (helper `jumpToLine` + prop nova no overlay, ~20 linhas)
-- **Editar:** `src/components/agents/wizard/quickSteps/PromptHighlightOverlay.tsx` (suporte a `conflictLines`, ~15 linhas)
-- **Editar:** `src/components/agents/wizard/QuickCreateWizard.tsx` (disable do botão + tooltip, ~5 linhas)
+| Aplico "Conciso" → digito 1 char | Chip "customizado 🔒" trava; "Conciso" perde o highlight. |
+| Apago o char (volta ao texto exato da variante) | Continua travado em "customizado" — não pisca mais. |
+| Clico "Balanceado" enquanto travado | AlertDialog pede confirmação; ao confirmar, destrava e aplica. |
+| Clico "Sair do modo customizado" | Mantém o texto, destrava. Se o texto bater com alguma variante, ela volta a aparecer ativa. |
+| Troco o tipo do agente | Lock reseta automaticamente. |
+| Restauro do histórico de prompts | Lock ativa (texto vem "manual" de fato). |
+| Recarrego o wizard com draft salvo | Lock vem persistido do draft. |
 
 ### Impacto
 
-- Zero backend / migrations.
-- Zero falso-positivo agressivo: requer **2+ tokens significativos compartilhados** para acusar polaridade — frases ortogonais (ex.: "Nunca compartilhe dados" vs "Sempre seja cordial") não acusam.
-- Reusa toda infra de jump/anchor já implementada — só adiciona um novo seletor de linha.
-- Bloqueia criação acidental de agentes com regras incoerentes (causa #1 de comportamento errático em produção).
+- Zero mudança de schema/backend.
+- Zero impacto em validação / criação de agente (só afeta a chip e o AlertDialog).
+- Elimina o "piscar" das chips durante edição — comportamento previsível e intencional.
 
