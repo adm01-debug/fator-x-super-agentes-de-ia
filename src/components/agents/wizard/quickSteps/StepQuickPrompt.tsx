@@ -1,14 +1,14 @@
-import { useEffect, useRef, useState, type ChangeEvent, type ClipboardEvent } from 'react';
+import { useEffect, useMemo, useRef, useState, type ChangeEvent, type ClipboardEvent } from 'react';
 import { toast } from 'sonner';
 import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
 import { Button } from '@/components/ui/button';
 import { RefreshCw } from 'lucide-react';
 import {
-  findSectionLineIndex,
   type PromptSectionKey,
   type QuickAgentForm,
 } from '@/lib/validations/quickAgentSchema';
+import { locateSections, insertSectionAt } from '@/lib/promptSectionLocator';
 import { CompiledPromptPreview } from './CompiledPromptPreview';
 import { PromptSectionChecklist } from './PromptSectionChecklist';
 import { PromptVariantSelector } from './PromptVariantSelector';
@@ -17,12 +17,16 @@ import { AgentLivePreviewCard } from './AgentLivePreviewCard';
 import { QuickAgentTestPanel } from './QuickAgentTestPanel';
 import { PreflightReviewSummary } from './PreflightReviewSummary';
 import { PromptHistoryPanel } from './PromptHistoryPanel';
+import { PromptSectionGutter } from './PromptSectionGutter';
+import { PromptHighlightOverlay } from './PromptHighlightOverlay';
 import { sanitizePromptInput, PROMPT_LIMITS } from '@/lib/validations/promptSanitizer';
 import {
   detectPromptVariant,
   type QuickAgentType,
   type PromptVariantId,
 } from '@/data/quickAgentTemplates';
+
+const EDITOR_PADDING_LEFT = 36; // px — leaves room for the gutter
 
 interface Props {
   form: QuickAgentForm;
