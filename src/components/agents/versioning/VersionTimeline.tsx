@@ -28,8 +28,21 @@ function formatWhen(iso: string): string {
 }
 
 export function VersionTimeline({
-  versions, selectedId, selectedAId, selectedBId, onSelect, onPickA, onPickB,
+  versions, selectedId, selectedAId, selectedBId, onSelect, onPickA, onPickB, highlightId,
 }: Props) {
+  // Refs para rolar automaticamente até a versão alvo logo após um restore.
+  const itemRefs = useRef<Record<string, HTMLDivElement | null>>({});
+
+  useEffect(() => {
+    if (!highlightId) return;
+    const el = itemRefs.current[highlightId];
+    if (el) {
+      requestAnimationFrame(() => {
+        el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      });
+    }
+  }, [highlightId, versions]);
+
   return (
     <div className="nexus-card">
       <div className="flex items-center justify-between mb-3">
