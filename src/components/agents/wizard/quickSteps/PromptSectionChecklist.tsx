@@ -21,11 +21,13 @@ const SECTION_SNIPPETS: Record<PromptSectionKey, string> = {
 };
 
 export function PromptSectionChecklist({ prompt, onInsert }: Props) {
-  const detected = useMemo(() => detectPromptSections(prompt), [prompt]);
+  const reports = useMemo(() => analyzeSectionContent(prompt), [prompt]);
   const total = REQUIRED_PROMPT_SECTIONS.length;
-  const ok = REQUIRED_PROMPT_SECTIONS.filter((s) => detected[s.key]).length;
+  const ok = reports.filter((r) => r.present && !r.thinReason).length;
   const allOk = ok === total;
-  const missingCount = total - ok;
+  const missingCount = reports.filter((r) => !r.present).length;
+  const thinCount = reports.filter((r) => r.present && r.thinReason).length;
+  const incompleteKeys = reports.filter((r) => !r.present || r.thinReason).map((r) => r.key);
 
   return (
     <div
@@ -42,7 +44,7 @@ export function PromptSectionChecklist({ prompt, onInsert }: Props) {
             Checklist do prompt
           </p>
           <p className="text-[11px] text-muted-foreground">
-            Seções mínimas para um system prompt completo
+            Seções mínimas + conteúdo suficiente em cada uma
           </p>
         </div>
         <div className="flex items-center gap-2 shrink-0">
@@ -52,15 +54,16 @@ export function PromptSectionChecklist({ prompt, onInsert }: Props) {
               size="sm"
               variant="outline"
               onClick={() => {
-                const missing = REQUIRED_PROMPT_SECTIONS.filter((s) => !detected[s.key]);
-                const combined = missing.map((s) => SECTION_SNIPPETS[s.key]).join('');
+                const combined = incompleteKeys
+                  .map((k) => SECTION_SNIPPETS[k])
+                  .join('');
                 onInsert(combined);
               }}
               className="h-7 gap-1.5 text-[11px] border-nexus-amber/40 text-nexus-amber hover:bg-nexus-amber/10 hover:text-nexus-amber hover:border-nexus-amber/60"
-              aria-label={`Inserir esqueletos de ${missingCount} ${missingCount === 1 ? 'seção faltante' : 'seções faltantes'}`}
+              aria-label={`Inserir esqueletos de ${incompleteKeys.length} ${incompleteKeys.length === 1 ? 'seção pendente' : 'seções pendentes'}`}
             >
               <Wand2 className="h-3 w-3" />
-              Inserir {missingCount === 1 ? 'a faltante' : `as ${missingCount} faltantes`}
+              Inserir {incompleteKeys.length === 1 ? 'a pendente' : `as ${incompleteKeys.length} pendentes`}
             </Button>
           )}
           <span
@@ -77,29 +80,41 @@ export function PromptSectionChecklist({ prompt, onInsert }: Props) {
       </div>
 
       <ul className="space-y-1.5">
-        {REQUIRED_PROMPT_SECTIONS.map((sec) => {
-          const isOk = detected[sec.key];
+        {reports.map((r) => {
+          const isOk = r.present && !r.thinReason;
+          const isThin = r.present && !!r.thinReason;
           return (
             <li
-              key={sec.key}
+              key={r.key}
               className="flex items-center justify-between gap-2 text-xs"
             >
               <div className="flex items-center gap-2 min-w-0">
                 {isOk ? (
                   <CheckCircle2 className="h-4 w-4 text-nexus-emerald shrink-0" aria-hidden />
+                ) : isThin ? (
+                  <AlertTriangle className="h-4 w-4 text-nexus-amber shrink-0" aria-hidden />
                 ) : (
                   <Circle className="h-4 w-4 text-muted-foreground shrink-0" aria-hidden />
                 )}
                 <span
                   className={cn(
                     'font-medium truncate',
-                    isOk ? 'text-foreground' : 'text-muted-foreground',
+                    isOk ? 'text-foreground' : isThin ? 'text-nexus-amber' : 'text-muted-foreground',
                   )}
                 >
-                  {sec.label}
+                  {r.label}
                 </span>
-                <span className="text-[10px] text-muted-foreground/70 font-mono truncate hidden sm:inline">
-                  {isOk ? 'detectada' : `adicione "## ${sec.label}"`}
+                <span
+                  className={cn(
+                    'text-[10px] font-mono truncate hidden sm:inline',
+                    isThin ? 'text-nexus-amber/80' : 'text-muted-foreground/70',
+                  )}
+                >
+                  {isOk
+                    ? `detectada · ${r.wordCount} palavras`
+                    : isThin
+                    ? `${r.thinReason}`
+                    : `adicione "## ${r.label}"`}
                 </span>
               </div>
               {!isOk && (
@@ -107,11 +122,11 @@ export function PromptSectionChecklist({ prompt, onInsert }: Props) {
                   type="button"
                   size="sm"
                   variant="ghost"
-                  onClick={() => onInsert(SECTION_SNIPPETS[sec.key])}
+                  onClick={() => onInsert(SECTION_SNIPPETS[r.key])}
                   className="h-7 gap-1 text-[11px] text-primary hover:bg-primary/10 shrink-0"
-                  aria-label={`Inserir esqueleto da seção ${sec.label}`}
+                  aria-label={`${isThin ? 'Reinserir esqueleto da' : 'Inserir esqueleto da'} seção ${r.label}`}
                 >
-                  <Plus className="h-3 w-3" /> Inserir
+                  <Plus className="h-3 w-3" /> {isThin ? 'Expandir' : 'Inserir'}
                 </Button>
               )}
             </li>
@@ -120,11 +135,19 @@ export function PromptSectionChecklist({ prompt, onInsert }: Props) {
       </ul>
 
       {!allOk && (
-        <div className="text-[11px] text-nexus-amber pt-1 border-t border-nexus-amber/20">
-          ⚠ {missingCount === 1
-            ? 'Falta 1 seção obrigatória.'
-            : `Faltam ${missingCount} seções obrigatórias.`}{' '}
-          Inclua-as antes de criar o agente.
+        <div className="text-[11px] text-nexus-amber pt-1 border-t border-nexus-amber/20 space-y-0.5">
+          {missingCount > 0 && (
+            <p>
+              ⚠ {missingCount === 1 ? 'Falta 1 seção obrigatória.' : `Faltam ${missingCount} seções obrigatórias.`}
+            </p>
+          )}
+          {thinCount > 0 && (
+            <p>
+              ⚠ {thinCount === 1 ? '1 seção com conteúdo insuficiente' : `${thinCount} seções com conteúdo insuficiente`}{' '}
+              (mín. 8 palavras cada).
+            </p>
+          )}
+          <p className="text-muted-foreground">Resolva antes de criar o agente.</p>
         </div>
       )}
     </div>
