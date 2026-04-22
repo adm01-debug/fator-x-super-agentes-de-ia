@@ -310,19 +310,33 @@ export function WorkflowTimeTravelPanel({
 
                 return (
                   <div key={entry.id} className="relative flex gap-3">
+                const isPickedA = compareMode && compareAId === entry.id;
+                const isPickedB = compareMode && compareBId === entry.id;
+                return (
+                  <div key={entry.id} className="relative flex gap-3">
                     {/* Timeline Line */}
                     <div className="flex flex-col items-center">
                       <div
-                        className="w-8 h-8 rounded-full flex items-center justify-center border-2 shrink-0"
+                        className="w-8 h-8 rounded-full flex items-center justify-center border-2 shrink-0 relative"
                         style={{
-                          borderColor: statusCfg.color,
-                          backgroundColor: isSelected ? `${statusCfg.color}20` : 'transparent',
+                          borderColor: isPickedA
+                            ? 'hsl(var(--destructive))'
+                            : isPickedB
+                            ? 'hsl(var(--nexus-emerald))'
+                            : statusCfg.color,
+                          backgroundColor: isSelected || isPickedA || isPickedB ? `${statusCfg.color}20` : 'transparent',
                         }}
                       >
-                        <StatusIcon
-                          className="w-4 h-4"
-                          style={{ color: statusCfg.color }}
-                        />
+                        <StatusIcon className="w-4 h-4" style={{ color: statusCfg.color }} />
+                        {(isPickedA || isPickedB) && (
+                          <span
+                            className={`absolute -top-1.5 -right-1.5 w-4 h-4 rounded-full text-[9px] font-bold flex items-center justify-center text-primary-foreground ${
+                              isPickedA ? 'bg-destructive' : 'bg-nexus-emerald'
+                            }`}
+                          >
+                            {isPickedA ? 'A' : 'B'}
+                          </span>
+                        )}
                       </div>
                       {!isLast && (
                         <div
@@ -335,7 +349,13 @@ export function WorkflowTimeTravelPanel({
                     {/* Content */}
                     <div
                       className={`flex-1 pb-4 rounded-lg transition-colors cursor-pointer ${
-                        isSelected ? 'bg-muted p-3' : 'hover:bg-background p-3'
+                        isPickedA
+                          ? 'bg-destructive/5 ring-1 ring-destructive/30 p-3'
+                          : isPickedB
+                          ? 'bg-nexus-emerald/5 ring-1 ring-nexus-emerald/30 p-3'
+                          : isSelected
+                          ? 'bg-muted p-3'
+                          : 'hover:bg-background p-3'
                       }`}
                       onClick={() => handleInspect(entry.id)}
                     >
