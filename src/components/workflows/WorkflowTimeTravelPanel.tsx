@@ -26,6 +26,7 @@ import {
   CheckCircle2,
   XCircle,
   Loader2,
+  ArrowLeftRight,
 } from 'lucide-react';
 import {
   getExecutionTimeline,
@@ -34,6 +35,7 @@ import {
   recoverExecution,
   type WorkflowCheckpoint,
 } from '@/services/workflowCheckpointService';
+import { StepComparePanel } from './StepComparePanel';
 
 // ──────── Types ────────
 
@@ -89,6 +91,14 @@ export function WorkflowTimeTravelPanel({
   const [forking, setForking] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
+  // Compare mode: when active, clicking a step picks A then B (round-robin).
+  const [compareMode, setCompareMode] = useState(false);
+  const [compareAId, setCompareAId] = useState<string | null>(null);
+  const [compareBId, setCompareBId] = useState<string | null>(null);
+  const [compareA, setCompareA] = useState<WorkflowCheckpoint | null>(null);
+  const [compareB, setCompareB] = useState<WorkflowCheckpoint | null>(null);
+  const [comparing, setComparing] = useState(false);
+
   // Load timeline
   const loadTimeline = useCallback(async () => {
     try {
@@ -107,8 +117,20 @@ export function WorkflowTimeTravelPanel({
     loadTimeline();
   }, [loadTimeline]);
 
-  // Inspect a checkpoint's state
+  // Inspect a checkpoint's state OR pick it as A/B in compare mode.
   const handleInspect = async (checkpointId: string) => {
+    if (compareMode) {
+      // Round-robin assignment: fill A first, then B, then replace A again.
+      if (!compareAId || (compareAId && compareBId)) {
+        setCompareAId(checkpointId);
+        setCompareBId(null);
+        setCompareA(null);
+        setCompareB(null);
+      } else if (checkpointId !== compareAId) {
+        setCompareBId(checkpointId);
+      }
+      return;
+    }
     try {
       setSelectedCheckpoint(checkpointId);
       const cp = await getCheckpoint(checkpointId);
@@ -116,6 +138,42 @@ export function WorkflowTimeTravelPanel({
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Erro ao inspecionar checkpoint');
     }
+  };
+
+  // Load A and B checkpoints whenever both ids are set.
+  useEffect(() => {
+    if (!compareMode || !compareAId || !compareBId) return;
+    let cancelled = false;
+    (async () => {
+      try {
+        setComparing(true);
+        const [a, b] = await Promise.all([getCheckpoint(compareAId), getCheckpoint(compareBId)]);
+        if (cancelled) return;
+        setCompareA(a);
+        setCompareB(b);
+      } catch (err) {
+        if (!cancelled) setError(err instanceof Error ? err.message : 'Erro ao carregar comparação');
+      } finally {
+        if (!cancelled) setComparing(false);
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [compareMode, compareAId, compareBId]);
+
+  const resetCompare = () => {
+    setCompareAId(null);
+    setCompareBId(null);
+    setCompareA(null);
+    setCompareB(null);
+  };
+
+  const swapCompare = () => {
+    setCompareAId(compareBId);
+    setCompareBId(compareAId);
+    setCompareA(compareB);
+    setCompareB(compareA);
   };
 
   // Fork from a checkpoint
@@ -164,13 +222,45 @@ export function WorkflowTimeTravelPanel({
       {/* Header Stats */}
       <Card className="bg-card border-border">
         <CardHeader className="pb-3">
-          <CardTitle className="flex items-center gap-2 text-base text-foreground">
-            <Clock className="w-4 h-4 text-primary" />
-            Time-Travel Debugger
-            <Badge className="bg-primary/20 text-primary text-[10px] ml-2">
-              {timeline.length} checkpoints
-            </Badge>
+          <CardTitle className="flex items-center justify-between gap-2 text-base text-foreground">
+            <span className="flex items-center gap-2">
+              <Clock className="w-4 h-4 text-primary" />
+              Time-Travel Debugger
+              <Badge className="bg-primary/20 text-primary text-[10px] ml-2">
+                {timeline.length} checkpoints
+              </Badge>
+            </span>
+            <Button
+              size="sm"
+              variant={compareMode ? 'default' : 'outline'}
+              className={`h-7 text-xs ${
+                compareMode
+                  ? 'bg-nexus-purple text-primary-foreground hover:bg-nexus-purple/90'
+                  : 'border-border hover:bg-nexus-purple/20 hover:text-nexus-purple'
+              }`}
+              onClick={() => {
+                const next = !compareMode;
+                setCompareMode(next);
+                if (!next) resetCompare();
+                else setInspectedState(null);
+              }}
+              aria-pressed={compareMode}
+            >
+              <ArrowLeftRight className="w-3 h-3 mr-1" />
+              {compareMode ? 'Sair da comparação' : 'Comparar steps'}
+            </Button>
           </CardTitle>
+          {compareMode && (
+            <p className="text-[11px] text-muted-foreground mt-2">
+              {!compareAId
+                ? 'Clique em um step para escolher A.'
+                : !compareBId
+                ? 'Agora clique em outro step para escolher B.'
+                : comparing
+                ? 'Carregando comparação…'
+                : 'Comparando A × B abaixo. Clique em outro step para substituir A.'}
+            </p>
+          )}
         </CardHeader>
         <CardContent>
           <div className="grid grid-cols-3 gap-4">
@@ -218,21 +308,34 @@ export function WorkflowTimeTravelPanel({
                 const isSelected = selectedCheckpoint === entry.id;
                 const isLast = idx === timeline.length - 1;
 
+                const isPickedA = compareMode && compareAId === entry.id;
+                const isPickedB = compareMode && compareBId === entry.id;
                 return (
                   <div key={entry.id} className="relative flex gap-3">
+
                     {/* Timeline Line */}
                     <div className="flex flex-col items-center">
                       <div
-                        className="w-8 h-8 rounded-full flex items-center justify-center border-2 shrink-0"
+                        className="w-8 h-8 rounded-full flex items-center justify-center border-2 shrink-0 relative"
                         style={{
-                          borderColor: statusCfg.color,
-                          backgroundColor: isSelected ? `${statusCfg.color}20` : 'transparent',
+                          borderColor: isPickedA
+                            ? 'hsl(var(--destructive))'
+                            : isPickedB
+                            ? 'hsl(var(--nexus-emerald))'
+                            : statusCfg.color,
+                          backgroundColor: isSelected || isPickedA || isPickedB ? `${statusCfg.color}20` : 'transparent',
                         }}
                       >
-                        <StatusIcon
-                          className="w-4 h-4"
-                          style={{ color: statusCfg.color }}
-                        />
+                        <StatusIcon className="w-4 h-4" style={{ color: statusCfg.color }} />
+                        {(isPickedA || isPickedB) && (
+                          <span
+                            className={`absolute -top-1.5 -right-1.5 w-4 h-4 rounded-full text-[9px] font-bold flex items-center justify-center text-primary-foreground ${
+                              isPickedA ? 'bg-destructive' : 'bg-nexus-emerald'
+                            }`}
+                          >
+                            {isPickedA ? 'A' : 'B'}
+                          </span>
+                        )}
                       </div>
                       {!isLast && (
                         <div
@@ -245,7 +348,13 @@ export function WorkflowTimeTravelPanel({
                     {/* Content */}
                     <div
                       className={`flex-1 pb-4 rounded-lg transition-colors cursor-pointer ${
-                        isSelected ? 'bg-muted p-3' : 'hover:bg-background p-3'
+                        isPickedA
+                          ? 'bg-destructive/5 ring-1 ring-destructive/30 p-3'
+                          : isPickedB
+                          ? 'bg-nexus-emerald/5 ring-1 ring-nexus-emerald/30 p-3'
+                          : isSelected
+                          ? 'bg-muted p-3'
+                          : 'hover:bg-background p-3'
                       }`}
                       onClick={() => handleInspect(entry.id)}
                     >
@@ -336,8 +445,8 @@ export function WorkflowTimeTravelPanel({
         </CardContent>
       </Card>
 
-      {/* State Inspector */}
-      {inspectedState && (
+      {/* State Inspector — hidden in compare mode to give space to the comparison panel */}
+      {!compareMode && inspectedState && (
         <Card className="bg-card border-border">
           <CardHeader className="pb-2">
             <CardTitle className="flex items-center justify-between text-sm text-foreground">
@@ -363,6 +472,16 @@ export function WorkflowTimeTravelPanel({
             </ScrollArea>
           </CardContent>
         </Card>
+      )}
+
+      {/* Side-by-side step comparison */}
+      {compareMode && compareA && compareB && (
+        <StepComparePanel
+          checkpointA={compareA}
+          checkpointB={compareB}
+          onClose={resetCompare}
+          onSwap={swapCompare}
+        />
       )}
     </div>
   );
