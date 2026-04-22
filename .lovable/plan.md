@@ -1,117 +1,136 @@
 
 
-## Diagnóstico detalhado de validação ("Por que falhou?")
+## Estimativa de custo e tokens ao vivo na prévia
 
-Hoje o `PromptValidationFeedback` mostra mensagens curtas como _"Linha 47 excede 500 caracteres (612)"_ ou _"Tags HTML perigosas removidas"_, mas **não** mostra:
+Hoje o `AgentLivePreviewCard` mostra `chars` e `seções X/Y`, mas **não** mostra quanto cada execução do agente vai custar. O usuário só descobre o impacto financeiro do prompt depois de rodar no LLM real — sem feedback durante a edição.
 
-- **Qual regra interna** disparou (ex: `CONTROL_CHARS_RE`, `DANGEROUS_TAGS_RE`, `exceedsLineLimit`).
-- **Quantas ocorrências** existem por tipo (3 zero-widths, 2 tags `<script>`, 5 linhas longas).
-- **Qual trecho exato** do prompt foi flagrado — o usuário ainda precisa caçar manualmente.
+Já temos toda a infraestrutura pronta:
+- `useCostEstimate` (hook) — calcula tokens/custo USD/BRL/latência.
+- `llmPricing.ts` — tabela de preços dos 9 modelos suportados.
+- `QUICK_AGENT_MOCK_INPUTS[type]` — input típico por tipo de agente, pra estimativa realista.
 
-Falta um **diagnóstico transparente** que abre cada issue em forma de "auditoria": regra, contagem, amostra do trecho com posição (linha:coluna), e ação rápida (pular para o trecho ou aplicar o auto-fix correspondente).
+Falta só **plugar isso no preview ao vivo**.
 
 ### O que muda na visão do usuário
 
-Abaixo das listas atuais de erros/warnings (e acima do painel de Auto-fix), aparece um novo bloco colapsável **"Diagnóstico técnico"** com um botão `Ver detalhes (N regras)`. Ao expandir, mostra uma **lista de cards**, um por regra detectada:
+Novo bloco compacto **"Custo estimado por execução"** dentro do `AgentLivePreviewCard`, logo abaixo da linha "modelo / seções / chars" e antes da Missão:
 
 ```
-┌─ 🔴 control_chars · Caracteres de controle ─────────────┐
-│ Regra: /[\x00-\x08\x0B\x0C\x0E-\x1F\x7F]/                │
-│ Ocorrências: 3 · Linhas afetadas: 12, 47, 88             │
-│                                                          │
-│ Amostra (linha 47, col 23):                              │
-│   "...descrição da \x07tarefa principal..."              │
-│                       ^                                  │
-│                                                          │
-│ [Ir para linha 47]  [Aplicar correção]                   │
-└──────────────────────────────────────────────────────────┘
+┌─ 💰 Custo estimado por execução ───────────────────────┐
+│ ~3.240 tokens · US$ 0.0048 · R$ 0,02  · ~1.2s         │
+│ [▓▓▓▓▓░░░░░] entrada 2.140  ·  saída 600              │
+│                                                        │
+│ Em 100 execuções/dia: ~US$ 0,48/dia · R$ 2,40/dia     │
+└────────────────────────────────────────────────────────┘
 ```
 
-Cada card mostra:
-1. **Severidade + ID da regra** (`error` vermelho / `warning` âmbar) — ex: `control_chars`, `zero_width`, `dangerous_html`, `js_uri`, `long_line`, `empty_block`, `exceeds_chars`, `exceeds_lines`.
-2. **Descrição PT-BR** do que a regra valida e por quê.
-3. **Padrão / limite** que disparou (regex resumida ou número-limite em mono).
-4. **Contagem** de ocorrências + lista de **linhas afetadas** (até 5, depois `+N`).
-5. **Amostra contextualizada**: 30 chars antes e depois do match na primeira ocorrência, com `^` apontando a coluna exata. Caracteres invisíveis aparecem escapados (`\x07`, `\u200B`).
-6. **Ações**: `Ir para linha X` (foca o textarea + scroll + seleciona o trecho) e — quando há fixer correspondente — `Aplicar correção` (delega ao `onApplyFix` existente, mesma lógica do auto-fix panel).
-
-Quando **não** há issues, o bloco inteiro não renderiza (UI limpa).
+Detalhes:
+1. **Linha principal**: total de tokens, custo USD, custo BRL, latência média estimada — em fonte mono compacta.
+2. **Barra horizontal segmentada** mostrando proporção entrada/saída (visual rápido pra entender se o prompt está "pesado" no system).
+3. **Projeção diária** com base em volume médio (100 exec/dia como default) — ajuda a contextualizar custos minúsculos por chamada que viram contas relevantes em escala.
+4. **Cores semânticas**: verde se custo < $0.01, âmbar se $0.01–$0.05, vermelho se > $0.05 por execução.
+5. **Tooltip no ícone 💰** explicando: _"Estimativa baseada no prompt atual + input médio de teste do tipo "{type}". Custo real varia conforme o input do usuário e tamanho da resposta."_
+6. **Pulso de sincronização**: o bloco participa do mesmo `pulsing` que o resto do card (já existente) — pisca quando o prompt/modelo muda.
 
 ### Como funciona (técnico)
 
-**1. Estender `promptSanitizer.ts`** com uma nova função `diagnosePrompt(prompt)` que devolve issues estruturadas (sem quebrar `getPromptIssues` existente, que continua para retro-compat):
+**1. Editar `AgentLivePreviewCard.tsx`** — adicionar uso do hook + render do bloco:
 
-```ts
-export interface PromptDiagnosticIssue {
-  id: 'control_chars' | 'zero_width' | 'dangerous_html' | 'js_uri'
-    | 'long_line' | 'empty_block' | 'exceeds_chars' | 'exceeds_lines';
-  level: 'error' | 'warning';
-  title: string;            // "Caracteres de controle"
-  description: string;      // explicação PT-BR do porquê
-  rulePattern: string;      // regex/limite legível
-  occurrences: number;
-  affectedLines: number[];
-  sample?: {
-    line: number;
-    column: number;
-    context: string;        // 30 chars antes + match + 30 depois
-    matchStart: number;     // offset relativo ao context, para o caret ^
-    matchLength: number;
-    escapedMatch?: string;  // "\x07" / "\u200B" para invisíveis
-  };
-  fixerId?: 'invisible' | 'longLines' | 'truncate' | 'empty';
-}
+```tsx
+import { useCostEstimate } from '@/hooks/useCostEstimate';
+import { QUICK_AGENT_MOCK_INPUTS } from '@/lib/quickAgentTemplates';
+import { Coins } from 'lucide-react';
+import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 
-export function diagnosePrompt(prompt: string): PromptDiagnosticIssue[];
+// Dentro do componente, após `sections`:
+const mockInput = QUICK_AGENT_MOCK_INPUTS[debounced.type]?.[0]?.input ?? '';
+const cost = useCostEstimate({
+  model: debounced.model,
+  systemPrompt: debounced.prompt,
+  userInput: mockInput,
+  maxTokens: 1000,
+  toolsCount: 0,
+});
+
+const dailyExecs = 100;
+const dailyUsd = cost.costUsd * dailyExecs;
+const dailyBrl = cost.costBrl * dailyExecs;
+
+const inputPct = Math.round((cost.inputTokens / cost.totalTokens) * 100);
+
+const tier: 'low' | 'mid' | 'high' =
+  cost.costUsd < 0.01 ? 'low' : cost.costUsd < 0.05 ? 'mid' : 'high';
+const tierColor = {
+  low: 'text-nexus-emerald',
+  mid: 'text-nexus-amber',
+  high: 'text-destructive',
+}[tier];
 ```
 
-A função roda os mesmos regexes/análises que já existem (`CONTROL_CHARS_RE`, `ZERO_WIDTH_RE`, `DANGEROUS_TAGS_RE`, `JS_URI_RE`, `analyzePromptStructure`) e converte cada match em uma issue com `sample` calculada via `text.split('\n')` para linha/coluna.
+**2. Render do bloco** (entre a identidade e a Missão, ~35 linhas):
 
-**2. Criar `PromptDiagnosticsPanel.tsx`** (~180 linhas):
+```tsx
+<div className="space-y-2 pt-2 border-t border-border/50">
+  <div className="flex items-center gap-1.5">
+    <Coins className="h-3 w-3 text-nexus-amber" />
+    <p className="text-[10px] uppercase tracking-wider text-muted-foreground">
+      Custo estimado por execução
+    </p>
+    <Tooltip>
+      <TooltipTrigger className="ml-auto text-muted-foreground hover:text-foreground">
+        <Info className="h-3 w-3" />
+      </TooltipTrigger>
+      <TooltipContent className="max-w-[260px] text-xs">
+        Estimativa com base no prompt atual + input médio do tipo "{debounced.type}".
+        Custo real varia conforme input do usuário e tamanho da resposta.
+      </TooltipContent>
+    </Tooltip>
+  </div>
 
-- Props: `{ prompt: string; onJumpToLine?: (line: number) => void; onApplyFix?: (fixerId, fixed, summary) => void }`.
-- Usa `useMemo([prompt], () => diagnosePrompt(prompt))`.
-- Header colapsável (`Collapsible` shadcn) com badge da contagem total.
-- Renderiza um `<Card>` por issue com layout descrito acima.
-- Amostra usa `<pre>` mono + linha do caret `^` alinhada via `padStart(matchStart, ' ')`.
-- Botão `Ir para linha X` chama `onJumpToLine(line)`.
-- Botão `Aplicar correção` aparece só se `fixerId` estiver presente — chama o fixer já exportado de `promptAutoFixers.ts` e delega `onApplyFix`.
+  <div className={`font-mono text-xs ${tierColor}`}>
+    ~{cost.totalTokens.toLocaleString('pt-BR')} tokens · US$ {cost.costUsd.toFixed(4)} ·
+    R$ {cost.costBrl.toFixed(2).replace('.', ',')} · ~{(cost.estLatencyMs / 1000).toFixed(1)}s
+  </div>
 
-**3. Editar `PromptValidationFeedback.tsx`** — adicionar:
+  {/* Barra entrada/saída */}
+  <div className="flex h-1.5 rounded-full overflow-hidden bg-secondary/40" aria-hidden>
+    <div className="bg-primary/70" style={{ width: `${inputPct}%` }} />
+    <div className="bg-nexus-amber/70" style={{ width: `${100 - inputPct}%` }} />
+  </div>
+  <div className="flex justify-between text-[10px] font-mono text-muted-foreground">
+    <span>entrada {cost.inputTokens.toLocaleString('pt-BR')}</span>
+    <span>saída {cost.outputTokens.toLocaleString('pt-BR')}</span>
+  </div>
 
-- Nova prop opcional `onJumpToLine?: (line: number) => void`.
-- Render de `<PromptDiagnosticsPanel prompt={prompt} onJumpToLine={onJumpToLine} onApplyFix={...} />` entre os warnings e o `PromptAutoFixPanel`.
+  <p className="text-[10px] text-muted-foreground pt-0.5 border-t border-border/30">
+    Em {dailyExecs} execuções/dia: <span className="font-mono">US$ {dailyUsd.toFixed(2)}</span> ·
+    <span className="font-mono"> R$ {dailyBrl.toFixed(2).replace('.', ',')}/dia</span>
+  </p>
+</div>
+```
 
-**4. Editar `StepQuickPrompt.tsx`** — implementar `handleJumpToLine(line)`:
-
-- Calcula offset do início da linha (`prompt.split('\n').slice(0, line-1).join('\n').length + 1`).
-- `textareaRef.current.focus()` + `setSelectionRange(start, end-da-linha)` + `scrollTop` proporcional.
-- Passa `onJumpToLine={handleJumpToLine}` para o `PromptValidationFeedback`.
+**3. Edge cases**:
+- Prompt vazio → custo ~$0.0001 (só system mínimo); bloco renderiza normalmente em verde.
+- Modelo não mapeado em `LLM_PRICING` → `getModelPrice` faz fallback pra `gemini-2.5-flash` (já implementado).
+- `mockInput` indisponível pro tipo → usa string vazia (custo só do system prompt + output estimado).
 
 ### Casos cobertos
 
-| Cenário | Diagnóstico exibido |
+| Cenário | O que aparece |
 |---|---|
-| Colei texto com `\x07` na linha 12 | Card `control_chars` · 1 ocorrência · linha 12 · amostra com `\x07` escapado · botões Ir/Aplicar. |
-| 3 zero-widths em linhas 5, 8, 22 | Card `zero_width` · 3 ocorrências · amostra da primeira com `\u200B` visível · 1 botão Aplicar. |
-| `<script>alert(1)</script>` colado | Card `dangerous_html` · 1 ocorrência · regra mostra `<script\|iframe\|...>` · amostra do trecho. |
-| Linha 47 com 612 chars | Card `long_line` · 1 ocorrência · linha 47 · amostra dos primeiros 60 chars + `…` · Aplicar = quebra. |
-| 2 blocos de 5 linhas em branco | Card `empty_block` warning · 2 ocorrências · linhas dos blocos · Aplicar = compacta. |
-| Prompt 9.230/8.000 chars | Card `exceeds_chars` · mostra excesso · Aplicar = trunca. |
-| Prompt limpo | Painel não renderiza. |
-| Click `Ir para linha 47` | Textarea foca, scrolla até a linha, seleciona o conteúdo dela. |
+| Prompt curto (500 chars) + Gemini Flash | `~830 tokens · US$ 0.0005 · R$ 0,00 · ~0.9s` (verde). |
+| Prompt grande (4.000 chars) + GPT-5 | `~1.700 tokens · US$ 0.0103 · R$ 0,05 · ~3.4s` (âmbar). |
+| Prompt enorme + GPT-5.2 + 4 ferramentas | `~3.900 tokens · US$ 0.0234 · R$ 0,12 · ~3.6s` (âmbar/vermelho). |
+| Trocou modelo de Pro → Flash | Bloco pulsa, valores caem na hora. |
+| Adicionou 1.000 chars no prompt | Tokens de entrada sobem em ~250, custo recalcula. |
 
 ### Arquivos tocados
 
-- **Editar** `src/lib/validations/promptSanitizer.ts` — adicionar `diagnosePrompt()` + tipo `PromptDiagnosticIssue` (~120 linhas novas, sem alterar APIs existentes).
-- **Criar** `src/components/agents/wizard/quickSteps/PromptDiagnosticsPanel.tsx` (~180 linhas).
-- **Editar** `src/components/agents/wizard/quickSteps/PromptValidationFeedback.tsx` — nova prop `onJumpToLine` + render do painel (~5 linhas).
-- **Editar** `src/components/agents/wizard/quickSteps/StepQuickPrompt.tsx` — implementar `handleJumpToLine` + passar prop (~15 linhas).
+- **Editar** `src/components/agents/wizard/quickSteps/AgentLivePreviewCard.tsx` — 3 imports + ~50 linhas de hook/render.
 
 ### Impacto
 
 - **Zero schema/backend, zero dependência nova.**
-- **Zero quebra**: `getPromptIssues` e `hasBlockingIssues` permanecem idênticos; a nova `diagnosePrompt` é aditiva. Props `onJumpToLine` e o painel são opcionais.
-- Reaproveita 100% dos regexes/limites de `promptSanitizer.ts` e os fixers de `promptAutoFixers.ts` — uma fonte de verdade.
-- Resolve a opacidade: o usuário deixa de ver "algo está errado" e passa a ver **qual regra**, **onde**, **quanto** e **como consertar** — em um só lugar.
+- **Zero quebra**: 100% aditivo no card existente; reaproveita `useCostEstimate` + `llmPricing` + `QUICK_AGENT_MOCK_INPUTS` sem tocá-los.
+- Resolve o ponto cego financeiro: o usuário vê **na hora** que trocar Gemini Flash por GPT-5.2 multiplica o custo por 20x — e decide com dado, não no susto da fatura.
 
