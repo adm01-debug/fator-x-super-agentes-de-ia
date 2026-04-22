@@ -47,9 +47,11 @@ interface SummaryProps {
   form: QuickAgentForm;
   /** When true, renders compactly (used inside dialogs). */
   compact?: boolean;
+  /** When provided, problem chips become clickable and jump the editor to that section. */
+  onJumpToSection?: (key: PromptSectionKey) => void;
 }
 
-export function PreflightReviewSummary({ form, compact = false }: SummaryProps) {
+export function PreflightReviewSummary({ form, compact = false, onJumpToSection }: SummaryProps) {
   const {
     sectionReports,
     thinSections,
