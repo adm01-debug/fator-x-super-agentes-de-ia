@@ -1,23 +1,35 @@
 /**
  * Nexus Agents Studio — Agent Handoff Protocol Service
- * 
+ *
  * Implements formal agent-to-agent handoffs inspired by:
  * - OpenAI Agents SDK (triage → specialist → escalation)
  * - Microsoft Agent Framework (typed handoffs with middleware)
  * - A2A Protocol (task lifecycle with context transfer)
- * 
+ *
  * A handoff transfers execution context from one agent to another,
  * preserving conversation history, state, and metadata.
  */
 
 // supabaseExternal import removed — this service uses fromTable for untyped tables
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
 import { fromTable } from '@/lib/supabaseExtended';
 
-export type { HandoffReason, HandoffStatus, HandoffContext, HandoffRequest, HandoffRecord, HandoffRule, HandoffCondition } from './types/agentHandoffTypes';
-import type { HandoffContext, HandoffRequest, HandoffRecord, HandoffRule, HandoffCondition } from './types/agentHandoffTypes';
-
+export type {
+  HandoffReason,
+  HandoffStatus,
+  HandoffContext,
+  HandoffRequest,
+  HandoffRecord,
+  HandoffRule,
+  HandoffCondition,
+} from './types/agentHandoffTypes';
+import type {
+  HandoffContext,
+  HandoffRequest,
+  HandoffRecord,
+  HandoffRule,
+  HandoffCondition,
+} from './types/agentHandoffTypes';
 
 // ──────── Handoff Execution ────────
 
@@ -40,10 +52,7 @@ export async function initiateHandoff(request: HandoffRequest): Promise<HandoffR
   };
 
   // Store in workflow_handoffs table
-  const { data, error } = await fromTable('workflow_handoffs')
-    .insert(record)
-    .select()
-    .single();
+  const { data, error } = await fromTable('workflow_handoffs').insert(record).select().single();
 
   if (error) throw new Error(`Failed to initiate handoff: ${error.message}`);
   return data as unknown as HandoffRecord;
@@ -70,7 +79,7 @@ export async function acceptHandoff(handoffId: string): Promise<HandoffRecord> {
  */
 export async function completeHandoff(
   handoffId: string,
-  response: Record<string, unknown>
+  response: Record<string, unknown>,
 ): Promise<HandoffRecord> {
   const { data, error } = await fromTable('workflow_handoffs')
     .update({
@@ -88,10 +97,7 @@ export async function completeHandoff(
 /**
  * Reject a handoff (target agent cannot handle it)
  */
-export async function rejectHandoff(
-  handoffId: string,
-  reason: string
-): Promise<HandoffRecord> {
+export async function rejectHandoff(handoffId: string, reason: string): Promise<HandoffRecord> {
   const { data, error } = await fromTable('workflow_handoffs')
     .update({
       status: 'rejected' as const,
@@ -108,10 +114,7 @@ export async function rejectHandoff(
 /**
  * Fail a handoff due to error
  */
-export async function failHandoff(
-  handoffId: string,
-  errorMsg: string
-): Promise<HandoffRecord> {
+export async function failHandoff(handoffId: string, errorMsg: string): Promise<HandoffRecord> {
   const { data, error } = await fromTable('workflow_handoffs')
     .update({
       status: 'failed' as const,
@@ -144,10 +147,7 @@ export async function getPendingHandoffs(targetAgentId: string): Promise<Handoff
 /**
  * Get handoff history for an agent (both sent and received)
  */
-export async function getHandoffHistory(
-  agentId: string,
-  limit = 50
-): Promise<HandoffRecord[]> {
+export async function getHandoffHistory(agentId: string, limit = 50): Promise<HandoffRecord[]> {
   const { data, error } = await fromTable('workflow_handoffs')
     .select('*')
     .or(`source_agent_id.eq.${agentId},target_agent_id.eq.${agentId}`)
@@ -183,7 +183,7 @@ export function evaluateHandoffRules(
     lastMessage: string;
     detectedIntent?: string;
     state: Record<string, unknown>;
-  }
+  },
 ): HandoffRule[] {
   return rules
     .filter((rule) => rule.enabled)
@@ -197,12 +197,12 @@ function matchesCondition(
     lastMessage: string;
     detectedIntent?: string;
     state: Record<string, unknown>;
-  }
+  },
 ): boolean {
   switch (condition.type) {
     case 'keyword':
       return (condition.keywords ?? []).some((kw) =>
-        context.lastMessage.toLowerCase().includes(kw.toLowerCase())
+        context.lastMessage.toLowerCase().includes(kw.toLowerCase()),
       );
 
     case 'intent':
@@ -216,14 +216,20 @@ function matchesCondition(
       const numField = Number(fieldValue);
       const numValue = Number(condition.value);
       switch (condition.operator) {
-        case 'gt': return numField > numValue;
-        case 'lt': return numField < numValue;
-        case 'eq': return numField === numValue;
-        case 'gte': return numField >= numValue;
-        case 'lte': return numField <= numValue;
+        case 'gt':
+          return numField > numValue;
+        case 'lt':
+          return numField < numValue;
+        case 'eq':
+          return numField === numValue;
+        case 'gte':
+          return numField >= numValue;
+        case 'lte':
+          return numField <= numValue;
         case 'contains':
           return String(fieldValue).toLowerCase().includes(String(condition.value).toLowerCase());
-        default: return false;
+        default:
+          return false;
       }
     }
 
@@ -245,14 +251,22 @@ function matchesCondition(
           const numField = Number(fieldVal);
           const numVal = Number(val);
           switch (op) {
-            case 'gt': return numField > numVal;
-            case 'lt': return numField < numVal;
-            case 'eq': return String(fieldVal) === val;
-            case 'gte': return numField >= numVal;
-            case 'lte': return numField <= numVal;
-            case 'contains': return String(fieldVal).toLowerCase().includes(val.toLowerCase());
-            case 'exists': return fieldVal !== undefined && fieldVal !== null;
-            default: return false;
+            case 'gt':
+              return numField > numVal;
+            case 'lt':
+              return numField < numVal;
+            case 'eq':
+              return String(fieldVal) === val;
+            case 'gte':
+              return numField >= numVal;
+            case 'lte':
+              return numField <= numVal;
+            case 'contains':
+              return String(fieldVal).toLowerCase().includes(val.toLowerCase());
+            case 'exists':
+              return fieldVal !== undefined && fieldVal !== null;
+            default:
+              return false;
           }
         }
         // Simple boolean field check: "fieldName"
@@ -283,21 +297,22 @@ export function prepareHandoffContext(
     includeSystemPrompt?: boolean;
     instructions?: string;
     artifacts?: HandoffContext['artifacts'];
-  }
+  },
 ): HandoffContext {
   const maxMessages = options?.maxMessages ?? 20;
 
   // Keep last N messages to fit context window
-  const trimmedMessages = messages.length > maxMessages
-    ? [
-        // Always keep the first system message if present
-        ...(messages[0]?.role === 'system' && options?.includeSystemPrompt !== false
-          ? [messages[0]]
-          : []),
-        // Then keep last N messages
-        ...messages.slice(-maxMessages),
-      ]
-    : messages;
+  const trimmedMessages =
+    messages.length > maxMessages
+      ? [
+          // Always keep the first system message if present
+          ...(messages[0]?.role === 'system' && options?.includeSystemPrompt !== false
+            ? [messages[0]]
+            : []),
+          // Then keep last N messages
+          ...messages.slice(-maxMessages),
+        ]
+      : messages;
 
   return {
     messages: trimmedMessages,
@@ -315,18 +330,18 @@ export async function triageHandoff(
   triageAgentId: string,
   userMessage: string,
   availableAgents: Array<{ id: string; name: string; description: string; skills: string[] }>,
-  conversationHistory: HandoffContext['messages']
+  conversationHistory: HandoffContext['messages'],
 ): Promise<HandoffRequest | null> {
   // Score each agent based on keyword matching (simple heuristic)
   const scores = availableAgents.map((agent) => {
     const msgLower = userMessage.toLowerCase();
     const skillMatches = agent.skills.filter((skill) =>
-      msgLower.includes(skill.toLowerCase())
+      msgLower.includes(skill.toLowerCase()),
     ).length;
-    const descMatch = agent.description.toLowerCase()
+    const descMatch = agent.description
+      .toLowerCase()
       .split(' ')
-      .filter((w) => w.length > 3 && msgLower.includes(w))
-      .length;
+      .filter((w) => w.length > 3 && msgLower.includes(w)).length;
 
     return {
       agent,
@@ -347,7 +362,7 @@ export async function triageHandoff(
     context: prepareHandoffContext(
       conversationHistory,
       { triageScore: best.score, matchedAgent: best.agent.name },
-      { instructions: `User needs help with: ${userMessage}. Route to ${best.agent.name}.` }
+      { instructions: `User needs help with: ${userMessage}. Route to ${best.agent.name}.` },
     ),
     priority: 3,
     reasonText: `Triage routed to ${best.agent.name} (score: ${best.score})`,

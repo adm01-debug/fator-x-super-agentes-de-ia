@@ -1,6 +1,6 @@
 import { getAuditLog } from '@/services/securityService';
-import { useQuery } from "@tanstack/react-query";
-import { Activity, Loader2 } from "lucide-react";
+import { useQuery } from '@tanstack/react-query';
+import { Activity, Loader2 } from 'lucide-react';
 
 const ACTION_LABELS: Record<string, { label: string; color: string }> = {
   'agent.create': { label: 'Agente criado', color: 'text-nexus-emerald' },
@@ -59,20 +59,27 @@ export function ActivityFeed() {
 
   return (
     <div className="space-y-1 max-h-[320px] overflow-y-auto">
-      {logs.map((log: any) => {
+      {logs.map((log) => {
         const action = String(log.action ?? '');
         const info = ACTION_LABELS[action] || { label: action, color: 'text-muted-foreground' };
         const meta = log.metadata as Record<string, string> | null;
         const detail = meta?.name || meta?.email || meta?.keyName || '';
 
         return (
-          <div key={log.id} className="flex items-center gap-3 py-1.5 px-2 rounded-lg hover:bg-secondary/30 text-xs transition-colors">
-            <div className={`w-1.5 h-1.5 rounded-full shrink-0 ${info.color.replace('text-', 'bg-')}`} />
+          <div
+            key={log.id}
+            className="flex items-center gap-3 py-1.5 px-2 rounded-lg hover:bg-secondary/30 text-xs transition-colors"
+          >
+            <div
+              className={`w-1.5 h-1.5 rounded-full shrink-0 ${info.color.replace('text-', 'bg-')}`}
+            />
             <div className="flex-1 min-w-0">
               <span className={`font-medium ${info.color}`}>{info.label}</span>
               {detail && <span className="text-muted-foreground ml-1.5 truncate">— {detail}</span>}
             </div>
-            <span className="text-[11px] text-muted-foreground shrink-0">{getRelativeTime(log.created_at ?? '')}</span>
+            <span className="text-[11px] text-muted-foreground shrink-0">
+              {getRelativeTime(log.created_at ?? '')}
+            </span>
           </div>
         );
       })}

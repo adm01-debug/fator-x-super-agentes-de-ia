@@ -14,7 +14,7 @@ interface AreaSeries {
 }
 
 interface Props {
-  data: Record<string, any>[];
+  data: Record<string, unknown>[];
   xKey: string;
   series: AreaSeries[];
   height?: number;
@@ -34,8 +34,15 @@ function niceMax(v: number) {
 }
 
 export function LightAreaChart({
-  data, xKey, series, height = 220, margin,
-  yFormatter = String, tooltipFormatter, showLegend = false, showGrid = true,
+  data,
+  xKey,
+  series,
+  height = 220,
+  margin,
+  yFormatter = String,
+  tooltipFormatter,
+  showLegend = false,
+  showGrid = true,
 }: Props) {
   const { ref, width, margin: m, inner } = useChartDimensions(margin);
   const [tooltip, setTooltip] = useState<TooltipState | null>(null);
@@ -61,11 +68,13 @@ export function LightAreaChart({
   const scaleY = (v: number) => inner.height - (v / yMax) * inner.height;
 
   const pathForSeries = (s: AreaSeries) => {
-    return data.map((d, i) => {
-      const x = scaleX(i);
-      const y = scaleY(Number(d[s.dataKey]) || 0);
-      return `${i === 0 ? 'M' : 'L'}${x},${y}`;
-    }).join(' ');
+    return data
+      .map((d, i) => {
+        const x = scaleX(i);
+        const y = scaleY(Number(d[s.dataKey]) || 0);
+        return `${i === 0 ? 'M' : 'L'}${x},${y}`;
+      })
+      .join(' ');
   };
 
   const areaForSeries = (s: AreaSeries) => {
@@ -80,14 +89,19 @@ export function LightAreaChart({
     if (!rect) return;
     const x = e.clientX - rect.left - m.left;
     const idx = Math.round((x / inner.width) * (data.length - 1));
-    if (idx < 0 || idx >= data.length) { setTooltip(null); return; }
+    if (idx < 0 || idx >= data.length) {
+      setTooltip(null);
+      return;
+    }
     const d = data[idx];
     setTooltip({
       x: m.left + scaleX(idx),
-      y: m.top + Math.min(...series.map(s => scaleY(Number(d[s.dataKey]) || 0))) - 4,
-      items: series.map(s => ({
+      y: m.top + Math.min(...series.map((s) => scaleY(Number(d[s.dataKey]) || 0))) - 4,
+      items: series.map((s) => ({
         label: s.name,
-        value: tooltipFormatter ? tooltipFormatter(Number(d[s.dataKey]) || 0, s.name) : String(Number(d[s.dataKey]) || 0),
+        value: tooltipFormatter
+          ? tooltipFormatter(Number(d[s.dataKey]) || 0, s.name)
+          : String(Number(d[s.dataKey]) || 0),
         color: s.stroke,
       })),
     });
@@ -106,24 +120,50 @@ export function LightAreaChart({
           ))}
         </defs>
         <g transform={`translate(${m.left},${m.top})`}>
-          {showGrid && ticks.map((t, i) => (
-            <g key={i}>
-              <line x1={0} x2={inner.width} y1={scaleY(t)} y2={scaleY(t)} stroke="hsl(var(--border))" strokeDasharray="3 3" opacity={0.5} />
-              <text x={-6} y={scaleY(t)} textAnchor="end" dominantBaseline="middle" className="fill-muted-foreground" style={{ fontSize: 10 }}>
-                {yFormatter(t)}
-              </text>
-            </g>
-          ))}
+          {showGrid &&
+            ticks.map((t, i) => (
+              <g key={i}>
+                <line
+                  x1={0}
+                  x2={inner.width}
+                  y1={scaleY(t)}
+                  y2={scaleY(t)}
+                  stroke="hsl(var(--border))"
+                  strokeDasharray="3 3"
+                  opacity={0.5}
+                />
+                <text
+                  x={-6}
+                  y={scaleY(t)}
+                  textAnchor="end"
+                  dominantBaseline="middle"
+                  className="fill-muted-foreground"
+                  style={{ fontSize: 10 }}
+                >
+                  {yFormatter(t)}
+                </text>
+              </g>
+            ))}
 
           {series.map((s, i) => (
             <g key={s.dataKey}>
               <path d={areaForSeries(s)} fill={s.fill || `url(#grad-${uid}-${i})`} />
-              <path d={pathForSeries(s)} fill="none" stroke={s.stroke} strokeWidth={s.strokeWidth ?? 2} />
+              <path
+                d={pathForSeries(s)}
+                fill="none"
+                stroke={s.stroke}
+                strokeWidth={s.strokeWidth ?? 2}
+              />
             </g>
           ))}
 
           {/* Invisible hover area */}
-          <rect x={0} y={0} width={inner.width} height={inner.height} fill="transparent"
+          <rect
+            x={0}
+            y={0}
+            width={inner.width}
+            height={inner.height}
+            fill="transparent"
             onMouseMove={handleMouseMove}
             onMouseLeave={() => setTooltip(null)}
           />
@@ -131,7 +171,14 @@ export function LightAreaChart({
           {data.map((d, i) => {
             if (i % labelInterval !== 0 && i !== data.length - 1) return null;
             return (
-              <text key={i} x={scaleX(i)} y={inner.height + 14} textAnchor="middle" className="fill-muted-foreground" style={{ fontSize: 10 }}>
+              <text
+                key={i}
+                x={scaleX(i)}
+                y={inner.height + 14}
+                textAnchor="middle"
+                className="fill-muted-foreground"
+                style={{ fontSize: 10 }}
+              >
                 {d[xKey]}
               </text>
             );
@@ -139,7 +186,9 @@ export function LightAreaChart({
         </g>
       </svg>
       <ChartTooltip tooltip={tooltip} />
-      {showLegend && <ChartLegend items={series.map(s => ({ label: s.name, color: s.stroke }))} />}
+      {showLegend && (
+        <ChartLegend items={series.map((s) => ({ label: s.name, color: s.stroke }))} />
+      )}
     </div>
   );
 }

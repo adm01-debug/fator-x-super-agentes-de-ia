@@ -1,23 +1,38 @@
-import { TableSkeleton } from "@/components/shared/PageSkeleton";
-import { PageHeader } from "@/components/shared/PageHeader";
-import { StatusBadge } from "@/components/shared/StatusBadge";
-import { Button } from "@/components/ui/button";
-import { Users, Trash2, CheckCircle } from "lucide-react";
-import { AccessControl, DangerousActionDialog } from "@/components/rbac";
-import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { getWorkspaceId } from "@/lib/agentService";
-import { useAuth } from "@/contexts/AuthContext";
-import { InviteMemberDialog } from "@/components/dialogs/InviteMemberDialog";
-import { toast } from "sonner";
-import { listMembers, removeMember, getPendingInvites, acceptInvite } from "@/services/teamsService";
+import { TableSkeleton } from '@/components/shared/PageSkeleton';
+import { PageHeader } from '@/components/shared/PageHeader';
+import { StatusBadge } from '@/components/shared/StatusBadge';
+import { Button } from '@/components/ui/button';
+import { Users, Trash2, CheckCircle } from 'lucide-react';
+import { AccessControl, DangerousActionDialog } from '@/components/rbac';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
+import { getWorkspaceId } from '@/lib/agentService';
+import { useAuth } from '@/contexts/AuthContext';
+import { InviteMemberDialog } from '@/components/dialogs/InviteMemberDialog';
+import { toast } from 'sonner';
+import {
+  listMembers,
+  removeMember,
+  getPendingInvites,
+  acceptInvite,
+} from '@/services/teamsService';
 
-const roleLabels: Record<string, string> = { admin: 'Admin', editor: 'Editor', viewer: 'Viewer', operator: 'Operator', owner: 'Owner' };
+const roleLabels: Record<string, string> = {
+  admin: 'Admin',
+  editor: 'Editor',
+  viewer: 'Viewer',
+  operator: 'Operator',
+  owner: 'Owner',
+};
 
 export default function TeamPage() {
   const { user } = useAuth();
   const queryClient = useQueryClient();
 
-  const { data: members = [], isLoading, refetch } = useQuery({
+  const {
+    data: members = [],
+    isLoading,
+    refetch,
+  } = useQuery({
     queryKey: ['workspace_members'],
     queryFn: async () => {
       const wsId = await getWorkspaceId();
@@ -46,7 +61,7 @@ export default function TeamPage() {
   const handleRemoveMember = async (memberId: string) => {
     try {
       const wsId = await getWorkspaceId();
-      const member = members.find((m: any) => m.id === memberId);
+      const member = members.find((m) => m.id === memberId);
       if (member?.user_id) await removeMember(wsId, member.user_id);
       toast.success('Membro removido');
       refetch();
@@ -66,15 +81,23 @@ export default function TeamPage() {
       {/* Pending invitations banner */}
       {pendingInvites.length > 0 && (
         <div className="space-y-2">
-          {pendingInvites.map((invite: any) => (
-            <div key={invite.id}
+          {pendingInvites.map((invite) => (
+            <div
+              key={invite.id}
               className="nexus-card border-primary/30 flex items-center justify-between"
             >
               <div>
-                <p className="text-sm font-medium text-foreground">Convite pendente para um workspace</p>
-                <p className="text-xs text-muted-foreground">Papel: {roleLabels[invite.role || 'editor'] || invite.role}</p>
+                <p className="text-sm font-medium text-foreground">
+                  Convite pendente para um workspace
+                </p>
+                <p className="text-xs text-muted-foreground">
+                  Papel: {roleLabels[invite.role || 'editor'] || invite.role}
+                </p>
               </div>
-              <Button onClick={() => handleAcceptInvite(invite.id)} className="nexus-gradient-bg text-primary-foreground gap-1.5">
+              <Button
+                onClick={() => handleAcceptInvite(invite.id)}
+                className="nexus-gradient-bg text-primary-foreground gap-1.5"
+              >
                 <CheckCircle className="h-4 w-4" /> Aceitar
               </Button>
             </div>
@@ -88,7 +111,9 @@ export default function TeamPage() {
         <div className="flex flex-col items-center justify-center py-20 text-center">
           <Users className="h-12 w-12 text-muted-foreground mb-4" />
           <h2 className="text-lg font-semibold text-foreground mb-1">Nenhum membro</h2>
-          <p className="text-sm text-muted-foreground">Convide membros para colaborar no workspace.</p>
+          <p className="text-sm text-muted-foreground">
+            Convide membros para colaborar no workspace.
+          </p>
         </div>
       ) : (
         <div className="nexus-card overflow-hidden p-0">
@@ -102,35 +127,55 @@ export default function TeamPage() {
               </tr>
             </thead>
             <tbody>
-              {members.map((m: any) => (
-                <tr key={m.id} className="border-b border-border/30 hover:bg-secondary/30 transition-colors">
+              {members.map((m) => (
+                <tr
+                  key={m.id}
+                  className="border-b border-border/30 hover:bg-secondary/30 transition-colors"
+                >
                   <td className="px-5 py-3">
                     <div className="flex items-center gap-3">
                       <div className="h-8 w-8 rounded-full nexus-gradient-bg flex items-center justify-center text-xs font-semibold text-primary-foreground">
                         {(m.name || m.email || '?')[0].toUpperCase()}
                       </div>
                       <div>
-                        <p className="text-sm font-medium text-foreground">{m.name || 'Sem nome'}</p>
+                        <p className="text-sm font-medium text-foreground">
+                          {m.name || 'Sem nome'}
+                        </p>
                         <p className="text-[11px] text-muted-foreground">{m.email || '—'}</p>
                       </div>
                     </div>
                   </td>
-                  <td className="px-5 py-3"><span className="nexus-badge-primary">{roleLabels[m.role || 'editor'] || m.role}</span></td>
-                  <td className="px-5 py-3"><StatusBadge status={m.accepted_at ? 'active' : 'invited'} /></td>
+                  <td className="px-5 py-3">
+                    <span className="nexus-badge-primary">
+                      {roleLabels[m.role || 'editor'] || m.role}
+                    </span>
+                  </td>
+                  <td className="px-5 py-3">
+                    <StatusBadge status={m.accepted_at ? 'active' : 'invited'} />
+                  </td>
                   <td className="px-5 py-3 text-right">
                     {m.user_id !== user?.id && (
                       <AccessControl permission="team.remove">
                         <DangerousActionDialog
                           trigger={
-                            <Button variant="ghost" size="sm" className="h-7 text-xs text-destructive gap-1">
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              className="h-7 text-xs text-destructive gap-1"
+                            >
                               <Trash2 className="h-3 w-3" /> Remover
                             </Button>
                           }
                           title="Remover membro do workspace"
                           description={
                             <>
-                              <p>O membro perderá imediatamente todos os acessos a este workspace.</p>
-                              <p>Conteúdo criado por ele permanece, mas não poderá mais acessar agentes, bases ou configurações.</p>
+                              <p>
+                                O membro perderá imediatamente todos os acessos a este workspace.
+                              </p>
+                              <p>
+                                Conteúdo criado por ele permanece, mas não poderá mais acessar
+                                agentes, bases ou configurações.
+                              </p>
                             </>
                           }
                           action="permission_revoke"

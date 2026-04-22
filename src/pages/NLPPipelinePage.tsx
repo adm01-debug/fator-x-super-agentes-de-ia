@@ -49,9 +49,10 @@ export default function NLPPipelinePage() {
       />
 
       <InfoHint title="Como funciona">
-        Pipeline de NLP customizada (v2.4) para o mercado brasileiro: detecta produtos, quantidades, cores, prazos,
-        telefones, CPF/CNPJ e classifica intenção/sentimento. Ideal para preprocessar mensagens de WhatsApp, e-mails de
-        cotação e tickets de suporte antes de roteamento por agente.
+        Pipeline de NLP customizada (v2.4) para o mercado brasileiro: detecta produtos, quantidades,
+        cores, prazos, telefones, CPF/CNPJ e classifica intenção/sentimento. Ideal para preprocessar
+        mensagens de WhatsApp, e-mails de cotação e tickets de suporte antes de roteamento por
+        agente.
       </InfoHint>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
@@ -75,23 +76,30 @@ export default function NLPPipelinePage() {
           />
 
           <div className="space-y-2">
-            <p className="text-[11px] text-muted-foreground font-semibold uppercase tracking-wide">Pipelines</p>
+            <p className="text-[11px] text-muted-foreground font-semibold uppercase tracking-wide">
+              Pipelines
+            </p>
             <div className="flex gap-4">
-              <label className="flex items-center gap-2 text-xs cursor-pointer">
+              <span className="flex items-center gap-2 text-xs cursor-pointer">
                 <Checkbox checked={usesNer} onCheckedChange={(v) => setUsesNer(v === true)} />
                 <Tag className="h-3.5 w-3.5 text-nexus-blue" />
                 NER (entidades)
-              </label>
-              <label className="flex items-center gap-2 text-xs cursor-pointer">
-                <Checkbox checked={usesSentiment} onCheckedChange={(v) => setUsesSentiment(v === true)} />
+              </span>
+              <span className="flex items-center gap-2 text-xs cursor-pointer">
+                <Checkbox
+                  checked={usesSentiment}
+                  onCheckedChange={(v) => setUsesSentiment(v === true)}
+                />
                 <Heart className="h-3.5 w-3.5 text-nexus-pink" />
                 Sentimento
-              </label>
+              </span>
             </div>
           </div>
 
           <div className="space-y-2">
-            <p className="text-[11px] text-muted-foreground font-semibold uppercase tracking-wide">Exemplos</p>
+            <p className="text-[11px] text-muted-foreground font-semibold uppercase tracking-wide">
+              Exemplos
+            </p>
             <div className="flex flex-wrap gap-1.5">
               {SAMPLE_TEXTS.map((sample, i) => (
                 <Button
@@ -112,7 +120,11 @@ export default function NLPPipelinePage() {
             onClick={handleAnalyze}
             disabled={loading || !text.trim() || pipeline.length === 0}
           >
-            {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Sparkles className="h-4 w-4" />}
+            {loading ? (
+              <Loader2 className="h-4 w-4 animate-spin" />
+            ) : (
+              <Sparkles className="h-4 w-4" />
+            )}
             Analisar texto
           </Button>
 
@@ -190,13 +202,17 @@ export default function NLPPipelinePage() {
                 <div className="rounded-lg border border-border bg-card p-3">
                   <div className="flex items-center gap-2 mb-2">
                     <Tag className="h-4 w-4 text-nexus-blue" />
-                    <span className="text-xs font-semibold">Entidades detectadas ({result.ner.entity_count})</span>
+                    <span className="text-xs font-semibold">
+                      Entidades detectadas ({result.ner.entity_count})
+                    </span>
                   </div>
                   <div className="flex flex-wrap gap-1.5">
                     {result.ner.entities.map((e, i) => (
                       <Badge key={i} variant="outline" className="text-[10px] gap-1">
                         <span className="font-bold">{e.type}</span>: {e.value}
-                        <span className="text-muted-foreground">({(e.confidence * 100).toFixed(0)}%)</span>
+                        <span className="text-muted-foreground">
+                          ({(e.confidence * 100).toFixed(0)}%)
+                        </span>
                       </Badge>
                     ))}
                   </div>
@@ -216,7 +232,9 @@ export default function NLPPipelinePage() {
                       {Object.entries(result.ner.structured_order).map(([key, val]) =>
                         val ? (
                           <div key={key} className="bg-background/50 rounded px-2 py-1">
-                            <span className="text-muted-foreground capitalize">{key.replace(/_/g, ' ')}: </span>
+                            <span className="text-muted-foreground capitalize">
+                              {key.replace(/_/g, ' ')}:{' '}
+                            </span>
                             <span className="font-semibold">{String(val)}</span>
                           </div>
                         ) : null,

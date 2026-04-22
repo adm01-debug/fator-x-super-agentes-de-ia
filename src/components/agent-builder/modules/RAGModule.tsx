@@ -7,21 +7,68 @@ import type { RAGArchitecture, VectorDB } from '@/types/agentTypes';
 import { Plus, Trash2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 
-const RAG_ARCHITECTURES: { id: RAGArchitecture; icon: string; title: string; description: string; badge?: string }[] = [
-  { id: 'naive', icon: '📄', title: 'Naive RAG', description: 'Embed → retrieve → generate. Simples e rápido.' },
-  { id: 'advanced', icon: '🔬', title: 'Advanced RAG', description: 'Com reranking, query expansion e feedback loop.' },
-  { id: 'modular', icon: '🧩', title: 'Modular RAG', description: 'Pipeline customizável com módulos intercambiáveis.' },
-  { id: 'agentic', icon: '🤖', title: 'Agentic RAG', description: 'O agente decide quando e como buscar contexto.', badge: 'Recomendado' },
-  { id: 'graph_rag', icon: '🕸️', title: 'Graph RAG', description: 'Combina grafos de conhecimento com recuperação vetorial.' },
+const RAG_ARCHITECTURES: {
+  id: RAGArchitecture;
+  icon: string;
+  title: string;
+  description: string;
+  badge?: string;
+}[] = [
+  {
+    id: 'naive',
+    icon: '📄',
+    title: 'Naive RAG',
+    description: 'Embed → retrieve → generate. Simples e rápido.',
+  },
+  {
+    id: 'advanced',
+    icon: '🔬',
+    title: 'Advanced RAG',
+    description: 'Com reranking, query expansion e feedback loop.',
+  },
+  {
+    id: 'modular',
+    icon: '🧩',
+    title: 'Modular RAG',
+    description: 'Pipeline customizável com módulos intercambiáveis.',
+  },
+  {
+    id: 'agentic',
+    icon: '🤖',
+    title: 'Agentic RAG',
+    description: 'O agente decide quando e como buscar contexto.',
+    badge: 'Recomendado',
+  },
+  {
+    id: 'graph_rag',
+    icon: '🕸️',
+    title: 'Graph RAG',
+    description: 'Combina grafos de conhecimento com recuperação vetorial.',
+  },
 ];
 
 const VECTOR_DBS: { id: VectorDB; icon: string; title: string; description: string }[] = [
   { id: 'qdrant', icon: '🔷', title: 'Qdrant', description: 'Alto desempenho, filtros avançados.' },
-  { id: 'pinecone', icon: '🌲', title: 'Pinecone', description: 'Serverless, escalável e gerenciado.' },
+  {
+    id: 'pinecone',
+    icon: '🌲',
+    title: 'Pinecone',
+    description: 'Serverless, escalável e gerenciado.',
+  },
   { id: 'chroma', icon: '🎨', title: 'Chroma', description: 'Open-source, simples de usar.' },
-  { id: 'pgvector', icon: '🐘', title: 'pgvector', description: 'Extensão PostgreSQL. Sem infra extra.' },
+  {
+    id: 'pgvector',
+    icon: '🐘',
+    title: 'pgvector',
+    description: 'Extensão PostgreSQL. Sem infra extra.',
+  },
   { id: 'weaviate', icon: '🔮', title: 'Weaviate', description: 'Busca híbrida nativa e GraphQL.' },
-  { id: 'lancedb', icon: '🗄️', title: 'LanceDB', description: 'Serverless e embarcado. Zero config.' },
+  {
+    id: 'lancedb',
+    icon: '🗄️',
+    title: 'LanceDB',
+    description: 'Serverless e embarcado. Zero config.',
+  },
 ];
 
 const EMBEDDING_MODELS = [
@@ -118,7 +165,11 @@ export function RAGModule() {
 
       {/* Seção C — Pipeline de Ingestão */}
       <section>
-        <SectionTitle icon="⚙️" title="Pipeline de Ingestão" subtitle="Configuração de chunking, embedding e indexação." />
+        <SectionTitle
+          icon="⚙️"
+          title="Pipeline de Ingestão"
+          subtitle="Configuração de chunking, embedding e indexação."
+        />
         <div className="rounded-xl border border-border bg-card p-4 mb-4 overflow-x-auto">
           <PipelineFlow steps={RAG_PIPELINE_STEPS} />
         </div>
@@ -152,7 +203,11 @@ export function RAGModule() {
 
       {/* Seção D — Retrieval Config */}
       <section>
-        <SectionTitle icon="🔍" title="Configuração de Retrieval" subtitle="Como o agente busca e filtra contexto relevante." />
+        <SectionTitle
+          icon="🔍"
+          title="Configuração de Retrieval"
+          subtitle="Como o agente busca e filtra contexto relevante."
+        />
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           <SliderField
             label="Top K"
@@ -211,12 +266,16 @@ export function RAGModule() {
               icon="📄"
               title={source.name || 'Nova Fonte'}
               subtitle={source.location || 'Sem localização definida'}
-              badge={<NexusBadge color={source.enabled ? 'green' : 'muted'}>{source.enabled ? 'Ativa' : 'Inativa'}</NexusBadge>}
+              badge={
+                <NexusBadge color={source.enabled ? 'green' : 'muted'}>
+                  {source.enabled ? 'Ativa' : 'Inativa'}
+                </NexusBadge>
+              }
             >
               <div className="space-y-4">
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <div className="space-y-1.5">
-                    <label className="text-xs font-medium text-foreground">Nome</label>
+                    <span className="text-xs font-medium text-foreground">Nome</span>
                     <input
                       className="w-full rounded-lg border border-border bg-muted/30 px-3 py-2 text-sm text-foreground"
                       value={source.name}
@@ -232,7 +291,7 @@ export function RAGModule() {
                   />
                 </div>
                 <div className="space-y-1.5">
-                  <label className="text-xs font-medium text-foreground">Localização / URL</label>
+                  <span className="text-xs font-medium text-foreground">Localização / URL</span>
                   <input
                     className="w-full rounded-lg border border-border bg-muted/30 px-3 py-2 text-sm text-foreground"
                     value={source.location}
@@ -278,19 +337,44 @@ export function RAGModule() {
 
       {/* Seção F — Quality Panel */}
       <section>
-        <SectionTitle icon="📊" title="Qualidade do RAG" subtitle="Resumo da configuração atual do pipeline RAG." />
+        <SectionTitle
+          icon="📊"
+          title="Qualidade do RAG"
+          subtitle="Resumo da configuração atual do pipeline RAG."
+        />
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-          <ConfigCard icon="📐" title="Arquitetura" description={RAG_ARCHITECTURES.find((a) => a.id === agent.rag_architecture)?.title ?? agent.rag_architecture} />
-          <ConfigCard icon="🗄️" title="Vector DB" description={VECTOR_DBS.find((d) => d.id === agent.rag_vector_db)?.title ?? agent.rag_vector_db} />
-          <ConfigCard icon="📄" title="Fontes" description={`${agent.rag_sources.filter((s) => s.enabled).length} ativas`} />
+          <ConfigCard
+            icon="📐"
+            title="Arquitetura"
+            description={
+              RAG_ARCHITECTURES.find((a) => a.id === agent.rag_architecture)?.title ??
+              agent.rag_architecture
+            }
+          />
+          <ConfigCard
+            icon="🗄️"
+            title="Vector DB"
+            description={
+              VECTOR_DBS.find((d) => d.id === agent.rag_vector_db)?.title ?? agent.rag_vector_db
+            }
+          />
+          <ConfigCard
+            icon="📄"
+            title="Fontes"
+            description={`${agent.rag_sources.filter((s) => s.enabled).length} ativas`}
+          />
           <ConfigCard
             icon="✅"
             title="Features"
-            description={[
-              agent.rag_reranker && 'Reranker',
-              agent.rag_hybrid_search && 'Híbrida',
-              agent.rag_metadata_filtering && 'Metadados',
-            ].filter(Boolean).join(', ') || 'Nenhuma'}
+            description={
+              [
+                agent.rag_reranker && 'Reranker',
+                agent.rag_hybrid_search && 'Híbrida',
+                agent.rag_metadata_filtering && 'Metadados',
+              ]
+                .filter(Boolean)
+                .join(', ') || 'Nenhuma'
+            }
           />
         </div>
       </section>

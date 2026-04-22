@@ -58,7 +58,7 @@ export function SearchTab() {
 
   useEffect(() => {
     listKnowledgeBases()
-      .then((kbs) => setKnowledgeBases(kbs.map((kb: any) => ({ id: kb.id, name: kb.name }))))
+      .then((kbs) => setKnowledgeBases(kbs.map((kb) => ({ id: kb.id, name: kb.name }))))
       .catch(() => {
         /* KBs unavailable — search still works without filter */
       });

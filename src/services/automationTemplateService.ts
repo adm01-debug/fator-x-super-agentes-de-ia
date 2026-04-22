@@ -14,8 +14,6 @@
 import { fromTable, rpcCall } from '@/lib/supabaseExtended';
 import { supabase } from '@/integrations/supabase/client';
 
-
-
 /* ------------------------------------------------------------------ */
 /*  Types                                                              */
 /* ------------------------------------------------------------------ */
@@ -84,15 +82,13 @@ export interface InstalledTemplate {
 /*  CRUD Operations                                                    */
 /* ------------------------------------------------------------------ */
 
-export async function listTemplates(
-  filters?: {
-    category?: TemplateCategory;
-    difficulty?: TemplateDifficulty;
-    tag?: string;
-    featured?: boolean;
-    search?: string;
-  },
-): Promise<AutomationTemplate[]> {
+export async function listTemplates(filters?: {
+  category?: TemplateCategory;
+  difficulty?: TemplateDifficulty;
+  tag?: string;
+  featured?: boolean;
+  search?: string;
+}): Promise<AutomationTemplate[]> {
   let query = fromTable('automation_templates')
     .select('*')
     .eq('is_active', true)
@@ -145,7 +141,6 @@ export async function installTemplate(
     .single();
   if (error) throw error;
 
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   await rpcCall('increment_template_installs', { template_uuid: templateId });
 
   return data as InstalledTemplate;
@@ -175,8 +170,10 @@ export const BUILTIN_TEMPLATES: Omit<
   {
     name: 'Lead → Orçamento Automático',
     slug: 'lead-to-quote',
-    description: 'Quando um lead entra pelo WhatsApp, cria oportunidade no Bitrix24 e envia orçamento automático.',
-    long_description: 'Automação completa do funil de vendas: captura o lead via WhatsApp, identifica o produto desejado, busca preço no catálogo, gera orçamento em PDF e envia para o cliente. Cria deal no Bitrix24 com todos os dados.',
+    description:
+      'Quando um lead entra pelo WhatsApp, cria oportunidade no Bitrix24 e envia orçamento automático.',
+    long_description:
+      'Automação completa do funil de vendas: captura o lead via WhatsApp, identifica o produto desejado, busca preço no catálogo, gera orçamento em PDF e envia para o cliente. Cria deal no Bitrix24 com todos os dados.',
     category: 'vendas',
     difficulty: 'intermediate',
     tags: ['whatsapp', 'bitrix24', 'orcamento', 'lead'],
@@ -184,12 +181,63 @@ export const BUILTIN_TEMPLATES: Omit<
     color: '#4D96FF',
     trigger_type: 'webhook:whatsapp_message',
     steps: [
-      { order: 1, name: 'Receber mensagem WhatsApp', type: 'trigger', service: 'whatsapp', operation: 'message.received', config: {}, on_error: 'stop' },
-      { order: 2, name: 'Identificar intenção com IA', type: 'action', service: 'llm', operation: 'classify', config: { model: 'claude-sonnet', prompt: 'Classifique a mensagem como: orcamento, duvida, reclamacao, outro' }, on_error: 'continue' },
-      { order: 3, name: 'Verificar se é orçamento', type: 'condition', service: 'logic', operation: 'equals', config: { field: 'intent', value: 'orcamento' }, on_error: 'stop' },
-      { order: 4, name: 'Buscar produto no catálogo', type: 'action', service: 'supabaseExternal', operation: 'query', config: { table: 'products', match: 'name' }, on_error: 'retry' },
-      { order: 5, name: 'Criar deal no Bitrix24', type: 'action', service: 'bitrix24', operation: 'deal.add', config: { stage: 'NEW' }, on_error: 'retry' },
-      { order: 6, name: 'Enviar orçamento via WhatsApp', type: 'notification', service: 'whatsapp', operation: 'send_message', config: { template: 'orcamento_v1' }, on_error: 'retry' },
+      {
+        order: 1,
+        name: 'Receber mensagem WhatsApp',
+        type: 'trigger',
+        service: 'whatsapp',
+        operation: 'message.received',
+        config: {},
+        on_error: 'stop',
+      },
+      {
+        order: 2,
+        name: 'Identificar intenção com IA',
+        type: 'action',
+        service: 'llm',
+        operation: 'classify',
+        config: {
+          model: 'claude-sonnet',
+          prompt: 'Classifique a mensagem como: orcamento, duvida, reclamacao, outro',
+        },
+        on_error: 'continue',
+      },
+      {
+        order: 3,
+        name: 'Verificar se é orçamento',
+        type: 'condition',
+        service: 'logic',
+        operation: 'equals',
+        config: { field: 'intent', value: 'orcamento' },
+        on_error: 'stop',
+      },
+      {
+        order: 4,
+        name: 'Buscar produto no catálogo',
+        type: 'action',
+        service: 'supabaseExternal',
+        operation: 'query',
+        config: { table: 'products', match: 'name' },
+        on_error: 'retry',
+      },
+      {
+        order: 5,
+        name: 'Criar deal no Bitrix24',
+        type: 'action',
+        service: 'bitrix24',
+        operation: 'deal.add',
+        config: { stage: 'NEW' },
+        on_error: 'retry',
+      },
+      {
+        order: 6,
+        name: 'Enviar orçamento via WhatsApp',
+        type: 'notification',
+        service: 'whatsapp',
+        operation: 'send_message',
+        config: { template: 'orcamento_v1' },
+        on_error: 'retry',
+      },
     ],
     required_integrations: ['whatsapp', 'bitrix24', 'llm'],
     required_credentials: ['whatsapp_evolution', 'bitrix24', 'anthropic'],
@@ -202,8 +250,10 @@ export const BUILTIN_TEMPLATES: Omit<
   {
     name: 'Pedido Aprovado → Compras',
     slug: 'deal-approved-to-purchase',
-    description: 'Quando o cliente aprova o orçamento, cria automaticamente o pedido de compra para o setor de Compras.',
-    long_description: 'Monitora mudanças de stage no Bitrix24. Quando um deal muda para "Aprovado pelo Cliente", extrai os itens, verifica estoque, seleciona fornecedores e cria o pedido de compra com notificação ao comprador.',
+    description:
+      'Quando o cliente aprova o orçamento, cria automaticamente o pedido de compra para o setor de Compras.',
+    long_description:
+      'Monitora mudanças de stage no Bitrix24. Quando um deal muda para "Aprovado pelo Cliente", extrai os itens, verifica estoque, seleciona fornecedores e cria o pedido de compra com notificação ao comprador.',
     category: 'compras',
     difficulty: 'intermediate',
     tags: ['bitrix24', 'compras', 'pedido', 'fornecedor'],
@@ -211,12 +261,60 @@ export const BUILTIN_TEMPLATES: Omit<
     color: '#9B59B6',
     trigger_type: 'webhook:bitrix24_deal_update',
     steps: [
-      { order: 1, name: 'Deal atualizado no Bitrix24', type: 'trigger', service: 'bitrix24', operation: 'deal.updated', config: { stage: 'WON' }, on_error: 'stop' },
-      { order: 2, name: 'Buscar itens do deal', type: 'action', service: 'bitrix24', operation: 'deal.productrows.get', config: {}, on_error: 'retry' },
-      { order: 3, name: 'Verificar estoque', type: 'action', service: 'supabaseExternal', operation: 'query', config: { table: 'inventory' }, on_error: 'continue' },
-      { order: 4, name: 'Selecionar fornecedor', type: 'action', service: 'supabaseExternal', operation: 'query', config: { table: 'suppliers', order_by: 'price' }, on_error: 'retry' },
-      { order: 5, name: 'Criar pedido de compra', type: 'action', service: 'supabaseExternal', operation: 'insert', config: { table: 'purchase_orders' }, on_error: 'stop' },
-      { order: 6, name: 'Notificar comprador', type: 'notification', service: 'notification', operation: 'send', config: { channel: 'whatsapp', template: 'purchase_order' }, on_error: 'continue' },
+      {
+        order: 1,
+        name: 'Deal atualizado no Bitrix24',
+        type: 'trigger',
+        service: 'bitrix24',
+        operation: 'deal.updated',
+        config: { stage: 'WON' },
+        on_error: 'stop',
+      },
+      {
+        order: 2,
+        name: 'Buscar itens do deal',
+        type: 'action',
+        service: 'bitrix24',
+        operation: 'deal.productrows.get',
+        config: {},
+        on_error: 'retry',
+      },
+      {
+        order: 3,
+        name: 'Verificar estoque',
+        type: 'action',
+        service: 'supabaseExternal',
+        operation: 'query',
+        config: { table: 'inventory' },
+        on_error: 'continue',
+      },
+      {
+        order: 4,
+        name: 'Selecionar fornecedor',
+        type: 'action',
+        service: 'supabaseExternal',
+        operation: 'query',
+        config: { table: 'suppliers', order_by: 'price' },
+        on_error: 'retry',
+      },
+      {
+        order: 5,
+        name: 'Criar pedido de compra',
+        type: 'action',
+        service: 'supabaseExternal',
+        operation: 'insert',
+        config: { table: 'purchase_orders' },
+        on_error: 'stop',
+      },
+      {
+        order: 6,
+        name: 'Notificar comprador',
+        type: 'notification',
+        service: 'notification',
+        operation: 'send',
+        config: { channel: 'whatsapp', template: 'purchase_order' },
+        on_error: 'continue',
+      },
     ],
     required_integrations: ['bitrix24', 'supabaseExternal'],
     required_credentials: ['bitrix24', 'supabase_project'],
@@ -229,8 +327,10 @@ export const BUILTIN_TEMPLATES: Omit<
   {
     name: 'Rastreamento → Notificação Cliente',
     slug: 'tracking-to-notification',
-    description: 'Monitora atualizações de rastreamento e notifica o cliente via WhatsApp a cada mudança de status.',
-    long_description: 'Recebe webhooks de transportadoras, cruza com pedidos no banco, e envia mensagem personalizada ao cliente informando a posição da entrega. Alerta o time de logística em caso de atraso.',
+    description:
+      'Monitora atualizações de rastreamento e notifica o cliente via WhatsApp a cada mudança de status.',
+    long_description:
+      'Recebe webhooks de transportadoras, cruza com pedidos no banco, e envia mensagem personalizada ao cliente informando a posição da entrega. Alerta o time de logística em caso de atraso.',
     category: 'logistica',
     difficulty: 'beginner',
     tags: ['logistica', 'rastreamento', 'whatsapp', 'cliente'],
@@ -238,10 +338,42 @@ export const BUILTIN_TEMPLATES: Omit<
     color: '#6BCB77',
     trigger_type: 'webhook:delivery_tracking',
     steps: [
-      { order: 1, name: 'Webhook de rastreamento', type: 'trigger', service: 'webhook', operation: 'receive', config: {}, on_error: 'stop' },
-      { order: 2, name: 'Buscar pedido e cliente', type: 'action', service: 'supabaseExternal', operation: 'query', config: { table: 'orders', join: 'clients' }, on_error: 'retry' },
-      { order: 3, name: 'Verificar atraso', type: 'condition', service: 'logic', operation: 'date_compare', config: { field: 'estimated_delivery', operator: 'before', value: 'now' }, on_error: 'continue' },
-      { order: 4, name: 'Notificar cliente', type: 'notification', service: 'whatsapp', operation: 'send_message', config: { template: 'delivery_update' }, on_error: 'retry' },
+      {
+        order: 1,
+        name: 'Webhook de rastreamento',
+        type: 'trigger',
+        service: 'webhook',
+        operation: 'receive',
+        config: {},
+        on_error: 'stop',
+      },
+      {
+        order: 2,
+        name: 'Buscar pedido e cliente',
+        type: 'action',
+        service: 'supabaseExternal',
+        operation: 'query',
+        config: { table: 'orders', join: 'clients' },
+        on_error: 'retry',
+      },
+      {
+        order: 3,
+        name: 'Verificar atraso',
+        type: 'condition',
+        service: 'logic',
+        operation: 'date_compare',
+        config: { field: 'estimated_delivery', operator: 'before', value: 'now' },
+        on_error: 'continue',
+      },
+      {
+        order: 4,
+        name: 'Notificar cliente',
+        type: 'notification',
+        service: 'whatsapp',
+        operation: 'send_message',
+        config: { template: 'delivery_update' },
+        on_error: 'retry',
+      },
     ],
     required_integrations: ['whatsapp', 'supabaseExternal'],
     required_credentials: ['whatsapp_evolution', 'supabase_project'],
@@ -254,8 +386,10 @@ export const BUILTIN_TEMPLATES: Omit<
   {
     name: 'Briefing Arte → Aprovação',
     slug: 'art-briefing-to-approval',
-    description: 'Recebe briefing do comercial, cria tarefa para o time de Arte, e gerencia o ciclo de aprovação com o cliente.',
-    long_description: 'Fluxo completo: recebe briefing via formulário, cria tarefa no Bitrix24 para o designer, notifica quando arte está pronta, envia link de preview ao cliente, gerencia aprovação/rejeição.',
+    description:
+      'Recebe briefing do comercial, cria tarefa para o time de Arte, e gerencia o ciclo de aprovação com o cliente.',
+    long_description:
+      'Fluxo completo: recebe briefing via formulário, cria tarefa no Bitrix24 para o designer, notifica quando arte está pronta, envia link de preview ao cliente, gerencia aprovação/rejeição.',
     category: 'arte',
     difficulty: 'intermediate',
     tags: ['arte', 'briefing', 'aprovacao', 'bitrix24'],
@@ -263,11 +397,51 @@ export const BUILTIN_TEMPLATES: Omit<
     color: '#E67E22',
     trigger_type: 'webhook:form_submission',
     steps: [
-      { order: 1, name: 'Formulário de briefing', type: 'trigger', service: 'webhook', operation: 'form_received', config: {}, on_error: 'stop' },
-      { order: 2, name: 'Criar tarefa no Bitrix24', type: 'action', service: 'bitrix24', operation: 'task.add', config: { responsible: 'designer', priority: 'high' }, on_error: 'retry' },
-      { order: 3, name: 'Notificar designer', type: 'notification', service: 'notification', operation: 'send', config: { channel: 'in_app' }, on_error: 'continue' },
-      { order: 4, name: 'Aguardar conclusão', type: 'delay', service: 'scheduler', operation: 'wait_for_event', config: { event: 'task.completed', timeout: '48h' }, on_error: 'continue' },
-      { order: 5, name: 'Enviar para aprovação do cliente', type: 'notification', service: 'whatsapp', operation: 'send_message', config: { template: 'art_approval' }, on_error: 'retry' },
+      {
+        order: 1,
+        name: 'Formulário de briefing',
+        type: 'trigger',
+        service: 'webhook',
+        operation: 'form_received',
+        config: {},
+        on_error: 'stop',
+      },
+      {
+        order: 2,
+        name: 'Criar tarefa no Bitrix24',
+        type: 'action',
+        service: 'bitrix24',
+        operation: 'task.add',
+        config: { responsible: 'designer', priority: 'high' },
+        on_error: 'retry',
+      },
+      {
+        order: 3,
+        name: 'Notificar designer',
+        type: 'notification',
+        service: 'notification',
+        operation: 'send',
+        config: { channel: 'in_app' },
+        on_error: 'continue',
+      },
+      {
+        order: 4,
+        name: 'Aguardar conclusão',
+        type: 'delay',
+        service: 'scheduler',
+        operation: 'wait_for_event',
+        config: { event: 'task.completed', timeout: '48h' },
+        on_error: 'continue',
+      },
+      {
+        order: 5,
+        name: 'Enviar para aprovação do cliente',
+        type: 'notification',
+        service: 'whatsapp',
+        operation: 'send_message',
+        config: { template: 'art_approval' },
+        on_error: 'retry',
+      },
     ],
     required_integrations: ['bitrix24', 'whatsapp'],
     required_credentials: ['bitrix24', 'whatsapp_evolution'],
@@ -280,8 +454,10 @@ export const BUILTIN_TEMPLATES: Omit<
   {
     name: 'Fechamento Financeiro Diário',
     slug: 'daily-financial-close',
-    description: 'Todo dia às 18h, consolida contas a pagar/receber, calcula fluxo de caixa e envia relatório.',
-    long_description: 'Automação financeira: roda query no banco de dados para consolidar movimentações do dia, calcula saldo, identifica faturas vencidas, gera relatório resumido e envia para o diretor financeiro.',
+    description:
+      'Todo dia às 18h, consolida contas a pagar/receber, calcula fluxo de caixa e envia relatório.',
+    long_description:
+      'Automação financeira: roda query no banco de dados para consolidar movimentações do dia, calcula saldo, identifica faturas vencidas, gera relatório resumido e envia para o diretor financeiro.',
     category: 'financeiro',
     difficulty: 'advanced',
     tags: ['financeiro', 'relatorio', 'diario', 'fluxo-caixa'],
@@ -289,12 +465,60 @@ export const BUILTIN_TEMPLATES: Omit<
     color: '#FFD93D',
     trigger_type: 'cron:0 18 * * 1-5',
     steps: [
-      { order: 1, name: 'Trigger diário 18h (Seg-Sex)', type: 'trigger', service: 'scheduler', operation: 'cron', config: { expression: '0 18 * * 1-5' }, on_error: 'stop' },
-      { order: 2, name: 'Consultar contas a pagar', type: 'action', service: 'supabaseExternal', operation: 'query', config: { table: 'accounts_payable', filter: 'today' }, on_error: 'retry' },
-      { order: 3, name: 'Consultar contas a receber', type: 'action', service: 'supabaseExternal', operation: 'query', config: { table: 'accounts_receivable', filter: 'today' }, on_error: 'retry' },
-      { order: 4, name: 'Calcular fluxo de caixa', type: 'action', service: 'logic', operation: 'calculate', config: { formula: 'receivable - payable' }, on_error: 'stop' },
-      { order: 5, name: 'Gerar relatório com IA', type: 'action', service: 'llm', operation: 'generate', config: { model: 'claude-sonnet', template: 'financial_report' }, on_error: 'retry' },
-      { order: 6, name: 'Enviar relatório', type: 'notification', service: 'notification', operation: 'send', config: { channels: ['email', 'slack'] }, on_error: 'retry' },
+      {
+        order: 1,
+        name: 'Trigger diário 18h (Seg-Sex)',
+        type: 'trigger',
+        service: 'scheduler',
+        operation: 'cron',
+        config: { expression: '0 18 * * 1-5' },
+        on_error: 'stop',
+      },
+      {
+        order: 2,
+        name: 'Consultar contas a pagar',
+        type: 'action',
+        service: 'supabaseExternal',
+        operation: 'query',
+        config: { table: 'accounts_payable', filter: 'today' },
+        on_error: 'retry',
+      },
+      {
+        order: 3,
+        name: 'Consultar contas a receber',
+        type: 'action',
+        service: 'supabaseExternal',
+        operation: 'query',
+        config: { table: 'accounts_receivable', filter: 'today' },
+        on_error: 'retry',
+      },
+      {
+        order: 4,
+        name: 'Calcular fluxo de caixa',
+        type: 'action',
+        service: 'logic',
+        operation: 'calculate',
+        config: { formula: 'receivable - payable' },
+        on_error: 'stop',
+      },
+      {
+        order: 5,
+        name: 'Gerar relatório com IA',
+        type: 'action',
+        service: 'llm',
+        operation: 'generate',
+        config: { model: 'claude-sonnet', template: 'financial_report' },
+        on_error: 'retry',
+      },
+      {
+        order: 6,
+        name: 'Enviar relatório',
+        type: 'notification',
+        service: 'notification',
+        operation: 'send',
+        config: { channels: ['email', 'slack'] },
+        on_error: 'retry',
+      },
     ],
     required_integrations: ['supabaseExternal', 'llm', 'email'],
     required_credentials: ['supabase_project', 'anthropic', 'smtp_email'],
@@ -307,8 +531,10 @@ export const BUILTIN_TEMPLATES: Omit<
   {
     name: 'Monitoramento de Saúde dos Agentes',
     slug: 'agent-health-monitor',
-    description: 'Monitora a cada 5 minutos os agentes ativos, verifica erros, latência, e alerta se algo estiver fora do normal.',
-    long_description: 'Health check automatizado: verifica status de cada agente ativo, mede tempo de resposta, detecta erros consecutivos, e envia alerta quando um agente precisa de atenção.',
+    description:
+      'Monitora a cada 5 minutos os agentes ativos, verifica erros, latência, e alerta se algo estiver fora do normal.',
+    long_description:
+      'Health check automatizado: verifica status de cada agente ativo, mede tempo de resposta, detecta erros consecutivos, e envia alerta quando um agente precisa de atenção.',
     category: 'monitoramento',
     difficulty: 'beginner',
     tags: ['monitoramento', 'health-check', 'agentes', 'alerta'],
@@ -316,11 +542,51 @@ export const BUILTIN_TEMPLATES: Omit<
     color: '#FF6B6B',
     trigger_type: 'cron:*/5 * * * *',
     steps: [
-      { order: 1, name: 'Trigger a cada 5 min', type: 'trigger', service: 'scheduler', operation: 'cron', config: { expression: '*/5 * * * *' }, on_error: 'stop' },
-      { order: 2, name: 'Listar agentes ativos', type: 'action', service: 'supabaseExternal', operation: 'query', config: { table: 'agents', filter: 'status=active' }, on_error: 'retry' },
-      { order: 3, name: 'Verificar saúde de cada um', type: 'loop', service: 'logic', operation: 'foreach', config: { check: 'health_endpoint' }, on_error: 'continue' },
-      { order: 4, name: 'Detectar anomalias', type: 'condition', service: 'logic', operation: 'threshold', config: { error_rate: 0.1, latency_ms: 5000 }, on_error: 'continue' },
-      { order: 5, name: 'Alertar equipe', type: 'notification', service: 'notification', operation: 'send', config: { channel: 'slack', priority: 'urgent' }, on_error: 'retry' },
+      {
+        order: 1,
+        name: 'Trigger a cada 5 min',
+        type: 'trigger',
+        service: 'scheduler',
+        operation: 'cron',
+        config: { expression: '*/5 * * * *' },
+        on_error: 'stop',
+      },
+      {
+        order: 2,
+        name: 'Listar agentes ativos',
+        type: 'action',
+        service: 'supabaseExternal',
+        operation: 'query',
+        config: { table: 'agents', filter: 'status=active' },
+        on_error: 'retry',
+      },
+      {
+        order: 3,
+        name: 'Verificar saúde de cada um',
+        type: 'loop',
+        service: 'logic',
+        operation: 'foreach',
+        config: { check: 'health_endpoint' },
+        on_error: 'continue',
+      },
+      {
+        order: 4,
+        name: 'Detectar anomalias',
+        type: 'condition',
+        service: 'logic',
+        operation: 'threshold',
+        config: { error_rate: 0.1, latency_ms: 5000 },
+        on_error: 'continue',
+      },
+      {
+        order: 5,
+        name: 'Alertar equipe',
+        type: 'notification',
+        service: 'notification',
+        operation: 'send',
+        config: { channel: 'slack', priority: 'urgent' },
+        on_error: 'retry',
+      },
     ],
     required_integrations: ['supabaseExternal', 'slack'],
     required_credentials: ['supabase_project'],

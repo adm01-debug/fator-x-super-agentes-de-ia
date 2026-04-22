@@ -27,14 +27,23 @@ export function DashboardAlerts() {
           <span className="h-2 w-2 rounded-full bg-nexus-amber animate-pulse" />
           Alertas Ativos ({alerts.length})
         </h3>
-        <button onClick={() => navigate('/monitoring')} className="text-[11px] text-primary hover:underline">Ver todos</button>
+        <button
+          onClick={() => navigate('/monitoring')}
+          className="text-[11px] text-primary hover:underline"
+        >
+          Ver todos
+        </button>
       </div>
       <div className="space-y-2">
-        {alerts.map((a: any) => (
+        {alerts.map((a) => (
           <div key={a.id} className="flex items-center gap-2 text-xs py-1">
-            <span className={`w-2 h-2 rounded-full shrink-0 ${a.severity === 'critical' ? 'bg-destructive' : 'bg-nexus-amber'}`} />
+            <span
+              className={`w-2 h-2 rounded-full shrink-0 ${a.severity === 'critical' ? 'bg-destructive' : 'bg-nexus-amber'}`}
+            />
             <span className="text-foreground truncate">{a.title}</span>
-            <span className="text-muted-foreground ml-auto shrink-0 text-[11px]">{new Date(a.created_at || '').toLocaleDateString('pt-BR')}</span>
+            <span className="text-muted-foreground ml-auto shrink-0 text-[11px]">
+              {new Date(a.created_at || '').toLocaleDateString('pt-BR')}
+            </span>
           </div>
         ))}
       </div>

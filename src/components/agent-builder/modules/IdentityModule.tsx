@@ -4,17 +4,65 @@ import { cn } from '@/lib/utils';
 import type { AgentPersona } from '@/types/agentTypes';
 
 const AVATAR_EMOJIS = [
-  '🤖', '⚡', '🧠', '🎯', '🛡️', '🔮', '🦾', '🚀', '💎', '🌟',
-  '🔥', '🧬', '🎨', '📊', '🔍', '🦅', '🐉', '🌐', '👁️', '⚙️',
+  '🤖',
+  '⚡',
+  '🧠',
+  '🎯',
+  '🛡️',
+  '🔮',
+  '🦾',
+  '🚀',
+  '💎',
+  '🌟',
+  '🔥',
+  '🧬',
+  '🎨',
+  '📊',
+  '🔍',
+  '🦅',
+  '🐉',
+  '🌐',
+  '👁️',
+  '⚙️',
 ];
 
 const PERSONA_ITEMS = [
-  { id: 'assistant' as AgentPersona, icon: '🤖', title: 'Assistente', description: 'Responde perguntas e executa tarefas sob demanda' },
-  { id: 'specialist' as AgentPersona, icon: '🎓', title: 'Especialista', description: 'Domínio profundo em área específica' },
-  { id: 'coordinator' as AgentPersona, icon: '🎯', title: 'Coordenador', description: 'Orquestra outros agentes e workflows' },
-  { id: 'analyst' as AgentPersona, icon: '📊', title: 'Analista', description: 'Processa dados, gera insights e relatórios' },
-  { id: 'creative' as AgentPersona, icon: '🎨', title: 'Criativo', description: 'Gera conteúdo, copy, design, ideias' },
-  { id: 'autonomous' as AgentPersona, icon: '⚡', title: 'Autônomo', description: 'Opera proativamente com mínima supervisão' },
+  {
+    id: 'assistant' as AgentPersona,
+    icon: '🤖',
+    title: 'Assistente',
+    description: 'Responde perguntas e executa tarefas sob demanda',
+  },
+  {
+    id: 'specialist' as AgentPersona,
+    icon: '🎓',
+    title: 'Especialista',
+    description: 'Domínio profundo em área específica',
+  },
+  {
+    id: 'coordinator' as AgentPersona,
+    icon: '🎯',
+    title: 'Coordenador',
+    description: 'Orquestra outros agentes e workflows',
+  },
+  {
+    id: 'analyst' as AgentPersona,
+    icon: '📊',
+    title: 'Analista',
+    description: 'Processa dados, gera insights e relatórios',
+  },
+  {
+    id: 'creative' as AgentPersona,
+    icon: '🎨',
+    title: 'Criativo',
+    description: 'Gera conteúdo, copy, design, ideias',
+  },
+  {
+    id: 'autonomous' as AgentPersona,
+    icon: '⚡',
+    title: 'Autônomo',
+    description: 'Opera proativamente com mínima supervisão',
+  },
 ];
 
 export function IdentityModule() {
@@ -25,7 +73,11 @@ export function IdentityModule() {
     <div className="space-y-8">
       {/* Seção A — Nome, Missão & Avatar */}
       <section>
-        <SectionTitle icon="🧬" title="Nome, Missão & Avatar" subtitle="Defina a identidade fundamental do seu agente" />
+        <SectionTitle
+          icon="🧬"
+          title="Nome, Missão & Avatar"
+          subtitle="Defina a identidade fundamental do seu agente"
+        />
         <div className="space-y-4">
           <InputField
             label="Nome do Agente"
@@ -42,7 +94,7 @@ export function IdentityModule() {
             hint="Uma frase clara que define o propósito principal"
           />
           <div className="space-y-1.5">
-            <label className="text-xs font-medium text-foreground">Avatar</label>
+            <span className="text-xs font-medium text-foreground">Avatar</span>
             <div className="flex flex-wrap gap-2">
               {AVATAR_EMOJIS.map((emoji) => (
                 <button
@@ -53,7 +105,7 @@ export function IdentityModule() {
                     'w-10 h-10 rounded-lg text-xl flex items-center justify-center transition-all duration-200 border',
                     agent.avatar_emoji === emoji
                       ? 'border-primary bg-primary/10 scale-110 shadow-[0_0_12px_hsl(var(--primary)/0.3)]'
-                      : 'border-border bg-muted/30 hover:bg-muted/60 hover:scale-105'
+                      : 'border-border bg-muted/30 hover:bg-muted/60 hover:scale-105',
                   )}
                 >
                   {emoji}
@@ -66,7 +118,11 @@ export function IdentityModule() {
 
       {/* Seção B — Arquétipo / Persona */}
       <section>
-        <SectionTitle icon="🎭" title="Arquétipo / Persona" subtitle="Selecione o papel principal do agente" />
+        <SectionTitle
+          icon="🎭"
+          title="Arquétipo / Persona"
+          subtitle="Selecione o papel principal do agente"
+        />
         <SelectionGrid
           items={PERSONA_ITEMS}
           value={agent.persona}
@@ -77,34 +133,42 @@ export function IdentityModule() {
 
       {/* Seção C — Personalidade */}
       <section>
-        <SectionTitle icon="🎚️" title="Personalidade" subtitle="Ajuste o comportamento e tom do agente" />
+        <SectionTitle
+          icon="🎚️"
+          title="Personalidade"
+          subtitle="Ajuste o comportamento e tom do agente"
+        />
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           <SliderField
             label="Formalidade"
             value={agent.formality}
             onChange={(v) => updateAgent({ formality: v })}
-            min={0} max={100}
+            min={0}
+            max={100}
             description="0 = Casual → 100 = Muito formal"
           />
           <SliderField
             label="Proatividade"
             value={agent.proactivity}
             onChange={(v) => updateAgent({ proactivity: v })}
-            min={0} max={100}
+            min={0}
+            max={100}
             description="0 = Reativo → 100 = Muito proativo"
           />
           <SliderField
             label="Criatividade"
             value={agent.creativity}
             onChange={(v) => updateAgent({ creativity: v })}
-            min={0} max={100}
+            min={0}
+            max={100}
             description="0 = Conservador → 100 = Muito criativo"
           />
           <SliderField
             label="Verbosidade"
             value={agent.verbosity}
             onChange={(v) => updateAgent({ verbosity: v })}
-            min={0} max={100}
+            min={0}
+            max={100}
             description="0 = Conciso → 100 = Detalhado"
           />
         </div>
@@ -112,12 +176,18 @@ export function IdentityModule() {
 
       {/* Seção D — Escopo */}
       <section>
-        <SectionTitle icon="📐" title="Escopo de Atuação" subtitle="Defina os limites do que o agente pode e não pode fazer" />
+        <SectionTitle
+          icon="📐"
+          title="Escopo de Atuação"
+          subtitle="Defina os limites do que o agente pode e não pode fazer"
+        />
         <TextAreaField
           label="Escopo"
           value={agent.scope}
           onChange={(v) => updateAgent({ scope: v })}
-          placeholder={"O agente PODE:\n- Responder dúvidas sobre produtos\n- Consultar estoque\n\nO agente NÃO PODE:\n- Alterar preços\n- Aprovar descontos acima de 10%"}
+          placeholder={
+            'O agente PODE:\n- Responder dúvidas sobre produtos\n- Consultar estoque\n\nO agente NÃO PODE:\n- Alterar preços\n- Aprovar descontos acima de 10%'
+          }
           rows={6}
           hint="Defina limites claros. O que pode e NÃO pode fazer."
           maxLength={2000}

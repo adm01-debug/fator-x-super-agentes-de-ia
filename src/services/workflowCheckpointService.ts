@@ -1,6 +1,6 @@
 /**
  * Nexus Agents Studio — Workflow Checkpointing Service
- * 
+ *
  * Inspired by LangGraph's durable execution model:
  * - Persists state after every node execution
  * - Enables crash recovery (resume from last checkpoint)
@@ -71,7 +71,7 @@ export interface TimeTravelForkInput {
 /** Start a new workflow execution run */
 export async function startExecution(
   workflowId: string,
-  input: Record<string, unknown> = {}
+  input: Record<string, unknown> = {},
 ): Promise<WorkflowExecution> {
   const { data, error } = await fromTable('workflow_executions')
     .insert({
@@ -90,7 +90,18 @@ export async function startExecution(
 /** Update execution status */
 export async function updateExecution(
   executionId: string,
-  updates: Partial<Pick<WorkflowExecution, 'status' | 'output' | 'error' | 'total_cost_usd' | 'total_tokens' | 'total_duration_ms' | 'completed_at'>>
+  updates: Partial<
+    Pick<
+      WorkflowExecution,
+      | 'status'
+      | 'output'
+      | 'error'
+      | 'total_cost_usd'
+      | 'total_tokens'
+      | 'total_duration_ms'
+      | 'completed_at'
+    >
+  >,
 ): Promise<WorkflowExecution> {
   const { data, error } = await fromTable('workflow_executions')
     .update(updates)
@@ -105,7 +116,7 @@ export async function updateExecution(
 /** Complete an execution with final output */
 export async function completeExecution(
   executionId: string,
-  output: Record<string, unknown>
+  output: Record<string, unknown>,
 ): Promise<WorkflowExecution> {
   // Aggregate totals from all checkpoints
   const { data: checkpoints } = await fromTable('workflow_checkpoints')
@@ -113,12 +124,12 @@ export async function completeExecution(
     .eq('execution_id' as never, executionId);
 
   const totals = (checkpoints ?? []).reduce(
-    (acc: { cost: number; tokens: number; duration: number }, cp: any) => ({
+    (acc: { cost: number; tokens: number; duration: number }, cp: Record<string, unknown>) => ({
       cost: acc.cost + Number(cp.cost_usd ?? 0),
       tokens: acc.tokens + Number(cp.tokens_used ?? 0),
       duration: acc.duration + Number(cp.duration_ms ?? 0),
     }),
-    { cost: 0, tokens: 0, duration: 0 }
+    { cost: 0, tokens: 0, duration: 0 },
   );
 
   return updateExecution(executionId, {
@@ -134,7 +145,7 @@ export async function completeExecution(
 /** Fail an execution with error */
 export async function failExecution(
   executionId: string,
-  errorMsg: string
+  errorMsg: string,
 ): Promise<WorkflowExecution> {
   return updateExecution(executionId, {
     status: 'failed',
@@ -144,24 +155,17 @@ export async function failExecution(
 }
 
 /** Pause an execution for human-in-the-loop */
-export async function pauseExecution(
-  executionId: string
-): Promise<WorkflowExecution> {
+export async function pauseExecution(executionId: string): Promise<WorkflowExecution> {
   return updateExecution(executionId, { status: 'paused' });
 }
 
 /** Resume a paused execution */
-export async function resumeExecution(
-  executionId: string
-): Promise<WorkflowExecution> {
+export async function resumeExecution(executionId: string): Promise<WorkflowExecution> {
   return updateExecution(executionId, { status: 'running' });
 }
 
 /** List executions for a workflow */
-export async function listExecutions(
-  workflowId: string,
-  limit = 20
-): Promise<WorkflowExecution[]> {
+export async function listExecutions(workflowId: string, limit = 20): Promise<WorkflowExecution[]> {
   const { data, error } = await fromTable('workflow_executions')
     .select('*')
     .eq('workflow_id' as never, workflowId)
@@ -253,7 +257,7 @@ export async function getCheckpoint(checkpointId: string): Promise<WorkflowCheck
  * optionally with modified state/input for "what-if" scenarios.
  */
 export async function forkFromCheckpoint(
-  input: TimeTravelForkInput
+  input: TimeTravelForkInput,
 ): Promise<{ execution: WorkflowExecution; checkpoint: WorkflowCheckpoint }> {
   // Get the source checkpoint and its execution
   const sourceCheckpoint = await getCheckpoint(input.checkpoint_id);
@@ -280,7 +284,7 @@ export async function forkFromCheckpoint(
   // Copy all checkpoints up to (and including) the fork point
   const checkpoints = await getCheckpoints(sourceExecution.id);
   const checkpointsToClone = checkpoints.filter(
-    (cp) => cp.step_index <= sourceCheckpoint.step_index
+    (cp) => cp.step_index <= sourceCheckpoint.step_index,
   );
 
   let lastCloned: WorkflowCheckpoint | null = null;
@@ -311,13 +315,15 @@ export async function forkFromCheckpoint(
  * Get execution timeline for time-travel UI.
  * Returns checkpoints with computed cumulative cost/tokens.
  */
-export async function getExecutionTimeline(executionId: string): Promise<Array<
-  WorkflowCheckpoint & {
-    cumulative_cost_usd: number;
-    cumulative_tokens: number;
-    cumulative_duration_ms: number;
-  }
->> {
+export async function getExecutionTimeline(executionId: string): Promise<
+  Array<
+    WorkflowCheckpoint & {
+      cumulative_cost_usd: number;
+      cumulative_tokens: number;
+      cumulative_duration_ms: number;
+    }
+  >
+> {
   const checkpoints = await getCheckpoints(executionId);
 
   let cumulativeCost = 0;
@@ -345,11 +351,9 @@ export async function getExecutionTimeline(executionId: string): Promise<Array<
  */
 export async function findRecoverableExecutions(
   workflowId: string,
-  staleAfterMinutes = 30
+  staleAfterMinutes = 30,
 ): Promise<WorkflowExecution[]> {
-  const staleThreshold = new Date(
-    Date.now() - staleAfterMinutes * 60 * 1000
-  ).toISOString();
+  const staleThreshold = new Date(Date.now() - staleAfterMinutes * 60 * 1000).toISOString();
 
   const { data, error } = await fromTable('workflow_executions')
     .select('*')
@@ -367,7 +371,7 @@ export async function findRecoverableExecutions(
  * Returns the execution and the checkpoint to resume from.
  */
 export async function recoverExecution(
-  executionId: string
+  executionId: string,
 ): Promise<{ execution: WorkflowExecution; resumeFrom: WorkflowCheckpoint | null }> {
   const execution = await getExecution(executionId);
   if (execution.status !== 'running' && execution.status !== 'paused') {

@@ -1,4 +1,10 @@
-import type { AgentConfig, AgentPersona, LLMModel, ReasoningPattern, AgentLifecycleStage } from '@/types/agentTypes';
+import type {
+  AgentConfig,
+  AgentPersona,
+  LLMModel,
+  ReasoningPattern,
+  AgentLifecycleStage,
+} from '@/types/agentTypes';
 import { DEFAULT_AGENT } from '@/data/agentBuilderData';
 import type { Json } from '@/integrations/supabase/types';
 
@@ -21,7 +27,7 @@ export function agentToDbRow(agent: AgentConfig, userId: string) {
 }
 
 export function dbRowToAgent(row: Record<string, unknown>): AgentConfig {
-  const config = (row.config || {}) as Record<string, any>;
+  const config = (row.config || {}) as Record<string, unknown>;
   return {
     ...DEFAULT_AGENT,
     ...config,
@@ -49,8 +55,8 @@ export function exportAgentMarkdown(a: AgentConfig): string {
     a.memory_profile && 'Perfil',
     a.memory_shared && 'Organizacional',
   ].filter(Boolean);
-  const activeTools = a.tools.filter(t => t.enabled);
-  const activeGuardrails = a.guardrails.filter(g => g.enabled);
+  const activeTools = a.tools.filter((t) => t.enabled);
+  const activeGuardrails = a.guardrails.filter((g) => g.enabled);
 
   return [
     `# ${a.avatar_emoji} ${a.name}`,
@@ -63,7 +69,7 @@ export function exportAgentMarkdown(a: AgentConfig): string {
     `**Versão:** ${a.version}`,
     '',
     '## Memória',
-    memoryTypes.length > 0 ? memoryTypes.map(t => `- ${t}`).join('\n') : '- Nenhuma ativa',
+    memoryTypes.length > 0 ? memoryTypes.map((t) => `- ${t}`).join('\n') : '- Nenhuma ativa',
     '',
     '## RAG',
     `- Arquitetura: ${a.rag_architecture}`,
@@ -71,10 +77,12 @@ export function exportAgentMarkdown(a: AgentConfig): string {
     `- Fontes: ${a.rag_sources.length}`,
     '',
     '## Ferramentas',
-    activeTools.length > 0 ? activeTools.map(t => `- ${t.name}`).join('\n') : '- Nenhuma ativa',
+    activeTools.length > 0 ? activeTools.map((t) => `- ${t.name}`).join('\n') : '- Nenhuma ativa',
     '',
     '## Guardrails',
-    activeGuardrails.length > 0 ? activeGuardrails.map(g => `- ${g.name} (${g.severity})`).join('\n') : '- Nenhum ativo',
+    activeGuardrails.length > 0
+      ? activeGuardrails.map((g) => `- ${g.name} (${g.severity})`).join('\n')
+      : '- Nenhum ativo',
     '',
     '## System Prompt',
     '```',
@@ -83,7 +91,7 @@ export function exportAgentMarkdown(a: AgentConfig): string {
     '',
     '## Deploy',
     `- Ambiente: ${a.deploy_environment}`,
-    `- Canais: ${a.deploy_channels.filter(c => c.enabled).length}`,
+    `- Canais: ${a.deploy_channels.filter((c) => c.enabled).length}`,
     '',
   ].join('\n');
 }
@@ -96,10 +104,10 @@ export function getEstimatedCost(a: AgentConfig): number {
     'gpt-4o': 60,
     'gemini-2.5-pro': 40,
     'llama-4': 20,
-    'custom': 50,
+    custom: 50,
   };
   const base = modelCosts[a.model] || 50;
-  const toolMultiplier = 1 + (a.tools.filter(t => t.enabled).length * 0.05);
+  const toolMultiplier = 1 + a.tools.filter((t) => t.enabled).length * 0.05;
   const ragMultiplier = a.rag_sources.length > 0 ? 1.2 : 1;
   return Math.round(base * toolMultiplier * ragMultiplier);
 }

@@ -13,7 +13,9 @@ export const PROMPT_LIMITS = {
   MAX_EMPTY_BLOCK: 3,
 } as const;
 
-// Caracteres de controle perigosos (preserva \t \n \r)
+// Caracteres de controle perigosos (preserva \t \n \r).
+// Suppressed: o regex precisa bater nos control chars literais — é o propósito da sanitização.
+// eslint-disable-next-line no-control-regex
 const CONTROL_CHARS_RE = /[\x00-\x08\x0B\x0C\x0E-\x1F\x7F]/g;
 // Zero-width e BOM (comuns em colagem do Word/Notion)
 const ZERO_WIDTH_RE = /[\u200B-\u200D\uFEFF\u2060]/g;
@@ -38,7 +40,10 @@ export interface SanitizeResult {
  * @param text   texto a sanitizar
  * @param budget caracteres ainda disponíveis (default = MAX_TOTAL)
  */
-export function sanitizePromptInput(text: string, budget: number = PROMPT_LIMITS.MAX_TOTAL): SanitizeResult {
+export function sanitizePromptInput(
+  text: string,
+  budget: number = PROMPT_LIMITS.MAX_TOTAL,
+): SanitizeResult {
   let clean = text ?? '';
   const warnings: string[] = [];
 
@@ -67,7 +72,9 @@ export function sanitizePromptInput(text: string, budget: number = PROMPT_LIMITS
   if (clean.length > budget) {
     truncated = clean.length - budget;
     clean = clean.slice(0, Math.max(0, budget));
-    warnings.push(`Texto colado foi truncado: ${truncated.toLocaleString('pt-BR')} caracteres descartados.`);
+    warnings.push(
+      `Texto colado foi truncado: ${truncated.toLocaleString('pt-BR')} caracteres descartados.`,
+    );
   }
 
   return { clean, warnings, removedControl, removedZeroWidth, removedTags, truncated };

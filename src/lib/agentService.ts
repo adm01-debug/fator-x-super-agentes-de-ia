@@ -10,8 +10,10 @@ let cachedWorkspaceId: string | null = null;
 
 export async function getWorkspaceId(): Promise<string> {
   if (cachedWorkspaceId) return cachedWorkspaceId;
-  
-  const { data: { user } } = await supabase.auth.getUser();
+
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
   if (!user) throw new Error('Não autenticado');
 
   const { data } = await supabaseExternal
@@ -23,7 +25,7 @@ export async function getWorkspaceId(): Promise<string> {
 
   if (!data?.workspace_id) throw new Error('Workspace não encontrado');
   cachedWorkspaceId = data.workspace_id;
-  return cachedWorkspaceId!
+  return cachedWorkspaceId!;
 }
 
 export function clearWorkspaceCache() {
@@ -31,31 +33,39 @@ export function clearWorkspaceCache() {
 }
 
 export async function listAgents(statusFilter?: string) {
-  let query = supabaseExternal
-    .from('agents')
-    .select('*')
-    .order('updated_at', { ascending: false });
+  let query = supabaseExternal.from('agents').select('*').order('updated_at', { ascending: false });
   if (statusFilter && statusFilter !== 'all') {
-    query = query.eq('status', statusFilter as Database["public"]["Enums"]["agent_status"]);
+    query = query.eq('status', statusFilter as Database['public']['Enums']['agent_status']);
   }
   const { data, error } = await query;
   if (error) throw error;
   return data ?? [];
 }
 
-export async function cloneAgent(agentRow: Tables<"agents">) {
+export async function cloneAgent(agentRow: Tables<'agents'>) {
   const { id: _id, created_at: _ca, updated_at: _ua, ...rest } = agentRow;
-  const { data, error } = await supabaseExternal.from('agents').insert({
-    ...rest,
-    name: `${agentRow.name} (cópia)`,
-    status: 'draft' as const,
-    version: 1,
-  }).select('id').single();
+  const { data, error } = await supabaseExternal
+    .from('agents')
+    .insert({
+      ...rest,
+      name: `${agentRow.name} (cópia)`,
+      status: 'draft' as const,
+      version: 1,
+    })
+    .select('id')
+    .single();
   if (error) throw error;
   return data;
 }
 
-export async function autoTagAgent(agent: { id: string; model: string | null; config: unknown; status: string | null; persona: string | null; tags: string[] | null }) {
+export async function autoTagAgent(agent: {
+  id: string;
+  model: string | null;
+  config: unknown;
+  status: string | null;
+  persona: string | null;
+  tags: string[] | null;
+}) {
   const config = agent.config as Record<string, unknown> | null;
   const tags: string[] = [];
   if (agent.model?.includes('gpt')) tags.push('OpenAI');
@@ -70,7 +80,10 @@ export async function autoTagAgent(agent: { id: string; model: string | null; co
   if (merged.length === (agent.tags ?? []).length) {
     return { added: 0 };
   }
-  const { error } = await supabaseExternal.from('agents').update({ tags: merged }).eq('id', agent.id);
+  const { error } = await supabaseExternal
+    .from('agents')
+    .update({ tags: merged })
+    .eq('id', agent.id);
   if (error) throw error;
   return { added: merged.length - (agent.tags ?? []).length };
 }
@@ -85,7 +98,7 @@ export async function getAgent(id: string): Promise<AgentConfig> {
   if (error) throw error;
   if (!data) throw new Error('Agente não encontrado');
 
-  const config = (data.config || {}) as Record<string, any>;
+  const config = (data.config || {}) as Record<string, unknown>;
   return {
     ...DEFAULT_AGENT,
     ...config,
@@ -105,11 +118,17 @@ export async function getAgent(id: string): Promise<AgentConfig> {
 }
 
 export async function saveAgent(agent: AgentConfig): Promise<AgentConfig> {
-  const { data: { user } } = await supabase.auth.getUser();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
   if (!user) throw new Error('Não autenticado');
 
   let workspaceId: string | null = null;
-  try { workspaceId = await getWorkspaceId(); } catch (err) { logger.error("Operation failed:", err);}
+  try {
+    workspaceId = await getWorkspaceId();
+  } catch (err) {
+    logger.error('Operation failed:', err);
+  }
 
   const { id, created_at: _ca, updated_at: _ua, ...configData } = agent;
   const row = {
@@ -129,11 +148,18 @@ export async function saveAgent(agent: AgentConfig): Promise<AgentConfig> {
   };
 
   if (id) {
-    const { error } = await supabaseExternal.from('agents').update(row).eq('id', id as string);
+    const { error } = await supabaseExternal
+      .from('agents')
+      .update(row)
+      .eq('id', id as string);
     if (error) throw error;
     return { ...agent, id };
   } else {
-    const { data, error } = await supabaseExternal.from('agents').insert(row).select('id, created_at, updated_at').single();
+    const { data, error } = await supabaseExternal
+      .from('agents')
+      .insert(row)
+      .select('id, created_at, updated_at')
+      .single();
     if (error) throw error;
     return { ...agent, id: data!.id, created_at: data!.created_at, updated_at: data!.updated_at };
   }
@@ -146,12 +172,20 @@ export async function deleteAgent(id: string): Promise<void> {
 
 export async function duplicateAgent(id: string): Promise<AgentConfig> {
   const original = await getAgent(id);
-  const copy = { ...original, id: undefined, name: `${original.name} (cópia)`, status: 'draft' as const, version: 1 };
+  const copy = {
+    ...original,
+    id: undefined,
+    name: `${original.name} (cópia)`,
+    status: 'draft' as const,
+    version: 1,
+  };
   return saveAgent(copy);
 }
 
 export async function getWorkspaceInfo() {
-  const { data: { user } } = await supabase.auth.getUser();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
   if (!user) return null;
 
   const { data: member } = await supabaseExternal

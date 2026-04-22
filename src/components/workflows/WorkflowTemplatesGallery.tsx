@@ -1,16 +1,22 @@
-import { useState } from "react";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
-import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
-import { Layers, Clock, Sparkles, Check } from "lucide-react";
-import { toast } from "sonner";
-import { useWorkflowStore } from "@/stores/workflowStore";
+import { useState } from 'react';
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from '@/components/ui/dialog';
+import { Button } from '@/components/ui/button';
+import { Badge } from '@/components/ui/badge';
+import { Layers, Clock, Sparkles, Check } from 'lucide-react';
+import { toast } from 'sonner';
+import { useWorkflowStore } from '@/stores/workflowStore';
 import {
   TEMPLATE_CATEGORIES,
   getTemplatesByCategory,
   type WorkflowTemplate,
-} from "@/config/workflow-templates";
-import { TemplateCanvasPreview } from "@/components/workflows/TemplateCanvasPreview";
+} from '@/config/workflow-templates';
+import { TemplateCanvasPreview } from '@/components/workflows/TemplateCanvasPreview';
 
 export function WorkflowTemplatesGallery() {
   const [open, setOpen] = useState(false);
@@ -26,7 +32,7 @@ export function WorkflowTemplatesGallery() {
       `template-${template.id}-${Date.now()}`,
       template.name,
       template.nodes,
-      template.edges
+      template.edges,
     );
     toast.success(`Template "${template.name}" carregado no canvas`);
     setOpen(false);
@@ -76,9 +82,19 @@ export function WorkflowTemplatesGallery() {
                 <div
                   key={tpl.id}
                   className={`p-4 rounded-lg border bg-secondary/20 transition-all cursor-pointer ${
-                    isPreviewing ? 'border-primary ring-1 ring-primary/40' : 'border-border/30 hover:border-primary/40'
+                    isPreviewing
+                      ? 'border-primary ring-1 ring-primary/40'
+                      : 'border-border/30 hover:border-primary/40'
                   }`}
                   onClick={() => setPreviewId(isPreviewing ? null : tpl.id)}
+                  role="button"
+                  tabIndex={0}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter' || e.key === ' ') {
+                      e.preventDefault();
+                      (e.currentTarget as HTMLElement).click();
+                    }
+                  }}
                 >
                   <div className="flex items-start justify-between gap-2 mb-2">
                     <div className="flex items-center gap-2 min-w-0 flex-1">
@@ -118,7 +134,11 @@ export function WorkflowTemplatesGallery() {
                         handleUseTemplate(tpl);
                       }}
                     >
-                      {isPreviewing ? <Check className="h-3 w-3" /> : <Sparkles className="h-3 w-3" />}
+                      {isPreviewing ? (
+                        <Check className="h-3 w-3" />
+                      ) : (
+                        <Sparkles className="h-3 w-3" />
+                      )}
                       Usar
                     </Button>
                   </div>
@@ -147,7 +167,10 @@ export function WorkflowTemplatesGallery() {
                                   {String(n.data.label ?? n.type)}
                                 </span>
                                 {n.data.description != null && (
-                                  <span className="text-muted-foreground"> — {String(n.data.description)}</span>
+                                  <span className="text-muted-foreground">
+                                    {' '}
+                                    — {String(n.data.description)}
+                                  </span>
                                 )}
                               </div>
                             </div>

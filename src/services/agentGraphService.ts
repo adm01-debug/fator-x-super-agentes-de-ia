@@ -1,3 +1,4 @@
+import { fromTable } from '@/lib/supabaseExtended';
 import { supabase } from '@/integrations/supabase/client';
 
 export interface GraphNode {
@@ -54,8 +55,7 @@ export interface GraphExecution {
 
 export const agentGraphService = {
   async listGraphs(workspaceId: string): Promise<AgentGraph[]> {
-    const { data, error } = await supabase
-      .from('agent_graphs' as any)
+    const { data, error } = await fromTable('agent_graphs')
       .select('*')
       .eq('workspace_id', workspaceId)
       .order('updated_at', { ascending: false });
@@ -64,7 +64,7 @@ export const agentGraphService = {
   },
 
   async getGraph(id: string): Promise<AgentGraph> {
-    const { data, error } = await supabase.from('agent_graphs' as any).select('*').eq('id', id).single();
+    const { data, error } = await fromTable('agent_graphs').select('*').eq('id', id).single();
     if (error) throw error;
     return data as unknown as AgentGraph;
   },
@@ -72,34 +72,54 @@ export const agentGraphService = {
   async createGraph(workspaceId: string, name: string, description = ''): Promise<AgentGraph> {
     const { data: u } = await supabase.auth.getUser();
     if (!u.user) throw new Error('Não autenticado');
-    const { data, error } = await supabase
-      .from('agent_graphs' as any)
-      .insert({ workspace_id: workspaceId, created_by: u.user.id, name, description, nodes: [], edges: [] } as any)
+    const { data, error } = await fromTable('agent_graphs')
+      .insert({
+        workspace_id: workspaceId,
+        created_by: u.user.id,
+        name,
+        description,
+        nodes: [],
+        edges: [],
+      } as Record<string, unknown>)
       .select()
       .single();
     if (error) throw error;
     return data as unknown as AgentGraph;
   },
 
-  async updateGraph(id: string, patch: Partial<Pick<AgentGraph, 'name' | 'description' | 'nodes' | 'edges' | 'entry_node_id'>>): Promise<void> {
-    const { error } = await supabase.from('agent_graphs' as any).update(patch as any).eq('id', id);
+  async updateGraph(
+    id: string,
+    patch: Partial<Pick<AgentGraph, 'name' | 'description' | 'nodes' | 'edges' | 'entry_node_id'>>,
+  ): Promise<void> {
+    const { error } = await fromTable('agent_graphs')
+      .update(patch as Record<string, unknown>)
+      .eq('id', id);
     if (error) throw error;
   },
 
   async deleteGraph(id: string): Promise<void> {
-    const { error } = await supabase.from('agent_graphs' as any).delete().eq('id', id);
+    const { error } = await fromTable('agent_graphs').delete().eq('id', id);
     if (error) throw error;
   },
 
-  async executeGraph(graphId: string, input: string): Promise<{ execution_id: string; final_output: string; steps: number; total_cost_cents: number }> {
-    const { data, error } = await supabase.functions.invoke('graph-execute', { body: { graph_id: graphId, input } });
+  async executeGraph(
+    graphId: string,
+    input: string,
+  ): Promise<{
+    execution_id: string;
+    final_output: string;
+    steps: number;
+    total_cost_cents: number;
+  }> {
+    const { data, error } = await supabase.functions.invoke('graph-execute', {
+      body: { graph_id: graphId, input },
+    });
     if (error) throw error;
     return data;
   },
 
   async listExecutions(graphId: string): Promise<GraphExecution[]> {
-    const { data, error } = await supabase
-      .from('graph_executions' as any)
+    const { data, error } = await fromTable('graph_executions')
       .select('*')
       .eq('graph_id', graphId)
       .order('started_at', { ascending: false })
@@ -109,7 +129,7 @@ export const agentGraphService = {
   },
 
   async getExecution(id: string): Promise<GraphExecution> {
-    const { data, error } = await supabase.from('graph_executions' as any).select('*').eq('id', id).single();
+    const { data, error } = await fromTable('graph_executions').select('*').eq('id', id).single();
     if (error) throw error;
     return data as unknown as GraphExecution;
   },

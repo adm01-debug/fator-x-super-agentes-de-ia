@@ -2,11 +2,12 @@ import { Handle, Position } from 'reactflow';
 import { cn } from '@/lib/utils';
 
 interface NodeProps {
-  data: { label?: string; [key: string]: any };
+  data: { label?: string; [key: string]: unknown };
   selected?: boolean;
 }
 
-const nodeBase = 'rounded-lg border bg-card px-4 py-2 shadow-sm min-w-[140px] text-center text-xs font-medium transition-all';
+const nodeBase =
+  'rounded-lg border bg-card px-4 py-2 shadow-sm min-w-[140px] text-center text-xs font-medium transition-all';
 
 function makeNode(icon: string, label: string, color: string, hasIn: boolean, hasOut: boolean) {
   return function Node({ data, selected }: NodeProps) {
@@ -23,11 +24,29 @@ function makeNode(icon: string, label: string, color: string, hasIn: boolean, ha
   };
 }
 
-export const TriggerNode = makeNode('▶️', 'Trigger', 'border-green-500/50 bg-green-500/10', false, true);
+export const TriggerNode = makeNode(
+  '▶️',
+  'Trigger',
+  'border-green-500/50 bg-green-500/10',
+  false,
+  true,
+);
 export const AgentNode = makeNode('🤖', 'Agent', 'border-blue-500/50 bg-blue-500/10', true, true);
 export const ToolNode = makeNode('🔧', 'Tool', 'border-purple-500/50 bg-purple-500/10', true, true);
-export const ConditionNode = makeNode('🔀', 'Condition', 'border-yellow-500/50 bg-yellow-500/10', true, true);
-export const TransformNode = makeNode('✨', 'Transform', 'border-pink-500/50 bg-pink-500/10', true, true);
+export const ConditionNode = makeNode(
+  '🔀',
+  'Condition',
+  'border-yellow-500/50 bg-yellow-500/10',
+  true,
+  true,
+);
+export const TransformNode = makeNode(
+  '✨',
+  'Transform',
+  'border-pink-500/50 bg-pink-500/10',
+  true,
+  true,
+);
 export const OutputNode = makeNode('🎯', 'Output', 'border-red-500/50 bg-red-500/10', true, false);
 
 export const nodeTypes = {

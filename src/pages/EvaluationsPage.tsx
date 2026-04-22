@@ -1,21 +1,25 @@
-import { useState } from "react";
-import { ListSkeleton } from "@/components/shared/PageSkeleton";
-import { EmptyState } from "@/components/shared/EmptyState";
-import { PageHeader } from "@/components/shared/PageHeader";
-import { StatusBadge } from "@/components/shared/StatusBadge";
-import { InfoHint } from "@/components/shared/InfoHint";
-import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
-import { FlaskConical, ChevronDown, ChevronUp, CheckCircle2, XCircle } from "lucide-react";
-import { useQuery } from "@tanstack/react-query";
-import { listEvaluationRuns } from "@/services/evaluationsService";
-import { CreateEvaluationDialog } from "@/components/dialogs/CreateEvaluationDialog";
-import { EvaluationDatasetsPanel } from "@/components/evaluations/EvaluationDatasetsPanel";
-import { RAGASMetricsPanel } from "@/components/evaluations/RAGASMetricsPanel";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { useState } from 'react';
+import { ListSkeleton } from '@/components/shared/PageSkeleton';
+import { EmptyState } from '@/components/shared/EmptyState';
+import { PageHeader } from '@/components/shared/PageHeader';
+import { StatusBadge } from '@/components/shared/StatusBadge';
+import { InfoHint } from '@/components/shared/InfoHint';
+import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
+import { FlaskConical, ChevronDown, ChevronUp, CheckCircle2, XCircle } from 'lucide-react';
+import { useQuery } from '@tanstack/react-query';
+import { listEvaluationRuns } from '@/services/evaluationsService';
+import { CreateEvaluationDialog } from '@/components/dialogs/CreateEvaluationDialog';
+import { EvaluationDatasetsPanel } from '@/components/evaluations/EvaluationDatasetsPanel';
+import { RAGASMetricsPanel } from '@/components/evaluations/RAGASMetricsPanel';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 
 export default function EvaluationsPage() {
-  const { data: evaluations = [], isLoading, refetch } = useQuery({
+  const {
+    data: evaluations = [],
+    isLoading,
+    refetch,
+  } = useQuery({
     queryKey: ['evaluation_runs'],
     queryFn: listEvaluationRuns,
   });
@@ -29,7 +33,9 @@ export default function EvaluationsPage() {
       />
 
       <InfoHint title="Por que avaliar agentes?">
-        Avaliações sistemáticas detectam regressões, alucinações e falhas antes que cheguem aos usuários. Compare versões de prompts, modelos e configurações para garantir qualidade contínua.
+        Avaliações sistemáticas detectam regressões, alucinações e falhas antes que cheguem aos
+        usuários. Compare versões de prompts, modelos e configurações para garantir qualidade
+        contínua.
       </InfoHint>
 
       <Tabs defaultValue="runs" className="space-y-4">
@@ -50,7 +56,7 @@ export default function EvaluationsPage() {
             />
           ) : (
             <div className="space-y-4">
-              {evaluations.map((ev: any) => (
+              {evaluations.map((ev) => (
                 <EvalCard key={ev.id} ev={ev} />
               ))}
             </div>
@@ -72,7 +78,14 @@ export default function EvaluationsPage() {
 function EvalCard({ ev }: { ev: Record<string, unknown> }) {
   const [expanded, setExpanded] = useState(false);
   const results = ev.results as Record<string, unknown> | null;
-  const cases = (results?.cases as Array<{ input: string; expected: string; actual: string; passed: boolean; score?: number }>) ?? undefined;
+  const cases =
+    (results?.cases as Array<{
+      input: string;
+      expected: string;
+      actual: string;
+      passed: boolean;
+      score?: number;
+    }>) ?? undefined;
   const passRate = Number(ev.pass_rate ?? 0);
   const evName = String(ev.name ?? '');
   const testCases = Number(ev.test_cases ?? 0);
@@ -89,7 +102,10 @@ function EvalCard({ ev }: { ev: Record<string, unknown> }) {
           </div>
           <div>
             <h3 className="text-sm font-semibold text-foreground">{evName}</h3>
-            <p className="text-[11px] text-muted-foreground">{testCases} test cases • {createdAt ? new Date(createdAt).toLocaleDateString('pt-BR') : ''}</p>
+            <p className="text-[11px] text-muted-foreground">
+              {testCases} test cases •{' '}
+              {createdAt ? new Date(createdAt).toLocaleDateString('pt-BR') : ''}
+            </p>
           </div>
         </div>
         <StatusBadge status={evStatus} />
@@ -99,7 +115,11 @@ function EvalCard({ ev }: { ev: Record<string, unknown> }) {
         <>
           <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mt-4">
             <div className="text-center rounded-lg bg-secondary/30 p-3">
-              <p className={`text-lg font-heading font-bold ${passRate >= 80 ? 'text-nexus-emerald' : passRate >= 50 ? 'text-nexus-amber' : 'text-destructive'}`}>{passRate}%</p>
+              <p
+                className={`text-lg font-heading font-bold ${passRate >= 80 ? 'text-nexus-emerald' : passRate >= 50 ? 'text-nexus-amber' : 'text-destructive'}`}
+              >
+                {passRate}%
+              </p>
               <p className="text-[11px] text-muted-foreground mt-0.5">Pass rate</p>
             </div>
             <div className="text-center rounded-lg bg-secondary/30 p-3">
@@ -117,7 +137,9 @@ function EvalCard({ ev }: { ev: Record<string, unknown> }) {
             </div>
             <div className="text-center rounded-lg bg-secondary/30 p-3">
               <p className="text-lg font-heading font-bold text-foreground">
-                {completedAt && createdAt ? `${Math.round((new Date(completedAt).getTime() - new Date(createdAt).getTime()) / 1000)}s` : '—'}
+                {completedAt && createdAt
+                  ? `${Math.round((new Date(completedAt).getTime() - new Date(createdAt).getTime()) / 1000)}s`
+                  : '—'}
               </p>
               <p className="text-[11px] text-muted-foreground mt-0.5">Duração</p>
             </div>
@@ -131,7 +153,11 @@ function EvalCard({ ev }: { ev: Record<string, unknown> }) {
                 className="text-xs gap-1.5 w-full justify-center"
                 onClick={() => setExpanded(!expanded)}
               >
-                {expanded ? <ChevronUp className="h-3.5 w-3.5" /> : <ChevronDown className="h-3.5 w-3.5" />}
+                {expanded ? (
+                  <ChevronUp className="h-3.5 w-3.5" />
+                ) : (
+                  <ChevronDown className="h-3.5 w-3.5" />
+                )}
                 {expanded ? 'Ocultar detalhes' : `Ver ${cases.length} test cases`}
               </Button>
               {expanded && (
@@ -141,25 +167,42 @@ function EvalCard({ ev }: { ev: Record<string, unknown> }) {
                       <tr>
                         <th className="text-left p-2 font-medium text-muted-foreground w-8"></th>
                         <th className="text-left p-2 font-medium text-muted-foreground">Input</th>
-                        <th className="text-left p-2 font-medium text-muted-foreground">Esperado</th>
+                        <th className="text-left p-2 font-medium text-muted-foreground">
+                          Esperado
+                        </th>
                         <th className="text-left p-2 font-medium text-muted-foreground">Obtido</th>
-                        <th className="text-left p-2 font-medium text-muted-foreground w-16">Score</th>
+                        <th className="text-left p-2 font-medium text-muted-foreground w-16">
+                          Score
+                        </th>
                       </tr>
                     </thead>
                     <tbody>
                       {cases.map((c, i) => (
                         <tr key={i} className="border-t border-border/30">
                           <td className="p-2">
-                            {c.passed
-                              ? <CheckCircle2 className="h-3.5 w-3.5 text-nexus-emerald" />
-                              : <XCircle className="h-3.5 w-3.5 text-destructive" />}
+                            {c.passed ? (
+                              <CheckCircle2 className="h-3.5 w-3.5 text-nexus-emerald" />
+                            ) : (
+                              <XCircle className="h-3.5 w-3.5 text-destructive" />
+                            )}
                           </td>
                           <td className="p-2 text-foreground truncate max-w-[180px]">{c.input}</td>
-                          <td className="p-2 text-muted-foreground truncate max-w-[150px]">{c.expected}</td>
-                          <td className="p-2 text-muted-foreground truncate max-w-[150px]">{c.actual}</td>
+                          <td className="p-2 text-muted-foreground truncate max-w-[150px]">
+                            {c.expected}
+                          </td>
+                          <td className="p-2 text-muted-foreground truncate max-w-[150px]">
+                            {c.actual}
+                          </td>
                           <td className="p-2">
-                            <Badge variant={c.passed ? 'default' : 'destructive'} className="text-[10px]">
-                              {c.score != null ? `${(c.score * 100).toFixed(0)}%` : c.passed ? 'Pass' : 'Fail'}
+                            <Badge
+                              variant={c.passed ? 'default' : 'destructive'}
+                              className="text-[10px]"
+                            >
+                              {c.score != null
+                                ? `${(c.score * 100).toFixed(0)}%`
+                                : c.passed
+                                  ? 'Pass'
+                                  : 'Fail'}
                             </Badge>
                           </td>
                         </tr>

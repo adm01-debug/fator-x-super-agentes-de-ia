@@ -12,7 +12,15 @@ import ReactFlow, {
 } from 'reactflow';
 import 'reactflow/dist/style.css';
 import { useAgentBuilderStore } from '@/stores/agentBuilderStore';
-import { useAgentWorkflows, useWorkflowRuns, runWorkflow, type AgentWorkflow } from '@/hooks/useAgentWorkflows';
+import { logger } from '@/lib/logger';
+import {
+  useAgentWorkflows,
+  useWorkflowRuns,
+  runWorkflow,
+  type AgentWorkflow,
+  type WorkflowNode,
+  type WorkflowEdge,
+} from '@/hooks/useAgentWorkflows';
 import { useWorkspaceId } from '@/hooks/use-data';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -63,20 +71,28 @@ export function OrchestratorModule() {
 
   const handleSave = () => {
     if (!active) return;
-    updateWorkflow.mutate({ id: active.id, nodes: nodes as any, edges: edges as any });
+    updateWorkflow.mutate({
+      id: active.id,
+      nodes: nodes as unknown as WorkflowNode[],
+      edges: edges as unknown as WorkflowEdge[],
+    });
   };
 
   const handleRun = async () => {
     if (!active) return;
     setRunning(true);
     try {
-      let parsed: any = testInput;
-      try { parsed = JSON.parse(testInput); } catch {}
+      let parsed: unknown = testInput;
+      try {
+        parsed = JSON.parse(testInput);
+      } catch {
+        // Input não é JSON — envia como string literal.
+      }
       const result = await runWorkflow(active.id, parsed);
       toast.success('Execução concluída');
-      console.log('Workflow result:', result);
-    } catch (e: any) {
-      toast.error(e.message || 'Falha na execução');
+      logger.info('Workflow result:', result);
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : 'Falha na execução');
     } finally {
       setRunning(false);
     }
@@ -86,9 +102,12 @@ export function OrchestratorModule() {
     if (!workspaceId) return toast.error('Sem workspace ativo');
     const name = prompt('Nome do workflow?');
     if (!name) return;
-    createWorkflow.mutate({ name, workspace_id: workspaceId }, {
-      onSuccess: (w: any) => setActiveId(w.id),
-    });
+    createWorkflow.mutate(
+      { name, workspace_id: workspaceId },
+      {
+        onSuccess: (w) => w && setActiveId(w.id),
+      },
+    );
   };
 
   if (!agent.id) {
@@ -101,7 +120,11 @@ export function OrchestratorModule() {
 
   return (
     <div className="space-y-6">
-      <SectionTitle icon="🎨" title="Visual Orchestrator" subtitle="Construa fluxos multi-agente arrastando blocos." />
+      <SectionTitle
+        icon="🎨"
+        title="Visual Orchestrator"
+        subtitle="Construa fluxos multi-agente arrastando blocos."
+      />
 
       <div className="grid grid-cols-1 md:grid-cols-[260px_1fr] gap-4">
         {/* Sidebar — workflows + palette */}
@@ -175,7 +198,11 @@ export function OrchestratorModule() {
                     <Save className="h-3.5 w-3.5 mr-1" /> Salvar
                   </Button>
                   <Button size="sm" onClick={handleRun} disabled={running}>
-                    {running ? <Loader2 className="h-3.5 w-3.5 mr-1 animate-spin" /> : <Play className="h-3.5 w-3.5 mr-1" />}
+                    {running ? (
+                      <Loader2 className="h-3.5 w-3.5 mr-1 animate-spin" />
+                    ) : (
+                      <Play className="h-3.5 w-3.5 mr-1" />
+                    )}
                     Executar
                   </Button>
                 </div>
@@ -209,16 +236,33 @@ export function OrchestratorModule() {
               </Card>
 
               <Card className="p-3">
-                <p className="text-xs font-semibold mb-2">Histórico de Runs ({runs?.length || 0})</p>
+                <p className="text-xs font-semibold mb-2">
+                  Histórico de Runs ({runs?.length || 0})
+                </p>
                 <div className="space-y-1 max-h-[200px] overflow-y-auto">
-                  {runs?.length === 0 && <p className="text-xs text-muted-foreground">Sem execuções</p>}
+                  {runs?.length === 0 && (
+                    <p className="text-xs text-muted-foreground">Sem execuções</p>
+                  )}
                   {runs?.map((r) => (
-                    <div key={r.id} className="text-xs flex items-center justify-between p-2 rounded bg-muted/40">
+                    <div
+                      key={r.id}
+                      className="text-xs flex items-center justify-between p-2 rounded bg-muted/40"
+                    >
                       <div className="flex items-center gap-2">
-                        <Badge variant={r.status === 'completed' ? 'default' : r.status === 'failed' ? 'destructive' : 'secondary'}>
+                        <Badge
+                          variant={
+                            r.status === 'completed'
+                              ? 'default'
+                              : r.status === 'failed'
+                                ? 'destructive'
+                                : 'secondary'
+                          }
+                        >
                           {r.status}
                         </Badge>
-                        <span className="text-muted-foreground">{new Date(r.started_at).toLocaleString('pt-BR')}</span>
+                        <span className="text-muted-foreground">
+                          {new Date(r.started_at).toLocaleString('pt-BR')}
+                        </span>
                       </div>
                       <span className="text-muted-foreground">{r.trace?.length || 0} nós</span>
                     </div>

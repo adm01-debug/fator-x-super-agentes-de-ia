@@ -1,11 +1,11 @@
-import { useNavigate } from "react-router-dom";
-import { PageHeader } from "@/components/shared/PageHeader";
-import { InfoHint } from "@/components/shared/InfoHint";
-import { FileText, Loader2 } from "lucide-react";
-import { StatusBadge } from "@/components/shared/StatusBadge";
-import { useQuery } from "@tanstack/react-query";
-import { listAgentsBasic, listAllPromptVersions } from "@/services/promptVersionService";
-import { CreatePromptDialog } from "@/components/dialogs/CreatePromptDialog";
+import { useNavigate } from 'react-router-dom';
+import { PageHeader } from '@/components/shared/PageHeader';
+import { InfoHint } from '@/components/shared/InfoHint';
+import { FileText, Loader2 } from 'lucide-react';
+import { StatusBadge } from '@/components/shared/StatusBadge';
+import { useQuery } from '@tanstack/react-query';
+import { listAgentsBasic, listAllPromptVersions } from '@/services/promptVersionService';
+import { CreatePromptDialog } from '@/components/dialogs/CreatePromptDialog';
 
 export default function PromptsPage() {
   const navigate = useNavigate();
@@ -15,16 +15,20 @@ export default function PromptsPage() {
     queryFn: listAgentsBasic,
   });
 
-  const { data: prompts = [], isLoading, refetch } = useQuery({
+  const {
+    data: prompts = [],
+    isLoading,
+    refetch,
+  } = useQuery({
     queryKey: ['prompt_versions'],
     queryFn: listAllPromptVersions,
   });
 
   // Group by agent_id, latest version per agent
-  const agentMap = new Map(agents.map((a: any) => [a.id, a]));
-  const grouped = new Map<string, typeof prompts[0]>();
+  const agentMap = new Map(agents.map((a) => [a.id, a]));
+  const grouped = new Map<string, (typeof prompts)[0]>();
   for (const p of prompts) {
-    if (!grouped.has(p.agent_id) || p.version > (grouped.get(p.agent_id)!.version)) {
+    if (!grouped.has(p.agent_id) || p.version > grouped.get(p.agent_id)!.version) {
       grouped.set(p.agent_id, p);
     }
   }
@@ -39,18 +43,25 @@ export default function PromptsPage() {
       />
 
       <InfoHint title="Versionamento de prompts">
-        Cada alteração no prompt cria uma nova versão. Compare versões lado a lado, faça rollback e associe resultados de avaliação a cada iteração para melhorar continuamente.
+        Cada alteração no prompt cria uma nova versão. Compare versões lado a lado, faça rollback e
+        associe resultados de avaliação a cada iteração para melhorar continuamente.
       </InfoHint>
 
       {isLoading ? (
-        <div className="flex items-center justify-center py-20"><Loader2 className="h-6 w-6 animate-spin text-muted-foreground" /></div>
+        <div className="flex items-center justify-center py-20">
+          <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+        </div>
       ) : latestPrompts.length === 0 ? (
         <div className="flex flex-col items-center justify-center py-20 text-center">
           <div className="h-16 w-16 rounded-2xl bg-primary/10 flex items-center justify-center mb-4">
             <FileText className="h-8 w-8 text-primary" />
           </div>
-          <h2 className="text-lg font-heading font-semibold text-foreground mb-1">Nenhum prompt cadastrado</h2>
-          <p className="text-sm text-muted-foreground mb-4 max-w-sm">Crie seu primeiro prompt para começar a versionar e iterar com métricas.</p>
+          <h2 className="text-lg font-heading font-semibold text-foreground mb-1">
+            Nenhum prompt cadastrado
+          </h2>
+          <p className="text-sm text-muted-foreground mb-4 max-w-sm">
+            Crie seu primeiro prompt para começar a versionar e iterar com métricas.
+          </p>
         </div>
       ) : (
         <div className="nexus-card overflow-hidden p-0 nexus-table-striped">
@@ -68,17 +79,31 @@ export default function PromptsPage() {
               {latestPrompts.map((p) => {
                 const agent = agentMap.get(p.agent_id);
                 return (
-                  <tr key={p.id} className="border-b border-border/30 hover:bg-secondary/30 transition-colors cursor-pointer" onClick={() => navigate(`/prompts/${p.agent_id}`)}>
+                  <tr
+                    key={p.id}
+                    className="border-b border-border/30 hover:bg-secondary/30 transition-colors cursor-pointer"
+                    onClick={() => navigate(`/prompts/${p.agent_id}`)}
+                  >
                     <td className="px-5 py-3">
                       <div className="flex items-center gap-2.5">
                         <FileText className="h-4 w-4 text-primary" />
-                        <span className="text-sm font-medium text-foreground truncate max-w-[200px]">{p.change_summary || 'Prompt'}</span>
+                        <span className="text-sm font-medium text-foreground truncate max-w-[200px]">
+                          {p.change_summary || 'Prompt'}
+                        </span>
                       </div>
                     </td>
-                    <td className="px-5 py-3 text-xs text-muted-foreground">{(agent as any)?.name || '—'}</td>
-                    <td className="px-5 py-3"><span className="text-xs font-mono text-foreground">v{p.version}</span></td>
-                    <td className="px-5 py-3"><StatusBadge status={p.is_active ? 'active' : 'draft'} /></td>
-                    <td className="px-5 py-3 text-xs text-muted-foreground">{new Date(p.created_at).toLocaleDateString('pt-BR')}</td>
+                    <td className="px-5 py-3 text-xs text-muted-foreground">
+                      {(agent as Record<string, unknown> | null)?.name || '—'}
+                    </td>
+                    <td className="px-5 py-3">
+                      <span className="text-xs font-mono text-foreground">v{p.version}</span>
+                    </td>
+                    <td className="px-5 py-3">
+                      <StatusBadge status={p.is_active ? 'active' : 'draft'} />
+                    </td>
+                    <td className="px-5 py-3 text-xs text-muted-foreground">
+                      {new Date(p.created_at).toLocaleDateString('pt-BR')}
+                    </td>
                   </tr>
                 );
               })}

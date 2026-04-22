@@ -5,7 +5,17 @@ import { TabNavigation } from './TabNavigation';
 import { ReadinessBadge } from './ReadinessBadge';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { ChevronLeft, ChevronRight, Save, Plus, Loader2, Check, History, Sparkles, FileClock } from 'lucide-react';
+import {
+  ChevronLeft,
+  ChevronRight,
+  Save,
+  Plus,
+  Loader2,
+  Check,
+  History,
+  Sparkles,
+  FileClock,
+} from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { VersionDiffDialog } from '@/components/agents/VersionDiffDialog';
 import { useAgentVersions } from '@/hooks/useAgentVersions';
@@ -13,7 +23,10 @@ import { ConversationalBuilder } from './ConversationalBuilder';
 import { DraftVersionsDialog } from './DraftVersionsDialog';
 import { listDraftVersions } from '@/services/agentDraftVersionsService';
 
-const STATUS_LABELS: Record<string, { label: string; variant: 'default' | 'secondary' | 'destructive' | 'outline' }> = {
+const STATUS_LABELS: Record<
+  string,
+  { label: string; variant: 'default' | 'secondary' | 'destructive' | 'outline' }
+> = {
   draft: { label: 'Rascunho', variant: 'secondary' },
   configured: { label: 'Configurado', variant: 'outline' },
   testing: { label: 'Testando', variant: 'outline' },
@@ -30,8 +43,17 @@ interface AgentBuilderLayoutProps {
 }
 
 export function AgentBuilderLayout({ children }: AgentBuilderLayoutProps) {
-  const { agent, activeTab, isDirty, isSaving, lastSaved, saveAgent, resetAgent, nextTab, prevTab } =
-    useAgentBuilderStore();
+  const {
+    agent,
+    activeTab,
+    isDirty,
+    isSaving,
+    lastSaved,
+    saveAgent,
+    resetAgent,
+    nextTab,
+    prevTab,
+  } = useAgentBuilderStore();
   const [historyOpen, setHistoryOpen] = useState(false);
   const [convOpen, setConvOpen] = useState(false);
   const [draftsOpen, setDraftsOpen] = useState(false);
@@ -53,7 +75,8 @@ export function AgentBuilderLayout({ children }: AgentBuilderLayoutProps) {
       <header
         className="shrink-0 px-5 py-4 flex items-center justify-between border-b"
         style={{
-          background: 'linear-gradient(180deg, hsl(var(--nexus-surface-1)) 0%, hsl(var(--background)) 100%)',
+          background:
+            'linear-gradient(180deg, hsl(var(--nexus-surface-1)) 0%, hsl(var(--background)) 100%)',
           borderColor: 'hsl(var(--nexus-border, var(--border)))',
         }}
       >
@@ -61,7 +84,8 @@ export function AgentBuilderLayout({ children }: AgentBuilderLayoutProps) {
           <h1
             className="text-lg font-bold tracking-tight bg-clip-text text-transparent shrink-0"
             style={{
-              backgroundImage: 'linear-gradient(135deg, hsl(var(--primary)), hsl(var(--accent)), hsl(var(--nexus-amber)))',
+              backgroundImage:
+                'linear-gradient(135deg, hsl(var(--primary)), hsl(var(--accent)), hsl(var(--nexus-amber)))',
             }}
           >
             ⚡ Fator X
@@ -162,15 +186,11 @@ export function AgentBuilderLayout({ children }: AgentBuilderLayoutProps) {
 
       {/* ═══ CONTENT ═══ */}
       <main className="flex-1 overflow-y-auto">
-        <div className="max-w-[1024px] mx-auto px-5 py-6 sm:px-6 sm:py-7">
-          {children}
-        </div>
+        <div className="max-w-[1024px] mx-auto px-5 py-6 sm:px-6 sm:py-7">{children}</div>
       </main>
 
       {/* ═══ FOOTER NAV ═══ */}
-      <footer
-        className="shrink-0 sticky bottom-0 px-5 py-3 flex items-center justify-between border-t border-border bg-background"
-      >
+      <footer className="shrink-0 sticky bottom-0 px-5 py-3 flex items-center justify-between border-t border-border bg-background">
         <Button
           variant="outline"
           size="sm"
@@ -201,7 +221,7 @@ export function AgentBuilderLayout({ children }: AgentBuilderLayoutProps) {
       <VersionDiffDialog
         open={historyOpen}
         onOpenChange={setHistoryOpen}
-        versions={versions as any}
+        versions={versions as unknown as React.ComponentProps<typeof VersionDiffDialog>['versions']}
         agentId={agent.id as string | undefined}
       />
       <ConversationalBuilder open={convOpen} onOpenChange={setConvOpen} />

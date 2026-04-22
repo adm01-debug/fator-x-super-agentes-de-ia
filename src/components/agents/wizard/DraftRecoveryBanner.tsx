@@ -66,7 +66,8 @@ export function DraftRecoveryBanner({
             Rascunho encontrado
           </h3>
           <p className="text-xs text-muted-foreground mt-0.5">
-            Você começou um agente {subject} {formatRelative(savedAt)}. Quer continuar de onde parou?
+            Você começou um agente {subject} {formatRelative(savedAt)}. Quer continuar de onde
+            parou?
           </p>
         </div>
       </div>
@@ -85,7 +86,6 @@ export function DraftRecoveryBanner({
         <Button
           size="sm"
           onClick={onRestore}
-          autoFocus
           className="gap-1.5 nexus-gradient-bg text-primary-foreground"
         >
           Continuar de onde parei

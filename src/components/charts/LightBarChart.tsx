@@ -13,7 +13,7 @@ interface BarSeries {
 }
 
 interface Props {
-  data: Record<string, any>[];
+  data: Record<string, unknown>[];
   xKey: string;
   series: BarSeries[];
   height?: number;
@@ -23,7 +23,7 @@ interface Props {
   showLegend?: boolean;
   showGrid?: boolean;
   /** Optional click handler on a bar/group. Receives the datum and its index. */
-  onBarClick?: (datum: Record<string, any>, index: number) => void;
+  onBarClick?: (datum: Record<string, unknown>, index: number) => void;
 }
 
 function niceMax(v: number) {
@@ -35,15 +35,22 @@ function niceMax(v: number) {
 }
 
 export function LightBarChart({
-  data, xKey, series, height = 220, margin,
-  yFormatter = String, tooltipFormatter, showLegend = false, showGrid = true,
+  data,
+  xKey,
+  series,
+  height = 220,
+  margin,
+  yFormatter = String,
+  tooltipFormatter,
+  showLegend = false,
+  showGrid = true,
   onBarClick,
 }: Props) {
   const { ref, width, margin: m, inner } = useChartDimensions(margin);
   const [tooltip, setTooltip] = useState<TooltipState | null>(null);
 
   const { yMax, ticks, isStacked } = useMemo(() => {
-    const stacked = series.some(s => s.stackId);
+    const stacked = series.some((s) => s.stackId);
     let maxVal = 0;
 
     if (stacked) {
@@ -70,7 +77,6 @@ export function LightBarChart({
       const ym = niceMax(maxVal * 1.1);
       return { yMax: ym, ticks: [0, ym * 0.25, ym * 0.5, ym * 0.75, ym], isStacked: false };
     }
-  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [data, series]);
 
   if (!width || inner.width <= 0 || inner.height <= 0) {
@@ -92,14 +98,30 @@ export function LightBarChart({
       <svg width={width} height={inner.height + m.top + m.bottom} className="overflow-visible">
         <g transform={`translate(${m.left},${m.top})`}>
           {/* Grid + Y axis */}
-          {showGrid && ticks.map((t, i) => (
-            <g key={i}>
-              <line x1={0} x2={inner.width} y1={scaleY(t)} y2={scaleY(t)} stroke="hsl(var(--border))" strokeDasharray="3 3" opacity={0.5} />
-              <text x={-6} y={scaleY(t)} textAnchor="end" dominantBaseline="middle" className="fill-muted-foreground" style={{ fontSize: 10 }}>
-                {yFormatter(t)}
-              </text>
-            </g>
-          ))}
+          {showGrid &&
+            ticks.map((t, i) => (
+              <g key={i}>
+                <line
+                  x1={0}
+                  x2={inner.width}
+                  y1={scaleY(t)}
+                  y2={scaleY(t)}
+                  stroke="hsl(var(--border))"
+                  strokeDasharray="3 3"
+                  opacity={0.5}
+                />
+                <text
+                  x={-6}
+                  y={scaleY(t)}
+                  textAnchor="end"
+                  dominantBaseline="middle"
+                  className="fill-muted-foreground"
+                  style={{ fontSize: 10 }}
+                >
+                  {yFormatter(t)}
+                </text>
+              </g>
+            ))}
 
           {/* Bars */}
           {data.map((d, di) => {
@@ -122,7 +144,7 @@ export function LightBarChart({
                     height={Math.max(0, h)}
                     fill={s.color}
                     rx={bars.length === series.length - 1 ? r : 0}
-                  />
+                  />,
                 );
                 accumulated += v;
               }
@@ -133,16 +155,27 @@ export function LightBarChart({
                   role={onBarClick ? 'button' : undefined}
                   tabIndex={onBarClick ? 0 : undefined}
                   onClick={onBarClick ? () => onBarClick(d, di) : undefined}
-                  onKeyDown={onBarClick ? (e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onBarClick(d, di); } } : undefined}
+                  onKeyDown={
+                    onBarClick
+                      ? (e) => {
+                          if (e.key === 'Enter' || e.key === ' ') {
+                            e.preventDefault();
+                            onBarClick(d, di);
+                          }
+                        }
+                      : undefined
+                  }
                   onMouseEnter={() => {
                     const rect = ref.current?.getBoundingClientRect();
                     if (!rect) return;
                     setTooltip({
                       x: m.left + groupX + (barGroupWidth - barPad * 2) / 2,
                       y: m.top + scaleY(accumulated) - 4,
-                      items: series.map(s => ({
+                      items: series.map((s) => ({
                         label: s.name,
-                        value: tooltipFormatter ? tooltipFormatter(Number(d[s.dataKey]) || 0, s.name) : String(Number(d[s.dataKey]) || 0),
+                        value: tooltipFormatter
+                          ? tooltipFormatter(Number(d[s.dataKey]) || 0, s.name)
+                          : String(Number(d[s.dataKey]) || 0),
                         color: s.color,
                       })),
                     });
@@ -174,16 +207,27 @@ export function LightBarChart({
                       role={onBarClick ? 'button' : undefined}
                       tabIndex={onBarClick ? 0 : undefined}
                       onClick={onBarClick ? () => onBarClick(d, di) : undefined}
-                      onKeyDown={onBarClick ? (e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onBarClick(d, di); } } : undefined}
+                      onKeyDown={
+                        onBarClick
+                          ? (e) => {
+                              if (e.key === 'Enter' || e.key === ' ') {
+                                e.preventDefault();
+                                onBarClick(d, di);
+                              }
+                            }
+                          : undefined
+                      }
                       onMouseEnter={() => {
                         setTooltip({
                           x: m.left + x + barW / 2,
                           y: m.top + scaleY(v) - 4,
-                          items: [{
-                            label: s.name,
-                            value: tooltipFormatter ? tooltipFormatter(v, s.name) : String(v),
-                            color: s.color,
-                          }],
+                          items: [
+                            {
+                              label: s.name,
+                              value: tooltipFormatter ? tooltipFormatter(v, s.name) : String(v),
+                              color: s.color,
+                            },
+                          ],
                         });
                       }}
                       onMouseLeave={() => setTooltip(null)}
@@ -213,7 +257,7 @@ export function LightBarChart({
         </g>
       </svg>
       <ChartTooltip tooltip={tooltip} />
-      {showLegend && <ChartLegend items={series.map(s => ({ label: s.name, color: s.color }))} />}
+      {showLegend && <ChartLegend items={series.map((s) => ({ label: s.name, color: s.color }))} />}
     </div>
   );
 }

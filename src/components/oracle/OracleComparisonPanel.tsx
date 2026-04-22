@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState } from 'react';
 import {
   Loader2,
   Sparkles,
@@ -10,15 +10,20 @@ import {
   DollarSign,
   Hash,
   Gauge,
-} from "lucide-react";
-import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
-import { Textarea } from "@/components/ui/textarea";
-import { Label } from "@/components/ui/label";
-import { Checkbox } from "@/components/ui/checkbox";
-import { toast } from "sonner";
-import { invokeTracedFunction } from "@/services/llmGatewayService";
-import { ORACLE_MODES, ORACLE_PRESETS, type OracleMode, type OracleResult } from "@/stores/oracleStore";
+} from 'lucide-react';
+import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
+import { Textarea } from '@/components/ui/textarea';
+import { Label } from '@/components/ui/label';
+import { Checkbox } from '@/components/ui/checkbox';
+import { toast } from 'sonner';
+import { invokeTracedFunction } from '@/services/llmGatewayService';
+import {
+  ORACLE_MODES,
+  ORACLE_PRESETS,
+  type OracleMode,
+  type OracleResult,
+} from '@/stores/oracleStore';
 
 interface ComparisonRun {
   mode: OracleMode;
@@ -37,13 +42,17 @@ const COMPARISON_MODES: Array<{ mode: OracleMode; preset_id: string }> = [
 
 export function OracleComparisonPanel() {
   const [query, setQuery] = useState('');
-  const [selectedModes, setSelectedModes] = useState<OracleMode[]>(['council', 'researcher', 'advisor']);
+  const [selectedModes, setSelectedModes] = useState<OracleMode[]>([
+    'council',
+    'researcher',
+    'advisor',
+  ]);
   const [runs, setRuns] = useState<ComparisonRun[]>([]);
   const [isRunning, setIsRunning] = useState(false);
 
   const toggleMode = (mode: OracleMode) => {
     setSelectedModes((prev) =>
-      prev.includes(mode) ? prev.filter((m) => m !== mode) : [...prev, mode]
+      prev.includes(mode) ? prev.filter((m) => m !== mode) : [...prev, mode],
     );
   };
 
@@ -59,15 +68,15 @@ export function OracleComparisonPanel() {
 
     setIsRunning(true);
 
-    const initial: ComparisonRun[] = COMPARISON_MODES
-      .filter((c) => selectedModes.includes(c.mode))
-      .map((c) => ({
-        mode: c.mode,
-        preset_id: c.preset_id,
-        result: null,
-        duration_ms: 0,
-        status: 'pending' as const,
-      }));
+    const initial: ComparisonRun[] = COMPARISON_MODES.filter((c) =>
+      selectedModes.includes(c.mode),
+    ).map((c) => ({
+      mode: c.mode,
+      preset_id: c.preset_id,
+      result: null,
+      duration_ms: 0,
+      status: 'pending' as const,
+    }));
     setRuns(initial);
 
     // Run sequentially to avoid overloading the orchestrator
@@ -80,19 +89,23 @@ export function OracleComparisonPanel() {
 
       try {
         const preset = ORACLE_PRESETS.find((p) => p.id === cfg.preset_id) || ORACLE_PRESETS[0];
-        const data = await invokeTracedFunction<OracleResult>('oracle-council', {
-          query,
-          mode: cfg.mode,
-          members: preset.members,
-          chairman_model: preset.chairman,
-          enable_peer_review: preset.enablePeerReview,
-          enable_thinking: preset.enableThinking,
-          preset_id: preset.id,
-        }, {
-          spanKind: 'llm',
-          extractCostUsd: (d) => (d as OracleResult)?.metrics?.total_cost_usd,
-          extractModel: (b) => (b as { chairman_model?: string }).chairman_model,
-        });
+        const data = await invokeTracedFunction<OracleResult>(
+          'oracle-council',
+          {
+            query,
+            mode: cfg.mode,
+            members: preset.members,
+            chairman_model: preset.chairman,
+            enable_peer_review: preset.enablePeerReview,
+            enable_thinking: preset.enableThinking,
+            preset_id: preset.id,
+          },
+          {
+            spanKind: 'llm',
+            extractCostUsd: (d) => (d as OracleResult)?.metrics?.total_cost_usd,
+            extractModel: (b) => (b as { chairman_model?: string }).chairman_model,
+          },
+        );
 
         const idx = collected.findIndex((c) => c.mode === cfg.mode);
         if (idx >= 0) {
@@ -129,11 +142,12 @@ export function OracleComparisonPanel() {
 
   // "Winner" = highest confidence_score among successful runs (more meaningful than fastest)
   const successfulRuns = runs.filter((r) => r.status === 'success' && r.result);
-  const winnerMode = successfulRuns.length > 0
-    ? successfulRuns.reduce((best, r) =>
-        (r.result!.confidence_score ?? 0) > (best.result!.confidence_score ?? 0) ? r : best
-      ).mode
-    : null;
+  const winnerMode =
+    successfulRuns.length > 0
+      ? successfulRuns.reduce((best, r) =>
+          (r.result!.confidence_score ?? 0) > (best.result!.confidence_score ?? 0) ? r : best,
+        ).mode
+      : null;
 
   const aggregate = successfulRuns.reduce(
     (acc, r) => ({
@@ -141,7 +155,7 @@ export function OracleComparisonPanel() {
       tokens: acc.tokens + (r.result?.metrics?.total_tokens ?? 0),
       avgLatency: acc.avgLatency + r.duration_ms,
     }),
-    { cost: 0, tokens: 0, avgLatency: 0 }
+    { cost: 0, tokens: 0, avgLatency: 0 },
   );
   if (successfulRuns.length > 0) {
     aggregate.avgLatency = aggregate.avgLatency / successfulRuns.length;
@@ -184,7 +198,8 @@ export function OracleComparisonPanel() {
           <GitCompare className="h-4 w-4 text-primary" /> Modo Comparação
         </h3>
         <p className="text-[11px] text-muted-foreground mt-0.5">
-          Roda a mesma query em múltiplos modos do Oráculo lado a lado para comparar abordagens. Útil para escolher o modo certo para cada tipo de pergunta.
+          Roda a mesma query em múltiplos modos do Oráculo lado a lado para comparar abordagens.
+          Útil para escolher o modo certo para cada tipo de pergunta.
         </p>
       </div>
 
@@ -210,11 +225,15 @@ export function OracleComparisonPanel() {
               return (
                 <label
                   key={cfg.mode}
+                  htmlFor={`oracle-mode-${cfg.mode}`}
                   className={`flex items-start gap-2 p-2.5 rounded-lg border cursor-pointer transition-colors ${
-                    checked ? 'bg-primary/10 border-primary/40' : 'bg-secondary/30 border-border/30 hover:border-primary/20'
+                    checked
+                      ? 'bg-primary/10 border-primary/40'
+                      : 'bg-secondary/30 border-border/30 hover:border-primary/20'
                   }`}
                 >
                   <Checkbox
+                    id={`oracle-mode-${cfg.mode}`}
                     checked={checked}
                     onCheckedChange={() => toggleMode(cfg.mode)}
                     disabled={isRunning}
@@ -225,7 +244,9 @@ export function OracleComparisonPanel() {
                       <span className="text-sm">{modeInfo.icon}</span>
                       <span className="text-xs font-semibold">{modeInfo.label}</span>
                     </div>
-                    <p className="text-[10px] text-muted-foreground mt-0.5 line-clamp-2">{modeInfo.description}</p>
+                    <p className="text-[10px] text-muted-foreground mt-0.5 line-clamp-2">
+                      {modeInfo.description}
+                    </p>
                   </div>
                 </label>
               );
@@ -239,7 +260,11 @@ export function OracleComparisonPanel() {
             disabled={isRunning || !query.trim() || selectedModes.length < 2}
             className="gap-1.5"
           >
-            {isRunning ? <Loader2 className="h-4 w-4 animate-spin" /> : <Sparkles className="h-4 w-4" />}
+            {isRunning ? (
+              <Loader2 className="h-4 w-4 animate-spin" />
+            ) : (
+              <Sparkles className="h-4 w-4" />
+            )}
             Comparar
           </Button>
         </div>
@@ -307,32 +332,38 @@ export function OracleComparisonPanel() {
             return (
               <div
                 key={run.mode}
-                className={`nexus-card space-y-3 ${
-                  isWinner ? 'ring-1 ring-nexus-amber/50' : ''
-                }`}
+                className={`nexus-card space-y-3 ${isWinner ? 'ring-1 ring-nexus-amber/50' : ''}`}
               >
                 <div className="flex items-center justify-between gap-2 pb-2 border-b border-border/30">
                   <div className="flex items-center gap-2 min-w-0">
                     <span className="text-lg">{modeInfo.icon}</span>
                     <p className="text-xs font-semibold truncate">{modeInfo.label}</p>
-                    {isWinner && (
-                      <Trophy className="h-3.5 w-3.5 text-nexus-amber shrink-0" />
-                    )}
+                    {isWinner && <Trophy className="h-3.5 w-3.5 text-nexus-amber shrink-0" />}
                   </div>
-                  {run.status === 'pending' && <Badge variant="outline" className="text-[9px]">Pendente</Badge>}
+                  {run.status === 'pending' && (
+                    <Badge variant="outline" className="text-[9px]">
+                      Pendente
+                    </Badge>
+                  )}
                   {run.status === 'running' && (
                     <Badge variant="outline" className="text-[9px] gap-1">
                       <Loader2 className="h-2.5 w-2.5 animate-spin" /> Rodando
                     </Badge>
                   )}
                   {run.status === 'success' && (
-                    <Badge variant="outline" className="text-[9px] border-nexus-emerald/50 text-nexus-emerald gap-1">
+                    <Badge
+                      variant="outline"
+                      className="text-[9px] border-nexus-emerald/50 text-nexus-emerald gap-1"
+                    >
                       <CheckCircle2 className="h-2.5 w-2.5" />
                       {(run.duration_ms / 1000).toFixed(1)}s
                     </Badge>
                   )}
                   {run.status === 'failed' && (
-                    <Badge variant="outline" className="text-[9px] border-destructive/50 text-destructive gap-1">
+                    <Badge
+                      variant="outline"
+                      className="text-[9px] border-destructive/50 text-destructive gap-1"
+                    >
                       <XCircle className="h-2.5 w-2.5" /> Falhou
                     </Badge>
                   )}
@@ -367,7 +398,8 @@ export function OracleComparisonPanel() {
                     </div>
                     {(run.result.metrics?.models_used ?? 0) > 0 && (
                       <div className="pt-2 border-t border-border/30 text-[10px] text-muted-foreground">
-                        {run.result.metrics.models_used} modelos · consenso {((run.result.consensus_degree ?? 0) * 100).toFixed(0)}%
+                        {run.result.metrics.models_used} modelos · consenso{' '}
+                        {((run.result.consensus_degree ?? 0) * 100).toFixed(0)}%
                       </div>
                     )}
                   </div>

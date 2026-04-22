@@ -34,7 +34,8 @@ export function BillingModule() {
     const outputTokens = Math.max(100, Math.floor(simMaxTokens * 0.6));
     return listModelPrices()
       .map((p) => {
-        const costUsd = (inputTokens / 1000) * p.input_per_1k + (outputTokens / 1000) * p.output_per_1k;
+        const costUsd =
+          (inputTokens / 1000) * p.input_per_1k + (outputTokens / 1000) * p.output_per_1k;
         return {
           ...p,
           inputTokens,
@@ -51,14 +52,22 @@ export function BillingModule() {
 
   return (
     <div className="space-y-8">
-      <SectionTitle icon="💰" title="Uso & Custos" subtitle="Dashboard de custos, budget e projeções" />
+      <SectionTitle
+        icon="💰"
+        title="Uso & Custos"
+        subtitle="Dashboard de custos, budget e projeções"
+      />
 
       {/* Summary Cards */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
         {[
           { label: 'Custo Semanal', value: `$${totalWeek.toFixed(2)}`, color: 'nexus-blue' },
           { label: 'Média Diária', value: `$${avgDaily.toFixed(2)}`, color: 'nexus-green' },
-          { label: 'Projeção Mensal', value: `$${projectedMonth.toFixed(0)}`, color: 'nexus-yellow' },
+          {
+            label: 'Projeção Mensal',
+            value: `$${projectedMonth.toFixed(0)}`,
+            color: 'nexus-yellow',
+          },
           { label: 'Interações/dia', value: '~340', color: 'nexus-purple' },
         ].map((c) => (
           <div key={c.label} className="rounded-xl border border-border bg-card p-4">
@@ -95,10 +104,26 @@ export function BillingModule() {
           yFormatter={(v) => `$${v}`}
           showLegend
           series={[
-            { dataKey: 'llm', name: 'LLM', color: 'hsl(var(--nexus-blue))', radius: 4, stackId: 'a' },
-            { dataKey: 'embedding', name: 'Embedding', color: 'hsl(var(--nexus-green))', stackId: 'a' },
+            {
+              dataKey: 'llm',
+              name: 'LLM',
+              color: 'hsl(var(--nexus-blue))',
+              radius: 4,
+              stackId: 'a',
+            },
+            {
+              dataKey: 'embedding',
+              name: 'Embedding',
+              color: 'hsl(var(--nexus-green))',
+              stackId: 'a',
+            },
             { dataKey: 'tools', name: 'Tools', color: 'hsl(var(--nexus-yellow))', stackId: 'a' },
-            { dataKey: 'storage', name: 'Storage', color: 'hsl(var(--nexus-purple))', stackId: 'a' },
+            {
+              dataKey: 'storage',
+              name: 'Storage',
+              color: 'hsl(var(--nexus-purple))',
+              stackId: 'a',
+            },
           ]}
         />
       </div>
@@ -106,12 +131,17 @@ export function BillingModule() {
       {/* Category Breakdown */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
         {COST_CATEGORIES.map((cat) => {
-          const total = billing.dailyUsage.reduce((s, d) => s + (d[cat.key as keyof typeof d] as number), 0);
+          const total = billing.dailyUsage.reduce(
+            (s, d) => s + (d[cat.key as keyof typeof d] as number),
+            0,
+          );
           const pct = (total / totalWeek) * 100;
           return (
             <div key={cat.key} className="rounded-xl border border-border bg-card p-4 space-y-2">
               <p className="text-sm font-medium">{cat.label}</p>
-              <p className="text-xl font-bold" style={{ color: cat.color }}>${total.toFixed(2)}</p>
+              <p className="text-xl font-bold" style={{ color: cat.color }}>
+                ${total.toFixed(2)}
+              </p>
               <ProgressBar value={pct} max={100} color={cat.color} />
               <p className="text-xs text-muted-foreground">{pct.toFixed(0)}% do total</p>
             </div>
@@ -147,27 +177,45 @@ export function BillingModule() {
           <div className="space-y-2 pt-2">
             <div className="flex justify-between text-sm">
               <span className="text-muted-foreground">Uso projetado vs Budget</span>
-              <span className={budgetUsed > 100 ? 'text-[hsl(var(--nexus-red))]' : budgetUsed > 80 ? 'text-[hsl(var(--nexus-yellow))]' : 'text-[hsl(var(--nexus-green))]'}>
+              <span
+                className={
+                  budgetUsed > 100
+                    ? 'text-[hsl(var(--nexus-red))]'
+                    : budgetUsed > 80
+                      ? 'text-[hsl(var(--nexus-yellow))]'
+                      : 'text-[hsl(var(--nexus-green))]'
+                }
+              >
                 ${projectedMonth.toFixed(0)} / ${agent.monthly_budget}
               </span>
             </div>
             <ProgressBar
               value={Math.min(budgetUsed, 100)}
               max={100}
-              color={budgetUsed > 100 ? 'hsl(var(--nexus-red))' : budgetUsed > 80 ? 'hsl(var(--nexus-yellow))' : 'hsl(var(--nexus-green))'}
+              color={
+                budgetUsed > 100
+                  ? 'hsl(var(--nexus-red))'
+                  : budgetUsed > 80
+                    ? 'hsl(var(--nexus-yellow))'
+                    : 'hsl(var(--nexus-green))'
+              }
             />
           </div>
         )}
       </div>
 
       {/* Cost Simulator — Compare models */}
-      <SectionTitle icon="🧮" title="Simulador de Custos" subtitle="Compare custo e latência entre modelos para um mesmo input" />
+      <SectionTitle
+        icon="🧮"
+        title="Simulador de Custos"
+        subtitle="Compare custo e latência entre modelos para um mesmo input"
+      />
       <div className="rounded-xl border border-border bg-card p-6 space-y-4">
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
           <div className="md:col-span-2 space-y-1.5">
-            <label className="text-xs font-medium text-foreground flex items-center gap-1.5">
+            <span className="text-xs font-medium text-foreground flex items-center gap-1.5">
               <Calculator className="h-3.5 w-3.5" /> Input de exemplo
-            </label>
+            </span>
             <Textarea
               value={simInput}
               onChange={(e) => setSimInput(e.target.value)}
@@ -175,7 +223,9 @@ export function BillingModule() {
               className="text-xs bg-muted/30 border-border resize-none"
               placeholder="Cole aqui um input típico do seu agente..."
             />
-            <p className="text-[10px] text-muted-foreground">~{estimateTokens(simInput)} tokens estimados</p>
+            <p className="text-[10px] text-muted-foreground">
+              ~{estimateTokens(simInput)} tokens estimados
+            </p>
           </div>
           <div>
             <SliderField
@@ -198,7 +248,9 @@ export function BillingModule() {
                 <p className="text-[10px] text-muted-foreground uppercase">Mais barato</p>
                 <p className="text-sm font-semibold truncate">{cheapest.label}</p>
               </div>
-              <Badge variant="outline" className="text-xs font-mono">${cheapest.costUsd.toFixed(5)}</Badge>
+              <Badge variant="outline" className="text-xs font-mono">
+                ${cheapest.costUsd.toFixed(5)}
+              </Badge>
             </div>
             <div className="rounded-lg border border-nexus-blue/30 bg-nexus-blue/5 p-3 flex items-center gap-3">
               <Zap className="h-5 w-5 text-[hsl(var(--nexus-blue))]" />
@@ -206,7 +258,9 @@ export function BillingModule() {
                 <p className="text-[10px] text-muted-foreground uppercase">Mais rápido</p>
                 <p className="text-sm font-semibold truncate">{fastest.label}</p>
               </div>
-              <Badge variant="outline" className="text-xs font-mono">~{(fastest.avg_latency_ms / 1000).toFixed(1)}s</Badge>
+              <Badge variant="outline" className="text-xs font-mono">
+                ~{(fastest.avg_latency_ms / 1000).toFixed(1)}s
+              </Badge>
             </div>
           </div>
         )}
@@ -224,15 +278,28 @@ export function BillingModule() {
             </thead>
             <tbody>
               {simulation.map((row, i) => (
-                <tr key={row.model} className={`border-b border-border/30 hover:bg-muted/20 ${i === 0 ? 'bg-nexus-green/5' : ''}`}>
+                <tr
+                  key={row.model}
+                  className={`border-b border-border/30 hover:bg-muted/20 ${i === 0 ? 'bg-nexus-green/5' : ''}`}
+                >
                   <td className="py-2 font-medium">
                     {row.label}
-                    {i === 0 && <Badge className="ml-2 bg-nexus-green/20 text-[hsl(var(--nexus-green))] text-[9px] h-4">BEST</Badge>}
+                    {i === 0 && (
+                      <Badge className="ml-2 bg-nexus-green/20 text-[hsl(var(--nexus-green))] text-[9px] h-4">
+                        BEST
+                      </Badge>
+                    )}
                   </td>
-                  <td className="py-2 text-right text-muted-foreground capitalize">{row.provider}</td>
+                  <td className="py-2 text-right text-muted-foreground capitalize">
+                    {row.provider}
+                  </td>
                   <td className="py-2 text-right font-mono">${row.costUsd.toFixed(5)}</td>
-                  <td className="py-2 text-right font-mono text-muted-foreground">R$ {row.costBrl.toFixed(4).replace('.', ',')}</td>
-                  <td className="py-2 text-right font-mono text-muted-foreground">~{(row.avg_latency_ms / 1000).toFixed(1)}s</td>
+                  <td className="py-2 text-right font-mono text-muted-foreground">
+                    R$ {row.costBrl.toFixed(4).replace('.', ',')}
+                  </td>
+                  <td className="py-2 text-right font-mono text-muted-foreground">
+                    ~{(row.avg_latency_ms / 1000).toFixed(1)}s
+                  </td>
                 </tr>
               ))}
             </tbody>
@@ -244,7 +311,8 @@ export function BillingModule() {
       <SectionTitle icon="📈" title="Projeção" subtitle="Tendência baseada nos últimos 7 dias" />
       <div className="rounded-xl border border-border bg-card p-6">
         <p className="text-sm text-muted-foreground mb-4">
-          Baseado no uso atual, projeção para o mês: <span className="text-foreground font-bold">${projectedMonth.toFixed(0)}</span>
+          Baseado no uso atual, projeção para o mês:{' '}
+          <span className="text-foreground font-bold">${projectedMonth.toFixed(0)}</span>
         </p>
         <LightLineChart
           data={billing.projection}
@@ -252,8 +320,21 @@ export function BillingModule() {
           height={220}
           yFormatter={(v) => `$${v}`}
           series={[
-            { dataKey: 'real', name: 'Real', stroke: 'hsl(var(--nexus-blue))', strokeWidth: 2, dotRadius: 4 },
-            { dataKey: 'projetado', name: 'Projetado', stroke: 'hsl(var(--nexus-yellow))', strokeWidth: 2, strokeDasharray: '5 5', dotRadius: 4 },
+            {
+              dataKey: 'real',
+              name: 'Real',
+              stroke: 'hsl(var(--nexus-blue))',
+              strokeWidth: 2,
+              dotRadius: 4,
+            },
+            {
+              dataKey: 'projetado',
+              name: 'Projetado',
+              stroke: 'hsl(var(--nexus-yellow))',
+              strokeWidth: 2,
+              strokeDasharray: '5 5',
+              dotRadius: 4,
+            },
           ]}
         />
       </div>

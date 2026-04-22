@@ -1,11 +1,17 @@
-import { useState } from "react";
-import { Button } from "@/components/ui/button";
-import { Textarea } from "@/components/ui/textarea";
-import { Badge } from "@/components/ui/badge";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Loader2, FlaskConical, Layers } from "lucide-react";
-import { invokeCerebroBrain } from "@/services/cerebroService";
-import { toast } from "sonner";
+import { useState } from 'react';
+import { Button } from '@/components/ui/button';
+import { Textarea } from '@/components/ui/textarea';
+import { Badge } from '@/components/ui/badge';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
+import { Loader2, FlaskConical, Layers } from 'lucide-react';
+import { invokeCerebroBrain } from '@/services/cerebroService';
+import { toast } from 'sonner';
 
 interface SandboxResult {
   mode: string;
@@ -32,13 +38,20 @@ export function BrainSandboxTab() {
     if (!query.trim()) return;
     setIsTesting(true);
     try {
-      const data = await invokeCerebroBrain({ action: 'brain_sandbox', query, context_mode: contextMode });
-      setResults(prev => [...prev, {
-        mode: contextMode,
-        response: data?.response || 'Sem resposta',
-        context_size: data?.context_size || 0,
-        cost: data?.cost_usd || 0,
-      }]);
+      const data = await invokeCerebroBrain({
+        action: 'brain_sandbox',
+        query,
+        context_mode: contextMode,
+      });
+      setResults((prev) => [
+        ...prev,
+        {
+          mode: contextMode,
+          response: data?.response || 'Sem resposta',
+          context_size: data?.context_size || 0,
+          cost: data?.cost_usd || 0,
+        },
+      ]);
     } catch (e: unknown) {
       toast.error(e instanceof Error ? e.message : 'Erro no sandbox');
     } finally {
@@ -59,7 +72,11 @@ export function BrainSandboxTab() {
     const collected: SandboxResult[] = [];
     for (const mode of modes) {
       try {
-        const data = await invokeCerebroBrain({ action: 'brain_sandbox', query, context_mode: mode });
+        const data = await invokeCerebroBrain({
+          action: 'brain_sandbox',
+          query,
+          context_mode: mode,
+        });
         collected.push({
           mode,
           response: data?.response || 'Sem resposta',
@@ -88,22 +105,27 @@ export function BrainSandboxTab() {
         <h3 className="text-sm font-heading font-semibold text-foreground flex items-center gap-2">
           <FlaskConical className="h-4 w-4 text-primary" /> Brain Sandbox
         </h3>
-        <p className="text-[11px] text-muted-foreground mt-0.5">Teste como o Super Cérebro responde com diferentes contextos — compare respostas lado a lado</p>
+        <p className="text-[11px] text-muted-foreground mt-0.5">
+          Teste como o Super Cérebro responde com diferentes contextos — compare respostas lado a
+          lado
+        </p>
       </div>
 
       <div className="nexus-card space-y-4">
         <Textarea
           value={query}
-          onChange={e => setQuery(e.target.value)}
+          onChange={(e) => setQuery(e.target.value)}
           placeholder="Faça uma pergunta para testar com diferentes contextos..."
           className="bg-secondary/50 min-h-[60px] text-sm"
         />
 
         <div className="flex gap-3 items-end">
           <div className="flex-1 space-y-1.5">
-            <label className="text-[11px] text-muted-foreground font-medium">Modo de Contexto</label>
+            <span className="text-[11px] text-muted-foreground font-medium">Modo de Contexto</span>
             <Select value={contextMode} onValueChange={setContextMode}>
-              <SelectTrigger className="bg-secondary/50 text-xs"><SelectValue /></SelectTrigger>
+              <SelectTrigger className="bg-secondary/50 text-xs">
+                <SelectValue />
+              </SelectTrigger>
               <SelectContent>
                 <SelectItem value="full">🧠 Completo (Fatos + RAG)</SelectItem>
                 <SelectItem value="facts_only">📊 Apenas Fatos da plataforma</SelectItem>
@@ -112,8 +134,16 @@ export function BrainSandboxTab() {
               </SelectContent>
             </Select>
           </div>
-          <Button onClick={handleTest} disabled={isTesting || isRunningAll || !query.trim()} className="nexus-gradient-bg text-primary-foreground gap-2">
-            {isTesting ? <Loader2 className="h-4 w-4 animate-spin" /> : <FlaskConical className="h-4 w-4" />}
+          <Button
+            onClick={handleTest}
+            disabled={isTesting || isRunningAll || !query.trim()}
+            className="nexus-gradient-bg text-primary-foreground gap-2"
+          >
+            {isTesting ? (
+              <Loader2 className="h-4 w-4 animate-spin" />
+            ) : (
+              <FlaskConical className="h-4 w-4" />
+            )}
             Testar
           </Button>
           <Button
@@ -123,11 +153,17 @@ export function BrainSandboxTab() {
             className="gap-2"
             title="Executa a query nos 4 modos em sequência para comparar"
           >
-            {isRunningAll ? <Loader2 className="h-4 w-4 animate-spin" /> : <Layers className="h-4 w-4" />}
+            {isRunningAll ? (
+              <Loader2 className="h-4 w-4 animate-spin" />
+            ) : (
+              <Layers className="h-4 w-4" />
+            )}
             Comparar Todos
           </Button>
           {results.length > 0 && !isRunningAll && (
-            <Button variant="outline" size="sm" onClick={() => setResults([])} className="text-xs">Limpar</Button>
+            <Button variant="outline" size="sm" onClick={() => setResults([])} className="text-xs">
+              Limpar
+            </Button>
           )}
         </div>
       </div>
@@ -137,7 +173,9 @@ export function BrainSandboxTab() {
           {results.map((r, i) => (
             <div key={i} className="nexus-card">
               <div className="flex items-center justify-between mb-2">
-                <Badge variant="outline" className="text-[11px]">{modeLabels[r.mode] || r.mode}</Badge>
+                <Badge variant="outline" className="text-[11px]">
+                  {modeLabels[r.mode] || r.mode}
+                </Badge>
                 <span className="text-[11px] text-muted-foreground">
                   {r.context_size} chars • ${r.cost.toFixed(6)}
                 </span>

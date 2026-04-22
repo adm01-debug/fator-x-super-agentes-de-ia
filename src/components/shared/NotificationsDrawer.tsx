@@ -1,13 +1,11 @@
-import { useState, useEffect, useCallback } from "react";
-import {
-  Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger,
-} from "@/components/ui/sheet";
-import { Button } from "@/components/ui/button";
-import { Bell, AlertTriangle, XCircle, Info, CheckCircle2, FlaskConical } from "lucide-react";
-import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { supabaseExternal } from "@/integrations/supabase/externalClient";
-import { toast } from "sonner";
-import { useNotificationStore } from "@/stores/notificationStore";
+import { useState, useEffect, useCallback } from 'react';
+import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from '@/components/ui/sheet';
+import { Button } from '@/components/ui/button';
+import { Bell, AlertTriangle, XCircle, Info, CheckCircle2, FlaskConical } from 'lucide-react';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
+import { supabaseExternal } from '@/integrations/supabase/externalClient';
+import { toast } from 'sonner';
+import { useNotificationStore } from '@/stores/notificationStore';
 
 interface Notification {
   id: string;
@@ -20,17 +18,22 @@ interface Notification {
 }
 
 const alertIcons: Record<string, typeof XCircle> = {
-  error: XCircle, critical: XCircle, warning: AlertTriangle, info: Info,
-  debug: Info, success: CheckCircle2, evaluation: FlaskConical,
+  error: XCircle,
+  critical: XCircle,
+  warning: AlertTriangle,
+  info: Info,
+  debug: Info,
+  success: CheckCircle2,
+  evaluation: FlaskConical,
 };
 const alertColors: Record<string, string> = {
-  error: "text-nexus-rose bg-nexus-rose/10",
-  critical: "text-nexus-rose bg-nexus-rose/10",
-  warning: "text-nexus-amber bg-nexus-amber/10",
-  info: "text-nexus-cyan bg-nexus-cyan/10",
-  debug: "text-muted-foreground bg-secondary/50",
-  success: "text-nexus-emerald bg-nexus-emerald/10",
-  evaluation: "text-nexus-violet bg-nexus-violet/10",
+  error: 'text-nexus-rose bg-nexus-rose/10',
+  critical: 'text-nexus-rose bg-nexus-rose/10',
+  warning: 'text-nexus-amber bg-nexus-amber/10',
+  info: 'text-nexus-cyan bg-nexus-cyan/10',
+  debug: 'text-muted-foreground bg-secondary/50',
+  success: 'text-nexus-emerald bg-nexus-emerald/10',
+  evaluation: 'text-nexus-violet bg-nexus-violet/10',
 };
 
 export function NotificationsDrawer() {
@@ -48,7 +51,7 @@ export function NotificationsDrawer() {
         .in('level', ['warning', 'error', 'critical'])
         .order('created_at', { ascending: false })
         .limit(20);
-      const traceNotifs = (traces ?? []).map((a: any) => ({
+      const traceNotifs = (traces ?? []).map((a) => ({
         id: a.id,
         type: 'trace' as const,
         title: a.event,
@@ -63,7 +66,7 @@ export function NotificationsDrawer() {
         .eq('is_resolved', false)
         .order('created_at', { ascending: false })
         .limit(20);
-      const alertNotifs: Notification[] = (alerts ?? []).map((a: any) => ({
+      const alertNotifs: Notification[] = (alerts ?? []).map((a) => ({
         id: `alert-${a.id}`,
         type: 'trace' as const,
         title: a.title,
@@ -89,7 +92,7 @@ export function NotificationsDrawer() {
           table: 'agent_traces',
           filter: 'level=in.(error,critical,warning)',
         },
-        (payload: any) => {
+        (payload: Record<string, unknown>) => {
           const row = payload.new as Record<string, unknown>;
           const notif: Notification = {
             id: String(row.id ?? ''),
@@ -99,18 +102,20 @@ export function NotificationsDrawer() {
             created_at: String(row.created_at ?? ''),
             read: false,
           };
-          setRealtimeNotifs(prev => [notif, ...prev.slice(0, 49)]);
+          setRealtimeNotifs((prev) => [notif, ...prev.slice(0, 49)]);
           queryClient.invalidateQueries({ queryKey: ['notifications'] });
 
           // Show toast for errors/critical
           if (row.level === 'error' || row.level === 'critical') {
             toast.error(`⚠️ Falha no agente: ${row.event}`, { duration: 5000 });
           }
-        }
+        },
       )
       .subscribe();
 
-    return () => { supabaseExternal.removeChannel(channel); };
+    return () => {
+      supabaseExternal.removeChannel(channel);
+    };
   }, [queryClient]);
 
   // Subscribe to agent status changes
@@ -120,7 +125,7 @@ export function NotificationsDrawer() {
       .on(
         'postgres_changes',
         { event: 'UPDATE', schema: 'public', table: 'agents' },
-        (payload: any) => {
+        (payload: Record<string, unknown>) => {
           const row = payload.new as Record<string, unknown>;
           const old = payload.old as Record<string, unknown>;
           if (old.status && row.status && old.status !== row.status) {
@@ -135,7 +140,7 @@ export function NotificationsDrawer() {
               created_at: new Date().toISOString(),
               read: false,
             };
-            setRealtimeNotifs(prev => [notif, ...prev.slice(0, 49)]);
+            setRealtimeNotifs((prev) => [notif, ...prev.slice(0, 49)]);
             if (isPromotion) {
               toast.success(`🚀 "${row.name}" está em ${row.status}!`, { duration: 5000 });
             } else if (isFailure) {
@@ -144,11 +149,13 @@ export function NotificationsDrawer() {
               toast.info(`🔄 "${row.name}" → ${row.status}`, { duration: 4000 });
             }
           }
-        }
+        },
       )
       .subscribe();
 
-    return () => { supabaseExternal.removeChannel(channel); };
+    return () => {
+      supabaseExternal.removeChannel(channel);
+    };
   }, []);
 
   // Subscribe to evaluation completions
@@ -158,7 +165,7 @@ export function NotificationsDrawer() {
       .on(
         'postgres_changes',
         { event: 'UPDATE', schema: 'public', table: 'evaluation_runs' },
-        (payload: any) => {
+        (payload: Record<string, unknown>) => {
           const row = payload.new as Record<string, unknown>;
           const old = payload.old as Record<string, unknown>;
           if (old.status !== 'completed' && row.status === 'completed') {
@@ -167,20 +174,21 @@ export function NotificationsDrawer() {
               id: `eval-${String(row.id ?? '')}`,
               type: 'evaluation',
               title: `Avaliação "${String(row.name ?? '')}" concluída`,
-              description: passRate != null ? `Taxa de aprovação: ${(passRate * 100).toFixed(0)}%` : undefined,
+              description:
+                passRate != null ? `Taxa de aprovação: ${(passRate * 100).toFixed(0)}%` : undefined,
               level: 'evaluation',
               created_at: String(row.completed_at || new Date().toISOString()),
               read: false,
             };
-            setRealtimeNotifs(prev => [notif, ...prev.slice(0, 49)]);
+            setRealtimeNotifs((prev) => [notif, ...prev.slice(0, 49)]);
             toast.success(`✅ Avaliação "${row.name}" concluída!`, { duration: 5000 });
           }
-        }
+        },
       )
       .on(
         'postgres_changes',
         { event: 'INSERT', schema: 'public', table: 'evaluation_runs' },
-        (payload: any) => {
+        (payload: Record<string, unknown>) => {
           const row = payload.new as Record<string, unknown>;
           if (row.status === 'completed') {
             const notif: Notification = {
@@ -191,28 +199,42 @@ export function NotificationsDrawer() {
               created_at: String(row.created_at ?? ''),
               read: false,
             };
-            setRealtimeNotifs(prev => [notif, ...prev.slice(0, 49)]);
+            setRealtimeNotifs((prev) => [notif, ...prev.slice(0, 49)]);
           }
-        }
+        },
       )
       .subscribe();
 
-    return () => { supabaseExternal.removeChannel(channel); };
+    return () => {
+      supabaseExternal.removeChannel(channel);
+    };
   }, []);
 
   // Zustand store notifications
-  const storeNotifs = useNotificationStore(s => s.notifications);
-  const markStoreRead = useNotificationStore(s => s.markAllRead);
+  const storeNotifs = useNotificationStore((s) => s.notifications);
+  const markStoreRead = useNotificationStore((s) => s.markAllRead);
 
   // Merge store + realtime + db alerts, deduplicate by id
   const allNotifs = useCallback(() => {
     const map = new Map<string, Notification>();
     for (const sn of storeNotifs) {
-      if (!map.has(sn.id)) map.set(sn.id, {
-        id: sn.id, type: 'trace', title: sn.title, description: sn.message,
-        level: sn.type === 'error' ? 'error' : sn.type === 'warning' ? 'warning' : sn.type === 'success' ? 'success' : 'info',
-        created_at: sn.createdAt, read: sn.read,
-      });
+      if (!map.has(sn.id))
+        map.set(sn.id, {
+          id: sn.id,
+          type: 'trace',
+          title: sn.title,
+          description: sn.message,
+          level:
+            sn.type === 'error'
+              ? 'error'
+              : sn.type === 'warning'
+                ? 'warning'
+                : sn.type === 'success'
+                  ? 'success'
+                  : 'info',
+          created_at: sn.createdAt,
+          read: sn.read,
+        });
     }
     for (const n of [...realtimeNotifs, ...dbAlerts]) {
       if (!map.has(n.id)) map.set(n.id, n);
@@ -224,28 +246,41 @@ export function NotificationsDrawer() {
 
   const notifications = allNotifs();
   const uniqueUnread = new Set([
-    ...notifications.filter(n => !n.read && (n.level === 'error' || n.level === 'critical' || n.type === 'evaluation')).map(n => n.id),
-    ...realtimeNotifs.filter(n => !n.read).map(n => n.id),
+    ...notifications
+      .filter(
+        (n) =>
+          !n.read && (n.level === 'error' || n.level === 'critical' || n.type === 'evaluation'),
+      )
+      .map((n) => n.id),
+    ...realtimeNotifs.filter((n) => !n.read).map((n) => n.id),
   ]).size;
 
   const markAllRead = () => {
-    setRealtimeNotifs(prev => prev.map(n => ({ ...n, read: true })));
+    setRealtimeNotifs((prev) => prev.map((n) => ({ ...n, read: true })));
     markStoreRead();
   };
 
   return (
-    <Sheet open={open} onOpenChange={(v) => { setOpen(v); if (!v) markAllRead(); }}>
+    <Sheet
+      open={open}
+      onOpenChange={(v) => {
+        setOpen(v);
+        if (!v) markAllRead();
+      }}
+    >
       <SheetTrigger asChild>
-        <Button variant="ghost" size="icon" className="relative text-muted-foreground hover:text-foreground" aria-label={`Notificações${uniqueUnread > 0 ? ` (${uniqueUnread})` : ""}`}>
+        <Button
+          variant="ghost"
+          size="icon"
+          className="relative text-muted-foreground hover:text-foreground"
+          aria-label={`Notificações${uniqueUnread > 0 ? ` (${uniqueUnread})` : ''}`}
+        >
           <Bell className="h-4 w-4" aria-hidden="true" />
           {uniqueUnread > 0 && (
-              <span
-                className="absolute -top-0.5 -right-0.5 h-4 w-4 rounded-full nexus-gradient-bg flex items-center justify-center text-[11px] font-bold text-primary-foreground"
-              >
-                {uniqueUnread > 9 ? '9+' : uniqueUnread}
-              </span>
-            )}
-          
+            <span className="absolute -top-0.5 -right-0.5 h-4 w-4 rounded-full nexus-gradient-bg flex items-center justify-center text-[11px] font-bold text-primary-foreground">
+              {uniqueUnread > 9 ? '9+' : uniqueUnread}
+            </span>
+          )}
         </Button>
       </SheetTrigger>
       <SheetContent className="w-[400px] sm:w-[440px] p-0">
@@ -253,7 +288,12 @@ export function NotificationsDrawer() {
           <SheetTitle className="text-base font-heading font-bold text-foreground flex items-center justify-between">
             Notificações
             {notifications.length > 0 && (
-              <Button variant="ghost" size="sm" className="text-xs text-muted-foreground h-7" onClick={markAllRead}>
+              <Button
+                variant="ghost"
+                size="sm"
+                className="text-xs text-muted-foreground h-7"
+                onClick={markAllRead}
+              >
                 Marcar como lidas
               </Button>
             )}
@@ -265,34 +305,52 @@ export function NotificationsDrawer() {
             <div className="flex flex-col items-center justify-center py-20 text-center">
               <Bell className="h-10 w-10 text-muted-foreground mb-3" />
               <p className="text-sm text-muted-foreground">Nenhuma notificação</p>
-              <p className="text-xs text-muted-foreground/60 mt-1">Alertas de agentes e avaliações aparecerão aqui em tempo real</p>
+              <p className="text-xs text-muted-foreground/60 mt-1">
+                Alertas de agentes e avaliações aparecerão aqui em tempo real
+              </p>
             </div>
           ) : (
             notifications.map((notif) => {
               const Icon = alertIcons[notif.level] || Info;
               const color = alertColors[notif.level] || alertColors.info;
               return (
-                <div key={notif.id}
+                <div
+                  key={notif.id}
                   className={`rounded-lg border border-border/50 p-3 hover:bg-secondary/30 transition-colors cursor-pointer ${!notif.read ? 'bg-secondary/20' : ''}`}
                 >
                   <div className="flex items-start gap-3">
-                    <div className={`h-8 w-8 rounded-lg flex items-center justify-center shrink-0 ${color}`}>
+                    <div
+                      className={`h-8 w-8 rounded-lg flex items-center justify-center shrink-0 ${color}`}
+                    >
                       <Icon className="h-4 w-4" />
                     </div>
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center justify-between">
-                        <p className="text-xs font-semibold text-foreground truncate">{notif.title}</p>
+                        <p className="text-xs font-semibold text-foreground truncate">
+                          {notif.title}
+                        </p>
                         <span className="text-[11px] text-muted-foreground shrink-0 ml-2">
-                          {new Date(notif.created_at).toLocaleString('pt-BR', { hour: '2-digit', minute: '2-digit' })}
+                          {new Date(notif.created_at).toLocaleString('pt-BR', {
+                            hour: '2-digit',
+                            minute: '2-digit',
+                          })}
                         </span>
                       </div>
                       {notif.description && (
-                        <p className="text-[11px] text-muted-foreground mt-0.5">{notif.description}</p>
+                        <p className="text-[11px] text-muted-foreground mt-0.5">
+                          {notif.description}
+                        </p>
                       )}
                       <div className="flex items-center gap-1.5 mt-1">
-                        <span className={`inline-block text-[11px] px-1.5 py-0.5 rounded font-medium ${color}`}>{notif.level}</span>
+                        <span
+                          className={`inline-block text-[11px] px-1.5 py-0.5 rounded font-medium ${color}`}
+                        >
+                          {notif.level}
+                        </span>
                         {notif.type === 'evaluation' && (
-                          <span className="inline-block text-[11px] bg-primary/10 text-primary px-1.5 py-0.5 rounded font-medium">avaliação</span>
+                          <span className="inline-block text-[11px] bg-primary/10 text-primary px-1.5 py-0.5 rounded font-medium">
+                            avaliação
+                          </span>
                         )}
                         {!notif.read && (
                           <span className="h-1.5 w-1.5 rounded-full nexus-gradient-bg" />

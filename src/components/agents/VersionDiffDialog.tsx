@@ -1,15 +1,21 @@
 import { logger } from '@/lib/logger';
-import { useState, useEffect, useMemo } from "react";
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
-import { PromptDiff } from "@/components/prompts/PromptDiff";
-import { GitCompare, RotateCcw, Loader2, ArrowRight } from "lucide-react";
-import { supabaseExternal } from "@/integrations/supabase/externalClient";
-import { useQueryClient } from "@tanstack/react-query";
-import { toast } from "sonner";
-import type { Json } from "@/integrations/supabase/types";
+import { useState, useEffect, useMemo } from 'react';
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
+import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
+import { PromptDiff } from '@/components/prompts/PromptDiff';
+import { GitCompare, RotateCcw, Loader2, ArrowRight } from 'lucide-react';
+import { supabaseExternal } from '@/integrations/supabase/externalClient';
+import { useQueryClient } from '@tanstack/react-query';
+import { toast } from 'sonner';
+import type { Json } from '@/integrations/supabase/types';
 
 interface Version {
   id: string;
@@ -41,7 +47,8 @@ function versionToText(v: Version): string {
   try {
     const cfg = typeof v.config === 'string' ? JSON.parse(v.config) : v.config;
     lines.push(JSON.stringify(cfg, null, 2));
-  } catch (err) { logger.error("Operation failed:", err);
+  } catch (err) {
+    logger.error('Operation failed:', err);
     lines.push(String(v.config));
   }
   return lines.join('\n');
@@ -50,29 +57,43 @@ function versionToText(v: Version): string {
 function getCfg(v: Version): Record<string, unknown> {
   try {
     return (typeof v.config === 'string' ? JSON.parse(v.config) : v.config) || {};
-  } catch { return {}; }
+  } catch {
+    return {};
+  }
 }
 
 function countEnabled(arr: unknown): number {
   if (!Array.isArray(arr)) return 0;
-  return arr.filter((x: any) => x && (x.enabled ?? true)).length;
+  return arr.filter((x) => x && (x.enabled ?? true)).length;
 }
 
-interface Delta { label: string; from: string | number; to: string | number; }
+interface Delta {
+  label: string;
+  from: string | number;
+  to: string | number;
+}
 
 function computeDeltas(a: Version, b: Version): Delta[] {
-  const ca = getCfg(a); const cb = getCfg(b);
+  const ca = getCfg(a);
+  const cb = getCfg(b);
   const out: Delta[] = [];
   if (a.model !== b.model) out.push({ label: 'Modelo', from: a.model || '—', to: b.model || '—' });
-  const ta = (ca as any).temperature, tb = (cb as any).temperature;
-  if (ta !== tb && (ta !== undefined || tb !== undefined)) out.push({ label: 'Temperature', from: ta ?? '—', to: tb ?? '—' });
-  const ma = (ca as any).max_tokens, mb = (cb as any).max_tokens;
-  if (ma !== mb && (ma !== undefined || mb !== undefined)) out.push({ label: 'Max Tokens', from: ma ?? '—', to: mb ?? '—' });
-  const toolsA = countEnabled((ca as any).tools), toolsB = countEnabled((cb as any).tools);
+  const ta = ca.temperature as number | undefined;
+  const tb = cb.temperature as number | undefined;
+  if (ta !== tb && (ta !== undefined || tb !== undefined))
+    out.push({ label: 'Temperature', from: ta ?? '—', to: tb ?? '—' });
+  const ma = ca.max_tokens as number | undefined;
+  const mb = cb.max_tokens as number | undefined;
+  if (ma !== mb && (ma !== undefined || mb !== undefined))
+    out.push({ label: 'Max Tokens', from: ma ?? '—', to: mb ?? '—' });
+  const toolsA = countEnabled(ca.tools);
+  const toolsB = countEnabled(cb.tools);
   if (toolsA !== toolsB) out.push({ label: 'Ferramentas ativas', from: toolsA, to: toolsB });
-  const grA = countEnabled((ca as any).guardrails), grB = countEnabled((cb as any).guardrails);
+  const grA = countEnabled(ca.guardrails);
+  const grB = countEnabled(cb.guardrails);
   if (grA !== grB) out.push({ label: 'Guardrails ativos', from: grA, to: grB });
-  const spA = ((ca as any).system_prompt || '').length, spB = ((cb as any).system_prompt || '').length;
+  const spA = String(ca.system_prompt ?? '').length;
+  const spB = String(cb.system_prompt ?? '').length;
   if (spA !== spB) out.push({ label: 'System prompt (chars)', from: spA, to: spB });
   if (a.persona !== b.persona) out.push({ label: 'Persona', from: 'alterada', to: '—' });
   if (a.mission !== b.mission) out.push({ label: 'Missão', from: 'alterada', to: '—' });
@@ -93,20 +114,23 @@ export function VersionDiffDialog({ open, onOpenChange, versions, agentId }: Pro
     }
   }, [open, versions, vA, vB]);
 
-  const verA = versions.find(v => v.id === vA);
-  const verB = versions.find(v => v.id === vB);
+  const verA = versions.find((v) => v.id === vA);
+  const verB = versions.find((v) => v.id === vB);
   const deltas = useMemo(() => (verA && verB ? computeDeltas(verA, verB) : []), [verA, verB]);
 
   const handleRestore = async (version: Version) => {
     if (!agentId) return;
     setRestoring(true);
     try {
-      const { error } = await supabaseExternal.from('agents').update({
-        model: version.model,
-        persona: version.persona,
-        mission: version.mission,
-        config: version.config as unknown as Json,
-      }).eq('id', agentId);
+      const { error } = await supabaseExternal
+        .from('agents')
+        .update({
+          model: version.model,
+          persona: version.persona,
+          mission: version.mission,
+          config: version.config as unknown as Json,
+        })
+        .eq('id', agentId);
       if (error) throw error;
       toast.success(`Restaurado para v${version.version}`);
       queryClient.invalidateQueries({ queryKey: ['agent', agentId] });
@@ -132,11 +156,15 @@ export function VersionDiffDialog({ open, onOpenChange, versions, agentId }: Pro
 
         <div className="grid grid-cols-2 gap-3 mt-2">
           <div className="space-y-1">
-            <label className="text-xs font-medium text-muted-foreground">Versão A (anterior)</label>
+            <label htmlFor="version-a-select" className="text-xs font-medium text-muted-foreground">
+              Versão A (anterior)
+            </label>
             <Select value={vA} onValueChange={setVA}>
-              <SelectTrigger><SelectValue placeholder="Selecione..." /></SelectTrigger>
+              <SelectTrigger id="version-a-select">
+                <SelectValue placeholder="Selecione..." />
+              </SelectTrigger>
               <SelectContent>
-                {versions.map(v => (
+                {versions.map((v) => (
                   <SelectItem key={v.id} value={v.id}>
                     v{v.version} — {v.model} ({new Date(v.created_at).toLocaleDateString('pt-BR')})
                   </SelectItem>
@@ -145,11 +173,15 @@ export function VersionDiffDialog({ open, onOpenChange, versions, agentId }: Pro
             </Select>
           </div>
           <div className="space-y-1">
-            <label className="text-xs font-medium text-muted-foreground">Versão B (nova)</label>
+            <label htmlFor="version-b-select" className="text-xs font-medium text-muted-foreground">
+              Versão B (nova)
+            </label>
             <Select value={vB} onValueChange={setVB}>
-              <SelectTrigger><SelectValue placeholder="Selecione..." /></SelectTrigger>
+              <SelectTrigger id="version-b-select">
+                <SelectValue placeholder="Selecione..." />
+              </SelectTrigger>
               <SelectContent>
-                {versions.map(v => (
+                {versions.map((v) => (
                   <SelectItem key={v.id} value={v.id}>
                     v{v.version} — {v.model} ({new Date(v.created_at).toLocaleDateString('pt-BR')})
                   </SelectItem>
@@ -167,7 +199,9 @@ export function VersionDiffDialog({ open, onOpenChange, versions, agentId }: Pro
                 Resumo de mudanças ({deltas.length})
               </p>
               {deltas.length === 0 ? (
-                <p className="text-xs text-muted-foreground">Nenhuma diferença estrutural detectada.</p>
+                <p className="text-xs text-muted-foreground">
+                  Nenhuma diferença estrutural detectada.
+                </p>
               ) : (
                 <div className="flex flex-wrap gap-1.5">
                   {deltas.map((d, i) => (
@@ -191,7 +225,11 @@ export function VersionDiffDialog({ open, onOpenChange, versions, agentId }: Pro
                   disabled={restoring}
                   onClick={() => handleRestore(verA)}
                 >
-                  {restoring ? <Loader2 className="h-3 w-3 animate-spin" /> : <RotateCcw className="h-3 w-3" />}
+                  {restoring ? (
+                    <Loader2 className="h-3 w-3 animate-spin" />
+                  ) : (
+                    <RotateCcw className="h-3 w-3" />
+                  )}
                   Restaurar v{verA.version}
                 </Button>
                 <Button
@@ -201,7 +239,11 @@ export function VersionDiffDialog({ open, onOpenChange, versions, agentId }: Pro
                   disabled={restoring}
                   onClick={() => handleRestore(verB)}
                 >
-                  {restoring ? <Loader2 className="h-3 w-3 animate-spin" /> : <RotateCcw className="h-3 w-3" />}
+                  {restoring ? (
+                    <Loader2 className="h-3 w-3 animate-spin" />
+                  ) : (
+                    <RotateCcw className="h-3 w-3" />
+                  )}
                   Restaurar v{verB.version}
                 </Button>
               </div>
@@ -215,9 +257,13 @@ export function VersionDiffDialog({ open, onOpenChange, versions, agentId }: Pro
             />
           </div>
         ) : vA && vB && vA === vB ? (
-          <p className="text-xs text-muted-foreground text-center py-8">Selecione versões diferentes para comparar.</p>
+          <p className="text-xs text-muted-foreground text-center py-8">
+            Selecione versões diferentes para comparar.
+          </p>
         ) : (
-          <p className="text-xs text-muted-foreground text-center py-8">Selecione duas versões para visualizar as diferenças.</p>
+          <p className="text-xs text-muted-foreground text-center py-8">
+            Selecione duas versões para visualizar as diferenças.
+          </p>
         )}
       </DialogContent>
     </Dialog>

@@ -7,12 +7,12 @@
  *
  * Pure read-only: subscribes on mount, unsubscribes on unmount.
  */
-import { useEffect, useMemo, useRef, useState } from "react";
-import { supabaseExternal } from "@/integrations/supabase/externalClient";
-import { Activity, DollarSign, Hash, Pause, Play, Trash2, Zap } from "lucide-react";
-import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
-import { logger } from "@/lib/logger";
+import { useEffect, useMemo, useRef, useState } from 'react';
+import { supabaseExternal } from '@/integrations/supabase/externalClient';
+import { Activity, DollarSign, Hash, Pause, Play, Trash2, Zap } from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import { Badge } from '@/components/ui/badge';
+import { logger } from '@/lib/logger';
 
 interface StreamEvent {
   id: string;
@@ -29,7 +29,7 @@ const MAX_EVENTS = 50;
 
 function formatRelative(ts: number): string {
   const diff = Math.max(0, Date.now() - ts);
-  if (diff < 1000) return "agora";
+  if (diff < 1000) return 'agora';
   if (diff < 60_000) return `${Math.floor(diff / 1000)}s atrás`;
   if (diff < 3_600_000) return `${Math.floor(diff / 60_000)}min atrás`;
   return `${Math.floor(diff / 3_600_000)}h atrás`;
@@ -49,16 +49,16 @@ export function RealTimeCostStream() {
   // Subscribe to usage_records inserts
   useEffect(() => {
     const channel = supabaseExternal
-      .channel("billing-cost-stream")
+      .channel('billing-cost-stream')
       .on(
-        "postgres_changes",
-        { event: "INSERT", schema: "public", table: "usage_records" },
-        (payload: any) => {
+        'postgres_changes',
+        { event: 'INSERT', schema: 'public', table: 'usage_records' },
+        (payload: { eventType: string; new?: unknown; old?: unknown }) => {
           if (pausedRef.current) return;
           const row = payload.new as Record<string, unknown>;
           const evt: StreamEvent = {
             id: String(row.id ?? `${Date.now()}-${Math.random()}`),
-            record_type: String(row.record_type ?? "llm"),
+            record_type: String(row.record_type ?? 'llm'),
             tokens: Number(row.tokens ?? 0),
             cost_usd: Number(row.cost_usd ?? 0),
             model: (row.model as string | null) ?? null,
@@ -67,11 +67,11 @@ export function RealTimeCostStream() {
             receivedAt: Date.now(),
           };
           setEvents((prev) => [evt, ...prev].slice(0, MAX_EVENTS));
-        }
+        },
       )
       .subscribe((status: string) => {
-        setConnected(status === "SUBSCRIBED");
-        logger.info("RealTimeCostStream subscription status", { status });
+        setConnected(status === 'SUBSCRIBED');
+        logger.info('RealTimeCostStream subscription status', { status });
       });
 
     return () => {
@@ -92,7 +92,7 @@ export function RealTimeCostStream() {
         tokens: acc.tokens + e.tokens,
         count: acc.count + 1,
       }),
-      { cost: 0, tokens: 0, count: 0 }
+      { cost: 0, tokens: 0, count: 0 },
     );
   }, [events]);
 
@@ -115,16 +115,12 @@ export function RealTimeCostStream() {
           <div className="relative flex h-2.5 w-2.5">
             <span
               className={`absolute inline-flex h-full w-full rounded-full opacity-75 ${
-                connected && !paused ? "animate-ping bg-emerald-400" : ""
+                connected && !paused ? 'animate-ping bg-emerald-400' : ''
               }`}
             />
             <span
               className={`relative inline-flex h-2.5 w-2.5 rounded-full ${
-                paused
-                  ? "bg-nexus-amber"
-                  : connected
-                    ? "bg-emerald-500"
-                    : "bg-muted-foreground"
+                paused ? 'bg-nexus-amber' : connected ? 'bg-emerald-500' : 'bg-muted-foreground'
               }`}
             />
           </div>
@@ -132,7 +128,7 @@ export function RealTimeCostStream() {
             Stream em tempo real
           </h3>
           <Badge variant="outline" className="text-[10px]">
-            {paused ? "PAUSADO" : connected ? "AO VIVO" : "CONECTANDO"}
+            {paused ? 'PAUSADO' : connected ? 'AO VIVO' : 'CONECTANDO'}
           </Badge>
         </div>
 
@@ -210,19 +206,11 @@ export function RealTimeCostStream() {
           </h4>
           <div className="flex flex-wrap gap-2">
             {byType.map(([type, agg]) => (
-              <Badge
-                key={type}
-                variant="outline"
-                className="text-[11px] gap-1.5"
-              >
+              <Badge key={type} variant="outline" className="text-[11px] gap-1.5">
                 <span className="font-mono">{type}</span>
                 <span className="text-muted-foreground">·</span>
-                <span className="text-foreground tabular-nums">
-                  ${agg.cost.toFixed(4)}
-                </span>
-                <span className="text-muted-foreground">
-                  ({agg.count})
-                </span>
+                <span className="text-foreground tabular-nums">${agg.cost.toFixed(4)}</span>
+                <span className="text-muted-foreground">({agg.count})</span>
               </Badge>
             ))}
           </div>
@@ -240,9 +228,7 @@ export function RealTimeCostStream() {
         {events.length === 0 ? (
           <div className="flex flex-col items-center justify-center py-12 text-center">
             <Activity className="h-10 w-10 text-muted-foreground mb-3" />
-            <p className="text-xs text-muted-foreground">
-              Aguardando eventos de uso...
-            </p>
+            <p className="text-xs text-muted-foreground">Aguardando eventos de uso...</p>
             <p className="text-[11px] text-muted-foreground/70 mt-1">
               Eventos aparecerão aqui assim que agentes consumirem tokens.
             </p>
@@ -264,7 +250,7 @@ export function RealTimeCostStream() {
                   <tr
                     key={e.id}
                     className={`border-b border-border/30 hover:bg-secondary/30 transition-colors ${
-                      idx === 0 ? "animate-pulse-once bg-primary/5" : ""
+                      idx === 0 ? 'animate-pulse-once bg-primary/5' : ''
                     }`}
                   >
                     <td className="px-4 py-2">
@@ -273,7 +259,7 @@ export function RealTimeCostStream() {
                       </Badge>
                     </td>
                     <td className="px-4 py-2 text-[11px] text-muted-foreground font-mono truncate max-w-[140px]">
-                      {e.model ?? "—"}
+                      {e.model ?? '—'}
                     </td>
                     <td className="px-4 py-2 text-right text-xs text-foreground tabular-nums">
                       {e.tokens.toLocaleString()}

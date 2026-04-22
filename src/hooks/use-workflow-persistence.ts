@@ -37,8 +37,8 @@ export function useWorkflowPersistence() {
       return;
     }
 
-    const ids = (data ?? []).map((w: any) => w.id);
-    let stepCounts: Record<string, number> = {};
+    const ids = (data ?? []).map((w) => w.id);
+    const stepCounts: Record<string, number> = {};
 
     if (ids.length > 0) {
       const { data: steps } = await supabaseExternal
@@ -53,10 +53,12 @@ export function useWorkflowPersistence() {
       }
     }
 
-    setWorkflows((data ?? []).map((w: any) => ({
-      ...(w as unknown as WorkflowRecord),
-      step_count: stepCounts[w.id] || 0,
-    })));
+    setWorkflows(
+      (data ?? []).map((w) => ({
+        ...(w as unknown as WorkflowRecord),
+        step_count: stepCounts[w.id] || 0,
+      })),
+    );
 
     setLoading(false);
   }, [user]);
@@ -65,155 +67,174 @@ export function useWorkflowPersistence() {
     fetchWorkflows();
   }, [fetchWorkflows]);
 
-  const saveCanvas = useCallback(async (
-    name: string,
-    nodes: CanvasNode[],
-    edges: CanvasEdge[],
-    workflowId?: string | null,
-  ) => {
-    if (!user) {
-      toast.error('Faça login para salvar');
-      return null;
-    }
-
-    setSaving(true);
-    const config = { nodes, edges };
-
-    const syncSteps = async (wfId: string) => {
-      // Delete old steps
-      await supabaseExternal.from('workflow_steps').delete().eq('workflow_id', wfId);
-
-      if (nodes.length === 0) return;
-
-      const stepsToInsert = nodes.map((node, index) => ({
-        workflow_id: wfId,
-        name: String(node.data?.label || node.type || `Step ${index + 1}`),
-        role: String(node.type || 'executor'),
-        step_order: index,
-        config: {
-          node_id: node.id,
-          position: node.position,
-          type: node.type,
-          ...((node.data?.config as Record<string, unknown>) || {}),
-        } as unknown as Json,
-      }));
-
-      const { error: stepErr } = await supabaseExternal.from('workflow_steps').insert(stepsToInsert);
-      if (stepErr) {
-        logger.error('Failed to sync workflow_steps', { error: stepErr.message });
+  const saveCanvas = useCallback(
+    async (name: string, nodes: CanvasNode[], edges: CanvasEdge[], workflowId?: string | null) => {
+      if (!user) {
+        toast.error('Faça login para salvar');
+        return null;
       }
-    };
 
-    if (workflowId) {
-      const { error } = await supabaseExternal
-        .from('workflows')
-        .update({ config: JSON.parse(JSON.stringify(config)), name })
-        .eq('id', workflowId);
+      setSaving(true);
+      const config = { nodes, edges };
 
-      if (error) {
-        toast.error('Erro ao atualizar workflow');
-        logger.error('Failed to update workflow', { error: error.message });
+      const syncSteps = async (wfId: string) => {
+        // Delete old steps
+        await supabaseExternal.from('workflow_steps').delete().eq('workflow_id', wfId);
+
+        if (nodes.length === 0) return;
+
+        const stepsToInsert = nodes.map((node, index) => ({
+          workflow_id: wfId,
+          name: String(node.data?.label || node.type || `Step ${index + 1}`),
+          role: String(node.type || 'executor'),
+          step_order: index,
+          config: {
+            node_id: node.id,
+            position: node.position,
+            type: node.type,
+            ...((node.data?.config as Record<string, unknown>) || {}),
+          } as unknown as Json,
+        }));
+
+        const { error: stepErr } = await supabaseExternal
+          .from('workflow_steps')
+          .insert(stepsToInsert);
+        if (stepErr) {
+          logger.error('Failed to sync workflow_steps', { error: stepErr.message });
+        }
+      };
+
+      if (workflowId) {
+        const { error } = await supabaseExternal
+          .from('workflows')
+          .update({ config: JSON.parse(JSON.stringify(config)), name })
+          .eq('id', workflowId);
+
+        if (error) {
+          toast.error('Erro ao atualizar workflow');
+          logger.error('Failed to update workflow', { error: error.message });
+          setSaving(false);
+          return null;
+        }
+
+        await syncSteps(workflowId);
+        toast.success('Canvas salvo!');
+        setSaving(false);
+        await fetchWorkflows();
+        return workflowId;
+      }
+
+      // Need workspace_id
+      const { data: memberData } = await supabaseExternal
+        .from('workspace_members')
+        .select('workspace_id')
+        .eq('user_id', user.id)
+        .limit(1)
+        .maybeSingle();
+
+      const workspaceId = memberData?.workspace_id;
+      if (!workspaceId) {
+        toast.error('Workspace não encontrado');
         setSaving(false);
         return null;
       }
 
-      await syncSteps(workflowId);
-      toast.success('Canvas salvo!');
+      const { data, error } = await supabaseExternal
+        .from('workflows')
+        .insert([{ name, config: JSON.parse(JSON.stringify(config)), workspace_id: workspaceId }])
+        .select('id')
+        .single();
+
+      if (error) {
+        toast.error('Erro ao criar workflow');
+        logger.error('Failed to create workflow', { error: error.message });
+        setSaving(false);
+        return null;
+      }
+
+      const newId = data?.id ?? null;
+      if (newId) {
+        await syncSteps(newId);
+        setSelectedId(newId);
+      }
+
+      toast.success('Workflow criado e salvo!');
       setSaving(false);
       await fetchWorkflows();
-      return workflowId;
-    }
+      return newId;
+    },
+    [user, fetchWorkflows],
+  );
 
-    // Need workspace_id
-    const { data: memberData } = await supabaseExternal
-      .from('workspace_members')
-      .select('workspace_id')
-      .eq('user_id', user.id)
-      .limit(1)
-      .maybeSingle();
+  const loadCanvas = useCallback(
+    async (workflowId: string): Promise<{ nodes: CanvasNode[]; edges: CanvasEdge[] } | null> => {
+      // Try loading from normalized workflow_steps first
+      const { data: steps } = await supabaseExternal
+        .from('workflow_steps')
+        .select('*')
+        .eq('workflow_id', workflowId)
+        .order('step_order', { ascending: true });
 
-    const workspaceId = memberData?.workspace_id;
-    if (!workspaceId) {
-      toast.error('Workspace não encontrado');
-      setSaving(false);
-      return null;
-    }
+      const wf = workflows.find((w) => w.id === workflowId);
 
-    const { data, error } = await supabaseExternal
-      .from('workflows')
-      .insert([{ name, config: JSON.parse(JSON.stringify(config)), workspace_id: workspaceId }])
-      .select('id')
-      .single();
+      if (steps && steps.length > 0) {
+        const nodes: CanvasNode[] = steps.map((step) => {
+          const cfg = (step.config || {}) as Record<string, unknown>;
+          return {
+            id: String(cfg.node_id || `step_${step.step_order}`),
+            type: String(cfg.type || step.role || 'executor'),
+            position: (cfg.position as { x: number; y: number }) || {
+              x: step.step_order * 240,
+              y: 100,
+            },
+            data: {
+              label: step.name,
+              type: cfg.type || step.role,
+              config: cfg,
+              status: 'idle',
+            },
+          };
+        });
 
-    if (error) {
-      toast.error('Erro ao criar workflow');
-      logger.error('Failed to create workflow', { error: error.message });
-      setSaving(false);
-      return null;
-    }
+        // Edges come from config JSON (edges aren't steps)
+        const edges: CanvasEdge[] = wf?.config?.edges ?? [];
+        return { nodes, edges };
+      }
 
-    const newId = data?.id ?? null;
-    if (newId) {
-      await syncSteps(newId);
-      setSelectedId(newId);
-    }
+      // Fallback to config JSON
+      if (!wf?.config) return null;
+      return { nodes: wf.config.nodes ?? [], edges: wf.config.edges ?? [] };
+    },
+    [workflows],
+  );
 
-    toast.success('Workflow criado e salvo!');
-    setSaving(false);
-    await fetchWorkflows();
-    return newId;
-  }, [user, fetchWorkflows]);
+  const deleteCanvas = useCallback(
+    async (workflowId: string) => {
+      // Delete steps first, then workflow
+      await supabaseExternal.from('workflow_steps').delete().eq('workflow_id', workflowId);
+      const { error } = await supabaseExternal.from('workflows').delete().eq('id', workflowId);
+      if (error) {
+        toast.error('Erro ao deletar workflow');
+        logger.error('Failed to delete workflow', { error: error.message });
+        return false;
+      }
+      if (selectedId === workflowId) setSelectedId(null);
+      toast.success('Workflow removido!');
+      await fetchWorkflows();
+      return true;
+    },
+    [selectedId, fetchWorkflows],
+  );
 
-  const loadCanvas = useCallback(async (workflowId: string): Promise<{ nodes: CanvasNode[]; edges: CanvasEdge[] } | null> => {
-    // Try loading from normalized workflow_steps first
-    const { data: steps } = await supabaseExternal
-      .from('workflow_steps')
-      .select('*')
-      .eq('workflow_id', workflowId)
-      .order('step_order', { ascending: true });
-
-    const wf = workflows.find(w => w.id === workflowId);
-
-    if (steps && steps.length > 0) {
-      const nodes: CanvasNode[] = steps.map((step: any) => {
-        const cfg = (step.config || {}) as Record<string, unknown>;
-        return {
-          id: String(cfg.node_id || `step_${step.step_order}`),
-          type: String(cfg.type || step.role || 'executor'),
-          position: (cfg.position as { x: number; y: number }) || { x: step.step_order * 240, y: 100 },
-          data: {
-            label: step.name,
-            type: cfg.type || step.role,
-            config: cfg,
-            status: 'idle',
-          },
-        };
-      });
-
-      // Edges come from config JSON (edges aren't steps)
-      const edges: CanvasEdge[] = wf?.config?.edges ?? [];
-      return { nodes, edges };
-    }
-
-    // Fallback to config JSON
-    if (!wf?.config) return null;
-    return { nodes: wf.config.nodes ?? [], edges: wf.config.edges ?? [] };
-  }, [workflows]);
-
-  const deleteCanvas = useCallback(async (workflowId: string) => {
-    // Delete steps first, then workflow
-    await supabaseExternal.from('workflow_steps').delete().eq('workflow_id', workflowId);
-    const { error } = await supabaseExternal.from('workflows').delete().eq('id', workflowId);
-    if (error) {
-      toast.error('Erro ao deletar workflow');
-      logger.error('Failed to delete workflow', { error: error.message });
-      return false;
-    }
-    if (selectedId === workflowId) setSelectedId(null);
-    toast.success('Workflow removido!');
-    await fetchWorkflows();
-    return true;
-  }, [selectedId, fetchWorkflows]);
-
-  return { workflows, selectedId, setSelectedId, loading, saving, saveCanvas, loadCanvas, deleteCanvas, fetchWorkflows };
+  return {
+    workflows,
+    selectedId,
+    setSelectedId,
+    loading,
+    saving,
+    saveCanvas,
+    loadCanvas,
+    deleteCanvas,
+    fetchWorkflows,
+  };
 }

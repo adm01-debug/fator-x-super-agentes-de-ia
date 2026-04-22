@@ -28,8 +28,14 @@ export async function listDeployments(agentId: string): Promise<DeployConnection
   return (data ?? []) as unknown as DeployConnection[];
 }
 
-export async function createDeployment(agentId: string, channel: DeployChannel, config: Record<string, unknown>) {
-  const { data: { user } } = await supabase.auth.getUser();
+export async function createDeployment(
+  agentId: string,
+  channel: DeployChannel,
+  config: Record<string, unknown>,
+) {
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
   if (!user) throw new Error('Not authenticated');
 
   const insertData = {
@@ -38,7 +44,11 @@ export async function createDeployment(agentId: string, channel: DeployChannel, 
     config,
     status: 'active',
   };
-  const { data, error } = await (supabaseExternal.from('deploy_connections').insert as Function)(insertData)
+  const { data, error } = await (
+    supabaseExternal.from('deploy_connections').insert as (
+      input: Record<string, unknown>,
+    ) => Promise<{ data: unknown; error: { message: string } | null }>
+  )(insertData)
     .select()
     .single();
 
@@ -77,21 +87,25 @@ export async function listDeployedAgents() {
   if (error) throw error;
   if (!data) return [];
 
-  const agentIds = data.map(a => a.id);
+  const agentIds = data.map((a) => a.id);
   const { data: connections } = await supabaseExternal
     .from('deploy_connections')
     .select('agent_id, channel, status, message_count, last_message_at, error_message')
     .in('agent_id', agentIds);
 
   const connMap = new Map<string, Array<Record<string, unknown>>>();
-  for (const c of (connections || [])) {
+  for (const c of connections || []) {
     if (!connMap.has(c.agent_id)) connMap.set(c.agent_id, []);
     connMap.get(c.agent_id)!.push(c);
   }
 
-  return data.map(a => {
+  return data.map((a) => {
     const config = a.config as Record<string, unknown> | null;
-    const configChannels = ((config?.deploy_channels || []) as Array<{ channel: string; name: string; enabled: boolean }>);
+    const configChannels = (config?.deploy_channels || []) as Array<{
+      channel: string;
+      name: string;
+      enabled: boolean;
+    }>;
     const liveConns = connMap.get(a.id) || [];
     return {
       id: a.id,
@@ -99,16 +113,18 @@ export async function listDeployedAgents() {
       emoji: a.avatar_emoji,
       status: a.status,
       version: `v${a.version}`,
-      channels: configChannels.filter(c => c.enabled).map(c => {
-        const live = liveConns.find((lc) => lc.channel === c.channel);
-        return {
-          name: c.name || c.channel,
-          status: (live?.status as string) || 'inactive',
-          messages: (live?.message_count as number) || 0,
-          lastMsg: live?.last_message_at as string | undefined,
-          error: live?.error_message as string | undefined,
-        };
-      }),
+      channels: configChannels
+        .filter((c) => c.enabled)
+        .map((c) => {
+          const live = liveConns.find((lc) => lc.channel === c.channel);
+          return {
+            name: c.name || c.channel,
+            status: (live?.status as string) || 'inactive',
+            messages: (live?.message_count as number) || 0,
+            lastMsg: live?.last_message_at as string | undefined,
+            error: live?.error_message as string | undefined,
+          };
+        }),
       environment: (config?.deploy_environment as string) || 'production',
       updated: a.updated_at,
     };

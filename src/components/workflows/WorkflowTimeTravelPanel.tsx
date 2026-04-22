@@ -1,6 +1,6 @@
 /**
  * Nexus Agents Studio — Time-Travel Debugging Panel
- * 
+ *
  * Allows users to:
  * - View execution timeline with all checkpoints
  * - Inspect state at any checkpoint
@@ -192,7 +192,9 @@ export function WorkflowTimeTravelPanel({
               <Clock className="w-4 h-4 text-nexus-purple" />
               <div>
                 <p className="text-xs text-muted-foreground">Duração</p>
-                <p className="text-sm font-medium text-foreground">{formatDuration(totalDuration)}</p>
+                <p className="text-sm font-medium text-foreground">
+                  {formatDuration(totalDuration)}
+                </p>
               </div>
             </div>
           </div>
@@ -229,10 +231,7 @@ export function WorkflowTimeTravelPanel({
                           backgroundColor: isSelected ? `${statusCfg.color}20` : 'transparent',
                         }}
                       >
-                        <StatusIcon
-                          className="w-4 h-4"
-                          style={{ color: statusCfg.color }}
-                        />
+                        <StatusIcon className="w-4 h-4" style={{ color: statusCfg.color }} />
                       </div>
                       {!isLast && (
                         <div
@@ -248,6 +247,14 @@ export function WorkflowTimeTravelPanel({
                         isSelected ? 'bg-muted p-3' : 'hover:bg-background p-3'
                       }`}
                       onClick={() => handleInspect(entry.id)}
+                      role="button"
+                      tabIndex={0}
+                      onKeyDown={(e) => {
+                        if (e.key === 'Enter' || e.key === ' ') {
+                          e.preventDefault();
+                          (e.currentTarget as HTMLElement).click();
+                        }
+                      }}
                     >
                       <div className="flex items-start justify-between">
                         <div>
@@ -280,9 +287,7 @@ export function WorkflowTimeTravelPanel({
 
                       {/* Error message */}
                       {entry.error && (
-                        <p className="text-xs text-destructive mt-1 truncate">
-                          ⚠ {entry.error}
-                        </p>
+                        <p className="text-xs text-destructive mt-1 truncate">⚠ {entry.error}</p>
                       )}
 
                       {/* Actions (show when selected) */}

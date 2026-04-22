@@ -15,8 +15,23 @@ import { supabase } from '@/integrations/supabase/client';
 import { fromTable, rpcCall } from '@/lib/supabaseExtended';
 import { logger } from '@/lib/logger';
 
-export type { WebhookMethod, WebhookStatus, WebhookAuthType, WebhookEndpoint, WebhookEvent, CreateWebhookInput, WebhookTestResult } from './types/webhookTriggerTypes';
-import type { WebhookMethod, WebhookStatus, WebhookEndpoint, WebhookEvent, CreateWebhookInput, WebhookTestResult } from './types/webhookTriggerTypes';
+export type {
+  WebhookMethod,
+  WebhookStatus,
+  WebhookAuthType,
+  WebhookEndpoint,
+  WebhookEvent,
+  CreateWebhookInput,
+  WebhookTestResult,
+} from './types/webhookTriggerTypes';
+import type {
+  WebhookMethod,
+  WebhookStatus,
+  WebhookEndpoint,
+  WebhookEvent,
+  CreateWebhookInput,
+  WebhookTestResult,
+} from './types/webhookTriggerTypes';
 
 /* ------------------------------------------------------------------ */
 /*  Helpers                                                            */
@@ -25,18 +40,21 @@ import type { WebhookMethod, WebhookStatus, WebhookEndpoint, WebhookEvent, Creat
 function generateWebhookPath(): string {
   const chars = 'abcdefghijklmnopqrstuvwxyz0123456789';
   const segments = [8, 4, 4].map((len) =>
-    Array.from({ length: len }, () =>
-      chars.charAt(Math.floor(Math.random() * chars.length)),
-    ).join(''),
+    Array.from({ length: len }, () => chars.charAt(Math.floor(Math.random() * chars.length))).join(
+      '',
+    ),
   );
   return `/webhooks/${segments.join('-')}`;
 }
 
 function generateWebhookSecret(): string {
   const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
-  return 'whsec_' + Array.from({ length: 32 }, () =>
-    chars.charAt(Math.floor(Math.random() * chars.length)),
-  ).join('');
+  return (
+    'whsec_' +
+    Array.from({ length: 32 }, () => chars.charAt(Math.floor(Math.random() * chars.length))).join(
+      '',
+    )
+  );
 }
 
 export async function verifyHmacSignature(
@@ -101,9 +119,7 @@ export function applyTransform(
 /*  CRUD Operations                                                    */
 /* ------------------------------------------------------------------ */
 
-export async function createWebhook(
-  input: CreateWebhookInput,
-): Promise<WebhookEndpoint> {
+export async function createWebhook(input: CreateWebhookInput): Promise<WebhookEndpoint> {
   const { data: userData } = await supabase.auth.getUser();
   const userId = userData?.user?.id ?? null;
 
@@ -132,9 +148,7 @@ export async function createWebhook(
   return data as WebhookEndpoint;
 }
 
-export async function listWebhooks(
-  status?: WebhookStatus,
-): Promise<WebhookEndpoint[]> {
+export async function listWebhooks(status?: WebhookStatus): Promise<WebhookEndpoint[]> {
   let query = fromTable('webhook_endpoints').select('*').order('created_at', { ascending: false });
 
   if (status) {
@@ -147,7 +161,10 @@ export async function listWebhooks(
 }
 
 export async function getWebhook(id: string): Promise<WebhookEndpoint | null> {
-  const { data, error } = await fromTable('webhook_endpoints').select('*').eq('id', id).maybeSingle();
+  const { data, error } = await fromTable('webhook_endpoints')
+    .select('*')
+    .eq('id', id)
+    .maybeSingle();
   if (error) throw error;
   return data as WebhookEndpoint | null;
 }
@@ -156,7 +173,11 @@ export async function updateWebhook(
   id: string,
   updates: Partial<CreateWebhookInput> & { status?: WebhookStatus },
 ): Promise<WebhookEndpoint> {
-  const { data, error } = await fromTable('webhook_endpoints').update({ ...updates, updated_at: new Date().toISOString() }).eq('id', id).select().single();
+  const { data, error } = await fromTable('webhook_endpoints')
+    .update({ ...updates, updated_at: new Date().toISOString() })
+    .eq('id', id)
+    .select()
+    .single();
   if (error) throw error;
   return data as WebhookEndpoint;
 }
@@ -166,10 +187,14 @@ export async function revokeWebhook(id: string): Promise<WebhookEndpoint> {
 }
 
 export async function regenerateSecret(id: string): Promise<WebhookEndpoint> {
-  const { data, error } = await fromTable('webhook_endpoints').update({
-    secret: generateWebhookSecret(),
-    updated_at: new Date().toISOString(),
-  }).eq('id', id).select().single();
+  const { data, error } = await fromTable('webhook_endpoints')
+    .update({
+      secret: generateWebhookSecret(),
+      updated_at: new Date().toISOString(),
+    })
+    .eq('id', id)
+    .select()
+    .single();
   if (error) throw error;
   return data as WebhookEndpoint;
 }
@@ -193,7 +218,6 @@ export async function logWebhookEvent(
     .single();
   if (error) throw error;
 
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   await rpcCall('increment_webhook_counter', { webhook_uuid: webhookId });
 
   return data as WebhookEvent;
@@ -342,7 +366,7 @@ export interface WebhookReceiverInvokeResult {
  * receiver as if an external client had POSTed to the webhook URL.
  */
 export async function triggerWebhookViaEF(
-  input: WebhookReceiverInvokeInput
+  input: WebhookReceiverInvokeInput,
 ): Promise<WebhookReceiverInvokeResult> {
   const { data, error } = await supabase.functions.invoke('webhook-receiver', {
     body: input.payload ?? { test: true, source: 'frontend-test', ts: Date.now() },

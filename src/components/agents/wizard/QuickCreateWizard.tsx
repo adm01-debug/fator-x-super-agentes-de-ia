@@ -26,7 +26,12 @@ import { StepQuickPrompt } from './quickSteps/StepQuickPrompt';
 import { DraftRecoveryBanner, type DraftSummary } from './DraftRecoveryBanner';
 
 const STEPS = [
-  { key: 'identity', label: 'Identidade', schema: quickIdentitySchema, fields: ['name', 'emoji', 'mission', 'description'] },
+  {
+    key: 'identity',
+    label: 'Identidade',
+    schema: quickIdentitySchema,
+    fields: ['name', 'emoji', 'mission', 'description'],
+  },
   { key: 'type', label: 'Tipo', schema: quickTypeSchema, fields: ['type'] },
   { key: 'model', label: 'Modelo', schema: quickModelSchema, fields: ['model'] },
   { key: 'prompt', label: 'Prompt', schema: quickPromptSchema, fields: ['prompt'] },
@@ -86,15 +91,21 @@ export function QuickCreateWizard({ onBack }: QuickCreateWizardProps) {
   // On mount: check for a meaningful, non-expired draft and offer recovery.
   useEffect(() => {
     const env = readDraftEnvelope();
-    if (!env) { setDraftDecided(true); return; }
+    if (!env) {
+      setDraftDecided(true);
+      return;
+    }
     const ageMs = Date.now() - new Date(env.savedAt).getTime();
     if (!Number.isFinite(ageMs) || ageMs > DRAFT_TTL_MS || !isDraftMeaningful(env.form)) {
-      try { localStorage.removeItem(DRAFT_KEY); } catch {/* ignore */}
+      try {
+        localStorage.removeItem(DRAFT_KEY);
+      } catch {
+        /* ignore */
+      }
       setDraftDecided(true);
       return;
     }
     setPendingDraft(env);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   // Auto-save draft only after the user decided what to do with any prior draft.
@@ -103,7 +114,9 @@ export function QuickCreateWizard({ onBack }: QuickCreateWizardProps) {
     try {
       const envelope: DraftEnvelope = { form, savedAt: new Date().toISOString() };
       localStorage.setItem(DRAFT_KEY, JSON.stringify(envelope));
-    } catch {/* ignore */}
+    } catch {
+      /* ignore */
+    }
   }, [form, draftDecided]);
 
   const restoreDraft = () => {
@@ -120,7 +133,11 @@ export function QuickCreateWizard({ onBack }: QuickCreateWizardProps) {
   };
 
   const discardDraft = () => {
-    try { localStorage.removeItem(DRAFT_KEY); } catch {/* ignore */}
+    try {
+      localStorage.removeItem(DRAFT_KEY);
+    } catch {
+      /* ignore */
+    }
     setPendingDraft(null);
     setDraftDecided(true);
     toast('Rascunho descartado');
@@ -170,7 +187,9 @@ export function QuickCreateWizard({ onBack }: QuickCreateWizardProps) {
     if (result.success) {
       setErrors((prev) => {
         const next = { ...prev };
-        def.fields.forEach((f) => { delete next[f as keyof QuickAgentForm]; });
+        def.fields.forEach((f) => {
+          delete next[f as keyof QuickAgentForm];
+        });
         return next;
       });
       return true;
@@ -237,8 +256,14 @@ export function QuickCreateWizard({ onBack }: QuickCreateWizardProps) {
       toast.error('Erro ao salvar agente', { description: error.message });
       return;
     }
-    try { localStorage.removeItem(DRAFT_KEY); } catch {/* ignore */}
-    toast.success('Agente criado com sucesso!', { description: `${form.name} foi salvo como rascunho.` });
+    try {
+      localStorage.removeItem(DRAFT_KEY);
+    } catch {
+      /* ignore */
+    }
+    toast.success('Agente criado com sucesso!', {
+      description: `${form.name} foi salvo como rascunho.`,
+    });
     navigate('/agents');
   };
 
@@ -249,8 +274,14 @@ export function QuickCreateWizard({ onBack }: QuickCreateWizardProps) {
     const onKey = (e: KeyboardEvent) => {
       const target = e.target as HTMLElement;
       const isTyping = target?.tagName === 'INPUT' || target?.tagName === 'TEXTAREA';
-      if (e.key === 'Escape' && !isTyping) { e.preventDefault(); goPrev(); }
-      if (e.key === 'Enter' && (e.ctrlKey || e.metaKey) && isLast) { e.preventDefault(); void saveAgent(); }
+      if (e.key === 'Escape' && !isTyping) {
+        e.preventDefault();
+        goPrev();
+      }
+      if (e.key === 'Enter' && (e.ctrlKey || e.metaKey) && isLast) {
+        e.preventDefault();
+        void saveAgent();
+      }
     };
     window.addEventListener('keydown', onKey);
     return () => window.removeEventListener('keydown', onKey);
@@ -259,11 +290,31 @@ export function QuickCreateWizard({ onBack }: QuickCreateWizardProps) {
 
   const stepNode = useMemo(() => {
     switch (step) {
-      case 0: return <StepQuickIdentity form={form} errors={errors} update={update} />;
-      case 1: return <StepQuickType form={form} errors={errors} update={update} applyTemplate={applyTemplate} />;
-      case 2: return <StepQuickModel form={form} errors={errors} update={update} />;
-      case 3: return <StepQuickPrompt form={form} errors={errors} update={update} onRestore={restorePromptFromType} onApplyVariant={applyPromptVariant} />;
-      default: return null;
+      case 0:
+        return <StepQuickIdentity form={form} errors={errors} update={update} />;
+      case 1:
+        return (
+          <StepQuickType
+            form={form}
+            errors={errors}
+            update={update}
+            applyTemplate={applyTemplate}
+          />
+        );
+      case 2:
+        return <StepQuickModel form={form} errors={errors} update={update} />;
+      case 3:
+        return (
+          <StepQuickPrompt
+            form={form}
+            errors={errors}
+            update={update}
+            onRestore={restorePromptFromType}
+            onApplyVariant={applyPromptVariant}
+          />
+        );
+      default:
+        return null;
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [step, form, errors]);
@@ -279,16 +330,28 @@ export function QuickCreateWizard({ onBack }: QuickCreateWizardProps) {
         />
       )}
       <div className="flex items-center gap-3">
-        <Button variant="ghost" size="icon" onClick={goPrev} className="text-muted-foreground" aria-label="Voltar">
+        <Button
+          variant="ghost"
+          size="icon"
+          onClick={goPrev}
+          className="text-muted-foreground"
+          aria-label="Voltar"
+        >
           <ArrowLeft className="h-4 w-4" />
         </Button>
         <div>
           <h1 className="text-xl font-heading font-bold text-foreground">Criação rápida ⚡</h1>
-          <p className="text-sm text-muted-foreground">Passo {step + 1} de {STEPS.length}</p>
+          <p className="text-sm text-muted-foreground">
+            Passo {step + 1} de {STEPS.length}
+          </p>
         </div>
       </div>
 
-      <div className="flex items-center gap-1 overflow-x-auto pb-2" role="tablist" aria-label="Etapas">
+      <div
+        className="flex items-center gap-1 overflow-x-auto pb-2"
+        role="tablist"
+        aria-label="Etapas"
+      >
         {STEPS.map((s, i) => {
           const isActive = i === step;
           const isDone = i < step;
@@ -302,8 +365,8 @@ export function QuickCreateWizard({ onBack }: QuickCreateWizardProps) {
                 isActive
                   ? 'bg-primary/15 text-primary'
                   : isDone
-                  ? 'bg-secondary/60 text-foreground hover:bg-secondary'
-                  : 'text-muted-foreground'
+                    ? 'bg-secondary/60 text-foreground hover:bg-secondary'
+                    : 'text-muted-foreground'
               }`}
             >
               <div
@@ -311,20 +374,24 @@ export function QuickCreateWizard({ onBack }: QuickCreateWizardProps) {
                   isDone
                     ? 'bg-primary text-primary-foreground'
                     : isActive
-                    ? 'bg-primary/20 text-primary border border-primary/40'
-                    : 'bg-secondary text-muted-foreground'
+                      ? 'bg-primary/20 text-primary border border-primary/40'
+                      : 'bg-secondary text-muted-foreground'
                 }`}
               >
                 {isDone ? <Check className="h-3 w-3" /> : i + 1}
               </div>
               <span className="hidden sm:inline">{s.label}</span>
-              {i < STEPS.length - 1 && <ChevronRight className="h-3 w-3 text-muted-foreground/40 ml-1" />}
+              {i < STEPS.length - 1 && (
+                <ChevronRight className="h-3 w-3 text-muted-foreground/40 ml-1" />
+              )}
             </button>
           );
         })}
       </div>
 
-      <div key={step} className="animate-page-enter">{stepNode}</div>
+      <div key={step} className="animate-page-enter">
+        {stepNode}
+      </div>
 
       <div className="flex items-center justify-between pt-4 border-t border-border/50">
         <Button variant="ghost" onClick={goPrev} className="gap-2">

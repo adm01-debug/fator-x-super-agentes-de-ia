@@ -65,7 +65,7 @@ function tokenize(s: string): Set<string> {
   return new Set(
     normalizeForCompare(s)
       .split(' ')
-      .filter((t) => t.length >= 3)
+      .filter((t) => t.length >= 3),
   );
 }
 
@@ -92,10 +92,7 @@ export function jaccardSimilarity(a: string, b: string): number {
  * cluster. If similarity >= threshold the candidate joins that cluster.
  * Otherwise a new cluster is created.
  */
-export function clusterCandidates(
-  candidates: EntityCandidate[],
-  threshold = 0.7
-): EntityCluster[] {
+export function clusterCandidates(candidates: EntityCandidate[], threshold = 0.7): EntityCluster[] {
   const clusters: EntityCluster[] = [];
 
   for (const cand of candidates) {
@@ -134,7 +131,7 @@ export function clusterCandidates(
   }
 
   // Only keep clusters with at least one duplicate
-  return clusters.filter((c: any) => c.duplicates.length > 0);
+  return clusters.filter((c) => c.duplicates.length > 0);
 }
 
 /**
@@ -143,7 +140,7 @@ export function clusterCandidates(
  */
 export async function resolveMemoryEntities(
   limit = 200,
-  threshold = 0.7
+  threshold = 0.7,
 ): Promise<EntityResolutionReport> {
   try {
     const { data, error } = await supabaseExternal
@@ -158,7 +155,7 @@ export async function resolveMemoryEntities(
     }
 
     const candidates = ((data ?? []) as EntityCandidate[]).filter(
-      (c: any) => c.content && c.content.length >= 10
+      (c: { content?: string }) => c.content && c.content.length >= 10,
     );
 
     const clusters = clusterCandidates(candidates, threshold);
@@ -186,10 +183,7 @@ export async function mergeEntityCluster(cluster: EntityCluster): Promise<number
   if (cluster.duplicates.length === 0) return 0;
   const idsToDelete = cluster.duplicates.map((d) => d.id);
 
-  const { error } = await supabaseExternal
-    .from('agent_memories')
-    .delete()
-    .in('id', idsToDelete);
+  const { error } = await supabaseExternal.from('agent_memories').delete().in('id', idsToDelete);
 
   if (error) {
     logger.error('mergeEntityCluster failed', { error: error.message });

@@ -1,20 +1,20 @@
-import { useState } from "react";
-import { useQuery } from "@tanstack/react-query";
-import { Loader2, Clock, TrendingUp, Calendar, Activity } from "lucide-react";
-import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
+import { useState } from 'react';
+import { useQuery } from '@tanstack/react-query';
+import { Loader2, Clock, TrendingUp, Calendar, Activity } from 'lucide-react';
+import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
 import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from "@/components/ui/select";
+} from '@/components/ui/select';
 import {
   getTemporalSnapshot,
   listRecentMemoryEvents,
   type TemporalWindow,
-} from "@/services/temporalKnowledgeService";
+} from '@/services/temporalKnowledgeService';
 
 const WINDOW_LABELS: Record<TemporalWindow, string> = {
   '1h': 'Última hora',
@@ -25,18 +25,24 @@ const WINDOW_LABELS: Record<TemporalWindow, string> = {
   all: 'Todo o histórico',
 };
 
-function TimelineSparkline({ buckets }: { buckets: Array<{ memories_created: number; chunks_created: number }> }) {
+function TimelineSparkline({
+  buckets,
+}: {
+  buckets: Array<{ memories_created: number; chunks_created: number }>;
+}) {
   if (!buckets || buckets.length === 0) return null;
-  const maxVal = Math.max(
-    ...buckets.map((b) => b.memories_created + b.chunks_created),
-    1
-  );
+  const maxVal = Math.max(...buckets.map((b) => b.memories_created + b.chunks_created), 1);
   const width = 700;
   const height = 100;
   const barWidth = Math.max(2, width / buckets.length - 1);
 
   return (
-    <svg width="100%" height={height} viewBox={`0 0 ${width} ${height}`} className="overflow-visible">
+    <svg
+      width="100%"
+      height={height}
+      viewBox={`0 0 ${width} ${height}`}
+      className="overflow-visible"
+    >
       {buckets.map((b, i) => {
         const x = i * (width / buckets.length);
         const memHeight = (b.memories_created / maxVal) * (height - 10);
@@ -71,7 +77,11 @@ function TimelineSparkline({ buckets }: { buckets: Array<{ memories_created: num
 export function TemporalGraphTab() {
   const [window, setWindow] = useState<TemporalWindow>('7d');
 
-  const { data: snapshot, isLoading: snapLoading, refetch: refetchSnap } = useQuery({
+  const {
+    data: snapshot,
+    isLoading: snapLoading,
+    refetch: refetchSnap,
+  } = useQuery({
     queryKey: ['temporal-snapshot', window],
     queryFn: () => getTemporalSnapshot(window),
   });
@@ -99,12 +109,24 @@ export function TemporalGraphTab() {
             </SelectTrigger>
             <SelectContent>
               {Object.entries(WINDOW_LABELS).map(([k, label]) => (
-                <SelectItem key={k} value={k}>{label}</SelectItem>
+                <SelectItem key={k} value={k}>
+                  {label}
+                </SelectItem>
               ))}
             </SelectContent>
           </Select>
-          <Button variant="outline" size="sm" onClick={() => refetchSnap()} className="h-8" disabled={snapLoading}>
-            {snapLoading ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Activity className="h-3.5 w-3.5" />}
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => refetchSnap()}
+            className="h-8"
+            disabled={snapLoading}
+          >
+            {snapLoading ? (
+              <Loader2 className="h-3.5 w-3.5 animate-spin" />
+            ) : (
+              <Activity className="h-3.5 w-3.5" />
+            )}
           </Button>
         </div>
       </div>
@@ -119,9 +141,7 @@ export function TemporalGraphTab() {
         </div>
         <div className="nexus-card text-center py-3">
           <p className="text-[10px] text-muted-foreground uppercase tracking-wider">Chunks</p>
-          <p className="text-xl font-bold text-primary mt-1">
-            {snapshot?.total_chunks ?? 0}
-          </p>
+          <p className="text-xl font-bold text-primary mt-1">{snapshot?.total_chunks ?? 0}</p>
         </div>
         <div className="nexus-card text-center py-3">
           <p className="text-[10px] text-muted-foreground uppercase tracking-wider">Velocidade</p>
@@ -133,10 +153,10 @@ export function TemporalGraphTab() {
         </div>
         <div className="nexus-card text-center py-3">
           <p className="text-[10px] text-muted-foreground uppercase tracking-wider">Janela</p>
-          <p className="text-sm font-semibold text-foreground mt-1">
-            {WINDOW_LABELS[window]}
+          <p className="text-sm font-semibold text-foreground mt-1">{WINDOW_LABELS[window]}</p>
+          <p className="text-[10px] text-muted-foreground">
+            {snapshot?.buckets?.length ?? 0} buckets
           </p>
-          <p className="text-[10px] text-muted-foreground">{snapshot?.buckets?.length ?? 0} buckets</p>
         </div>
       </div>
 
@@ -183,26 +203,38 @@ export function TemporalGraphTab() {
           </p>
         ) : (
           <div className="space-y-1.5 max-h-[400px] overflow-y-auto">
-            {timeline.map((m: any) => {
+            {timeline.map((m) => {
               const memory = m as Record<string, unknown>;
               const content = String(memory.content ?? '');
               const memType = String(memory.memory_type ?? 'semantic');
               const source = String(memory.source ?? '');
               const createdAt = memory.created_at ? new Date(String(memory.created_at)) : null;
-              const relevance = typeof memory.relevance_score === 'number' ? memory.relevance_score : null;
+              const relevance =
+                typeof memory.relevance_score === 'number' ? memory.relevance_score : null;
               return (
                 <div
                   key={String(memory.id)}
                   className="flex items-start gap-3 p-2.5 rounded-lg bg-secondary/30 border border-border/20"
                 >
                   <div className="text-[10px] text-muted-foreground font-mono shrink-0 w-16 text-right pt-0.5">
-                    {createdAt ? createdAt.toLocaleString('pt-BR', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' }) : '—'}
+                    {createdAt
+                      ? createdAt.toLocaleString('pt-BR', {
+                          day: '2-digit',
+                          month: '2-digit',
+                          hour: '2-digit',
+                          minute: '2-digit',
+                        })
+                      : '—'}
                   </div>
                   <div className="flex-1 min-w-0">
                     <p className="text-xs text-foreground line-clamp-2">{content}</p>
                     <div className="flex items-center gap-2 mt-1">
-                      <Badge variant="outline" className="text-[9px] border-border">{memType}</Badge>
-                      {source && <span className="text-[10px] text-muted-foreground">{source}</span>}
+                      <Badge variant="outline" className="text-[9px] border-border">
+                        {memType}
+                      </Badge>
+                      {source && (
+                        <span className="text-[10px] text-muted-foreground">{source}</span>
+                      )}
                       {relevance != null && (
                         <span className="text-[10px] text-nexus-amber">
                           {(relevance * 100).toFixed(0)}%

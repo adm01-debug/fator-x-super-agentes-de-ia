@@ -10,17 +10,27 @@ import { describe, it, expect, vi } from 'vitest';
 /* ================================================================ */
 
 import {
-  parseCronExpression, getNextCronRun, describeCronExpression, CRON_PRESETS,
+  parseCronExpression,
+  getNextCronRun,
+  describeCronExpression,
+  CRON_PRESETS,
 } from '@/services/cronSchedulerService';
 
 import {
-  verifyHmacSignature, applyTransform, WEBHOOK_TEMPLATES,
+  verifyHmacSignature,
+  applyTransform,
+  WEBHOOK_TEMPLATES,
 } from '@/services/webhookTriggerService';
 
 import {
-  calculateDelay, executeWithRetry, getCircuitBreaker, canExecute,
-  recordCircuitFailure, resetCircuitBreaker,
-  DEFAULT_RETRY_POLICY, RETRY_PRESETS,
+  calculateDelay,
+  executeWithRetry,
+  getCircuitBreaker,
+  canExecute,
+  recordCircuitFailure,
+  resetCircuitBreaker,
+  DEFAULT_RETRY_POLICY,
+  RETRY_PRESETS,
 } from '@/services/retryEngineService';
 
 import { encryptData, decryptData, CREDENTIAL_TEMPLATES } from '@/services/credentialVaultService';
@@ -29,8 +39,20 @@ import { BUILTIN_TEMPLATES } from '@/services/automationTemplateService';
 import { compareExecutions } from '@/services/executionHistoryService';
 import { BUILTIN_CONNECTORS } from '@/services/connectorRegistryService';
 import { QUEUE_PRESETS } from '@/services/queueManagerService';
-import { calculateCost, getModelPricing, getAllPricing, formatCostBrl, setBudget, getBudget } from '@/services/costCalculatorService';
-import { registerSkill, getSkill, clearSkillRegistry, estimateTokens } from '@/services/progressiveSkillLoader';
+import {
+  calculateCost,
+  getModelPricing,
+  getAllPricing,
+  formatCostBrl,
+  setBudget,
+  getBudget,
+} from '@/services/costCalculatorService';
+import {
+  registerSkill,
+  getSkill,
+  clearSkillRegistry,
+  estimateTokens,
+} from '@/services/progressiveSkillLoader';
 import { generateAgentCard, validateAgentCard } from '@/services/agentCardService';
 import { MiddlewarePipeline, createLoggingMiddleware } from '@/services/middlewarePipelineService';
 
@@ -121,7 +143,9 @@ describe('B. Cenários Promo Brindes', () => {
   });
 
   it('Webhook Bitrix24 transforma deal', () => {
-    const payload = { data: { FIELDS: { ID: '789', TITLE: 'Canetas Promo', OPPORTUNITY: '15000' } } };
+    const payload = {
+      data: { FIELDS: { ID: '789', TITLE: 'Canetas Promo', OPPORTUNITY: '15000' } },
+    };
     const r = applyTransform(payload, WEBHOOK_TEMPLATES.bitrix24_deal.transform_script!);
     expect(r.deal_id).toBe('789');
     expect(r.title).toBe('Canetas Promo');
@@ -142,20 +166,24 @@ describe('B. Cenários Promo Brindes', () => {
 
   it('Notificação fatura vencida renderizada', () => {
     const msg = renderTemplate(NOTIFICATION_PRESETS.overdue_invoice.body, {
-      invoice_number: 'NF-001', client_name: 'XPTO', due_date: '01/04', amount: '12.500', days_overdue: '5',
+      invoice_number: 'NF-001',
+      client_name: 'XPTO',
+      due_date: '01/04',
+      amount: '12.500',
+      days_overdue: '5',
     });
     expect(msg).toContain('NF-001');
     expect(msg).toContain('XPTO');
   });
 
   it('Lead→Orçamento template tem 6 steps', () => {
-    const t = BUILTIN_TEMPLATES.find(t => t.slug === 'lead-to-quote');
+    const t = BUILTIN_TEMPLATES.find((t) => t.slug === 'lead-to-quote');
     expect(t!.steps).toHaveLength(6);
     expect(t!.steps[0].type).toBe('trigger');
   });
 
   it('Connector Bitrix24 tem health check', () => {
-    const b = BUILTIN_CONNECTORS.find(c => c.slug === 'bitrix24');
+    const b = BUILTIN_CONNECTORS.find((c) => c.slug === 'bitrix24');
     expect(b!.health_check_endpoint).toBe('/server.time');
   });
 
@@ -171,7 +199,18 @@ describe('B. Cenários Promo Brindes', () => {
   });
 
   it('Agent Card para Vendedor IA', () => {
-    const card = generateAgentCard({ name: 'Vendedor IA', description: 'Vendas Promo', id: 'v1', system_prompt: '', model: 'gpt-4o', provider: 'openai', tools: [], status: 'draft', created_at: '', updated_at: '' });
+    const card = generateAgentCard({
+      name: 'Vendedor IA',
+      description: 'Vendas Promo',
+      id: 'v1',
+      system_prompt: '',
+      model: 'gpt-4o',
+      provider: 'openai',
+      tools: [],
+      status: 'draft',
+      created_at: '',
+      updated_at: '',
+    });
     expect(card.name).toBe('Vendedor IA');
   });
 });
@@ -181,15 +220,18 @@ describe('B. Cenários Promo Brindes', () => {
 /* ================================================================ */
 
 describe('C. Funções Puras — Cron', () => {
-  it('*/5 gera 12 valores', () => expect(parseCronExpression('*/5 * * * *').minute).toHaveLength(12));
+  it('*/5 gera 12 valores', () =>
+    expect(parseCronExpression('*/5 * * * *').minute).toHaveLength(12));
   it('9-17 seg-sex', () => {
     const r = parseCronExpression('0 9-17 * * 1-5');
-    expect(r.hour).toEqual([9,10,11,12,13,14,15,16,17]);
-    expect(r.dayOfWeek).toEqual([1,2,3,4,5]);
+    expect(r.hour).toEqual([9, 10, 11, 12, 13, 14, 15, 16, 17]);
+    expect(r.dayOfWeek).toEqual([1, 2, 3, 4, 5]);
   });
-  it('lista 1,15', () => expect(parseCronExpression('0 0 1,15 * *').dayOfMonth).toEqual([1,15]));
-  it('next run é futuro', () => expect(getNextCronRun('*/5 * * * *').getTime()).toBeGreaterThan(Date.now()));
-  it('presets descrevem', () => expect(describeCronExpression('0 0 * * *')).toBe('Daily at midnight'));
+  it('lista 1,15', () => expect(parseCronExpression('0 0 1,15 * *').dayOfMonth).toEqual([1, 15]));
+  it('next run é futuro', () =>
+    expect(getNextCronRun('*/5 * * * *').getTime()).toBeGreaterThan(Date.now()));
+  it('presets descrevem', () =>
+    expect(describeCronExpression('0 0 * * *')).toBe('Daily at midnight'));
   it('rejeita inválidos', () => expect(() => parseCronExpression('invalid')).toThrow());
 });
 
@@ -201,44 +243,87 @@ describe('C. Funções Puras — Webhook Transform', () => {
     const secret = 'test';
     const payload = 'data';
     const enc = new TextEncoder();
-    const key = await crypto.subtle.importKey('raw', enc.encode(secret), { name: 'HMAC', hash: 'SHA-256' }, false, ['sign']);
+    const key = await crypto.subtle.importKey(
+      'raw',
+      enc.encode(secret),
+      { name: 'HMAC', hash: 'SHA-256' },
+      false,
+      ['sign'],
+    );
     const sig = await crypto.subtle.sign('HMAC', key, enc.encode(payload));
-    const hex = Array.from(new Uint8Array(sig)).map(b => b.toString(16).padStart(2, '0')).join('');
+    const hex = Array.from(new Uint8Array(sig))
+      .map((b) => b.toString(16).padStart(2, '0'))
+      .join('');
     expect(await verifyHmacSignature(payload, hex, secret)).toBe(true);
   });
-  it('HMAC rejeita errado', async () => expect(await verifyHmacSignature('d', 'bad', 's')).toBe(false));
+  it('HMAC rejeita errado', async () =>
+    expect(await verifyHmacSignature('d', 'bad', 's')).toBe(false));
 });
 
 describe('C. Funções Puras — Retry', () => {
   it('fixed = constante', () => {
-    const p = { ...DEFAULT_RETRY_POLICY, backoff_strategy: 'fixed' as const, initial_delay_ms: 500 };
+    const p = {
+      ...DEFAULT_RETRY_POLICY,
+      backoff_strategy: 'fixed' as const,
+      initial_delay_ms: 500,
+    };
     expect(calculateDelay(1, p)).toBe(500);
     expect(calculateDelay(5, p)).toBe(500);
   });
   it('exponencial cresce', () => {
-    const p = { ...DEFAULT_RETRY_POLICY, backoff_strategy: 'exponential' as const, initial_delay_ms: 1000, backoff_multiplier: 2 };
+    const p = {
+      ...DEFAULT_RETRY_POLICY,
+      backoff_strategy: 'exponential' as const,
+      initial_delay_ms: 1000,
+      backoff_multiplier: 2,
+    };
     expect(calculateDelay(1, p)).toBe(1000);
     expect(calculateDelay(3, p)).toBe(4000);
   });
   it('max_delay respeitado', () => {
-    const p = { ...DEFAULT_RETRY_POLICY, backoff_strategy: 'exponential' as const, initial_delay_ms: 10000, backoff_multiplier: 10, max_delay_ms: 5000 };
+    const p = {
+      ...DEFAULT_RETRY_POLICY,
+      backoff_strategy: 'exponential' as const,
+      initial_delay_ms: 10000,
+      backoff_multiplier: 10,
+      max_delay_ms: 5000,
+    };
     expect(calculateDelay(3, p)).toBe(5000);
   });
   it('sucesso imediato', async () => {
     const fn = vi.fn().mockResolvedValue('ok');
-    const r = await executeWithRetry(fn, { ...DEFAULT_RETRY_POLICY, max_attempts: 3, initial_delay_ms: 1 });
+    const r = await executeWithRetry(fn, {
+      ...DEFAULT_RETRY_POLICY,
+      max_attempts: 3,
+      initial_delay_ms: 1,
+    });
     expect(r.success).toBe(true);
     expect(fn).toHaveBeenCalledTimes(1);
   });
   it('recupera após falha', async () => {
     let c = 0;
-    const fn = vi.fn().mockImplementation(async () => { if (++c < 3) throw new Error('TIMEOUT'); return 'ok'; });
-    const r = await executeWithRetry(fn, { ...DEFAULT_RETRY_POLICY, max_attempts: 5, initial_delay_ms: 5, max_delay_ms: 10 });
+    const fn = vi.fn().mockImplementation(async () => {
+      if (++c < 3) throw new Error('TIMEOUT');
+      return 'ok';
+    });
+    const r = await executeWithRetry(fn, {
+      ...DEFAULT_RETRY_POLICY,
+      max_attempts: 5,
+      initial_delay_ms: 5,
+      max_delay_ms: 10,
+    });
     expect(r.success).toBe(true);
   });
   it('circuit breaker abre', () => {
     const svc = 'cb-' + Date.now();
-    getCircuitBreaker(svc, { ...DEFAULT_RETRY_POLICY, failure_threshold: 2, success_threshold: 1, timeout_ms: 1000, half_open_max_calls: 1, monitor_window_ms: 5000 } as any);
+    getCircuitBreaker(svc, {
+      ...DEFAULT_RETRY_POLICY,
+      failure_threshold: 2,
+      success_threshold: 1,
+      timeout_ms: 1000,
+      half_open_max_calls: 1,
+      monitor_window_ms: 5000,
+    } as Parameters<typeof getCircuitBreaker>[1]);
     recordCircuitFailure(svc);
     recordCircuitFailure(svc);
     expect(canExecute(svc)).toBe(false);
@@ -294,7 +379,19 @@ describe('C. Funções Puras — Cost Calculator', () => {
 describe('C. Funções Puras — Skill Loader', () => {
   it('registra e recupera', () => {
     clearSkillRegistry();
-    registerSkill({ id: 's1', name: 'Test', description: 'test', content: 'x', tokenCount: 100, dependencies: [], keywords: ['test'], category: 'core', priority: 5, alwaysLoad: false, useCount: 0 });
+    registerSkill({
+      id: 's1',
+      name: 'Test',
+      description: 'test',
+      content: 'x',
+      tokenCount: 100,
+      dependencies: [],
+      keywords: ['test'],
+      category: 'core',
+      priority: 5,
+      alwaysLoad: false,
+      useCount: 0,
+    });
     expect(getSkill('s1')?.name).toBe('Test');
   });
   it('estima tokens', () => expect(estimateTokens('hello world')).toBeGreaterThan(0));
@@ -306,7 +403,7 @@ describe('C. Funções Puras — Skill Loader', () => {
 
 describe('D. Integração Cruzada', () => {
   it('templates referenciam connectors existentes', () => {
-    const slugs = BUILTIN_CONNECTORS.map(c => c.slug);
+    const slugs = BUILTIN_CONNECTORS.map((c) => c.slug);
     for (const tpl of BUILTIN_TEMPLATES) {
       for (const i of tpl.required_integrations) {
         if (['llm', 'logic', 'scheduler', 'notification', 'webhook', 'slack'].includes(i)) continue;
@@ -316,18 +413,39 @@ describe('D. Integração Cruzada', () => {
   });
 
   it('credential templates cobrem connectors autenticados', () => {
-    const credServices = Object.values(CREDENTIAL_TEMPLATES).map(c => c.service);
+    const credServices = Object.values(CREDENTIAL_TEMPLATES).map((c) => c.service);
     for (const conn of BUILTIN_CONNECTORS) {
       if (conn.auth_type === 'none') continue;
       if (['bitrix24', 'whatsapp', 'supabase'].includes(conn.slug)) {
-        const has = credServices.some(s => conn.slug.includes(s) || s.includes(conn.slug));
+        const has = credServices.some((s) => conn.slug.includes(s) || s.includes(conn.slug));
         expect(has, `${conn.name} sem credential`).toBe(true);
       }
     }
   });
 
   it('execution compare detecta melhoria 50%', () => {
-    const base = { id: 'a', execution_type: 'workflow' as const, source_id: 'w', source_name: 'T', status: 'success' as const, trigger: 'm', input_data: {}, output_data: {}, error: null, error_stack: null, steps: [], started_at: '', completed_at: '', duration_ms: 10000, tokens_used: 1000, cost_brl: 0.5, retry_of: null, parent_execution_id: null, tags: [], created_by: null };
+    const base = {
+      id: 'a',
+      execution_type: 'workflow' as const,
+      source_id: 'w',
+      source_name: 'T',
+      status: 'success' as const,
+      trigger: 'm',
+      input_data: {},
+      output_data: {},
+      error: null,
+      error_stack: null,
+      steps: [],
+      started_at: '',
+      completed_at: '',
+      duration_ms: 10000,
+      tokens_used: 1000,
+      cost_brl: 0.5,
+      retry_of: null,
+      parent_execution_id: null,
+      tags: [],
+      created_by: null,
+    };
     const fast = { ...base, id: 'b', duration_ms: 5000, tokens_used: 500, cost_brl: 0.25 };
     const cmp = compareExecutions(base, fast);
     expect(cmp.duration_diff_pct).toBe(-50);
@@ -344,10 +462,14 @@ describe('E. Edge Cases', () => {
     expect(applyTransform(deep, 'v = a.b.c.d.e.f.g.h.i.j').v).toBe('found');
   });
   it('delay nunca negativo (20 iterations)', () => {
-    for (let i = 0; i < 20; i++) expect(calculateDelay(i, DEFAULT_RETRY_POLICY)).toBeGreaterThanOrEqual(0);
+    for (let i = 0; i < 20; i++)
+      expect(calculateDelay(i, DEFAULT_RETRY_POLICY)).toBeGreaterThanOrEqual(0);
   });
   it('delay sempre <= max', () => {
-    for (let i = 0; i < 20; i++) expect(calculateDelay(i, DEFAULT_RETRY_POLICY)).toBeLessThanOrEqual(DEFAULT_RETRY_POLICY.max_delay_ms);
+    for (let i = 0; i < 20; i++)
+      expect(calculateDelay(i, DEFAULT_RETRY_POLICY)).toBeLessThanOrEqual(
+        DEFAULT_RETRY_POLICY.max_delay_ms,
+      );
   });
   it('50 campos encrypt/decrypt', async () => {
     const d: Record<string, string> = {};
@@ -355,8 +477,12 @@ describe('E. Edge Cases', () => {
     expect(Object.keys(await decryptData(await encryptData(d)))).toHaveLength(50);
   });
   it('100 substituições template', () => {
-    let t = ''; const v: Record<string, string> = {};
-    for (let i = 0; i < 100; i++) { t += `{{v${i}}} `; v[`v${i}`] = `r${i}`; }
+    let t = '';
+    const v: Record<string, string> = {};
+    for (let i = 0; i < 100; i++) {
+      t += `{{v${i}}} `;
+      v[`v${i}`] = `r${i}`;
+    }
     const r = renderTemplate(t, v);
     expect(r).toContain('r0');
     expect(r).toContain('r99');

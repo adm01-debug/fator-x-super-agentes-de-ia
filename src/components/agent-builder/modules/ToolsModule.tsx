@@ -56,23 +56,31 @@ export function ToolsModule() {
   };
 
   const addMCP = () => {
-    updateAgent({ mcp_servers: [...agent.mcp_servers, { ...DEFAULT_MCP, id: crypto.randomUUID() }] });
+    updateAgent({
+      mcp_servers: [...agent.mcp_servers, { ...DEFAULT_MCP, id: crypto.randomUUID() }],
+    });
   };
   const removeMCP = (id: string) => {
     updateAgent({ mcp_servers: agent.mcp_servers.filter((s) => s.id !== id) });
   };
   const updateMCP = (id: string, partial: Partial<MCPServer>) => {
-    updateAgent({ mcp_servers: agent.mcp_servers.map((s) => (s.id === id ? { ...s, ...partial } : s)) });
+    updateAgent({
+      mcp_servers: agent.mcp_servers.map((s) => (s.id === id ? { ...s, ...partial } : s)),
+    });
   };
 
   const addAPI = () => {
-    updateAgent({ custom_apis: [...agent.custom_apis, { ...DEFAULT_API, id: crypto.randomUUID() }] });
+    updateAgent({
+      custom_apis: [...agent.custom_apis, { ...DEFAULT_API, id: crypto.randomUUID() }],
+    });
   };
   const removeAPI = (id: string) => {
     updateAgent({ custom_apis: agent.custom_apis.filter((a) => a.id !== id) });
   };
   const updateAPI = (id: string, partial: Partial<CustomAPI>) => {
-    updateAgent({ custom_apis: agent.custom_apis.map((a) => (a.id === id ? { ...a, ...partial } : a)) });
+    updateAgent({
+      custom_apis: agent.custom_apis.map((a) => (a.id === id ? { ...a, ...partial } : a)),
+    });
   };
 
   const enabledTools = agent.tools.filter((t) => t.enabled).length;
@@ -103,7 +111,10 @@ export function ToolsModule() {
             >
               <div className="space-y-3">
                 {cat.tools.map((tool) => (
-                  <div key={tool.id} className="rounded-lg border border-border bg-muted/10 p-3 space-y-3">
+                  <div
+                    key={tool.id}
+                    className="rounded-lg border border-border bg-muted/10 p-3 space-y-3"
+                  >
                     <div className="flex items-center justify-between">
                       <div className="flex items-center gap-2 flex-1 min-w-0">
                         <ToggleField
@@ -118,7 +129,12 @@ export function ToolsModule() {
                           placeholder="Nome da ferramenta"
                         />
                       </div>
-                      <Button variant="ghost" size="sm" className="text-destructive" onClick={() => removeTool(tool.id)}>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        className="text-destructive"
+                        onClick={() => removeTool(tool.id)}
+                      >
                         <Trash2 className="h-3.5 w-3.5" />
                       </Button>
                     </div>
@@ -134,7 +150,11 @@ export function ToolsModule() {
                           <SelectField
                             label="Permissão"
                             value={tool.permission_level}
-                            onChange={(v) => updateTool(tool.id, { permission_level: v as AgentTool['permission_level'] })}
+                            onChange={(v) =>
+                              updateTool(tool.id, {
+                                permission_level: v as AgentTool['permission_level'],
+                              })
+                            }
                             options={[
                               { value: 'read_only', label: 'Somente leitura' },
                               { value: 'read_write', label: 'Leitura e escrita' },
@@ -144,7 +164,11 @@ export function ToolsModule() {
                           <SelectField
                             label="Validação de Output"
                             value={tool.output_validation}
-                            onChange={(v) => updateTool(tool.id, { output_validation: v as AgentTool['output_validation'] })}
+                            onChange={(v) =>
+                              updateTool(tool.id, {
+                                output_validation: v as AgentTool['output_validation'],
+                              })
+                            }
                             options={[
                               { value: 'none', label: 'Nenhuma' },
                               { value: 'schema', label: 'Schema JSON' },
@@ -189,7 +213,14 @@ export function ToolsModule() {
                   size="sm"
                   onClick={() => {
                     updateAgent({
-                      tools: [...agent.tools, { ...DEFAULT_TOOL, id: crypto.randomUUID(), category: cat.id as AgentTool['category'] }],
+                      tools: [
+                        ...agent.tools,
+                        {
+                          ...DEFAULT_TOOL,
+                          id: crypto.randomUUID(),
+                          category: cat.id as AgentTool['category'],
+                        },
+                      ],
                     });
                   }}
                   className="w-full border-dashed"
@@ -222,13 +253,18 @@ export function ToolsModule() {
                   checked={server.enabled}
                   onCheckedChange={(v) => updateMCP(server.id, { enabled: v })}
                 />
-                <Button variant="ghost" size="sm" className="text-destructive" onClick={() => removeMCP(server.id)}>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="text-destructive"
+                  onClick={() => removeMCP(server.id)}
+                >
                   <Trash2 className="h-3.5 w-3.5" />
                 </Button>
               </div>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div className="space-y-1.5">
-                  <label className="text-xs font-medium text-foreground">Nome</label>
+                  <span className="text-xs font-medium text-foreground">Nome</span>
                   <input
                     className="w-full rounded-lg border border-border bg-muted/30 px-3 py-2 text-sm text-foreground"
                     value={server.name}
@@ -237,7 +273,7 @@ export function ToolsModule() {
                   />
                 </div>
                 <div className="space-y-1.5">
-                  <label className="text-xs font-medium text-foreground">URL</label>
+                  <span className="text-xs font-medium text-foreground">URL</span>
                   <input
                     className="w-full rounded-lg border border-border bg-muted/30 px-3 py-2 text-sm text-foreground"
                     value={server.url}
@@ -273,7 +309,7 @@ export function ToolsModule() {
               <div className="space-y-3">
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                   <div className="space-y-1.5">
-                    <label className="text-xs font-medium text-foreground">Nome</label>
+                    <span className="text-xs font-medium text-foreground">Nome</span>
                     <input
                       className="w-full rounded-lg border border-border bg-muted/30 px-3 py-2 text-sm text-foreground"
                       value={api.name}
@@ -294,7 +330,7 @@ export function ToolsModule() {
                   />
                 </div>
                 <div className="space-y-1.5">
-                  <label className="text-xs font-medium text-foreground">URL</label>
+                  <span className="text-xs font-medium text-foreground">URL</span>
                   <input
                     className="w-full rounded-lg border border-border bg-muted/30 px-3 py-2 text-sm text-foreground"
                     value={api.url}
@@ -316,7 +352,7 @@ export function ToolsModule() {
                     ]}
                   />
                   <div className="space-y-1.5">
-                    <label className="text-xs font-medium text-foreground">Descrição</label>
+                    <span className="text-xs font-medium text-foreground">Descrição</span>
                     <input
                       className="w-full rounded-lg border border-border bg-muted/30 px-3 py-2 text-sm text-foreground"
                       value={api.description}
@@ -326,7 +362,12 @@ export function ToolsModule() {
                   </div>
                 </div>
                 <div className="flex justify-end">
-                  <Button variant="ghost" size="sm" className="text-destructive" onClick={() => removeAPI(api.id)}>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="text-destructive"
+                    onClick={() => removeAPI(api.id)}
+                  >
                     <Trash2 className="h-4 w-4 mr-1" /> Remover
                   </Button>
                 </div>

@@ -1,9 +1,9 @@
 /**
  * Nexus Agents Studio — Agent Card Service (A2A Discovery)
- * 
+ *
  * Generates A2A-compliant Agent Cards following the official spec:
  * https://a2a-protocol.org/latest/specification/
- * 
+ *
  * Agent Cards are JSON documents published at /.well-known/agent-card.json
  * that describe an agent's identity, capabilities, skills, and auth requirements.
  * This enables automatic discovery and interoperability between agents.
@@ -11,9 +11,7 @@
 
 // supabaseExternal import removed — this service uses fromTable for untyped tables
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
 import { fromTable } from '@/lib/supabaseExtended';
-
 
 // ──────── A2A Agent Card Types (following official spec) ────────
 
@@ -100,9 +98,8 @@ const DEFAULT_PROVIDER: AgentProvider = {
   support_contact: 'suporte@promobrindes.com.br',
 };
 
-const NEXUS_BASE_URL = typeof window !== 'undefined'
-  ? window.location.origin
-  : 'https://nexus.promobrindes.com.br';
+const NEXUS_BASE_URL =
+  typeof window !== 'undefined' ? window.location.origin : 'https://nexus.promobrindes.com.br';
 
 // ──────── Card Generation ────────
 
@@ -117,7 +114,7 @@ export function generateAgentCard(
     provider?: AgentProvider;
     extraSkills?: AgentSkill[];
     extraTags?: string[];
-  }
+  },
 ): AgentCard {
   const baseUrl = options?.baseUrl ?? NEXUS_BASE_URL;
   const provider = options?.provider ?? DEFAULT_PROVIDER;
@@ -133,28 +130,29 @@ export function generateAgentCard(
   }));
 
   // Add knowledge-based skills if RAG is configured
-  const ragSkills: AgentSkill[] = (agent.knowledge_bases ?? []).length > 0
-    ? [{
-        id: 'rag-knowledge-search',
-        name: 'Knowledge Search',
-        description: 'Search through configured knowledge bases using hybrid RAG (BM25 + pgvector + RRF)',
-        inputModes: ['text'],
-        outputModes: ['text'],
-        tags: ['rag', 'knowledge'],
-      }]
-    : [];
+  const ragSkills: AgentSkill[] =
+    (agent.knowledge_bases ?? []).length > 0
+      ? [
+          {
+            id: 'rag-knowledge-search',
+            name: 'Knowledge Search',
+            description:
+              'Search through configured knowledge bases using hybrid RAG (BM25 + pgvector + RRF)',
+            inputModes: ['text'],
+            outputModes: ['text'],
+            tags: ['rag', 'knowledge'],
+          },
+        ]
+      : [];
 
   // Detect capabilities from agent config
-  const hasOracle = agent.orchestration_type === 'swarm' || agent.orchestration_type === 'hierarchical';
+  const hasOracle =
+    agent.orchestration_type === 'swarm' || agent.orchestration_type === 'hierarchical';
   const guardrailCount = agent.guardrails
     ? Object.values(agent.guardrails).filter(Boolean).length
     : 0;
 
-  const allSkills = [
-    ...toolSkills,
-    ...ragSkills,
-    ...(options?.extraSkills ?? []),
-  ];
+  const allSkills = [...toolSkills, ...ragSkills, ...(options?.extraSkills ?? [])];
 
   // Build tags from agent capabilities
   const tags = [
@@ -209,7 +207,7 @@ export function generateAgentCard(
  */
 export function generateAgentCardJSON(
   agent: AgentConfig,
-  options?: Parameters<typeof generateAgentCard>[1]
+  options?: Parameters<typeof generateAgentCard>[1],
 ): string {
   const card = generateAgentCard(agent, options);
   return JSON.stringify(card, null, 2);
@@ -220,10 +218,7 @@ export function generateAgentCardJSON(
 /**
  * Save an agent card to the database for caching/serving
  */
-export async function saveAgentCard(
-  agentId: string,
-  card: AgentCard
-): Promise<void> {
+export async function saveAgentCard(agentId: string, card: AgentCard): Promise<void> {
   const { error } = await fromTable('agent_configs')
     .update({
       metadata: {
@@ -256,7 +251,7 @@ export async function getAgentCard(agentId: string): Promise<AgentCard | null> {
  */
 export async function generateAndSaveAgentCard(
   agentId: string,
-  options?: Parameters<typeof generateAgentCard>[1]
+  options?: Parameters<typeof generateAgentCard>[1],
 ): Promise<AgentCard> {
   const { data, error } = await fromTable('agent_configs')
     .select('*')
@@ -283,15 +278,14 @@ export async function listAgentCards(): Promise<AgentCard[]> {
 
   if (error) throw new Error(`Failed to list agents: ${error.message}`);
 
-  return (data ?? [])
-    .map((agent: any) => {
-      const metadata = agent.metadata as Record<string, unknown> | null;
-      const cached = metadata?.agent_card as AgentCard | undefined;
-      if (cached) return cached;
+  return (data ?? []).map((agent) => {
+    const metadata = agent.metadata as Record<string, unknown> | null;
+    const cached = metadata?.agent_card as AgentCard | undefined;
+    if (cached) return cached;
 
-      // Generate on-the-fly if not cached
-      return generateAgentCard(agent as unknown as AgentConfig);
-    });
+    // Generate on-the-fly if not cached
+    return generateAgentCard(agent as unknown as AgentConfig);
+  });
 }
 
 /**
@@ -301,15 +295,17 @@ export async function searchAgentCards(query: string): Promise<AgentCard[]> {
   const allCards = await listAgentCards();
   const q = query.toLowerCase();
 
-  return allCards.filter((card) =>
-    card.name.toLowerCase().includes(q) ||
-    card.description.toLowerCase().includes(q) ||
-    card.skills.some((s) =>
-      s.name.toLowerCase().includes(q) ||
-      s.description.toLowerCase().includes(q) ||
-      (s.tags ?? []).some((t) => t.toLowerCase().includes(q))
-    ) ||
-    (card.tags ?? []).some((t) => t.toLowerCase().includes(q))
+  return allCards.filter(
+    (card) =>
+      card.name.toLowerCase().includes(q) ||
+      card.description.toLowerCase().includes(q) ||
+      card.skills.some(
+        (s) =>
+          s.name.toLowerCase().includes(q) ||
+          s.description.toLowerCase().includes(q) ||
+          (s.tags ?? []).some((t) => t.toLowerCase().includes(q)),
+      ) ||
+      (card.tags ?? []).some((t) => t.toLowerCase().includes(q)),
   );
 }
 

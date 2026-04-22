@@ -6,7 +6,7 @@ export interface WorkflowNode {
   id: string;
   type: string;
   position: { x: number; y: number };
-  data: Record<string, any>;
+  data: Record<string, unknown>;
 }
 
 export interface WorkflowEdge {
@@ -32,9 +32,9 @@ export interface WorkflowRun {
   id: string;
   workflow_id: string;
   status: string;
-  input: any;
-  output: any;
-  trace: any[];
+  input: unknown;
+  output: unknown;
+  trace: unknown[];
   error_message: string | null;
   started_at: string;
   completed_at: string | null;
@@ -58,7 +58,13 @@ export function useAgentWorkflows(agentId?: string) {
   });
 
   const createWorkflow = useMutation({
-    mutationFn: async (input: { name: string; description?: string; workspace_id: string; nodes?: any[]; edges?: any[] }) => {
+    mutationFn: async (input: {
+      name: string;
+      description?: string;
+      workspace_id: string;
+      nodes?: WorkflowNode[];
+      edges?: WorkflowEdge[];
+    }) => {
       const { data: u } = await supabase.auth.getUser();
       if (!u.user) throw new Error('Não autenticado');
       const { data, error } = await supabase
@@ -81,11 +87,18 @@ export function useAgentWorkflows(agentId?: string) {
       qc.invalidateQueries({ queryKey: ['agent_workflows', agentId] });
       toast.success('Workflow criado');
     },
-    onError: (e: any) => toast.error(e.message),
+    onError: (e: Error) => toast.error(e.message),
   });
 
   const updateWorkflow = useMutation({
-    mutationFn: async (input: { id: string; nodes?: any[]; edges?: any[]; name?: string; description?: string; status?: string }) => {
+    mutationFn: async (input: {
+      id: string;
+      nodes?: WorkflowNode[];
+      edges?: WorkflowEdge[];
+      name?: string;
+      description?: string;
+      status?: string;
+    }) => {
       const { id, ...patch } = input;
       const { error } = await supabase.from('agent_workflows').update(patch).eq('id', id);
       if (error) throw error;
@@ -94,7 +107,7 @@ export function useAgentWorkflows(agentId?: string) {
       qc.invalidateQueries({ queryKey: ['agent_workflows', agentId] });
       toast.success('Workflow salvo');
     },
-    onError: (e: any) => toast.error(e.message),
+    onError: (e: Error) => toast.error(e.message),
   });
 
   const deleteWorkflow = useMutation({
@@ -106,7 +119,7 @@ export function useAgentWorkflows(agentId?: string) {
       qc.invalidateQueries({ queryKey: ['agent_workflows', agentId] });
       toast.success('Workflow removido');
     },
-    onError: (e: any) => toast.error(e.message),
+    onError: (e: Error) => toast.error(e.message),
   });
 
   return { workflows, createWorkflow, updateWorkflow, deleteWorkflow };
@@ -129,7 +142,7 @@ export function useWorkflowRuns(workflowId?: string) {
   });
 }
 
-export async function runWorkflow(workflowId: string, input: any) {
+export async function runWorkflow(workflowId: string, input: unknown) {
   const { data, error } = await supabase.functions.invoke('agent-workflow-runner', {
     body: { workflow_id: workflowId, input },
   });

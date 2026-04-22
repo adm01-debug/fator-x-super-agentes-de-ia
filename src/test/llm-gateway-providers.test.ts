@@ -9,15 +9,20 @@ import { describe, it, expect } from 'vitest';
 
 // Simula normalizeOpenAIResponse
 function normalizeOpenAIResponse(result: Record<string, unknown>) {
-  const choices = result.choices as Array<{ message?: { content?: string }; finish_reason?: string }> | undefined;
-  const usage = result.usage as { prompt_tokens?: number; completion_tokens?: number; total_tokens?: number } | undefined;
+  const choices = result.choices as
+    | Array<{ message?: { content?: string }; finish_reason?: string }>
+    | undefined;
+  const usage = result.usage as
+    | { prompt_tokens?: number; completion_tokens?: number; total_tokens?: number }
+    | undefined;
   const error = result.error as { message?: string } | undefined;
   return {
     content: choices?.[0]?.message?.content || error?.message || '',
     usage: {
       prompt_tokens: usage?.prompt_tokens || 0,
       completion_tokens: usage?.completion_tokens || 0,
-      total_tokens: usage?.total_tokens || (usage?.prompt_tokens || 0) + (usage?.completion_tokens || 0),
+      total_tokens:
+        usage?.total_tokens || (usage?.prompt_tokens || 0) + (usage?.completion_tokens || 0),
     },
     finish_reason: choices?.[0]?.finish_reason || 'stop',
   };
@@ -43,24 +48,36 @@ const HF_FREE_MODELS = [
 ];
 
 // Simula validateRequest
-function validateRequest(body: unknown): { valid: true; data: any } | { valid: false; error: string } {
-  if (!body || typeof body !== 'object') return { valid: false, error: 'Request body must be a JSON object' };
+function validateRequest(
+  body: unknown,
+): { valid: true; data: Record<string, unknown> } | { valid: false; error: string } {
+  if (!body || typeof body !== 'object')
+    return { valid: false, error: 'Request body must be a JSON object' };
   const b = body as Record<string, unknown>;
-  if (typeof b.model !== 'string' || b.model.length < 2 || b.model.length > 200) return { valid: false, error: 'model must be a string (2-200 chars)' };
-  if (!Array.isArray(b.messages) || b.messages.length === 0 || b.messages.length > 100) return { valid: false, error: 'messages must be a non-empty array (max 100)' };
+  if (typeof b.model !== 'string' || b.model.length < 2 || b.model.length > 200)
+    return { valid: false, error: 'model must be a string (2-200 chars)' };
+  if (!Array.isArray(b.messages) || b.messages.length === 0 || b.messages.length > 100)
+    return { valid: false, error: 'messages must be a non-empty array (max 100)' };
   for (const msg of b.messages) {
-    if (!msg || typeof msg !== 'object') return { valid: false, error: 'Each message must be an object' };
+    if (!msg || typeof msg !== 'object')
+      return { valid: false, error: 'Each message must be an object' };
     const m = msg as Record<string, unknown>;
-    if (typeof m.role !== 'string' || !['system', 'user', 'assistant'].includes(m.role)) return { valid: false, error: 'Invalid message.role' };
-    if (typeof m.content !== 'string' || m.content.length === 0) return { valid: false, error: 'Empty message.content' };
+    if (typeof m.role !== 'string' || !['system', 'user', 'assistant'].includes(m.role))
+      return { valid: false, error: 'Invalid message.role' };
+    if (typeof m.content !== 'string' || m.content.length === 0)
+      return { valid: false, error: 'Empty message.content' };
   }
   return {
     valid: true,
     data: {
       model: b.model as string,
       messages: b.messages,
-      temperature: typeof b.temperature === 'number' ? Math.max(0, Math.min(2, b.temperature)) : 0.7,
-      max_tokens: typeof b.max_tokens === 'number' ? Math.max(1, Math.min(32000, Math.floor(b.max_tokens))) : 4000,
+      temperature:
+        typeof b.temperature === 'number' ? Math.max(0, Math.min(2, b.temperature)) : 0.7,
+      max_tokens:
+        typeof b.max_tokens === 'number'
+          ? Math.max(1, Math.min(32000, Math.floor(b.max_tokens)))
+          : 4000,
       stream: b.stream === true,
     },
   };
@@ -69,8 +86,16 @@ function validateRequest(body: unknown): { valid: true; data: any } | { valid: f
 // Simula redactPII
 const PII_PATTERNS = [
   { name: 'cpf', regex: /\b\d{3}[.\s-]?\d{3}[.\s-]?\d{3}[.\s-]?\d{2}\b/g, repl: '[CPF]' },
-  { name: 'cnpj', regex: /\b\d{2}[.\s]?\d{3}[.\s]?\d{3}[\/\s]?\d{4}[.\s-]?\d{2}\b/g, repl: '[CNPJ]' },
-  { name: 'phone_br', regex: /\b(?:\+55\s?)?(?:\(?\d{2}\)?\s?)(?:9\s?\d{4}[-.\s]?\d{4}|\d{4}[-.\s]?\d{4})\b/g, repl: '[PHONE]' },
+  {
+    name: 'cnpj',
+    regex: /\b\d{2}[.\s]?\d{3}[.\s]?\d{3}[/\s]?\d{4}[.\s-]?\d{2}\b/g,
+    repl: '[CNPJ]',
+  },
+  {
+    name: 'phone_br',
+    regex: /\b(?:\+55\s?)?(?:\(?\d{2}\)?\s?)(?:9\s?\d{4}[-.\s]?\d{4}|\d{4}[-.\s]?\d{4})\b/g,
+    repl: '[PHONE]',
+  },
   { name: 'email', regex: /\b[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Z|a-z]{2,}\b/g, repl: '[EMAIL]' },
   { name: 'credit_card', regex: /\b(?:\d{4}[-\s]?){3}\d{4}\b/g, repl: '[CARD]' },
 ];
@@ -79,7 +104,10 @@ function redactPII(text: string): { redacted: string; detected: string[] } {
   let redacted = text;
   const detected: string[] = [];
   for (const p of PII_PATTERNS) {
-    if (p.regex.test(text)) { detected.push(p.name); redacted = redacted.replace(p.regex, p.repl); }
+    if (p.regex.test(text)) {
+      detected.push(p.name);
+      redacted = redacted.replace(p.regex, p.repl);
+    }
     p.regex.lastIndex = 0;
   }
   return { redacted, detected };
@@ -87,17 +115,45 @@ function redactPII(text: string): { redacted: string; detected: string[] } {
 
 // Simula detectInjection
 const INJECTION_PATTERNS = [
-  { name: 'ignore_previous', regex: /ignore\s+(all\s+)?(previous|above|prior)\s+(instructions?|prompts?|rules?)/i, sev: 'high' },
-  { name: 'new_instructions', regex: /(?:new|override)\s+(?:system\s+)?instructions?:?\s/i, sev: 'high' },
+  {
+    name: 'ignore_previous',
+    regex: /ignore\s+(all\s+)?(previous|above|prior)\s+(instructions?|prompts?|rules?)/i,
+    sev: 'high',
+  },
+  {
+    name: 'new_instructions',
+    regex: /(?:new|override)\s+(?:system\s+)?instructions?:?\s/i,
+    sev: 'high',
+  },
   { name: 'you_are_now', regex: /you\s+are\s+now\s+(?:a|an|the)\s/i, sev: 'high' },
-  { name: 'dan_jailbreak', regex: /(?:DAN|do\s+anything\s+now|jailbreak|developer\s+mode)/i, sev: 'high' },
-  { name: 'reveal_system', regex: /(?:reveal|show|output|repeat)\s+(?:your\s+)?(?:system\s+)?(?:prompt|instructions?)/i, sev: 'high' },
+  {
+    name: 'dan_jailbreak',
+    regex: /(?:DAN|do\s+anything\s+now|jailbreak|developer\s+mode)/i,
+    sev: 'high',
+  },
+  {
+    name: 'reveal_system',
+    regex: /(?:reveal|show|output|repeat)\s+(?:your\s+)?(?:system\s+)?(?:prompt|instructions?)/i,
+    sev: 'high',
+  },
   { name: 'system_role', regex: /\[?\s*system\s*\]?\s*:/i, sev: 'high' },
-  { name: 'end_of_prompt', regex: /(?:END\s+OF\s+(?:SYSTEM\s+)?PROMPT|<\|endoftext\|>)/i, sev: 'high' },
-  { name: 'pretend_evil', regex: /(?:pretend|act|behave)\s+(?:to\s+be|as\s+if|like)\s+.*(?:evil|malicious|unfiltered)/i, sev: 'high' },
+  {
+    name: 'end_of_prompt',
+    regex: /(?:END\s+OF\s+(?:SYSTEM\s+)?PROMPT|<\|endoftext\|>)/i,
+    sev: 'high',
+  },
+  {
+    name: 'pretend_evil',
+    regex: /(?:pretend|act|behave)\s+(?:to\s+be|as\s+if|like)\s+.*(?:evil|malicious|unfiltered)/i,
+    sev: 'high',
+  },
 ];
 
-function detectInjection(text: string): { detected: boolean; patterns: string[]; riskLevel: string } {
+function detectInjection(text: string): {
+  detected: boolean;
+  patterns: string[];
+  riskLevel: string;
+} {
   const patterns: string[] = [];
   for (const p of INJECTION_PATTERNS) {
     if (p.regex.test(text)) patterns.push(p.name);
@@ -150,7 +206,9 @@ describe('normalizeOpenAIResponse', () => {
   });
 
   it('finish_reason length_limit', () => {
-    const r = normalizeOpenAIResponse({ choices: [{ message: { content: 'x' }, finish_reason: 'length' }] });
+    const r = normalizeOpenAIResponse({
+      choices: [{ message: { content: 'x' }, finish_reason: 'length' }],
+    });
     expect(r.finish_reason).toBe('length');
   });
 });
@@ -236,7 +294,9 @@ describe('validateRequest', () => {
   });
 
   it('rejeita model muito longo (>200)', () => {
-    expect(validateRequest({ model: 'x'.repeat(201), messages: validBody.messages }).valid).toBe(false);
+    expect(validateRequest({ model: 'x'.repeat(201), messages: validBody.messages }).valid).toBe(
+      false,
+    );
   });
 
   it('rejeita messages vazio', () => {
@@ -253,11 +313,15 @@ describe('validateRequest', () => {
   });
 
   it('rejeita role inválido (tool)', () => {
-    expect(validateRequest({ model: 'gpt-4o', messages: [{ role: 'tool', content: 'x' }] }).valid).toBe(false);
+    expect(
+      validateRequest({ model: 'gpt-4o', messages: [{ role: 'tool', content: 'x' }] }).valid,
+    ).toBe(false);
   });
 
   it('rejeita content vazio', () => {
-    expect(validateRequest({ model: 'gpt-4o', messages: [{ role: 'user', content: '' }] }).valid).toBe(false);
+    expect(
+      validateRequest({ model: 'gpt-4o', messages: [{ role: 'user', content: '' }] }).valid,
+    ).toBe(false);
   });
 
   it('clamp temperature 0-2', () => {
@@ -450,7 +514,8 @@ describe('detectInjection', () => {
   });
 
   it('texto longo sem injection', () => {
-    const text = 'Preciso de um relatório detalhado sobre vendas do Q1 2026, incluindo análise de margem, faturamento por produto, e projeções para Q2. Gostaria também de incluir gráficos comparativos com o mesmo período do ano anterior.';
+    const text =
+      'Preciso de um relatório detalhado sobre vendas do Q1 2026, incluindo análise de margem, faturamento por produto, e projeções para Q2. Gostaria também de incluir gráficos comparativos com o mesmo período do ano anterior.';
     expect(detectInjection(text).detected).toBe(false);
   });
 });
@@ -462,7 +527,7 @@ describe('Rate Limiting Logic', () => {
     const WINDOW = 60000;
     const checkLimit = (userId: string) => {
       const now = Date.now();
-      const ts = (map.get(userId) || []).filter(t => now - t < WINDOW);
+      const ts = (map.get(userId) || []).filter((t) => now - t < WINDOW);
       if (ts.length >= MAX) return false;
       ts.push(now);
       map.set(userId, ts);
@@ -477,7 +542,7 @@ describe('Rate Limiting Logic', () => {
 describe('HF Fallback Logic — Simulação', () => {
   it('fallback pool exclui modelo original', () => {
     const requested = 'Qwen/Qwen3-30B-A3B';
-    const fallbacks = HF_FREE_MODELS.filter(m => m !== requested);
+    const fallbacks = HF_FREE_MODELS.filter((m) => m !== requested);
     expect(fallbacks).toHaveLength(4);
     expect(fallbacks).not.toContain(requested);
   });
@@ -532,7 +597,8 @@ describe('HF Fallback Logic — Simulação', () => {
   it('"currently loading" no body JSON é retryable', () => {
     const errorMessages = ['Model is currently loading', 'currently loading', 'queue'];
     for (const msg of errorMessages) {
-      const isRetryable = msg.includes('currently loading') || msg.includes('is currently') || msg.includes('queue');
+      const isRetryable =
+        msg.includes('currently loading') || msg.includes('is currently') || msg.includes('queue');
       expect(isRetryable).toBe(true);
     }
   });
@@ -541,7 +607,8 @@ describe('HF Fallback Logic — Simulação', () => {
 describe('Streaming SSE — Lógica', () => {
   it('URL correta para HuggingFace streaming', () => {
     const provider = 'huggingface';
-    const url = provider === 'huggingface' ? 'https://router.huggingface.co/v1/chat/completions' : '';
+    const url =
+      provider === 'huggingface' ? 'https://router.huggingface.co/v1/chat/completions' : '';
     expect(url).toBe('https://router.huggingface.co/v1/chat/completions');
   });
 
@@ -553,7 +620,10 @@ describe('Streaming SSE — Lógica', () => {
 
   it('URL correta para Google streaming', () => {
     const provider = 'google';
-    const url = provider === 'google' ? 'https://generativelanguage.googleapis.com/v1beta/openai/chat/completions' : '';
+    const url =
+      provider === 'google'
+        ? 'https://generativelanguage.googleapis.com/v1beta/openai/chat/completions'
+        : '';
     expect(url).toBe('https://generativelanguage.googleapis.com/v1beta/openai/chat/completions');
   });
 
@@ -582,14 +652,21 @@ describe('Streaming SSE — Lógica', () => {
   });
 
   it('SSE headers corretos', () => {
-    const headers = { 'Content-Type': 'text/event-stream', 'Cache-Control': 'no-cache', 'Connection': 'keep-alive' };
+    const headers = {
+      'Content-Type': 'text/event-stream',
+      'Cache-Control': 'no-cache',
+      Connection: 'keep-alive',
+    };
     expect(headers['Content-Type']).toBe('text/event-stream');
     expect(headers['Cache-Control']).toBe('no-cache');
   });
 
   it('HF streaming inclui X-Title header', () => {
     const provider = 'huggingface';
-    const headers: Record<string, string> = { 'Content-Type': 'application/json', 'Authorization': 'Bearer test' };
+    const headers: Record<string, string> = {
+      'Content-Type': 'application/json',
+      Authorization: 'Bearer test',
+    };
     if (provider === 'huggingface') headers['X-Title'] = 'Fator X';
     expect(headers['X-Title']).toBe('Fator X');
   });
@@ -597,15 +674,17 @@ describe('Streaming SSE — Lógica', () => {
   it('Anthropic streaming usa x-api-key, não Authorization', () => {
     const provider = 'anthropic';
     const headers: Record<string, string> = { 'Content-Type': 'application/json' };
-    if (provider === 'anthropic') { headers['x-api-key'] = 'sk-test'; headers['anthropic-version'] = '2023-06-01'; }
-    else headers['Authorization'] = 'Bearer test';
+    if (provider === 'anthropic') {
+      headers['x-api-key'] = 'sk-test';
+      headers['anthropic-version'] = '2023-06-01';
+    } else headers['Authorization'] = 'Bearer test';
     expect(headers['x-api-key']).toBe('sk-test');
     expect(headers['Authorization']).toBeUndefined();
   });
 
   it('SSE parser ignora linhas sem data:', () => {
     const lines = ['', ': comment', 'event: update', 'data: {"token":"x"}', 'data: [DONE]'];
-    const dataLines = lines.filter(l => l.startsWith('data: '));
+    const dataLines = lines.filter((l) => l.startsWith('data: '));
     expect(dataLines).toHaveLength(2);
   });
 
@@ -620,7 +699,7 @@ describe('Streaming SSE — Lógica', () => {
     buffer += chunk2;
     lines = buffer.split('\n');
     buffer = lines.pop() || '';
-    const dataLines = lines.filter(l => l.startsWith('data: '));
+    const dataLines = lines.filter((l) => l.startsWith('data: '));
     expect(dataLines).toHaveLength(2);
   });
 });
@@ -663,7 +742,7 @@ describe('Cenários Cruzados — Edge Cases', () => {
   });
 
   it('provider chain vazio gera erro 400', () => {
-    const chain: any[] = [];
+    const chain: unknown[] = [];
     expect(chain.length).toBe(0);
   });
 
@@ -684,7 +763,7 @@ describe('Cenários Cruzados — Edge Cases', () => {
   });
 
   it('cost calculation com tokens grandes', () => {
-    const cost = (100000 / 1000 * 0.003) + (50000 / 1000 * 0.006);
+    const cost = (100000 / 1000) * 0.003 + (50000 / 1000) * 0.006;
     expect(cost).toBeGreaterThan(0);
   });
 });
@@ -793,7 +872,9 @@ describe('Think block filtering', () => {
 
 // ═══ Streaming Custom Gateway Format ═══
 describe('Gateway SSE format parsing', () => {
-  function parseGatewaySSE(line: string): { token?: string; done?: boolean; error?: string; model?: string; provider?: string } | null {
+  function parseGatewaySSE(
+    line: string,
+  ): { token?: string; done?: boolean; error?: string; model?: string; provider?: string } | null {
     if (!line.startsWith('data: ')) return null;
     const raw = line.slice(6).trim();
     if (raw === '[DONE]') return { done: true };
@@ -811,7 +892,9 @@ describe('Gateway SSE format parsing', () => {
   });
 
   it('parse done event', () => {
-    const r = parseGatewaySSE('data: {"done":true,"tokens":{"prompt":10,"completion":5},"cost_usd":0.001}');
+    const r = parseGatewaySSE(
+      'data: {"done":true,"tokens":{"prompt":10,"completion":5},"cost_usd":0.001}',
+    );
     expect(r?.done).toBe(true);
   });
 
@@ -873,12 +956,30 @@ describe('Retry logic', () => {
 // ═══ Provider Module Architecture ═══
 describe('Provider module architecture', () => {
   it('cada provider tem interface LLMCallParams → LLMResult', () => {
-    interface LLMCallParams { model: string; messages: Array<{ role: string; content: string }>; temperature: number; max_tokens: number; }
-    interface LLMResult { content: string; usage: { prompt_tokens: number; completion_tokens: number; total_tokens: number }; finish_reason: string; }
-    
-    const mockParams: LLMCallParams = { model: 'test', messages: [{ role: 'user', content: 'hi' }], temperature: 0.7, max_tokens: 100 };
-    const mockResult: LLMResult = { content: 'ok', usage: { prompt_tokens: 1, completion_tokens: 1, total_tokens: 2 }, finish_reason: 'stop' };
-    
+    interface LLMCallParams {
+      model: string;
+      messages: Array<{ role: string; content: string }>;
+      temperature: number;
+      max_tokens: number;
+    }
+    interface LLMResult {
+      content: string;
+      usage: { prompt_tokens: number; completion_tokens: number; total_tokens: number };
+      finish_reason: string;
+    }
+
+    const mockParams: LLMCallParams = {
+      model: 'test',
+      messages: [{ role: 'user', content: 'hi' }],
+      temperature: 0.7,
+      max_tokens: 100,
+    };
+    const mockResult: LLMResult = {
+      content: 'ok',
+      usage: { prompt_tokens: 1, completion_tokens: 1, total_tokens: 2 },
+      finish_reason: 'stop',
+    };
+
     expect(mockParams.model).toBe('test');
     expect(mockResult.finish_reason).toBe('stop');
   });
@@ -894,8 +995,8 @@ describe('Provider module architecture', () => {
       { role: 'system', content: 'You are helpful' },
       { role: 'user', content: 'Hi' },
     ];
-    const systemMsg = msgs.find(m => m.role === 'system');
-    const nonSystem = msgs.filter(m => m.role !== 'system');
+    const systemMsg = msgs.find((m) => m.role === 'system');
+    const nonSystem = msgs.filter((m) => m.role !== 'system');
     expect(systemMsg?.content).toBe('You are helpful');
     expect(nonSystem).toHaveLength(1);
   });

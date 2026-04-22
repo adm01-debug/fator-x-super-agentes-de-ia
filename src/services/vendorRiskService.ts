@@ -1,10 +1,18 @@
-import { supabase } from "@/integrations/supabase/client";
+import { fromTable } from '@/lib/supabaseExtended';
+import { supabase } from '@/integrations/supabase/client';
 
-export type VendorType = "saas" | "processor" | "api" | "infra" | "consulting" | "other";
-export type Criticality = "critical" | "high" | "medium" | "low";
-export type DataClassification = "pii" | "phi" | "financial" | "confidential" | "public";
-export type VendorStatus = "active" | "under_review" | "suspended" | "offboarded";
-export type DocType = "dpa" | "soc2" | "iso27001" | "pentest_report" | "questionnaire" | "contract" | "other";
+export type VendorType = 'saas' | 'processor' | 'api' | 'infra' | 'consulting' | 'other';
+export type Criticality = 'critical' | 'high' | 'medium' | 'low';
+export type DataClassification = 'pii' | 'phi' | 'financial' | 'confidential' | 'public';
+export type VendorStatus = 'active' | 'under_review' | 'suspended' | 'offboarded';
+export type DocType =
+  | 'dpa'
+  | 'soc2'
+  | 'iso27001'
+  | 'pentest_report'
+  | 'questionnaire'
+  | 'contract'
+  | 'other';
 
 export interface Vendor {
   id: string;
@@ -70,38 +78,35 @@ export interface VendorSummary {
 }
 
 export async function listVendors(workspaceId: string): Promise<Vendor[]> {
-  const { data, error } = await (supabase as any)
-    .from("vendors")
-    .select("*")
-    .eq("workspace_id", workspaceId)
-    .order("criticality", { ascending: true })
-    .order("name", { ascending: true });
+  const { data, error } = await fromTable('vendors')
+    .select('*')
+    .eq('workspace_id', workspaceId)
+    .order('criticality', { ascending: true })
+    .order('name', { ascending: true });
   if (error) throw error;
   return (data || []) as Vendor[];
 }
 
 export async function getVendor(id: string): Promise<Vendor | null> {
-  const { data, error } = await (supabase as any).from("vendors").select("*").eq("id", id).maybeSingle();
+  const { data, error } = await fromTable('vendors').select('*').eq('id', id).maybeSingle();
   if (error) throw error;
   return data as Vendor | null;
 }
 
 export async function listAssessments(vendorId: string): Promise<VendorAssessment[]> {
-  const { data, error } = await (supabase as any)
-    .from("vendor_assessments")
-    .select("*")
-    .eq("vendor_id", vendorId)
-    .order("assessed_at", { ascending: false });
+  const { data, error } = await fromTable('vendor_assessments')
+    .select('*')
+    .eq('vendor_id', vendorId)
+    .order('assessed_at', { ascending: false });
   if (error) throw error;
   return (data || []) as VendorAssessment[];
 }
 
 export async function listDocuments(vendorId: string): Promise<VendorDocument[]> {
-  const { data, error } = await (supabase as any)
-    .from("vendor_documents")
-    .select("*")
-    .eq("vendor_id", vendorId)
-    .order("uploaded_at", { ascending: false });
+  const { data, error } = await fromTable('vendor_documents')
+    .select('*')
+    .eq('vendor_id', vendorId)
+    .order('uploaded_at', { ascending: false });
   if (error) throw error;
   return (data || []) as VendorDocument[];
 }
@@ -123,7 +128,7 @@ export interface RegisterVendorInput {
 }
 
 export async function registerVendor(i: RegisterVendorInput): Promise<string> {
-  const { data, error } = await (supabase as any).rpc("register_vendor", {
+  const { data, error } = await supabaseExt.rpc('register_vendor', {
     p_workspace_id: i.workspaceId,
     p_name: i.name,
     p_vendor_type: i.vendorType,
@@ -150,7 +155,7 @@ export async function assessVendor(input: {
   findings?: string[];
   recommendations?: string;
 }): Promise<string> {
-  const { data, error } = await (supabase as any).rpc("assess_vendor", {
+  const { data, error } = await supabaseExt.rpc('assess_vendor', {
     p_vendor_id: input.vendorId,
     p_security_score: input.securityScore,
     p_compliance_score: input.complianceScore,
@@ -163,7 +168,7 @@ export async function assessVendor(input: {
 }
 
 export async function offboardVendor(vendorId: string, notes?: string): Promise<void> {
-  const { error } = await (supabase as any).rpc("offboard_vendor", {
+  const { error } = await supabaseExt.rpc('offboard_vendor', {
     p_vendor_id: vendorId,
     p_notes: notes ?? null,
   });
@@ -180,10 +185,9 @@ export async function uploadVendorDocument(input: {
 }): Promise<VendorDocument> {
   const { data: u } = await supabase.auth.getUser();
   const userId = u.user?.id;
-  if (!userId) throw new Error("not authenticated");
+  if (!userId) throw new Error('not authenticated');
 
-  const { data, error } = await (supabase as any)
-    .from("vendor_documents")
+  const { data, error } = await fromTable('vendor_documents')
     .insert({
       vendor_id: input.vendorId,
       doc_type: input.docType,
@@ -193,14 +197,16 @@ export async function uploadVendorDocument(input: {
       notes: input.notes ?? null,
       uploaded_by: userId,
     })
-    .select("*")
+    .select('*')
     .single();
   if (error) throw error;
   return data as VendorDocument;
 }
 
 export async function getVendorSummary(workspaceId: string): Promise<VendorSummary> {
-  const { data, error } = await (supabase as any).rpc("get_vendor_summary", { p_workspace_id: workspaceId });
+  const { data, error } = await supabaseExt.rpc('get_vendor_summary', {
+    p_workspace_id: workspaceId,
+  });
   if (error) throw error;
   return data as VendorSummary;
 }
@@ -223,23 +229,33 @@ export function isCertExpired(date: string | null | undefined): boolean {
 }
 
 export function isReviewOverdue(v: Vendor): boolean {
-  return v.status !== "offboarded" && !!v.next_review_due && new Date(v.next_review_due) < new Date();
+  return (
+    v.status !== 'offboarded' && !!v.next_review_due && new Date(v.next_review_due) < new Date()
+  );
 }
 
 export function criticalityColor(c: Criticality): string {
   switch (c) {
-    case "critical": return "bg-destructive/15 text-destructive border-destructive/30";
-    case "high": return "bg-nexus-amber/15 text-nexus-amber border-nexus-amber/30";
-    case "medium": return "bg-primary/12 text-primary border-primary/30";
-    default: return "bg-secondary text-muted-foreground border-border/40";
+    case 'critical':
+      return 'bg-destructive/15 text-destructive border-destructive/30';
+    case 'high':
+      return 'bg-nexus-amber/15 text-nexus-amber border-nexus-amber/30';
+    case 'medium':
+      return 'bg-primary/12 text-primary border-primary/30';
+    default:
+      return 'bg-secondary text-muted-foreground border-border/40';
   }
 }
 
 export function statusColor(s: VendorStatus): string {
   switch (s) {
-    case "active": return "bg-emerald-500/15 text-emerald-500 border-emerald-500/30";
-    case "under_review": return "bg-primary/12 text-primary border-primary/30";
-    case "suspended": return "bg-nexus-amber/15 text-nexus-amber border-nexus-amber/30";
-    case "offboarded": return "bg-secondary text-muted-foreground border-border/40";
+    case 'active':
+      return 'bg-emerald-500/15 text-emerald-500 border-emerald-500/30';
+    case 'under_review':
+      return 'bg-primary/12 text-primary border-primary/30';
+    case 'suspended':
+      return 'bg-nexus-amber/15 text-nexus-amber border-nexus-amber/30';
+    case 'offboarded':
+      return 'bg-secondary text-muted-foreground border-border/40';
   }
 }

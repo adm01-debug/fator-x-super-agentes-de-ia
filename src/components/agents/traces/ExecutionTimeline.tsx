@@ -1,7 +1,15 @@
 import { forwardRef, useEffect, useRef, useState } from 'react';
 import {
-  ChevronDown, ChevronRight, Info, AlertTriangle, XCircle,
-  CheckCircle2, Clock, DollarSign, Hash, Zap,
+  ChevronDown,
+  ChevronRight,
+  Info,
+  AlertTriangle,
+  XCircle,
+  CheckCircle2,
+  Clock,
+  DollarSign,
+  Hash,
+  Zap,
 } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { cn } from '@/lib/utils';
@@ -42,10 +50,19 @@ export function ExecutionTimeline({ execution, selectedStep, onSelectStep }: Pro
   }, [execution.session_id, selectedStep]);
 
   const onKeyDown = (e: React.KeyboardEvent) => {
-    if (e.key === 'ArrowDown' || e.key === 'j') { e.preventDefault(); setStep(step + 1); }
-    else if (e.key === 'ArrowUp' || e.key === 'k') { e.preventDefault(); setStep(step - 1); }
-    else if (e.key === 'Home') { e.preventDefault(); setStep(0); }
-    else if (e.key === 'End') { e.preventDefault(); setStep(total - 1); }
+    if (e.key === 'ArrowDown' || e.key === 'j') {
+      e.preventDefault();
+      setStep(step + 1);
+    } else if (e.key === 'ArrowUp' || e.key === 'k') {
+      e.preventDefault();
+      setStep(step - 1);
+    } else if (e.key === 'Home') {
+      e.preventDefault();
+      setStep(0);
+    } else if (e.key === 'End') {
+      e.preventDefault();
+      setStep(total - 1);
+    }
   };
 
   const itemsRef = useRef<Array<HTMLLIElement | null>>([]);
@@ -54,8 +71,11 @@ export function ExecutionTimeline({ execution, selectedStep, onSelectStep }: Pro
   }, [step]);
 
   return (
+    // Região navegável por teclado — keydown é intencional para atalhos (↑↓).
+    // eslint-disable-next-line jsx-a11y/no-noninteractive-element-interactions
     <div
-      tabIndex={0}
+      role="region"
+      tabIndex={-1}
       onKeyDown={onKeyDown}
       className="outline-none focus-visible:ring-2 focus-visible:ring-primary/30 rounded-md"
       aria-label="Linha do tempo navegável"
@@ -65,13 +85,18 @@ export function ExecutionTimeline({ execution, selectedStep, onSelectStep }: Pro
       <ol
         className="space-y-1.5 mt-3"
         role="listbox"
+        tabIndex={0}
         aria-label="Eventos da execução"
-        aria-activedescendant={execution.traces[step] ? `trace-${execution.traces[step].id}` : undefined}
+        aria-activedescendant={
+          execution.traces[step] ? `trace-${execution.traces[step].id}` : undefined
+        }
       >
         {execution.traces.map((t, i) => (
           <TraceItem
             key={t.id}
-            ref={(el) => { itemsRef.current[i] = el; }}
+            ref={(el) => {
+              itemsRef.current[i] = el;
+            }}
             trace={t}
             index={i}
             active={i === step}
@@ -107,12 +132,27 @@ function ExecutionSummary({ execution, step }: { execution: ExecutionGroup; step
       </div>
 
       <div className="flex items-center gap-3 flex-wrap text-[11px] text-muted-foreground">
-        <SummaryStat icon={CheckCircle2} value={counts.info} className="text-nexus-emerald" label="info" />
+        <SummaryStat
+          icon={CheckCircle2}
+          value={counts.info}
+          className="text-nexus-emerald"
+          label="info"
+        />
         {counts.warning > 0 && (
-          <SummaryStat icon={AlertTriangle} value={counts.warning} className="text-nexus-amber" label="warning" />
+          <SummaryStat
+            icon={AlertTriangle}
+            value={counts.warning}
+            className="text-nexus-amber"
+            label="warning"
+          />
         )}
         {counts.error > 0 && (
-          <SummaryStat icon={XCircle} value={counts.error} className="text-destructive" label="error" />
+          <SummaryStat
+            icon={XCircle}
+            value={counts.error}
+            className="text-destructive"
+            label="error"
+          />
         )}
         <span className="h-3 w-px bg-border/60" aria-hidden />
         <SummaryStat icon={Clock} value={`${total_ms}ms`} label="tempo total" />
@@ -127,7 +167,9 @@ function ExecutionSummary({ execution, step }: { execution: ExecutionGroup; step
       {current && (
         <div className="text-[10px] text-muted-foreground truncate">
           <span className="font-medium text-foreground">↳</span> {current.event}
-          <span className="font-mono ml-2">{new Date(current.created_at).toLocaleTimeString('pt-BR')}</span>
+          <span className="font-mono ml-2">
+            {new Date(current.created_at).toLocaleTimeString('pt-BR')}
+          </span>
         </div>
       )}
     </div>
@@ -135,7 +177,10 @@ function ExecutionSummary({ execution, step }: { execution: ExecutionGroup; step
 }
 
 function SummaryStat({
-  icon: Icon, value, label, className,
+  icon: Icon,
+  value,
+  label,
+  className,
 }: {
   icon: React.ComponentType<{ className?: string }>;
   value: string | number;
@@ -172,7 +217,10 @@ const TraceItem = forwardRef<HTMLLIElement, TraceItemProps>(
 
     const handleClick = () => {
       if (active) setOpen((o) => !o);
-      else { onSelect(); setOpen(true); }
+      else {
+        onSelect();
+        setOpen(true);
+      }
     };
 
     return (
@@ -189,42 +237,77 @@ const TraceItem = forwardRef<HTMLLIElement, TraceItemProps>(
             : 'bg-card/40 hover:bg-muted/40',
         )}
         onClick={handleClick}
+        onKeyDown={(e) => {
+          if (e.key === 'Enter' || e.key === ' ') {
+            e.preventDefault();
+            (e.currentTarget as HTMLElement).click();
+          }
+        }}
       >
         <button
           type="button"
-          onClick={(e) => { e.stopPropagation(); handleClick(); }}
+          onClick={(e) => {
+            e.stopPropagation();
+            handleClick();
+          }}
           className="w-full text-left flex items-center gap-2 text-xs hover:text-foreground"
           aria-expanded={open}
         >
-          {open
-            ? <ChevronDown className="h-3 w-3 text-muted-foreground" />
-            : <ChevronRight className="h-3 w-3 text-muted-foreground" />}
-          <span className={cn(
-            'font-mono text-[10px] tabular-nums w-8',
-            active ? 'text-primary font-semibold' : 'text-muted-foreground',
-          )}>
+          {open ? (
+            <ChevronDown className="h-3 w-3 text-muted-foreground" />
+          ) : (
+            <ChevronRight className="h-3 w-3 text-muted-foreground" />
+          )}
+          <span
+            className={cn(
+              'font-mono text-[10px] tabular-nums w-8',
+              active ? 'text-primary font-semibold' : 'text-muted-foreground',
+            )}
+          >
             #{index + 1}
           </span>
           <span className="font-mono text-[10px] text-muted-foreground tabular-nums">{ts}</span>
           {LEVEL_ICON[trace.level]}
-          <span className={cn('font-medium truncate', active ? 'text-foreground' : 'text-foreground/90')}>
+          <span
+            className={cn(
+              'font-medium truncate',
+              active ? 'text-foreground' : 'text-foreground/90',
+            )}
+          >
             {trace.event}
           </span>
           <span className="ml-auto flex items-center gap-2 text-[10px] text-muted-foreground shrink-0">
             {trace.latency_ms != null && <span className="tabular-nums">{trace.latency_ms}ms</span>}
-            {trace.tokens_used != null && trace.tokens_used > 0 && <span className="tabular-nums">{trace.tokens_used} tk</span>}
-            {trace.cost_usd != null && Number(trace.cost_usd) > 0 && <span className="tabular-nums">${Number(trace.cost_usd).toFixed(5)}</span>}
+            {trace.tokens_used != null && trace.tokens_used > 0 && (
+              <span className="tabular-nums">{trace.tokens_used} tk</span>
+            )}
+            {trace.cost_usd != null && Number(trace.cost_usd) > 0 && (
+              <span className="tabular-nums">${Number(trace.cost_usd).toFixed(5)}</span>
+            )}
           </span>
         </button>
 
         {open && (
-          <div className="mt-2 ml-6 space-y-2" onClick={(e) => e.stopPropagation()}>
+          <div
+            className="mt-2 ml-6 space-y-2"
+            onClick={(e) => e.stopPropagation()}
+            role="button"
+            tabIndex={0}
+            onKeyDown={(e) => {
+              if (e.key === 'Enter' || e.key === ' ') {
+                e.preventDefault();
+                (e.currentTarget as HTMLElement).click();
+              }
+            }}
+          >
             <JsonBlock label="Input" data={trace.input} />
             <JsonBlock label="Output" data={trace.output} />
             {trace.metadata && Object.keys(trace.metadata).length > 0 && (
               <JsonBlock label="Metadata" data={trace.metadata} />
             )}
-            <Badge variant="outline" className="text-[9px] font-mono">{trace.id.slice(0, 8)}</Badge>
+            <Badge variant="outline" className="text-[9px] font-mono">
+              {trace.id.slice(0, 8)}
+            </Badge>
           </div>
         )}
       </li>

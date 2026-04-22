@@ -1,46 +1,64 @@
-import { CardGridSkeleton } from "@/components/shared/PageSkeleton";
-import { PageHeader } from "@/components/shared/PageHeader";
-import { StatusBadge } from "@/components/shared/StatusBadge";
-import { InfoHint } from "@/components/shared/InfoHint";
-import { QuickActionsBar } from "@/components/shared/QuickActionsBar";
-import { Input } from "@/components/ui/input";
-import { Button } from "@/components/ui/button";
-import { Search, BookOpen, ArrowRight, Database, Pencil, Trash2, Bot, FileText } from "lucide-react";
-import { useState } from "react";
-import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { listKnowledgeBases, deleteKnowledgeBase, listVectorIndexes, getChunkEmbeddingStats } from "@/services/knowledgeService";
-import { CreateKnowledgeBaseDialog } from "@/components/dialogs/CreateKnowledgeBaseDialog";
-import { EditKnowledgeBaseDialog } from "@/components/dialogs/EditKnowledgeBaseDialog";
-import { KnowledgeBaseDetail } from "@/components/knowledge/KnowledgeBaseDetail";
-import { AudioUploadDialog } from "@/components/knowledge/AudioUploadDialog";
-import { DocOcrDialog } from "@/components/knowledge/DocOcrDialog";
-import { RagRerankTestDialog } from "@/components/knowledge/RagRerankTestDialog";
-import { AccessControl, DangerousActionDialog } from "@/components/rbac";
-import { toast } from "sonner";
+import { CardGridSkeleton } from '@/components/shared/PageSkeleton';
+import { PageHeader } from '@/components/shared/PageHeader';
+import { StatusBadge } from '@/components/shared/StatusBadge';
+import { InfoHint } from '@/components/shared/InfoHint';
+import { QuickActionsBar } from '@/components/shared/QuickActionsBar';
+import { Input } from '@/components/ui/input';
+import { Button } from '@/components/ui/button';
+import {
+  Search,
+  BookOpen,
+  ArrowRight,
+  Database,
+  Pencil,
+  Trash2,
+  Bot,
+  FileText,
+} from 'lucide-react';
+import { useState } from 'react';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
+import {
+  listKnowledgeBases,
+  deleteKnowledgeBase,
+  listVectorIndexes,
+  getChunkEmbeddingStats,
+} from '@/services/knowledgeService';
+import { CreateKnowledgeBaseDialog } from '@/components/dialogs/CreateKnowledgeBaseDialog';
+import { EditKnowledgeBaseDialog } from '@/components/dialogs/EditKnowledgeBaseDialog';
+import { KnowledgeBaseDetail } from '@/components/knowledge/KnowledgeBaseDetail';
+import { AudioUploadDialog } from '@/components/knowledge/AudioUploadDialog';
+import { DocOcrDialog } from '@/components/knowledge/DocOcrDialog';
+import { RagRerankTestDialog } from '@/components/knowledge/RagRerankTestDialog';
+import { AccessControl, DangerousActionDialog } from '@/components/rbac';
+import { toast } from 'sonner';
 // Context Tiers: available via contextTiersService (tieredSearch)
 
 const pipeline = ['Parsing', 'Chunking', 'Metadata', 'Embeddings', 'Indexing'];
 
 export default function KnowledgePage() {
-  const [search, setSearch] = useState("");
+  const [search, setSearch] = useState('');
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const [editKb, setEditKb] = useState<any>(null);
   const [selectedKb, setSelectedKb] = useState<{ id: string; name: string } | null>(null);
   const queryClient = useQueryClient();
 
-  const { data: knowledgeBases = [], isLoading, refetch } = useQuery({
+  const {
+    data: knowledgeBases = [],
+    isLoading,
+    refetch,
+  } = useQuery({
     queryKey: ['knowledge_bases'],
     queryFn: listKnowledgeBases,
   });
 
-  const filtered = knowledgeBases.filter((kb: any) =>
-    kb.name.toLowerCase().includes(search.toLowerCase())
+  const filtered = knowledgeBases.filter((kb) =>
+    kb.name.toLowerCase().includes(search.toLowerCase()),
   );
 
   const handleDelete = async (id: string) => {
     try {
       await deleteKnowledgeBase(id);
-      toast.success("Base removida com sucesso");
+      toast.success('Base removida com sucesso');
       refetch();
       queryClient.invalidateQueries({ queryKey: ['admin', 'knowledge_bases'] });
     } catch (err) {
@@ -51,7 +69,11 @@ export default function KnowledgePage() {
   if (selectedKb) {
     return (
       <div className="p-6 sm:p-8 lg:p-10 space-y-6 max-w-[1400px] mx-auto animate-page-enter">
-        <KnowledgeBaseDetail kbId={selectedKb.id} kbName={selectedKb.name} onBack={() => setSelectedKb(null)} />
+        <KnowledgeBaseDetail
+          kbId={selectedKb.id}
+          kbName={selectedKb.name}
+          onBack={() => setSelectedKb(null)}
+        />
       </div>
     );
   }
@@ -71,25 +93,35 @@ export default function KnowledgePage() {
         }
       />
 
-      <QuickActionsBar actions={[
-        { label: 'Agentes', icon: Bot, path: '/agents' },
-        { label: 'Prompts', icon: FileText, path: '/prompts' },
-      ]} />
+      <QuickActionsBar
+        actions={[
+          { label: 'Agentes', icon: Bot, path: '/agents' },
+          { label: 'Prompts', icon: FileText, path: '/prompts' },
+        ]}
+      />
 
       <InfoHint title="O que é RAG?">
-        Retrieval-Augmented Generation combina busca em documentos com geração de linguagem. O agente recupera trechos relevantes da base de conhecimento antes de responder, melhorando a factualidade e permitindo citações.
+        Retrieval-Augmented Generation combina busca em documentos com geração de linguagem. O
+        agente recupera trechos relevantes da base de conhecimento antes de responder, melhorando a
+        factualidade e permitindo citações.
       </InfoHint>
 
       <div className="nexus-card">
-        <h3 className="text-sm font-heading font-semibold text-foreground mb-4">Pipeline de ingestão</h3>
+        <h3 className="text-sm font-heading font-semibold text-foreground mb-4">
+          Pipeline de ingestão
+        </h3>
         <div className="flex items-center gap-2 overflow-x-auto pb-2">
           {pipeline.map((step, i) => (
             <div key={step} className="flex items-center gap-2">
               <div className="flex flex-col items-center">
-                <div className="h-10 w-10 rounded-lg bg-primary/10 flex items-center justify-center text-xs font-semibold text-primary">{i + 1}</div>
+                <div className="h-10 w-10 rounded-lg bg-primary/10 flex items-center justify-center text-xs font-semibold text-primary">
+                  {i + 1}
+                </div>
                 <p className="text-[11px] text-foreground mt-1.5 font-medium">{step}</p>
               </div>
-              {i < pipeline.length - 1 && <ArrowRight className="h-4 w-4 text-muted-foreground shrink-0" />}
+              {i < pipeline.length - 1 && (
+                <ArrowRight className="h-4 w-4 text-muted-foreground shrink-0" />
+              )}
             </div>
           ))}
         </div>
@@ -98,7 +130,12 @@ export default function KnowledgePage() {
       <div className="flex items-center gap-3">
         <div className="relative flex-1 max-w-sm">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-          <Input placeholder="Buscar bases..." value={search} onChange={(e) => setSearch(e.target.value)} className="pl-9 bg-secondary/50 border-border/50" />
+          <Input
+            placeholder="Buscar bases..."
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            className="pl-9 bg-secondary/50 border-border/50"
+          />
         </div>
       </div>
 
@@ -107,15 +144,28 @@ export default function KnowledgePage() {
       ) : filtered.length === 0 ? (
         <div className="flex flex-col items-center justify-center py-20 text-center">
           <Database className="h-12 w-12 text-muted-foreground mb-4" />
-          <h2 className="text-lg font-semibold text-foreground mb-1">Nenhuma base de conhecimento</h2>
-          <p className="text-sm text-muted-foreground mb-4">Crie uma base para alimentar seus agentes com RAG.</p>
+          <h2 className="text-lg font-semibold text-foreground mb-1">
+            Nenhuma base de conhecimento
+          </h2>
+          <p className="text-sm text-muted-foreground mb-4">
+            Crie uma base para alimentar seus agentes com RAG.
+          </p>
         </div>
       ) : (
         <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-          {filtered.map((kb: any) => (
-            <div key={kb.id}
+          {filtered.map((kb) => (
+            <div
+              key={kb.id}
               className="nexus-card group cursor-pointer"
               onClick={() => setSelectedKb({ id: kb.id, name: kb.name })}
+              role="button"
+              tabIndex={0}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter' || e.key === ' ') {
+                  e.preventDefault();
+                  (e.currentTarget as HTMLElement).click();
+                }
+              }}
             >
               <div className="flex items-start justify-between mb-3">
                 <div className="flex items-center gap-2.5">
@@ -124,37 +174,68 @@ export default function KnowledgePage() {
                   </div>
                   <div>
                     <h3 className="text-sm font-semibold text-foreground">{kb.name}</h3>
-                    <p className="text-[11px] text-muted-foreground">{kb.vector_db} • {kb.embedding_model?.split('-').slice(-1)}</p>
+                    <p className="text-[11px] text-muted-foreground">
+                      {kb.vector_db} • {kb.embedding_model?.split('-').slice(-1)}
+                    </p>
                   </div>
                 </div>
                 <StatusBadge status={kb.status || 'active'} />
               </div>
-              <p className="text-xs text-muted-foreground mb-4">{kb.description || 'Sem descrição'}</p>
+              <p className="text-xs text-muted-foreground mb-4">
+                {kb.description || 'Sem descrição'}
+              </p>
               <div className="grid grid-cols-2 gap-2 text-center border-t border-border/50 pt-3">
                 <div>
-                  <p className="text-lg font-heading font-bold text-foreground">{kb.document_count ?? 0}</p>
+                  <p className="text-lg font-heading font-bold text-foreground">
+                    {kb.document_count ?? 0}
+                  </p>
                   <p className="text-[11px] text-muted-foreground">Docs</p>
                 </div>
                 <div>
-                  <p className="text-lg font-heading font-bold text-foreground">{(kb.chunk_count ?? 0).toLocaleString()}</p>
+                  <p className="text-lg font-heading font-bold text-foreground">
+                    {(kb.chunk_count ?? 0).toLocaleString()}
+                  </p>
                   <p className="text-[11px] text-muted-foreground">Chunks</p>
                 </div>
               </div>
-              <div className="flex items-center gap-2 mt-3 pt-3 border-t border-border/50" onClick={e => e.stopPropagation()}>
-                <Button variant="outline" size="sm" className="flex-1 gap-1.5 text-xs" onClick={() => setEditKb(kb as unknown as Record<string, unknown>)}>
+              <div
+                className="flex items-center gap-2 mt-3 pt-3 border-t border-border/50"
+                onClick={(e) => e.stopPropagation()}
+                role="button"
+                tabIndex={0}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter' || e.key === ' ') {
+                    e.preventDefault();
+                    (e.currentTarget as HTMLElement).click();
+                  }
+                }}
+              >
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="flex-1 gap-1.5 text-xs"
+                  onClick={() => setEditKb(kb as unknown as Record<string, unknown>)}
+                >
                   <Pencil className="h-3 w-3" /> Editar
                 </Button>
                 <AccessControl permission="knowledge.delete">
                   <DangerousActionDialog
                     trigger={
-                      <Button variant="outline" size="sm" className="gap-1.5 text-xs text-destructive hover:text-destructive">
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        className="gap-1.5 text-xs text-destructive hover:text-destructive"
+                      >
                         <Trash2 className="h-3 w-3" /> Excluir
                       </Button>
                     }
                     title={`Excluir base de conhecimento`}
                     description={
                       <>
-                        <p>Todos os documentos, chunks e embeddings desta base serão removidos permanentemente.</p>
+                        <p>
+                          Todos os documentos, chunks e embeddings desta base serão removidos
+                          permanentemente.
+                        </p>
                         <p>Agentes que usam esta base perderão acesso ao conhecimento.</p>
                       </>
                     }
@@ -181,7 +262,9 @@ export default function KnowledgePage() {
       <EditKnowledgeBaseDialog
         kb={editKb}
         open={!!editKb}
-        onOpenChange={(open) => { if (!open) setEditKb(null); }}
+        onOpenChange={(open) => {
+          if (!open) setEditKb(null);
+        }}
         onUpdated={() => refetch()}
       />
     </div>
@@ -225,12 +308,23 @@ function VectorIndexesStatus() {
       {indexes.length > 0 && (
         <div className="space-y-2">
           {indexes.map((idx: Record<string, unknown>) => (
-            <div key={String(idx.id)} className="flex items-center justify-between py-2 px-3 rounded-lg bg-secondary/30 text-xs">
+            <div
+              key={String(idx.id)}
+              className="flex items-center justify-between py-2 px-3 rounded-lg bg-secondary/30 text-xs"
+            >
               <div>
-                <span className="font-medium text-foreground">{(idx.knowledge_bases as Record<string, string> | null)?.name || 'KB'}</span>
-                <span className="text-muted-foreground ml-2">{String(idx.provider)} • {String(idx.model)} • {String(idx.dimensions)}d</span>
+                <span className="font-medium text-foreground">
+                  {(idx.knowledge_bases as Record<string, string> | null)?.name || 'KB'}
+                </span>
+                <span className="text-muted-foreground ml-2">
+                  {String(idx.provider)} • {String(idx.model)} • {String(idx.dimensions)}d
+                </span>
               </div>
-              <span className={`text-[11px] ${idx.status === 'active' ? 'text-nexus-emerald' : 'text-nexus-amber'}`}>{String(idx.status)}</span>
+              <span
+                className={`text-[11px] ${idx.status === 'active' ? 'text-nexus-emerald' : 'text-nexus-amber'}`}
+              >
+                {String(idx.status)}
+              </span>
             </div>
           ))}
         </div>

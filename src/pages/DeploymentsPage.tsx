@@ -1,24 +1,33 @@
-import { useState } from "react";
-import { useRetryAction } from "@/hooks/useRetryAction";
-import { CardGridSkeleton } from "@/components/shared/PageSkeleton";
-import { EmptyState } from "@/components/shared/EmptyState";
-import { PageHeader } from "@/components/shared/PageHeader";
-import { StatusBadge } from "@/components/shared/StatusBadge";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Badge } from "@/components/ui/badge";
-import { Rocket, Link2, Copy, CheckCircle } from "lucide-react";
-import { useQuery } from "@tanstack/react-query";
-import { listDeployedAgents } from "@/services/deploymentsService";
-import { toast } from "sonner";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { useState } from 'react';
+import { useRetryAction } from '@/hooks/useRetryAction';
+import { CardGridSkeleton } from '@/components/shared/PageSkeleton';
+import { EmptyState } from '@/components/shared/EmptyState';
+import { PageHeader } from '@/components/shared/PageHeader';
+import { StatusBadge } from '@/components/shared/StatusBadge';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Badge } from '@/components/ui/badge';
+import { Rocket, Link2, Copy, CheckCircle } from 'lucide-react';
+import { useQuery } from '@tanstack/react-query';
+import { listDeployedAgents } from '@/services/deploymentsService';
+import { toast } from 'sonner';
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from '@/components/ui/dialog';
 import { A2APanel } from '@/components/integrations/A2APanel';
 import { WebWidgetPanel } from '@/components/deployments/WebWidgetPanel';
 import { WhatsAppSendDialog } from '@/components/deployments/WhatsAppSendDialog';
 
 export default function DeploymentsPage() {
   // Retry engine for resilient operations
-  const retryEngine = useRetryAction(listDeployedAgents, { operationName: 'listDeployments', showErrorToast: true });
+  const retryEngine = useRetryAction(listDeployedAgents, {
+    operationName: 'listDeployments',
+    showErrorToast: true,
+  });
   void retryEngine; // Available for manual retry on error states
   const { data: deployments = [], isLoading } = useQuery({
     queryKey: ['deployments'],
@@ -27,7 +36,16 @@ export default function DeploymentsPage() {
 
   return (
     <div className="p-6 sm:p-8 lg:p-10 space-y-6 max-w-[1400px] mx-auto animate-page-enter">
-      <PageHeader title="Implantações" description="Agentes em produção e staging" actions={<div className="flex gap-2"><WhatsAppSendDialog /><EndpointGeneratorButton /></div>} />
+      <PageHeader
+        title="Implantações"
+        description="Agentes em produção e staging"
+        actions={
+          <div className="flex gap-2">
+            <WhatsAppSendDialog />
+            <EndpointGeneratorButton />
+          </div>
+        }
+      />
 
       <WebWidgetPanel agentId={deployments[0]?.id} agentName={deployments[0]?.name} />
 
@@ -42,28 +60,38 @@ export default function DeploymentsPage() {
         />
       ) : (
         <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-          {deployments.map((dep: any) => (
+          {deployments.map((dep) => (
             <div key={dep.id} className="nexus-card">
               <div className="flex items-start justify-between mb-3">
                 <div className="flex items-center gap-2.5">
-                  <div className="h-10 w-10 rounded-xl bg-primary/10 flex items-center justify-center text-lg">{dep.emoji || '🤖'}</div>
+                  <div className="h-10 w-10 rounded-xl bg-primary/10 flex items-center justify-center text-lg">
+                    {dep.emoji || '🤖'}
+                  </div>
                   <div>
                     <h3 className="text-sm font-semibold text-foreground">{dep.name}</h3>
-                    <p className="text-[11px] text-muted-foreground">{dep.version} • {dep.environment}</p>
+                    <p className="text-[11px] text-muted-foreground">
+                      {dep.version} • {dep.environment}
+                    </p>
                   </div>
                 </div>
                 <StatusBadge status={dep.status || 'draft'} />
               </div>
               {dep.channels.length > 0 && (
                 <div className="flex flex-wrap gap-1 mt-2">
-                  {dep.channels.map((c: any) => (
-                    <span key={c.name} className={`text-[11px] px-2 py-0.5 rounded-full ${c.status === 'active' ? 'bg-nexus-emerald/10 text-nexus-emerald' : c.status === 'error' ? 'bg-destructive/10 text-destructive' : 'nexus-badge-primary'}`} title={c.error || `${c.messages} msgs`}>
+                  {dep.channels.map((c) => (
+                    <span
+                      key={c.name}
+                      className={`text-[11px] px-2 py-0.5 rounded-full ${c.status === 'active' ? 'bg-nexus-emerald/10 text-nexus-emerald' : c.status === 'error' ? 'bg-destructive/10 text-destructive' : 'nexus-badge-primary'}`}
+                      title={c.error || `${c.messages} msgs`}
+                    >
                       {c.name} {c.messages > 0 ? `(${c.messages})` : ''}
                     </span>
                   ))}
                 </div>
               )}
-              <p className="text-[11px] text-muted-foreground mt-3">{new Date(dep.updated).toLocaleDateString('pt-BR')}</p>
+              <p className="text-[11px] text-muted-foreground mt-3">
+                {new Date(dep.updated).toLocaleDateString('pt-BR')}
+              </p>
             </div>
           ))}
         </div>
@@ -81,10 +109,30 @@ function EndpointGeneratorButton() {
   const baseUrl = `https://${projectId}.supabase.co/functions/v1`;
 
   const endpoints = [
-    { name: 'LLM Gateway', path: 'llm-gateway', method: 'POST', desc: 'Envie mensagens para qualquer modelo configurado' },
-    { name: 'RAG Query', path: 'cerebro-query', method: 'POST', desc: 'Consulta com retrieval-augmented generation' },
-    { name: 'Workflow Engine', path: 'workflow-engine-v2', method: 'POST', desc: 'Execute workflows multi-agente' },
-    { name: 'Oracle Council', path: 'oracle-council', method: 'POST', desc: 'Consulta multi-modelo com consenso' },
+    {
+      name: 'LLM Gateway',
+      path: 'llm-gateway',
+      method: 'POST',
+      desc: 'Envie mensagens para qualquer modelo configurado',
+    },
+    {
+      name: 'RAG Query',
+      path: 'cerebro-query',
+      method: 'POST',
+      desc: 'Consulta com retrieval-augmented generation',
+    },
+    {
+      name: 'Workflow Engine',
+      path: 'workflow-engine-v2',
+      method: 'POST',
+      desc: 'Execute workflows multi-agente',
+    },
+    {
+      name: 'Oracle Council',
+      path: 'oracle-council',
+      method: 'POST',
+      desc: 'Consulta multi-modelo com consenso',
+    },
   ];
 
   const handleCopy = (text: string, id: string) => {
@@ -112,13 +160,22 @@ function EndpointGeneratorButton() {
             <p className="text-xs font-medium text-foreground mb-1">Base URL</p>
             <div className="flex items-center gap-2">
               <Input value={baseUrl} readOnly className="text-xs font-mono bg-secondary/50 h-8" />
-              <Button size="icon" variant="ghost" className="h-8 w-8 shrink-0" onClick={() => handleCopy(baseUrl, 'base')}>
-                {copied === 'base' ? <CheckCircle className="h-3.5 w-3.5 text-nexus-emerald" /> : <Copy className="h-3.5 w-3.5" />}
+              <Button
+                size="icon"
+                variant="ghost"
+                className="h-8 w-8 shrink-0"
+                onClick={() => handleCopy(baseUrl, 'base')}
+              >
+                {copied === 'base' ? (
+                  <CheckCircle className="h-3.5 w-3.5 text-nexus-emerald" />
+                ) : (
+                  <Copy className="h-3.5 w-3.5" />
+                )}
               </Button>
             </div>
           </div>
 
-          {endpoints.map(ep => {
+          {endpoints.map((ep) => {
             const url = `${baseUrl}/${ep.path}`;
             const curl = `curl -X ${ep.method} '${url}' \\\n  -H 'Authorization: Bearer YOUR_ANON_KEY' \\\n  -H 'Content-Type: application/json' \\\n  -d '{"model":"google/gemini-2.5-flash","messages":[{"role":"user","content":"Hello"}]}'`;
             return (
@@ -128,12 +185,23 @@ function EndpointGeneratorButton() {
                     <p className="text-xs font-semibold text-foreground">{ep.name}</p>
                     <p className="text-[11px] text-muted-foreground">{ep.desc}</p>
                   </div>
-                  <Badge variant="outline" className="text-[11px] font-mono">{ep.method}</Badge>
+                  <Badge variant="outline" className="text-[11px] font-mono">
+                    {ep.method}
+                  </Badge>
                 </div>
                 <div className="flex items-center gap-2">
                   <code className="text-[11px] text-primary font-mono truncate flex-1">{url}</code>
-                  <Button size="icon" variant="ghost" className="h-6 w-6 shrink-0" onClick={() => handleCopy(curl, ep.path)}>
-                    {copied === ep.path ? <CheckCircle className="h-3 w-3 text-nexus-emerald" /> : <Copy className="h-3 w-3" />}
+                  <Button
+                    size="icon"
+                    variant="ghost"
+                    className="h-6 w-6 shrink-0"
+                    onClick={() => handleCopy(curl, ep.path)}
+                  >
+                    {copied === ep.path ? (
+                      <CheckCircle className="h-3 w-3 text-nexus-emerald" />
+                    ) : (
+                      <Copy className="h-3 w-3" />
+                    )}
                   </Button>
                 </div>
               </div>
@@ -141,7 +209,8 @@ function EndpointGeneratorButton() {
           })}
 
           <p className="text-[11px] text-muted-foreground">
-            💡 Use a anon key do projeto no header Authorization. Para produção, use service role key com cuidado.
+            💡 Use a anon key do projeto no header Authorization. Para produção, use service role
+            key com cuidado.
           </p>
         </div>
       </DialogContent>

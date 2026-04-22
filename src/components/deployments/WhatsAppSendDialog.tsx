@@ -3,7 +3,13 @@
  * Uses whatsappOutboundService for multi-provider support.
  */
 import { useState } from 'react';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
@@ -26,7 +32,12 @@ export function WhatsAppSendDialog() {
       await sendWhatsAppMessage({ to: phone, text });
       setSent(true);
       toast.success('Mensagem enviada!');
-      setTimeout(() => { setSent(false); setPhone(''); setText(''); setOpen(false); }, 1500);
+      setTimeout(() => {
+        setSent(false);
+        setPhone('');
+        setText('');
+        setOpen(false);
+      }, 1500);
     } catch (e) {
       toast.error(`Erro: ${e instanceof Error ? e.message : 'Falha ao enviar'}`);
     } finally {
@@ -47,13 +58,15 @@ export function WhatsAppSendDialog() {
           <DialogTitle className="flex items-center gap-2">
             <MessageSquare className="h-5 w-5 text-nexus-emerald" />
             Enviar Mensagem WhatsApp
-            <Badge variant="outline" className="text-[10px]">Multi-provider</Badge>
+            <Badge variant="outline" className="text-[10px]">
+              Multi-provider
+            </Badge>
           </DialogTitle>
         </DialogHeader>
 
         <div className="space-y-4">
           <div className="space-y-1.5">
-            <label className="text-xs font-medium text-muted-foreground">Número (E.164)</label>
+            <span className="text-xs font-medium text-muted-foreground">Número (E.164)</span>
             <Input
               placeholder="+5511999887766"
               value={phone}
@@ -63,7 +76,7 @@ export function WhatsAppSendDialog() {
           </div>
 
           <div className="space-y-1.5">
-            <label className="text-xs font-medium text-muted-foreground">Mensagem</label>
+            <span className="text-xs font-medium text-muted-foreground">Mensagem</span>
             <Textarea
               placeholder="Digite sua mensagem..."
               value={text}
@@ -77,7 +90,13 @@ export function WhatsAppSendDialog() {
             onClick={handleSend}
             disabled={sending || !phone.trim() || !text.trim()}
           >
-            {sent ? <CheckCircle2 className="h-4 w-4" /> : sending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
+            {sent ? (
+              <CheckCircle2 className="h-4 w-4" />
+            ) : sending ? (
+              <Loader2 className="h-4 w-4 animate-spin" />
+            ) : (
+              <Send className="h-4 w-4" />
+            )}
             {sent ? 'Enviado!' : sending ? 'Enviando...' : 'Enviar Mensagem'}
           </Button>
         </div>
