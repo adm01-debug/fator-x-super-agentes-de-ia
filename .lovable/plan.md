@@ -1,60 +1,34 @@
 
 
-## Renomear agente do rascunho direto no banner
+## Confirmação modal ao descartar rascunho
 
-Adiciono um botão **lápis** ao lado do nome de cada rascunho no `DraftRecoveryBanner` que troca aquele item para modo edição inline. Salvar persiste no `localStorage` (via novo helper) e propaga para a UI imediatamente — sem precisar restaurar primeiro.
+Hoje os botões **Descartar** (single + por item no multi) e **Descartar todos** no `DraftRecoveryBanner` removem o rascunho imediatamente, sem chance de desfazer. Vou envolver cada um deles com `ConfirmDialog` (já existente em `src/components/shared/ConfirmDialog.tsx`, baseado em Radix `AlertDialog`) para exigir confirmação explícita.
 
 ### Comportamento
 
-- Cada item do banner (single OU multi) ganha um botão lápis pequeno ao lado do nome.
-- Clicar → o nome vira `<input>` inline com 2 botões: ✓ confirmar, ✗ cancelar.
-- `Enter` confirma, `Esc` cancela. Validado contra `quickIdentitySchema.shape.name` (2-60 chars + regex).
-- Erro inline em vermelho abaixo do input (sem toast, evita ruído).
-- Ao confirmar:
-  - Atualiza o `form.name` do rascunho no `localStorage`.
-  - Atualiza `pendingDrafts` no wizard (re-renderiza summary + chip "Identidade" + estado `restorable`).
-  - Toast curto: `Nome do rascunho atualizado`.
-
-### Por que isso resolve
-
-Hoje, se o rascunho está marcado como **Incompleto** só porque faltou o nome, o usuário precisa descartar ou tentar restaurar (bloqueado pela validação). Com renomear inline, ele conserta em 3s e o botão **Continuar** destrava na hora.
+- **Descartar (single)**: clique abre modal com título `Descartar este rascunho?` e descrição mencionando o nome do agente (ou "sem nome ainda"). Botões: **Cancelar** / **Descartar** (vermelho).
+- **Descartar item (multi)**: o botão `X` ao lado de cada rascunho na lista também passa por modal, mencionando qual rascunho será removido pelo nome.
+- **Descartar todos (multi)**: modal mais enfático — título `Descartar todos os N rascunhos?`, descrição avisando que a ação é irreversível.
+- `Esc` e clique fora cancelam (comportamento nativo do Radix).
+- `Enter` confirma quando o foco está no botão de ação (padrão do AlertDialog).
 
 ### Mudanças
 
-**`src/components/agents/wizard/draftStore.ts`** — novo helper puro:
-```ts
-export function renameDraft(
-  store: DraftsStoreV2,
-  id: string,
-  newName: string,
-): DraftsStoreV2;
-```
-Atualiza `form.name` (trimmed) do rascunho `id` e bumpa `savedAt`.
-
 **`src/components/agents/wizard/DraftRecoveryBanner.tsx`**:
-- Nova prop `onRename: (id: string, newName: string) => void`.
-- State local `editingId | draftName | nameError`.
-- Componente interno `<NameLabelOrEditor>` reutilizado em modo single + multi.
-- Validação local com `quickIdentitySchema.shape.name.safeParse(...)`.
-- A11y: `aria-label="Renomear rascunho"`, `aria-invalid` no input, autofocus ao entrar em edição.
-
-**`src/components/agents/wizard/QuickCreateWizard.tsx`**:
-- Novo `handleRenameDraft(id, newName)`:
-  - `setDraftsStore` com `renameDraft` + `saveDrafts`.
-  - `setPendingDrafts` mapeando o item alterado.
-  - `toast.success('Nome do rascunho atualizado')`.
-- Passa `onRename={handleRenameDraft}` para o banner.
+- Importar `ConfirmDialog` de `@/components/shared/ConfirmDialog`.
+- Single mode: trocar `<Button onClick={() => onDiscardOne(only.id)}>` por `<ConfirmDialog trigger={<Button …>} … onConfirm={() => onDiscardOne(only.id)} />`.
+- Multi mode item: trocar o `<button>` X dentro do loop por `<ConfirmDialog trigger={<button …>} … onConfirm={() => onDiscardOne(d.id)} />`. Manter `onClick` com `stopPropagation` no trigger para não selecionar o item ao abrir o modal.
+- Multi mode footer: trocar `<Button onClick={onDiscardAll}>` por `<ConfirmDialog trigger={<Button …>} … onConfirm={onDiscardAll} />`.
+- Helper local `discardCopy(name: string)` para gerar título/descrição consistentes mencionando o nome (ou fallback "sem nome ainda").
 
 ### Arquivos
 
-- **Editar**: `src/components/agents/wizard/draftStore.ts`
 - **Editar**: `src/components/agents/wizard/DraftRecoveryBanner.tsx`
-- **Editar**: `src/components/agents/wizard/QuickCreateWizard.tsx`
 
 ### Impacto
 
-- Conserta o rascunho sem sair do banner (zero context switch).
-- Destrava CTA "Continuar" automaticamente quando o nome era o único bloqueador.
-- Validação 100% consistente com o wizard (mesmo schema).
-- Zero mudança em backend/store schema.
+- Zero descarte acidental — toda remoção exige 2 cliques explícitos.
+- Reusa componente existente (`ConfirmDialog`), zero nova dependência.
+- A11y herdada do Radix `AlertDialog`: foco trap, `Esc` cancela, leitores de tela anunciam título/descrição.
+- Zero mudança em store, props públicas (`onDiscardOne`/`onDiscardAll` mantêm assinatura) ou backend.
 
