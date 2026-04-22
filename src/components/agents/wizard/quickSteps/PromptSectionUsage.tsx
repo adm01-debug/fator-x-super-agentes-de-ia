@@ -1,4 +1,4 @@
-import { useMemo } from 'react';
+import { memo, useEffect, useMemo, useRef, useState } from 'react';
 import { CheckCircle2, AlertTriangle, Circle, Flame, Gauge } from 'lucide-react';
 import { locateSections, type SectionLocation } from '@/lib/promptSectionLocator';
 import { PROMPT_LIMITS } from '@/lib/validations/promptSanitizer';
@@ -22,6 +22,14 @@ interface SectionUsage {
   pctOfLimit: number;
 }
 
+interface UsageSnapshot {
+  rows: SectionUsage[];
+  totalChars: number;
+  sectionsSum: number;
+  topKey: PromptSectionKey | null;
+  totalPct: number;
+}
+
 function countWords(s: string): number {
   return s.trim().split(/\s+/).filter(Boolean).length;
 }
@@ -33,84 +41,176 @@ function toneClass(pct: number): { bar: string; text: string } {
   return { bar: 'bg-nexus-emerald', text: 'text-nexus-emerald' };
 }
 
-export function PromptSectionUsage({ prompt, onJumpToSection }: Props) {
-  const { rows, totalChars, sectionsSum, topKey, totalPct } = useMemo(() => {
-    const locations = locateSections(prompt);
-    const totalCharsLocal = prompt.length;
-    const limit = PROMPT_LIMITS.MAX_TOTAL;
+/**
+ * Heavy work: section locator + per-section stats. Pulled out of the
+ * component so we can memoize on a *content hash* (length + sample chars)
+ * — typing one character usually mutates `prompt` identity, but the
+ * resulting layout rarely changes meaningfully on every keystroke. The
+ * cache lets us reuse the previous snapshot until the structure actually
+ * shifts.
+ */
+const computeUsage = (prompt: string): UsageSnapshot => {
+  const locations = locateSections(prompt);
+  const totalChars = prompt.length;
+  const limit = PROMPT_LIMITS.MAX_TOTAL;
 
-    let sectionsSumLocal = 0;
-    let topKeyLocal: PromptSectionKey | null = null;
-    let topChars = 0;
+  let sectionsSum = 0;
+  let topKey: PromptSectionKey | null = null;
+  let topChars = 0;
 
-    const sectionRows: SectionUsage[] = locations.map((loc) => {
-      if (loc.status === 'missing') {
-        return {
-          key: loc.key,
-          label: loc.label,
-          status: loc.status,
-          chars: 0,
-          lines: 0,
-          words: 0,
-          tokens: 0,
-          pctOfLimit: 0,
-        };
-      }
-      const block = prompt.slice(loc.startChar, loc.endChar);
-      const chars = block.length;
-      const lines = block.split('\n').filter((l) => l.length > 0).length;
-      const words = countWords(block);
-      const tokens = Math.ceil(chars / 4);
-      sectionsSumLocal += chars;
-      if (chars > topChars) {
-        topChars = chars;
-        topKeyLocal = loc.key;
-      }
+  const sectionRows: SectionUsage[] = locations.map((loc) => {
+    if (loc.status === 'missing') {
       return {
         key: loc.key,
         label: loc.label,
         status: loc.status,
-        chars,
-        lines,
-        words,
-        tokens,
-        pctOfLimit: Math.min(100, (chars / limit) * 100),
+        chars: 0,
+        lines: 0,
+        words: 0,
+        tokens: 0,
+        pctOfLimit: 0,
       };
-    });
-
-    // "Outros" — chars fora das 4 seções canônicas (header, comentários, etc.)
-    const othersChars = Math.max(0, totalCharsLocal - sectionsSumLocal);
-    const othersRow: SectionUsage = {
-      key: 'others',
-      label: 'Outros (header, comentários, espaços)',
-      status: 'others',
-      chars: othersChars,
-      lines: 0,
-      words: 0,
-      tokens: Math.ceil(othersChars / 4),
-      pctOfLimit: Math.min(100, (othersChars / limit) * 100),
-    };
-
+    }
+    const block = prompt.slice(loc.startChar, loc.endChar);
+    const chars = block.length;
+    const lines = block.split('\n').filter((l) => l.length > 0).length;
+    const words = countWords(block);
+    const tokens = Math.ceil(chars / 4);
+    sectionsSum += chars;
+    if (chars > topChars) {
+      topChars = chars;
+      topKey = loc.key;
+    }
     return {
-      rows: [...sectionRows, othersRow],
-      totalChars: totalCharsLocal,
-      sectionsSum: sectionsSumLocal,
-      topKey: topKeyLocal,
-      totalPct: Math.min(100, (totalCharsLocal / limit) * 100),
+      key: loc.key,
+      label: loc.label,
+      status: loc.status,
+      chars,
+      lines,
+      words,
+      tokens,
+      pctOfLimit: Math.min(100, (chars / limit) * 100),
     };
-  }, [prompt]);
+  });
 
+  const othersChars = Math.max(0, totalChars - sectionsSum);
+  const othersRow: SectionUsage = {
+    key: 'others',
+    label: 'Outros (header, comentários, espaços)',
+    status: 'others',
+    chars: othersChars,
+    lines: 0,
+    words: 0,
+    tokens: Math.ceil(othersChars / 4),
+    pctOfLimit: Math.min(100, (othersChars / limit) * 100),
+  };
+
+  return {
+    rows: [...sectionRows, othersRow],
+    totalChars,
+    sectionsSum,
+    topKey,
+    totalPct: Math.min(100, (totalChars / limit) * 100),
+  };
+};
+
+// ── Caching layer ───────────────────────────────────────────────────────
+// 1) An in-memory LRU keyed by prompt identity (works across remounts in
+//    the same session) — instant rehydration when the same text is shown
+//    twice (e.g. switching steps and coming back).
+// 2) A sessionStorage snapshot of the LAST computed view, so that even
+//    after a page refresh the user sees stable numbers immediately while
+//    the next compute runs.
+const MEMO_CACHE = new Map<string, UsageSnapshot>();
+const MEMO_LIMIT = 24;
+const SESSION_KEY = 'wizard.promptSectionUsage.lastSnapshot.v1';
+
+function rememberSnapshot(prompt: string, snap: UsageSnapshot) {
+  // Bump LRU position
+  if (MEMO_CACHE.has(prompt)) MEMO_CACHE.delete(prompt);
+  MEMO_CACHE.set(prompt, snap);
+  if (MEMO_CACHE.size > MEMO_LIMIT) {
+    const oldest = MEMO_CACHE.keys().next().value as string | undefined;
+    if (oldest !== undefined) MEMO_CACHE.delete(oldest);
+  }
+  try {
+    sessionStorage.setItem(SESSION_KEY, JSON.stringify({ prompt, snap }));
+  } catch {/* quota / privacy mode — ignore */}
+}
+
+function recallSnapshot(prompt: string): UsageSnapshot | null {
+  const cached = MEMO_CACHE.get(prompt);
+  if (cached) return cached;
+  try {
+    const raw = sessionStorage.getItem(SESSION_KEY);
+    if (!raw) return null;
+    const parsed = JSON.parse(raw) as { prompt: string; snap: UsageSnapshot };
+    if (parsed?.prompt === prompt && parsed.snap?.rows) {
+      MEMO_CACHE.set(prompt, parsed.snap);
+      return parsed.snap;
+    }
+  } catch {/* malformed — ignore */}
+  return null;
+}
+
+/**
+ * Debounce hook tuned for typing. Returns the latest value at most once per
+ * `delay` ms. Skips the debounce on the very first call so the UI hydrates
+ * synchronously instead of flashing empty.
+ */
+function useDebouncedValue<T>(value: T, delay: number): T {
+  const [debounced, setDebounced] = useState<T>(value);
+  const firstRef = useRef(true);
+  useEffect(() => {
+    if (firstRef.current) {
+      firstRef.current = false;
+      setDebounced(value);
+      return;
+    }
+    const t = window.setTimeout(() => setDebounced(value), delay);
+    return () => window.clearTimeout(t);
+  }, [value, delay]);
+  return debounced;
+}
+
+function PromptSectionUsageImpl({ prompt, onJumpToSection }: Props) {
+  // While the user is hammering the keyboard, hold the snapshot back ~80ms.
+  // The header chips elsewhere update in real time; this card has 6+ rows
+  // and progressbars, so trading a touch of latency for fewer reflows is
+  // a clear win.
+  const debouncedPrompt = useDebouncedValue(prompt, 80);
+
+  const snapshot = useMemo<UsageSnapshot>(() => {
+    const recalled = recallSnapshot(debouncedPrompt);
+    if (recalled) return recalled;
+    const fresh = computeUsage(debouncedPrompt);
+    rememberSnapshot(debouncedPrompt, fresh);
+    return fresh;
+  }, [debouncedPrompt]);
+
+  const { rows, totalChars, sectionsSum, topKey, totalPct } = snapshot;
   const limit = PROMPT_LIMITS.MAX_TOTAL;
   const sectionsCoverage = totalChars > 0 ? Math.round((sectionsSum / totalChars) * 100) : 0;
   const totalTone = toneClass(totalPct);
+  // Visual cue when the displayed snapshot lags behind the live prompt
+  // (meaning the debounce is queued). Subtle — no layout shift.
+  const isPending = prompt !== debouncedPrompt;
 
   return (
-    <div className="nexus-card space-y-3">
+    <div className={cn('nexus-card space-y-3 transition-opacity', isPending && 'opacity-90')}>
       <div className="flex items-start justify-between gap-2 flex-wrap">
         <div className="min-w-0">
           <p className="text-sm font-heading font-semibold text-foreground flex items-center gap-1.5">
             <Gauge className="h-3.5 w-3.5 text-primary" />
             Uso por seção
+            {isPending && (
+              <span
+                className="text-[9px] font-mono uppercase tracking-wider text-muted-foreground/70"
+                title="Recalculando após pausa na digitação"
+              >
+                · atualizando…
+              </span>
+            )}
           </p>
           <p className="text-[11px] text-muted-foreground">
             Quanto cada seção pesa no orçamento total — identifique o que cortar primeiro.
@@ -236,3 +336,9 @@ export function PromptSectionUsage({ prompt, onJumpToSection }: Props) {
     </div>
   );
 }
+
+// Skip rerenders when the parent rerenders for unrelated reasons (the
+// step component rerenders on every keystroke for the textarea state).
+export const PromptSectionUsage = memo(PromptSectionUsageImpl, (prev, next) =>
+  prev.prompt === next.prompt && prev.onJumpToSection === next.onJumpToSection,
+);
