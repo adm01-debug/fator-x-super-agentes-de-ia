@@ -1,40 +1,54 @@
 
 
-## Botão "Replay" inline na lista de execuções
+## Linha do tempo clicável por session_id com passo selecionado e resumo
 
-A boa notícia: o `ReplayDialog` já existe e implementa **tudo** que foi pedido — play/pause, step anterior/próximo, slider de progresso, seletor de velocidade (0.5x/1x/2x/4x), reset, painéis de Input, Output e Metadata do passo atual, mais acumulados de tempo/tokens/custo. Hoje ele é aberto por um único botão "Replay" no header da timeline depois que o usuário seleciona uma execução.
+A `ExecutionTimeline` atual lista os eventos da execução selecionada na lateral, mas cada item só funciona como toggle expandir/colapsar — não há "passo selecionado" navegável, e o resumo da execução fica fora do componente, no header da Card. Vou transformar a timeline em um listbox navegável com destaque do passo ativo, header de resumo embutido e contagens ✓/⚠/✗.
 
-A única coisa que falta para atender o pedido é **disparar o replay direto de cada item da lista**, sem o passo intermediário de selecionar e depois clicar em outro botão.
+### Visão final
 
-### O que muda
+```text
+┌─ [sticky] # session_abc123…              Passo 4 / 12 ┐
+│  ✓ 8   ⚠ 2   ✗ 1    │  ⏱ 4320ms   ⚡ 1.4k tk   $0.00231 │
+│  ↳ tool.invoke.success                       14:22:08   │
+└─────────────────────────────────────────────────────────┘
 
-**1. `src/components/agents/traces/ExecutionList.tsx`** — adicionar prop opcional `onReplay?: (e: ExecutionGroup) => void`:
-- Cada `<li>` ganha um botão "▶ Replay" pequeno (h-6, ghost com tint primário) posicionado absoluto no canto superior direito.
-- Aparece em hover (`opacity-0 group-hover:opacity-100`) e também com foco via teclado (`focus:opacity-100`) — não polui a lista, mas fica acessível.
-- Ao clicar: `stopPropagation` para não disparar o `onSelect` duplicado, depois chama `onSelect(e)` (para alinhar a timeline ao item) e `onReplay(e)` (para abrir o modal).
-- O timestamp à direita ganha um `mr-12` para não colidir com o botão.
-- `aria-label` descritivo + `title` explicando a ação.
-
-**2. `src/pages/AgentTracesPage.tsx`** — passar `onReplay` para a `ExecutionList`:
-```tsx
-onReplay={(e) => { setSelectedId(e.session_id); setReplayOpen(true); }}
+┌ #1  14:22:01  ℹ  agent.start              45ms          ┐
+├ #2  14:22:02  ℹ  llm.request           320ms 421 tk     ┤
+├ #3  14:22:03  ⚠  guardrail.warn         12ms            ┤
+█ #4  14:22:08  ℹ  tool.invoke.success   180ms ◄ ATIVO    █  ← bg-primary/10 + ring
+│      ┌─ Input  / Output / Metadata expandidos ─┐         │
+└ #5  14:22:09  ✗  tool.error             50ms            ┘
 ```
-Reutiliza o `replayOpen` e o `<ReplayDialog>` que já estão montados no final da página. Zero código novo de modal.
 
-### O que não muda
+### Componentes / mudanças
 
-- O `ReplayDialog` em si — já tem todos os controles pedidos (play, pause, step ←/→, velocidade, reiniciar, slider) e renderiza Input/Output/Metadata + acumulados.
-- O botão "Replay" no header da timeline continua existindo, para quem já está olhando os detalhes.
-- Nenhuma mudança de serviço, store ou schema.
+**1. `src/components/agents/traces/ExecutionTimeline.tsx`** — refatoração:
+- Nova interface: `{ execution, selectedStep?, onSelectStep? }` (controlado e não-controlado).
+- Estado interno `internalStep` quando `selectedStep` não é passado; `setStep` faz clamp em `[0, traces.length-1]`.
+- Reset automático quando `execution.session_id` muda.
+- **Header de resumo embutido (sticky)** no topo do componente: `session_id` em `<code>` truncado, badge "Passo N / total", contagens coloridas `✓ info / ⚠ warning / ✗ error` (omite os zeros de warn/error), separador, depois `⏱ tempo total`, `⚡ tokens`, `$ custo`. Linha extra "↳ {evento atual} {hora}" para indicar o passo ativo.
+- Cada `<li>` vira clicável com `role="option"` + `aria-selected`; ativo recebe `bg-primary/10 ring-1 ring-primary/30 shadow-sm`, número `#N` colorido em primary; inativo mantém o estilo `bg-card/40 hover:bg-muted/40`.
+- Clicar em um item já não-ativo: seleciona e abre Input/Output/Metadata. Clicar de novo no ativo: alterna expandir/colapsar. Item ativo abre automaticamente.
+- Container com `tabIndex={0}` + `onKeyDown`: `↑/k` passo anterior, `↓/j` próximo, `Home`/`End` extremos. Foco visível com ring.
+- `scrollIntoView({ block: 'nearest', behavior: 'smooth' })` no item selecionado.
+- `aria-activedescendant` aponta para `id="trace-{id}"` do item ativo (a11y para leitores de tela).
+- `forwardRef` direto para `<li>` (sem o hack de `require('react')`).
+
+**2. `src/pages/AgentTracesPage.tsx`** — pequenos ajustes:
+- Novo state `const [selectedStep, setSelectedStep] = useState(0)`; reseta para 0 quando `selectedId` muda (`useEffect`).
+- Passar `selectedStep` + `onSelectStep` para `<ExecutionTimeline>`.
+- Como o resumo da execução agora vive **dentro** da timeline, simplifico o `CardHeader` da Card "Linha do tempo": tiro a linha mono com session/eventos/ms (vira redundante) e mantenho só o título + botão Replay no topo. Isso ganha espaço vertical e elimina duplicação.
+- O botão Replay continua abrindo o `ReplayDialog` na execução selecionada — sem mudança.
 
 ### Arquivos
 
-- **Editar**: `src/components/agents/traces/ExecutionList.tsx` — prop `onReplay`, botão inline com revelação em hover/focus.
-- **Editar**: `src/pages/AgentTracesPage.tsx` — passar handler que seta a sessão e abre o dialog existente.
+- **Editar**: `src/components/agents/traces/ExecutionTimeline.tsx` — props controladas, header de resumo sticky, item ativo destacado, navegação por teclado, scroll-into-view, a11y de listbox.
+- **Editar**: `src/pages/AgentTracesPage.tsx` — state `selectedStep`, reset por sessão, simplificação do header da Card.
 
 ### Impacto
 
-- 1 clique para reproduzir qualquer execução da lista, em vez de 2 (selecionar → clicar Replay no header).
-- Zero regressão: o caminho antigo continua funcionando; quem não passar `onReplay` (caso o componente seja usado em outro lugar) simplesmente não vê o botão.
-- Acessível por teclado e leitores de tela.
+- Usuário navega passo a passo com clique ou teclado, sem precisar abrir o modal de replay.
+- O resumo (✓/⚠/✗ + tempo + tokens + custo) fica visível enquanto rola a timeline (sticky), dando contexto permanente da execução.
+- Destaque visual claro do passo selecionado (ring + bg primário) elimina ambiguidade ao alternar entre eventos.
+- Zero mudança de schema, serviço ou store; tudo é estado de UI local.
 
