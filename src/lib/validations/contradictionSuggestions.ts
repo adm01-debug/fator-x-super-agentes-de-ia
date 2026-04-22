@@ -303,3 +303,26 @@ export function applyAllContradictionFixes(prompt: string): {
   }
   return { fixedPrompt: working, resolved };
 }
+
+/**
+ * Build a single `ContradictionAutoFix` using the user-chosen suggestion
+ * (by index in `suggestContradictionRewrites(conflict)`). Falls back to the
+ * default suggestion when the index is out of range. Lets the panel render
+ * a per-row picker — same splice logic, different unified rule.
+ */
+export function buildContradictionFixFromSuggestion(
+  prompt: string,
+  conflict: PromptContradiction,
+  suggestionIdx: number,
+): ContradictionAutoFix {
+  const all = suggestContradictionRewrites(conflict);
+  const idx = suggestionIdx >= 0 && suggestionIdx < all.length ? suggestionIdx : 0;
+  const { line: unifiedRule, rationale } = extractUnifiedFromSuggestion(all[idx]);
+  const { fixedPrompt, affectedLines } = spliceUnifiedRule(
+    prompt,
+    conflict.lineA,
+    conflict.lineB,
+    unifiedRule,
+  );
+  return { conflict, unifiedRule, rationale, fixedPrompt, affectedLines };
+}
