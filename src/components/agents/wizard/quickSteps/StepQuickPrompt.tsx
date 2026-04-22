@@ -83,6 +83,20 @@ export function StepQuickPrompt({ form, errors, onPromptManualEdit, onRestore, o
     setLastChangeKind('variant');
     onApplyVariant(id);
   };
+  // Snapshot of the prompt before an auto-fix, used by the toast's "Desfazer".
+  const prevPromptRef = useRef<string>('');
+  const handleApplyFix = (fixed: string, summary: string) => {
+    prevPromptRef.current = form.prompt;
+    handleManualEdit(fixed);
+    toast.success('Correção aplicada', {
+      description: summary,
+      duration: 5000,
+      action: {
+        label: 'Desfazer',
+        onClick: () => handleManualEdit(prevPromptRef.current),
+      },
+    });
+  };
   // Section-level pulse highlight (set briefly after a "jump to section" action).
   const [pulsedSection, setPulsedSection] = useState<PromptSectionKey | null>(null);
   const sectionPulseRef = useRef<number | null>(null);
@@ -311,7 +325,7 @@ export function StepQuickPrompt({ form, errors, onPromptManualEdit, onRestore, o
           </div>
         )}
         <div id="qa-prompt-feedback">
-          <PromptValidationFeedback prompt={form.prompt} />
+          <PromptValidationFeedback prompt={form.prompt} onApplyFix={handleApplyFix} />
         </div>
       </div>
 
