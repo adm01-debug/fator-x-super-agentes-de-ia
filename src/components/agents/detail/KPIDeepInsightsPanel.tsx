@@ -177,6 +177,21 @@ export function KPIDeepInsightsPanel({ insights }: Props) {
           <p className="text-xs text-muted-foreground italic py-3 text-center">
             Sem dados suficientes na janela anterior para diagnosticar.
           </p>
+        ) : !activeRelevant ? (
+          <div className="flex items-start gap-2.5 rounded-md border border-border/50 bg-secondary/30 p-3">
+            <Minus className="h-3.5 w-3.5 mt-0.5 shrink-0 text-muted-foreground" aria-hidden />
+            <div className="min-w-0 flex-1">
+              <p className="text-xs font-semibold text-foreground">Sem mudança relevante</p>
+              <p className="text-[11px] text-muted-foreground mt-0.5 leading-snug">
+                Variação de{' '}
+                <span className="font-mono text-foreground/80">
+                  {active.cmp.deltaPct >= 0 ? '+' : ''}{active.cmp.deltaPct.toFixed(1)}%
+                </span>{' '}
+                está abaixo do limiar configurado de{' '}
+                <span className="font-mono text-foreground/80">≥{threshold}%</span>. Ajuste o limiar acima para inspecionar deltas menores.
+              </p>
+            </div>
+          </div>
         ) : (
           <ul className="space-y-2">
             {active.causes.map((cause, idx) => {
@@ -197,7 +212,7 @@ export function KPIDeepInsightsPanel({ insights }: Props) {
           </ul>
         )}
 
-        {active.recommendation && (
+        {activeRelevant && active.recommendation && (
           <div className="mt-3 pt-3 border-t border-border/50">
             <p className="text-[11px] text-muted-foreground flex items-start gap-1.5">
               <ChevronDown className="h-3 w-3 mt-0.5 shrink-0 -rotate-90 text-primary" aria-hidden />
