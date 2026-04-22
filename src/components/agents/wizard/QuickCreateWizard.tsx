@@ -135,6 +135,9 @@ export function QuickCreateWizard({ onBack }: QuickCreateWizardProps) {
   const [selectedVariant, setSelectedVariant] = useState<import('@/data/quickAgentTemplates').PromptVariantId | null>(null);
   const [pendingVariant, setPendingVariant] = useState<import('@/data/quickAgentTemplates').PromptVariantId | null>(null);
   const [lockEvents, setLockEvents] = useState<import('./quickSteps/PromptLockEventLog').PromptLockEvent[]>([]);
+  // Persisted user rule: when ON, edits coming from the section checklist
+  // (Inserir Persona/Escopo/Formato/Regras) auto-unlock the Custom mode.
+  const { enabled: checklistAutoUnlock, setEnabled: setChecklistAutoUnlock } = useChecklistAutoUnlock();
   const pushLockEvent = (
     kind: import('./quickSteps/PromptLockEventLog').PromptLockEventKind,
     detail?: string,
