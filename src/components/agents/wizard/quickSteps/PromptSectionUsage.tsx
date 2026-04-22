@@ -54,6 +54,139 @@ function countWords(s: string): number {
   return s.trim().split(/\s+/).filter(Boolean).length;
 }
 
+/**
+ * Detect 1–2 highest-impact, low-risk reductions inside a single section
+ * block. Heuristics are intentionally conservative — they only flag patterns
+ * that are very likely safe to remove without losing intent:
+ *
+ *  • Duplicated lines (same trimmed content appearing 2+ times).
+ *  • Bullet items with the same head verb stacked back-to-back (often
+ *    redundant rules: "Não faça X / Não faça Y / Não faça Z" → consolidate).
+ *  • "Filler" prefaces ("É importante notar que…", "Vale ressaltar que…",
+ *    "Lembrando que…") that add tokens without instruction value.
+ *  • Excessively long bullet lists in CONSTRAINTS (>12 items) — suggests
+ *    pruning the bottom third, which is usually low-priority.
+ */
+const FILLER_PATTERNS: Array<{ regex: RegExp; label: string }> = [
+  { regex: /\b(é|e)\s+importante\s+(notar|destacar|ressaltar|lembrar)\s+que\b[^.\n]*\.?/gi, label: 'preâmbulos "é importante notar que…"' },
+  { regex: /\bvale\s+(ressaltar|destacar|notar|lembrar)\s+que\b[^.\n]*\.?/gi, label: 'preâmbulos "vale ressaltar que…"' },
+  { regex: /\blembrando\s+que\b[^.\n]*\.?/gi, label: 'preâmbulos "lembrando que…"' },
+  { regex: /\b(por\s+favor|please)\b[,.\s]?/gi, label: 'cortesias ("por favor")' },
+  { regex: /\b(de\s+forma|de\s+maneira)\s+(clara|objetiva|sucinta|concisa)\b/gi, label: 'redundâncias "de forma clara/objetiva"' },
+];
+
+function analyzeBlockReductions(
+  block: string,
+  sectionKey: PromptSectionKey,
+  sectionLabel: string,
+): ReductionSuggestion[] {
+  const out: ReductionSuggestion[] = [];
+  if (block.length < 80) return out;
+
+  // (1) Duplicated lines
+  const lines = block.split('\n').map((l) => l.trim()).filter((l) => l.length > 8);
+  const counts = new Map<string, number>();
+  for (const l of lines) counts.set(l, (counts.get(l) ?? 0) + 1);
+  let dupChars = 0;
+  let dupCount = 0;
+  for (const [line, n] of counts) {
+    if (n >= 2) {
+      dupChars += line.length * (n - 1);
+      dupCount += n - 1;
+    }
+  }
+  if (dupCount >= 1 && dupChars >= 30) {
+    out.push({
+      id: `${sectionKey}-dups`,
+      sectionKey,
+      sectionLabel,
+      title: `Remover ${dupCount} linha${dupCount > 1 ? 's' : ''} duplicada${dupCount > 1 ? 's' : ''}`,
+      rationale: 'Linhas idênticas repetidas no bloco — manter apenas uma preserva 100% da intenção.',
+      estCharsSaved: dupChars,
+      estTokensSaved: Math.ceil(dupChars / 4),
+    });
+  }
+
+  // (2) Filler prefaces
+  let fillerChars = 0;
+  const fillerHits: string[] = [];
+  for (const { regex, label } of FILLER_PATTERNS) {
+    const matches = block.match(regex);
+    if (matches && matches.length > 0) {
+      const sum = matches.reduce((s, m) => s + m.length, 0);
+      if (sum >= 12) {
+        fillerChars += sum;
+        fillerHits.push(label);
+      }
+    }
+  }
+  if (fillerChars >= 30 && fillerHits.length > 0) {
+    out.push({
+      id: `${sectionKey}-filler`,
+      sectionKey,
+      sectionLabel,
+      title: 'Cortar preâmbulos e cortesias redundantes',
+      rationale: `Frases de preenchimento sem valor instrucional: ${fillerHits.slice(0, 2).join(', ')}.`,
+      estCharsSaved: fillerChars,
+      estTokensSaved: Math.ceil(fillerChars / 4),
+    });
+  }
+
+  // (3) Stacked bullets with same head verb (typical of redundant rules)
+  const bulletRegex = /^[\s]*[-•*]\s+(.+)$/gm;
+  const bulletMatches = [...block.matchAll(bulletRegex)].map((m) => m[1].trim());
+  if (bulletMatches.length >= 4) {
+    const headCounts = new Map<string, { count: number; chars: number }>();
+    for (const b of bulletMatches) {
+      const head = b.split(/\s+/).slice(0, 2).join(' ').toLowerCase();
+      const prev = headCounts.get(head) ?? { count: 0, chars: 0 };
+      headCounts.set(head, { count: prev.count + 1, chars: prev.chars + b.length });
+    }
+    let stackedHead: string | null = null;
+    let stackedSavings = 0;
+    for (const [head, { count, chars }] of headCounts) {
+      if (count >= 3 && chars >= 60) {
+        // Estimate savings = consolidate N bullets into 1, save (N-1)/N of chars
+        const saved = Math.floor((chars * (count - 1)) / count);
+        if (saved > stackedSavings) {
+          stackedSavings = saved;
+          stackedHead = head;
+        }
+      }
+    }
+    if (stackedHead && stackedSavings >= 40) {
+      out.push({
+        id: `${sectionKey}-stacked`,
+        sectionKey,
+        sectionLabel,
+        title: `Consolidar regras que começam com "${stackedHead}…"`,
+        rationale: 'Vários itens da lista repetem o mesmo verbo/comando — agrupar em uma regra única reduz tokens sem perder cobertura.',
+        estCharsSaved: stackedSavings,
+        estTokensSaved: Math.ceil(stackedSavings / 4),
+      });
+    }
+
+    // (4) Very long lists — suggest pruning the tail
+    if (bulletMatches.length > 12) {
+      const tail = bulletMatches.slice(Math.floor(bulletMatches.length * 0.7));
+      const tailChars = tail.reduce((s, b) => s + b.length + 4, 0);
+      if (tailChars >= 80) {
+        out.push({
+          id: `${sectionKey}-longlist`,
+          sectionKey,
+          sectionLabel,
+          title: `Reduzir lista de ${bulletMatches.length} itens (manter top ~70%)`,
+          rationale: 'Listas muito longas têm itens de baixa prioridade no final — modelos costumam priorizar os primeiros.',
+          estCharsSaved: tailChars,
+          estTokensSaved: Math.ceil(tailChars / 4),
+        });
+      }
+    }
+  }
+
+  return out;
+}
+
 /** Color tone for the bar based on % of MAX_TOTAL. */
 function toneClass(pct: number): { bar: string; text: string } {
   if (pct >= 35) return { bar: 'bg-destructive', text: 'text-destructive' };
