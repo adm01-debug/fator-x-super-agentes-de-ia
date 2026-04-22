@@ -32,14 +32,23 @@ const EDITOR_PADDING_LEFT = 36; // px — leaves room for the gutter
 interface Props {
   form: QuickAgentForm;
   errors: Partial<Record<keyof QuickAgentForm, string>>;
-  update: <K extends keyof QuickAgentForm>(key: K, value: QuickAgentForm[K]) => void;
+  /**
+   * Manual prompt edits (typing, paste, snippet insert, history restore)
+   * go through this — the wizard uses it to flip the "custom locked" flag.
+   */
+  onPromptManualEdit: (next: string) => void;
   onRestore: () => void;
   onApplyVariant: (id: PromptVariantId) => void;
+  /** When true, the variant selector is locked into "customizado" mode. */
+  customLocked: boolean;
+  /** Releases the lock without changing the prompt text. */
+  onUnlockCustom: () => void;
   highlightField?: keyof QuickAgentForm;
 }
 
-export function StepQuickPrompt({ form, errors, update, onRestore, onApplyVariant, highlightField }: Props) {
-  const activeVariant = detectPromptVariant(form.type as QuickAgentType, form.prompt);
+export function StepQuickPrompt({ form, errors, onPromptManualEdit, onRestore, onApplyVariant, customLocked, onUnlockCustom, highlightField }: Props) {
+  const detected = detectPromptVariant(form.type as QuickAgentType, form.prompt);
+  const activeVariant = customLocked ? null : detected;
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const promptHighlight = highlightField === 'prompt';
   // Section-level pulse highlight (set briefly after a "jump to section" action).
@@ -98,7 +107,7 @@ export function StepQuickPrompt({ form, errors, update, onRestore, onApplyVarian
    */
   const insertSectionSnippet = (key: PromptSectionKey, snippet: string): [number, number] => {
     const { prompt: nextPrompt, insertedRange } = insertSectionAt(form.prompt, key, snippet);
-    update('prompt', nextPrompt);
+    onPromptManualEdit(nextPrompt);
     return insertedRange;
   };
 
@@ -159,7 +168,7 @@ export function StepQuickPrompt({ form, errors, update, onRestore, onApplyVarian
         description: 'Tags HTML perigosas foram filtradas do prompt.',
       });
     }
-    update('prompt', result.clean);
+    onPromptManualEdit(result.clean);
   };
 
   const handlePaste = (e: ClipboardEvent<HTMLTextAreaElement>) => {
@@ -176,7 +185,7 @@ export function StepQuickPrompt({ form, errors, update, onRestore, onApplyVarian
 
     const result = sanitizePromptInput(pasted, Math.max(0, remainingBudget));
     const next = before + result.clean + after;
-    update('prompt', next);
+    onPromptManualEdit(next);
 
     // Restore caret after the pasted block on next tick.
     requestAnimationFrame(() => {
@@ -210,6 +219,8 @@ export function StepQuickPrompt({ form, errors, update, onRestore, onApplyVarian
         type={form.type as QuickAgentType}
         activeVariant={activeVariant}
         onSelect={onApplyVariant}
+        customLocked={customLocked}
+        onUnlock={onUnlockCustom}
       />
 
       <div
@@ -277,9 +288,9 @@ export function StepQuickPrompt({ form, errors, update, onRestore, onApplyVarian
         onInsert={(snippet, key) => {
           if (key) {
             const { prompt: nextPrompt } = insertSectionAt(form.prompt, key, snippet);
-            update('prompt', nextPrompt);
+            onPromptManualEdit(nextPrompt);
           } else {
-            update('prompt', form.prompt + snippet);
+            onPromptManualEdit(form.prompt + snippet);
           }
         }}
         onJumpToSection={jumpToSection}
@@ -288,7 +299,7 @@ export function StepQuickPrompt({ form, errors, update, onRestore, onApplyVarian
       <PromptHistoryPanel
         prompt={form.prompt}
         type={form.type}
-        onRestore={(restored) => update('prompt', restored)}
+        onRestore={(restored) => onPromptManualEdit(restored)}
       />
 
       <AgentLivePreviewCard form={form} />

@@ -87,6 +87,8 @@ export interface DraftEntry {
   form: QuickAgentForm;
   savedAt: string;   // ISO
   createdAt: string; // ISO
+  /** When true, the prompt was manually edited — variant chips should not auto-detect. */
+  promptCustomLocked?: boolean;
 }
 
 export interface DraftsStoreV2 {
@@ -125,6 +127,7 @@ export function loadDrafts(): DraftsStoreV2 {
             form: normalizeForm(d.form),
             savedAt: typeof d.savedAt === 'string' ? d.savedAt : new Date().toISOString(),
             createdAt: typeof d.createdAt === 'string' ? d.createdAt : (d.savedAt ?? new Date().toISOString()),
+            promptCustomLocked: d.promptCustomLocked === true,
           })),
         };
       }
@@ -176,7 +179,7 @@ export function renameDraft(
 }
 export function upsertDraft(
   store: DraftsStoreV2,
-  draft: { id?: string; form: QuickAgentForm },
+  draft: { id?: string; form: QuickAgentForm; promptCustomLocked?: boolean },
 ): { store: DraftsStoreV2; id: string } {
   const now = new Date().toISOString();
   const id = draft.id ?? genId();
@@ -184,10 +187,18 @@ export function upsertDraft(
   let drafts: DraftEntry[];
   if (existing) {
     drafts = store.drafts.map((d) =>
-      d.id === id ? { ...d, form: draft.form, savedAt: now } : d,
+      d.id === id
+        ? { ...d, form: draft.form, savedAt: now, promptCustomLocked: draft.promptCustomLocked ?? d.promptCustomLocked ?? false }
+        : d,
     );
   } else {
-    const entry: DraftEntry = { id, form: draft.form, savedAt: now, createdAt: now };
+    const entry: DraftEntry = {
+      id,
+      form: draft.form,
+      savedAt: now,
+      createdAt: now,
+      promptCustomLocked: draft.promptCustomLocked ?? false,
+    };
     drafts = [entry, ...store.drafts];
   }
   // LRU prune

@@ -1,4 +1,4 @@
-import { Scale, Minus, Plus, Sparkles } from 'lucide-react';
+import { Scale, Minus, Plus, Sparkles, Lock, Unlock } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import {
   QUICK_AGENT_TEMPLATES,
@@ -12,6 +12,14 @@ interface Props {
   /** Variação detectada como ativa, ou null se o prompt é customizado. */
   activeVariant: PromptVariantId | null;
   onSelect: (id: PromptVariantId) => void;
+  /**
+   * When true, the user manually edited the prompt and the variant chips
+   * are intentionally locked into "customizado" — auto-detection is disabled
+   * until the user picks a variant or explicitly unlocks.
+   */
+  customLocked?: boolean;
+  /** Called when the user clicks "Sair do modo customizado". */
+  onUnlock?: () => void;
 }
 
 const ICONS = {
@@ -22,9 +30,10 @@ const ICONS = {
 
 const ORDER: PromptVariantId[] = ['balanced', 'concise', 'detailed'];
 
-export function PromptVariantSelector({ type, activeVariant, onSelect }: Props) {
+export function PromptVariantSelector({ type, activeVariant, onSelect, customLocked, onUnlock }: Props) {
   const template = QUICK_AGENT_TEMPLATES[type];
   const isCustom = activeVariant === null;
+  const showLocked = !!customLocked && isCustom;
 
   return (
     <div className="nexus-card space-y-2.5">
@@ -35,13 +44,41 @@ export function PromptVariantSelector({ type, activeVariant, onSelect }: Props) 
             Variações de prompt para "{template.suggestedName}"
           </p>
           <p className="text-[11px] text-muted-foreground">
-            Escolha um estilo para preencher o editor — você pode editar depois.
+            {showLocked
+              ? 'Modo customizado travado — clique numa variação para substituir o texto atual.'
+              : 'Escolha um estilo para preencher o editor — você pode editar depois.'}
           </p>
         </div>
         {isCustom && (
-          <span className="text-[10px] uppercase tracking-wider font-mono px-2 py-0.5 rounded-full border border-nexus-amber/40 bg-nexus-amber/10 text-nexus-amber shrink-0">
-            customizado
-          </span>
+          <div className="flex items-center gap-1.5 shrink-0">
+            <span
+              className={cn(
+                'text-[10px] uppercase tracking-wider font-mono px-2 py-0.5 rounded-full border inline-flex items-center gap-1',
+                showLocked
+                  ? 'border-primary/40 bg-primary/10 text-primary'
+                  : 'border-nexus-amber/40 bg-nexus-amber/10 text-nexus-amber',
+              )}
+              title={
+                showLocked
+                  ? 'Edição manual detectada — chips não vão alternar automaticamente.'
+                  : 'O texto não bate exatamente com nenhuma variação.'
+              }
+            >
+              {showLocked ? <Lock className="h-2.5 w-2.5" /> : null}
+              customizado
+            </span>
+            {showLocked && onUnlock && (
+              <button
+                type="button"
+                onClick={onUnlock}
+                className="text-[10px] inline-flex items-center gap-1 px-2 py-0.5 rounded-full border border-border/60 bg-secondary/50 text-muted-foreground hover:text-foreground hover:bg-secondary/80 transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-primary/50"
+                title="Manter o texto e voltar à detecção automática das variações."
+              >
+                <Unlock className="h-2.5 w-2.5" />
+                Sair do modo custom
+              </button>
+            )}
+          </div>
         )}
       </div>
 
@@ -68,7 +105,13 @@ export function PromptVariantSelector({ type, activeVariant, onSelect }: Props) 
                 isActive
                   ? 'border-primary bg-primary/10 ring-1 ring-primary/40'
                   : 'border-border bg-secondary/40 hover:bg-secondary/70 hover:border-border/80',
+                showLocked && !isActive && 'opacity-70',
               )}
+              title={
+                showLocked
+                  ? `Substituir o prompt customizado pela variação "${meta.label}"`
+                  : undefined
+              }
             >
               <div className="flex items-center gap-2 mb-1">
                 <Icon

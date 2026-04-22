@@ -35,6 +35,17 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog';
 import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
+import { QUICK_AGENT_TEMPLATES as TEMPLATES_FOR_DIALOG, PROMPT_VARIANT_META as VARIANT_META_FOR_DIALOG } from '@/data/quickAgentTemplates';
+import {
   loadDrafts,
   saveDrafts,
   upsertDraft,
@@ -92,7 +103,10 @@ export function QuickCreateWizard({ onBack }: QuickCreateWizardProps) {
   const [draftDecided, setDraftDecided] = useState(false);
   const [highlightField, setHighlightField] = useState<keyof QuickAgentForm | null>(null);
   const [confirmOpen, setConfirmOpen] = useState(false);
+  const [promptCustomLocked, setPromptCustomLocked] = useState(false);
+  const [pendingVariant, setPendingVariant] = useState<import('@/data/quickAgentTemplates').PromptVariantId | null>(null);
   const lastTypeRef = useRef<QuickAgentType | null>(null);
+  const lastTypeForLockRef = useRef<string>(QUICK_AGENT_DEFAULTS.type);
 
   // Auto-clear field highlight after 4s
   useEffect(() => {
@@ -134,12 +148,12 @@ export function QuickCreateWizard({ onBack }: QuickCreateWizardProps) {
     if (!draftDecided) return;
     if (!isDraftMeaningful(form) && !draftsStore.activeId) return;
     setDraftsStore((prev) => {
-      const { store } = upsertDraft(prev, { id: prev.activeId ?? undefined, form });
+      const { store } = upsertDraft(prev, { id: prev.activeId ?? undefined, form, promptCustomLocked });
       saveDrafts(store);
       return store;
     });
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [form, draftDecided]);
+  }, [form, draftDecided, promptCustomLocked]);
 
   // Heuristic: when user changes the type after editing a meaningful draft,
   // offer to fork into a new draft (one per type).
@@ -186,6 +200,8 @@ export function QuickCreateWizard({ onBack }: QuickCreateWizardProps) {
       return;
     }
     setForm(target.form);
+    setPromptCustomLocked(target.promptCustomLocked === true);
+    lastTypeForLockRef.current = target.form.type;
     lastTypeRef.current = target.form.type as QuickAgentType;
     const resume = computeResumeTarget(target.form, STEPS);
     setStep(resume.stepIdx);
@@ -250,6 +266,22 @@ export function QuickCreateWizard({ onBack }: QuickCreateWizardProps) {
     if (highlightField === key) setHighlightField(null);
   };
 
+  /** Manual prompt edit — flips the custom lock so chips stop auto-detecting. */
+  const updatePromptManual = (next: string) => {
+    setForm((prev) => ({ ...prev, prompt: next }));
+    setErrors((prev) => ({ ...prev, prompt: undefined }));
+    if (highlightField === 'prompt') setHighlightField(null);
+    setPromptCustomLocked(true);
+  };
+
+  // Reset lock automatically when the user changes the agent type.
+  useEffect(() => {
+    if (lastTypeForLockRef.current !== form.type) {
+      lastTypeForLockRef.current = form.type;
+      setPromptCustomLocked(false);
+    }
+  }, [form.type]);
+
   const applyTemplate = (type: QuickAgentType) => {
     const t = QUICK_AGENT_TEMPLATES[type];
     setForm((prev) => ({
@@ -262,6 +294,7 @@ export function QuickCreateWizard({ onBack }: QuickCreateWizardProps) {
       model: t.recommendedModel,
       prompt: t.systemPrompt,
     }));
+    setPromptCustomLocked(false);
     toast.success(`Template "${t.suggestedName}" aplicado`, {
       description: 'Nome, missão, modelo e prompt foram preenchidos.',
     });
@@ -271,16 +304,26 @@ export function QuickCreateWizard({ onBack }: QuickCreateWizardProps) {
   const restorePromptFromType = () => {
     const t = QUICK_AGENT_TEMPLATES[form.type as QuickAgentType];
     update('prompt', t.systemPrompt);
+    setPromptCustomLocked(false);
     toast.success('Prompt restaurado do template');
   };
 
-  const applyPromptVariant = (variantId: import('@/data/quickAgentTemplates').PromptVariantId) => {
+  const doApplyPromptVariant = (variantId: import('@/data/quickAgentTemplates').PromptVariantId) => {
     const t = QUICK_AGENT_TEMPLATES[form.type as QuickAgentType];
     const variant = t.promptVariants[variantId];
     update('prompt', variant.prompt);
+    setPromptCustomLocked(false);
     toast.success(`Variação "${variant.label}" aplicada`, {
       description: 'Você pode editar livremente depois.',
     });
+  };
+
+  const applyPromptVariant = (variantId: import('@/data/quickAgentTemplates').PromptVariantId) => {
+    if (promptCustomLocked && form.prompt.trim().length > 0) {
+      setPendingVariant(variantId);
+      return;
+    }
+    doApplyPromptVariant(variantId);
   };
 
   const validateStep = (idx: number): boolean => {
@@ -400,7 +443,7 @@ export function QuickCreateWizard({ onBack }: QuickCreateWizardProps) {
       case 0: return <StepQuickIdentity form={form} errors={errors} update={update} highlightField={hfFor(['name', 'emoji', 'mission', 'description'])} />;
       case 1: return <StepQuickType form={form} errors={errors} update={update} applyTemplate={applyTemplate} highlightField={hfFor(['type'])} />;
       case 2: return <StepQuickModel form={form} errors={errors} update={update} highlightField={hfFor(['model'])} />;
-      case 3: return <StepQuickPrompt form={form} errors={errors} update={update} onRestore={restorePromptFromType} onApplyVariant={applyPromptVariant} highlightField={hfFor(['prompt'])} />;
+      case 3: return <StepQuickPrompt form={form} errors={errors} onPromptManualEdit={updatePromptManual} onRestore={restorePromptFromType} onApplyVariant={applyPromptVariant} customLocked={promptCustomLocked} onUnlockCustom={() => setPromptCustomLocked(false)} highlightField={hfFor(['prompt'])} />;
       default: return null;
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -548,6 +591,39 @@ export function QuickCreateWizard({ onBack }: QuickCreateWizardProps) {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      <AlertDialog open={!!pendingVariant} onOpenChange={(o) => !o && setPendingVariant(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Substituir prompt customizado?</AlertDialogTitle>
+            <AlertDialogDescription>
+              {pendingVariant && (() => {
+                const t = TEMPLATES_FOR_DIALOG[form.type as QuickAgentType];
+                const variant = t.promptVariants[pendingVariant];
+                const meta = VARIANT_META_FOR_DIALOG[pendingVariant];
+                return (
+                  <>
+                    Você editou o prompt manualmente ({form.prompt.length.toLocaleString('pt-BR')} chars).
+                    Aplicar a variação <strong>"{meta.label}"</strong> ({variant.prompt.length.toLocaleString('pt-BR')} chars)
+                    vai sobrescrever todo o texto atual e destravar o modo customizado.
+                  </>
+                );
+              })()}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={() => {
+                if (pendingVariant) doApplyPromptVariant(pendingVariant);
+                setPendingVariant(null);
+              }}
+            >
+              Substituir
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }
