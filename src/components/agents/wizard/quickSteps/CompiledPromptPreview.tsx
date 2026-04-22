@@ -77,12 +77,38 @@ function renderMarkdown(text: string): React.ReactNode {
   return out;
 }
 
-export function CompiledPromptPreview({ form, defaultOpen = false }: Props) {
+export function CompiledPromptPreview({ form, defaultOpen = false, lastChangeKind = null, activeVariantLabel = null }: Props) {
   const [open, setOpen] = useState(defaultOpen);
   const [view, setView] = useState<'preview' | 'raw'>('preview');
   const [copied, setCopied] = useState(false);
+  const [pulse, setPulse] = useState(false);
+  const [tokenDelta, setTokenDelta] = useState<number | null>(null);
 
   const compiled = useMemo(() => compilePrompt(form), [form]);
+
+  const prevTokensRef = useRef<number>(compiled.stats.estimatedTokens);
+  const initRef = useRef(true);
+
+  useEffect(() => {
+    if (initRef.current) {
+      initRef.current = false;
+      prevTokensRef.current = compiled.stats.estimatedTokens;
+      return;
+    }
+    const delta = compiled.stats.estimatedTokens - prevTokensRef.current;
+    prevTokensRef.current = compiled.stats.estimatedTokens;
+    if (delta === 0) return;
+    setTokenDelta(delta);
+    setPulse(true);
+    const t1 = window.setTimeout(() => setPulse(false), 700);
+    const t2 = window.setTimeout(() => setTokenDelta(null), 2400);
+    return () => { window.clearTimeout(t1); window.clearTimeout(t2); };
+  }, [compiled.stats.estimatedTokens]);
+
+  useEffect(() => {
+    if (lastChangeKind === 'variant' && !open) setOpen(true);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [lastChangeKind]);
 
   const handleCopy = async () => {
     try {
@@ -93,9 +119,16 @@ export function CompiledPromptPreview({ form, defaultOpen = false }: Props) {
   };
 
   const hasUnresolved = compiled.unresolvedVariables.length > 0;
+  const resolvedCount = compiled.detectedVariables.length - compiled.unresolvedVariables.length;
+  const unresolvedCount = compiled.unresolvedVariables.length;
 
   return (
-    <div className="nexus-card border-primary/20">
+    <div
+      className={cn(
+        'nexus-card border-primary/20 transition-shadow duration-300',
+        pulse && 'ring-2 ring-primary/40 shadow-[0_0_0_4px_hsl(var(--primary)/0.12)]',
+      )}
+    >
       <button
         type="button"
         onClick={() => setOpen((v) => !v)}
@@ -115,10 +148,39 @@ export function CompiledPromptPreview({ form, defaultOpen = false }: Props) {
             </p>
           </div>
         </div>
-        <div className="flex items-center gap-2 shrink-0">
+        <div className="flex items-center gap-1.5 shrink-0 flex-wrap justify-end">
+          {resolvedCount > 0 && (
+            <span
+              className="text-[10px] font-mono px-1.5 py-0.5 rounded-full border border-nexus-emerald/30 bg-nexus-emerald/10 text-nexus-emerald"
+              title={`${resolvedCount} variável(eis) resolvida(s)`}
+            >
+              ✓ {resolvedCount}
+            </span>
+          )}
+          {unresolvedCount > 0 && (
+            <span
+              className="text-[10px] font-mono px-1.5 py-0.5 rounded-full border border-nexus-amber/40 bg-nexus-amber/10 text-nexus-amber"
+              title={`${unresolvedCount} variável(eis) sem valor`}
+            >
+              ⚠ {unresolvedCount}
+            </span>
+          )}
           <Badge variant="outline" className="text-[10px] font-mono">
             ~{compiled.stats.estimatedTokens.toLocaleString('pt-BR')} tokens
           </Badge>
+          {tokenDelta !== null && tokenDelta !== 0 && (
+            <span
+              className={cn(
+                'text-[10px] font-mono px-1.5 py-0.5 rounded-full animate-fade-in',
+                tokenDelta > 0
+                  ? 'bg-nexus-emerald/10 text-nexus-emerald border border-nexus-emerald/30'
+                  : 'bg-destructive/10 text-destructive border border-destructive/30',
+              )}
+              title="Variação no total de tokens desde a última mudança"
+            >
+              {tokenDelta > 0 ? '+' : ''}{tokenDelta.toLocaleString('pt-BR')}
+            </span>
+          )}
           {open ? <ChevronUp className="h-4 w-4 text-muted-foreground" /> : <ChevronDown className="h-4 w-4 text-muted-foreground" />}
         </div>
       </button>
