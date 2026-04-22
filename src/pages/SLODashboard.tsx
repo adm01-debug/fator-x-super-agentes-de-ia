@@ -226,17 +226,28 @@ export default function SLODashboard() {
   useEffect(() => {
     const wFromUrl = parseWindowParam(searchParams.get(QP_WINDOW), DEFAULT_WINDOW_HOURS);
     const aFromUrl = parseAutoParam(searchParams.get(QP_AUTO), autoRefreshMs);
+    const cmpRaw = searchParams.get(QP_COMPARE);
+    const cmpFromUrl = cmpRaw === null
+      ? 0
+      : ((WINDOW_OPTIONS as readonly number[]).includes(Number(cmpRaw)) ? Number(cmpRaw) : 0);
     if (wFromUrl !== windowHours) setWindowHours(wFromUrl);
     if (aFromUrl !== autoRefreshMs) setAutoRefreshMs(aFromUrl);
+    if (cmpFromUrl !== compareHours) setCompareHours(cmpFromUrl);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [searchParams]);
 
   const load = useCallback(async (showSpinner = false) => {
     if (showSpinner) setRefreshing(true);
     try {
-      const data = await fetchSLOSummary(windowHours);
+      // Fetch primary + comparison windows in parallel so the side-by-side
+      // view updates atomically. If only one is selected, just await one.
+      const [data, cmpData] = await Promise.all([
+        fetchSLOSummary(windowHours),
+        compareHours > 0 ? fetchSLOSummary(compareHours) : Promise.resolve(null),
+      ]);
       if (!isMountedRef.current) return;
       setSummary(data);
+      setCompareSummary(cmpData);
       setLastRefreshAt(new Date());
     } catch (err) {
       logger.error('Failed to load SLO summary', err);
@@ -252,7 +263,7 @@ export default function SLODashboard() {
       setLoading(false);
       setRefreshing(false);
     }
-  }, [windowHours]);
+  }, [windowHours, compareHours]);
 
   // Initial load + scheduled auto-refresh. Runs invisibly (no spinner) so
   // the page doesn't flash; the manual button still shows the spinning icon.
