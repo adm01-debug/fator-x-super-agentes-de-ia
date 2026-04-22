@@ -94,6 +94,9 @@ export function PromptValidationFeedback({ prompt, onApplyFix, onJumpToLine }: P
         </div>
       )}
 
+      {/* Detailed diagnostics — explains exactly which rule fired, where, and a sample */}
+      <PromptDiagnosticsPanel prompt={prompt} onJumpToLine={onJumpToLine} onApplyFix={onApplyFix} />
+
       {/* Auto-fix actions — surfaces 1-click corrections with diff preview */}
       {onApplyFix && <PromptAutoFixPanel prompt={prompt} onApply={onApplyFix} />}
     </div>
