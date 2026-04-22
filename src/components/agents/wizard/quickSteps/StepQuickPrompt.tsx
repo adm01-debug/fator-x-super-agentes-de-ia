@@ -118,7 +118,7 @@ export function StepQuickPrompt({ form, errors, update, onRestore, onApplyVarian
           placeholder="## Persona&#10;...&#10;&#10;## Escopo&#10;...&#10;&#10;## Formato&#10;...&#10;&#10;## Regras&#10;..."
           className={`bg-secondary/50 border-border/50 font-mono text-xs leading-relaxed resize-none ${
             errors.prompt ? 'border-destructive' : ''
-          }`}
+          } ${promptHighlight ? 'ring-2 ring-warning ring-offset-2 ring-offset-background animate-pulse' : ''}`}
         />
         {errors.prompt && (
           <div className="text-[11px] text-destructive" role="alert">
