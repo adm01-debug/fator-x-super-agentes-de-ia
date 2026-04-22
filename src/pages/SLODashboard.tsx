@@ -186,7 +186,43 @@ export default function SLODashboard() {
             Service Level Objectives — saúde do sistema em tempo real
           </p>
         </div>
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2 flex-wrap">
+          {/* Last-updated indicator + live pulse when auto-refresh is on */}
+          {lastRefreshAt && (
+            <span
+              className="hidden sm:inline-flex items-center gap-1.5 text-[11px] font-mono text-muted-foreground"
+              title={`Última atualização: ${lastRefreshAt.toLocaleString('pt-BR')}`}
+            >
+              {autoRefreshMs > 0 && (
+                <span
+                  className="relative inline-flex h-2 w-2"
+                  aria-hidden
+                >
+                  <span className="absolute inline-flex h-full w-full rounded-full bg-nexus-emerald opacity-60 animate-ping" />
+                  <span className="relative inline-flex h-2 w-2 rounded-full bg-nexus-emerald" />
+                </span>
+              )}
+              {(() => {
+                const seconds = Math.max(0, Math.round((Date.now() - lastRefreshAt.getTime()) / 1000));
+                if (seconds < 60) return `há ${seconds}s`;
+                const m = Math.floor(seconds / 60);
+                return `há ${m}min`;
+              })()}
+            </span>
+          )}
+          <select
+            value={autoRefreshMs}
+            onChange={(e) => handleAutoRefreshChange(Number(e.target.value))}
+            className="rounded-md border border-input bg-background px-3 py-1.5 text-sm focus-ring"
+            aria-label="Intervalo de auto-atualização"
+            title="Atualiza SLOs e timeline automaticamente"
+          >
+            {AUTO_REFRESH_OPTIONS.map((o) => (
+              <option key={o.value} value={o.value}>
+                Auto: {o.label}
+              </option>
+            ))}
+          </select>
           <select
             value={windowHours}
             onChange={(e) => setWindowHours(Number(e.target.value))}
@@ -203,7 +239,7 @@ export default function SLODashboard() {
             size="sm"
             onClick={() => load(true)}
             disabled={refreshing}
-            aria-label="Atualizar dados"
+            aria-label="Atualizar dados manualmente"
           >
             <RefreshCw className={`h-4 w-4 ${refreshing ? 'animate-spin' : ''}`} />
             <span className="ml-2">Atualizar</span>
