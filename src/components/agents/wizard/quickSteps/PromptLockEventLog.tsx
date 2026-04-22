@@ -61,7 +61,7 @@ export function PromptLockEventLog({ events, max = 8 }: Props) {
 
   const sorted = [...events].sort((a, b) => b.at - a.at).slice(0, max);
   const last = sorted[0];
-  const isLocked = last.kind === 'locked-manual-edit';
+  const isLocked = last.kind === 'locked-manual-edit' || last.kind === 'locked-paste';
 
   return (
     <div className="rounded-lg border border-border/60 bg-secondary/30 text-xs overflow-hidden">
