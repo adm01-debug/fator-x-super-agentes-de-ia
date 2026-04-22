@@ -1,5 +1,5 @@
-import { useMemo } from 'react';
-import { CheckCircle2, Circle, Plus, Wand2, AlertTriangle, Crosshair, Lock, Sparkles } from 'lucide-react';
+import { useMemo, useState } from 'react';
+import { CheckCircle2, Circle, Plus, Wand2, AlertTriangle, Crosshair, Lock, Sparkles, FileSearch } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import {
   REQUIRED_PROMPT_SECTIONS,
@@ -8,6 +8,14 @@ import {
 } from '@/lib/validations/quickAgentSchema';
 import { extractSectionFromPrompt } from '@/lib/promptSectionLocator';
 import { cn } from '@/lib/utils';
+import {
+  Sheet,
+  SheetContent,
+  SheetDescription,
+  SheetHeader,
+  SheetTitle,
+  SheetTrigger,
+} from '@/components/ui/sheet';
 
 interface Props {
   prompt: string;
