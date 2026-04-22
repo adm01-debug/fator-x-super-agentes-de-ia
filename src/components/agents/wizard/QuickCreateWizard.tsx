@@ -137,12 +137,12 @@ export function QuickCreateWizard({ onBack }: QuickCreateWizardProps) {
     if (!draftDecided) return;
     if (!isDraftMeaningful(form) && !draftsStore.activeId) return;
     setDraftsStore((prev) => {
-      const { store } = upsertDraft(prev, { id: prev.activeId ?? undefined, form });
+      const { store } = upsertDraft(prev, { id: prev.activeId ?? undefined, form, promptCustomLocked });
       saveDrafts(store);
       return store;
     });
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [form, draftDecided]);
+  }, [form, draftDecided, promptCustomLocked]);
 
   // Heuristic: when user changes the type after editing a meaningful draft,
   // offer to fork into a new draft (one per type).
@@ -189,6 +189,8 @@ export function QuickCreateWizard({ onBack }: QuickCreateWizardProps) {
       return;
     }
     setForm(target.form);
+    setPromptCustomLocked(target.promptCustomLocked === true);
+    lastTypeForLockRef.current = target.form.type;
     lastTypeRef.current = target.form.type as QuickAgentType;
     const resume = computeResumeTarget(target.form, STEPS);
     setStep(resume.stepIdx);
@@ -430,7 +432,7 @@ export function QuickCreateWizard({ onBack }: QuickCreateWizardProps) {
       case 0: return <StepQuickIdentity form={form} errors={errors} update={update} highlightField={hfFor(['name', 'emoji', 'mission', 'description'])} />;
       case 1: return <StepQuickType form={form} errors={errors} update={update} applyTemplate={applyTemplate} highlightField={hfFor(['type'])} />;
       case 2: return <StepQuickModel form={form} errors={errors} update={update} highlightField={hfFor(['model'])} />;
-      case 3: return <StepQuickPrompt form={form} errors={errors} update={update} onRestore={restorePromptFromType} onApplyVariant={applyPromptVariant} highlightField={hfFor(['prompt'])} />;
+      case 3: return <StepQuickPrompt form={form} errors={errors} onPromptManualEdit={updatePromptManual} onRestore={restorePromptFromType} onApplyVariant={applyPromptVariant} customLocked={promptCustomLocked} onUnlockCustom={() => setPromptCustomLocked(false)} highlightField={hfFor(['prompt'])} />;
       default: return null;
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
