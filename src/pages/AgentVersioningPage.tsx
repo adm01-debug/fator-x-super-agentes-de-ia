@@ -16,6 +16,8 @@ import { VersionTimeline } from "@/components/agents/versioning/VersionTimeline"
 import { VersionDetailPanel } from "@/components/agents/versioning/VersionDetailPanel";
 import { VersionComparePanel } from "@/components/agents/versioning/VersionComparePanel";
 import { NewVersionDialog } from "@/components/agents/versioning/NewVersionDialog";
+import { TimelinePresetBar } from "@/components/agents/versioning/TimelinePresetBar";
+import { TIMELINE_PRESETS, getPresetById, matchesPreset } from "@/components/agents/versioning/timelineFilters";
 
 export default function AgentVersioningPage() {
   const { id } = useParams();
@@ -31,6 +33,8 @@ export default function AgentVersioningPage() {
   const bId = searchParams.get('b');
   const modeParam = searchParams.get('mode');
   const mode: 'detail' | 'compare' = modeParam === 'compare' ? 'compare' : 'detail';
+  const presetId = searchParams.get('preset') ?? 'all';
+  const activePreset = getPresetById(presetId);
   const [newOpen, setNewOpen] = useState(false);
   // Quando vier um ?focus=<id>, destaca a versão por ~3s e remove o param da URL.
   const [highlightId, setHighlightId] = useState<string | null>(null);
@@ -49,6 +53,8 @@ export default function AgentVersioningPage() {
     updateParams((p) => { vid ? p.set('b', vid) : p.delete('b'); });
   const setMode = (m: 'detail' | 'compare') =>
     updateParams((p) => { m === 'compare' ? p.set('mode', 'compare') : p.delete('mode'); });
+  const setPreset = (pid: string) =>
+    updateParams((p) => { pid && pid !== 'all' ? p.set('preset', pid) : p.delete('preset'); });
 
   const { data: agent } = useQuery({
     queryKey: ['agent', id],
@@ -93,6 +99,27 @@ export default function AgentVersioningPage() {
   const versionA = useMemo(() => versions.find(v => v.id === aId) ?? null, [versions, aId]);
   const versionB = useMemo(() => versions.find(v => v.id === bId) ?? null, [versions, bId]);
   const canCompare = !!versionA && !!versionB && versionA.id !== versionB.id;
+
+  // Aplica o preset de filtro à timeline. Sempre garantimos que a versão
+  // atual (índice 0), a selecionada e A/B continuem visíveis para não
+  // quebrar a UX de comparação/restore — filtros restringem o ruído, não a navegação.
+  const pinnedIds = useMemo(
+    () => new Set([versions[0]?.id, selectedId, aId, bId].filter(Boolean) as string[]),
+    [versions, selectedId, aId, bId],
+  );
+  const filteredVersions = useMemo(() => {
+    if (activePreset.id === 'all') return versions;
+    return versions.filter((v) => pinnedIds.has(v.id) || matchesPreset(v, activePreset));
+  }, [versions, activePreset, pinnedIds]);
+  const presetCounts = useMemo(() => {
+    const counts: Record<string, number> = {};
+    for (const preset of TIMELINE_PRESETS) {
+      counts[preset.id] = preset.id === 'all'
+        ? versions.length
+        : versions.filter((v) => matchesPreset(v, preset)).length;
+    }
+    return counts;
+  }, [versions]);
 
   const current = versions[0] ?? null;
   const nextVersionNumber = (current?.version ?? 0) + 1;
@@ -184,8 +211,13 @@ export default function AgentVersioningPage() {
       ) : (
         <div className="grid lg:grid-cols-3 gap-6">
           <div className="lg:col-span-1">
+            <TimelinePresetBar
+              activePresetId={activePreset.id}
+              onChange={setPreset}
+              counts={presetCounts}
+            />
             <VersionTimeline
-              versions={versions}
+              versions={filteredVersions}
               selectedId={selectedId}
               selectedAId={aId}
               selectedBId={bId}
@@ -194,6 +226,11 @@ export default function AgentVersioningPage() {
               onPickB={(vid) => { setBId(vid); if (aId && vid !== aId) setMode('compare'); }}
               highlightId={highlightId}
             />
+            {activePreset.id !== 'all' && filteredVersions.length < versions.length && (
+              <p className="text-[10px] text-muted-foreground mt-2 px-1">
+                Mostrando {filteredVersions.length} de {versions.length} versões — preset "{activePreset.label}".
+              </p>
+            )}
           </div>
 
           <div className="lg:col-span-2 space-y-4">
