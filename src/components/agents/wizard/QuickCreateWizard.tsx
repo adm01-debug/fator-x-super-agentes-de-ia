@@ -762,10 +762,52 @@ export function QuickCreateWizard({ onBack }: QuickCreateWizardProps) {
               ? `Faltam ${Math.max(minPromptDepth - promptWordCount, 0)} palavra(s)`
               : 'Criar agente';
             return (
-              <Button onClick={requestCreate} disabled={saving || blocked} className="gap-2" title={title}>
-                {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : <Rocket className="h-4 w-4" />}
-                {label}
-              </Button>
+              <div className="flex items-center gap-2">
+                {conflictBlocked && !depthBlocked && !sectionsBlocked && (
+                  <DangerousActionDialog
+                    title="Criar mesmo com conflitos"
+                    description={
+                      <>
+                        <p>
+                          Detectamos <strong>{conflictCount} conflito(s)</strong> entre as regras do prompt.
+                          Esta ação cria o agente sem resolvê-los — use apenas se a contradição é{' '}
+                          <strong>intencional</strong> (ex.: política exige duas regras que se sobrepõem
+                          contextualmente).
+                        </p>
+                        <p>
+                          O motivo abaixo será registrado no <strong>log de auditoria</strong> junto com a
+                          contagem de conflitos para revisão posterior.
+                        </p>
+                      </>
+                    }
+                    action="create"
+                    resourceType="agent"
+                    resourceName={form.name.trim() || 'agente sem nome'}
+                    confirmLabel="Criar mesmo assim"
+                    minReasonLength={20}
+                    metadata={{ override: 'create_with_conflicts', conflicts_count: conflictCount }}
+                    onConfirm={async ({ reason }) => {
+                      await saveAgent({ reason, conflictCount });
+                    }}
+                    trigger={
+                      <Button
+                        type="button"
+                        variant="outline"
+                        disabled={saving}
+                        className="gap-2 border-nexus-amber/50 text-nexus-amber hover:bg-nexus-amber/10 hover:text-nexus-amber"
+                        title="Criar mesmo com os conflitos detectados — exige justificativa e fica no audit log"
+                      >
+                        <AlertTriangle className="h-4 w-4" />
+                        Criar mesmo assim
+                      </Button>
+                    }
+                  />
+                )}
+                <Button onClick={requestCreate} disabled={saving || blocked} className="gap-2" title={title}>
+                  {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : <Rocket className="h-4 w-4" />}
+                  {label}
+                </Button>
+              </div>
             );
           })()
         )}
