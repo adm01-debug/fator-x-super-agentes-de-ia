@@ -374,7 +374,7 @@ export function StepQuickPrompt({ form, errors, onPromptManualEdit, onRestore, o
             style={{ paddingLeft: EDITOR_PADDING_LEFT, position: 'relative', zIndex: 2, background: 'transparent' }}
             className={`bg-secondary/50 border-border/50 font-mono text-xs leading-relaxed resize-none ${
               errors.prompt ? 'border-destructive' : ''
-            } ${promptHighlight ? 'ring-2 ring-warning ring-offset-2 ring-offset-background animate-pulse' : ''} ${
+            } ${promptPulsing ? FIELD_HIGHLIGHT_CLS : ''} ${
               pulsedSection ? 'border-nexus-amber/50' : ''
             }`}
           />
