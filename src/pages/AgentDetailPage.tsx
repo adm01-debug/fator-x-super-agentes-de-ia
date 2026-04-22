@@ -223,10 +223,17 @@ function VersionHistory({ agentId }: { agentId: string }) {
         : undefined,
     }),
     onSuccess: (data) => {
-      toast.success(`Rollback concluído — v${data.version} criada a partir de v${previous!.version}`);
       queryClient.invalidateQueries({ queryKey: ['agent_versions', agentId] });
       queryClient.invalidateQueries({ queryKey: ['agent', agentId] });
       setRollbackOpen(false);
+      // Toast com ação para abrir a timeline já destacando a nova versão.
+      toast.success(`Rollback concluído — v${data.version} criada a partir de v${previous!.version}`, {
+        action: {
+          label: 'Ver na timeline',
+          onClick: () => navigate(`/agents/${agentId}/versions?focus=${data.id}`),
+        },
+        duration: 6000,
+      });
     },
     onError: (e: Error) => toast.error(e.message || 'Falha no rollback'),
   });
