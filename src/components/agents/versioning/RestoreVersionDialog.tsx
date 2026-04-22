@@ -21,10 +21,13 @@ import {
   Pencil,
   Eye,
   ArrowLeft,
+  ShieldAlert,
+  ShieldCheck,
+  Flame,
 } from "lucide-react";
 import type { AgentVersion, RestoreOptions } from "@/services/agentsService";
 import { getVersionTools, getVersionPrompt, getVersionScalar } from "@/lib/agentChangelog";
-import { computeRestoreDiff, type FieldChange } from "@/components/agents/detail/restoreDiffHelpers";
+import { computeRestoreDiff, type FieldChange, type RiskLevel } from "@/components/agents/detail/restoreDiffHelpers";
 
 interface Props {
   open: boolean;
