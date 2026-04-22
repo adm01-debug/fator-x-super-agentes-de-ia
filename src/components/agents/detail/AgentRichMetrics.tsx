@@ -19,7 +19,7 @@ import { DayDrillDownDrawer } from './DayDrillDownDrawer';
 import { AgentFailuresTable } from './AgentFailuresTable';
 import { TrendInsightsBanner } from './TrendInsightsBanner';
 import { KPIDeepInsightsPanel } from './KPIDeepInsightsPanel';
-import { buildKPIInsights } from './kpiInsights';
+
 
 interface Props {
   agentId: string;
