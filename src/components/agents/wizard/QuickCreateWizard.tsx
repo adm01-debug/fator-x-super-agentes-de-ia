@@ -682,16 +682,31 @@ export function QuickCreateWizard({ onBack }: QuickCreateWizardProps) {
             const conflictCount = detectPromptContradictions(form.prompt).length;
             const conflictBlocked = conflictCount > 0;
             const depthBlocked = !meetsDepth;
-            const blocked = conflictBlocked || depthBlocked;
+            const sectionsBlocked = sectionStatus.blocked;
+            const blocked = conflictBlocked || depthBlocked || sectionsBlocked;
+            const sectionTitle = (() => {
+              const parts: string[] = [];
+              if (sectionStatus.missingLabels.length)
+                parts.push(`faltam: ${sectionStatus.missingLabels.join(', ')}`);
+              if (sectionStatus.thinLabels.length)
+                parts.push(`muito curtas: ${sectionStatus.thinLabels.join(', ')}`);
+              return `Complete as seções obrigatórias (${parts.join(' · ')}).`;
+            })();
             const title = conflictBlocked
               ? `Resolva os ${conflictCount} conflito(s) entre regras antes de criar.`
+              : sectionsBlocked
+              ? sectionTitle
               : depthBlocked
               ? `Prompt com ${promptWordCount}/${minPromptDepth} palavras — adicione mais detalhes ou reduza o nível mínimo.`
               : undefined;
+            const sectionShort =
+              sectionStatus.missingKeys.length + sectionStatus.thinKeys.length;
             const label = saving
               ? 'Criando…'
               : conflictBlocked
               ? `Resolver ${conflictCount} conflito(s)`
+              : sectionsBlocked
+              ? `Completar ${sectionShort} seção(ões)`
               : depthBlocked
               ? `Faltam ${Math.max(minPromptDepth - promptWordCount, 0)} palavra(s)`
               : 'Criar agente';
