@@ -58,6 +58,38 @@ export function StepQuickPrompt({ form, errors, update, onRestore, onApplyVarian
   // Memoized section locations — drives gutter, overlay, and jump targets.
   const locations = useMemo(() => locateSections(form.prompt), [form.prompt]);
   const totalLines = useMemo(() => form.prompt.split('\n').length, [form.prompt]);
+  // Lines (1-indexed) that contain a contradiction — drives overlay red highlight.
+  const conflictLines = useMemo(() => {
+    const conflicts = detectPromptContradictions(form.prompt);
+    const set = new Set<number>();
+    for (const c of conflicts) {
+      set.add(c.lineA);
+      set.add(c.lineB);
+    }
+    return Array.from(set);
+  }, [form.prompt]);
+
+  /**
+   * Scroll the textarea to a specific 1-indexed line and select that whole line.
+   * Used by the "Conflitos detectados" cards in the preflight summary.
+   */
+  const jumpToLine = (line: number) => {
+    const lines = form.prompt.split('\n');
+    const idx = Math.max(0, Math.min(lines.length - 1, line - 1));
+    let start = 0;
+    for (let i = 0; i < idx; i++) start += lines[i].length + 1;
+    const end = start + lines[idx].length;
+
+    requestAnimationFrame(() => {
+      const el = textareaRef.current;
+      if (!el) return;
+      el.focus({ preventScroll: true });
+      const lineHeight = parseFloat(getComputedStyle(el).lineHeight || '0') || 16;
+      el.scrollTop = Math.max(0, idx * lineHeight - el.clientHeight / 3);
+      try { el.setSelectionRange(start, end); } catch { /* ignore */ }
+      el.scrollIntoView({ block: 'center', behavior: 'smooth' });
+    });
+  };
 
   /**
    * Insert a section snippet at its canonical position (Persona → Escopo →
