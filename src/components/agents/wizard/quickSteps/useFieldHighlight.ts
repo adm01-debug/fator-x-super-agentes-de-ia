@@ -63,14 +63,28 @@ export function useFieldHighlight(
   return pulsing;
 }
 
-/** Tailwind utility for the standard highlight ring used across wizard steps. */
+/**
+ * Hook helper que devolve a classe de destaque correta para o estado atual
+ * de motion preference. Componentes podem usar:
+ *   const pulsing = useFieldHighlight(ref, active);
+ *   const cls = useFieldHighlightClass(pulsing);
+ *   <div className={cls}>...
+ *
+ * Em reduced-motion: ring estático sem animate-pulse.
+ */
+export function useFieldHighlightClass(pulsing: boolean): string {
+  const reduced = usePrefersReducedMotion();
+  if (!pulsing) return '';
+  return reduced ? FIELD_HIGHLIGHT_CLS_STATIC : FIELD_HIGHLIGHT_CLS;
+}
+
+/** Tailwind utility for the standard highlight ring (animated). */
 export const FIELD_HIGHLIGHT_CLS =
   'ring-2 ring-warning ring-offset-2 ring-offset-background animate-pulse rounded-md transition-shadow';
 
 /**
  * Reduced-motion variant: same ring/contrast for discoverability, but no
- * pulsing keyframe. Components that import `FIELD_HIGHLIGHT_CLS` directly
- * should switch to this when `usePrefersReducedMotion()` is true.
+ * pulsing keyframe.
  */
 export const FIELD_HIGHLIGHT_CLS_STATIC =
   'ring-2 ring-warning ring-offset-2 ring-offset-background rounded-md transition-shadow';
