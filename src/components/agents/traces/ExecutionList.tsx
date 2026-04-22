@@ -1,15 +1,17 @@
 import { ScrollArea } from '@/components/ui/scroll-area';
-import { Activity, AlertTriangle, CheckCircle2, Clock, DollarSign, Filter, XCircle } from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import { Activity, AlertTriangle, CheckCircle2, Clock, DollarSign, Filter, Play, XCircle } from 'lucide-react';
 import type { ExecutionGroup } from '@/services/agentTracesService';
 
 interface Props {
   executions: ExecutionGroup[];
   selectedId: string | null;
   onSelect: (e: ExecutionGroup) => void;
+  onReplay?: (e: ExecutionGroup) => void;
   loading: boolean;
 }
 
-export function ExecutionList({ executions, selectedId, onSelect, loading }: Props) {
+export function ExecutionList({ executions, selectedId, onSelect, onReplay, loading }: Props) {
   if (loading) {
     return <div className="p-6 text-center text-sm text-muted-foreground">Carregando execuções…</div>;
   }
@@ -31,7 +33,7 @@ export function ExecutionList({ executions, selectedId, onSelect, loading }: Pro
             e.counts.error > 0 ? 'bg-destructive' :
             e.counts.warning > 0 ? 'bg-nexus-amber' : 'bg-nexus-emerald';
           return (
-            <li key={e.session_id}>
+            <li key={e.session_id} className="relative group">
               <button
                 onClick={() => onSelect(e)}
                 aria-selected={active}
@@ -47,7 +49,7 @@ export function ExecutionList({ executions, selectedId, onSelect, loading }: Pro
                       {e.session_id.startsWith('auto-') ? '∅ sem session' : e.session_id.slice(0, 18)}
                     </span>
                   </div>
-                  <span className="text-[10px] text-muted-foreground shrink-0">
+                  <span className={`text-[10px] text-muted-foreground shrink-0 ${onReplay ? 'mr-16' : ''}`}>
                     {new Date(e.started_at).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}
                   </span>
                 </div>
@@ -66,6 +68,18 @@ export function ExecutionList({ executions, selectedId, onSelect, loading }: Pro
                   )}
                 </div>
               </button>
+              {onReplay && (
+                <Button
+                  size="sm"
+                  variant="ghost"
+                  onClick={(ev) => { ev.stopPropagation(); onSelect(e); onReplay(e); }}
+                  className="absolute top-2 right-2 h-6 px-2 text-[10px] gap-1 opacity-0 group-hover:opacity-100 focus:opacity-100 transition-opacity bg-primary/10 hover:bg-primary/20 text-primary"
+                  aria-label={`Replay da execução ${e.session_id}`}
+                  title="Reproduzir esta execução passo a passo"
+                >
+                  <Play className="h-2.5 w-2.5" /> Replay
+                </Button>
+              )}
             </li>
           );
         })}

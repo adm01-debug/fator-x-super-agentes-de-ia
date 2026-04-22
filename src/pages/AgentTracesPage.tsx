@@ -110,6 +110,7 @@ export default function AgentTracesPage() {
               executions={executions}
               selectedId={selected?.session_id ?? null}
               onSelect={(e) => setSelectedId(e.session_id)}
+              onReplay={(e) => { setSelectedId(e.session_id); setReplayOpen(true); }}
               loading={isLoading}
             />
           </CardContent>
