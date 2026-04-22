@@ -1,6 +1,5 @@
 import { AlertCircle, ArrowRight, X } from 'lucide-react';
 import type { DraftResumeTarget } from './draftStore';
-import { usePrefersReducedMotion } from '@/hooks/usePrefersReducedMotion';
 
 export interface RestoreFeedbackInfo extends DraftResumeTarget {
   /** Label legível do campo (ex: "Missão" em vez de "mission"). */
@@ -45,16 +44,12 @@ export function RestoreFeedbackBanner({ info, onJumpToField, onDismiss }: Props)
   const typeLabel = ERROR_TYPE_LABEL[errorType];
   const typeTone = ERROR_TYPE_TONE[errorType];
   const fieldLabel = info.fieldLabel ?? info.field ?? '—';
-  const prefersReducedMotion = usePrefersReducedMotion();
-  // animate-page-enter usa transform+opacity em curva. Em reduced-motion
-  // mantemos só o estado final — sem fade/slide — para respeitar a preferência.
-  const enterAnim = prefersReducedMotion ? '' : 'animate-page-enter';
 
   return (
     <div
       role="status"
       aria-live="polite"
-      className={`nexus-card ${enterAnim} border-primary/30 bg-primary/5 flex items-start gap-3 py-2.5 px-3`}
+      className="nexus-card animate-page-enter border-primary/30 bg-primary/5 flex items-start gap-3 py-2.5 px-3"
     >
       <div className="h-7 w-7 rounded-md bg-primary/15 flex items-center justify-center shrink-0">
         <AlertCircle className="h-3.5 w-3.5 text-primary" aria-hidden />
@@ -90,15 +85,14 @@ export function RestoreFeedbackBanner({ info, onJumpToField, onDismiss }: Props)
         )}
       </div>
 
-      <div className="flex items-center gap-1.5 shrink-0">
+      <div className="flex items-center gap-1 shrink-0">
         <button
           type="button"
           onClick={onJumpToField}
-          className="inline-flex items-center gap-1.5 h-8 px-3 rounded-md text-[12px] font-semibold bg-primary text-primary-foreground hover:bg-primary/90 shadow-sm hover:shadow-md transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background"
-          title="Abrir o passo correspondente e focar o campo destacado"
-          autoFocus
+          className="inline-flex items-center gap-1 h-7 px-2 rounded-md text-[11px] font-medium bg-primary/10 text-primary hover:bg-primary/20 transition-colors"
+          title="Rolar até o campo destacado"
         >
-          Corrigir agora <ArrowRight className="h-3.5 w-3.5" />
+          Ir ao campo <ArrowRight className="h-3 w-3" />
         </button>
         <button
           type="button"

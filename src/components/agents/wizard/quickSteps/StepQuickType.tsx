@@ -7,7 +7,7 @@ import {
   type QuickAgentType,
 } from '@/data/quickAgentTemplates';
 import type { QuickAgentForm } from '@/lib/validations/quickAgentSchema';
-import { useFieldHighlight, useFieldHighlightClass } from './useFieldHighlight';
+import { useFieldHighlight, FIELD_HIGHLIGHT_CLS } from './useFieldHighlight';
 
 interface Props {
   form: QuickAgentForm;
@@ -20,7 +20,6 @@ interface Props {
 export function StepQuickType({ form, errors, update, applyTemplate, highlightField }: Props) {
   const gridRef = useRef<HTMLDivElement>(null);
   const pulsing = useFieldHighlight(gridRef, highlightField === 'type');
-  const ringCls = useFieldHighlightClass(pulsing);
   const selectedTemplate = form.type ? QUICK_AGENT_TEMPLATES[form.type as QuickAgentType] : null;
 
   return (
@@ -32,7 +31,7 @@ export function StepQuickType({ form, errors, update, applyTemplate, highlightFi
         </p>
       </div>
 
-      <div ref={gridRef} className={`grid gap-3 sm:grid-cols-2 lg:grid-cols-3 rounded-lg p-2 ${ringCls}`}>
+      <div ref={gridRef} className={`grid gap-3 sm:grid-cols-2 lg:grid-cols-3 rounded-lg p-2 ${pulsing ? FIELD_HIGHLIGHT_CLS : ''}`}>
         {QUICK_AGENT_TYPES.map((t) => {
           const selected = form.type === t.id;
           const tpl = QUICK_AGENT_TEMPLATES[t.id];

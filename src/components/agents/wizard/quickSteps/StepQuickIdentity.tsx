@@ -3,8 +3,8 @@ import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
 import type { QuickAgentForm } from '@/lib/validations/quickAgentSchema';
-import { FIELD_HIGHLIGHT_CLS, FIELD_HIGHLIGHT_CLS_STATIC } from './useFieldHighlight';
-import { usePrefersReducedMotion } from '@/hooks/usePrefersReducedMotion';
+import { FIELD_HIGHLIGHT_CLS } from './useFieldHighlight';
+import { FieldValidationHint, type FieldValidationHintInfo } from './FieldValidationHint';
 
 const EMOJI_SUGGESTIONS = ['🤖', '💬', '✨', '📊', '💼', '🎧', '🔎', '🎼', '🧠', '🚀', '🛡️', '🌟'];
 
@@ -13,6 +13,8 @@ interface Props {
   errors: Partial<Record<keyof QuickAgentForm, string>>;
   update: <K extends keyof QuickAgentForm>(key: K, value: QuickAgentForm[K]) => void;
   highlightField?: keyof QuickAgentForm;
+  /** Resumo do erro de validação que motivou o highlight (após restaurar). */
+  highlightHint?: FieldValidationHintInfo | null;
 }
 
 function FieldError({ msg }: { msg?: string }) {
@@ -20,25 +22,19 @@ function FieldError({ msg }: { msg?: string }) {
   return <p className="text-xs text-destructive mt-1">{msg}</p>;
 }
 
-export function StepQuickIdentity({ form, errors, update, highlightField }: Props) {
+export function StepQuickIdentity({ form, errors, update, highlightField, highlightHint }: Props) {
   // Track which field is currently pulsing — auto-clears after 3s so the
   // visual cue doesn't linger after the user has acknowledged it.
   const [pulsingField, setPulsingField] = useState<keyof QuickAgentForm | null>(null);
   const pulseTimerRef = useRef<number | null>(null);
-  const prefersReducedMotion = usePrefersReducedMotion();
 
   useEffect(() => {
     if (!highlightField) return;
     const id = `qa-${highlightField === 'description' ? 'desc' : highlightField}`;
     const el = document.getElementById(id);
     if (el) {
-      // Smooth scroll + delayed focus respeitam reduced-motion: vão direto.
-      el.scrollIntoView({
-        block: 'center',
-        behavior: prefersReducedMotion ? 'auto' : 'smooth',
-      });
-      const focusDelay = prefersReducedMotion ? 0 : 250;
-      window.setTimeout(() => (el as HTMLElement).focus?.({ preventScroll: true }), focusDelay);
+      el.scrollIntoView({ block: 'center', behavior: 'smooth' });
+      window.setTimeout(() => (el as HTMLElement).focus?.({ preventScroll: true }), 250);
     }
     setPulsingField(highlightField);
     if (pulseTimerRef.current != null) window.clearTimeout(pulseTimerRef.current);
@@ -46,11 +42,21 @@ export function StepQuickIdentity({ form, errors, update, highlightField }: Prop
     return () => {
       if (pulseTimerRef.current != null) window.clearTimeout(pulseTimerRef.current);
     };
-  }, [highlightField, prefersReducedMotion]);
+  }, [highlightField]);
 
-  // Em reduced-motion: ring estático sem keyframe; fora dele: pulse padrão.
-  const ringCls = prefersReducedMotion ? FIELD_HIGHLIGHT_CLS_STATIC : FIELD_HIGHLIGHT_CLS;
-  const hl = (f: keyof QuickAgentForm) => (pulsingField === f ? ` ${ringCls}` : '');
+  const hl = (f: keyof QuickAgentForm) => (pulsingField === f ? ` ${FIELD_HIGHLIGHT_CLS}` : '');
+
+  // Renderiza a hint inline somente para o campo atualmente destacado e
+  // apenas enquanto houver `highlightHint` — assim que o usuário corrige,
+  // o wizard limpa o highlight e a hint desaparece junto.
+  const hintFor = (f: keyof QuickAgentForm) =>
+    highlightField === f && highlightHint ? (
+      <FieldValidationHint
+        info={highlightHint}
+        id={`qa-${f === 'description' ? 'desc' : f}-hint`}
+      />
+    ) : null;
+
 
   return (
     <div className="nexus-card space-y-5">
@@ -69,12 +75,14 @@ export function StepQuickIdentity({ form, errors, update, highlightField }: Prop
             placeholder="Ex: Aurora, Atlas, Pink Sales..."
             maxLength={60}
             aria-invalid={!!errors.name}
+            aria-describedby={highlightField === 'name' && highlightHint ? 'qa-name-hint' : undefined}
             className={`mt-1.5 bg-secondary/50 border-border/50 ${errors.name ? 'border-destructive' : ''}${hl('name')}`}
           />
           <div className="flex justify-between items-start mt-1">
             <FieldError msg={errors.name} />
             <span className="text-[10px] text-muted-foreground ml-auto font-mono">{form.name.length}/60</span>
           </div>
+          {hintFor('name')}
         </div>
 
         <div>
@@ -86,6 +94,7 @@ export function StepQuickIdentity({ form, errors, update, highlightField }: Prop
               onChange={(e) => update('emoji', e.target.value)}
               maxLength={4}
               aria-invalid={!!errors.emoji}
+              aria-describedby={highlightField === 'emoji' && highlightHint ? 'qa-emoji-hint' : undefined}
               className={`w-20 text-center text-xl bg-secondary/50 border-border/50 ${errors.emoji ? 'border-destructive' : ''}${hl('emoji')}`}
             />
             <div className="flex flex-wrap gap-1">
@@ -105,6 +114,7 @@ export function StepQuickIdentity({ form, errors, update, highlightField }: Prop
             </div>
           </div>
           <FieldError msg={errors.emoji} />
+          {hintFor('emoji')}
         </div>
 
         <div>
@@ -117,12 +127,14 @@ export function StepQuickIdentity({ form, errors, update, highlightField }: Prop
             rows={3}
             maxLength={500}
             aria-invalid={!!errors.mission}
+            aria-describedby={highlightField === 'mission' && highlightHint ? 'qa-mission-hint' : undefined}
             className={`mt-1.5 bg-secondary/50 border-border/50 resize-none ${errors.mission ? 'border-destructive' : ''}${hl('mission')}`}
           />
           <div className="flex justify-between items-start mt-1">
             <FieldError msg={errors.mission} />
             <span className="text-[10px] text-muted-foreground ml-auto font-mono">{form.mission.length}/500</span>
           </div>
+          {hintFor('mission')}
         </div>
 
         <div>
@@ -133,12 +145,14 @@ export function StepQuickIdentity({ form, errors, update, highlightField }: Prop
             onChange={(e) => update('description', e.target.value)}
             placeholder="Para listagens e cards"
             maxLength={300}
+            aria-describedby={highlightField === 'description' && highlightHint ? 'qa-desc-hint' : undefined}
             className={`mt-1.5 bg-secondary/50 border-border/50${hl('description')}`}
           />
           <div className="flex justify-between items-start mt-1">
             <FieldError msg={errors.description} />
             <span className="text-[10px] text-muted-foreground ml-auto font-mono">{form.description.length}/300</span>
           </div>
+          {hintFor('description')}
         </div>
       </div>
     </div>
