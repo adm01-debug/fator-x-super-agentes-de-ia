@@ -31,7 +31,7 @@ export function StepQuickType({ form, errors, update, applyTemplate, highlightFi
         </p>
       </div>
 
-      <div ref={gridRef} className={`grid gap-3 sm:grid-cols-2 lg:grid-cols-3 rounded-lg ${highlight ? 'ring-2 ring-warning ring-offset-4 ring-offset-background animate-pulse p-2' : ''}`}>
+      <div ref={gridRef} className={`grid gap-3 sm:grid-cols-2 lg:grid-cols-3 rounded-lg p-2 ${pulsing ? FIELD_HIGHLIGHT_CLS : ''}`}>
         {QUICK_AGENT_TYPES.map((t) => {
           const selected = form.type === t.id;
           const tpl = QUICK_AGENT_TEMPLATES[t.id];
