@@ -44,6 +44,7 @@ const WINDOW_PRESETS = [
   { value: 3, label: '3d' },
   { value: 7, label: '7d' },
   { value: 14, label: '14d' },
+  { value: 30, label: '30d' },
 ] as const;
 
 type WindowValue = (typeof WINDOW_PRESETS)[number]['value'];
