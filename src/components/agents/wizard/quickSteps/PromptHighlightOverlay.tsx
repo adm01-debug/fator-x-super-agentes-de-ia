@@ -95,19 +95,70 @@ export function PromptHighlightOverlay({ prompt, locations, textareaRef, padding
     return out;
   }, [prompt, locations, conflictLines]);
 
-  // Sync scroll with the textarea.
+  // Keep the overlay perfectly aligned with the textarea's scroll position.
+  // We sync on multiple signals because the textarea can scroll without
+  // emitting a `scroll` event in some flows:
+  //  - `scroll`  → user wheel / drag / keyboard navigation
+  //  - `input`   → typing past the viewport auto-scrolls the caret into view
+  //  - `keyup`   → arrow-key caret moves that auto-scroll
+  //  - `select`  → programmatic setSelectionRange after insert
+  //  - ResizeObserver → textarea resized (manual resize handle, layout shift)
+  //  - rAF loop on focus → catches any remaining drift while the user edits
   useEffect(() => {
     const ta = textareaRef.current;
     const ov = overlayRef.current;
     if (!ta || !ov) return;
-    const onScroll = () => {
-      ov.scrollTop = ta.scrollTop;
-      ov.scrollLeft = ta.scrollLeft;
+
+    let rafId: number | null = null;
+    let focused = false;
+
+    const sync = () => {
+      if (ov.scrollTop !== ta.scrollTop) ov.scrollTop = ta.scrollTop;
+      if (ov.scrollLeft !== ta.scrollLeft) ov.scrollLeft = ta.scrollLeft;
     };
-    ta.addEventListener('scroll', onScroll);
-    onScroll();
-    return () => ta.removeEventListener('scroll', onScroll);
-  }, [textareaRef]);
+
+    const tick = () => {
+      sync();
+      if (focused) rafId = window.requestAnimationFrame(tick);
+    };
+
+    const onFocus = () => {
+      focused = true;
+      if (rafId == null) rafId = window.requestAnimationFrame(tick);
+    };
+    const onBlur = () => {
+      focused = false;
+      if (rafId != null) {
+        window.cancelAnimationFrame(rafId);
+        rafId = null;
+      }
+      sync();
+    };
+
+    ta.addEventListener('scroll', sync, { passive: true });
+    ta.addEventListener('input', sync);
+    ta.addEventListener('keyup', sync);
+    ta.addEventListener('select', sync);
+    ta.addEventListener('focus', onFocus);
+    ta.addEventListener('blur', onBlur);
+
+    const ro = new ResizeObserver(sync);
+    ro.observe(ta);
+
+    sync();
+    if (document.activeElement === ta) onFocus();
+
+    return () => {
+      ta.removeEventListener('scroll', sync);
+      ta.removeEventListener('input', sync);
+      ta.removeEventListener('keyup', sync);
+      ta.removeEventListener('select', sync);
+      ta.removeEventListener('focus', onFocus);
+      ta.removeEventListener('blur', onBlur);
+      ro.disconnect();
+      if (rafId != null) window.cancelAnimationFrame(rafId);
+    };
+  }, [textareaRef, prompt]);
 
   // Hide overlay when nothing to show.
   const hasSomething = locations.some((l) => l.status !== 'ok') || (conflictLines?.length ?? 0) > 0;
