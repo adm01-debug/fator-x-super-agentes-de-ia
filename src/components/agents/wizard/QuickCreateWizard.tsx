@@ -193,6 +193,23 @@ export function QuickCreateWizard({ onBack }: QuickCreateWizardProps) {
     });
   };
 
+  const handleRenameDraft = (id: string, newName: string) => {
+    const trimmed = newName.trim();
+    setDraftsStore((prev) => {
+      const next = renameDraft(prev, id, trimmed);
+      saveDrafts(next);
+      return next;
+    });
+    setPendingDrafts((prev) =>
+      prev.map((d) =>
+        d.id === id
+          ? { ...d, form: { ...d.form, name: trimmed }, savedAt: new Date().toISOString() }
+          : d,
+      ),
+    );
+    toast.success('Nome do rascunho atualizado');
+  };
+
   const discardOneDraft = (id: string) => {
     setDraftsStore((prev) => {
       const next = removeDraft(prev, id);
