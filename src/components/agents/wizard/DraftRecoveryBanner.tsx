@@ -403,11 +403,12 @@ export function DraftRecoveryBanner({
             <Button
               size="sm"
               onClick={() => selectedId && onRestore(selectedId)}
-              disabled={!selectedId || blocked}
-              title={blocked ? (selected?.restoreBlockedReason ?? 'Rascunho incompleto demais para retomar') : undefined}
+              disabled={!selectedId}
+              title={blocked ? (selected?.restoreBlockedReason ?? 'Rascunho incompleto — vamos pular direto ao primeiro campo pendente') : 'Restaurar o rascunho selecionado e continuar do primeiro campo pendente'}
               className="gap-1.5 nexus-gradient-bg text-primary-foreground"
             >
-              Continuar selecionado
+              <RotateCcw className="h-3.5 w-3.5" />
+              Restaurar
             </Button>
           );
         })()}
