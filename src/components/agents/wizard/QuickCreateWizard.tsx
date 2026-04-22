@@ -130,6 +130,9 @@ export function QuickCreateWizard({ onBack }: QuickCreateWizardProps) {
   const [pendingDrafts, setPendingDrafts] = useState<DraftEntry[]>([]);
   const [draftDecided, setDraftDecided] = useState(false);
   const [highlightField, setHighlightField] = useState<keyof QuickAgentForm | null>(null);
+  // Resumo visual do erro pós-restauração — exibido junto do highlightField.
+  // Nulo = nenhum feedback ativo. Auto-limpa quando o usuário corrige o campo.
+  const [restoreFeedback, setRestoreFeedback] = useState<import('./RestoreFeedbackBanner').RestoreFeedbackInfo | null>(null);
   const [confirmOpen, setConfirmOpen] = useState(false);
   const [promptCustomLocked, setPromptCustomLocked] = useState(false);
   const [selectedVariant, setSelectedVariant] = useState<import('@/data/quickAgentTemplates').PromptVariantId | null>(null);
