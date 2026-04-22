@@ -15,6 +15,11 @@ interface Props {
   execution: ExecutionGroup | null;
   /** Step index to start at when the dialog opens (clamped to bounds). */
   initialStep?: number;
+  /**
+   * Emitted whenever the active replay step changes (play tick, prev/next,
+   * slider drag, restart). Use to keep an external timeline in sync.
+   */
+  onStepChange?: (step: number) => void;
 }
 
 const LEVEL_ICON: Record<TraceLevel, JSX.Element> = {
@@ -23,7 +28,7 @@ const LEVEL_ICON: Record<TraceLevel, JSX.Element> = {
   error: <XCircle className="h-3.5 w-3.5 text-destructive" aria-hidden />,
 };
 
-export function ReplayDialog({ open, onOpenChange, execution, initialStep = 0 }: Props) {
+export function ReplayDialog({ open, onOpenChange, execution, initialStep = 0, onStepChange }: Props) {
   const [step, setStep] = useState(0);
   const [playing, setPlaying] = useState(false);
   const [speed, setSpeed] = useState(1);
@@ -50,6 +55,13 @@ export function ReplayDialog({ open, onOpenChange, execution, initialStep = 0 }:
     setStep(clamped);
     setPlaying(false);
   }, [open, execution?.session_id, initialStep, total]);
+
+  // Notify parent on every step change while the dialog is open so the external
+  // timeline stays highlighted in sync with the replay.
+  useEffect(() => {
+    if (!open) return;
+    onStepChange?.(step);
+  }, [open, step, onStepChange]);
 
   // Player loop
   useEffect(() => {

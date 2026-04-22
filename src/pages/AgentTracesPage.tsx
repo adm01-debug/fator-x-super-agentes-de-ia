@@ -266,6 +266,7 @@ export default function AgentTracesPage() {
         onOpenChange={setReplayOpen}
         execution={selected}
         initialStep={selectedStep}
+        onStepChange={setSelectedStep}
       />
     </div>
   );
