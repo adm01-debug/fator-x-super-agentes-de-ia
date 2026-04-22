@@ -11,6 +11,12 @@ interface Props {
   paddingLeftPx: number;
   /** 1-indexed line numbers that contain a contradiction (rendered in red). */
   conflictLines?: number[];
+  /**
+   * 0-indexed line numbers to pulse with an emerald band (e.g. the heading
+   * line of a section the user just jumped to / inserted). Auto-clears via
+   * the parent state — this component only renders.
+   */
+  pulseLines?: number[];
 }
 
 /**
