@@ -384,7 +384,7 @@ export function QuickCreateWizard({ onBack }: QuickCreateWizardProps) {
       const target = e.target as HTMLElement;
       const isTyping = target?.tagName === 'INPUT' || target?.tagName === 'TEXTAREA';
       if (e.key === 'Escape' && !isTyping) { e.preventDefault(); goPrev(); }
-      if (e.key === 'Enter' && (e.ctrlKey || e.metaKey) && isLast) { e.preventDefault(); void saveAgent(); }
+      if (e.key === 'Enter' && (e.ctrlKey || e.metaKey) && isLast) { e.preventDefault(); requestCreate(); }
     };
     window.addEventListener('keydown', onKey);
     return () => window.removeEventListener('keydown', onKey);
