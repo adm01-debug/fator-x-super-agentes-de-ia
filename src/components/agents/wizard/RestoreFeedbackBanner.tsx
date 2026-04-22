@@ -45,12 +45,16 @@ export function RestoreFeedbackBanner({ info, onJumpToField, onDismiss }: Props)
   const typeLabel = ERROR_TYPE_LABEL[errorType];
   const typeTone = ERROR_TYPE_TONE[errorType];
   const fieldLabel = info.fieldLabel ?? info.field ?? '—';
+  const prefersReducedMotion = usePrefersReducedMotion();
+  // animate-page-enter usa transform+opacity em curva. Em reduced-motion
+  // mantemos só o estado final — sem fade/slide — para respeitar a preferência.
+  const enterAnim = prefersReducedMotion ? '' : 'animate-page-enter';
 
   return (
     <div
       role="status"
       aria-live="polite"
-      className="nexus-card animate-page-enter border-primary/30 bg-primary/5 flex items-start gap-3 py-2.5 px-3"
+      className={`nexus-card ${enterAnim} border-primary/30 bg-primary/5 flex items-start gap-3 py-2.5 px-3`}
     >
       <div className="h-7 w-7 rounded-md bg-primary/15 flex items-center justify-center shrink-0">
         <AlertCircle className="h-3.5 w-3.5 text-primary" aria-hidden />
