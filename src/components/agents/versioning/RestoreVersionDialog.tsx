@@ -607,6 +607,7 @@ function DiffBlock({ change }: { change: FieldChange }) {
       <div className="flex items-center justify-between gap-2 px-3 py-2 bg-secondary/40 border-b border-border/50">
         <div className="flex items-center gap-2 min-w-0">
           <ChangeKindBadge kind={change.kind} />
+          <RiskBadge risk={change.risk} score={change.impact} showScore />
           <span className="text-xs font-semibold text-foreground truncate">{change.label}</span>
           <span className="text-[10px] font-mono uppercase text-muted-foreground/70">{change.group}</span>
         </div>
