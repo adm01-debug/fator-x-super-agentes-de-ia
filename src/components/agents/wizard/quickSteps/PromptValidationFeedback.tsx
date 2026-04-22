@@ -1,14 +1,17 @@
 import { AlertCircle, AlertTriangle, FileText } from 'lucide-react';
 import { analyzePromptStructure, getPromptIssues, PROMPT_LIMITS } from '@/lib/validations/promptSanitizer';
 import { PromptAutoFixPanel } from './PromptAutoFixPanel';
+import { PromptDiagnosticsPanel } from './PromptDiagnosticsPanel';
 
 interface Props {
   prompt: string;
   /** When provided, shows 1-click auto-fix actions for any detected issues. */
   onApplyFix?: (fixed: string, summary: string) => void;
+  /** When provided, the diagnostic cards expose "Ir para linha X" buttons. */
+  onJumpToLine?: (line: number) => void;
 }
 
-export function PromptValidationFeedback({ prompt, onApplyFix }: Props) {
+export function PromptValidationFeedback({ prompt, onApplyFix, onJumpToLine }: Props) {
   const stats = analyzePromptStructure(prompt);
   const issues = getPromptIssues(prompt);
 
@@ -90,6 +93,9 @@ export function PromptValidationFeedback({ prompt, onApplyFix }: Props) {
           ))}
         </div>
       )}
+
+      {/* Detailed diagnostics — explains exactly which rule fired, where, and a sample */}
+      <PromptDiagnosticsPanel prompt={prompt} onJumpToLine={onJumpToLine} onApplyFix={onApplyFix} />
 
       {/* Auto-fix actions — surfaces 1-click corrections with diff preview */}
       {onApplyFix && <PromptAutoFixPanel prompt={prompt} onApply={onApplyFix} />}
