@@ -25,6 +25,7 @@ import { CompiledPromptPreview } from './CompiledPromptPreview';
 import { PromptSectionChecklist } from './PromptSectionChecklist';
 import { PromptSectionUsage } from './PromptSectionUsage';
 import { PromptVariantSelector } from './PromptVariantSelector';
+import { PromptLockEventLog, type PromptLockEvent } from './PromptLockEventLog';
 import { PromptValidationFeedback } from './PromptValidationFeedback';
 import { AgentLivePreviewCard } from './AgentLivePreviewCard';
 import { QuickAgentTestPanel } from './QuickAgentTestPanel';
