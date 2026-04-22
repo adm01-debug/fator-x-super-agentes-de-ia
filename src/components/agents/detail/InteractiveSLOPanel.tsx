@@ -100,6 +100,9 @@ export function InteractiveSLOPanel({ agentId, slo, traces, daily, onDayClick }:
     key: keyof SLOTargetsConfig;
     label: string;
     value: number;
+    baseline: number;
+    /** true = lower is better (latency); false = higher is better (availability) */
+    lowerIsBetter: boolean;
     unit: string;
     min: number;
     max: number;
@@ -107,19 +110,28 @@ export function InteractiveSLOPanel({ agentId, slo, traces, daily, onDayClick }:
     status: Status;
     valueFmt: (v: number) => string;
     targetFmt: (v: number) => string;
+    deltaFmt: (delta: number) => string;
   }> = [
-    { key: 'p50', label: 'Latência p50', value: effectiveSlo.p50, unit: 'ms', min: 100, max: 3000, step: 50,
+    { key: 'p50', label: 'Latência p50', value: effectiveSlo.p50, baseline: BASELINE_MOCK.p50, lowerIsBetter: true,
+      unit: 'ms', min: 100, max: 3000, step: 50,
       status: latencyStatus(effectiveSlo.p50, targets.p50),
-      valueFmt: (v) => `${formatNumber(Math.round(v))}ms`, targetFmt: (v) => `${formatNumber(v)}ms` },
-    { key: 'p95', label: 'Latência p95', value: effectiveSlo.p95, unit: 'ms', min: 500, max: 5000, step: 100,
+      valueFmt: (v) => `${formatNumber(Math.round(v))}ms`, targetFmt: (v) => `${formatNumber(v)}ms`,
+      deltaFmt: (d) => `${d > 0 ? '+' : ''}${formatNumber(Math.round(d))}ms` },
+    { key: 'p95', label: 'Latência p95', value: effectiveSlo.p95, baseline: BASELINE_MOCK.p95, lowerIsBetter: true,
+      unit: 'ms', min: 500, max: 5000, step: 100,
       status: latencyStatus(effectiveSlo.p95, targets.p95),
-      valueFmt: (v) => `${formatNumber(Math.round(v))}ms`, targetFmt: (v) => `${formatNumber(v)}ms` },
-    { key: 'p99', label: 'Latência p99', value: effectiveSlo.p99, unit: 'ms', min: 1000, max: 10000, step: 100,
+      valueFmt: (v) => `${formatNumber(Math.round(v))}ms`, targetFmt: (v) => `${formatNumber(v)}ms`,
+      deltaFmt: (d) => `${d > 0 ? '+' : ''}${formatNumber(Math.round(d))}ms` },
+    { key: 'p99', label: 'Latência p99', value: effectiveSlo.p99, baseline: BASELINE_MOCK.p99, lowerIsBetter: true,
+      unit: 'ms', min: 1000, max: 10000, step: 100,
       status: latencyStatus(effectiveSlo.p99, targets.p99),
-      valueFmt: (v) => `${formatNumber(Math.round(v))}ms`, targetFmt: (v) => `${formatNumber(v)}ms` },
-    { key: 'availability', label: 'Disponibilidade', value: effectiveSlo.successRate, unit: '%', min: 95, max: 100, step: 0.1,
+      valueFmt: (v) => `${formatNumber(Math.round(v))}ms`, targetFmt: (v) => `${formatNumber(v)}ms`,
+      deltaFmt: (d) => `${d > 0 ? '+' : ''}${formatNumber(Math.round(d))}ms` },
+    { key: 'availability', label: 'Disponibilidade', value: effectiveSlo.successRate, baseline: BASELINE_MOCK.successRate, lowerIsBetter: false,
+      unit: '%', min: 95, max: 100, step: 0.1,
       status: availabilityStatus(effectiveSlo.successRate, targets.availability),
-      valueFmt: (v) => `${v.toFixed(2)}%`, targetFmt: (v) => `${v.toFixed(1)}%` },
+      valueFmt: (v) => `${v.toFixed(2)}%`, targetFmt: (v) => `${v.toFixed(1)}%`,
+      deltaFmt: (d) => `${d > 0 ? '+' : ''}${d.toFixed(2)} p.p.` },
   ];
 
   const burnStyle = STATUS[burn.status];
@@ -162,6 +174,16 @@ export function InteractiveSLOPanel({ agentId, slo, traces, daily, onDayClick }:
               );
             })}
           </div>
+          <Button
+            variant={compareMode ? 'default' : 'outline'}
+            size="sm"
+            className="gap-1.5 text-xs h-7"
+            onClick={() => setCompareMode((v) => !v)}
+            aria-pressed={compareMode}
+            aria-label="Alternar modo de comparação com baseline"
+          >
+            <GitCompare className="h-3 w-3" /> {compareMode ? 'Comparando' : 'Comparar baseline'}
+          </Button>
           <Button variant="ghost" size="sm" className="gap-1.5 text-xs h-7" onClick={reset}>
             <RotateCcw className="h-3 w-3" /> Resetar metas
           </Button>
