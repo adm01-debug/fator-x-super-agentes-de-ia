@@ -127,12 +127,14 @@ export function StepQuickIdentity({ form, errors, update, highlightField, highli
             rows={3}
             maxLength={500}
             aria-invalid={!!errors.mission}
+            aria-describedby={highlightField === 'mission' && highlightHint ? 'qa-mission-hint' : undefined}
             className={`mt-1.5 bg-secondary/50 border-border/50 resize-none ${errors.mission ? 'border-destructive' : ''}${hl('mission')}`}
           />
           <div className="flex justify-between items-start mt-1">
             <FieldError msg={errors.mission} />
             <span className="text-[10px] text-muted-foreground ml-auto font-mono">{form.mission.length}/500</span>
           </div>
+          {hintFor('mission')}
         </div>
 
         <div>
