@@ -33,13 +33,23 @@ interface Props {
   form: QuickAgentForm;
   errors: Partial<Record<keyof QuickAgentForm, string>>;
   update: <K extends keyof QuickAgentForm>(key: K, value: QuickAgentForm[K]) => void;
+  /**
+   * Manual prompt edits (typing, paste, snippet insert, history restore)
+   * go through this — the wizard uses it to flip the "custom locked" flag.
+   */
+  onPromptManualEdit: (next: string) => void;
   onRestore: () => void;
   onApplyVariant: (id: PromptVariantId) => void;
+  /** When true, the variant selector is locked into "customizado" mode. */
+  customLocked: boolean;
+  /** Releases the lock without changing the prompt text. */
+  onUnlockCustom: () => void;
   highlightField?: keyof QuickAgentForm;
 }
 
-export function StepQuickPrompt({ form, errors, update, onRestore, onApplyVariant, highlightField }: Props) {
-  const activeVariant = detectPromptVariant(form.type as QuickAgentType, form.prompt);
+export function StepQuickPrompt({ form, errors, update, onPromptManualEdit, onRestore, onApplyVariant, customLocked, onUnlockCustom, highlightField }: Props) {
+  const detected = detectPromptVariant(form.type as QuickAgentType, form.prompt);
+  const activeVariant = customLocked ? null : detected;
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const promptHighlight = highlightField === 'prompt';
   // Section-level pulse highlight (set briefly after a "jump to section" action).
