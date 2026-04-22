@@ -72,6 +72,7 @@ function wordCount(text: string): number {
 export function PromptSectionChecklist({
   prompt,
   onInsert,
+  onInsertBatch,
   onJumpToSection,
   activeVariantPrompt,
   activeVariantLabel,
