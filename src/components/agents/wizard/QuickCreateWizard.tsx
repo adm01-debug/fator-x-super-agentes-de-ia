@@ -34,6 +34,7 @@ import { DraftRecoveryBanner, type DraftBannerEntry } from './DraftRecoveryBanne
 import { DangerousActionDialog } from '@/components/rbac/DangerousActionDialog';
 import { AlertTriangle } from 'lucide-react';
 import { logAudit } from '@/services/auditLogService';
+import { useChecklistAutoUnlock } from '@/hooks/useChecklistAutoUnlock';
 import {
   Dialog,
   DialogContent,
