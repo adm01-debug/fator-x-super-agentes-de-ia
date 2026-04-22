@@ -42,9 +42,18 @@ interface Props {
 }
 
 export function RestoreVersionDialog({ open, onOpenChange, source, current, nextVersionNumber, restoring, onConfirm }: Props) {
+  const navigate = useNavigate();
   const [copyPrompt, setCopyPrompt] = useState(true);
   const [copyTools, setCopyTools] = useState(true);
   const [copyModel, setCopyModel] = useState(false);
+
+  // Atalhos para ir direto às telas de configuração do agente. Usam deep-link
+  // por query param ?tab=... no AgentBuilder. Fechamos o dialog antes de
+  // navegar para evitar overlay travado e oferecer uma transição limpa.
+  const goToBuilder = (tab: 'prompt' | 'tools' | 'brain') => {
+    onOpenChange(false);
+    navigate(`/builder/${source.agent_id}?tab=${tab}`);
+  };
   // "Ver detalhes" abre uma sub-view dentro do mesmo Dialog para mostrar o
   // diff em texto completo (antes/depois) com realce e rolagem. Mantemos no
   // mesmo Dialog para preservar o estado dos toggles.
