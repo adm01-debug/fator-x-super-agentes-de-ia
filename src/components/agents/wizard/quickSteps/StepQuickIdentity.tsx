@@ -4,6 +4,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
 import type { QuickAgentForm } from '@/lib/validations/quickAgentSchema';
 import { FIELD_HIGHLIGHT_CLS } from './useFieldHighlight';
+import { expandAncestorContainers } from './expandAncestorContainers';
 import { FieldValidationHint, type FieldValidationHintInfo } from './FieldValidationHint';
 
 const EMOJI_SUGGESTIONS = ['🤖', '💬', '✨', '📊', '💼', '🎧', '🔎', '🎼', '🧠', '🚀', '🛡️', '🌟'];
