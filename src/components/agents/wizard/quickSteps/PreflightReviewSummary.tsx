@@ -186,8 +186,48 @@ export function PreflightReviewSummary({ form, compact = false, onJumpToSection,
         )}
       </div>
 
+      {/* Conflitos detectados */}
+      {hasContradictions && (
+        <div className="space-y-1.5">
+          <p className="text-[10px] uppercase tracking-wider text-nexus-amber flex items-center gap-1.5">
+            <GitMerge className="h-3 w-3" />
+            Conflitos detectados ({contradictions.length})
+          </p>
+          <div className="space-y-1.5">
+            {contradictions.map((c, idx) => {
+              const canJump = !!onJumpToLine;
+              const Tag: React.ElementType = canJump ? 'button' : 'div';
+              return (
+                <Tag
+                  key={idx}
+                  type={canJump ? 'button' : undefined}
+                  onClick={canJump ? () => onJumpToLine!(c.lineA) : undefined}
+                  className={cn(
+                    'w-full text-left rounded-md border border-nexus-amber/40 bg-nexus-amber/10 px-2.5 py-1.5 space-y-1',
+                    canJump && 'hover:bg-nexus-amber/20 hover:border-nexus-amber/60 cursor-pointer transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-nexus-amber/50',
+                  )}
+                  title={canJump ? `Ir para a linha ${c.lineA} no editor` : undefined}
+                >
+                  <div className="flex items-center gap-1.5 text-[10px] font-mono">
+                    <span className="px-1.5 py-0.5 rounded-full bg-nexus-amber/20 text-nexus-amber font-semibold">
+                      {CONTRADICTION_KIND_LABEL[c.kind]}
+                    </span>
+                    <span className="text-muted-foreground">linha {c.lineA} ↔ {c.lineB}</span>
+                  </div>
+                  <p className="text-[11px] text-nexus-amber/90 leading-snug">{c.reason}</p>
+                  <div className="text-[10px] font-mono text-muted-foreground/80 space-y-0.5">
+                    <div className="truncate">A: {c.snippetA}</div>
+                    <div className="truncate">B: {c.snippetB}</div>
+                  </div>
+                </Tag>
+              );
+            })}
+          </div>
+        </div>
+      )}
+
       {/* Warnings */}
-      {(hasUnresolved || hasMissingSections || hasThinSections) && (
+      {(hasUnresolved || hasMissingSections || hasThinSections || hasContradictions) && (
         <div className="text-[11px] text-nexus-amber bg-nexus-amber/10 border border-nexus-amber/30 rounded-md px-2.5 py-1.5 space-y-0.5">
           {hasMissingSections && (
             <p>
@@ -202,6 +242,11 @@ export function PreflightReviewSummary({ form, compact = false, onJumpToSection,
             <p>
               ⚠ Conteúdo insuficiente em:{' '}
               {thinSections.map((t) => `${t.label} (${t.thinReason})`).join('; ')}.
+            </p>
+          )}
+          {hasContradictions && (
+            <p>
+              ⚠ {contradictions.length} conflito(s) entre regras — resolva antes de criar.
             </p>
           )}
           {hasUnresolved && (
