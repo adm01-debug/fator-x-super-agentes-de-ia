@@ -18,6 +18,13 @@ import { VersionComparePanel } from "@/components/agents/versioning/VersionCompa
 import { NewVersionDialog } from "@/components/agents/versioning/NewVersionDialog";
 import { TimelinePresetBar } from "@/components/agents/versioning/TimelinePresetBar";
 import { TIMELINE_PRESETS, getPresetById, matchesPreset } from "@/components/agents/versioning/timelineFilters";
+import {
+  TimelineRangeFilter,
+  filterByRange,
+  parseRange,
+  serializeRange,
+  type TimelineRange,
+} from "@/components/agents/versioning/TimelineRangeFilter";
 
 export default function AgentVersioningPage() {
   const { id } = useParams();
@@ -55,6 +62,15 @@ export default function AgentVersioningPage() {
     updateParams((p) => { m === 'compare' ? p.set('mode', 'compare') : p.delete('mode'); });
   const setPreset = (pid: string) =>
     updateParams((p) => { pid && pid !== 'all' ? p.set('preset', pid) : p.delete('preset'); });
+
+  // Intervalo (versão ou tempo) também persiste na URL via `range=` para
+  // manter o link compartilhável com a mesma "fatia" da timeline.
+  const range: TimelineRange = parseRange(searchParams.get('range'));
+  const setRange = (r: TimelineRange) =>
+    updateParams((p) => {
+      const s = serializeRange(r);
+      s ? p.set('range', s) : p.delete('range');
+    });
 
   const { data: agent } = useQuery({
     queryKey: ['agent', id],
@@ -108,9 +124,18 @@ export default function AgentVersioningPage() {
     [versions, selectedId, aId, bId],
   );
   const filteredVersions = useMemo(() => {
-    if (activePreset.id === 'all') return versions;
-    return versions.filter((v) => pinnedIds.has(v.id) || matchesPreset(v, activePreset));
-  }, [versions, activePreset, pinnedIds]);
+    let list = versions;
+    if (range.mode !== 'off') {
+      list = filterByRange(list, range);
+      // Mantém pinned (current/sel/A/B) para não quebrar a navegação ativa.
+      const pinned = versions.filter((v) => pinnedIds.has(v.id) && !list.some((x) => x.id === v.id));
+      list = [...list, ...pinned].sort((a, b) => b.version - a.version);
+    }
+    if (activePreset.id !== 'all') {
+      list = list.filter((v) => pinnedIds.has(v.id) || matchesPreset(v, activePreset));
+    }
+    return list;
+  }, [versions, activePreset, pinnedIds, range]);
   const presetCounts = useMemo(() => {
     const counts: Record<string, number> = {};
     for (const preset of TIMELINE_PRESETS) {
@@ -216,6 +241,28 @@ export default function AgentVersioningPage() {
               onChange={setPreset}
               counts={presetCounts}
             />
+            <div className="flex items-center gap-1.5 mb-2">
+              <span className="text-[10px] uppercase tracking-wider text-muted-foreground font-semibold">
+                Intervalo
+              </span>
+              <TimelineRangeFilter range={range} onChange={setRange} versions={versions} />
+              {(versionA && versionB) && range.mode !== 'version' && (
+                <Button
+                  type="button"
+                  size="sm"
+                  variant="ghost"
+                  className="h-6 px-2 text-[10px] text-muted-foreground hover:text-foreground"
+                  onClick={() => setRange({
+                    mode: 'version',
+                    vMin: Math.min(versionA.version, versionB.version),
+                    vMax: Math.max(versionA.version, versionB.version),
+                  })}
+                  title="Filtrar timeline para o intervalo entre A e B"
+                >
+                  entre A↔B
+                </Button>
+              )}
+            </div>
             <VersionTimeline
               versions={filteredVersions}
               selectedId={selectedId}
@@ -226,9 +273,11 @@ export default function AgentVersioningPage() {
               onPickB={(vid) => { setBId(vid); if (aId && vid !== aId) setMode('compare'); }}
               highlightId={highlightId}
             />
-            {activePreset.id !== 'all' && filteredVersions.length < versions.length && (
+            {(activePreset.id !== 'all' || range.mode !== 'off') && filteredVersions.length < versions.length && (
               <p className="text-[10px] text-muted-foreground mt-2 px-1">
-                Mostrando {filteredVersions.length} de {versions.length} versões — preset "{activePreset.label}".
+                Mostrando {filteredVersions.length} de {versions.length} versões
+                {activePreset.id !== 'all' && <> · preset "{activePreset.label}"</>}
+                {range.mode !== 'off' && <> · intervalo ativo</>}.
               </p>
             )}
           </div>
