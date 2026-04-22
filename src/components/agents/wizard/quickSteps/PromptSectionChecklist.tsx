@@ -10,7 +10,11 @@ import { cn } from '@/lib/utils';
 
 interface Props {
   prompt: string;
-  onInsert: (snippet: string) => void;
+  /**
+   * Insert a snippet at the canonical position for `key` (or append if no key).
+   * The parent is responsible for actually splicing into the prompt string.
+   */
+  onInsert: (snippet: string, key?: PromptSectionKey) => void;
   /**
    * Called when the user wants to jump the editor to a specific section.
    * If the section is missing, `snippetIfMissing` is provided so the parent
@@ -60,10 +64,11 @@ export function PromptSectionChecklist({ prompt, onInsert, onJumpToSection }: Pr
               size="sm"
               variant="outline"
               onClick={() => {
-                const combined = incompleteKeys
-                  .map((k) => SECTION_SNIPPETS[k])
-                  .join('');
-                onInsert(combined);
+                // Insert each pending section AT its canonical position, in order.
+                // Parent handles the actual splice via onInsert(snippet, key).
+                for (const k of incompleteKeys) {
+                  onInsert(SECTION_SNIPPETS[k], k);
+                }
               }}
               className="h-7 gap-1.5 text-[11px] border-nexus-amber/40 text-nexus-amber hover:bg-nexus-amber/10 hover:text-nexus-amber hover:border-nexus-amber/60"
               aria-label={`Inserir esqueletos de ${incompleteKeys.length} ${incompleteKeys.length === 1 ? 'seção pendente' : 'seções pendentes'}`}
@@ -147,7 +152,8 @@ export function PromptSectionChecklist({ prompt, onInsert, onJumpToSection }: Pr
                         // Insert + jump in a single action.
                         onJumpToSection(r.key, SECTION_SNIPPETS[r.key]);
                       } else {
-                        onInsert(SECTION_SNIPPETS[r.key]);
+                        // Splice at canonical position via key-aware onInsert.
+                        onInsert(SECTION_SNIPPETS[r.key], r.key);
                         if (onJumpToSection) onJumpToSection(r.key);
                       }
                     }}
