@@ -6,6 +6,7 @@ import {
   type QuickAgentType,
   type PromptVariantId,
 } from '@/data/quickAgentTemplates';
+import { PromptUnlockDiffDialog } from './PromptUnlockDiffDialog';
 
 interface Props {
   type: QuickAgentType;
@@ -20,6 +21,8 @@ interface Props {
   customLocked?: boolean;
   /** Called when the user clicks "Sair do modo customizado". */
   onUnlock?: () => void;
+  /** Current prompt text — needed to render the unlock diff preview. */
+  currentPrompt?: string;
 }
 
 const ICONS = {
