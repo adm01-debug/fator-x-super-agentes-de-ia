@@ -197,6 +197,7 @@ export function AgentRichMetrics({ agentId, agentName, days = 14 }: Props) {
         <div className="lg:col-span-2">
           <InteractiveSLOPanel
             agentId={agentId}
+            agentName={agentName}
             slo={slo}
             traces={traces}
             daily={daily}
