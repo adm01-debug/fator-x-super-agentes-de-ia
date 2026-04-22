@@ -362,18 +362,23 @@ export function DraftRecoveryBanner({
                 </div>
               </div>
 
-              <button
-                type="button"
-                onClick={(e) => {
-                  e.stopPropagation();
-                  onDiscardOne(d.id);
-                }}
-                className="opacity-60 hover:opacity-100 hover:text-destructive transition shrink-0 p-1 rounded-md hover:bg-destructive/10"
-                aria-label={`Descartar rascunho ${subjectOf(d.summary)}`}
-                title="Descartar este rascunho"
-              >
-                <X className="h-3.5 w-3.5" />
-              </button>
+              <span onClick={(e) => e.stopPropagation()} onKeyDown={(e) => e.stopPropagation()}>
+                <ConfirmDialog
+                  trigger={
+                    <button
+                      type="button"
+                      className="opacity-60 hover:opacity-100 hover:text-destructive transition shrink-0 p-1 rounded-md hover:bg-destructive/10"
+                      aria-label={`Descartar rascunho ${subjectOf(d.summary)}`}
+                      title="Descartar este rascunho"
+                    >
+                      <X className="h-3.5 w-3.5" />
+                    </button>
+                  }
+                  {...discardCopy(d.summary.name)}
+                  confirmLabel="Descartar"
+                  onConfirm={() => onDiscardOne(d.id)}
+                />
+              </span>
             </div>
           );
         })}
