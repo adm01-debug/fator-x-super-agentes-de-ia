@@ -40,6 +40,7 @@ export function PromptHighlightOverlay({ prompt, locations, textareaRef, padding
     const lineStatus = new Map<number, { kind: 'thin' | 'ok'; label: string }>();
     const ghostInserts: { afterChar: number; label: string }[] = [];
     const conflictSet = new Set<number>((conflictLines ?? []).map((n) => n - 1));
+    const pulseSet = new Set<number>(pulseLines ?? []);
 
     for (const loc of locations) {
       if (loc.status === 'thin') {
