@@ -13,6 +13,8 @@ import { AgentRichMetrics } from "@/components/agents/detail/AgentRichMetrics";
 import { SimulationResultDialog } from "@/components/agents/detail/SimulationResultDialog";
 import { SavedTestRunsPanel } from "@/components/agents/detail/SavedTestRunsPanel";
 import { RestoreDiffPreview } from "@/components/agents/detail/RestoreDiffPreview";
+import { RestoreChangelogEditor, buildAutoSummary } from "@/components/agents/detail/RestoreChangelogEditor";
+import { computeRestoreDiff } from "@/components/agents/detail/restoreDiffHelpers";
 import { simulateAgentRun, type SimulationSummary } from "@/services/agentTestSimulationService";
 import {
   AlertDialog, AlertDialogContent, AlertDialogHeader, AlertDialogFooter,
