@@ -93,6 +93,31 @@ function formatTokens(tokens: number): string {
   return String(tokens);
 }
 
+// ──────── Filter Helpers ────────
+
+type StatusFilter = 'success' | 'warning' | 'error';
+type KindFilter = 'llm' | 'tool' | 'guardrail' | 'other';
+
+const STATUS_FILTER_META: Record<StatusFilter, { label: string; icon: string; color: string; matches: (s: string) => boolean }> = {
+  success: { label: 'Sucesso', icon: '✓', color: 'hsl(var(--nexus-emerald))', matches: (s) => s === 'completed' || s === 'success' || s === 'ok' },
+  warning: { label: 'Atenção', icon: '⚠', color: 'hsl(var(--nexus-yellow))', matches: (s) => s === 'pending' || s === 'running' || s === 'skipped' || s === 'warning' },
+  error:   { label: 'Falha',   icon: '✗', color: 'hsl(var(--destructive))',  matches: (s) => s === 'failed' || s === 'error' },
+};
+
+const KIND_FILTER_META: Record<KindFilter, { label: string; matches: (nodeType: string) => boolean }> = {
+  llm:       { label: 'LLM',       matches: (t) => /llm|model|gpt|gemini|claude|chat|completion|prompt/i.test(t) },
+  tool:      { label: 'Tool',      matches: (t) => /tool|function|action|api|webhook|http|skill/i.test(t) },
+  guardrail: { label: 'Guardrail', matches: (t) => /guard|policy|filter|moderation|safety|validate/i.test(t) },
+  other:     { label: 'Outros',    matches: () => true }, // fallback handled separately
+};
+
+function classifyKind(nodeType: string): KindFilter {
+  if (KIND_FILTER_META.llm.matches(nodeType)) return 'llm';
+  if (KIND_FILTER_META.tool.matches(nodeType)) return 'tool';
+  if (KIND_FILTER_META.guardrail.matches(nodeType)) return 'guardrail';
+  return 'other';
+}
+
 // ──────── Main Component ────────
 
 export function WorkflowTimeTravelPanel({
@@ -106,6 +131,10 @@ export function WorkflowTimeTravelPanel({
   const [loading, setLoading] = useState(true);
   const [forking, setForking] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  // Filters: empty Set = "show all".
+  const [statusFilters, setStatusFilters] = useState<Set<StatusFilter>>(new Set());
+  const [kindFilters, setKindFilters] = useState<Set<KindFilter>>(new Set());
 
   // Compare mode: when active, clicking a step picks A then B (round-robin).
   const [compareMode, setCompareMode] = useState(false);
