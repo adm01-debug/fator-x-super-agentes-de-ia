@@ -450,16 +450,85 @@ export function WorkflowTimeTravelPanel({
         </div>
       )}
 
+      {/* Filters */}
+      <div className="flex flex-wrap items-center gap-2 px-1">
+        <div className="flex items-center gap-1.5 text-[11px] text-muted-foreground">
+          <Filter className="w-3.5 h-3.5" />
+          <span>Status:</span>
+        </div>
+        {(Object.keys(STATUS_FILTER_META) as StatusFilter[]).map((s) => {
+          const meta = STATUS_FILTER_META[s];
+          const active = statusFilters.has(s);
+          const count = statusCounts[s];
+          return (
+            <Toggle
+              key={s}
+              size="sm"
+              pressed={active}
+              onPressedChange={() => toggleStatus(s)}
+              disabled={count === 0}
+              className="h-6 px-2 text-[11px] gap-1 data-[state=on]:bg-primary/15 data-[state=on]:text-foreground border border-border/60 data-[state=on]:border-primary/50"
+              aria-label={`Filtrar ${meta.label}`}
+            >
+              <span style={{ color: meta.color }}>{meta.icon}</span>
+              {meta.label}
+              <span className="text-muted-foreground">({count})</span>
+            </Toggle>
+          );
+        })}
+
+        <div className="w-px h-4 bg-border mx-1" />
+
+        <div className="flex items-center gap-1.5 text-[11px] text-muted-foreground">
+          <span>Tipo:</span>
+        </div>
+        {(Object.keys(KIND_FILTER_META) as KindFilter[]).map((k) => {
+          const active = kindFilters.has(k);
+          const count = kindCounts[k];
+          return (
+            <Toggle
+              key={k}
+              size="sm"
+              pressed={active}
+              onPressedChange={() => toggleKind(k)}
+              disabled={count === 0}
+              className="h-6 px-2 text-[11px] gap-1 data-[state=on]:bg-nexus-purple/15 data-[state=on]:text-foreground border border-border/60 data-[state=on]:border-nexus-purple/50"
+              aria-label={`Filtrar ${KIND_FILTER_META[k].label}`}
+            >
+              {KIND_FILTER_META[k].label}
+              <span className="text-muted-foreground">({count})</span>
+            </Toggle>
+          );
+        })}
+
+        {activeFilterCount > 0 && (
+          <Button
+            size="sm"
+            variant="ghost"
+            className="h-6 px-2 text-[11px] text-muted-foreground hover:text-foreground ml-auto"
+            onClick={clearFilters}
+          >
+            <X className="w-3 h-3 mr-1" />
+            Limpar ({activeFilterCount})
+          </Button>
+        )}
+      </div>
+
       {/* Timeline */}
       <Card className="bg-card border-border">
         <CardContent className="p-0">
           <ScrollArea className="h-[400px]">
             <div className="p-4 space-y-1">
-              {timeline.map((entry, idx) => {
+              {filteredTimeline.length === 0 && timeline.length > 0 && (
+                <div className="text-center py-12 text-xs text-muted-foreground">
+                  Nenhum step corresponde aos filtros selecionados.
+                </div>
+              )}
+              {filteredTimeline.map((entry, idx) => {
                 const statusCfg = STATUS_CONFIG[entry.status] ?? STATUS_CONFIG.pending;
                 const StatusIcon = statusCfg.icon;
                 const isSelected = selectedCheckpoint === entry.id;
-                const isLast = idx === timeline.length - 1;
+                const isLast = idx === filteredTimeline.length - 1;
 
                 const isPickedA = compareMode && compareAId === entry.id;
                 const isPickedB = compareMode && compareBId === entry.id;
