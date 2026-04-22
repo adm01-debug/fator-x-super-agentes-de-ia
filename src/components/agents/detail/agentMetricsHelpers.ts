@@ -261,3 +261,65 @@ export function buildViolationTimeline(
 
   return Array.from(map.values());
 }
+
+/**
+ * Builds a violation timeline divided into N buckets covering the last `windowMs`.
+ * Buckets are labeled as "HH:mm" for sub-day windows and "DD/MM" otherwise.
+ * Useful for ad-hoc evaluation windows (1h, 6h, 24h, 7d, 30d…).
+ */
+export function buildViolationBuckets(
+  traces: AgentTrace[],
+  targets: { p95: number; p99: number },
+  windowMs: number,
+  bucketCount = 14,
+): ViolationDay[] {
+  const now = Date.now();
+  const start = now - windowMs;
+  const bucketMs = windowMs / bucketCount;
+  const useTimeLabel = windowMs <= 24 * 60 * 60 * 1000;
+
+  const buckets: ViolationDay[] = [];
+  for (let i = 0; i < bucketCount; i++) {
+    const bucketStart = new Date(start + i * bucketMs);
+    let label: string;
+    if (useTimeLabel) {
+      label = `${String(bucketStart.getHours()).padStart(2, '0')}:${String(bucketStart.getMinutes()).padStart(2, '0')}`;
+    } else {
+      label = `${String(bucketStart.getDate()).padStart(2, '0')}/${String(bucketStart.getMonth() + 1).padStart(2, '0')}`;
+    }
+    buckets.push({
+      date: bucketStart.toISOString(),
+      label,
+      p95Violations: 0,
+      p99Violations: 0,
+      errors: 0,
+      total: 0,
+    });
+  }
+
+  traces.forEach((t) => {
+    const created = (t as { created_at?: string }).created_at;
+    if (!created) return;
+    const ts = new Date(created).getTime();
+    if (ts < start || ts > now) return;
+    const idx = Math.min(bucketCount - 1, Math.max(0, Math.floor((ts - start) / bucketMs)));
+    const b = buckets[idx];
+    b.total += 1;
+    const lat = Number(t.latency_ms ?? 0);
+    if (lat > targets.p99) b.p99Violations += 1;
+    else if (lat > targets.p95) b.p95Violations += 1;
+    if (t.level === 'error' || t.level === 'critical') b.errors += 1;
+  });
+
+  return buckets;
+}
+
+/** Filtra traces que caem dentro da janela de `windowMs` a partir de agora. */
+export function filterTracesByWindow(traces: AgentTrace[], windowMs: number): AgentTrace[] {
+  const cutoff = Date.now() - windowMs;
+  return traces.filter((t) => {
+    const created = (t as { created_at?: string }).created_at;
+    if (!created) return false;
+    return new Date(created).getTime() >= cutoff;
+  });
+}
