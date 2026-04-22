@@ -55,6 +55,10 @@ function NameLabelOrEditor({ draft, isEditing, onStartEdit, onCancel, onConfirm 
   const [value, setValue] = useState(draft.summary.name);
   const [error, setError] = useState<string | null>(null);
   const inputRef = useRef<HTMLInputElement>(null);
+  // Skip blur-save when the blur was caused by clicking the explicit
+  // Confirm/Cancel buttons (they handle the action themselves) — otherwise
+  // we'd double-fire onConfirm or fight the cancel.
+  const skipNextBlurRef = useRef(false);
 
   useEffect(() => {
     if (isEditing) {
@@ -75,7 +79,19 @@ function NameLabelOrEditor({ draft, isEditing, onStartEdit, onCancel, onConfirm 
 
   const onKey = (e: ReactKeyboardEvent<HTMLInputElement>) => {
     if (e.key === 'Enter') { e.preventDefault(); submit(); }
-    if (e.key === 'Escape') { e.preventDefault(); onCancel(); }
+    if (e.key === 'Escape') { e.preventDefault(); skipNextBlurRef.current = true; onCancel(); }
+  };
+
+  // Auto-save on blur when the value is valid and actually changed.
+  // - Invalid → silently revert to previous name (don't trap the user with a stale edit).
+  // - Unchanged → just close the editor without firing a useless save.
+  // - Valid + changed → commit, same as pressing Enter.
+  const handleBlur = () => {
+    if (skipNextBlurRef.current) { skipNextBlurRef.current = false; return; }
+    const trimmed = value.trim();
+    if (trimmed === draft.summary.name.trim()) { onCancel(); return; }
+    if (validateDraftName(value)) { onCancel(); return; }
+    onConfirm(trimmed);
   };
 
   if (isEditing) {
@@ -87,6 +103,7 @@ function NameLabelOrEditor({ draft, isEditing, onStartEdit, onCancel, onConfirm 
             value={value}
             onChange={(e) => { setValue(e.target.value); if (error) setError(null); }}
             onKeyDown={onKey}
+            onBlur={handleBlur}
             maxLength={60}
             aria-invalid={!!error}
             aria-label="Novo nome do agente"
@@ -94,6 +111,9 @@ function NameLabelOrEditor({ draft, isEditing, onStartEdit, onCancel, onConfirm 
           />
           <button
             type="button"
+            // onMouseDown fires before blur — set the skip flag so the blur
+            // handler doesn't race the click handler.
+            onMouseDown={() => { skipNextBlurRef.current = true; }}
             onClick={submit}
             className="h-7 w-7 rounded-md flex items-center justify-center text-nexus-emerald hover:bg-nexus-emerald/10 shrink-0"
             aria-label="Confirmar novo nome"
@@ -103,6 +123,7 @@ function NameLabelOrEditor({ draft, isEditing, onStartEdit, onCancel, onConfirm 
           </button>
           <button
             type="button"
+            onMouseDown={() => { skipNextBlurRef.current = true; }}
             onClick={onCancel}
             className="h-7 w-7 rounded-md flex items-center justify-center text-muted-foreground hover:text-destructive hover:bg-destructive/10 shrink-0"
             aria-label="Cancelar renomear"
