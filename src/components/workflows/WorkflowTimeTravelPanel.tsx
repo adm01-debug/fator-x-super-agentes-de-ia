@@ -91,6 +91,14 @@ export function WorkflowTimeTravelPanel({
   const [forking, setForking] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
+  // Compare mode: when active, clicking a step picks A then B (round-robin).
+  const [compareMode, setCompareMode] = useState(false);
+  const [compareAId, setCompareAId] = useState<string | null>(null);
+  const [compareBId, setCompareBId] = useState<string | null>(null);
+  const [compareA, setCompareA] = useState<WorkflowCheckpoint | null>(null);
+  const [compareB, setCompareB] = useState<WorkflowCheckpoint | null>(null);
+  const [comparing, setComparing] = useState(false);
+
   // Load timeline
   const loadTimeline = useCallback(async () => {
     try {
