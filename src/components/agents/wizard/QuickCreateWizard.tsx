@@ -31,6 +31,7 @@ import { StepQuickModel } from './quickSteps/StepQuickModel';
 import { StepQuickPrompt } from './quickSteps/StepQuickPrompt';
 import { PreflightReviewSummary } from './quickSteps/PreflightReviewSummary';
 import { DraftRecoveryBanner, type DraftBannerEntry } from './DraftRecoveryBanner';
+import { RestoreFeedbackBanner } from './RestoreFeedbackBanner';
 import { DangerousActionDialog } from '@/components/rbac/DangerousActionDialog';
 import { AlertTriangle } from 'lucide-react';
 import { logAudit } from '@/services/auditLogService';
@@ -130,6 +131,9 @@ export function QuickCreateWizard({ onBack }: QuickCreateWizardProps) {
   const [pendingDrafts, setPendingDrafts] = useState<DraftEntry[]>([]);
   const [draftDecided, setDraftDecided] = useState(false);
   const [highlightField, setHighlightField] = useState<keyof QuickAgentForm | null>(null);
+  // Resumo visual do erro pós-restauração — exibido junto do highlightField.
+  // Nulo = nenhum feedback ativo. Auto-limpa quando o usuário corrige o campo.
+  const [restoreFeedback, setRestoreFeedback] = useState<import('./RestoreFeedbackBanner').RestoreFeedbackInfo | null>(null);
   const [confirmOpen, setConfirmOpen] = useState(false);
   const [promptCustomLocked, setPromptCustomLocked] = useState(false);
   const [selectedVariant, setSelectedVariant] = useState<import('@/data/quickAgentTemplates').PromptVariantId | null>(null);
@@ -185,6 +189,12 @@ export function QuickCreateWizard({ onBack }: QuickCreateWizardProps) {
     const t = window.setTimeout(() => setHighlightField(null), 4000);
     return () => window.clearTimeout(t);
   }, [highlightField]);
+
+  // Quando o campo destacado é resolvido (ou expira), o banner de feedback
+  // de restauração também desaparece — mantém os dois sincronizados.
+  useEffect(() => {
+    if (!highlightField && restoreFeedback) setRestoreFeedback(null);
+  }, [highlightField, restoreFeedback]);
 
   // On mount: load store, filter recoverable drafts.
   useEffect(() => {
@@ -291,6 +301,18 @@ export function QuickCreateWizard({ onBack }: QuickCreateWizardProps) {
     const resume = computeResumeTarget(formToApply, STEPS);
     setStep(resume.stepIdx);
     setHighlightField(resume.field ?? null);
+    // Resumo visual do erro junto do highlightField — mostrado no banner
+    // logo abaixo do header até o usuário corrigir o campo ou dispensar.
+    if (resume.field) {
+      setRestoreFeedback({
+        ...resume,
+        stepLabel: resume.stepLabel ?? STEPS[resume.stepIdx]?.label,
+        fieldLabel: FIELD_LABEL[resume.field] ?? String(resume.field),
+        mode,
+      });
+    } else {
+      setRestoreFeedback(null);
+    }
     setDraftsStore((prev) => {
       const next = setActive(prev, id);
       saveDrafts(next);
@@ -721,6 +743,20 @@ export function QuickCreateWizard({ onBack }: QuickCreateWizardProps) {
           onDiscardOne={discardOneDraft}
           onDiscardAll={discardAllDrafts}
           onRename={handleRenameDraft}
+        />
+      )}
+      {restoreFeedback && (
+        <RestoreFeedbackBanner
+          info={restoreFeedback}
+          onJumpToField={() => {
+            // Re-pulsa o campo para o caso do timeout de 4s já ter limpado.
+            // Também re-navega ao passo certo se o usuário tiver mudado.
+            if (restoreFeedback.field) {
+              setStep(restoreFeedback.stepIdx);
+              setHighlightField(restoreFeedback.field);
+            }
+          }}
+          onDismiss={() => setRestoreFeedback(null)}
         />
       )}
       <div className="flex items-center gap-3">
