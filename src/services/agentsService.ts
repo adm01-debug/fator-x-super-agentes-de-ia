@@ -259,6 +259,8 @@ export interface RestoreOptions {
   copyPrompt?: boolean;
   copyTools?: boolean;
   copyModel?: boolean;
+  /** Override do change_summary; quando vazio/undefined usa o auto-gerado. */
+  customSummary?: string;
 }
 
 /**
@@ -302,9 +304,10 @@ export async function restoreAgentVersion(
     parts.push('modelo');
   }
 
-  const change_summary = parts.length > 0
+  const autoSummary = parts.length > 0
     ? `Restaurado de v${sourceVersion.version} (${parts.join(' + ')})`
     : `Restaurado de v${sourceVersion.version} (sem alterações)`;
+  const change_summary = options.customSummary?.trim() || autoSummary;
 
   return createAgentVersion({
     agentId,

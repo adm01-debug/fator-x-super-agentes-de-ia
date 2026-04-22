@@ -13,6 +13,8 @@ import { AgentRichMetrics } from "@/components/agents/detail/AgentRichMetrics";
 import { SimulationResultDialog } from "@/components/agents/detail/SimulationResultDialog";
 import { SavedTestRunsPanel } from "@/components/agents/detail/SavedTestRunsPanel";
 import { RestoreDiffPreview } from "@/components/agents/detail/RestoreDiffPreview";
+import { RestoreChangelogEditor, buildAutoSummary } from "@/components/agents/detail/RestoreChangelogEditor";
+import { computeRestoreDiff } from "@/components/agents/detail/restoreDiffHelpers";
 import { simulateAgentRun, type SimulationSummary } from "@/services/agentTestSimulationService";
 import {
   AlertDialog, AlertDialogContent, AlertDialogHeader, AlertDialogFooter,
@@ -179,6 +181,9 @@ function VersionHistory({ agentId }: { agentId: string }) {
   const [copyPrompt, setCopyPrompt] = useState(true);
   const [copyTools, setCopyTools] = useState(true);
   const [copyModel, setCopyModel] = useState(true);
+  // Changelog editável: texto controlado + flag indicando se foi customizado.
+  const [summaryDraft, setSummaryDraft] = useState("");
+  const [summaryEdited, setSummaryEdited] = useState(false);
 
   // Reset das opções a cada abertura do diálogo (evita herdar estado da última tentativa).
   useEffect(() => {
@@ -186,6 +191,8 @@ function VersionHistory({ agentId }: { agentId: string }) {
       setCopyPrompt(true);
       setCopyTools(true);
       setCopyModel(true);
+      setSummaryEdited(false);
+      setSummaryDraft("");
     }
   }, [rollbackOpen]);
 
@@ -201,8 +208,19 @@ function VersionHistory({ agentId }: { agentId: string }) {
   const restoreOptions = { copyPrompt, copyTools, copyModel };
   const hasAnyOptionSelected = copyPrompt || copyTools || copyModel;
 
+  // Diff calculado uma vez para alimentar tanto o preview quanto o changelog.
+  const restoreDiff = previous && current && hasAnyOptionSelected
+    ? computeRestoreDiff(current, previous, restoreOptions)
+    : null;
+
   const rollbackMut = useMutation({
-    mutationFn: () => restoreAgentVersion(agentId, previous!, current, restoreOptions),
+    mutationFn: () => restoreAgentVersion(agentId, previous!, current, {
+      ...restoreOptions,
+      // Só envia override se o usuário realmente customizou e o texto difere do auto.
+      customSummary: summaryEdited && summaryDraft.trim() && summaryDraft.trim() !== buildAutoSummary(previous!.version, restoreOptions)
+        ? summaryDraft.trim()
+        : undefined,
+    }),
     onSuccess: (data) => {
       toast.success(`Rollback concluído — v${data.version} criada a partir de v${previous!.version}`);
       queryClient.invalidateQueries({ queryKey: ['agent_versions', agentId] });
@@ -332,12 +350,25 @@ function VersionHistory({ agentId }: { agentId: string }) {
                   )}
                 </fieldset>
 
-                {previous && hasAnyOptionSelected && (
-                  <RestoreDiffPreview
-                    current={current}
-                    source={previous}
-                    options={restoreOptions}
-                  />
+                {previous && hasAnyOptionSelected && restoreDiff && (
+                  <>
+                    <RestoreDiffPreview
+                      current={current}
+                      source={previous}
+                      options={restoreOptions}
+                    />
+                    <RestoreChangelogEditor
+                      sourceVersion={previous.version}
+                      nextVersion={nextVersionNumber}
+                      diff={restoreDiff}
+                      options={restoreOptions}
+                      value={summaryDraft}
+                      onChange={setSummaryDraft}
+                      edited={summaryEdited}
+                      onEditedChange={setSummaryEdited}
+                      disabled={rollbackMut.isPending}
+                    />
+                  </>
                 )}
                 <p className="text-xs text-muted-foreground">
                   Nenhum histórico será apagado — o rollback é não destrutivo.
