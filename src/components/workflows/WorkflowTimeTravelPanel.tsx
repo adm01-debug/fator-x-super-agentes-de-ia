@@ -26,6 +26,7 @@ import {
   CheckCircle2,
   XCircle,
   Loader2,
+  ArrowLeftRight,
 } from 'lucide-react';
 import {
   getExecutionTimeline,
@@ -34,6 +35,7 @@ import {
   recoverExecution,
   type WorkflowCheckpoint,
 } from '@/services/workflowCheckpointService';
+import { StepComparePanel } from './StepComparePanel';
 
 // ──────── Types ────────
 
