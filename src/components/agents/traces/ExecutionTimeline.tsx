@@ -62,7 +62,12 @@ export function ExecutionTimeline({ execution, selectedStep, onSelectStep }: Pro
       className="outline-none focus-visible:ring-2 focus-visible:ring-primary/30 rounded-md"
       aria-label="Linha do tempo navegável"
     >
-      <ExecutionSummary execution={execution} step={step} />
+      <ExecutionSummary
+        execution={execution}
+        step={step}
+        total={total}
+        onStep={setStep}
+      />
 
       <ol
         className="space-y-1.5 mt-3"
