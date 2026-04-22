@@ -1,4 +1,3 @@
-import { useMemo, useState } from 'react';
 import { CheckCircle2, AlertTriangle, XCircle, RotateCcw, Flame, Activity, Clock, GitCompare, ArrowDown, ArrowUp, Minus } from 'lucide-react';
 import { Slider } from '@/components/ui/slider';
 import { Button } from '@/components/ui/button';
@@ -258,6 +257,16 @@ export function InteractiveSLOPanel({ agentId, slo, traces, daily, onDayClick }:
             {effectiveSlo.errorRate.toFixed(2)}% / {targets.errorBudget.toFixed(1)}%
           </span>
         </div>
+        {compareMode && (
+          <BaselineDelta
+            value={effectiveSlo.errorRate}
+            baseline={BASELINE_MOCK.errorRate}
+            lowerIsBetter={true}
+            valueFmt={(v) => `${v.toFixed(2)}%`}
+            deltaFmt={(d) => `${d > 0 ? '+' : ''}${d.toFixed(2)} p.p.`}
+            label="Taxa de erro vs baseline"
+          />
+        )}
         <div className="h-2 bg-secondary/60 rounded-full overflow-hidden mb-3">
           <div
             className={`h-full transition-all ${burn.status === 'critical' ? 'bg-destructive' : burn.status === 'warning' ? 'bg-nexus-amber' : 'bg-nexus-emerald'}`}
