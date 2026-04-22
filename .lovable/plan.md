@@ -1,76 +1,60 @@
 
 
-## Modo "Exemplo real" no editor — payload consolidado pronto para envio
+## Medidor de uso por seção (Persona, Escopo, Formato, Regras)
 
-Hoje o último step já tem três peças separadas:
-
-1. `CompiledPromptPreview` → mostra o **system prompt** final (com header de identidade, variáveis interpoladas, meta).
-2. `QuickAgentTestPanel` → executa de fato no LLM, mas só mostra a **resposta**, não o **payload**.
-3. Os mocks de `QUICK_AGENT_MOCK_INPUTS` ficam escondidos num `Select`.
-
-Falta a peça que o usuário pediu: **um cartão único que materialize a chamada inteira** (system + user + parâmetros) **exatamente como o gateway vai receber**, e permita "rodar este exemplo" antes de avançar.
+Hoje o checklist mostra apenas **palavras** por seção e o limite global do prompt aparece só no rodapé do editor. Não há visibilidade de **quanto cada seção pesa** no orçamento total — o usuário descobre que está perto do teto sem saber qual seção cortar.
 
 ### O que muda na visão do usuário
 
-Novo cartão **"Exemplo real de envio"** entre o `CompiledPromptPreview` e o `QuickAgentTestPanel`, com:
+Novo cartão **"Uso por seção"** entre o `PromptSectionChecklist` e o `PromptHistoryPanel`, com 4 linhas (Persona, Escopo, Formato, Regras):
 
-1. **Seletor de cenário em chips** (em vez do select escondido): renderiza os `QUICK_AGENT_MOCK_INPUTS[type]` como botões — clique troca o `user_message` mostrado abaixo. Inclui chip "Customizado" que libera edição livre.
-2. **Bloco "Como o agente vai receber"** com 3 abas:
-   - **Conversa** (default): renderiza system + user como bolhas estilo chat — visualização "humana" de como o LLM lê.
-   - **Payload JSON**: bloco `<pre>` com o objeto exato `{ system_prompt, user_message, model, max_tokens: 800 }` que vai pro edge function, com syntax highlight básico e botão **Copiar JSON**.
-   - **cURL**: comando `curl` pronto pra colar no terminal, apontando pro endpoint `quick-agent-test` com headers e body — útil pra debug fora da UI.
-3. **Barra de estimativa** acima do botão: tokens estimados (input/output projetados), custo BRL/USD, modelo — reaproveita `useCostEstimate` que já existe.
-4. **Botão "Simular envio real"** no rodapé do cartão: dispara a mesma `supabaseExternal.functions.invoke('quick-agent-test', …)` que o `QuickAgentTestPanel` já usa, mas o resultado aparece **dentro do mesmo cartão**, abaixo do payload, em layout request → response (split horizontal em telas largas, empilhado no mobile).
-5. **Indicador "Pronto para avançar"**: quando a simulação roda com sucesso (latência < 10s, sem erro), aparece um check verde com texto "Exemplo validado — prompt está respondendo conforme esperado". Fica persistente durante a sessão e some se o prompt for editado depois (invalidação por hash do `compiled.text`).
-
-### Comportamento e estados
-
-| Cenário | Comportamento |
-|---|---|
-| Abro o step do prompt pela primeira vez | Cartão começa **expandido** com aba "Conversa" + primeiro mock pré-selecionado. |
-| Troco a variação (Conciso → Detalhado) | System prompt no payload atualiza em tempo real; check "validado" se desfaz; aviso amber: "Prompt mudou — re-rode o exemplo". |
-| Edito user_message e clico "Simular envio real" | Loading spinner → resposta aparece em painel lateral; latência/custo atualizam; check "validado" aparece. |
-| Erro 4xx/5xx do gateway | Painel resposta vira vermelho com mensagem; check não aparece; payload continua visível para debug. |
-| Aba "Payload JSON" + clico Copiar | Toast "Payload copiado"; JSON formatado com 2 espaços. |
-| Prompt está incompleto (faltam seções) | Botão "Simular" desabilitado com tooltip "Complete as 4 seções obrigatórias antes de simular". |
+1. **Stats numéricas** por seção: `chars · linhas · palavras · ~tokens`.
+2. **Barra de progresso horizontal** mostrando o % do **limite total** (`PROMPT_LIMITS.MAX_TOTAL`) que aquela seção ocupa. Cor escala: verde (<20%), amber (20–35%), vermelho (>35%).
+3. **Badge "🔥 Maior contribuinte"** na seção que mais consome chars (apenas se `chars > 0`).
+4. **Linha de "Outros"** ao final: chars que estão **fora** das 4 seções canônicas (header/identidade, comentários, espaço entre blocos) — útil para identificar gordura não atribuída.
+5. **Footer compacto**: `total: 4.230 / 8.000 chars (53%) · 4 seções somam 89%` — dá o panorama em uma linha.
+6. **Estado vazio por seção**: se `status === 'missing'`, mostra `— ausente` em cinza (sem barra), em vez de zeros confusos.
+7. **Click na linha** → reaproveita `onJumpToSection` para pular o cursor pra aquela seção no editor (fluxo já existente, sem código novo no parent).
 
 ### Como funciona (técnico)
 
-**Novo arquivo** `src/components/agents/wizard/quickSteps/RealExamplePreview.tsx`:
+**Novo arquivo** `src/components/agents/wizard/quickSteps/PromptSectionUsage.tsx`:
 
-- Props: `{ form: QuickAgentForm; activeVariantLabel: string | null; lastChangeKind: 'variant' | 'manual' | null }`.
-- Estado interno:
-  - `selectedMockLabel: string | 'custom'`
-  - `userMessage: string`
-  - `tab: 'conversation' | 'json' | 'curl'`
-  - `result: TestResult | null` + `loading` + `error`
-  - `validatedHash: string | null` (hash simples do `compiled.text` no momento do último sucesso).
-- Reaproveita:
-  - `compilePrompt(form)` para o `system_prompt` final.
-  - `QUICK_AGENT_MOCK_INPUTS[type]` para chips de cenário.
-  - `useCostEstimate({ model, systemPrompt: compiled.text, userInput: userMessage, maxTokens: 800 })`.
-  - `supabaseExternal.functions.invoke('quick-agent-test', …)` — **mesma função** já usada pelo `QuickAgentTestPanel`, sem mudanças no edge.
-  - `getModelPrice` + `USD_TO_BRL` para custo real.
-- `validatedHash` invalida via `useEffect([compiled.text])` → `setValidatedHash(null)` quando `compiled.text` muda após validação.
-- Aba JSON usa `JSON.stringify(payload, null, 2)` — sem dependência nova.
-- Aba cURL gera string com `${VITE_SUPABASE_URL}/functions/v1/quick-agent-test` (já disponível no env do projeto) e header `Authorization: Bearer <ANON_KEY>` (publishable key).
+- Props: `{ prompt: string; onJumpToSection?: (key: PromptSectionKey) => void }`.
+- `useMemo([prompt])` para calcular, via `locateSections(prompt)` (já existente):
+  - Para cada `SectionLocation` com `status !== 'missing'`: extrai `prompt.slice(startChar, endChar)` → conta `chars`, `lines` (split `\n`), `words`, `estimatedTokens` (`Math.ceil(chars/4)`, mesma heurística do `promptCompiler`).
+  - Calcula `othersChars = totalChars - sum(sectionChars)`.
+  - `topKey` = chave com maior `chars` entre as presentes.
+- Renderização: `<ul>` com 4 `<li>` (canonical order) + linha "Outros". Cada item tem:
+  - Ícone do status (✓ ok / ⚠ thin / ○ missing) — reaproveita ícones do checklist para coerência visual.
+  - Label + stats em `font-mono text-[10px]`.
+  - Barra: `<div className="h-1.5 rounded bg-secondary"><div style={{width: pct%}} className={toneClass}/></div>`.
+  - Badge "🔥 Maior" se `key === topKey`.
+- Tones via classes Tailwind semânticas (`bg-nexus-emerald`, `bg-nexus-amber`, `bg-destructive`) — sem cores cruas.
 
 **Editar** `src/components/agents/wizard/quickSteps/StepQuickPrompt.tsx`:
 
-- Importar `RealExamplePreview` e renderizar **entre** `CompiledPromptPreview` e `QuickAgentTestPanel` (linha ~349).
-- Passar `form`, `activeVariantLabel`, `lastChangeKind` (já calculados no componente).
+- Importar `PromptSectionUsage` e renderizar após o `PromptSectionChecklist` (linha ~330), passando `prompt={form.prompt}` e `onJumpToSection={jumpToSection}`.
 
-**Decisão sobre `QuickAgentTestPanel`**: mantém-se como está. O novo cartão é uma versão "primeira intenção" focada em payload + validação rápida; o `QuickAgentTestPanel` continua útil para múltiplas execuções com métricas comparativas. Sem duplicação confusa porque os papéis ficam distintos: novo cartão = "**veja e valide o envio**", painel antigo = "**rode vários testes e compare**". Posso renomear o cabeçalho do painel antigo para "Bateria de testes" no mesmo PR para reforçar a diferença.
+### Casos cobertos
+
+| Cenário | Comportamento |
+|---|---|
+| Prompt vazio | Cartão renderiza com todas seções como "ausente", barras zeradas, footer `0 / 8.000`. |
+| Persona com 3.500 chars, outras curtas | Barra Persona vermelha (>35% do limite); badge "🔥 Maior contribuinte" em Persona. |
+| Seção thin (4 palavras) | Stats mostram chars reais + ícone amber (já que está presente mas curta). |
+| Seção missing | Linha cinza com "— ausente", sem barra; não conta para `topKey`. |
+| Conteúdo fora das 4 seções (preâmbulo, comentários) | Linha "Outros" com chars correspondentes; ajuda a explicar gap entre soma de seções e total. |
+| Click numa linha | Cursor pula para a seção no editor (mesma UX do checklist). |
 
 ### Arquivos tocados
 
-- **Criar** `src/components/agents/wizard/quickSteps/RealExamplePreview.tsx` (~280 linhas).
-- **Editar** `src/components/agents/wizard/quickSteps/StepQuickPrompt.tsx` — importar e renderizar o novo cartão; ~3 linhas.
-- **Editar** `src/components/agents/wizard/quickSteps/QuickAgentTestPanel.tsx` — só ajustar título para "Bateria de testes" (1 linha).
+- **Criar** `src/components/agents/wizard/quickSteps/PromptSectionUsage.tsx` (~120 linhas).
+- **Editar** `src/components/agents/wizard/quickSteps/StepQuickPrompt.tsx` — 1 import + 1 render (~3 linhas).
 
 ### Impacto
 
-- Zero schema/backend — usa edge `quick-agent-test` que já existe.
-- Zero quebra: novo componente isolado; os existentes seguem renderizando como hoje.
-- Resolve o ponto solicitado: o usuário vê **exatamente** o que vai ser enviado (não só o system, mas o pacote completo system+user+params em formato real) e pode validar antes de avançar para "Salvar".
+- Zero schema/backend, zero dependência nova.
+- Reaproveita 100% da lógica de `locateSections` já madura — sem duplicar parsers.
+- Resolve o ponto cego: agora dá pra ver de relance **qual seção cortar primeiro** quando o prompt fica grande.
 
