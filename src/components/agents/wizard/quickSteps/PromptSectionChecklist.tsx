@@ -150,6 +150,25 @@ export function PromptSectionChecklist({
               ? 'Cobertura mínima — modo customizado (snippets genéricos)'
               : 'Seções mínimas + conteúdo suficiente em cada uma'}
           </p>
+          {/* Auto-unlock rule — small, opt-in, persisted in localStorage by the wizard. */}
+          {onToggleAutoUnlock && (
+            <div className="mt-1.5 inline-flex items-center gap-1.5 rounded-md border border-border/50 bg-secondary/40 px-2 py-1">
+              <Switch
+                id="checklist-auto-unlock"
+                checked={!!autoUnlockEnabled}
+                onCheckedChange={onToggleAutoUnlock}
+                aria-label="Destravar modo customizado ao usar o checklist"
+              />
+              <Label
+                htmlFor="checklist-auto-unlock"
+                className="text-[10px] text-muted-foreground cursor-pointer inline-flex items-center gap-1 leading-none"
+                title="Quando ligado, inserir Persona/Escopo/Formato/Regras pelo checklist sai do modo customizado e reativa a detecção automática de variações."
+              >
+                <Unlock className="h-2.5 w-2.5" />
+                Destravar Custom ao usar o checklist
+              </Label>
+            </div>
+          )}
         </div>
         <div className="flex items-center gap-2 shrink-0">
           {/* Variant badge — clarifies the "4/4" reference. */}
