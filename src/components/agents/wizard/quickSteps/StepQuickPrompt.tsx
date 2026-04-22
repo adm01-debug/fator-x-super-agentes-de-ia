@@ -1,10 +1,14 @@
-import { useEffect, useRef, type ChangeEvent, type ClipboardEvent } from 'react';
+import { useEffect, useRef, useState, type ChangeEvent, type ClipboardEvent } from 'react';
 import { toast } from 'sonner';
 import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
 import { Button } from '@/components/ui/button';
 import { RefreshCw } from 'lucide-react';
-import type { QuickAgentForm } from '@/lib/validations/quickAgentSchema';
+import {
+  findSectionLineIndex,
+  type PromptSectionKey,
+  type QuickAgentForm,
+} from '@/lib/validations/quickAgentSchema';
 import { CompiledPromptPreview } from './CompiledPromptPreview';
 import { PromptSectionChecklist } from './PromptSectionChecklist';
 import { PromptVariantSelector } from './PromptVariantSelector';
