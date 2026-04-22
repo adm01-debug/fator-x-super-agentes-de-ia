@@ -12,6 +12,7 @@ import { detectPromptContradictions } from '@/lib/validations/promptContradictio
 import { locateSections, insertSectionAt } from '@/lib/promptSectionLocator';
 import { CompiledPromptPreview } from './CompiledPromptPreview';
 import { PromptSectionChecklist } from './PromptSectionChecklist';
+import { PromptSectionUsage } from './PromptSectionUsage';
 import { PromptVariantSelector } from './PromptVariantSelector';
 import { PromptValidationFeedback } from './PromptValidationFeedback';
 import { AgentLivePreviewCard } from './AgentLivePreviewCard';
@@ -329,6 +330,8 @@ export function StepQuickPrompt({ form, errors, onPromptManualEdit, onRestore, o
         }}
         onJumpToSection={jumpToSection}
       />
+
+      <PromptSectionUsage prompt={form.prompt} onJumpToSection={jumpToSection} />
 
       <PromptHistoryPanel
         prompt={form.prompt}
