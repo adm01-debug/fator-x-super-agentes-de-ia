@@ -744,6 +744,20 @@ export function QuickCreateWizard({ onBack }: QuickCreateWizardProps) {
           onRename={handleRenameDraft}
         />
       )}
+      {restoreFeedback && (
+        <RestoreFeedbackBanner
+          info={restoreFeedback}
+          onJumpToField={() => {
+            // Re-pulsa o campo para o caso do timeout de 4s já ter limpado.
+            // Também re-navega ao passo certo se o usuário tiver mudado.
+            if (restoreFeedback.field) {
+              setStep(restoreFeedback.stepIdx);
+              setHighlightField(restoreFeedback.field);
+            }
+          }}
+          onDismiss={() => setRestoreFeedback(null)}
+        />
+      )}
       <div className="flex items-center gap-3">
         <Button variant="ghost" size="icon" onClick={goPrev} className="text-muted-foreground" aria-label="Voltar">
           <ArrowLeft className="h-4 w-4" />
