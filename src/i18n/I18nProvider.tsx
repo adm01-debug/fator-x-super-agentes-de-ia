@@ -1,3 +1,4 @@
+/* eslint-disable react-refresh/only-export-components */
 /**
  * Nexus Agents Studio — I18n Context Provider
  * Wraps the app and provides global locale state. All useI18n() calls
@@ -40,7 +41,9 @@ export function I18nProvider({ children }: { children: ReactNode }) {
       const stored = localStorage.getItem(STORAGE_KEY) as Locale | null;
       if (stored && translations[stored]) return stored;
     } catch (err) {
-      logger.error('I18nProvider init failed', { error: err instanceof Error ? err.message : String(err) });
+      logger.error('I18nProvider init failed', {
+        error: err instanceof Error ? err.message : String(err),
+      });
     }
     return DEFAULT_LOCALE;
   });
@@ -54,26 +57,21 @@ export function I18nProvider({ children }: { children: ReactNode }) {
         document.documentElement.lang = newLocale;
       }
     } catch (err) {
-      logger.error('I18nProvider setLocale failed', { error: err instanceof Error ? err.message : String(err) });
+      logger.error('I18nProvider setLocale failed', {
+        error: err instanceof Error ? err.message : String(err),
+      });
     }
   }, []);
 
   const t = useCallback(
     (key: string, vars?: Record<string, string | number>): string => {
-      const template =
-        translations[locale]?.[key] ??
-        translations[DEFAULT_LOCALE]?.[key] ??
-        key;
+      const template = translations[locale]?.[key] ?? translations[DEFAULT_LOCALE]?.[key] ?? key;
       return interpolate(template, vars);
     },
-    [locale]
+    [locale],
   );
 
-  return (
-    <I18nContext.Provider value={{ locale, setLocale, t }}>
-      {children}
-    </I18nContext.Provider>
-  );
+  return <I18nContext.Provider value={{ locale, setLocale, t }}>{children}</I18nContext.Provider>;
 }
 
 /**

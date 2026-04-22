@@ -1,6 +1,15 @@
 import { useEffect, useState, useMemo } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { AlertTriangle, Eye, Wrench, CheckCircle2, MessageSquare, Timer, ArrowLeft, Trophy } from 'lucide-react';
+import {
+  AlertTriangle,
+  Eye,
+  Wrench,
+  CheckCircle2,
+  MessageSquare,
+  Timer,
+  ArrowLeft,
+  Trophy,
+} from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -9,12 +18,26 @@ import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
 import { Slider } from '@/components/ui/slider';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogFooter,
+} from '@/components/ui/dialog';
 import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
 import {
-  getGameDay, listEvents, recordEvent, completeGameDay, getScorecard,
-  type GameDay, type GameDayEvent, type GameDayScorecard, type GameDayEventType, SCENARIO_LABELS,
+  getGameDay,
+  listEvents,
+  recordEvent,
+  completeGameDay,
+  getScorecard,
+  type GameDay,
+  type GameDayEvent,
+  type GameDayScorecard,
+  type GameDayEventType,
+  SCENARIO_LABELS,
 } from '@/services/gameDayService';
 import { logger } from '@/lib/logger';
 
@@ -76,6 +99,7 @@ export default function GameDayLivePage() {
 
   useEffect(() => {
     loadAll();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [id]);
 
   // Live timer
@@ -90,12 +114,22 @@ export default function GameDayLivePage() {
     if (!id) return;
     const channel = supabase
       .channel(`game-day-${id}`)
-      .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'game_day_events', filter: `game_day_id=eq.${id}` },
+      .on(
+        'postgres_changes',
+        {
+          event: 'INSERT',
+          schema: 'public',
+          table: 'game_day_events',
+          filter: `game_day_id=eq.${id}`,
+        },
         (payload) => {
           setEvents((prev) => [...prev, payload.new as GameDayEvent]);
-        })
+        },
+      )
       .subscribe();
-    return () => { supabase.removeChannel(channel); };
+    return () => {
+      supabase.removeChannel(channel);
+    };
   }, [id]);
 
   const handleRecord = async (type: GameDayEventType, description: string) => {
@@ -112,7 +146,10 @@ export default function GameDayLivePage() {
   const handleComplete = async () => {
     if (!id) return;
     try {
-      const gaps = gapsFound.split('\n').map((g) => g.trim()).filter(Boolean);
+      const gaps = gapsFound
+        .split('\n')
+        .map((g) => g.trim())
+        .filter(Boolean);
       const result = await completeGameDay({
         game_day_id: id,
         runbook_followed: runbookFollowed,
@@ -129,7 +166,11 @@ export default function GameDayLivePage() {
   };
 
   if (!gameDay) {
-    return <div className="container mx-auto py-8"><Card className="p-12 text-center text-muted-foreground">Carregando...</Card></div>;
+    return (
+      <div className="container mx-auto py-8">
+        <Card className="p-12 text-center text-muted-foreground">Carregando...</Card>
+      </div>
+    );
   }
 
   const isRunning = gameDay.status === 'running';
@@ -144,7 +185,9 @@ export default function GameDayLivePage() {
         <div className="flex-1">
           <h1 className="text-2xl font-heading font-bold">{gameDay.title}</h1>
           <div className="flex items-center gap-2 mt-1">
-            <Badge variant={isRunning ? 'default' : isCompleted ? 'secondary' : 'outline'}>{gameDay.status}</Badge>
+            <Badge variant={isRunning ? 'default' : isCompleted ? 'secondary' : 'outline'}>
+              {gameDay.status}
+            </Badge>
             <Badge variant="outline">{SCENARIO_LABELS[gameDay.scenario]}</Badge>
           </div>
         </div>
@@ -156,8 +199,12 @@ export default function GameDayLivePage() {
             <div className="flex items-center gap-3">
               <Timer className="h-8 w-8 text-primary animate-pulse" />
               <div>
-                <p className="text-xs uppercase tracking-wider text-muted-foreground">Tempo decorrido</p>
-                <p className="text-3xl font-bold tabular-nums font-mono">{formatDuration(elapsedSeconds)}</p>
+                <p className="text-xs uppercase tracking-wider text-muted-foreground">
+                  Tempo decorrido
+                </p>
+                <p className="text-3xl font-bold tabular-nums font-mono">
+                  {formatDuration(elapsedSeconds)}
+                </p>
               </div>
             </div>
             <Button variant="destructive" onClick={() => setCompleteOpen(true)}>
@@ -176,11 +223,15 @@ export default function GameDayLivePage() {
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
             <div>
               <p className="text-xs text-muted-foreground uppercase">MTTR</p>
-              <p className="text-2xl font-bold tabular-nums">{formatDuration(scorecard.mttr_seconds)}</p>
+              <p className="text-2xl font-bold tabular-nums">
+                {formatDuration(scorecard.mttr_seconds)}
+              </p>
             </div>
             <div>
               <p className="text-xs text-muted-foreground uppercase">MTTD</p>
-              <p className="text-2xl font-bold tabular-nums">{formatDuration(scorecard.mttd_seconds)}</p>
+              <p className="text-2xl font-bold tabular-nums">
+                {formatDuration(scorecard.mttd_seconds)}
+              </p>
             </div>
             <div>
               <p className="text-xs text-muted-foreground uppercase">Score</p>
@@ -195,7 +246,9 @@ export default function GameDayLivePage() {
             <div className="mt-4">
               <p className="text-xs text-muted-foreground uppercase mb-2">Gaps identificados</p>
               <ul className="text-sm space-y-1">
-                {scorecard.gaps_found.map((g, i) => <li key={i}>• {g}</li>)}
+                {scorecard.gaps_found.map((g, i) => (
+                  <li key={i}>• {g}</li>
+                ))}
               </ul>
             </div>
           )}
@@ -212,19 +265,35 @@ export default function GameDayLivePage() {
         <Card className="p-5">
           <h3 className="font-semibold mb-3">Registrar evento</h3>
           <div className="grid grid-cols-2 md:grid-cols-3 gap-2 mb-4">
-            <Button size="lg" variant="outline" onClick={() => handleRecord('detection', 'Incidente detectado')}>
+            <Button
+              size="lg"
+              variant="outline"
+              onClick={() => handleRecord('detection', 'Incidente detectado')}
+            >
               <Eye className="h-4 w-4" /> Detectado
             </Button>
-            <Button size="lg" variant="outline" onClick={() => handleRecord('mitigation', 'Mitigação iniciada')}>
+            <Button
+              size="lg"
+              variant="outline"
+              onClick={() => handleRecord('mitigation', 'Mitigação iniciada')}
+            >
               <Wrench className="h-4 w-4" /> Mitigando
             </Button>
-            <Button size="lg" variant="gradient" onClick={() => handleRecord('resolution', 'Incidente resolvido')}>
+            <Button
+              size="lg"
+              variant="gradient"
+              onClick={() => handleRecord('resolution', 'Incidente resolvido')}
+            >
               <CheckCircle2 className="h-4 w-4" /> Resolvido
             </Button>
           </div>
           <div className="flex gap-2">
-            <Input placeholder="Adicionar nota..." value={noteText} onChange={(e) => setNoteText(e.target.value)}
-              onKeyDown={(e) => e.key === 'Enter' && handleRecord('note', noteText)} />
+            <Input
+              placeholder="Adicionar nota..."
+              value={noteText}
+              onChange={(e) => setNoteText(e.target.value)}
+              onKeyDown={(e) => e.key === 'Enter' && handleRecord('note', noteText)}
+            />
             <Button onClick={() => handleRecord('note', noteText)} disabled={!noteText.trim()}>
               <MessageSquare className="h-4 w-4" />
             </Button>
@@ -242,7 +311,10 @@ export default function GameDayLivePage() {
               const meta = EVENT_META[ev.event_type];
               const Icon = meta.icon;
               return (
-                <div key={ev.id} className="flex items-start gap-3 pb-3 border-b border-border/30 last:border-0">
+                <div
+                  key={ev.id}
+                  className="flex items-start gap-3 pb-3 border-b border-border/30 last:border-0"
+                >
                   <Icon className={`h-5 w-5 mt-0.5 shrink-0 ${meta.color}`} />
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-2">
@@ -271,23 +343,44 @@ export default function GameDayLivePage() {
               <Switch checked={runbookFollowed} onCheckedChange={setRunbookFollowed} />
             </div>
             <div>
-              <Label>Score (1-10): <strong>{score[0]}</strong></Label>
-              <Slider value={score} onValueChange={setScore} min={1} max={10} step={1} className="mt-2" />
+              <Label>
+                Score (1-10): <strong>{score[0]}</strong>
+              </Label>
+              <Slider
+                value={score}
+                onValueChange={setScore}
+                min={1}
+                max={10}
+                step={1}
+                className="mt-2"
+              />
             </div>
             <div>
               <Label>Gaps identificados (um por linha)</Label>
-              <Textarea value={gapsFound} onChange={(e) => setGapsFound(e.target.value)} rows={3}
-                placeholder="Ex: Alerta demorou 5min para chegar&#10;Runbook não tinha comando para resetar circuit breaker" />
+              <Textarea
+                value={gapsFound}
+                onChange={(e) => setGapsFound(e.target.value)}
+                rows={3}
+                placeholder="Ex: Alerta demorou 5min para chegar&#10;Runbook não tinha comando para resetar circuit breaker"
+              />
             </div>
             <div>
               <Label>Retrospectiva</Label>
-              <Textarea value={retrospective} onChange={(e) => setRetrospective(e.target.value)} rows={4}
-                placeholder="O que funcionou bem? O que precisa melhorar?" />
+              <Textarea
+                value={retrospective}
+                onChange={(e) => setRetrospective(e.target.value)}
+                rows={4}
+                placeholder="O que funcionou bem? O que precisa melhorar?"
+              />
             </div>
           </div>
           <DialogFooter>
-            <Button variant="outline" onClick={() => setCompleteOpen(false)}>Cancelar</Button>
-            <Button variant="gradient" onClick={handleComplete}>Gerar scorecard</Button>
+            <Button variant="outline" onClick={() => setCompleteOpen(false)}>
+              Cancelar
+            </Button>
+            <Button variant="gradient" onClick={handleComplete}>
+              Gerar scorecard
+            </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>

@@ -11,13 +11,13 @@ import { describe, it, expect, vi } from 'vitest';
 import { render, screen, fireEvent } from '@testing-library/react';
 
 // @ts-expect-error used in mock callback and test assertions
-let capturedSubscribeCallback: ((status: string) => void) | null = null;
+let _capturedSubscribeCallback: ((status: string) => void) | null = null;
 
 vi.mock('@/integrations/supabase/client', () => {
   const channel = {
     on: vi.fn().mockReturnThis(),
     subscribe: vi.fn((cb: (status: string) => void) => {
-      capturedSubscribeCallback = cb;
+      _capturedSubscribeCallback = cb;
       return channel;
     }),
   };
@@ -44,7 +44,7 @@ describe('RealTimeCostStream', () => {
   });
 
   it('starts with CONECTANDO badge before subscribe callback fires', () => {
-    capturedSubscribeCallback = null;
+    _capturedSubscribeCallback = null;
     render(<RealTimeCostStream />);
     expect(screen.getByText('CONECTANDO')).toBeInTheDocument();
   });

@@ -12,8 +12,12 @@ import {
 import { useToast } from '@/hooks/use-toast';
 
 const AUTH_LABELS: Record<string, string> = {
-  none: 'Sem Auth', header: 'Header', hmac_sha256: 'HMAC SHA-256',
-  basic: 'Basic', bearer: 'Bearer', api_key: 'API Key',
+  none: 'Sem Auth',
+  header: 'Header',
+  hmac_sha256: 'HMAC SHA-256',
+  basic: 'Basic',
+  bearer: 'Bearer',
+  api_key: 'API Key',
 };
 
 export function WebhookManagerPanel() {
@@ -27,6 +31,7 @@ export function WebhookManagerPanel() {
       .then(setWebhooks)
       .catch(() => toast({ title: 'Erro ao carregar webhooks', variant: 'destructive' }))
       .finally(() => setLoading(false));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const handleTest = async (w: WebhookEndpoint) => {
@@ -56,12 +61,22 @@ export function WebhookManagerPanel() {
       <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
         {[
           { label: 'Total Webhooks', value: webhooks.length, color: 'hsl(var(--nexus-purple))' },
-          { label: 'Ativos', value: webhooks.filter(w => w.status === 'active').length, color: 'hsl(var(--nexus-emerald))' },
-          { label: 'Requests Total', value: webhooks.reduce((s, w) => s + w.request_count, 0), color: 'hsl(var(--nexus-blue))' },
+          {
+            label: 'Ativos',
+            value: webhooks.filter((w) => w.status === 'active').length,
+            color: 'hsl(var(--nexus-emerald))',
+          },
+          {
+            label: 'Requests Total',
+            value: webhooks.reduce((s, w) => s + w.request_count, 0),
+            color: 'hsl(var(--nexus-blue))',
+          },
         ].map((s, i) => (
           <Card key={i} className="bg-card border-border">
             <CardContent className="p-4 text-center">
-              <p className="text-2xl font-bold" style={{ color: s.color }}>{s.value}</p>
+              <p className="text-2xl font-bold" style={{ color: s.color }}>
+                {s.value}
+              </p>
               <p className="text-xs text-muted-foreground">{s.label}</p>
             </CardContent>
           </Card>
@@ -69,14 +84,21 @@ export function WebhookManagerPanel() {
       </div>
 
       <Card className="bg-card border-border">
-        <CardHeader className="pb-3"><CardTitle className="text-sm text-muted-foreground">Templates Prontos</CardTitle></CardHeader>
+        <CardHeader className="pb-3">
+          <CardTitle className="text-sm text-muted-foreground">Templates Prontos</CardTitle>
+        </CardHeader>
         <CardContent>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
             {Object.entries(WEBHOOK_TEMPLATES).map(([key, tpl]) => (
-              <div key={key} className="p-3 rounded-lg bg-background border border-border hover:border-nexus-purple/50 cursor-pointer">
+              <div
+                key={key}
+                className="p-3 rounded-lg bg-background border border-border hover:border-nexus-purple/50 cursor-pointer"
+              >
                 <p className="font-medium text-sm">{tpl.name}</p>
                 <p className="text-xs text-muted-foreground mt-1">{tpl.description}</p>
-                <Badge variant="outline" className="mt-2 text-[10px] border-border">{tpl.auth_type ? AUTH_LABELS[tpl.auth_type] ?? tpl.auth_type : 'N/A'}</Badge>
+                <Badge variant="outline" className="mt-2 text-[10px] border-border">
+                  {tpl.auth_type ? (AUTH_LABELS[tpl.auth_type] ?? tpl.auth_type) : 'N/A'}
+                </Badge>
               </div>
             ))}
           </div>
@@ -102,12 +124,26 @@ export function WebhookManagerPanel() {
                     <p className="font-medium">{w.name}</p>
                     <code className="text-xs text-muted-foreground font-mono">{w.path}</code>
                     <div className="flex gap-2 mt-1 flex-wrap">
-                      {w.methods.map(m => <Badge key={m} variant="outline" className="text-[10px] border-border">{m}</Badge>)}
-                      <Badge variant="outline" className="text-[10px] border-border">{AUTH_LABELS[w.auth_type] ?? w.auth_type}</Badge>
+                      {w.methods.map((m) => (
+                        <Badge key={m} variant="outline" className="text-[10px] border-border">
+                          {m}
+                        </Badge>
+                      ))}
+                      <Badge variant="outline" className="text-[10px] border-border">
+                        {AUTH_LABELS[w.auth_type] ?? w.auth_type}
+                      </Badge>
                     </div>
                   </div>
                   <div className="flex flex-col items-end gap-2 shrink-0">
-                    <Badge className={w.status === 'active' ? 'bg-nexus-emerald/20 text-nexus-emerald' : 'bg-destructive/20 text-destructive'}>{w.status}</Badge>
+                    <Badge
+                      className={
+                        w.status === 'active'
+                          ? 'bg-nexus-emerald/20 text-nexus-emerald'
+                          : 'bg-destructive/20 text-destructive'
+                      }
+                    >
+                      {w.status}
+                    </Badge>
                     <p className="text-xs text-muted-foreground">{w.request_count} requests</p>
                     <Button
                       size="sm"

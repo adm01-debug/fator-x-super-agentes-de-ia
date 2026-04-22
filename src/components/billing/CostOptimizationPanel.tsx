@@ -147,6 +147,7 @@ export function CostOptimizationPanel() {
     }
 
     return recs;
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [agents, usage, pricing]);
 
   const totalSavings = recommendations.filter((r) => r.severity === 'high').length;

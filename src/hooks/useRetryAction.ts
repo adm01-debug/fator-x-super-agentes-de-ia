@@ -52,11 +52,7 @@ export function useRetryAction<TArgs extends unknown[], TResult>(
 
       try {
         const result = options.serviceName
-          ? await executeWithCircuitBreaker(
-              options.serviceName,
-              () => action(...args),
-              policy,
-            )
+          ? await executeWithCircuitBreaker(options.serviceName, () => action(...args), policy)
           : await executeWithRetry(() => action(...args), policy, opName);
 
         setLastResult(result as RetryResult<TResult>);
@@ -103,6 +99,7 @@ export function useRetryAction<TArgs extends unknown[], TResult>(
         setLoading(false);
       }
     },
+    // eslint-disable-next-line react-hooks/exhaustive-deps
     [action, options, toast],
   );
 

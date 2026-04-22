@@ -1,3 +1,4 @@
+/* eslint-disable react-refresh/only-export-components */
 /**
  * ═══════════════════════════════════════════════════════════════
  * Nexus Agents Studio — AccessControl Component
@@ -43,9 +44,7 @@ export function AccessControl({
 
   if (loading) {
     if (showLoading) {
-      return (
-        <div className="animate-pulse bg-card rounded-lg h-8 w-24" />
-      );
+      return <div className="animate-pulse bg-card rounded-lg h-8 w-24" />;
     }
     return null;
   }
@@ -72,7 +71,7 @@ export function useAccessGuard() {
   function guardAction(
     permission: PermissionKey | PermissionKey[],
     action: () => void | Promise<void>,
-    onDenied?: () => void
+    onDenied?: () => void,
   ) {
     return async () => {
       if (can(permission)) {

@@ -7,7 +7,13 @@ interface Props {
   labelB: string;
 }
 
-function diffLines(a: string, b: string): { linesA: { text: string; type: 'same' | 'removed' }[]; linesB: { text: string; type: 'same' | 'added' }[] } {
+function diffLines(
+  a: string,
+  b: string,
+): {
+  linesA: { text: string; type: 'same' | 'removed' }[];
+  linesB: { text: string; type: 'same' | 'added' }[];
+} {
   const aLines = a.split('\n');
   const bLines = b.split('\n');
 
@@ -18,22 +24,27 @@ function diffLines(a: string, b: string): { linesA: { text: string; type: 'same'
 
   for (let i = 1; i <= m; i++) {
     for (let j = 1; j <= n; j++) {
-      dp[i][j] = aLines[i - 1] === bLines[j - 1] ? dp[i - 1][j - 1] + 1 : Math.max(dp[i - 1][j], dp[i][j - 1]);
+      dp[i][j] =
+        aLines[i - 1] === bLines[j - 1]
+          ? dp[i - 1][j - 1] + 1
+          : Math.max(dp[i - 1][j], dp[i][j - 1]);
     }
   }
 
-  const linesA: { text: string; type: 'same' | 'removed' }[] = [];
-  const linesB: { text: string; type: 'same' | 'added' }[] = [];
+  type LineA = { text: string; type: 'same' | 'removed' };
+  type LineB = { text: string; type: 'same' | 'added' };
 
-  let i = m, j = n;
-  const opsA: typeof linesA = [];
-  const opsB: typeof linesB = [];
+  let i = m,
+    j = n;
+  const opsA: LineA[] = [];
+  const opsB: LineB[] = [];
 
   while (i > 0 || j > 0) {
     if (i > 0 && j > 0 && aLines[i - 1] === bLines[j - 1]) {
       opsA.unshift({ text: aLines[i - 1], type: 'same' });
       opsB.unshift({ text: bLines[j - 1], type: 'same' });
-      i--; j--;
+      i--;
+      j--;
     } else if (j > 0 && (i === 0 || dp[i][j - 1] >= dp[i - 1][j])) {
       opsA.unshift({ text: '', type: 'same' }); // spacer
       opsB.unshift({ text: bLines[j - 1], type: 'added' });
@@ -63,10 +74,10 @@ export function PromptDiff({ textA, textB, labelA, labelB }: Props) {
           isRemoved
             ? 'bg-destructive/10 border-l-destructive text-destructive'
             : isAdded
-            ? 'bg-nexus-emerald/10 border-l-emerald-500 text-nexus-emerald'
-            : isEmpty
-            ? 'border-l-transparent opacity-30'
-            : 'border-l-transparent text-foreground/80'
+              ? 'bg-nexus-emerald/10 border-l-emerald-500 text-nexus-emerald'
+              : isEmpty
+                ? 'border-l-transparent opacity-30'
+                : 'border-l-transparent text-foreground/80'
         }`}
       >
         {isRemoved && <span className="mr-2 text-destructive/60">−</span>}

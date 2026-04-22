@@ -1,3 +1,4 @@
+/* eslint-disable react-refresh/only-export-components */
 /**
  * AdvancedTraceFilters — Date range, latency range, cost range, level filter for monitoring.
  */

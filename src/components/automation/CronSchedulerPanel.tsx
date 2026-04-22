@@ -3,7 +3,15 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Clock, RefreshCw, Play, Loader2 } from 'lucide-react';
-import { listSchedules, runCronExecutor, CRON_PRESETS, getScheduleStats, describeCronExpression, type CronSchedule, type ScheduleStats } from '@/services/cronSchedulerService';
+import {
+  listSchedules,
+  runCronExecutor,
+  CRON_PRESETS,
+  getScheduleStats,
+  describeCronExpression,
+  type CronSchedule,
+  type ScheduleStats,
+} from '@/services/cronSchedulerService';
 import { useToast } from '@/hooks/use-toast';
 
 const STATUS_COLORS: Record<string, string> = {
@@ -24,27 +32,27 @@ export function CronSchedulerPanel() {
   const loadData = async () => {
     setLoading(true);
     try {
-      const [schedulesData, statsData] = await Promise.all([
-        listSchedules(),
-        getScheduleStats(),
-      ]);
+      const [schedulesData, statsData] = await Promise.all([listSchedules(), getScheduleStats()]);
       setSchedules(schedulesData);
       setStats(statsData);
-    } catch (e) {
+    } catch {
       toast({ title: 'Erro ao carregar agendamentos', variant: 'destructive' });
     } finally {
       setLoading(false);
     }
   };
 
-  useEffect(() => { loadData(); }, []);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  useEffect(() => {
+    loadData();
+  }, []);
 
   const handleRunPending = async () => {
     setRunning(true);
     try {
       const result = await runCronExecutor();
       const count = result.results?.length ?? result.executed ?? 0;
-      const succ = result.results?.filter(r => r.status === 'success').length ?? 0;
+      const succ = result.results?.filter((r) => r.status === 'success').length ?? 0;
       toast({
         title: 'Cron-executor disparado',
         description: count
@@ -52,7 +60,7 @@ export function CronSchedulerPanel() {
           : 'Nenhum agendamento pendente',
       });
       await loadData();
-    } catch (e) {
+    } catch {
       toast({
         title: 'Falha ao executar pendentes',
         description: e instanceof Error ? e.message : 'Erro desconhecido',
@@ -69,13 +77,27 @@ export function CronSchedulerPanel() {
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
         {[
           { label: 'Total', value: stats?.total_schedules ?? 0, color: 'hsl(var(--nexus-blue))' },
-          { label: 'Ativos', value: stats?.active_schedules ?? 0, color: 'hsl(var(--nexus-emerald))' },
-          { label: 'Pausados', value: stats?.paused_schedules ?? 0, color: 'hsl(var(--nexus-yellow))' },
-          { label: 'Taxa Sucesso', value: `${(stats?.success_rate ?? 0).toFixed(1)}%`, color: 'hsl(var(--nexus-purple))' },
+          {
+            label: 'Ativos',
+            value: stats?.active_schedules ?? 0,
+            color: 'hsl(var(--nexus-emerald))',
+          },
+          {
+            label: 'Pausados',
+            value: stats?.paused_schedules ?? 0,
+            color: 'hsl(var(--nexus-yellow))',
+          },
+          {
+            label: 'Taxa Sucesso',
+            value: `${(stats?.success_rate ?? 0).toFixed(1)}%`,
+            color: 'hsl(var(--nexus-purple))',
+          },
         ].map((s, i) => (
           <Card key={i} className="bg-card border-border">
             <CardContent className="p-4 text-center">
-              <p className="text-2xl font-bold" style={{ color: s.color }}>{s.value}</p>
+              <p className="text-2xl font-bold" style={{ color: s.color }}>
+                {s.value}
+              </p>
               <p className="text-xs text-muted-foreground">{s.label}</p>
             </CardContent>
           </Card>
@@ -108,11 +130,18 @@ export function CronSchedulerPanel() {
 
       {/* Presets */}
       <Card className="bg-card border-border">
-        <CardHeader className="pb-3"><CardTitle className="text-sm text-muted-foreground">Presets Disponíveis</CardTitle></CardHeader>
+        <CardHeader className="pb-3">
+          <CardTitle className="text-sm text-muted-foreground">Presets Disponíveis</CardTitle>
+        </CardHeader>
         <CardContent>
           <div className="flex flex-wrap gap-2">
             {Object.entries(CRON_PRESETS).map(([key, preset]) => (
-              <Badge key={key} variant="outline" className="border-border text-xs cursor-pointer hover:bg-accent" title={preset.description}>
+              <Badge
+                key={key}
+                variant="outline"
+                className="border-border text-xs cursor-pointer hover:bg-accent"
+                title={preset.description}
+              >
                 <Clock size={10} className="mr-1 text-primary" />
                 {preset.label}
               </Badge>
@@ -129,7 +158,9 @@ export function CronSchedulerPanel() {
           <CardContent className="py-12 text-center text-muted-foreground">
             <Clock size={48} className="mx-auto mb-4 opacity-30" />
             <p>Nenhum agendamento criado ainda.</p>
-            <p className="text-sm mt-1">Use os presets acima ou crie um agendamento personalizado.</p>
+            <p className="text-sm mt-1">
+              Use os presets acima ou crie um agendamento personalizado.
+            </p>
           </CardContent>
         </Card>
       ) : (
@@ -143,8 +174,11 @@ export function CronSchedulerPanel() {
                     <div>
                       <p className="font-medium">{s.name}</p>
                       <p className="text-xs text-muted-foreground">
-                        {s.cron_expression ? describeCronExpression(s.cron_expression) : s.frequency}
-                        {s.next_run_at && ` • Próx: ${new Date(s.next_run_at).toLocaleString('pt-BR')}`}
+                        {s.cron_expression
+                          ? describeCronExpression(s.cron_expression)
+                          : s.frequency}
+                        {s.next_run_at &&
+                          ` • Próx: ${new Date(s.next_run_at).toLocaleString('pt-BR')}`}
                       </p>
                     </div>
                   </div>

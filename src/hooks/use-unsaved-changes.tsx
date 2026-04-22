@@ -1,8 +1,15 @@
-import { createContext, useContext, useState, useCallback, useRef, useEffect } from "react";
+/* eslint-disable react-refresh/only-export-components */
+import { createContext, useContext, useState, useCallback, useRef, useEffect } from 'react';
 import {
-  AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
-  AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
-} from "@/components/ui/alert-dialog";
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
 
 interface UnsavedChangesContextType {
   hasUnsavedChanges: boolean;
@@ -25,14 +32,17 @@ export function UnsavedChangesProvider({ children }: { children: React.ReactNode
   const [dialogOpen, setDialogOpen] = useState(false);
   const pendingCb = useRef<(() => void) | null>(null);
 
-  const confirmNavigation = useCallback((onConfirm: () => void) => {
-    if (hasUnsavedChanges) {
-      pendingCb.current = onConfirm;
-      setDialogOpen(true);
-    } else {
-      onConfirm();
-    }
-  }, [hasUnsavedChanges]);
+  const confirmNavigation = useCallback(
+    (onConfirm: () => void) => {
+      if (hasUnsavedChanges) {
+        pendingCb.current = onConfirm;
+        setDialogOpen(true);
+      } else {
+        onConfirm();
+      }
+    },
+    [hasUnsavedChanges],
+  );
 
   const handleConfirm = () => {
     setDialogOpen(false);
@@ -51,15 +61,17 @@ export function UnsavedChangesProvider({ children }: { children: React.ReactNode
     const handler = (e: BeforeUnloadEvent) => {
       if (hasUnsavedChanges) {
         e.preventDefault();
-        e.returnValue = "";
+        e.returnValue = '';
       }
     };
-    window.addEventListener("beforeunload", handler);
-    return () => window.removeEventListener("beforeunload", handler);
+    window.addEventListener('beforeunload', handler);
+    return () => window.removeEventListener('beforeunload', handler);
   }, [hasUnsavedChanges]);
 
   return (
-    <UnsavedChangesContext.Provider value={{ hasUnsavedChanges, setHasUnsavedChanges, confirmNavigation }}>
+    <UnsavedChangesContext.Provider
+      value={{ hasUnsavedChanges, setHasUnsavedChanges, confirmNavigation }}
+    >
       {children}
       <AlertDialog open={dialogOpen} onOpenChange={setDialogOpen}>
         <AlertDialogContent>
@@ -71,7 +83,10 @@ export function UnsavedChangesProvider({ children }: { children: React.ReactNode
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel onClick={handleCancel}>Cancelar</AlertDialogCancel>
-            <AlertDialogAction onClick={handleConfirm} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
+            <AlertDialogAction
+              onClick={handleConfirm}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
               Sair sem salvar
             </AlertDialogAction>
           </AlertDialogFooter>

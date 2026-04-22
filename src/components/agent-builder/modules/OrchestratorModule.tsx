@@ -51,6 +51,7 @@ export function OrchestratorModule() {
       setNodes((active.nodes as unknown as Node[]) || []);
       setEdges((active.edges as unknown as Edge[]) || []);
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [activeId]);
 
   const onConnect = useCallback((c: Connection) => setEdges((eds) => addEdge(c, eds)), [setEdges]);

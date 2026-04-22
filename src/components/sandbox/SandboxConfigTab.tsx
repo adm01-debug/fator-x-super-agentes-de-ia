@@ -1,3 +1,4 @@
+/* eslint-disable react-refresh/only-export-components */
 import type { SandboxConfig, SandboxRuntime } from '@/components/workflows/SandboxExecutionPanel';
 
 const RUNTIME_OPTIONS: Array<{

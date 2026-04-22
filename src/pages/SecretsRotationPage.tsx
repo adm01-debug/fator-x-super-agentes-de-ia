@@ -1,26 +1,66 @@
-import { useEffect, useState, useCallback } from "react";
-import { useAuth } from "@/contexts/AuthContext";
-import { getWorkspaceInfo } from "@/lib/agentService";
+import { useEffect, useState, useCallback } from 'react';
+import { useAuth } from '@/contexts/AuthContext';
+import { getWorkspaceInfo } from '@/lib/agentService';
 import {
-  listManagedSecrets, getSecretsSummary, registerManagedSecret,
-  recordSecretRotation, markSecretRetired, refreshSecretsStatus,
-  SECRET_CATEGORY_LABELS, ROTATION_REASON_LABELS, SECRET_TEMPLATES,
-  getDaysUntilRotation, getStatusVariant,
-  type ManagedSecret, type SecretsSummary, type SecretCategory,
-  type SecretEnvironment, type RotationReason,
-} from "@/services/secretsRotationService";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Textarea } from "@/components/ui/textarea";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Badge } from "@/components/ui/badge";
-import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { toast } from "sonner";
-import { KeyRound, RefreshCw, CheckCircle2, Clock, Archive, Plus, RotateCw, ShieldAlert } from "lucide-react";
-import { logger } from "@/lib/logger";
+  listManagedSecrets,
+  getSecretsSummary,
+  registerManagedSecret,
+  recordSecretRotation,
+  markSecretRetired,
+  refreshSecretsStatus,
+  SECRET_CATEGORY_LABELS,
+  ROTATION_REASON_LABELS,
+  SECRET_TEMPLATES,
+  getDaysUntilRotation,
+  getStatusVariant,
+  type ManagedSecret,
+  type SecretsSummary,
+  type SecretCategory,
+  type SecretEnvironment,
+  type RotationReason,
+} from '@/services/secretsRotationService';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Textarea } from '@/components/ui/textarea';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
+import { Badge } from '@/components/ui/badge';
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from '@/components/ui/dialog';
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from '@/components/ui/table';
+import { toast } from 'sonner';
+import {
+  KeyRound,
+  RefreshCw,
+  CheckCircle2,
+  Clock,
+  Archive,
+  Plus,
+  RotateCw,
+  ShieldAlert,
+} from 'lucide-react';
+import { logger } from '@/lib/logger';
 
 export default function SecretsRotationPage() {
   const { user } = useAuth();
@@ -28,23 +68,23 @@ export default function SecretsRotationPage() {
   const [secrets, setSecrets] = useState<ManagedSecret[]>([]);
   const [summary, setSummary] = useState<SecretsSummary | null>(null);
   const [loading, setLoading] = useState(true);
-  const [filterCategory, setFilterCategory] = useState<string>("all");
-  const [filterEnv, setFilterEnv] = useState<string>("all");
-  const [filterStatus, setFilterStatus] = useState<string>("all");
+  const [filterCategory, setFilterCategory] = useState<string>('all');
+  const [filterEnv, setFilterEnv] = useState<string>('all');
+  const [filterStatus, setFilterStatus] = useState<string>('all');
 
   // Register dialog
   const [registerOpen, setRegisterOpen] = useState(false);
-  const [regName, setRegName] = useState("");
-  const [regCategory, setRegCategory] = useState<SecretCategory>("api_key");
-  const [regProvider, setRegProvider] = useState("");
-  const [regEnv, setRegEnv] = useState<SecretEnvironment>("prod");
+  const [regName, setRegName] = useState('');
+  const [regCategory, setRegCategory] = useState<SecretCategory>('api_key');
+  const [regProvider, setRegProvider] = useState('');
+  const [regEnv, setRegEnv] = useState<SecretEnvironment>('prod');
   const [regInterval, setRegInterval] = useState(90);
-  const [regNotes, setRegNotes] = useState("");
+  const [regNotes, setRegNotes] = useState('');
 
   // Rotate dialog
   const [rotateSecret, setRotateSecret] = useState<ManagedSecret | null>(null);
-  const [rotateReason, setRotateReason] = useState<RotationReason>("scheduled");
-  const [rotateNotes, setRotateNotes] = useState("");
+  const [rotateReason, setRotateReason] = useState<RotationReason>('scheduled');
+  const [rotateNotes, setRotateNotes] = useState('');
 
   const load = useCallback(async (wsId: string) => {
     setLoading(true);
@@ -52,9 +92,9 @@ export default function SecretsRotationPage() {
       const [list, sum] = await Promise.all([listManagedSecrets(wsId), getSecretsSummary(wsId)]);
       setSecrets(list);
       setSummary(sum);
-    } catch (err) {
-      logger.error("Failed to load secrets:", err);
-      toast.error("Falha ao carregar secrets");
+    } catch {
+      logger.error('Failed to load secrets:', err);
+      toast.error('Falha ao carregar secrets');
     } finally {
       setLoading(false);
     }
@@ -64,7 +104,7 @@ export default function SecretsRotationPage() {
     if (!user) return;
     getWorkspaceInfo().then(async (info) => {
       if (!info) return;
-      const { getWorkspaceIdForUser } = await import("@/services/workspaceContextService");
+      const { getWorkspaceIdForUser } = await import('@/services/workspaceContextService');
       const wsId = await getWorkspaceIdForUser(user.id);
       if (wsId) {
         setWorkspaceId(wsId);
@@ -78,8 +118,8 @@ export default function SecretsRotationPage() {
       const r = await refreshSecretsStatus();
       toast.success(`${r.marked_overdue} marcados como overdue, ${r.marked_pending} como pending`);
       if (workspaceId) load(workspaceId);
-    } catch (err) {
-      toast.error("Falha ao atualizar status");
+    } catch {
+      toast.error('Falha ao atualizar status');
     }
   };
 
@@ -95,17 +135,20 @@ export default function SecretsRotationPage() {
         rotation_interval_days: regInterval,
         notes: regNotes.trim() || undefined,
       });
-      toast.success("Secret cadastrado");
+      toast.success('Secret cadastrado');
       setRegisterOpen(false);
-      setRegName(""); setRegProvider(""); setRegNotes(""); setRegInterval(90);
+      setRegName('');
+      setRegProvider('');
+      setRegNotes('');
+      setRegInterval(90);
       load(workspaceId);
-    } catch (err) {
-      const msg = err instanceof Error ? err.message : "Erro";
+    } catch {
+      const msg = err instanceof Error ? err.message : 'Erro';
       toast.error(`Falha: ${msg}`);
     }
   };
 
-  const applyTemplate = (tpl: typeof SECRET_TEMPLATES[number]) => {
+  const applyTemplate = (tpl: (typeof SECRET_TEMPLATES)[number]) => {
     setRegName(tpl.name);
     setRegCategory(tpl.category);
     setRegInterval(tpl.rotation_interval_days);
@@ -116,32 +159,34 @@ export default function SecretsRotationPage() {
     if (!rotateSecret) return;
     try {
       await recordSecretRotation(rotateSecret.id, rotateReason, rotateNotes.trim() || undefined);
-      toast.success("Rotação registrada");
+      toast.success('Rotação registrada');
       setRotateSecret(null);
-      setRotateNotes("");
-      setRotateReason("scheduled");
+      setRotateNotes('');
+      setRotateReason('scheduled');
       if (workspaceId) load(workspaceId);
-    } catch (err) {
-      const msg = err instanceof Error ? err.message : "Erro";
+    } catch {
+      const msg = err instanceof Error ? err.message : 'Erro';
       toast.error(`Falha: ${msg}`);
     }
   };
 
   const handleRetire = async (secret: ManagedSecret) => {
-    if (!confirm(`Aposentar "${secret.name}"? Essa ação marca o secret como descomissionado.`)) return;
+    if (!confirm(`Aposentar "${secret.name}"? Essa ação marca o secret como descomissionado.`))
+      return;
     try {
       await markSecretRetired(secret.id);
-      toast.success("Secret aposentado");
+      toast.success('Secret aposentado');
       if (workspaceId) load(workspaceId);
-    } catch (err) {
-      toast.error("Falha ao aposentar");
+    } catch {
+      toast.error('Falha ao aposentar');
     }
   };
 
-  const filtered = secrets.filter(s =>
-    (filterCategory === "all" || s.category === filterCategory) &&
-    (filterEnv === "all" || s.environment === filterEnv) &&
-    (filterStatus === "all" || s.status === filterStatus)
+  const filtered = secrets.filter(
+    (s) =>
+      (filterCategory === 'all' || s.category === filterCategory) &&
+      (filterEnv === 'all' || s.environment === filterEnv) &&
+      (filterStatus === 'all' || s.status === filterStatus),
   );
 
   return (
@@ -162,7 +207,9 @@ export default function SecretsRotationPage() {
           </Button>
           <Dialog open={registerOpen} onOpenChange={setRegisterOpen}>
             <DialogTrigger asChild>
-              <Button size="sm"><Plus className="h-4 w-4 mr-1.5" /> Novo secret</Button>
+              <Button size="sm">
+                <Plus className="h-4 w-4 mr-1.5" /> Novo secret
+              </Button>
             </DialogTrigger>
             <DialogContent className="max-w-xl">
               <DialogHeader>
@@ -175,8 +222,15 @@ export default function SecretsRotationPage() {
                 <div>
                   <Label>Templates</Label>
                   <div className="flex flex-wrap gap-1.5 mt-1.5">
-                    {SECRET_TEMPLATES.map(t => (
-                      <Button key={t.name} type="button" variant="outline" size="sm" onClick={() => applyTemplate(t)} className="h-7 text-xs">
+                    {SECRET_TEMPLATES.map((t) => (
+                      <Button
+                        key={t.name}
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        onClick={() => applyTemplate(t)}
+                        className="h-7 text-xs"
+                      >
                         {t.name} ({t.rotation_interval_days}d)
                       </Button>
                     ))}
@@ -185,19 +239,34 @@ export default function SecretsRotationPage() {
                 <div className="grid grid-cols-2 gap-3">
                   <div>
                     <Label>Nome *</Label>
-                    <Input value={regName} onChange={e => setRegName(e.target.value)} placeholder="OpenAI API Key" />
+                    <Input
+                      value={regName}
+                      onChange={(e) => setRegName(e.target.value)}
+                      placeholder="OpenAI API Key"
+                    />
                   </div>
                   <div>
                     <Label>Provedor</Label>
-                    <Input value={regProvider} onChange={e => setRegProvider(e.target.value)} placeholder="OpenAI" />
+                    <Input
+                      value={regProvider}
+                      onChange={(e) => setRegProvider(e.target.value)}
+                      placeholder="OpenAI"
+                    />
                   </div>
                   <div>
                     <Label>Categoria</Label>
-                    <Select value={regCategory} onValueChange={(v) => setRegCategory(v as SecretCategory)}>
-                      <SelectTrigger><SelectValue /></SelectTrigger>
+                    <Select
+                      value={regCategory}
+                      onValueChange={(v) => setRegCategory(v as SecretCategory)}
+                    >
+                      <SelectTrigger>
+                        <SelectValue />
+                      </SelectTrigger>
                       <SelectContent>
                         {Object.entries(SECRET_CATEGORY_LABELS).map(([k, v]) => (
-                          <SelectItem key={k} value={k}>{v}</SelectItem>
+                          <SelectItem key={k} value={k}>
+                            {v}
+                          </SelectItem>
                         ))}
                       </SelectContent>
                     </Select>
@@ -205,7 +274,9 @@ export default function SecretsRotationPage() {
                   <div>
                     <Label>Ambiente</Label>
                     <Select value={regEnv} onValueChange={(v) => setRegEnv(v as SecretEnvironment)}>
-                      <SelectTrigger><SelectValue /></SelectTrigger>
+                      <SelectTrigger>
+                        <SelectValue />
+                      </SelectTrigger>
                       <SelectContent>
                         <SelectItem value="prod">Produção</SelectItem>
                         <SelectItem value="staging">Staging</SelectItem>
@@ -215,17 +286,30 @@ export default function SecretsRotationPage() {
                   </div>
                   <div className="col-span-2">
                     <Label>Intervalo de rotação (dias)</Label>
-                    <Input type="number" min={1} value={regInterval} onChange={e => setRegInterval(parseInt(e.target.value) || 90)} />
+                    <Input
+                      type="number"
+                      min={1}
+                      value={regInterval}
+                      onChange={(e) => setRegInterval(parseInt(e.target.value) || 90)}
+                    />
                   </div>
                   <div className="col-span-2">
                     <Label>Notas</Label>
-                    <Textarea value={regNotes} onChange={e => setRegNotes(e.target.value)} rows={2} />
+                    <Textarea
+                      value={regNotes}
+                      onChange={(e) => setRegNotes(e.target.value)}
+                      rows={2}
+                    />
                   </div>
                 </div>
               </div>
               <DialogFooter>
-                <Button variant="ghost" onClick={() => setRegisterOpen(false)}>Cancelar</Button>
-                <Button onClick={handleRegister} disabled={!regName.trim()}>Cadastrar</Button>
+                <Button variant="ghost" onClick={() => setRegisterOpen(false)}>
+                  Cancelar
+                </Button>
+                <Button onClick={handleRegister} disabled={!regName.trim()}>
+                  Cadastrar
+                </Button>
               </DialogFooter>
             </DialogContent>
           </Dialog>
@@ -234,11 +318,37 @@ export default function SecretsRotationPage() {
 
       {/* Stats */}
       <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
-        <StatCard label="Total" value={summary?.total ?? 0} icon={<KeyRound className="h-4 w-4" />} tone="default" />
-        <StatCard label="Overdue" value={summary?.overdue ?? 0} icon={<ShieldAlert className="h-4 w-4" />} tone="destructive" pulse={!!summary?.overdue} />
-        <StatCard label="Pendentes" value={summary?.pending ?? 0} icon={<Clock className="h-4 w-4" />} tone="warning" />
-        <StatCard label="Ativos" value={summary?.active ?? 0} icon={<CheckCircle2 className="h-4 w-4" />} tone="success" />
-        <StatCard label="Aposentados" value={summary?.retired ?? 0} icon={<Archive className="h-4 w-4" />} tone="muted" />
+        <StatCard
+          label="Total"
+          value={summary?.total ?? 0}
+          icon={<KeyRound className="h-4 w-4" />}
+          tone="default"
+        />
+        <StatCard
+          label="Overdue"
+          value={summary?.overdue ?? 0}
+          icon={<ShieldAlert className="h-4 w-4" />}
+          tone="destructive"
+          pulse={!!summary?.overdue}
+        />
+        <StatCard
+          label="Pendentes"
+          value={summary?.pending ?? 0}
+          icon={<Clock className="h-4 w-4" />}
+          tone="warning"
+        />
+        <StatCard
+          label="Ativos"
+          value={summary?.active ?? 0}
+          icon={<CheckCircle2 className="h-4 w-4" />}
+          tone="success"
+        />
+        <StatCard
+          label="Aposentados"
+          value={summary?.retired ?? 0}
+          icon={<Archive className="h-4 w-4" />}
+          tone="muted"
+        />
       </div>
 
       {/* Filters */}
@@ -248,16 +358,22 @@ export default function SecretsRotationPage() {
             <CardTitle className="text-base">Inventário ({filtered.length})</CardTitle>
             <div className="flex gap-2 flex-wrap">
               <Select value={filterCategory} onValueChange={setFilterCategory}>
-                <SelectTrigger className="w-[160px] h-8"><SelectValue /></SelectTrigger>
+                <SelectTrigger className="w-[160px] h-8">
+                  <SelectValue />
+                </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="all">Todas categorias</SelectItem>
                   {Object.entries(SECRET_CATEGORY_LABELS).map(([k, v]) => (
-                    <SelectItem key={k} value={k}>{v}</SelectItem>
+                    <SelectItem key={k} value={k}>
+                      {v}
+                    </SelectItem>
                   ))}
                 </SelectContent>
               </Select>
               <Select value={filterEnv} onValueChange={setFilterEnv}>
-                <SelectTrigger className="w-[140px] h-8"><SelectValue /></SelectTrigger>
+                <SelectTrigger className="w-[140px] h-8">
+                  <SelectValue />
+                </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="all">Todos ambientes</SelectItem>
                   <SelectItem value="prod">Produção</SelectItem>
@@ -266,7 +382,9 @@ export default function SecretsRotationPage() {
                 </SelectContent>
               </Select>
               <Select value={filterStatus} onValueChange={setFilterStatus}>
-                <SelectTrigger className="w-[140px] h-8"><SelectValue /></SelectTrigger>
+                <SelectTrigger className="w-[140px] h-8">
+                  <SelectValue />
+                </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="all">Todos status</SelectItem>
                   <SelectItem value="overdue">Overdue</SelectItem>
@@ -299,37 +417,50 @@ export default function SecretsRotationPage() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {filtered.map(s => {
+                {filtered.map((s) => {
                   const days = getDaysUntilRotation(s.next_rotation_due);
                   const variant = getStatusVariant(s.status, days);
                   return (
                     <TableRow key={s.id}>
                       <TableCell className="font-medium">
                         <div>{s.name}</div>
-                        {s.provider && <div className="text-xs text-muted-foreground">{s.provider}</div>}
+                        {s.provider && (
+                          <div className="text-xs text-muted-foreground">{s.provider}</div>
+                        )}
                       </TableCell>
                       <TableCell>
-                        <Badge variant="secondary" className="font-normal">{SECRET_CATEGORY_LABELS[s.category]}</Badge>
+                        <Badge variant="secondary" className="font-normal">
+                          {SECRET_CATEGORY_LABELS[s.category]}
+                        </Badge>
                       </TableCell>
                       <TableCell>
-                        <Badge variant={s.environment === 'prod' ? 'default' : 'outline'} className="font-normal text-xs">
+                        <Badge
+                          variant={s.environment === 'prod' ? 'default' : 'outline'}
+                          className="font-normal text-xs"
+                        >
                           {s.environment}
                         </Badge>
                       </TableCell>
                       <TableCell className="text-sm text-muted-foreground">
-                        {s.last_rotated_at ? new Date(s.last_rotated_at).toLocaleDateString('pt-BR') : '—'}
+                        {s.last_rotated_at
+                          ? new Date(s.last_rotated_at).toLocaleDateString('pt-BR')
+                          : '—'}
                       </TableCell>
                       <TableCell className="text-sm">
                         {s.next_rotation_due ? (
                           <div>
                             <div>{new Date(s.next_rotation_due).toLocaleDateString('pt-BR')}</div>
                             {days !== null && s.status !== 'retired' && (
-                              <div className={`text-xs ${days < 0 ? 'text-destructive' : days < 7 ? 'text-amber-500' : 'text-muted-foreground'}`}>
+                              <div
+                                className={`text-xs ${days < 0 ? 'text-destructive' : days < 7 ? 'text-amber-500' : 'text-muted-foreground'}`}
+                              >
                                 {days < 0 ? `${Math.abs(days)}d atrasado` : `em ${days}d`}
                               </div>
                             )}
                           </div>
-                        ) : '—'}
+                        ) : (
+                          '—'
+                        )}
                       </TableCell>
                       <TableCell>
                         <StatusBadge variant={variant} />
@@ -337,10 +468,20 @@ export default function SecretsRotationPage() {
                       <TableCell className="text-right">
                         {s.status !== 'retired' && (
                           <div className="flex justify-end gap-1">
-                            <Button size="sm" variant="ghost" className="h-7 px-2 text-xs" onClick={() => setRotateSecret(s)}>
+                            <Button
+                              size="sm"
+                              variant="ghost"
+                              className="h-7 px-2 text-xs"
+                              onClick={() => setRotateSecret(s)}
+                            >
                               <RotateCw className="h-3 w-3 mr-1" /> Rotacionar
                             </Button>
-                            <Button size="sm" variant="ghost" className="h-7 px-2 text-xs text-muted-foreground" onClick={() => handleRetire(s)}>
+                            <Button
+                              size="sm"
+                              variant="ghost"
+                              className="h-7 px-2 text-xs text-muted-foreground"
+                              onClick={() => handleRetire(s)}
+                            >
                               <Archive className="h-3 w-3" />
                             </Button>
                           </div>
@@ -361,28 +502,43 @@ export default function SecretsRotationPage() {
           <DialogHeader>
             <DialogTitle>Registrar rotação</DialogTitle>
             <DialogDescription>
-              {rotateSecret?.name} — recalcula próxima data ({rotateSecret?.rotation_interval_days}d)
+              {rotateSecret?.name} — recalcula próxima data ({rotateSecret?.rotation_interval_days}
+              d)
             </DialogDescription>
           </DialogHeader>
           <div className="space-y-3">
             <div>
               <Label>Motivo</Label>
-              <Select value={rotateReason} onValueChange={(v) => setRotateReason(v as RotationReason)}>
-                <SelectTrigger><SelectValue /></SelectTrigger>
+              <Select
+                value={rotateReason}
+                onValueChange={(v) => setRotateReason(v as RotationReason)}
+              >
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
                 <SelectContent>
                   {Object.entries(ROTATION_REASON_LABELS).map(([k, v]) => (
-                    <SelectItem key={k} value={k}>{v}</SelectItem>
+                    <SelectItem key={k} value={k}>
+                      {v}
+                    </SelectItem>
                   ))}
                 </SelectContent>
               </Select>
             </div>
             <div>
               <Label>Notas</Label>
-              <Textarea value={rotateNotes} onChange={e => setRotateNotes(e.target.value)} rows={3} placeholder="Detalhes da rotação, ticket relacionado, etc." />
+              <Textarea
+                value={rotateNotes}
+                onChange={(e) => setRotateNotes(e.target.value)}
+                rows={3}
+                placeholder="Detalhes da rotação, ticket relacionado, etc."
+              />
             </div>
           </div>
           <DialogFooter>
-            <Button variant="ghost" onClick={() => setRotateSecret(null)}>Cancelar</Button>
+            <Button variant="ghost" onClick={() => setRotateSecret(null)}>
+              Cancelar
+            </Button>
             <Button onClick={handleRotate}>Registrar rotação</Button>
           </DialogFooter>
         </DialogContent>
@@ -391,7 +547,19 @@ export default function SecretsRotationPage() {
   );
 }
 
-function StatCard({ label, value, icon, tone, pulse }: { label: string; value: number; icon: React.ReactNode; tone: 'default' | 'destructive' | 'warning' | 'success' | 'muted'; pulse?: boolean }) {
+function StatCard({
+  label,
+  value,
+  icon,
+  tone,
+  pulse,
+}: {
+  label: string;
+  value: number;
+  icon: React.ReactNode;
+  tone: 'default' | 'destructive' | 'warning' | 'success' | 'muted';
+  pulse?: boolean;
+}) {
   const toneClasses = {
     default: 'text-foreground',
     destructive: 'text-destructive',
@@ -414,7 +582,10 @@ function StatCard({ label, value, icon, tone, pulse }: { label: string; value: n
 
 function StatusBadge({ variant }: { variant: 'overdue' | 'urgent' | 'soon' | 'ok' | 'retired' }) {
   const config = {
-    overdue: { label: 'Overdue', cls: 'bg-destructive/15 text-destructive border-destructive/30 animate-pulse-subtle' },
+    overdue: {
+      label: 'Overdue',
+      cls: 'bg-destructive/15 text-destructive border-destructive/30 animate-pulse-subtle',
+    },
     urgent: { label: '<7d', cls: 'bg-amber-500/15 text-amber-500 border-amber-500/30' },
     soon: { label: '<30d', cls: 'bg-yellow-500/15 text-yellow-600 border-yellow-500/30' },
     ok: { label: 'OK', cls: 'bg-emerald-500/15 text-emerald-500 border-emerald-500/30' },

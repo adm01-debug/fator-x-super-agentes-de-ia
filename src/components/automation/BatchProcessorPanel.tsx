@@ -24,9 +24,13 @@ export function BatchProcessorPanel() {
 
   useEffect(() => {
     Promise.all([listBatchJobs(undefined, 50), getBatchStats()])
-      .then(([j, s]) => { setJobs(j); setStats(s); })
+      .then(([j, s]) => {
+        setJobs(j);
+        setStats(s);
+      })
       .catch(() => toast({ title: 'Erro', variant: 'destructive' }))
       .finally(() => setLoading(false));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   return (
@@ -35,12 +39,22 @@ export function BatchProcessorPanel() {
         {[
           { label: 'Total Jobs', value: stats?.total_jobs ?? 0, color: 'hsl(var(--nexus-blue))' },
           { label: 'Concluídos', value: stats?.completed ?? 0, color: 'hsl(var(--nexus-emerald))' },
-          { label: 'Itens Processados', value: (stats?.total_items_processed ?? 0).toLocaleString(), color: 'hsl(var(--nexus-purple))' },
-          { label: 'Taxa Sucesso', value: `${(stats?.success_rate ?? 0).toFixed(1)}%`, color: 'hsl(var(--nexus-yellow))' },
+          {
+            label: 'Itens Processados',
+            value: (stats?.total_items_processed ?? 0).toLocaleString(),
+            color: 'hsl(var(--nexus-purple))',
+          },
+          {
+            label: 'Taxa Sucesso',
+            value: `${(stats?.success_rate ?? 0).toFixed(1)}%`,
+            color: 'hsl(var(--nexus-yellow))',
+          },
         ].map((s, i) => (
           <Card key={i} className="bg-card border-border">
             <CardContent className="p-3 text-center">
-              <p className="text-xl font-bold" style={{ color: s.color }}>{s.value}</p>
+              <p className="text-xl font-bold" style={{ color: s.color }}>
+                {s.value}
+              </p>
               <p className="text-[10px] text-muted-foreground">{s.label}</p>
             </CardContent>
           </Card>
@@ -54,7 +68,9 @@ export function BatchProcessorPanel() {
           <CardContent className="py-12 text-center text-muted-foreground">
             <Layers size={48} className="mx-auto mb-4 opacity-30" />
             <p>Nenhum batch job executado.</p>
-            <p className="text-sm mt-1">Use a API processBatch() para processar grandes volumes de dados.</p>
+            <p className="text-sm mt-1">
+              Use a API processBatch() para processar grandes volumes de dados.
+            </p>
           </CardContent>
         </Card>
       ) : (
@@ -74,14 +90,19 @@ export function BatchProcessorPanel() {
                   </div>
                   <Progress value={job.progress_pct} className="h-2 mb-2" />
                   <div className="flex items-center justify-between text-xs text-muted-foreground">
-                    <span>{job.processed_items.toLocaleString()} / {job.total_items.toLocaleString()} itens ({job.progress_pct}%)</span>
+                    <span>
+                      {job.processed_items.toLocaleString()} / {job.total_items.toLocaleString()}{' '}
+                      itens ({job.progress_pct}%)
+                    </span>
                     <span>
                       ✅ {job.successful_items} • ❌ {job.failed_items}
                       {job.duration_ms && ` • ${(job.duration_ms / 1000).toFixed(1)}s`}
                     </span>
                   </div>
                   {job.errors.length > 0 && (
-                    <p className="text-[10px] text-destructive mt-2">{job.errors.length} erros registrados</p>
+                    <p className="text-[10px] text-destructive mt-2">
+                      {job.errors.length} erros registrados
+                    </p>
                   )}
                 </CardContent>
               </Card>
