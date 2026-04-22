@@ -90,6 +90,9 @@ export function PromptValidationFeedback({ prompt, onApplyFix }: Props) {
           ))}
         </div>
       )}
+
+      {/* Auto-fix actions — surfaces 1-click corrections with diff preview */}
+      {onApplyFix && <PromptAutoFixPanel prompt={prompt} onApply={onApplyFix} />}
     </div>
   );
 }
