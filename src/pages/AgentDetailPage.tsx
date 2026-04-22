@@ -350,12 +350,25 @@ function VersionHistory({ agentId }: { agentId: string }) {
                   )}
                 </fieldset>
 
-                {previous && hasAnyOptionSelected && (
-                  <RestoreDiffPreview
-                    current={current}
-                    source={previous}
-                    options={restoreOptions}
-                  />
+                {previous && hasAnyOptionSelected && restoreDiff && (
+                  <>
+                    <RestoreDiffPreview
+                      current={current}
+                      source={previous}
+                      options={restoreOptions}
+                    />
+                    <RestoreChangelogEditor
+                      sourceVersion={previous.version}
+                      nextVersion={nextVersionNumber}
+                      diff={restoreDiff}
+                      options={restoreOptions}
+                      value={summaryDraft}
+                      onChange={setSummaryDraft}
+                      edited={summaryEdited}
+                      onEditedChange={setSummaryEdited}
+                      disabled={rollbackMut.isPending}
+                    />
+                  </>
                 )}
                 <p className="text-xs text-muted-foreground">
                   Nenhum histórico será apagado — o rollback é não destrutivo.
