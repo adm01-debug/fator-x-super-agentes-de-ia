@@ -204,14 +204,20 @@ export interface ContradictionAutoFix {
  */
 function pickUnifiedRule(c: PromptContradiction): { line: string; rationale: string } {
   const all = suggestContradictionRewrites(c);
-  const primary = all[0];
-  // Take the first non-comment, non-empty line of the rewrite as the unified rule.
-  const firstLine = primary.rewrite
+  return extractUnifiedFromSuggestion(all[0]);
+}
+
+/**
+ * Extract a single "unified rule" line from a multiline suggestion rewrite.
+ * Picks the first non-comment, non-empty line — same logic used by the default
+ * pick, but exposed so the UI can build a fix from any chosen suggestion.
+ */
+function extractUnifiedFromSuggestion(s: ContradictionSuggestion): { line: string; rationale: string } {
+  const firstLine = s.rewrite
     .split('\n')
     .map((l) => l.trim())
     .find((l) => l.length > 0 && !l.startsWith('#'));
-  const unified = firstLine ?? primary.rewrite.trim();
-  return { line: unified, rationale: primary.rationale };
+  return { line: firstLine ?? s.rewrite.trim(), rationale: s.rationale };
 }
 
 /**
