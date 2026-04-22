@@ -704,16 +704,25 @@ export function QuickCreateWizard({ onBack }: QuickCreateWizardProps) {
             </Button>
             {(() => {
               const conflictCount = detectPromptContradictions(form.prompt).length;
-              const blocked = conflictCount > 0;
+              const conflictBlocked = conflictCount > 0;
+              const depthBlocked = !meetsDepth;
+              const blocked = conflictBlocked || depthBlocked;
+              const title = conflictBlocked
+                ? `Resolva os ${conflictCount} conflito(s) entre regras antes de criar.`
+                : depthBlocked
+                ? `Prompt com ${promptWordCount}/${minPromptDepth} palavras — adicione mais detalhes ou reduza o nível mínimo.`
+                : undefined;
+              const label = saving
+                ? 'Criando…'
+                : conflictBlocked
+                ? `Resolver ${conflictCount} conflito(s)`
+                : depthBlocked
+                ? `Faltam ${Math.max(minPromptDepth - promptWordCount, 0)} palavra(s)`
+                : 'Confirmar e criar';
               return (
-                <Button
-                  onClick={saveAgent}
-                  disabled={saving || blocked}
-                  className="gap-2"
-                  title={blocked ? `Resolva os ${conflictCount} conflito(s) entre regras antes de criar.` : undefined}
-                >
+                <Button onClick={saveAgent} disabled={saving || blocked} className="gap-2" title={title}>
                   {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : <Rocket className="h-4 w-4" />}
-                  {saving ? 'Criando…' : blocked ? `Resolver ${conflictCount} conflito(s)` : 'Confirmar e criar'}
+                  {label}
                 </Button>
               );
             })()}
