@@ -144,6 +144,8 @@ export function RestoreVersionDialog({ open, onOpenChange, source, current, next
               anyOptionSelected={canConfirm}
               sourceVersion={source.version}
               currentVersion={current.version}
+              overallImpact={diff.overallImpact}
+              overallRisk={diff.overallRisk}
               onShowFullDiff={() => setShowFullDiff(true)}
             />
 
