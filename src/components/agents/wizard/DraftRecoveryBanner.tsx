@@ -428,11 +428,14 @@ export function DraftRecoveryBanner({
                     </span>
                   )}
                 </div>
-                <div className="flex flex-wrap gap-1">
-                  <StatusChip label="Identidade" ok={d.summary.hasIdentity} />
-                  <StatusChip label="Tipo" ok={d.summary.hasType} />
-                  <StatusChip label="Modelo" ok={d.summary.hasModel} />
-                  <StatusChip label="Prompt" ok={d.summary.hasPrompt} />
+                <div className="flex flex-wrap items-center gap-2">
+                  <div className="flex flex-wrap gap-1">
+                    <StatusChip label="Identidade" ok={d.summary.hasIdentity} />
+                    <StatusChip label="Tipo" ok={d.summary.hasType} />
+                    <StatusChip label="Modelo" ok={d.summary.hasModel} />
+                    <StatusChip label="Prompt" ok={d.summary.hasPrompt} />
+                  </div>
+                  <CompletionMeter summary={d.summary} compact />
                 </div>
               </div>
 
