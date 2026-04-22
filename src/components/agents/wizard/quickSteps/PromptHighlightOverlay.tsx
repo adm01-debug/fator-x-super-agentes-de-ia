@@ -71,10 +71,16 @@ export function PromptHighlightOverlay({ prompt, locations, textareaRef, padding
 
       const status = lineStatus.get(i);
       const isConflict = conflictSet.has(i);
+      const isPulse = pulseSet.has(i);
       if (isConflict) {
         out.push({
           text: line.length > 0 ? line : ' ',
           cls: 'bg-destructive/15 text-destructive/90 border-l-2 border-destructive pl-1 -ml-1',
+        });
+      } else if (isPulse) {
+        out.push({
+          text: line.length > 0 ? line : ' ',
+          cls: 'bg-nexus-emerald/20 text-nexus-emerald border-l-2 border-nexus-emerald pl-1 -ml-1 animate-pulse',
         });
       } else if (status?.kind === 'thin') {
         out.push({
