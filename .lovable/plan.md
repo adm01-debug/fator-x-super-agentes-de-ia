@@ -1,54 +1,52 @@
 
 
-## Linha do tempo clicável por session_id com passo selecionado e resumo
+## Exportar execução selecionada como JSON no modal de Replay
 
-A `ExecutionTimeline` atual lista os eventos da execução selecionada na lateral, mas cada item só funciona como toggle expandir/colapsar — não há "passo selecionado" navegável, e o resumo da execução fica fora do componente, no header da Card. Vou transformar a timeline em um listbox navegável com destaque do passo ativo, header de resumo embutido e contagens ✓/⚠/✗.
+Adiciono um botão **"Exportar JSON"** no header do `ReplayDialog` que baixa um arquivo com toda a execução: metadados agregados + lista completa de eventos com input, output e metadata (o "contexto mockado").
 
-### Visão final
+### O que muda
 
-```text
-┌─ [sticky] # session_abc123…              Passo 4 / 12 ┐
-│  ✓ 8   ⚠ 2   ✗ 1    │  ⏱ 4320ms   ⚡ 1.4k tk   $0.00231 │
-│  ↳ tool.invoke.success                       14:22:08   │
-└─────────────────────────────────────────────────────────┘
+**`src/components/agents/traces/ReplayDialog.tsx`** — única alteração:
 
-┌ #1  14:22:01  ℹ  agent.start              45ms          ┐
-├ #2  14:22:02  ℹ  llm.request           320ms 421 tk     ┤
-├ #3  14:22:03  ⚠  guardrail.warn         12ms            ┤
-█ #4  14:22:08  ℹ  tool.invoke.success   180ms ◄ ATIVO    █  ← bg-primary/10 + ring
-│      ┌─ Input  / Output / Metadata expandidos ─┐         │
-└ #5  14:22:09  ✗  tool.error             50ms            ┘
-```
+1. Importar o utilitário existente `downloadJSON` de `@/lib/agentExportImport` e `toast` de `@/hooks/use-toast` (não duplico Blob/URL).
+2. Reorganizar o `DialogHeader` em duas colunas: à esquerda título + descrição (session_id, contagem, ms); à direita botão **outline** `<Download /> Exportar JSON`.
+3. Função `handleExport()`:
+   - Sanitiza `session_id` para nome de arquivo seguro (`[^a-zA-Z0-9_-]` → `_`, máx 40 chars) + timestamp ISO.
+   - Nome final: `execution-{session}-{YYYY-MM-DDTHH-MM-SS}.json`.
+   - Monta payload estruturado:
+     ```json
+     {
+       "exported_at": "...",
+       "schema_version": 1,
+       "execution": {
+         "session_id", "agent_id", "started_at", "ended_at",
+         "total_ms", "total_tokens", "total_cost_usd",
+         "counts": { "info", "warning", "error" },
+         "event_count"
+       },
+       "events": [
+         { "index", "id", "agent_id", "session_id", "level", "event",
+           "created_at", "latency_ms", "tokens_used", "cost_usd",
+           "input", "output", "metadata" }
+       ]
+     }
+     ```
+   - `downloadJSON(JSON.stringify(payload, null, 2), filename)`.
+   - Toast de sucesso com nº de eventos exportados; toast destrutivo se falhar.
 
-### Componentes / mudanças
+### O que não muda
 
-**1. `src/components/agents/traces/ExecutionTimeline.tsx`** — refatoração:
-- Nova interface: `{ execution, selectedStep?, onSelectStep? }` (controlado e não-controlado).
-- Estado interno `internalStep` quando `selectedStep` não é passado; `setStep` faz clamp em `[0, traces.length-1]`.
-- Reset automático quando `execution.session_id` muda.
-- **Header de resumo embutido (sticky)** no topo do componente: `session_id` em `<code>` truncado, badge "Passo N / total", contagens coloridas `✓ info / ⚠ warning / ✗ error` (omite os zeros de warn/error), separador, depois `⏱ tempo total`, `⚡ tokens`, `$ custo`. Linha extra "↳ {evento atual} {hora}" para indicar o passo ativo.
-- Cada `<li>` vira clicável com `role="option"` + `aria-selected`; ativo recebe `bg-primary/10 ring-1 ring-primary/30 shadow-sm`, número `#N` colorido em primary; inativo mantém o estilo `bg-card/40 hover:bg-muted/40`.
-- Clicar em um item já não-ativo: seleciona e abre Input/Output/Metadata. Clicar de novo no ativo: alterna expandir/colapsar. Item ativo abre automaticamente.
-- Container com `tabIndex={0}` + `onKeyDown`: `↑/k` passo anterior, `↓/j` próximo, `Home`/`End` extremos. Foco visível com ring.
-- `scrollIntoView({ block: 'nearest', behavior: 'smooth' })` no item selecionado.
-- `aria-activedescendant` aponta para `id="trace-{id}"` do item ativo (a11y para leitores de tela).
-- `forwardRef` direto para `<li>` (sem o hack de `require('react')`).
-
-**2. `src/pages/AgentTracesPage.tsx`** — pequenos ajustes:
-- Novo state `const [selectedStep, setSelectedStep] = useState(0)`; reseta para 0 quando `selectedId` muda (`useEffect`).
-- Passar `selectedStep` + `onSelectStep` para `<ExecutionTimeline>`.
-- Como o resumo da execução agora vive **dentro** da timeline, simplifico o `CardHeader` da Card "Linha do tempo": tiro a linha mono com session/eventos/ms (vira redundante) e mantenho só o título + botão Replay no topo. Isso ganha espaço vertical e elimina duplicação.
-- O botão Replay continua abrindo o `ReplayDialog` na execução selecionada — sem mudança.
+- Nenhuma mudança em serviços, schema ou outros componentes.
+- O `ReplayDialog` continua aceitando `execution: ExecutionGroup | null` — o botão só aparece quando há execução (o early return `if (!execution) return null` já garante).
+- Reaproveita `downloadJSON` que já existe em `src/lib/agentExportImport.ts`.
 
 ### Arquivos
 
-- **Editar**: `src/components/agents/traces/ExecutionTimeline.tsx` — props controladas, header de resumo sticky, item ativo destacado, navegação por teclado, scroll-into-view, a11y de listbox.
-- **Editar**: `src/pages/AgentTracesPage.tsx` — state `selectedStep`, reset por sessão, simplificação do header da Card.
+- **Editar**: `src/components/agents/traces/ReplayDialog.tsx` — header com botão de export e função `handleExport`.
 
 ### Impacto
 
-- Usuário navega passo a passo com clique ou teclado, sem precisar abrir o modal de replay.
-- O resumo (✓/⚠/✗ + tempo + tokens + custo) fica visível enquanto rola a timeline (sticky), dando contexto permanente da execução.
-- Destaque visual claro do passo selecionado (ring + bg primário) elimina ambiguidade ao alternar entre eventos.
-- Zero mudança de schema, serviço ou store; tudo é estado de UI local.
+- 1 clique para arquivar/compartilhar uma execução completa (eventos + input/output/metadata) como JSON portável.
+- Schema versionado (`schema_version: 1`) permite evoluir sem quebrar consumidores externos.
+- Acessível via `aria-label` + `title`; feedback via toast.
 
