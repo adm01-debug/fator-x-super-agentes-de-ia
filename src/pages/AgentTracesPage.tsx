@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { useParams } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import { Activity, AlertTriangle, DollarSign, Play, RefreshCw, Zap } from 'lucide-react';
@@ -25,8 +25,11 @@ export default function AgentTracesPage() {
   const [search, setSearch] = useState('');
   const [sinceHours, setSinceHours] = useState(24);
   const [selectedId, setSelectedId] = useState<string | null>(null);
+  const [selectedStep, setSelectedStep] = useState(0);
   const [replayOpen, setReplayOpen] = useState(false);
   const debouncedSearch = useDebounce(search, 300);
+
+  useEffect(() => { setSelectedStep(0); }, [selectedId]);
 
   const effectiveAgentId = agentFilter === 'all' ? undefined : agentFilter;
 
@@ -118,15 +121,7 @@ export default function AgentTracesPage() {
 
         <Card>
           <CardHeader className="pb-2 flex-row items-center justify-between space-y-0">
-            <div className="min-w-0">
-              <CardTitle className="text-sm">Linha do tempo</CardTitle>
-              {selected && (
-                <p className="text-[11px] text-muted-foreground mt-0.5 font-mono truncate">
-                  {selected.session_id.startsWith('auto-') ? '∅ sem session_id' : selected.session_id}
-                  {' · '}{selected.traces.length} eventos · {selected.total_ms}ms
-                </p>
-              )}
-            </div>
+            <CardTitle className="text-sm">Linha do tempo</CardTitle>
             {selected && (
               <Button size="sm" onClick={() => setReplayOpen(true)} className="h-8">
                 <Play className="h-3.5 w-3.5 mr-1.5" /> Replay
@@ -140,8 +135,12 @@ export default function AgentTracesPage() {
                 Selecione uma execução para ver os eventos.
               </div>
             ) : (
-              <div className="max-h-[600px] overflow-y-auto pr-2">
-                <ExecutionTimeline execution={selected} />
+              <div className="max-h-[640px] overflow-y-auto pr-2">
+                <ExecutionTimeline
+                  execution={selected}
+                  selectedStep={selectedStep}
+                  onSelectStep={setSelectedStep}
+                />
               </div>
             )}
           </CardContent>
