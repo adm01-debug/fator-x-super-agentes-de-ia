@@ -53,6 +53,8 @@ export default function AgentVersioningPage() {
     updateParams((p) => { vid ? p.set('b', vid) : p.delete('b'); });
   const setMode = (m: 'detail' | 'compare') =>
     updateParams((p) => { m === 'compare' ? p.set('mode', 'compare') : p.delete('mode'); });
+  const setPreset = (pid: string) =>
+    updateParams((p) => { pid && pid !== 'all' ? p.set('preset', pid) : p.delete('preset'); });
 
   const { data: agent } = useQuery({
     queryKey: ['agent', id],
