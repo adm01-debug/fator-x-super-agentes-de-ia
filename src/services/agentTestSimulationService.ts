@@ -56,7 +56,9 @@ export function simulateAgentRun(
   agent: Pick<AgentDetail, 'id' | 'name' | 'model'>,
   baseTraces: AgentTrace[],
   count = 10,
+  options: { customInput?: string } = {},
 ): SimulationSummary {
+  const customInput = options.customInput?.trim();
   const pricing = getModelPrice(agent.model ?? undefined);
 
   // Base estatística: usa traces reais se houver, senão defaults pelo modelo
