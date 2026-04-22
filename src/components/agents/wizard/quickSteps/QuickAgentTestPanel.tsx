@@ -139,10 +139,10 @@ export function QuickAgentTestPanel({ form }: Props) {
         <div>
           <p className="text-sm font-heading font-semibold text-foreground flex items-center gap-1.5">
             <Play className="h-3.5 w-3.5 text-primary" />
-            Teste rápido do agente
+            Bateria de testes
           </p>
           <p className="text-[11px] text-muted-foreground">
-            Execute uma chamada real ao modelo antes de criar — veja resposta, custo e latência.
+            Rode múltiplas execuções e compare resposta, custo e latência entre cenários.
           </p>
         </div>
         <div className="text-[10px] font-mono text-muted-foreground/80 text-right">

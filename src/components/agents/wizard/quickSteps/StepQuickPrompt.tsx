@@ -16,6 +16,7 @@ import { PromptVariantSelector } from './PromptVariantSelector';
 import { PromptValidationFeedback } from './PromptValidationFeedback';
 import { AgentLivePreviewCard } from './AgentLivePreviewCard';
 import { QuickAgentTestPanel } from './QuickAgentTestPanel';
+import { RealExamplePreview } from './RealExamplePreview';
 import { PreflightReviewSummary } from './PreflightReviewSummary';
 import { PromptHistoryPanel } from './PromptHistoryPanel';
 import { PromptSectionGutter } from './PromptSectionGutter';
@@ -348,7 +349,14 @@ export function StepQuickPrompt({ form, errors, onPromptManualEdit, onRestore, o
         activeVariantLabel={customLocked ? 'Customizado' : activeVariantLabel}
       />
 
-      {/* Live test against the LLM with mock payload */}
+      {/* Real example mode — full payload (system + user + params) as the gateway will receive it */}
+      <RealExamplePreview
+        form={form}
+        activeVariantLabel={customLocked ? 'Customizado' : activeVariantLabel}
+        lastChangeKind={lastChangeKind}
+      />
+
+      {/* Bateria de testes — múltiplas execuções comparativas contra o LLM */}
       <QuickAgentTestPanel form={form} />
     </div>
   );
