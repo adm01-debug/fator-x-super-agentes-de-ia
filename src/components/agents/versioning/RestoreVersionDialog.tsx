@@ -165,6 +165,42 @@ export function RestoreVersionDialog({ open, onOpenChange, source, current, next
               </div>
             )}
 
+            {showRestoredHint && memory && (
+              <div className="flex items-start gap-2 rounded-lg border border-primary/30 bg-primary/[0.06] px-3 py-2">
+                <History className="h-3.5 w-3.5 text-primary mt-0.5 shrink-0" aria-hidden="true" />
+                <div className="min-w-0 flex-1">
+                  <p className="text-[11px] text-foreground">
+                    Restauramos suas escolhas anteriores de rollback
+                    {memory.lastSourceVersionNumber != null && (
+                      <> (última visualização em <span className="font-mono">v{memory.lastSourceVersionNumber}</span>)</>
+                    )}
+                    .
+                  </p>
+                  <div className="flex items-center gap-2 mt-1">
+                    <Button
+                      type="button"
+                      size="sm"
+                      variant="ghost"
+                      className="h-6 px-2 text-[10px] gap-1 text-muted-foreground hover:text-foreground"
+                      onClick={resetPreferences}
+                    >
+                      <RotateCw className="h-3 w-3" aria-hidden="true" />
+                      Restaurar padrões
+                    </Button>
+                    <Button
+                      type="button"
+                      size="sm"
+                      variant="ghost"
+                      className="h-6 px-2 text-[10px] text-muted-foreground hover:text-foreground"
+                      onClick={() => setShowRestoredHint(false)}
+                    >
+                      Ocultar
+                    </Button>
+                  </div>
+                </div>
+              </div>
+            )}
+
             <div className="space-y-3">
               <RestoreOption
                 id="copy-prompt"
