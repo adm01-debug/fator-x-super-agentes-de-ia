@@ -158,6 +158,7 @@ export function RestoreVersionDialog({ open, onOpenChange, source, current, next
               overallImpact={diff.overallImpact}
               overallRisk={diff.overallRisk}
               onShowFullDiff={() => setShowFullDiff(true)}
+              onGoToBuilder={goToBuilder}
             />
 
             <div className="rounded-lg border border-border/50 bg-secondary/30 px-3 py-2.5">
