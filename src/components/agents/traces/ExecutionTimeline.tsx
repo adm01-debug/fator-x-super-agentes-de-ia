@@ -226,6 +226,8 @@ function ExecutionSummary({
   const atStart = step <= 0;
   const atEnd = step >= total - 1;
   const hasSearch = stepSearch.trim().length > 0;
+  const hasBookmarks = bookmarks.length > 0;
+  const currentBookmark = current ? bookmarks.find((b) => b.traceId === current.id) : undefined;
 
   return (
     <div className="sticky top-0 z-10 bg-background/95 backdrop-blur border border-border/40 rounded-lg p-3 space-y-2">
@@ -235,6 +237,17 @@ function ExecutionSummary({
           <code className="text-[11px] font-mono text-foreground truncate">
             {isAuto ? '∅ sem session_id' : session_id}
           </code>
+          {hasBookmarks && (
+            <Badge
+              variant="outline"
+              className="text-[10px] gap-1 text-nexus-amber border-nexus-amber/40 bg-nexus-amber/10 cursor-pointer hover:bg-nexus-amber/20"
+              onClick={() => onJumpBookmark(1)}
+              title="Pular para próximo marcador (b)"
+            >
+              <BookmarkCheck className="h-3 w-3" />
+              {bookmarks.length}
+            </Badge>
+          )}
         </div>
         <div className="flex items-center gap-1 shrink-0">
           <Button
