@@ -12,6 +12,9 @@ import {
   quickPromptSchema,
   QUICK_AGENT_DEFAULTS,
   isDraftMeaningful,
+  getMissingSections,
+  getThinSections,
+  REQUIRED_PROMPT_SECTIONS,
   type QuickAgentForm,
 } from '@/lib/validations/quickAgentSchema';
 import { detectPromptContradictions } from '@/lib/validations/promptContradictions';
@@ -136,6 +139,23 @@ export function QuickCreateWizard({ onBack }: QuickCreateWizardProps) {
   }, [minPromptDepth]);
   const promptWordCount = useMemo(() => countPromptWords(form.prompt), [form.prompt]);
   const meetsDepth = promptWordCount >= minPromptDepth;
+
+  // Real-time per-section completeness — recomputed every keystroke so the
+  // create button reflects the current state of Persona/Escopo/Formato/Regras
+  // without waiting for a step submit.
+  const sectionStatus = useMemo(() => {
+    const missing = getMissingSections(form.prompt);
+    const thin = getThinSections(form.prompt);
+    const labelOf = (k: string) =>
+      REQUIRED_PROMPT_SECTIONS.find((s) => s.key === k)?.label ?? k;
+    return {
+      missingKeys: missing,
+      thinKeys: thin.map((t) => t.key),
+      missingLabels: missing.map(labelOf),
+      thinLabels: thin.map((t) => t.label),
+      blocked: missing.length > 0 || thin.length > 0,
+    };
+  }, [form.prompt]);
 
   // Auto-clear field highlight after 4s
   useEffect(() => {
@@ -444,6 +464,19 @@ export function QuickCreateWizard({ onBack }: QuickCreateWizardProps) {
         return;
       }
     }
+    if (sectionStatus.blocked) {
+      setStep(STEPS.length - 1);
+      setHighlightField('prompt');
+      const parts: string[] = [];
+      if (sectionStatus.missingLabels.length)
+        parts.push(`faltam ${sectionStatus.missingLabels.join(', ')}`);
+      if (sectionStatus.thinLabels.length)
+        parts.push(`muito curtas: ${sectionStatus.thinLabels.join(', ')}`);
+      toast.error('Seções obrigatórias incompletas', {
+        description: parts.join(' · '),
+      });
+      return;
+    }
     if (!meetsDepth) {
       setStep(STEPS.length - 1);
       setHighlightField('prompt');
@@ -662,16 +695,31 @@ export function QuickCreateWizard({ onBack }: QuickCreateWizardProps) {
             const conflictCount = detectPromptContradictions(form.prompt).length;
             const conflictBlocked = conflictCount > 0;
             const depthBlocked = !meetsDepth;
-            const blocked = conflictBlocked || depthBlocked;
+            const sectionsBlocked = sectionStatus.blocked;
+            const blocked = conflictBlocked || depthBlocked || sectionsBlocked;
+            const sectionTitle = (() => {
+              const parts: string[] = [];
+              if (sectionStatus.missingLabels.length)
+                parts.push(`faltam: ${sectionStatus.missingLabels.join(', ')}`);
+              if (sectionStatus.thinLabels.length)
+                parts.push(`muito curtas: ${sectionStatus.thinLabels.join(', ')}`);
+              return `Complete as seções obrigatórias (${parts.join(' · ')}).`;
+            })();
             const title = conflictBlocked
               ? `Resolva os ${conflictCount} conflito(s) entre regras antes de criar.`
+              : sectionsBlocked
+              ? sectionTitle
               : depthBlocked
               ? `Prompt com ${promptWordCount}/${minPromptDepth} palavras — adicione mais detalhes ou reduza o nível mínimo.`
               : undefined;
+            const sectionShort =
+              sectionStatus.missingKeys.length + sectionStatus.thinKeys.length;
             const label = saving
               ? 'Criando…'
               : conflictBlocked
               ? `Resolver ${conflictCount} conflito(s)`
+              : sectionsBlocked
+              ? `Completar ${sectionShort} seção(ões)`
               : depthBlocked
               ? `Faltam ${Math.max(minPromptDepth - promptWordCount, 0)} palavra(s)`
               : 'Criar agente';
@@ -706,16 +754,31 @@ export function QuickCreateWizard({ onBack }: QuickCreateWizardProps) {
               const conflictCount = detectPromptContradictions(form.prompt).length;
               const conflictBlocked = conflictCount > 0;
               const depthBlocked = !meetsDepth;
-              const blocked = conflictBlocked || depthBlocked;
+              const sectionsBlocked = sectionStatus.blocked;
+              const blocked = conflictBlocked || depthBlocked || sectionsBlocked;
+              const sectionTitle = (() => {
+                const parts: string[] = [];
+                if (sectionStatus.missingLabels.length)
+                  parts.push(`faltam: ${sectionStatus.missingLabels.join(', ')}`);
+                if (sectionStatus.thinLabels.length)
+                  parts.push(`muito curtas: ${sectionStatus.thinLabels.join(', ')}`);
+                return `Complete as seções obrigatórias (${parts.join(' · ')}).`;
+              })();
               const title = conflictBlocked
                 ? `Resolva os ${conflictCount} conflito(s) entre regras antes de criar.`
+                : sectionsBlocked
+                ? sectionTitle
                 : depthBlocked
                 ? `Prompt com ${promptWordCount}/${minPromptDepth} palavras — adicione mais detalhes ou reduza o nível mínimo.`
                 : undefined;
+              const sectionShort =
+                sectionStatus.missingKeys.length + sectionStatus.thinKeys.length;
               const label = saving
                 ? 'Criando…'
                 : conflictBlocked
                 ? `Resolver ${conflictCount} conflito(s)`
+                : sectionsBlocked
+                ? `Completar ${sectionShort} seção(ões)`
                 : depthBlocked
                 ? `Faltam ${Math.max(minPromptDepth - promptWordCount, 0)} palavra(s)`
                 : 'Confirmar e criar';
