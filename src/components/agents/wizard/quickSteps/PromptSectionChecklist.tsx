@@ -123,18 +123,41 @@ export function PromptSectionChecklist({ prompt, onInsert, onJumpToSection }: Pr
                     : `adicione "## ${r.label}"`}
                 </span>
               </div>
-              {!isOk && (
-                <Button
-                  type="button"
-                  size="sm"
-                  variant="ghost"
-                  onClick={() => onInsert(SECTION_SNIPPETS[r.key])}
-                  className="h-7 gap-1 text-[11px] text-primary hover:bg-primary/10 shrink-0"
-                  aria-label={`${isThin ? 'Reinserir esqueleto da' : 'Inserir esqueleto da'} seção ${r.label}`}
-                >
-                  <Plus className="h-3 w-3" /> {isThin ? 'Expandir' : 'Inserir'}
-                </Button>
-              )}
+              <div className="flex items-center gap-1 shrink-0">
+                {isThin && onJumpToSection && (
+                  <Button
+                    type="button"
+                    size="sm"
+                    variant="ghost"
+                    onClick={() => onJumpToSection(r.key)}
+                    className="h-7 gap-1 text-[11px] text-nexus-amber hover:bg-nexus-amber/10"
+                    aria-label={`Ir para a seção ${r.label} no editor`}
+                    title="Pular para esta seção no editor"
+                  >
+                    <Crosshair className="h-3 w-3" /> Ir para
+                  </Button>
+                )}
+                {!isOk && (
+                  <Button
+                    type="button"
+                    size="sm"
+                    variant="ghost"
+                    onClick={() => {
+                      if (!r.present && onJumpToSection) {
+                        // Insert + jump in a single action.
+                        onJumpToSection(r.key, SECTION_SNIPPETS[r.key]);
+                      } else {
+                        onInsert(SECTION_SNIPPETS[r.key]);
+                        if (onJumpToSection) onJumpToSection(r.key);
+                      }
+                    }}
+                    className="h-7 gap-1 text-[11px] text-primary hover:bg-primary/10"
+                    aria-label={`${isThin ? 'Reinserir esqueleto da' : 'Inserir esqueleto da'} seção ${r.label}`}
+                  >
+                    <Plus className="h-3 w-3" /> {isThin ? 'Expandir' : 'Inserir + ir'}
+                  </Button>
+                )}
+              </div>
             </li>
           );
         })}
