@@ -51,8 +51,10 @@ interface Props {
   /**
    * Manual prompt edits (typing, paste, snippet insert, history restore)
    * go through this — the wizard uses it to flip the "custom locked" flag.
+   * `source` distinguishes typing from clipboard paste so the lock event log
+   * can render distinct entries (and so paste always forces the lock).
    */
-  onPromptManualEdit: (next: string) => void;
+  onPromptManualEdit: (next: string, source?: 'manual' | 'paste') => void;
   onRestore: () => void;
   /**
    * Hard reset to a known-safe initial state — sanitizes and reapplies the base
