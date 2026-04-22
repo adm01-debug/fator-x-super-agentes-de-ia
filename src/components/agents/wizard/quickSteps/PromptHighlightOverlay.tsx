@@ -9,6 +9,8 @@ interface Props {
   textareaRef: React.RefObject<HTMLTextAreaElement>;
   /** Tailwind padding-left on the textarea so the overlay aligns. */
   paddingLeftPx: number;
+  /** 1-indexed line numbers that contain a contradiction (rendered in red). */
+  conflictLines?: number[];
 }
 
 /**
@@ -21,7 +23,7 @@ interface Props {
  *  - `pointer-events: none` so clicks fall through.
  *  - scrollTop syncs with the textarea on every scroll event.
  */
-export function PromptHighlightOverlay({ prompt, locations, textareaRef, paddingLeftPx }: Props) {
+export function PromptHighlightOverlay({ prompt, locations, textareaRef, paddingLeftPx, conflictLines }: Props) {
   const overlayRef = useRef<HTMLPreElement>(null);
 
   // Build the overlay content as a sequence of styled segments.
@@ -31,6 +33,7 @@ export function PromptHighlightOverlay({ prompt, locations, textareaRef, padding
     // Build a map: line index → status for thin/ok/missing display.
     const lineStatus = new Map<number, { kind: 'thin' | 'ok'; label: string }>();
     const ghostInserts: { afterChar: number; label: string }[] = [];
+    const conflictSet = new Set<number>((conflictLines ?? []).map((n) => n - 1));
 
     for (const loc of locations) {
       if (loc.status === 'thin') {
@@ -60,7 +63,13 @@ export function PromptHighlightOverlay({ prompt, locations, textareaRef, padding
       }
 
       const status = lineStatus.get(i);
-      if (status?.kind === 'thin') {
+      const isConflict = conflictSet.has(i);
+      if (isConflict) {
+        out.push({
+          text: line.length > 0 ? line : ' ',
+          cls: 'bg-destructive/15 text-destructive/90 border-l-2 border-destructive pl-1 -ml-1',
+        });
+      } else if (status?.kind === 'thin') {
         out.push({
           text: line,
           cls: 'bg-nexus-amber/15 text-nexus-amber/90 border-l-2 border-nexus-amber pl-1 -ml-1',
@@ -84,7 +93,7 @@ export function PromptHighlightOverlay({ prompt, locations, textareaRef, padding
     }
 
     return out;
-  }, [prompt, locations]);
+  }, [prompt, locations, conflictLines]);
 
   // Sync scroll with the textarea.
   useEffect(() => {
@@ -101,7 +110,7 @@ export function PromptHighlightOverlay({ prompt, locations, textareaRef, padding
   }, [textareaRef]);
 
   // Hide overlay when nothing to show.
-  const hasSomething = locations.some((l) => l.status !== 'ok');
+  const hasSomething = locations.some((l) => l.status !== 'ok') || (conflictLines?.length ?? 0) > 0;
   if (!hasSomething) return null;
 
   return (

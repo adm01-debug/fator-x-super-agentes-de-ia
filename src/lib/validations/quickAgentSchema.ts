@@ -210,6 +210,10 @@ export function findSectionLineIndex(prompt: string, key: PromptSectionKey): num
 }
 
 import { analyzePromptStructure, PROMPT_LIMITS } from './promptSanitizer';
+import { detectPromptContradictions } from './promptContradictions';
+
+export { detectPromptContradictions } from './promptContradictions';
+export type { PromptContradiction, ContradictionKind } from './promptContradictions';
 
 export const quickPromptSchema = z.object({
   prompt: z
@@ -248,6 +252,17 @@ export const quickPromptSchema = z.object({
         ctx.addIssue({
           code: z.ZodIssueCode.custom,
           message: `Linha ${first.line} excede ${PROMPT_LIMITS.MAX_LINE_LENGTH} caracteres (${first.length}). Quebre em parágrafos menores.`,
+        });
+      }
+      const conflicts = detectPromptContradictions(value);
+      if (conflicts.length > 0) {
+        const preview = conflicts
+          .slice(0, 3)
+          .map((c) => `linha ${c.lineA}↔${c.lineB} (${c.reason})`)
+          .join('; ');
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          message: `Foram encontrados ${conflicts.length} conflito(s) entre regras: ${preview}${conflicts.length > 3 ? '…' : ''}`,
         });
       }
     }),
