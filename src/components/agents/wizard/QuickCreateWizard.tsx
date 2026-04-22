@@ -603,6 +603,48 @@ export function QuickCreateWizard({ onBack }: QuickCreateWizardProps) {
 
       <div key={step} className="animate-page-enter">{stepNode}</div>
 
+      {/* Profundidade mínima do prompt — toggle persistente. Bloqueia "Criar
+          agente" se o prompt atual não atingir o nível selecionado. */}
+      <div className="flex flex-wrap items-center gap-3 rounded-lg border border-border/50 bg-secondary/30 px-3 py-2">
+        <div className="flex flex-col">
+          <span className="text-xs font-medium text-foreground">Profundidade mínima do prompt</span>
+          <span className="text-[11px] text-muted-foreground">
+            Atual: <span className={`font-mono tabular-nums ${meetsDepth ? 'text-nexus-emerald' : 'text-nexus-amber'}`}>{promptWordCount}</span> palavra{promptWordCount === 1 ? '' : 's'}
+            {' · '}mínimo exigido: <span className="font-mono tabular-nums">{minPromptDepth}</span>
+          </span>
+        </div>
+        <div
+          role="radiogroup"
+          aria-label="Nível mínimo de profundidade do prompt"
+          className="ml-auto inline-flex rounded-md border border-border/60 bg-background p-0.5"
+        >
+          {PROMPT_DEPTH_OPTIONS.map((opt) => {
+            const active = minPromptDepth === opt;
+            return (
+              <button
+                key={opt}
+                type="button"
+                role="radio"
+                aria-checked={active}
+                onClick={() => setMinPromptDepth(opt)}
+                title={
+                  opt === 5 ? 'Permissivo — aceita prompts curtos'
+                    : opt === 8 ? 'Equilibrado — recomendado'
+                    : 'Rigoroso — exige descrição mais detalhada'
+                }
+                className={`text-xs font-medium px-3 py-1 rounded transition-colors ${
+                  active
+                    ? 'bg-primary text-primary-foreground shadow-sm'
+                    : 'text-muted-foreground hover:text-foreground hover:bg-secondary/60'
+                }`}
+              >
+                {opt} palavras
+              </button>
+            );
+          })}
+        </div>
+      </div>
+
       <div className="flex items-center justify-between pt-4 border-t border-border/50">
         <Button variant="ghost" onClick={goPrev} className="gap-2">
           <ArrowLeft className="h-4 w-4" /> Voltar
@@ -618,16 +660,25 @@ export function QuickCreateWizard({ onBack }: QuickCreateWizardProps) {
         ) : (
           (() => {
             const conflictCount = detectPromptContradictions(form.prompt).length;
-            const blocked = conflictCount > 0;
+            const conflictBlocked = conflictCount > 0;
+            const depthBlocked = !meetsDepth;
+            const blocked = conflictBlocked || depthBlocked;
+            const title = conflictBlocked
+              ? `Resolva os ${conflictCount} conflito(s) entre regras antes de criar.`
+              : depthBlocked
+              ? `Prompt com ${promptWordCount}/${minPromptDepth} palavras — adicione mais detalhes ou reduza o nível mínimo.`
+              : undefined;
+            const label = saving
+              ? 'Criando…'
+              : conflictBlocked
+              ? `Resolver ${conflictCount} conflito(s)`
+              : depthBlocked
+              ? `Faltam ${Math.max(minPromptDepth - promptWordCount, 0)} palavra(s)`
+              : 'Criar agente';
             return (
-              <Button
-                onClick={requestCreate}
-                disabled={saving || blocked}
-                className="gap-2"
-                title={blocked ? `Resolva os ${conflictCount} conflito(s) entre regras antes de criar.` : undefined}
-              >
+              <Button onClick={requestCreate} disabled={saving || blocked} className="gap-2" title={title}>
                 {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : <Rocket className="h-4 w-4" />}
-                {saving ? 'Criando…' : blocked ? `Resolver ${conflictCount} conflito(s)` : 'Criar agente'}
+                {label}
               </Button>
             );
           })()
