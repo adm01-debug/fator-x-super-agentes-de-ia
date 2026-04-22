@@ -40,14 +40,6 @@ function stripBullet(line: string): string {
     .trim();
 }
 
-/** Return the input text stripped of common polarity prefixes — a "neutral" base. */
-function neutralizePolarity(line: string): string {
-  return stripBullet(line)
-    .replace(/^(nunca|jamais|sempre|obrigatoriamente|nao\s+|não\s+)/i, '')
-    .replace(/^(evite|evitar|deve|devera|deverá|precisa|tem\s+que|somente|apenas)\s+/i, '')
-    .trim();
-}
-
 /* ----------------------------- per-kind ------------------------------ */
 
 function polaritySuggestions(c: PromptContradiction): ContradictionSuggestion[] {
