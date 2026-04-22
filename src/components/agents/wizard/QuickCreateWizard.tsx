@@ -35,6 +35,17 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog';
 import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
+import { QUICK_AGENT_TEMPLATES as _QAT_FOR_VARIANT, PROMPT_VARIANT_META as _PVM_FOR_DIALOG } from '@/data/quickAgentTemplates';
+import {
   loadDrafts,
   saveDrafts,
   upsertDraft,
