@@ -294,6 +294,18 @@ export function QuickCreateWizard({ onBack }: QuickCreateWizardProps) {
     const resume = computeResumeTarget(formToApply, STEPS);
     setStep(resume.stepIdx);
     setHighlightField(resume.field ?? null);
+    // Resumo visual do erro junto do highlightField — mostrado no banner
+    // logo abaixo do header até o usuário corrigir o campo ou dispensar.
+    if (resume.field) {
+      setRestoreFeedback({
+        ...resume,
+        stepLabel: resume.stepLabel ?? STEPS[resume.stepIdx]?.label,
+        fieldLabel: FIELD_LABEL[resume.field] ?? String(resume.field),
+        mode,
+      });
+    } else {
+      setRestoreFeedback(null);
+    }
     setDraftsStore((prev) => {
       const next = setActive(prev, id);
       saveDrafts(next);
