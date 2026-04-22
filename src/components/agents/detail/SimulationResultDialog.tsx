@@ -1,4 +1,5 @@
-import { Loader2, CheckCircle2, XCircle, Zap, DollarSign, Cpu, TrendingUp, RefreshCw } from 'lucide-react';
+import { useEffect, useState } from 'react';
+import { Loader2, CheckCircle2, XCircle, Zap, DollarSign, Cpu, TrendingUp, RefreshCw, Play, Pencil } from 'lucide-react';
 import {
   Dialog,
   DialogContent,
@@ -8,6 +9,7 @@ import {
   DialogFooter,
 } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
+import { Textarea } from '@/components/ui/textarea';
 import type { SimulationSummary } from '@/services/agentTestSimulationService';
 
 interface Props {
@@ -15,9 +17,14 @@ interface Props {
   onOpenChange: (open: boolean) => void;
   summary: SimulationSummary | null;
   running: boolean;
-  onRerun: () => void;
+  /** Disparado quando o usuário aciona "Executar simulação". */
+  onRun: (customInput: string) => void;
   agentName: string;
 }
+
+const MAX_PROMPT_LEN = 1000;
+const PLACEHOLDER =
+  'Digite um prompt customizado para usar em todas as 10 execuções. Deixe vazio para usar a amostra padrão (8 perguntas variadas de clientes).';
 
 function formatCost(v: number): string {
   if (v >= 1) return `$${v.toFixed(2)}`;
@@ -36,13 +43,26 @@ function successBg(rate: number): string {
   return 'bg-destructive/10 border-destructive/30';
 }
 
-export function SimulationResultDialog({ open, onOpenChange, summary, running, onRerun, agentName }: Props) {
+export function SimulationResultDialog({ open, onOpenChange, summary, running, onRun, agentName }: Props) {
+  const [prompt, setPrompt] = useState('');
+
+  // Reseta o prompt cada vez que o diálogo abre sem resultado prévio
+  useEffect(() => {
+    if (open && !summary && !running) {
+      setPrompt('');
+    }
+  }, [open, summary, running]);
+
+  const trimmed = prompt.trim();
+  const usingCustom = trimmed.length > 0;
+  const overLimit = trimmed.length > MAX_PROMPT_LEN;
+
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-2xl">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
-            Resultado da simulação
+            Simular execução do agente
             {summary && !running && (
               <span className="ml-2 text-xs font-normal text-muted-foreground">
                 {summary.total} execuções · {agentName}
@@ -53,6 +73,36 @@ export function SimulationResultDialog({ open, onOpenChange, summary, running, o
             Simulação client-side com base em traces reais. Não consome créditos de LLM.
           </DialogDescription>
         </DialogHeader>
+
+        {/* Editor de prompt — sempre visível para permitir editar e re-rodar */}
+        <div className="space-y-1.5">
+          <label htmlFor="sim-prompt" className="flex items-center gap-1.5 text-xs font-medium text-foreground">
+            <Pencil className="h-3 w-3 text-primary" aria-hidden="true" />
+            Prompt de entrada
+            <span className="text-muted-foreground font-normal">(opcional)</span>
+          </label>
+          <Textarea
+            id="sim-prompt"
+            value={prompt}
+            onChange={(e) => setPrompt(e.target.value)}
+            placeholder={PLACEHOLDER}
+            disabled={running}
+            rows={3}
+            maxLength={MAX_PROMPT_LEN + 50}
+            className="text-xs font-mono resize-none"
+            aria-describedby="sim-prompt-help"
+          />
+          <div id="sim-prompt-help" className="flex items-center justify-between text-[10px] text-muted-foreground">
+            <span>
+              {usingCustom
+                ? '✓ Todas as 10 execuções vão usar este prompt customizado'
+                : 'Sem prompt: usa amostra padrão variada (8 perguntas)'}
+            </span>
+            <span className={overLimit ? 'text-destructive' : ''}>
+              {trimmed.length}/{MAX_PROMPT_LEN}
+            </span>
+          </div>
+        </div>
 
         {running && (
           <div className="flex flex-col items-center justify-center py-12 gap-3">
@@ -133,10 +183,25 @@ export function SimulationResultDialog({ open, onOpenChange, summary, running, o
         )}
 
         <DialogFooter className="gap-2 sm:gap-2">
-          <Button variant="outline" size="sm" onClick={onRerun} disabled={running}>
-            <RefreshCw className="h-3.5 w-3.5 mr-1.5" /> Repetir simulação
+          <Button
+            variant={summary ? 'outline' : 'default'}
+            size="sm"
+            onClick={() => onRun(trimmed)}
+            disabled={running || overLimit}
+          >
+            {summary ? (
+              <>
+                <RefreshCw className="h-3.5 w-3.5 mr-1.5" /> Repetir simulação
+              </>
+            ) : (
+              <>
+                <Play className="h-3.5 w-3.5 mr-1.5" /> Executar simulação
+              </>
+            )}
           </Button>
-          <Button variant="default" size="sm" onClick={() => onOpenChange(false)}>Fechar</Button>
+          <Button variant={summary ? 'default' : 'outline'} size="sm" onClick={() => onOpenChange(false)}>
+            Fechar
+          </Button>
         </DialogFooter>
       </DialogContent>
     </Dialog>
