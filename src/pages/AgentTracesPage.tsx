@@ -30,7 +30,42 @@ export default function AgentTracesPage() {
   const [replayOpen, setReplayOpen] = useState(false);
   const debouncedSearch = useDebounce(search, 300);
 
-  useEffect(() => { setSelectedStep(0); }, [selectedId]);
+  // Persist last step viewed per session_id so users can resume where they left off.
+  // Stored as { [session_id]: stepIndex } under a single key, capped to 50 entries.
+  const STEP_STORAGE_KEY = 'nexus.traces.lastStepBySession';
+  const readStepMap = (): Record<string, number> => {
+    try {
+      const raw = localStorage.getItem(STEP_STORAGE_KEY);
+      return raw ? (JSON.parse(raw) as Record<string, number>) : {};
+    } catch {
+      return {};
+    }
+  };
+  const writeStepMap = (map: Record<string, number>) => {
+    try {
+      // Cap to last 50 sessions to avoid unbounded growth.
+      const entries = Object.entries(map).slice(-50);
+      localStorage.setItem(STEP_STORAGE_KEY, JSON.stringify(Object.fromEntries(entries)));
+    } catch {
+      /* quota or disabled — silently ignore */
+    }
+  };
+
+  // When the selected execution changes, restore its last viewed step (or 0).
+  useEffect(() => {
+    if (!selectedId) { setSelectedStep(0); return; }
+    const map = readStepMap();
+    setSelectedStep(map[selectedId] ?? 0);
+  }, [selectedId]);
+
+  // Persist whenever the user moves to a new step on a known session.
+  useEffect(() => {
+    if (!selectedId) return;
+    const map = readStepMap();
+    if (map[selectedId] === selectedStep) return;
+    map[selectedId] = selectedStep;
+    writeStepMap(map);
+  }, [selectedId, selectedStep]);
 
   const effectiveAgentId = agentFilter === 'all' ? undefined : agentFilter;
 
