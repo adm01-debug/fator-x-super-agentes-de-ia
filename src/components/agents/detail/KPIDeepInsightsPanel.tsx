@@ -5,6 +5,9 @@ import {
   CheckCircle2,
   ChevronDown,
   DollarSign,
+  Download,
+  FileSpreadsheet,
+  FileText,
   Lightbulb,
   Minus,
   ShieldCheck,
@@ -13,6 +16,13 @@ import {
   TrendingUp,
   Zap,
 } from 'lucide-react';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
+import { toast } from 'sonner';
 import type { AgentTrace } from '@/services/agentsService';
 import {
   compareWindows,
@@ -20,10 +30,12 @@ import {
   type DailyPoint,
 } from './agentMetricsHelpers';
 import { buildKPIInsights, type KPIInsight, type CauseTone } from './kpiInsights';
+import { exportKPIInsightsCSV, exportKPIInsightsPDF } from './exportKPIInsights';
 
 interface Props {
   daily: DailyPoint[];
   traces: AgentTrace[];
+  agentName?: string;
 }
 
 const THRESHOLD_PRESETS = [1, 5, 10, 20] as const;
@@ -49,7 +61,7 @@ const TONE_STYLE: Record<CauseTone, { color: string; bg: string; border: string;
   neutral:  { color: 'text-muted-foreground', bg: 'bg-secondary/40', border: 'border-border/40', Icon: Minus },
 };
 
-export function KPIDeepInsightsPanel({ daily, traces }: Props) {
+export function KPIDeepInsightsPanel({ daily, traces, agentName }: Props) {
   const [threshold, setThreshold] = useState<number>(5);
   const [windowDays, setWindowDays] = useState<WindowValue>(7);
 
@@ -173,6 +185,70 @@ export function KPIDeepInsightsPanel({ daily, traces }: Props) {
               </button>
             ))}
           </div>
+
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <button
+                type="button"
+                className="flex items-center gap-1.5 rounded-lg border border-border bg-secondary/30 px-2.5 py-1.5 text-[11px] font-semibold text-foreground hover:bg-secondary/60 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                aria-label="Exportar comparativo de KPIs"
+              >
+                <Download className="h-3.5 w-3.5" aria-hidden />
+                Exportar
+                <ChevronDown className="h-3 w-3 opacity-60" aria-hidden />
+              </button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end" className="w-52">
+              <DropdownMenuItem
+                onClick={() => {
+                  try {
+                    exportKPIInsightsPDF(insights, {
+                      agentName: agentName || 'Agente',
+                      windowDays: effectiveWindow,
+                      threshold,
+                      generatedAt: new Date(),
+                    });
+                    toast.success('PDF gerado com sucesso');
+                  } catch (e) {
+                    toast.error('Falha ao gerar PDF', { description: String(e) });
+                  }
+                }}
+                className="gap-2 cursor-pointer"
+              >
+                <FileText className="h-3.5 w-3.5 text-destructive" />
+                <div className="flex flex-col">
+                  <span className="text-xs font-medium">Exportar como PDF</span>
+                  <span className="text-[10px] text-muted-foreground">
+                    Relatório completo com diagnóstico
+                  </span>
+                </div>
+              </DropdownMenuItem>
+              <DropdownMenuItem
+                onClick={() => {
+                  try {
+                    exportKPIInsightsCSV(insights, {
+                      agentName: agentName || 'Agente',
+                      windowDays: effectiveWindow,
+                      threshold,
+                      generatedAt: new Date(),
+                    });
+                    toast.success('CSV gerado com sucesso');
+                  } catch (e) {
+                    toast.error('Falha ao gerar CSV', { description: String(e) });
+                  }
+                }}
+                className="gap-2 cursor-pointer"
+              >
+                <FileSpreadsheet className="h-3.5 w-3.5 text-nexus-emerald" />
+                <div className="flex flex-col">
+                  <span className="text-xs font-medium">Exportar como CSV</span>
+                  <span className="text-[10px] text-muted-foreground">
+                    Tabela para planilha / análise
+                  </span>
+                </div>
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
         </div>
       </div>
 
