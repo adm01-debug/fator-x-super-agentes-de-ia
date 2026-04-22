@@ -5,13 +5,9 @@
  */
 import { useEffect, useRef } from 'react';
 import { toast } from 'sonner';
-import { useAuth } from '@/contexts/AuthContext';
+import { useAuth } from '@/contexts/useAuth';
 import { fetchSLOSummary } from '@/lib/slo/sloService';
-import {
-  SLO_TARGETS,
-  latencyStatus,
-  successRateStatus,
-} from '@/lib/slo/sloTargets';
+import { SLO_TARGETS, latencyStatus, successRateStatus } from '@/lib/slo/sloTargets';
 import { logger } from '@/lib/logger';
 
 const POLL_MS = 5 * 60_000;
@@ -33,10 +29,14 @@ export function useSLOAlerts() {
 
         const breaches: string[] = [];
         if (latencyStatus(summary.p95_latency_ms, SLO_TARGETS.p95LatencyMs) === 'breached') {
-          breaches.push(`Latência P95 ${summary.p95_latency_ms}ms (alvo ${SLO_TARGETS.p95LatencyMs}ms)`);
+          breaches.push(
+            `Latência P95 ${summary.p95_latency_ms}ms (alvo ${SLO_TARGETS.p95LatencyMs}ms)`,
+          );
         }
         if (successRateStatus(summary.success_rate) === 'breached') {
-          breaches.push(`Taxa de sucesso ${summary.success_rate}% (alvo ${SLO_TARGETS.successRatePct}%)`);
+          breaches.push(
+            `Taxa de sucesso ${summary.success_rate}% (alvo ${SLO_TARGETS.successRatePct}%)`,
+          );
         }
 
         if (breaches.length === 0) return;
@@ -52,7 +52,9 @@ export function useSLOAlerts() {
           duration: 10_000,
           action: {
             label: 'Ver dashboard',
-            onClick: () => { window.location.href = '/observability/slo'; },
+            onClick: () => {
+              window.location.href = '/observability/slo';
+            },
           },
         });
       } catch (err) {

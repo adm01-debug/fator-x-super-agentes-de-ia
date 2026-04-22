@@ -8,7 +8,7 @@
  */
 import { useEffect } from 'react';
 import { start, stop } from '@/services/healthAlertsService';
-import { useAuth } from '@/contexts/AuthContext';
+import { useAuth } from '@/contexts/useAuth';
 
 export function HealthAlertsMounter() {
   const { user } = useAuth();

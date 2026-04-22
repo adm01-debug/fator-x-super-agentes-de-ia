@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import {
@@ -31,17 +31,16 @@ export function OracleHistory(_props: OracleHistoryProps) {
   const [showFilters, setShowFilters] = useState(false);
   const [expandedId, setExpandedId] = useState<string | null>(null);
 
-  const load = async () => {
+  const load = useCallback(async () => {
     setLoading(true);
     const data = await fetchOracleHistory(filters);
     setEntries(data);
     setLoading(false);
-  };
+  }, [filters]);
 
-  // eslint-disable-next-line react-hooks/exhaustive-deps
   useEffect(() => {
     load();
-  }, [filters]);
+  }, [filters, load]);
 
   const handleDelete = async (id: string) => {
     if (await deleteOracleHistory(id)) {

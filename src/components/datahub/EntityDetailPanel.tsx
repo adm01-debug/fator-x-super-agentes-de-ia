@@ -1,38 +1,8 @@
-/* eslint-disable react-refresh/only-export-components */
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import {
-  Database,
-  Users,
-  Factory,
-  Truck,
-  Package,
-  UserCheck,
-  MessageCircle,
-  Table2,
-  GitBranch,
-  Link2,
-  ExternalLink,
-  ArrowRight,
-  Eye,
-} from 'lucide-react';
+import { Database, Table2, GitBranch, Link2, ExternalLink, ArrowRight, Eye } from 'lucide-react';
 import type { EntityMapping, SecondaryMapping, CrossDbMapping } from '@/config/datahub-entities';
-import { DEFAULT_CONNECTIONS } from './ConnectionCard';
-
-const ENTITY_ICONS: Record<string, React.ElementType> = {
-  cliente: Users,
-  fornecedor: Factory,
-  transportadora: Truck,
-  produto: Package,
-  colaborador: UserCheck,
-  conversa_whatsapp: MessageCircle,
-};
-
-function getConnectionLabel(connId: string): string {
-  return DEFAULT_CONNECTIONS.find((c) => c.id === connId)?.label ?? connId;
-}
-
-export { ENTITY_ICONS, getConnectionLabel };
+import { ENTITY_ICONS, getConnectionLabel } from './entityMeta';
 
 export function EntityDetailPanel({
   entityId,

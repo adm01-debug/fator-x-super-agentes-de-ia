@@ -25,8 +25,7 @@ export function ConnectorRegistryPanel() {
       })
       .catch(() => toast({ title: 'Erro', variant: 'destructive' }))
       .finally(() => setLoading(false));
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [toast]);
 
   const displayConnectors =
     connectors.length > 0 ? connectors : (BUILTIN_CONNECTORS as unknown as ConnectorDefinition[]);

@@ -59,8 +59,7 @@ export default function PromptEditorPage() {
       setSummary('');
       setDirty(false);
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [activeVersion?.id]);
+  }, [activeVersion?.id, activeVersion]);
 
   const handleContentChange = (val: string) => {
     setContent(val);

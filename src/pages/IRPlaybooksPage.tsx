@@ -39,7 +39,7 @@ import {
   ListChecks,
   Archive,
 } from 'lucide-react';
-import { useAuth } from '@/contexts/AuthContext';
+import { useAuth } from '@/contexts/useAuth';
 import { getWorkspaceId } from '@/lib/agentService';
 import {
   listPlaybooks,

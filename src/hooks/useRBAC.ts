@@ -13,7 +13,7 @@
 
 import { useState, useEffect, useCallback, useMemo } from 'react';
 import { supabaseExternal } from '@/integrations/supabase/externalClient';
-import { useAuth } from '@/contexts/AuthContext';
+import { useAuth } from '@/contexts/useAuth';
 import {
   getUserRole,
   getUserPermissions,
@@ -91,8 +91,7 @@ export function useRBAC() {
     return () => {
       cancelled = true;
     };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [user?.id]);
+  }, [user?.id, user]);
 
   /**
    * Check if user has permission(s).

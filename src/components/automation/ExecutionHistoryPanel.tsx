@@ -44,8 +44,7 @@ export function ExecutionHistoryPanel() {
       })
       .catch(() => toast({ title: 'Erro', variant: 'destructive' }))
       .finally(() => setLoading(false));
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [search]);
+  }, [search, toast]);
 
   return (
     <div className="space-y-6">

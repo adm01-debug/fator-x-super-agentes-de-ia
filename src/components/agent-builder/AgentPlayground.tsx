@@ -6,7 +6,21 @@ import { Badge } from '@/components/ui/badge';
 import { useAgentBuilderStore } from '@/stores/agentBuilderStore';
 import { invokeLLMGateway } from '@/services/llmGatewayService';
 import { useStreamingResponse } from '@/hooks/useStreamingResponse';
-import { Send, MessageSquare, Trash2, Bug, Loader2, StopCircle, Zap, Clock, Hash, Activity, RefreshCw, Repeat, X } from 'lucide-react';
+import {
+  Send,
+  MessageSquare,
+  Trash2,
+  Bug,
+  Loader2,
+  StopCircle,
+  Zap,
+  Clock,
+  Hash,
+  Activity,
+  RefreshCw,
+  Repeat,
+  X,
+} from 'lucide-react';
 import ReactMarkdown from 'react-markdown';
 import { useCostEstimate } from '@/hooks/useCostEstimate';
 import { CostEstimateCard } from './CostEstimateCard';
@@ -47,8 +61,7 @@ export function AgentPlayground() {
       setOpen(true);
       setInput(playgroundSeed.input);
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [playgroundOpenSignal]);
+  }, [playgroundOpenSignal, playgroundSeed]);
 
   const buildSystemPrompt = () => {
     const parts: string[] = [];
@@ -59,9 +72,9 @@ export function AgentPlayground() {
       if (agent.mission) parts.push(`Missão: ${agent.mission}`);
       if (agent.persona) parts.push(`Persona: ${agent.persona}`);
     }
-    const activeTools = agent.tools.filter(t => t.enabled);
+    const activeTools = agent.tools.filter((t) => t.enabled);
     if (activeTools.length > 0) {
-      parts.push(`\nFerramentas disponíveis: ${activeTools.map(t => t.name).join(', ')}`);
+      parts.push(`\nFerramentas disponíveis: ${activeTools.map((t) => t.name).join(', ')}`);
     }
     return parts.join('\n');
   };
@@ -69,18 +82,18 @@ export function AgentPlayground() {
   const sendMessage = async () => {
     if (!input.trim() || loading || streaming.isStreaming) return;
     const userMsg: ChatMessage = { role: 'user', content: input.trim() };
-    setMessages(prev => [...prev, userMsg]);
+    setMessages((prev) => [...prev, userMsg]);
     setInput('');
 
     const systemPrompt = buildSystemPrompt();
     const allMessages = [
       { role: 'system', content: systemPrompt },
-      ...messages.map(m => ({ role: m.role, content: m.content })),
+      ...messages.map((m) => ({ role: m.role, content: m.content })),
       { role: 'user', content: userMsg.content },
     ];
 
     if (streamMode) {
-      setMessages(prev => [...prev, { role: 'assistant', content: '' }]);
+      setMessages((prev) => [...prev, { role: 'assistant', content: '' }]);
 
       await streaming.stream(
         `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/llm-gateway`,
@@ -89,11 +102,11 @@ export function AgentPlayground() {
           messages: allMessages,
           temperature: agent.temperature ?? 0.7,
           max_tokens: agent.max_tokens ?? 4000,
-          agent_id: agent.id as string || undefined,
+          agent_id: (agent.id as string) || undefined,
         },
         {
           onComplete: (fullText) => {
-            setMessages(prev => {
+            setMessages((prev) => {
               const copy = [...prev];
               const last = copy[copy.length - 1];
               if (last?.role === 'assistant') {
@@ -110,7 +123,7 @@ export function AgentPlayground() {
               return copy;
             });
           },
-        }
+        },
       );
     } else {
       setLoading(true);
@@ -122,20 +135,40 @@ export function AgentPlayground() {
           max_tokens: agent.max_tokens ?? 4000,
         });
         const res = data as Record<string, unknown>;
-        setMessages(prev => [...prev, {
-          role: 'assistant' as const, content: (res.content as string) || 'Sem resposta',
-          metadata: { model: res.model as string, tokens: res.tokens as { prompt: number; completion: number; total: number } | undefined, latency_ms: res.latency_ms as number, cost_usd: res.cost_usd as number, provider: res.provider as string },
-        }]);
+        setMessages((prev) => [
+          ...prev,
+          {
+            role: 'assistant' as const,
+            content: (res.content as string) || 'Sem resposta',
+            metadata: {
+              model: res.model as string,
+              tokens: res.tokens as
+                | { prompt: number; completion: number; total: number }
+                | undefined,
+              latency_ms: res.latency_ms as number,
+              cost_usd: res.cost_usd as number,
+              provider: res.provider as string,
+            },
+          },
+        ]);
       } catch (e: unknown) {
-        setMessages(prev => [...prev, { role: 'assistant', content: `❌ Erro: ${e instanceof Error ? e.message : 'Falha na chamada'}` }]);
-      } finally { setLoading(false); }
+        setMessages((prev) => [
+          ...prev,
+          {
+            role: 'assistant',
+            content: `❌ Erro: ${e instanceof Error ? e.message : 'Falha na chamada'}`,
+          },
+        ]);
+      } finally {
+        setLoading(false);
+      }
     }
   };
 
   // Update last message with streaming content in real-time
   useEffect(() => {
     if (streaming.text && streaming.isStreaming) {
-      setMessages(prev => {
+      setMessages((prev) => {
         const copy = [...prev];
         const last = copy[copy.length - 1];
         if (last?.role === 'assistant') {
@@ -146,16 +179,17 @@ export function AgentPlayground() {
     }
   }, [streaming.text, streaming.isStreaming]);
 
-  const tokensPerSec = streaming.latencyMs > 0 && streaming.tokens > 0
-    ? (streaming.tokens / (streaming.latencyMs / 1000)).toFixed(1)
-    : null;
+  const tokensPerSec =
+    streaming.latencyMs > 0 && streaming.tokens > 0
+      ? (streaming.tokens / (streaming.latencyMs / 1000)).toFixed(1)
+      : null;
 
   const estimate = useCostEstimate({
     model: agent.model,
     systemPrompt: buildSystemPrompt(),
     userInput: input,
     maxTokens: agent.max_tokens ?? 4000,
-    toolsCount: agent.tools.filter(t => t.enabled).length,
+    toolsCount: agent.tools.filter((t) => t.enabled).length,
   });
 
   return (
@@ -176,20 +210,45 @@ export function AgentPlayground() {
               <div className="flex items-center gap-2">
                 <span className="text-lg">{agent.avatar_emoji || '🤖'}</span>
                 <div>
-                  <SheetTitle className="text-sm font-heading font-bold text-foreground">{agent.name || 'Agente'}</SheetTitle>
+                  <SheetTitle className="text-sm font-heading font-bold text-foreground">
+                    {agent.name || 'Agente'}
+                  </SheetTitle>
                   <p className="text-[11px] text-muted-foreground">{agent.model} • Playground</p>
                 </div>
               </div>
               <div className="flex items-center gap-1">
-                <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => setDebugMode(!debugMode)} title="Debug mode">
-                  <Bug className={`h-3.5 w-3.5 ${debugMode ? 'text-primary' : 'text-muted-foreground'}`} />
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="h-7 w-7"
+                  onClick={() => setDebugMode(!debugMode)}
+                  title="Debug mode"
+                >
+                  <Bug
+                    className={`h-3.5 w-3.5 ${debugMode ? 'text-primary' : 'text-muted-foreground'}`}
+                  />
                 </Button>
                 {streaming.isStreaming && (
-                  <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => streaming.cancel()} title="Parar geração">
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="h-7 w-7"
+                    onClick={() => streaming.cancel()}
+                    title="Parar geração"
+                  >
                     <StopCircle className="h-3.5 w-3.5 text-destructive" />
                   </Button>
                 )}
-                <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => { setMessages([]); streaming.reset(); }} title="Limpar conversa">
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="h-7 w-7"
+                  onClick={() => {
+                    setMessages([]);
+                    streaming.reset();
+                  }}
+                  title="Limpar conversa"
+                >
                   <Trash2 className="h-3.5 w-3.5 text-muted-foreground" />
                 </Button>
               </div>
@@ -206,7 +265,13 @@ export function AgentPlayground() {
                   trace {playgroundSeed.traceId.slice(0, 8)}…
                 </p>
               </div>
-              <Button variant="ghost" size="icon" className="h-6 w-6 shrink-0" onClick={clearPlaygroundSeed} title="Limpar replay">
+              <Button
+                variant="ghost"
+                size="icon"
+                className="h-6 w-6 shrink-0"
+                onClick={clearPlaygroundSeed}
+                title="Limpar replay"
+              >
                 <X className="h-3.5 w-3.5" />
               </Button>
             </div>
@@ -257,10 +322,14 @@ export function AgentPlayground() {
                   </span>
                 )}
                 {streaming.provider && (
-                  <Badge variant="outline" className="text-[10px] h-5">{streaming.provider}</Badge>
+                  <Badge variant="outline" className="text-[10px] h-5">
+                    {streaming.provider}
+                  </Badge>
                 )}
                 {streaming.model && (
-                  <Badge variant="outline" className="text-[10px] h-5">{streaming.model}</Badge>
+                  <Badge variant="outline" className="text-[10px] h-5">
+                    {streaming.model}
+                  </Badge>
                 )}
                 {streaming.retryCount > 0 && (
                   <span className="flex items-center gap-1 text-[10px] text-nexus-amber">
@@ -279,16 +348,20 @@ export function AgentPlayground() {
             {messages.length === 0 && (
               <div className="flex flex-col items-center justify-center h-full text-center">
                 <MessageSquare className="h-10 w-10 text-muted-foreground mb-3" />
-                <p className="text-sm text-muted-foreground">Envie uma mensagem para testar o agente</p>
+                <p className="text-sm text-muted-foreground">
+                  Envie uma mensagem para testar o agente
+                </p>
               </div>
             )}
             {messages.map((msg, i) => (
               <div key={i}>
-                <div className={`rounded-xl p-3 text-sm ${
-                  msg.role === 'user'
-                    ? 'bg-primary/10 text-foreground ml-8'
-                    : 'bg-secondary/50 text-foreground mr-4'
-                }`}>
+                <div
+                  className={`rounded-xl p-3 text-sm ${
+                    msg.role === 'user'
+                      ? 'bg-primary/10 text-foreground ml-8'
+                      : 'bg-secondary/50 text-foreground mr-4'
+                  }`}
+                >
                   <p className="text-[11px] font-medium text-muted-foreground mb-1">
                     {msg.role === 'user' ? 'Você' : agent.name || 'Assistente'}
                   </p>
@@ -297,7 +370,8 @@ export function AgentPlayground() {
                   ) : (
                     <div className="prose prose-sm prose-invert max-w-none text-xs leading-relaxed [&_p]:mb-1.5 [&_ul]:mb-1.5 [&_ol]:mb-1.5 [&_pre]:bg-background/50 [&_pre]:rounded-md [&_pre]:p-2 [&_code]:text-[11px] [&_h1]:text-sm [&_h2]:text-xs [&_h3]:text-xs [&_li]:text-xs">
                       <ReactMarkdown>
-                        {msg.content || (streaming.isStreaming && i === messages.length - 1 ? '' : '...')}
+                        {msg.content ||
+                          (streaming.isStreaming && i === messages.length - 1 ? '' : '...')}
                       </ReactMarkdown>
                       {streaming.isStreaming && i === messages.length - 1 && (
                         <span className="inline-block w-2 h-4 bg-primary animate-pulse rounded-sm ml-0.5" />
@@ -307,10 +381,26 @@ export function AgentPlayground() {
                 </div>
                 {msg.metadata && !streaming.isStreaming && (
                   <div className="flex items-center gap-2 mt-1 ml-1">
-                    {msg.metadata.model && <Badge variant="outline" className="text-[11px] h-4">{msg.metadata.provider || msg.metadata.model}</Badge>}
-                    {msg.metadata.tokens && <span className="text-[11px] text-muted-foreground">{msg.metadata.tokens.total} tokens</span>}
-                    {msg.metadata.latency_ms && <span className="text-[11px] text-muted-foreground">{(msg.metadata.latency_ms / 1000).toFixed(1)}s</span>}
-                    {msg.metadata.cost_usd != null && <span className="text-[11px] text-muted-foreground">${msg.metadata.cost_usd.toFixed(4)}</span>}
+                    {msg.metadata.model && (
+                      <Badge variant="outline" className="text-[11px] h-4">
+                        {msg.metadata.provider || msg.metadata.model}
+                      </Badge>
+                    )}
+                    {msg.metadata.tokens && (
+                      <span className="text-[11px] text-muted-foreground">
+                        {msg.metadata.tokens.total} tokens
+                      </span>
+                    )}
+                    {msg.metadata.latency_ms && (
+                      <span className="text-[11px] text-muted-foreground">
+                        {(msg.metadata.latency_ms / 1000).toFixed(1)}s
+                      </span>
+                    )}
+                    {msg.metadata.cost_usd != null && (
+                      <span className="text-[11px] text-muted-foreground">
+                        ${msg.metadata.cost_usd.toFixed(4)}
+                      </span>
+                    )}
                   </div>
                 )}
               </div>
@@ -324,19 +414,27 @@ export function AgentPlayground() {
           </div>
 
           <div className="px-5 py-3 border-t border-border/50 shrink-0 space-y-2">
-            {input.trim().length > 0 && (
-              <CostEstimateCard estimate={estimate} compact />
-            )}
+            {input.trim().length > 0 && <CostEstimateCard estimate={estimate} compact />}
             <div className="flex items-end gap-2">
               <Textarea
                 placeholder="Digite sua mensagem..."
                 value={input}
                 onChange={(e) => setInput(e.target.value)}
-                onKeyDown={(e) => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendMessage(); } }}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter' && !e.shiftKey) {
+                    e.preventDefault();
+                    sendMessage();
+                  }
+                }}
                 className="min-h-[40px] max-h-[120px] text-xs bg-secondary/50 border-border/50 resize-none"
                 rows={1}
               />
-              <Button size="icon" onClick={sendMessage} disabled={!input.trim() || loading || streaming.isStreaming} className="shrink-0 nexus-gradient-bg text-primary-foreground hover:opacity-90 h-10 w-10">
+              <Button
+                size="icon"
+                onClick={sendMessage}
+                disabled={!input.trim() || loading || streaming.isStreaming}
+                className="shrink-0 nexus-gradient-bg text-primary-foreground hover:opacity-90 h-10 w-10"
+              >
                 <Send className="h-4 w-4" />
               </Button>
             </div>

@@ -6,7 +6,7 @@ import { Users, Trash2, CheckCircle } from 'lucide-react';
 import { AccessControl, DangerousActionDialog } from '@/components/rbac';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { getWorkspaceId } from '@/lib/agentService';
-import { useAuth } from '@/contexts/AuthContext';
+import { useAuth } from '@/contexts/useAuth';
 import { InviteMemberDialog } from '@/components/dialogs/InviteMemberDialog';
 import { toast } from 'sonner';
 import {

@@ -1,8 +1,6 @@
-/* eslint-disable react-refresh/only-export-components */
 import { Button } from '@/components/ui/button';
 import { Calendar } from 'lucide-react';
-
-export type DateRange = '7d' | '14d' | '30d' | '90d';
+import type { DateRange } from './dateRange';
 
 interface DateRangePickerProps {
   value: DateRange;
@@ -40,17 +38,4 @@ export function DateRangePicker({ value, onChange }: DateRangePickerProps) {
       ))}
     </div>
   );
-}
-
-export function getDateRangeDays(range: DateRange): number {
-  switch (range) {
-    case '7d':
-      return 7;
-    case '14d':
-      return 14;
-    case '30d':
-      return 30;
-    case '90d':
-      return 90;
-  }
 }

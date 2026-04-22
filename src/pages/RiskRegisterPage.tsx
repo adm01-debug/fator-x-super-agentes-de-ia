@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useState, useCallback } from 'react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -48,7 +48,7 @@ import {
   CheckCircle2,
   X,
 } from 'lucide-react';
-import { useAuth } from '@/contexts/AuthContext';
+import { useAuth } from '@/contexts/useAuth';
 import { getWorkspaceId } from '@/lib/agentService';
 import {
   type Risk,
@@ -120,7 +120,7 @@ export default function RiskRegisterPage() {
       .catch((err: unknown) => logger.error('ws fetch failed:', err));
   }, [user]);
 
-  const refresh = async () => {
+  const refresh = useCallback(async () => {
     if (!workspaceId) return;
     setLoading(true);
     try {
@@ -136,12 +136,11 @@ export default function RiskRegisterPage() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [workspaceId]);
 
-  // eslint-disable-next-line react-hooks/exhaustive-deps
   useEffect(() => {
     refresh();
-  }, [workspaceId]);
+  }, [workspaceId, refresh]);
 
   useEffect(() => {
     if (!selectedRisk) {

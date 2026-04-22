@@ -30,8 +30,7 @@ export function BatchProcessorPanel() {
       })
       .catch(() => toast({ title: 'Erro', variant: 'destructive' }))
       .finally(() => setLoading(false));
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [toast]);
 
   return (
     <div className="space-y-6">

@@ -157,8 +157,7 @@ export default function AgentBuilder() {
     } else {
       resetAgent();
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [id]);
+  }, [id, loadAgentFromDB, resetAgent]);
 
   if (isLoading) {
     return (

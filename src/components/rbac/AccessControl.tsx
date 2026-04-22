@@ -1,4 +1,3 @@
-/* eslint-disable react-refresh/only-export-components */
 /**
  * ═══════════════════════════════════════════════════════════════
  * Nexus Agents Studio — AccessControl Component
@@ -54,33 +53,4 @@ export function AccessControl({
   }
 
   return <>{fallback}</>;
-}
-
-/**
- * Hook version for programmatic checks in event handlers.
- *
- * Usage:
- *   const { guardAction } = useAccessGuard();
- *   const handleDelete = guardAction('agents.delete', async () => {
- *     await deleteAgent(id);
- *   });
- */
-export function useAccessGuard() {
-  const { can } = useRBAC();
-
-  function guardAction(
-    permission: PermissionKey | PermissionKey[],
-    action: () => void | Promise<void>,
-    onDenied?: () => void,
-  ) {
-    return async () => {
-      if (can(permission)) {
-        await action();
-      } else {
-        onDenied?.();
-      }
-    };
-  }
-
-  return { guardAction, can };
 }

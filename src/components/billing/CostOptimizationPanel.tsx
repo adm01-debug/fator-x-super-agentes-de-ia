@@ -41,7 +41,7 @@ export function CostOptimizationPanel() {
     queryKey: ['agent_usage_opt'],
     queryFn: () => getAgentUsage(30),
   });
-  const { data: pricing = [] } = useQuery({
+  const { data: _pricing = [] } = useQuery({
     queryKey: ['model_pricing_opt'],
     queryFn: getModelPricing,
   });
@@ -147,8 +147,7 @@ export function CostOptimizationPanel() {
     }
 
     return recs;
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [agents, usage, pricing]);
+  }, [agents, usage]);
 
   const totalSavings = recommendations.filter((r) => r.severity === 'high').length;
   const severityColors = {

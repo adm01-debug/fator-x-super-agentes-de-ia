@@ -1,20 +1,8 @@
-/* eslint-disable react-refresh/only-export-components */
 import { Badge } from '@/components/ui/badge';
 import { StatusBadge } from '@/components/shared/StatusBadge';
 import { Link2, Clock, Snowflake, XCircle, AlertTriangle } from 'lucide-react';
 import { ENTITY_LIST } from '@/config/datahub-entities';
-
-export interface ConnectionDef {
-  id: string;
-  label: string;
-  desc: string;
-  status: 'connected' | 'disconnected' | 'error' | 'hibernated';
-  tables: number;
-  icon: string;
-  count?: number;
-  error?: string;
-  lastTested?: Date;
-}
+import type { ConnectionDef } from './connections.data';
 
 function timeAgo(date: Date): string {
   const seconds = Math.floor((Date.now() - date.getTime()) / 1000);
@@ -127,46 +115,3 @@ export function ConnectionCard({ conn }: { conn: ConnectionDef }) {
     </div>
   );
 }
-
-export const DEFAULT_CONNECTIONS: ConnectionDef[] = [
-  {
-    id: 'bancodadosclientes',
-    label: 'CRM Clientes',
-    desc: 'Companies, customers, contacts, interactions',
-    status: 'disconnected',
-    tables: 14,
-    icon: '👤',
-  },
-  {
-    id: 'supabase-fuchsia-kite',
-    label: 'Catálogo Produtos',
-    desc: 'Products, variants, suppliers, pricing',
-    status: 'disconnected',
-    tables: 12,
-    icon: '📦',
-  },
-  {
-    id: 'gestao_time_promo',
-    label: 'Gestão RH',
-    desc: 'Colaboradores, ponto, departamentos, cargos',
-    status: 'disconnected',
-    tables: 6,
-    icon: '👨‍💼',
-  },
-  {
-    id: 'backupgiftstore',
-    label: 'WhatsApp Backup',
-    desc: 'Contacts, messages, media',
-    status: 'disconnected',
-    tables: 3,
-    icon: '💬',
-  },
-  {
-    id: 'financeiro_promo',
-    label: 'Financeiro Promo',
-    desc: 'Contas a pagar/receber, fluxo de caixa — HIBERNADO',
-    status: 'hibernated',
-    tables: 0,
-    icon: '💰',
-  },
-];

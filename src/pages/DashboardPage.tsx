@@ -2,11 +2,8 @@ import { PageHeader } from '@/components/shared/PageHeader';
 import { StatusBadge } from '@/components/shared/StatusBadge';
 import { InfoHint } from '@/components/shared/InfoHint';
 import { AnimatedCounter } from '@/components/shared/AnimatedCounter';
-import {
-  DateRangePicker,
-  getDateRangeDays,
-  type DateRange,
-} from '@/components/dashboard/DateRangePicker';
+import { DateRangePicker } from '@/components/dashboard/DateRangePicker';
+import { getDateRangeDays, type DateRange } from '@/components/dashboard/dateRange';
 import { Button } from '@/components/ui/button';
 import {
   Bot,
@@ -21,7 +18,7 @@ import {
   Activity,
   GitBranch,
 } from 'lucide-react';
-import { useAuth } from '@/contexts/AuthContext';
+import { useAuth } from '@/contexts/useAuth';
 import { useNavigate } from 'react-router-dom';
 import { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';

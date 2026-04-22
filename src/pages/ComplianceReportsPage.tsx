@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import {
   ShieldCheck,
   FileCheck2,
@@ -86,14 +86,7 @@ export default function ComplianceReportsPage() {
     })();
   }, []);
 
-  useEffect(() => {
-    if (!workspaceId) return;
-    refresh();
-
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [workspaceId]);
-
-  async function refresh() {
+  const refresh = useCallback(async () => {
     if (!workspaceId) return;
     setLoading(true);
     try {
@@ -104,7 +97,12 @@ export default function ComplianceReportsPage() {
     } finally {
       setLoading(false);
     }
-  }
+  }, [workspaceId]);
+
+  useEffect(() => {
+    if (!workspaceId) return;
+    refresh();
+  }, [workspaceId, refresh]);
 
   async function handleGenerate() {
     if (!workspaceId) return;

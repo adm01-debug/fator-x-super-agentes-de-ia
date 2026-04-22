@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
 import { supabaseExternal } from '@/integrations/supabase/externalClient';
-import { useAuth } from '@/contexts/AuthContext';
+import { useAuth } from '@/contexts/useAuth';
 import { toast } from 'sonner';
 import { logger } from '@/lib/logger';
 import type { CanvasNode, CanvasEdge } from '@/components/workflows/WorkflowCanvas';

@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -23,7 +23,7 @@ export function QueueMonitorPanel() {
   const [runningId, setRunningId] = useState<string | null>(null);
   const { toast } = useToast();
 
-  const loadQueues = async () => {
+  const loadQueues = useCallback(async () => {
     try {
       const data = await listQueues();
       setQueues(data);
@@ -32,12 +32,11 @@ export function QueueMonitorPanel() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [toast]);
 
   useEffect(() => {
     loadQueues();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [loadQueues]);
 
   const handleRunWorker = async (q: QueueDefinition) => {
     setRunningId(q.id);

@@ -38,11 +38,11 @@ export function useRetryAction<TArgs extends unknown[], TResult>(
   const [lastResult, setLastResult] = useState<RetryResult<TResult> | null>(null);
   const { toast } = useToast();
 
-  const resolvePolicy = (): RetryPolicy => {
+  const resolvePolicy = useCallback((): RetryPolicy => {
     if (!options.policy) return RETRY_PRESETS.api_call;
     if (typeof options.policy === 'string') return RETRY_PRESETS[options.policy];
     return options.policy;
-  };
+  }, [options.policy]);
 
   const execute = useCallback(
     async (...args: TArgs): Promise<TResult | null> => {
@@ -99,8 +99,7 @@ export function useRetryAction<TArgs extends unknown[], TResult>(
         setLoading(false);
       }
     },
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-    [action, options, toast],
+    [action, options, toast, resolvePolicy],
   );
 
   return {

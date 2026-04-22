@@ -25,7 +25,7 @@ import { useState, useCallback, useRef } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { listAgents, cloneAgent, autoTagAgent } from '@/lib/agentService';
 import { useAgents } from '@/hooks/use-data';
-import { useAuth } from '@/contexts/AuthContext';
+import { useAuth } from '@/contexts/useAuth';
 import type { Tables } from '@/integrations/supabase/types';
 import {
   exportAgentToJSON,
@@ -168,8 +168,7 @@ export default function AgentsPage() {
 
   const selectAll = useCallback(() => {
     setSelectedIds(new Set(filtered.map((a) => a.id)));
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [filtered]);
 
   const clearSelection = useCallback(() => setSelectedIds(new Set()), []);
 

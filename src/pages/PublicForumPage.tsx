@@ -24,7 +24,7 @@ import {
   createPost,
   markAsAnswer,
 } from '@/services/knowledgeManagementService';
-import { useAuth } from '@/contexts/AuthContext';
+import { useAuth } from '@/contexts/useAuth';
 
 export default function PublicForumPage() {
   const { slug, threadId } = useParams<{ slug: string; threadId?: string }>();

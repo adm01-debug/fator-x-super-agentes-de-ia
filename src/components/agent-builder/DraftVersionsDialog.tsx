@@ -1,5 +1,12 @@
-import { useEffect, useMemo, useState } from 'react';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog';
+import { useEffect, useMemo, useState, useCallback } from 'react';
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+  DialogFooter,
+} from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
@@ -49,7 +56,10 @@ export function DraftVersionsDialog({ open, onOpenChange }: DraftVersionsDialogP
   const [note, setNote] = useState('');
   const [forceSave, setForceSave] = useState(false);
 
-  const refresh = () => setDrafts(listDraftVersions(agent.id as string | undefined));
+  const refresh = useCallback(
+    () => setDrafts(listDraftVersions(agent.id as string | undefined)),
+    [agent.id],
+  );
 
   useEffect(() => {
     if (open) {
@@ -58,8 +68,7 @@ export function DraftVersionsDialog({ open, onOpenChange }: DraftVersionsDialogP
       setNote('');
       setForceSave(false);
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [open, agent.id]);
+  }, [open, agent.id, refresh]);
 
   const validation = useMemo(
     () => validateAgentVersion(agent, { label, note }),
@@ -105,7 +114,8 @@ export function DraftVersionsDialog({ open, onOpenChange }: DraftVersionsDialogP
             Rascunhos de versão
           </DialogTitle>
           <DialogDescription>
-            Snapshots locais (não persistidos no servidor) da configuração atual do agente. Útil para experimentar mudanças sem perder o ponto de partida.
+            Snapshots locais (não persistidos no servidor) da configuração atual do agente. Útil
+            para experimentar mudanças sem perder o ponto de partida.
           </DialogDescription>
         </DialogHeader>
 
@@ -113,7 +123,9 @@ export function DraftVersionsDialog({ open, onOpenChange }: DraftVersionsDialogP
         <div className="space-y-2 nexus-card !p-3 border-primary/30 bg-primary/5">
           <div className="flex items-center justify-between">
             <span className="text-xs font-medium text-foreground">Salvar estado atual</span>
-            <Badge variant="outline" className="text-[10px]">local</Badge>
+            <Badge variant="outline" className="text-[10px]">
+              local
+            </Badge>
           </div>
           <Input
             placeholder='Ex: "Antes de trocar o prompt"'
@@ -162,7 +174,9 @@ export function DraftVersionsDialog({ open, onOpenChange }: DraftVersionsDialogP
         {/* List */}
         <div className="space-y-2">
           <div className="flex items-center justify-between text-xs text-muted-foreground">
-            <span>{drafts.length} {drafts.length === 1 ? 'rascunho' : 'rascunhos'}</span>
+            <span>
+              {drafts.length} {drafts.length === 1 ? 'rascunho' : 'rascunhos'}
+            </span>
             <span className="font-mono">limite 20</span>
           </div>
 
@@ -170,7 +184,9 @@ export function DraftVersionsDialog({ open, onOpenChange }: DraftVersionsDialogP
             <div className="nexus-card !p-6 flex flex-col items-center text-center gap-2 text-muted-foreground">
               <Inbox className="h-8 w-8 opacity-50" aria-hidden />
               <p className="text-sm">Nenhum rascunho salvo ainda</p>
-              <p className="text-[11px]">Use o formulário acima para salvar uma versão de trabalho.</p>
+              <p className="text-[11px]">
+                Use o formulário acima para salvar uma versão de trabalho.
+              </p>
             </div>
           ) : (
             <ScrollArea className="h-[280px] pr-2">
@@ -185,8 +201,12 @@ export function DraftVersionsDialog({ open, onOpenChange }: DraftVersionsDialogP
                     </div>
                     <div className="min-w-0 flex-1">
                       <div className="flex items-center gap-2 flex-wrap">
-                        <span className="text-sm font-medium text-foreground truncate">{d.label}</span>
-                        <Badge variant="secondary" className="text-[10px]">{formatSize(d.size)}</Badge>
+                        <span className="text-sm font-medium text-foreground truncate">
+                          {d.label}
+                        </span>
+                        <Badge variant="secondary" className="text-[10px]">
+                          {formatSize(d.size)}
+                        </Badge>
                       </div>
                       <p className="text-[11px] text-muted-foreground mt-0.5">
                         {d.agentName} · {formatRelative(d.createdAt)}
@@ -223,7 +243,9 @@ export function DraftVersionsDialog({ open, onOpenChange }: DraftVersionsDialogP
         </div>
 
         <DialogFooter>
-          <Button variant="outline" size="sm" onClick={() => onOpenChange(false)}>Fechar</Button>
+          <Button variant="outline" size="sm" onClick={() => onOpenChange(false)}>
+            Fechar
+          </Button>
         </DialogFooter>
       </DialogContent>
     </Dialog>

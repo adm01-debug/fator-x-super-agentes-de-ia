@@ -59,8 +59,7 @@ export function useWorkflowAutosave({
     return () => {
       if (timerRef.current) clearTimeout(timerRef.current);
     };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [watchValue, enabled]);
+  }, [watchValue, enabled, delay, onSave]);
 
   // Cleanup on unmount
   useEffect(() => {

@@ -60,8 +60,7 @@ export default function AgentOrchestrationPage() {
 
   useEffect(() => {
     if (activeGraph) agentGraphService.listExecutions(activeGraph.id).then(setExecutions);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [activeGraph?.id]);
+  }, [activeGraph?.id, activeGraph]);
 
   const selectedNode = useMemo(
     () => activeGraph?.nodes.find((n) => n.id === selectedNodeId) ?? null,

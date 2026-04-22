@@ -4,7 +4,7 @@
 import { useEffect } from 'react';
 import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
-import { useAuth } from '@/contexts/AuthContext';
+import { useAuth } from '@/contexts/useAuth';
 import { logger } from '@/lib/logger';
 
 export function IncidentRunsMounter() {
@@ -23,7 +23,9 @@ export function IncidentRunsMounter() {
             description: `Origem: ${run.triggered_by ?? 'sistema'}`,
             action: {
               label: 'Ver',
-              onClick: () => { window.location.href = '/observability/playbooks'; },
+              onClick: () => {
+                window.location.href = '/observability/playbooks';
+              },
             },
           });
         },
@@ -32,7 +34,9 @@ export function IncidentRunsMounter() {
         if (status === 'CHANNEL_ERROR') logger.error('incident runs channel error');
       });
 
-    return () => { supabase.removeChannel(channel); };
+    return () => {
+      supabase.removeChannel(channel);
+    };
   }, [user]);
 
   return null;

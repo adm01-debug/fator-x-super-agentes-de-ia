@@ -8,7 +8,7 @@
  *   const { t, locale, setLocale } = useI18n();
  *   <span>{t('agents.create')}</span>
  */
-import { useI18nContext } from '@/i18n/I18nProvider';
+import { useI18nContext } from '@/i18n/useI18nContext';
 
 export function useI18n() {
   return useI18nContext();

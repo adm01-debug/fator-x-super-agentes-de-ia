@@ -1,4 +1,4 @@
-import { useAuth } from '@/contexts/AuthContext';
+import { useAuth } from '@/contexts/useAuth';
 import { Navigate } from 'react-router-dom';
 import { PageLoading } from '@/components/shared/PageLoading';
 import type { ReactNode } from 'react';

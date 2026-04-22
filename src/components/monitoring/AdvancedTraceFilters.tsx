@@ -1,4 +1,3 @@
-/* eslint-disable react-refresh/only-export-components */
 /**
  * AdvancedTraceFilters — Date range, latency range, cost range, level filter for monitoring.
  */
@@ -14,28 +13,7 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { X, SlidersHorizontal } from 'lucide-react';
-
-export interface TraceFilters {
-  dateFrom: string;
-  dateTo: string;
-  minLatency: string;
-  maxLatency: string;
-  minCost: string;
-  maxCost: string;
-  level: string;
-  event: string;
-}
-
-const EMPTY_FILTERS: TraceFilters = {
-  dateFrom: '',
-  dateTo: '',
-  minLatency: '',
-  maxLatency: '',
-  minCost: '',
-  maxCost: '',
-  level: 'all',
-  event: '',
-};
+import { EMPTY_FILTERS, type TraceFilters } from './traceFilters';
 
 interface Props {
   filters: TraceFilters;
@@ -173,33 +151,3 @@ export function AdvancedTraceFilters({ filters, onChange }: Props) {
     </div>
   );
 }
-
-export function applyTraceFilters(
-  traces: Record<string, unknown>[],
-  filters: TraceFilters,
-): Record<string, unknown>[] {
-  return traces.filter((t) => {
-    if (filters.dateFrom) {
-      const traceDate = new Date(t.created_at).toISOString().split('T')[0];
-      if (traceDate < filters.dateFrom) return false;
-    }
-    if (filters.dateTo) {
-      const traceDate = new Date(t.created_at).toISOString().split('T')[0];
-      if (traceDate > filters.dateTo) return false;
-    }
-    if (filters.minLatency && t.latency_ms != null && t.latency_ms < Number(filters.minLatency))
-      return false;
-    if (filters.maxLatency && t.latency_ms != null && t.latency_ms > Number(filters.maxLatency))
-      return false;
-    if (filters.minCost && t.cost_usd != null && Number(t.cost_usd) < Number(filters.minCost))
-      return false;
-    if (filters.maxCost && t.cost_usd != null && Number(t.cost_usd) > Number(filters.maxCost))
-      return false;
-    if (filters.level !== 'all' && t.level !== filters.level) return false;
-    if (filters.event && !t.event?.toLowerCase().includes(filters.event.toLowerCase()))
-      return false;
-    return true;
-  });
-}
-
-export { EMPTY_FILTERS };

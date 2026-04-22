@@ -1,10 +1,10 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useState, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { ArrowLeft, ArrowRight, Check, ChevronRight, Loader2, Rocket } from 'lucide-react';
 import { toast } from 'sonner';
 import { supabaseExternal } from '@/integrations/supabase/externalClient';
-import { useAuth } from '@/contexts/AuthContext';
+import { useAuth } from '@/contexts/useAuth';
 import {
   quickIdentitySchema,
   quickTypeSchema,
@@ -166,42 +166,48 @@ export function QuickCreateWizard({ onBack }: QuickCreateWizardProps) {
     setErrors({});
   };
 
-  const restorePromptFromType = () => {
+  const restorePromptFromType = useCallback(() => {
     const t = QUICK_AGENT_TEMPLATES[form.type as QuickAgentType];
     update('prompt', t.systemPrompt);
     toast.success('Prompt restaurado do template');
-  };
+  }, [form.type]);
 
-  const applyPromptVariant = (variantId: import('@/data/quickAgentTemplates').PromptVariantId) => {
-    const t = QUICK_AGENT_TEMPLATES[form.type as QuickAgentType];
-    const variant = t.promptVariants[variantId];
-    update('prompt', variant.prompt);
-    toast.success(`Variação "${variant.label}" aplicada`, {
-      description: 'Você pode editar livremente depois.',
-    });
-  };
-
-  const validateStep = (idx: number): boolean => {
-    const def = STEPS[idx];
-    const result = def.schema.safeParse(form);
-    if (result.success) {
-      setErrors((prev) => {
-        const next = { ...prev };
-        def.fields.forEach((f) => {
-          delete next[f as keyof QuickAgentForm];
-        });
-        return next;
+  const applyPromptVariant = useCallback(
+    (variantId: import('@/data/quickAgentTemplates').PromptVariantId) => {
+      const t = QUICK_AGENT_TEMPLATES[form.type as QuickAgentType];
+      const variant = t.promptVariants[variantId];
+      update('prompt', variant.prompt);
+      toast.success(`Variação "${variant.label}" aplicada`, {
+        description: 'Você pode editar livremente depois.',
       });
-      return true;
-    }
-    const newErrors: Partial<Record<keyof QuickAgentForm, string>> = {};
-    result.error.errors.forEach((e) => {
-      const path = e.path[0] as keyof QuickAgentForm | undefined;
-      if (path) newErrors[path] = e.message;
-    });
-    setErrors((prev) => ({ ...prev, ...newErrors }));
-    return false;
-  };
+    },
+    [form.type],
+  );
+
+  const validateStep = useCallback(
+    (idx: number): boolean => {
+      const def = STEPS[idx];
+      const result = def.schema.safeParse(form);
+      if (result.success) {
+        setErrors((prev) => {
+          const next = { ...prev };
+          def.fields.forEach((f) => {
+            delete next[f as keyof QuickAgentForm];
+          });
+          return next;
+        });
+        return true;
+      }
+      const newErrors: Partial<Record<keyof QuickAgentForm, string>> = {};
+      result.error.errors.forEach((e) => {
+        const path = e.path[0] as keyof QuickAgentForm | undefined;
+        if (path) newErrors[path] = e.message;
+      });
+      setErrors((prev) => ({ ...prev, ...newErrors }));
+      return false;
+    },
+    [form],
+  );
 
   const goNext = () => {
     if (!validateStep(step)) {
@@ -211,17 +217,17 @@ export function QuickCreateWizard({ onBack }: QuickCreateWizardProps) {
     if (step < STEPS.length - 1) setStep(step + 1);
   };
 
-  const goPrev = () => {
+  const goPrev = useCallback(() => {
     if (step === 0) onBack();
     else setStep(step - 1);
-  };
+  }, [onBack, step]);
 
   const goToStep = (idx: number) => {
     if (idx <= step) setStep(idx);
     else if (validateStep(step)) setStep(idx);
   };
 
-  const saveAgent = async () => {
+  const saveAgent = useCallback(async () => {
     if (!user) {
       toast.error('Faça login para criar agentes');
       navigate('/auth');
@@ -265,7 +271,18 @@ export function QuickCreateWizard({ onBack }: QuickCreateWizardProps) {
       description: `${form.name} foi salvo como rascunho.`,
     });
     navigate('/agents');
-  };
+  }, [
+    form.description,
+    form.emoji,
+    form.mission,
+    form.model,
+    form.name,
+    form.prompt,
+    form.type,
+    navigate,
+    user,
+    validateStep,
+  ]);
 
   const isLast = step === STEPS.length - 1;
 
@@ -285,8 +302,7 @@ export function QuickCreateWizard({ onBack }: QuickCreateWizardProps) {
     };
     window.addEventListener('keydown', onKey);
     return () => window.removeEventListener('keydown', onKey);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [step, form]);
+  }, [step, form, goPrev, isLast, saveAgent]);
 
   const stepNode = useMemo(() => {
     switch (step) {
@@ -316,8 +332,7 @@ export function QuickCreateWizard({ onBack }: QuickCreateWizardProps) {
       default:
         return null;
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [step, form, errors]);
+  }, [step, form, errors, applyPromptVariant, restorePromptFromType]);
 
   return (
     <div className="p-6 max-w-[1100px] mx-auto space-y-6">

@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useState, useCallback } from 'react';
 import { toast } from 'sonner';
 import {
   Plus,
@@ -49,7 +49,7 @@ import {
   TableRow,
 } from '@/components/ui/table';
 import { Skeleton } from '@/components/ui/skeleton';
-import { useAuth } from '@/contexts/AuthContext';
+import { useAuth } from '@/contexts/useAuth';
 import { getWorkspaceId } from '@/lib/agentService';
 import {
   type ChangeRequest,
@@ -129,7 +129,7 @@ export default function ChangeManagementPage() {
     });
   }, [user]);
 
-  const refresh = async () => {
+  const refresh = useCallback(async () => {
     if (!workspaceId) return;
     setLoading(true);
     try {
@@ -146,12 +146,11 @@ export default function ChangeManagementPage() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [workspaceId]);
 
-  // eslint-disable-next-line react-hooks/exhaustive-deps
   useEffect(() => {
     if (workspaceId) refresh();
-  }, [workspaceId]);
+  }, [workspaceId, refresh]);
 
   const refreshApprovals = async (c: ChangeRequest) => {
     try {

@@ -48,8 +48,7 @@ export default function VoiceAgentsPage() {
       .then(setAgents)
       .catch(() => {});
     refreshHistory();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [refreshHistory]);
 
   const refreshHistory = useCallback(() => {
     listSessions(20)

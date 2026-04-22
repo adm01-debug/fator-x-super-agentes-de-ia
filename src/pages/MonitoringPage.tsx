@@ -37,12 +37,12 @@ import {
   getAgentsForFilter,
 } from '@/services/monitoringService';
 import { TracingPanel } from '@/components/monitoring/TracingPanel';
+import { AdvancedTraceFilters } from '@/components/monitoring/AdvancedTraceFilters';
 import {
-  AdvancedTraceFilters,
   applyTraceFilters,
   EMPTY_FILTERS,
   type TraceFilters,
-} from '@/components/monitoring/AdvancedTraceFilters';
+} from '@/components/monitoring/traceFilters';
 import { AlertRulesPanel } from '@/components/monitoring/AlertRulesPanel';
 import { WebVitalsPanel } from '@/components/monitoring/WebVitalsPanel';
 import { MiddlewarePipelinePanel } from '@/components/monitoring/MiddlewarePipelinePanel';

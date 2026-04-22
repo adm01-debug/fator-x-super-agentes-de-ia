@@ -6,7 +6,8 @@
  */
 import { describe, it, expect, vi } from 'vitest';
 import { render, screen } from '@testing-library/react';
-import { I18nProvider, useI18nContext } from '@/i18n/I18nProvider';
+import { I18nProvider } from '@/i18n/I18nProvider';
+import { useI18nContext } from '@/i18n/useI18nContext';
 
 vi.mock('@/lib/logger', () => ({
   logger: { info: vi.fn(), warn: vi.fn(), error: vi.fn() },
@@ -22,7 +23,7 @@ describe('I18nProvider interpolation', () => {
     render(
       <I18nProvider>
         <Probe tKey="time.seconds_ago" vars={{ n: 42 }} />
-      </I18nProvider>
+      </I18nProvider>,
     );
     expect(screen.getByTestId('result').textContent).toBe('42s atrás');
   });
@@ -31,7 +32,7 @@ describe('I18nProvider interpolation', () => {
     render(
       <I18nProvider>
         <Probe tKey="oracle.partial_complete" vars={{ ok: 2, total: 3 }} />
-      </I18nProvider>
+      </I18nProvider>,
     );
     expect(screen.getByTestId('result').textContent).toBe('2/3 modos completaram');
   });
@@ -40,7 +41,7 @@ describe('I18nProvider interpolation', () => {
     render(
       <I18nProvider>
         <Probe tKey="nonexistent.key" />
-      </I18nProvider>
+      </I18nProvider>,
     );
     expect(screen.getByTestId('result').textContent).toBe('nonexistent.key');
   });
@@ -49,7 +50,7 @@ describe('I18nProvider interpolation', () => {
     render(
       <I18nProvider>
         <Probe tKey="time.seconds_ago" vars={{ other: 1 }} />
-      </I18nProvider>
+      </I18nProvider>,
     );
     expect(screen.getByTestId('result').textContent).toBe('{n}s atrás');
   });
@@ -58,7 +59,7 @@ describe('I18nProvider interpolation', () => {
     render(
       <I18nProvider>
         <Probe tKey="action.save" />
-      </I18nProvider>
+      </I18nProvider>,
     );
     expect(screen.getByTestId('result').textContent).toBe('Salvar');
   });
@@ -67,7 +68,7 @@ describe('I18nProvider interpolation', () => {
     render(
       <I18nProvider>
         <Probe tKey="validation.min_length" vars={{ n: 8 }} />
-      </I18nProvider>
+      </I18nProvider>,
     );
     expect(screen.getByTestId('result').textContent).toBe('Mínimo de 8 caracteres');
   });

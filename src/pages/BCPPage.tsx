@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useState, useCallback } from 'react';
 import { toast } from 'sonner';
 import { LifeBuoy, Plus, AlertTriangle, Activity, Clock, ShieldAlert } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -41,7 +41,7 @@ import {
   TableRow,
 } from '@/components/ui/table';
 import { Skeleton } from '@/components/ui/skeleton';
-import { useAuth } from '@/contexts/AuthContext';
+import { useAuth } from '@/contexts/useAuth';
 import { getWorkspaceId } from '@/lib/agentService';
 import {
   type BusinessSystem,
@@ -136,7 +136,7 @@ export default function BCPPage() {
     });
   }, [user]);
 
-  const refresh = async () => {
+  const refresh = useCallback(async () => {
     if (!workspaceId) return;
     setLoading(true);
     try {
@@ -151,12 +151,11 @@ export default function BCPPage() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [workspaceId]);
 
-  // eslint-disable-next-line react-hooks/exhaustive-deps
   useEffect(() => {
     if (workspaceId) refresh();
-  }, [workspaceId]);
+  }, [workspaceId, refresh]);
 
   const refreshTests = async (sys: BusinessSystem) => {
     setTestsLoading(true);

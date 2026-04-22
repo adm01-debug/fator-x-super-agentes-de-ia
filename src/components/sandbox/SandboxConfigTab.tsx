@@ -1,4 +1,3 @@
-/* eslint-disable react-refresh/only-export-components */
 import type { SandboxConfig, SandboxRuntime } from '@/components/workflows/SandboxExecutionPanel';
 
 const RUNTIME_OPTIONS: Array<{
@@ -160,5 +159,3 @@ export function SandboxConfigTab({ config, onUpdate }: SandboxConfigTabProps) {
     </div>
   );
 }
-
-export { RUNTIME_OPTIONS, SECURITY_LEVEL_COLORS };

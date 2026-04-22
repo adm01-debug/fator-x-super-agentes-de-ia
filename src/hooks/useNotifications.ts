@@ -12,7 +12,7 @@ import {
   markAllRead,
   type NotificationPayload,
 } from '@/services/notificationEngineService';
-import { useAuth } from '@/contexts/AuthContext';
+import { useAuth } from '@/contexts/useAuth';
 
 export function useNotifications(pollIntervalMs: number = 30000) {
   const [notifications, setNotifications] = useState<NotificationPayload[]>([]);
@@ -21,7 +21,10 @@ export function useNotifications(pollIntervalMs: number = 30000) {
   const { user } = useAuth();
 
   const refresh = useCallback(async () => {
-    if (!user?.id) { setLoading(false); return; }
+    if (!user?.id) {
+      setLoading(false);
+      return;
+    }
     try {
       const data = await getInAppNotifications(user.id, false);
       setNotifications(data);
@@ -46,7 +49,9 @@ export function useNotifications(pollIntervalMs: number = 30000) {
   const markOneRead = useCallback(async (id: string) => {
     await markRead(id);
     setNotifications((prev) =>
-      prev.map((n) => (n.id === id ? { ...n, status: 'read' as const, read_at: new Date().toISOString() } : n)),
+      prev.map((n) =>
+        n.id === id ? { ...n, status: 'read' as const, read_at: new Date().toISOString() } : n,
+      ),
     );
     setUnreadCount((c) => Math.max(0, c - 1));
   }, []);

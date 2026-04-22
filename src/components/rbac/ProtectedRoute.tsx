@@ -16,7 +16,7 @@
 import { type ReactNode } from 'react';
 import { Navigate } from 'react-router-dom';
 import { useRBAC } from '@/hooks/useRBAC';
-import { useAuth } from '@/contexts/AuthContext';
+import { useAuth } from '@/contexts/useAuth';
 import type { PermissionKey, RoleKey } from '@/services/rbacService';
 
 interface ProtectedRouteProps {
@@ -66,8 +66,8 @@ export function ProtectedRoute({
           <div className="text-5xl mb-4">🔒</div>
           <h2 className="text-xl font-bold text-foreground mb-2">Acesso Restrito</h2>
           <p className="text-muted-foreground mb-6">
-            Você não tem permissão para acessar esta página.
-            Entre em contato com o administrador do workspace.
+            Você não tem permissão para acessar esta página. Entre em contato com o administrador do
+            workspace.
           </p>
           <a
             href={redirectTo}

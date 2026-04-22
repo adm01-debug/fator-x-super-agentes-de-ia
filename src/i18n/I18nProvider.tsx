@@ -1,4 +1,3 @@
-/* eslint-disable react-refresh/only-export-components */
 /**
  * Nexus Agents Studio — I18n Context Provider
  * Wraps the app and provides global locale state. All useI18n() calls
@@ -9,36 +8,15 @@
  *  1. Wrap <App /> in <I18nProvider>
  *  2. Anywhere: const { t, locale, setLocale } = useI18n();
  */
-import { createContext, useContext, useState, useCallback, type ReactNode } from 'react';
+import { useState, useCallback, type ReactNode } from 'react';
 import { translations, DEFAULT_LOCALE, type Locale } from '@/i18n/translations';
 import { logger } from '@/lib/logger';
-
-interface I18nContextValue {
-  locale: Locale;
-  setLocale: (locale: Locale) => void;
-  t: (key: string, vars?: Record<string, string | number>) => string;
-}
-
-const I18nContext = createContext<I18nContextValue | null>(null);
-
-const STORAGE_KEY = 'nexus-locale';
-
-/**
- * Replace {placeholder} tokens in a string with values from `vars`.
- * Used by t() to support keys like 'time.seconds_ago' = '{n}s ago'.
- */
-function interpolate(template: string, vars?: Record<string, string | number>): string {
-  if (!vars) return template;
-  return template.replace(/\{(\w+)\}/g, (match, key) => {
-    const v = vars[key];
-    return v === undefined || v === null ? match : String(v);
-  });
-}
+import { I18nContext, I18N_STORAGE_KEY, interpolate } from './i18nContext';
 
 export function I18nProvider({ children }: { children: ReactNode }) {
   const [locale, setLocaleState] = useState<Locale>(() => {
     try {
-      const stored = localStorage.getItem(STORAGE_KEY) as Locale | null;
+      const stored = localStorage.getItem(I18N_STORAGE_KEY) as Locale | null;
       if (stored && translations[stored]) return stored;
     } catch (err) {
       logger.error('I18nProvider init failed', {
@@ -51,7 +29,7 @@ export function I18nProvider({ children }: { children: ReactNode }) {
   const setLocale = useCallback((newLocale: Locale) => {
     setLocaleState(newLocale);
     try {
-      localStorage.setItem(STORAGE_KEY, newLocale);
+      localStorage.setItem(I18N_STORAGE_KEY, newLocale);
       // Update <html lang> for accessibility / SEO
       if (typeof document !== 'undefined') {
         document.documentElement.lang = newLocale;
@@ -72,22 +50,4 @@ export function I18nProvider({ children }: { children: ReactNode }) {
   );
 
   return <I18nContext.Provider value={{ locale, setLocale, t }}>{children}</I18nContext.Provider>;
-}
-
-/**
- * Hook to access the I18n context. Throws if used outside <I18nProvider>.
- * Falls back gracefully if context is missing (logs warning, uses defaults).
- */
-export function useI18nContext(): I18nContextValue {
-  const ctx = useContext(I18nContext);
-  if (!ctx) {
-    logger.warn('useI18nContext called outside I18nProvider — using fallback');
-    return {
-      locale: DEFAULT_LOCALE,
-      setLocale: () => {},
-      t: (key: string, vars?: Record<string, string | number>) =>
-        interpolate(translations[DEFAULT_LOCALE]?.[key] ?? key, vars),
-    };
-  }
-  return ctx;
 }

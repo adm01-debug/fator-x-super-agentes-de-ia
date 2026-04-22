@@ -1,4 +1,3 @@
-/* eslint-disable react-refresh/only-export-components */
 import { Handle, Position } from 'reactflow';
 import { cn } from '@/lib/utils';
 
@@ -49,21 +48,3 @@ export const TransformNode = makeNode(
   true,
 );
 export const OutputNode = makeNode('🎯', 'Output', 'border-red-500/50 bg-red-500/10', true, false);
-
-export const nodeTypes = {
-  trigger: TriggerNode,
-  agent: AgentNode,
-  tool: ToolNode,
-  condition: ConditionNode,
-  transform: TransformNode,
-  output: OutputNode,
-};
-
-export const NODE_PALETTE = [
-  { type: 'trigger', icon: '▶️', label: 'Trigger', desc: 'Entrada do fluxo' },
-  { type: 'agent', icon: '🤖', label: 'Agente', desc: 'Chamada a um agente' },
-  { type: 'tool', icon: '🔧', label: 'Ferramenta', desc: 'Execução de tool' },
-  { type: 'condition', icon: '🔀', label: 'Condição', desc: 'Branch if/else' },
-  { type: 'transform', icon: '✨', label: 'Transform', desc: 'Transforma dados' },
-  { type: 'output', icon: '🎯', label: 'Output', desc: 'Saída final' },
-];

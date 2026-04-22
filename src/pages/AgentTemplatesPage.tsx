@@ -29,7 +29,7 @@ import type {
   LLMModel,
   TestCase,
 } from '@/types/agentTypes';
-import { useAuth } from '@/contexts/AuthContext';
+import { useAuth } from '@/contexts/useAuth';
 import { logger } from '@/lib/logger';
 
 const ALL = 'all';

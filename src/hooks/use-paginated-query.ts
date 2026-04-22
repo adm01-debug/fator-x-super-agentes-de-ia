@@ -67,7 +67,9 @@ export function usePaginatedQuery<T = Record<string, unknown>>(
 
         // Count
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        let countBuilder: any = (supabaseExternal as any).from(table).select('*', { count: 'exact', head: true });
+        let countBuilder: any = (supabaseExternal as any)
+          .from(table)
+          .select('*', { count: 'exact', head: true });
         for (const [col, val] of Object.entries(eqFilters)) {
           countBuilder = countBuilder.eq(col, val);
         }
@@ -76,7 +78,11 @@ export function usePaginatedQuery<T = Record<string, unknown>>(
 
         // Data
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        let dataBuilder: any = (supabaseExternal as any).from(table).select(select).order(orderBy, { ascending }).range(from, to);
+        let dataBuilder: any = (supabaseExternal as any)
+          .from(table)
+          .select(select)
+          .order(orderBy, { ascending })
+          .range(from, to);
         for (const [col, val] of Object.entries(eqFilters)) {
           dataBuilder = dataBuilder.eq(col, val);
         }
@@ -91,6 +97,7 @@ export function usePaginatedQuery<T = Record<string, unknown>>(
         setLoading(false);
       }
     },
+    // eqFilters object reference changes frequently — serialize for stable identity.
     // eslint-disable-next-line react-hooks/exhaustive-deps
     [table, pageSize, orderBy, ascending, select, enabled, JSON.stringify(eqFilters)],
   );
@@ -100,7 +107,9 @@ export function usePaginatedQuery<T = Record<string, unknown>>(
   }, [fetchPage, enabled]);
 
   const goToPage = useCallback(
-    (p: number) => { if (p >= 1 && p <= Math.max(pagination.totalPages, 1)) fetchPage(p); },
+    (p: number) => {
+      if (p >= 1 && p <= Math.max(pagination.totalPages, 1)) fetchPage(p);
+    },
     [fetchPage, pagination.totalPages],
   );
   const nextPage = useCallback(() => goToPage(pagination.page + 1), [goToPage, pagination.page]);

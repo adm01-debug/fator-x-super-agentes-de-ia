@@ -1,18 +1,19 @@
-import { describe, it, expect, vi } from "vitest";
-import { renderHook, act } from "@testing-library/react";
-import { UnsavedChangesProvider, useUnsavedChanges } from "@/hooks/use-unsaved-changes";
+import { describe, it, expect, vi } from 'vitest';
+import { renderHook, act } from '@testing-library/react';
+import { UnsavedChangesProvider } from '@/hooks/use-unsaved-changes';
+import { useUnsavedChanges } from '@/hooks/unsavedChanges.context';
 
 function wrapper({ children }: { children: React.ReactNode }) {
   return <UnsavedChangesProvider>{children}</UnsavedChangesProvider>;
 }
 
-describe("useUnsavedChanges", () => {
-  it("defaults to no unsaved changes", () => {
+describe('useUnsavedChanges', () => {
+  it('defaults to no unsaved changes', () => {
     const { result } = renderHook(() => useUnsavedChanges(), { wrapper });
     expect(result.current.hasUnsavedChanges).toBe(false);
   });
 
-  it("can set unsaved changes", () => {
+  it('can set unsaved changes', () => {
     const { result } = renderHook(() => useUnsavedChanges(), { wrapper });
     act(() => {
       result.current.setHasUnsavedChanges(true);
@@ -20,7 +21,7 @@ describe("useUnsavedChanges", () => {
     expect(result.current.hasUnsavedChanges).toBe(true);
   });
 
-  it("confirmNavigation calls callback immediately when no unsaved changes", () => {
+  it('confirmNavigation calls callback immediately when no unsaved changes', () => {
     const { result } = renderHook(() => useUnsavedChanges(), { wrapper });
     const callback = vi.fn();
     act(() => {
@@ -29,7 +30,7 @@ describe("useUnsavedChanges", () => {
     expect(callback).toHaveBeenCalledOnce();
   });
 
-  it("confirmNavigation does NOT call callback immediately when there are unsaved changes", () => {
+  it('confirmNavigation does NOT call callback immediately when there are unsaved changes', () => {
     const { result } = renderHook(() => useUnsavedChanges(), { wrapper });
     act(() => {
       result.current.setHasUnsavedChanges(true);

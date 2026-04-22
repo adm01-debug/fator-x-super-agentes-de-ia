@@ -1,4 +1,4 @@
-import { useEffect, useState, useMemo } from 'react';
+import { useEffect, useState, useMemo, useCallback } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import {
   AlertTriangle,
@@ -80,7 +80,7 @@ export default function GameDayLivePage() {
     return Math.floor((end - start) / 1000);
   }, [gameDay, now]);
 
-  const loadAll = async () => {
+  const loadAll = useCallback(async () => {
     if (!id) return;
     try {
       const gd = await getGameDay(id);
@@ -95,12 +95,11 @@ export default function GameDayLivePage() {
       logger.error('load game day', e);
       toast.error('Falha ao carregar');
     }
-  };
+  }, [id]);
 
   useEffect(() => {
     loadAll();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [id]);
+  }, [id, loadAll]);
 
   // Live timer
   useEffect(() => {

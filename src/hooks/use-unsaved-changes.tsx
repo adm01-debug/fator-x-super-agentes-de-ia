@@ -1,5 +1,4 @@
-/* eslint-disable react-refresh/only-export-components */
-import { createContext, useContext, useState, useCallback, useRef, useEffect } from 'react';
+import { useState, useCallback, useRef, useEffect } from 'react';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -10,22 +9,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
-
-interface UnsavedChangesContextType {
-  hasUnsavedChanges: boolean;
-  setHasUnsavedChanges: (v: boolean) => void;
-  confirmNavigation: (onConfirm: () => void) => void;
-}
-
-const UnsavedChangesContext = createContext<UnsavedChangesContextType>({
-  hasUnsavedChanges: false,
-  setHasUnsavedChanges: () => {},
-  confirmNavigation: (cb) => cb(),
-});
-
-export function useUnsavedChanges() {
-  return useContext(UnsavedChangesContext);
-}
+import { UnsavedChangesContext } from './unsavedChanges.context';
 
 export function UnsavedChangesProvider({ children }: { children: React.ReactNode }) {
   const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);

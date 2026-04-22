@@ -28,7 +28,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Card } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Plus, Save, Play, Trash2, Loader2 } from 'lucide-react';
-import { nodeTypes, NODE_PALETTE } from '../orchestrator/nodes/CustomNodes';
+import { nodeTypes, NODE_PALETTE } from '../orchestrator/nodes/customNodes.data';
 import { toast } from 'sonner';
 import { SectionTitle } from '../ui';
 
@@ -51,8 +51,7 @@ export function OrchestratorModule() {
       setNodes((active.nodes as unknown as Node[]) || []);
       setEdges((active.edges as unknown as Edge[]) || []);
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [activeId]);
+  }, [activeId, active, setEdges, setNodes]);
 
   const onConnect = useCallback((c: Connection) => setEdges((eds) => addEdge(c, eds)), [setEdges]);
 
