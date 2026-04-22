@@ -1,9 +1,10 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { PageHeader } from "@/components/shared/PageHeader";
 import { StatusBadge } from "@/components/shared/StatusBadge";
 import { Button } from "@/components/ui/button";
-import { Bot, Loader2, GitCompare, GitBranch, Activity, Bell, Play, Undo2 } from "lucide-react";
+import { Checkbox } from "@/components/ui/checkbox";
+import { Bot, Loader2, GitCompare, GitBranch, Activity, Bell, Play, Undo2, AlertTriangle, MessageSquare, Wrench, Cpu } from "lucide-react";
 import { useQuery, useQueryClient, useMutation } from "@tanstack/react-query";
 import { getAgentById, getAgentVersions, getAgentDetailTraces, restoreAgentVersion, type AgentTrace, type AgentVersion } from "@/services/agentsService";
 import { VersionDiffDialog } from "@/components/agents/VersionDiffDialog";
@@ -174,6 +175,20 @@ function VersionHistory({ agentId }: { agentId: string }) {
   const queryClient = useQueryClient();
   const [diffOpen, setDiffOpen] = useState(false);
   const [rollbackOpen, setRollbackOpen] = useState(false);
+  // Granular: usuário escolhe quais grupos copiar do snapshot anterior.
+  const [copyPrompt, setCopyPrompt] = useState(true);
+  const [copyTools, setCopyTools] = useState(true);
+  const [copyModel, setCopyModel] = useState(true);
+
+  // Reset das opções a cada abertura do diálogo (evita herdar estado da última tentativa).
+  useEffect(() => {
+    if (rollbackOpen) {
+      setCopyPrompt(true);
+      setCopyTools(true);
+      setCopyModel(true);
+    }
+  }, [rollbackOpen]);
+
   const { data: versions = [], isLoading } = useQuery({
     queryKey: ['agent_versions', agentId],
     queryFn: () => getAgentVersions(agentId, 20),
@@ -183,8 +198,11 @@ function VersionHistory({ agentId }: { agentId: string }) {
   const previous: AgentVersion | undefined = versions[1];
   const nextVersionNumber = (current?.version ?? 0) + 1;
 
+  const restoreOptions = { copyPrompt, copyTools, copyModel };
+  const hasAnyOptionSelected = copyPrompt || copyTools || copyModel;
+
   const rollbackMut = useMutation({
-    mutationFn: () => restoreAgentVersion(agentId, previous!, current, { copyPrompt: true, copyTools: true, copyModel: true }),
+    mutationFn: () => restoreAgentVersion(agentId, previous!, current, restoreOptions),
     onSuccess: (data) => {
       toast.success(`Rollback concluído — v${data.version} criada a partir de v${previous!.version}`);
       queryClient.invalidateQueries({ queryKey: ['agent_versions', agentId] });
@@ -253,7 +271,7 @@ function VersionHistory({ agentId }: { agentId: string }) {
               <div className="space-y-3 text-sm">
                 <p>
                   Será criada uma nova versão <span className="font-mono font-semibold text-foreground">v{nextVersionNumber}</span>{' '}
-                  copiando prompt, ferramentas e modelo de{' '}
+                  copiando os campos selecionados de{' '}
                   <span className="font-mono font-semibold text-foreground">v{previous?.version}</span>.
                 </p>
                 <div className="rounded-lg bg-secondary/40 p-3 text-xs space-y-1.5">
@@ -270,11 +288,55 @@ function VersionHistory({ agentId }: { agentId: string }) {
                     <span className="font-mono text-nexus-emerald">v{nextVersionNumber}</span>
                   </div>
                 </div>
-                {previous && (
+
+                {/* Seleção granular de campos a copiar — desmarcar tudo bloqueia o rollback */}
+                <fieldset className="rounded-lg border border-border bg-card/40 p-3 space-y-2">
+                  <legend className="text-[11px] font-semibold uppercase tracking-wider text-foreground px-1">
+                    Campos a copiar
+                  </legend>
+                  <RestoreOptionRow
+                    id="opt-prompt"
+                    icon={MessageSquare}
+                    label="Prompt"
+                    description="System prompt, prompt legado e missão"
+                    checked={copyPrompt}
+                    onChange={setCopyPrompt}
+                    disabled={rollbackMut.isPending}
+                  />
+                  <RestoreOptionRow
+                    id="opt-tools"
+                    icon={Wrench}
+                    label="Ferramentas"
+                    description="Lista de tools/functions ativas"
+                    checked={copyTools}
+                    onChange={setCopyTools}
+                    disabled={rollbackMut.isPending}
+                  />
+                  <RestoreOptionRow
+                    id="opt-model"
+                    icon={Cpu}
+                    label="Modelo & parâmetros"
+                    description="Modelo, persona, temperature, max_tokens, reasoning"
+                    checked={copyModel}
+                    onChange={setCopyModel}
+                    disabled={rollbackMut.isPending}
+                  />
+                  {!hasAnyOptionSelected && (
+                    <div
+                      role="alert"
+                      className="flex items-start gap-2 rounded-md border border-destructive/40 bg-destructive/10 px-2.5 py-1.5 text-[11px] text-destructive"
+                    >
+                      <AlertTriangle className="h-3 w-3 mt-0.5 shrink-0" aria-hidden />
+                      <span>Selecione ao menos um campo para restaurar — sem nada marcado o rollback não tem efeito.</span>
+                    </div>
+                  )}
+                </fieldset>
+
+                {previous && hasAnyOptionSelected && (
                   <RestoreDiffPreview
                     current={current}
                     source={previous}
-                    options={{ copyPrompt: true, copyTools: true, copyModel: true }}
+                    options={restoreOptions}
                   />
                 )}
                 <p className="text-xs text-muted-foreground">
@@ -287,8 +349,9 @@ function VersionHistory({ agentId }: { agentId: string }) {
             <AlertDialogCancel disabled={rollbackMut.isPending}>Cancelar</AlertDialogCancel>
             <AlertDialogAction
               onClick={(e) => { e.preventDefault(); rollbackMut.mutate(); }}
-              disabled={rollbackMut.isPending}
+              disabled={rollbackMut.isPending || !hasAnyOptionSelected}
               className="gap-1.5"
+              title={!hasAnyOptionSelected ? 'Selecione ao menos um campo' : undefined}
             >
               {rollbackMut.isPending ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Undo2 className="h-3.5 w-3.5" />}
               Confirmar rollback
@@ -297,5 +360,41 @@ function VersionHistory({ agentId }: { agentId: string }) {
         </AlertDialogContent>
       </AlertDialog>
     </div>
+  );
+}
+
+interface RestoreOptionRowProps {
+  id: string;
+  icon: typeof MessageSquare;
+  label: string;
+  description: string;
+  checked: boolean;
+  onChange: (next: boolean) => void;
+  disabled?: boolean;
+}
+
+function RestoreOptionRow({ id, icon: Icon, label, description, checked, onChange, disabled }: RestoreOptionRowProps) {
+  return (
+    <label
+      htmlFor={id}
+      className={`flex items-start gap-2.5 rounded-md border px-2.5 py-2 text-xs cursor-pointer transition-colors ${
+        checked
+          ? 'border-primary/40 bg-primary/5 hover:bg-primary/10'
+          : 'border-border bg-background/40 hover:bg-secondary/40'
+      } ${disabled ? 'opacity-60 cursor-not-allowed' : ''}`}
+    >
+      <Checkbox
+        id={id}
+        checked={checked}
+        onCheckedChange={(v) => onChange(v === true)}
+        disabled={disabled}
+        className="mt-0.5"
+      />
+      <Icon className={`h-3.5 w-3.5 mt-0.5 shrink-0 ${checked ? 'text-primary' : 'text-muted-foreground'}`} aria-hidden />
+      <div className="min-w-0">
+        <p className="font-medium text-foreground">{label}</p>
+        <p className="text-[11px] text-muted-foreground leading-snug">{description}</p>
+      </div>
+    </label>
   );
 }
