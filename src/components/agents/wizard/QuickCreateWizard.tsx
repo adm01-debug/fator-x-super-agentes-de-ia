@@ -355,15 +355,18 @@ export function QuickCreateWizard({ onBack }: QuickCreateWizardProps) {
   }, [step, form]);
 
   const stepNode = useMemo(() => {
+    const hf = highlightField;
+    const hfFor = (fields: ReadonlyArray<keyof QuickAgentForm>) =>
+      hf && fields.includes(hf) ? hf : undefined;
     switch (step) {
-      case 0: return <StepQuickIdentity form={form} errors={errors} update={update} />;
-      case 1: return <StepQuickType form={form} errors={errors} update={update} applyTemplate={applyTemplate} />;
-      case 2: return <StepQuickModel form={form} errors={errors} update={update} />;
-      case 3: return <StepQuickPrompt form={form} errors={errors} update={update} onRestore={restorePromptFromType} onApplyVariant={applyPromptVariant} />;
+      case 0: return <StepQuickIdentity form={form} errors={errors} update={update} highlightField={hfFor(['name', 'emoji', 'mission', 'description'])} />;
+      case 1: return <StepQuickType form={form} errors={errors} update={update} applyTemplate={applyTemplate} highlightField={hfFor(['type'])} />;
+      case 2: return <StepQuickModel form={form} errors={errors} update={update} highlightField={hfFor(['model'])} />;
+      case 3: return <StepQuickPrompt form={form} errors={errors} update={update} onRestore={restorePromptFromType} onApplyVariant={applyPromptVariant} highlightField={hfFor(['prompt'])} />;
       default: return null;
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [step, form, errors]);
+  }, [step, form, errors, highlightField]);
 
   const bannerEntries: DraftBannerEntry[] = useMemo(
     () => pendingDrafts.map((d) => {
