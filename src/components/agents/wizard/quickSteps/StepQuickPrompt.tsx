@@ -52,6 +52,11 @@ interface Props {
    */
   onPromptManualEdit: (next: string) => void;
   onRestore: () => void;
+  /**
+   * Hard reset to a known-safe initial state — sanitizes and reapplies the base
+   * template, clears the variant lock, and resets emoji. Confirmed via dialog.
+   */
+  onSafeReset: () => void;
   onApplyVariant: (id: PromptVariantId) => void;
   /** When true, the variant selector is locked into "customizado" mode. */
   customLocked: boolean;
