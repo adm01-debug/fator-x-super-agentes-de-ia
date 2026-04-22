@@ -16,6 +16,7 @@ import { PromptValidationFeedback } from './PromptValidationFeedback';
 import { AgentLivePreviewCard } from './AgentLivePreviewCard';
 import { QuickAgentTestPanel } from './QuickAgentTestPanel';
 import { PreflightReviewSummary } from './PreflightReviewSummary';
+import { PromptHistoryPanel } from './PromptHistoryPanel';
 import { sanitizePromptInput, PROMPT_LIMITS } from '@/lib/validations/promptSanitizer';
 import {
   detectPromptVariant,
