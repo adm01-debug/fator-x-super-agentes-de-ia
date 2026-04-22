@@ -495,10 +495,21 @@ export function QuickCreateWizard({ onBack }: QuickCreateWizardProps) {
             Próximo <ArrowRight className="h-4 w-4" />
           </Button>
         ) : (
-          <Button onClick={requestCreate} disabled={saving} className="gap-2">
-            {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : <Rocket className="h-4 w-4" />}
-            {saving ? 'Criando…' : 'Criar agente'}
-          </Button>
+          (() => {
+            const conflictCount = detectPromptContradictions(form.prompt).length;
+            const blocked = conflictCount > 0;
+            return (
+              <Button
+                onClick={requestCreate}
+                disabled={saving || blocked}
+                className="gap-2"
+                title={blocked ? `Resolva os ${conflictCount} conflito(s) entre regras antes de criar.` : undefined}
+              >
+                {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : <Rocket className="h-4 w-4" />}
+                {saving ? 'Criando…' : blocked ? `Resolver ${conflictCount} conflito(s)` : 'Criar agente'}
+              </Button>
+            );
+          })()
         )}
       </div>
 
@@ -519,10 +530,21 @@ export function QuickCreateWizard({ onBack }: QuickCreateWizardProps) {
             <Button variant="ghost" onClick={() => setConfirmOpen(false)} disabled={saving}>
               Cancelar
             </Button>
-            <Button onClick={saveAgent} disabled={saving} className="gap-2">
-              {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : <Rocket className="h-4 w-4" />}
-              {saving ? 'Criando…' : 'Confirmar e criar'}
-            </Button>
+            {(() => {
+              const conflictCount = detectPromptContradictions(form.prompt).length;
+              const blocked = conflictCount > 0;
+              return (
+                <Button
+                  onClick={saveAgent}
+                  disabled={saving || blocked}
+                  className="gap-2"
+                  title={blocked ? `Resolva os ${conflictCount} conflito(s) entre regras antes de criar.` : undefined}
+                >
+                  {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : <Rocket className="h-4 w-4" />}
+                  {saving ? 'Criando…' : blocked ? `Resolver ${conflictCount} conflito(s)` : 'Confirmar e criar'}
+                </Button>
+              );
+            })()}
           </DialogFooter>
         </DialogContent>
       </Dialog>
