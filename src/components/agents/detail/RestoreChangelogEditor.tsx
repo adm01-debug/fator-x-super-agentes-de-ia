@@ -4,7 +4,7 @@
  * de confirmar a criação de v{N+1}. O texto editado é injetado como
  * `customSummary` em RestoreOptions.
  */
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo } from "react";
 import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
 import { RotateCcw, FileText, Wrench, Cpu, Sparkles } from "lucide-react";
