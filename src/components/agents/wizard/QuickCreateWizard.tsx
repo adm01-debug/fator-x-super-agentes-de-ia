@@ -348,6 +348,9 @@ export function QuickCreateWizard({ onBack }: QuickCreateWizardProps) {
     setForm((prev) => ({ ...prev, prompt: next }));
     setErrors((prev) => ({ ...prev, prompt: undefined }));
     if (highlightField === 'prompt') setHighlightField(null);
+    if (!promptCustomLocked) {
+      pushLockEvent('locked-manual-edit', 'edição direta no editor');
+    }
     setPromptCustomLocked(true);
     setSelectedVariant(null);
   };
@@ -355,11 +358,18 @@ export function QuickCreateWizard({ onBack }: QuickCreateWizardProps) {
   // Reset lock + persisted variant when the user changes the agent type.
   useEffect(() => {
     if (lastTypeForLockRef.current !== form.type) {
+      const prevType = lastTypeForLockRef.current;
       lastTypeForLockRef.current = form.type;
+      if (promptCustomLocked) {
+        pushLockEvent(
+          'unlocked-type-change',
+          `${TYPE_LABEL[prevType as QuickAgentType] ?? prevType} → ${TYPE_LABEL[form.type as QuickAgentType] ?? form.type}`,
+        );
+      }
       setPromptCustomLocked(false);
       setSelectedVariant(null);
     }
-  }, [form.type]);
+  }, [form.type]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const applyTemplate = (type: QuickAgentType) => {
     const t = QUICK_AGENT_TEMPLATES[type];
@@ -373,6 +383,9 @@ export function QuickCreateWizard({ onBack }: QuickCreateWizardProps) {
       model: t.recommendedModel,
       prompt: t.systemPrompt,
     }));
+    if (promptCustomLocked) {
+      pushLockEvent('unlocked-template', `template "${t.suggestedName}"`);
+    }
     setPromptCustomLocked(false);
     setSelectedVariant(null);
     toast.success(`Template "${t.suggestedName}" aplicado`, {
@@ -384,6 +397,9 @@ export function QuickCreateWizard({ onBack }: QuickCreateWizardProps) {
   const restorePromptFromType = () => {
     const t = QUICK_AGENT_TEMPLATES[form.type as QuickAgentType];
     update('prompt', t.systemPrompt);
+    if (promptCustomLocked) {
+      pushLockEvent('unlocked-restore-template', `template do tipo ${TYPE_LABEL[form.type as QuickAgentType] ?? form.type}`);
+    }
     setPromptCustomLocked(false);
     setSelectedVariant(null);
     toast.success('Prompt restaurado do template');
@@ -403,6 +419,9 @@ export function QuickCreateWizard({ onBack }: QuickCreateWizardProps) {
       prompt: sanitized,
       emoji: t.emoji,
     }));
+    if (promptCustomLocked) {
+      pushLockEvent('unlocked-safe-reset', `tipo ${TYPE_LABEL[form.type as QuickAgentType] ?? form.type}`);
+    }
     setPromptCustomLocked(false);
     setSelectedVariant(null);
     setErrors((prev) => ({ ...prev, prompt: undefined }));
@@ -416,6 +435,9 @@ export function QuickCreateWizard({ onBack }: QuickCreateWizardProps) {
     const t = QUICK_AGENT_TEMPLATES[form.type as QuickAgentType];
     const variant = t.promptVariants[variantId];
     update('prompt', variant.prompt);
+    if (promptCustomLocked) {
+      pushLockEvent('unlocked-variant', `variação "${variant.label}"`);
+    }
     setPromptCustomLocked(false);
     setSelectedVariant(variantId);
     toast.success(`Variação "${variant.label}" aplicada`, {
@@ -428,6 +450,9 @@ export function QuickCreateWizard({ onBack }: QuickCreateWizardProps) {
     const nextPrompt = t.promptVariants[variantId].prompt;
     if (form.prompt.trim() === nextPrompt.trim()) {
       toast.info(`Já está usando "${t.promptVariants[variantId].label}"`);
+      if (promptCustomLocked) {
+        pushLockEvent('unlocked-variant', `variação "${t.promptVariants[variantId].label}" (sem alterações no texto)`);
+      }
       setSelectedVariant(variantId);
       setPromptCustomLocked(false);
       return;
