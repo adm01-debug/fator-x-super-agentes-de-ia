@@ -12,8 +12,8 @@ import { countContradictions } from '@/lib/validations/promptContradictions';
 
 const CONFLICTING_PROMPT = [
   'Você é um agente de suporte.',
-  'Sempre responda em português.',
-  'Nunca responda em português.',
+  '- Sempre confirme o pedido do cliente.',
+  '- Nunca confirme o pedido do cliente.',
 ].join('\n');
 
 /** Minimal host that mirrors how the wizard wires the panel to a prompt editor. */

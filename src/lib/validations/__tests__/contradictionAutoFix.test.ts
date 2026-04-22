@@ -4,6 +4,10 @@
  * These tests exercise the real detection + suggestion pipeline (no mocks) to
  * make sure that, given a prompt with a known conflict, we produce a fix whose
  * `fixedPrompt` actually removes the contradiction when re-detected.
+ *
+ * Prompts intentionally use bullet-prefixed rules ("- Sempre …") because the
+ * polarity detector requires either bullet markers OR ≥2 shared meaningful
+ * tokens (stopwords like "responda" / "portugues" are filtered).
  */
 import { describe, it, expect } from 'vitest';
 import {
@@ -19,8 +23,8 @@ import {
 
 const POLARITY_PROMPT = [
   'Você é um agente de suporte.',
-  'Sempre responda em português.',
-  'Nunca responda em português.',
+  '- Sempre confirme o pedido do cliente.',
+  '- Nunca confirme o pedido do cliente.',
   'Seja gentil.',
 ].join('\n');
 
@@ -30,7 +34,7 @@ describe('contradiction detector + auto-fix integration', () => {
     expect(conflicts.length).toBeGreaterThan(0);
     const polarity = conflicts.find((c) => c.kind === 'polarity');
     expect(polarity).toBeDefined();
-    // Lines 2 and 3 (1-indexed) are the conflicting rules.
+    // Lines 2 and 3 (1-indexed) are the conflicting bullets.
     expect([polarity!.lineA, polarity!.lineB].sort()).toEqual([2, 3]);
   });
 
@@ -49,8 +53,8 @@ describe('contradiction detector + auto-fix integration', () => {
     const fixed = fixes[0].fixedPrompt;
     expect(fixed).toContain('Você é um agente de suporte.');
     expect(fixed).toContain('Seja gentil.');
-    // The fixed prompt must be exactly one line shorter (two lines collapsed
-    // into a single unified rule).
+    // Two conflicting lines collapse into a single unified rule, so the
+    // fixed prompt is exactly one line shorter.
     const before = POLARITY_PROMPT.split('\n').length;
     const after = fixed.split('\n').length;
     expect(after).toBe(before - 1);
@@ -79,13 +83,28 @@ describe('contradiction detector + auto-fix integration', () => {
     expect(oob.fixedPrompt).toBe(def.fixedPrompt);
   });
 
+  it('detects a numeric min>max contradiction', () => {
+    const numeric = [
+      'Responda com no máximo 100 palavras.',
+      'Responda com pelo menos 200 palavras.',
+    ].join('\n');
+    const conflicts = detectPromptContradictions(numeric);
+    expect(conflicts.some((c) => c.kind === 'numeric')).toBe(true);
+  });
+
+  it('detects a language contradiction (português vs inglês)', () => {
+    const lang = ['Responda em português.', 'Responda em inglês.'].join('\n');
+    const conflicts = detectPromptContradictions(lang);
+    expect(conflicts.some((c) => c.kind === 'language')).toBe(true);
+  });
+
   it('applyAllContradictionFixes resolves multiple conflicts sequentially', () => {
     const multi = [
-      'Sempre responda em inglês.',
-      'Nunca responda em inglês.',
+      '- Sempre confirme o pedido do cliente.',
+      '- Nunca confirme o pedido do cliente.',
       '',
-      'Sempre use emojis.',
-      'Nunca use emojis.',
+      '- Sempre mencione o produto premium ao cliente.',
+      '- Nunca mencione o produto premium ao cliente.',
     ].join('\n');
 
     const initialCount = countContradictions(multi);
