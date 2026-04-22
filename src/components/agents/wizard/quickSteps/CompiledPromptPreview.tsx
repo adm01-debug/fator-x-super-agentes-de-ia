@@ -142,6 +142,41 @@ export function CompiledPromptPreview({ form, defaultOpen = false, lastChangeKin
 
   const compiled = useMemo(() => compilePrompt(form), [form]);
 
+  // Map every thin section back to its heading line *inside the compiled text*
+  // so we can wrap the corresponding rendered block with a warning highlight.
+  // We re-scan compiled.text (instead of just form.prompt) because the
+  // compiler may inject preamble/headers — line numbers must match what
+  // renderMarkdown will iterate over.
+  const thinByHeading = useMemo(() => {
+    const map = new Map<number, ThinHit>();
+    const reports = analyzeSectionContent(compiled.text);
+    const thin = reports.filter((r) => r.present && !!r.thinReason);
+    if (thin.length === 0) return map;
+
+    const lines = compiled.text.split('\n');
+    const stripAccents = (s: string) =>
+      s.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase();
+    for (let i = 0; i < lines.length; i++) {
+      const m = lines[i].match(/^##\s+(.+?)\s*$/);
+      if (!m) continue;
+      const norm = stripAccents(m[1]);
+      const hit = thin.find((t) => {
+        const sec = REQUIRED_PROMPT_SECTIONS.find((s) => s.key === t.key);
+        return sec ? sec.aliases.some((a) => norm.includes(a)) : false;
+      });
+      if (hit && !Array.from(map.values()).some((v) => v.key === hit.key)) {
+        map.set(i, {
+          key: hit.key,
+          label: hit.label,
+          words: hit.wordCount,
+          reason: hit.thinReason ?? 'Conteúdo insuficiente',
+        });
+      }
+    }
+    return map;
+  }, [compiled.text]);
+  const thinCount = thinByHeading.size;
+
   const prevTokensRef = useRef<number>(compiled.stats.estimatedTokens);
   const initRef = useRef(true);
 
