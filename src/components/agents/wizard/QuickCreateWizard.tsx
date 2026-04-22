@@ -35,16 +35,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog';
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-} from '@/components/ui/alert-dialog';
+// AlertDialog moved into PromptVariantDiffDialog
 import { QUICK_AGENT_TEMPLATES as TEMPLATES_FOR_DIALOG, PROMPT_VARIANT_META as VARIANT_META_FOR_DIALOG } from '@/data/quickAgentTemplates';
 import { PromptVariantDiffDialog } from './quickSteps/PromptVariantDiffDialog';
 import {
