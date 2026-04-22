@@ -2,7 +2,9 @@ import { forwardRef, useEffect, useRef, useState } from 'react';
 import {
   ChevronDown, ChevronRight, Info, AlertTriangle, XCircle,
   CheckCircle2, Clock, DollarSign, Hash, Zap,
+  ChevronsLeft, ChevronLeft, ChevronsRight,
 } from 'lucide-react';
+import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { cn } from '@/lib/utils';
 import type { AgentTraceRow, ExecutionGroup, TraceLevel } from '@/services/agentTracesService';
