@@ -691,7 +691,13 @@ export function DraftRecoveryBanner({
 
       {(() => {
         const selected = drafts.find((d) => d.id === selectedId);
-        return selected ? <DraftPreviewLine entry={selected} /> : null;
+        if (!selected) return null;
+        return (
+          <>
+            <DraftPreviewLine entry={selected} />
+            <RestoreModeSelector mode={restoreMode} onChange={setRestoreMode} summary={selected.summary} />
+          </>
+        );
       })()}
 
       <div className="flex items-center justify-between gap-2 pt-1">
@@ -712,13 +718,19 @@ export function DraftRecoveryBanner({
           return (
             <Button
               size="sm"
-              onClick={() => selectedId && onRestore(selectedId)}
+              onClick={() => selectedId && onRestore(selectedId, restoreMode)}
               disabled={!selectedId}
-              title={blocked ? (selected?.restoreBlockedReason ?? 'Rascunho incompleto — vamos pular direto ao primeiro campo pendente') : 'Restaurar o rascunho selecionado e continuar do primeiro campo pendente'}
+              title={
+                blocked
+                  ? (selected?.restoreBlockedReason ?? 'Rascunho incompleto — vamos pular direto ao primeiro campo pendente')
+                  : restoreMode === 'partial'
+                  ? 'Restaurar só os campos preenchidos do rascunho selecionado'
+                  : 'Restaurar tudo do rascunho selecionado'
+              }
               className="gap-1.5 nexus-gradient-bg text-primary-foreground"
             >
               <RotateCcw className="h-3.5 w-3.5" />
-              Restaurar
+              {restoreMode === 'partial' ? 'Restaurar parcial' : 'Restaurar completo'}
             </Button>
           );
         })()}
