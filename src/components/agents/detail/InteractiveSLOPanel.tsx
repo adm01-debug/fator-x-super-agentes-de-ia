@@ -1,17 +1,30 @@
-import { useMemo } from 'react';
-import { CheckCircle2, AlertTriangle, XCircle, RotateCcw, Flame, Activity } from 'lucide-react';
+import { useMemo, useState } from 'react';
+import { CheckCircle2, AlertTriangle, XCircle, RotateCcw, Flame, Activity, Clock } from 'lucide-react';
 import { Slider } from '@/components/ui/slider';
 import { Button } from '@/components/ui/button';
 import { useAgentSLOTargets, DEFAULT_SLO_TARGETS, type SLOTargetsConfig } from '@/hooks/useAgentSLOTargets';
 import {
-  buildViolationTimeline,
+  buildViolationBuckets,
   computeBudgetBurn,
+  computeSLO,
+  filterTracesByWindow,
   formatNumber,
   type SLOMetrics,
   type DailyPoint,
 } from './agentMetricsHelpers';
 import type { AgentTrace } from '@/services/agentsService';
 import { SLOViolationTimeline } from './SLOViolationTimeline';
+
+type EvalWindowKey = '1h' | '6h' | '24h' | '7d' | '14d' | '30d';
+
+const EVAL_WINDOWS: Array<{ key: EvalWindowKey; label: string; ms: number; buckets: number }> = [
+  { key: '1h',  label: '1h',  ms: 60 * 60 * 1000,                buckets: 12 },
+  { key: '6h',  label: '6h',  ms: 6 * 60 * 60 * 1000,            buckets: 12 },
+  { key: '24h', label: '24h', ms: 24 * 60 * 60 * 1000,           buckets: 12 },
+  { key: '7d',  label: '7d',  ms: 7 * 24 * 60 * 60 * 1000,       buckets: 14 },
+  { key: '14d', label: '14d', ms: 14 * 24 * 60 * 60 * 1000,      buckets: 14 },
+  { key: '30d', label: '30d', ms: 30 * 24 * 60 * 60 * 1000,      buckets: 15 },
+];
 
 interface Props {
   agentId: string;
@@ -45,12 +58,29 @@ function availabilityStatus(value: number, target: number): Status {
 export function InteractiveSLOPanel({ agentId, slo, traces, daily, onDayClick }: Props) {
   const { targets, setTargets, reset } = useAgentSLOTargets(agentId);
 
+  const [windowKey, setWindowKey] = useState<EvalWindowKey>('14d');
+  const activeWindow = EVAL_WINDOWS.find((w) => w.key === windowKey) ?? EVAL_WINDOWS[4];
+
+  // Filter traces by selected evaluation window and recompute SLO from that subset.
+  const windowedTraces = useMemo(
+    () => filterTracesByWindow(traces, activeWindow.ms),
+    [traces, activeWindow.ms],
+  );
+  const windowedSlo = useMemo(() => computeSLO(windowedTraces), [windowedTraces]);
+
   const timeline = useMemo(
-    () => buildViolationTimeline(traces, { p95: targets.p95, p99: targets.p99 }, 14),
-    [traces, targets.p95, targets.p99],
+    () => buildViolationBuckets(
+      windowedTraces,
+      { p95: targets.p95, p99: targets.p99 },
+      activeWindow.ms,
+      activeWindow.buckets,
+    ),
+    [windowedTraces, targets.p95, targets.p99, activeWindow.ms, activeWindow.buckets],
   );
 
-  const burn = useMemo(() => computeBudgetBurn(slo, targets.errorBudget), [slo, targets.errorBudget]);
+  // Use windowed SLO for cards/burn so everything reflects the same window.
+  const effectiveSlo = windowedTraces.length > 0 ? windowedSlo : slo;
+  const burn = useMemo(() => computeBudgetBurn(effectiveSlo, targets.errorBudget), [effectiveSlo, targets.errorBudget]);
 
   const cards: Array<{
     key: keyof SLOTargetsConfig;
@@ -64,17 +94,17 @@ export function InteractiveSLOPanel({ agentId, slo, traces, daily, onDayClick }:
     valueFmt: (v: number) => string;
     targetFmt: (v: number) => string;
   }> = [
-    { key: 'p50', label: 'Latência p50', value: slo.p50, unit: 'ms', min: 100, max: 3000, step: 50,
-      status: latencyStatus(slo.p50, targets.p50),
+    { key: 'p50', label: 'Latência p50', value: effectiveSlo.p50, unit: 'ms', min: 100, max: 3000, step: 50,
+      status: latencyStatus(effectiveSlo.p50, targets.p50),
       valueFmt: (v) => `${formatNumber(Math.round(v))}ms`, targetFmt: (v) => `${formatNumber(v)}ms` },
-    { key: 'p95', label: 'Latência p95', value: slo.p95, unit: 'ms', min: 500, max: 5000, step: 100,
-      status: latencyStatus(slo.p95, targets.p95),
+    { key: 'p95', label: 'Latência p95', value: effectiveSlo.p95, unit: 'ms', min: 500, max: 5000, step: 100,
+      status: latencyStatus(effectiveSlo.p95, targets.p95),
       valueFmt: (v) => `${formatNumber(Math.round(v))}ms`, targetFmt: (v) => `${formatNumber(v)}ms` },
-    { key: 'p99', label: 'Latência p99', value: slo.p99, unit: 'ms', min: 1000, max: 10000, step: 100,
-      status: latencyStatus(slo.p99, targets.p99),
+    { key: 'p99', label: 'Latência p99', value: effectiveSlo.p99, unit: 'ms', min: 1000, max: 10000, step: 100,
+      status: latencyStatus(effectiveSlo.p99, targets.p99),
       valueFmt: (v) => `${formatNumber(Math.round(v))}ms`, targetFmt: (v) => `${formatNumber(v)}ms` },
-    { key: 'availability', label: 'Disponibilidade', value: slo.successRate, unit: '%', min: 95, max: 100, step: 0.1,
-      status: availabilityStatus(slo.successRate, targets.availability),
+    { key: 'availability', label: 'Disponibilidade', value: effectiveSlo.successRate, unit: '%', min: 95, max: 100, step: 0.1,
+      status: availabilityStatus(effectiveSlo.successRate, targets.availability),
       valueFmt: (v) => `${v.toFixed(2)}%`, targetFmt: (v) => `${v.toFixed(1)}%` },
   ];
 
@@ -85,11 +115,43 @@ export function InteractiveSLOPanel({ agentId, slo, traces, daily, onDayClick }:
       <div className="flex items-start justify-between mb-4 gap-3 flex-wrap">
         <div>
           <h3 className="text-sm font-heading font-semibold text-foreground">Painel SLO interativo</h3>
-          <p className="text-[11px] text-muted-foreground">Ajuste as metas com os sliders — alterações ficam salvas neste agente</p>
+          <p className="text-[11px] text-muted-foreground">
+            Ajuste as metas com os sliders · janela:{' '}
+            <span className="font-mono text-foreground">{activeWindow.label}</span> ·{' '}
+            <span className="font-mono">{windowedTraces.length}</span> trace{windowedTraces.length !== 1 ? 's' : ''}
+          </p>
         </div>
-        <Button variant="ghost" size="sm" className="gap-1.5 text-xs h-7" onClick={reset}>
-          <RotateCcw className="h-3 w-3" /> Resetar metas
-        </Button>
+        <div className="flex items-center gap-2 flex-wrap">
+          <div
+            role="tablist"
+            aria-label="Janela de avaliação"
+            className="inline-flex items-center gap-0.5 rounded-md border border-border bg-secondary/40 p-0.5"
+          >
+            <Clock className="h-3 w-3 text-muted-foreground ml-1.5 mr-0.5" aria-hidden />
+            {EVAL_WINDOWS.map((w) => {
+              const active = w.key === windowKey;
+              return (
+                <button
+                  key={w.key}
+                  type="button"
+                  role="tab"
+                  aria-selected={active}
+                  onClick={() => setWindowKey(w.key)}
+                  className={`px-2 h-6 text-[11px] font-mono rounded transition-colors ${
+                    active
+                      ? 'bg-primary text-primary-foreground'
+                      : 'text-muted-foreground hover:text-foreground hover:bg-secondary'
+                  }`}
+                >
+                  {w.label}
+                </button>
+              );
+            })}
+          </div>
+          <Button variant="ghost" size="sm" className="gap-1.5 text-xs h-7" onClick={reset}>
+            <RotateCcw className="h-3 w-3" /> Resetar metas
+          </Button>
+        </div>
       </div>
 
       {/* Cards de meta */}
@@ -148,7 +210,7 @@ export function InteractiveSLOPanel({ agentId, slo, traces, daily, onDayClick }:
           </span>
           <span className="text-[11px] text-muted-foreground">do budget consumido</span>
           <span className="text-[10px] text-muted-foreground ml-auto font-mono">
-            {slo.errorRate.toFixed(2)}% / {targets.errorBudget.toFixed(1)}%
+            {effectiveSlo.errorRate.toFixed(2)}% / {targets.errorBudget.toFixed(1)}%
           </span>
         </div>
         <div className="h-2 bg-secondary/60 rounded-full overflow-hidden mb-3">
@@ -184,15 +246,21 @@ export function InteractiveSLOPanel({ agentId, slo, traces, daily, onDayClick }:
 
       {/* Timeline */}
       <div className="mt-4 pt-4 border-t border-border/50">
-        <div className="flex items-center justify-between mb-3">
+        <div className="flex items-center justify-between mb-3 flex-wrap gap-2">
           <div className="flex items-center gap-2">
             <Activity className="h-3.5 w-3.5 text-muted-foreground" />
-            <h4 className="text-xs font-heading font-semibold text-foreground">Timeline de violações (14 dias)</h4>
+            <h4 className="text-xs font-heading font-semibold text-foreground">
+              Timeline de violações ({activeWindow.label})
+            </h4>
           </div>
-          <span className="text-[10px] text-muted-foreground">Hover para detalhes · clique para abrir o dia</span>
+          <span className="text-[10px] text-muted-foreground">
+            {activeWindow.buckets} bucket{activeWindow.buckets !== 1 ? 's' : ''} · hover para detalhes
+          </span>
         </div>
-        {traces.length === 0 ? (
-          <p className="text-xs text-muted-foreground text-center py-6">Sem traces para calcular violações</p>
+        {windowedTraces.length === 0 ? (
+          <p className="text-xs text-muted-foreground text-center py-6">
+            Sem traces na janela de {activeWindow.label}
+          </p>
         ) : (
           <SLOViolationTimeline data={timeline} daily={daily} onDayClick={onDayClick} />
         )}
