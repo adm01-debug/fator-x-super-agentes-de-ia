@@ -65,6 +65,15 @@ export function InteractiveSLOPanel({ agentId, agentName, slo, traces, daily, on
 
   const [windowKey, setWindowKey] = useState<EvalWindowKey>('14d');
   const activeWindow = EVAL_WINDOWS.find((w) => w.key === windowKey) ?? EVAL_WINDOWS[4];
+  const bucketMs = activeWindow.ms / activeWindow.buckets;
+
+  const [drillBucket, setDrillBucket] = useState<ViolationDay | null>(null);
+  const [drillKind, setDrillKind] = useState<ViolationKind>('p95');
+
+  const handleViolationClick = (bucket: ViolationDay, kind: ViolationKind) => {
+    setDrillBucket(bucket);
+    setDrillKind(kind);
+  };
 
   // Filter traces by selected evaluation window and recompute SLO from that subset.
   const windowedTraces = useMemo(
