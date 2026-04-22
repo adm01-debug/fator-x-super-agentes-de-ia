@@ -275,8 +275,8 @@ export function ReplayDialog({ open, onOpenChange, execution, initialStep = 0, o
           </div>
         </div>
 
-        {/* Progress slider */}
-        <div className="px-1">
+        {/* Progress slider with bookmark markers overlay */}
+        <div className="px-1 relative">
           <Slider
             value={[step]}
             min={0}
@@ -285,20 +285,55 @@ export function ReplayDialog({ open, onOpenChange, execution, initialStep = 0, o
             onValueChange={(v) => { setStep(v[0]); setPlaying(false); }}
             aria-label="Progresso do replay"
           />
+          {bookmarks.length > 0 && total > 1 && (
+            <div className="absolute inset-x-0 top-1/2 -translate-y-1/2 pointer-events-none h-2">
+              {bookmarks.map((b) => {
+                const left = `${(b.stepIndex / Math.max(1, total - 1)) * 100}%`;
+                return (
+                  <button
+                    key={b.traceId}
+                    type="button"
+                    onClick={() => { setStep(b.stepIndex); setPlaying(false); }}
+                    className="absolute -translate-x-1/2 -translate-y-1/2 top-1/2 w-2 h-3.5 rounded-sm bg-nexus-amber border border-nexus-amber/80 shadow-sm pointer-events-auto hover:scale-125 transition-transform"
+                    style={{ left }}
+                    aria-label={`Ir para marcador no passo ${b.stepIndex + 1}`}
+                    title={b.note ? `#${b.stepIndex + 1}: ${b.note}` : `Marcador no passo ${b.stepIndex + 1}`}
+                  />
+                );
+              })}
+            </div>
+          )}
         </div>
 
         {/* Current step */}
         <div aria-live="polite" className="space-y-3">
           {current && (
             <>
-              <div className="flex items-center gap-2 p-3 rounded-md border border-border/40 bg-muted/30">
+              <div className={cn(
+                'flex items-center gap-2 p-3 rounded-md border bg-muted/30',
+                currentBookmark ? 'border-nexus-amber/40 bg-nexus-amber/5' : 'border-border/40',
+              )}>
                 {LEVEL_ICON[current.level]}
                 <div className="min-w-0 flex-1">
-                  <p className="text-sm font-medium text-foreground truncate">{current.event}</p>
+                  <p className="text-sm font-medium text-foreground truncate flex items-center gap-1.5">
+                    {currentBookmark && <BookmarkCheck className="h-3.5 w-3.5 text-nexus-amber shrink-0" />}
+                    {current.event}
+                  </p>
                   <p className="text-[10px] font-mono text-muted-foreground">
                     {new Date(current.created_at).toLocaleString('pt-BR')}
                   </p>
+                  {currentBookmark?.note && (
+                    <p className="text-[11px] italic text-nexus-amber/90 mt-1 line-clamp-2">
+                      “{currentBookmark.note}”
+                    </p>
+                  )}
                 </div>
+                <BookmarkButton
+                  sessionId={sessionId}
+                  traceId={current.id}
+                  stepIndex={step}
+                  onChange={setBookmarks}
+                />
                 <Badge variant="outline" className="text-[10px]">{current.level}</Badge>
               </div>
 
