@@ -362,3 +362,39 @@ function VersionHistory({ agentId }: { agentId: string }) {
     </div>
   );
 }
+
+interface RestoreOptionRowProps {
+  id: string;
+  icon: typeof MessageSquare;
+  label: string;
+  description: string;
+  checked: boolean;
+  onChange: (next: boolean) => void;
+  disabled?: boolean;
+}
+
+function RestoreOptionRow({ id, icon: Icon, label, description, checked, onChange, disabled }: RestoreOptionRowProps) {
+  return (
+    <label
+      htmlFor={id}
+      className={`flex items-start gap-2.5 rounded-md border px-2.5 py-2 text-xs cursor-pointer transition-colors ${
+        checked
+          ? 'border-primary/40 bg-primary/5 hover:bg-primary/10'
+          : 'border-border bg-background/40 hover:bg-secondary/40'
+      } ${disabled ? 'opacity-60 cursor-not-allowed' : ''}`}
+    >
+      <Checkbox
+        id={id}
+        checked={checked}
+        onCheckedChange={(v) => onChange(v === true)}
+        disabled={disabled}
+        className="mt-0.5"
+      />
+      <Icon className={`h-3.5 w-3.5 mt-0.5 shrink-0 ${checked ? 'text-primary' : 'text-muted-foreground'}`} aria-hidden />
+      <div className="min-w-0">
+        <p className="font-medium text-foreground">{label}</p>
+        <p className="text-[11px] text-muted-foreground leading-snug">{description}</p>
+      </div>
+    </label>
+  );
+}
