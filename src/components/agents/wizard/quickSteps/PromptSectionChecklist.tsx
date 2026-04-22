@@ -1,6 +1,8 @@
 import { useMemo, useState } from 'react';
-import { CheckCircle2, Circle, Plus, Wand2, AlertTriangle, Crosshair, Lock, Sparkles, FileSearch, ChevronDown, FileText } from 'lucide-react';
+import { CheckCircle2, Circle, Plus, Wand2, AlertTriangle, Crosshair, Lock, Sparkles, FileSearch, ChevronDown, FileText, Unlock } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { Switch } from '@/components/ui/switch';
+import { Label } from '@/components/ui/label';
 import {
   REQUIRED_PROMPT_SECTIONS,
   analyzeSectionContent,
