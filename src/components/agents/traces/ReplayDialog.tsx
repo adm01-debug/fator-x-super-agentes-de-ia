@@ -289,6 +289,39 @@ export function ReplayDialog({ open, onOpenChange, execution, initialStep = 0, o
             </>
           )}
 
+          <span className="h-5 w-px bg-border/60 mx-1" aria-hidden />
+          {/* A/B compare quick-launch — disabled until two distinct steps are picked. */}
+          <Button
+            size="sm"
+            variant={canCompare ? 'default' : 'outline'}
+            className="h-8 px-2 gap-1.5 text-[11px]"
+            disabled={!canCompare}
+            onClick={() => setCompareOpen(true)}
+            title={canCompare
+              ? `Comparar passo #${indexA + 1} (A) com #${indexB + 1} (B)`
+              : 'Selecione dois passos como A e B para comparar'}
+          >
+            <GitCompare className="h-3.5 w-3.5" />
+            Comparar
+            {(pickA || pickB) && (
+              <span className="font-mono text-[10px] opacity-80">
+                {pickA ? `#${indexA + 1}` : '—'}/{pickB ? `#${indexB + 1}` : '—'}
+              </span>
+            )}
+          </Button>
+          {(pickA || pickB) && (
+            <Button
+              size="icon"
+              variant="ghost"
+              className="h-8 w-8 text-muted-foreground"
+              onClick={() => { setPickA(null); setPickB(null); }}
+              title="Limpar seleção A/B"
+              aria-label="Limpar seleção A/B"
+            >
+              <ArrowLeftRight className="h-3 w-3" />
+            </Button>
+          )}
+
           <div className="ml-2 flex items-center gap-2">
             <span className="text-[10px] uppercase text-muted-foreground">Velocidade</span>
             <Select value={String(speed)} onValueChange={(v) => setSpeed(Number(v))}>
