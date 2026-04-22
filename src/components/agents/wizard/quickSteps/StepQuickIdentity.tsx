@@ -66,7 +66,7 @@ export function StepQuickIdentity({ form, errors, update, highlightField }: Prop
               onChange={(e) => update('emoji', e.target.value)}
               maxLength={4}
               aria-invalid={!!errors.emoji}
-              className={`w-20 text-center text-xl bg-secondary/50 border-border/50 ${errors.emoji ? 'border-destructive' : ''}`}
+              className={`w-20 text-center text-xl bg-secondary/50 border-border/50 ${errors.emoji ? 'border-destructive' : ''}${hl('emoji')}`}
             />
             <div className="flex flex-wrap gap-1">
               {EMOJI_SUGGESTIONS.map((e) => (
@@ -97,7 +97,7 @@ export function StepQuickIdentity({ form, errors, update, highlightField }: Prop
             rows={3}
             maxLength={500}
             aria-invalid={!!errors.mission}
-            className={`mt-1.5 bg-secondary/50 border-border/50 resize-none ${errors.mission ? 'border-destructive' : ''}`}
+            className={`mt-1.5 bg-secondary/50 border-border/50 resize-none ${errors.mission ? 'border-destructive' : ''}${hl('mission')}`}
           />
           <div className="flex justify-between items-start mt-1">
             <FieldError msg={errors.mission} />
@@ -113,7 +113,7 @@ export function StepQuickIdentity({ form, errors, update, highlightField }: Prop
             onChange={(e) => update('description', e.target.value)}
             placeholder="Para listagens e cards"
             maxLength={300}
-            className="mt-1.5 bg-secondary/50 border-border/50"
+            className={`mt-1.5 bg-secondary/50 border-border/50${hl('description')}`}
           />
           <div className="flex justify-between items-start mt-1">
             <FieldError msg={errors.description} />

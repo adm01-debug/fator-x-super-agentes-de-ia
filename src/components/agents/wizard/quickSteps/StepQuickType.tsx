@@ -1,3 +1,4 @@
+import { useEffect, useRef } from 'react';
 import { Button } from '@/components/ui/button';
 import { Sparkles, Check } from 'lucide-react';
 import {
@@ -12,9 +13,17 @@ interface Props {
   errors: Partial<Record<keyof QuickAgentForm, string>>;
   update: <K extends keyof QuickAgentForm>(key: K, value: QuickAgentForm[K]) => void;
   applyTemplate: (type: QuickAgentType) => void;
+  highlightField?: keyof QuickAgentForm;
 }
 
-export function StepQuickType({ form, errors, update, applyTemplate }: Props) {
+export function StepQuickType({ form, errors, update, applyTemplate, highlightField }: Props) {
+  const gridRef = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    if (highlightField === 'type' && gridRef.current) {
+      gridRef.current.scrollIntoView({ block: 'center', behavior: 'smooth' });
+    }
+  }, [highlightField]);
+  const highlight = highlightField === 'type';
   const selectedTemplate = form.type ? QUICK_AGENT_TEMPLATES[form.type as QuickAgentType] : null;
 
   return (
@@ -26,7 +35,7 @@ export function StepQuickType({ form, errors, update, applyTemplate }: Props) {
         </p>
       </div>
 
-      <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+      <div ref={gridRef} className={`grid gap-3 sm:grid-cols-2 lg:grid-cols-3 rounded-lg ${highlight ? 'ring-2 ring-warning ring-offset-4 ring-offset-background animate-pulse p-2' : ''}`}>
         {QUICK_AGENT_TYPES.map((t) => {
           const selected = form.type === t.id;
           const tpl = QUICK_AGENT_TEMPLATES[t.id];

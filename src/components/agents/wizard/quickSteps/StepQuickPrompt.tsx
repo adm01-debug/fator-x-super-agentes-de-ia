@@ -24,11 +24,18 @@ interface Props {
   update: <K extends keyof QuickAgentForm>(key: K, value: QuickAgentForm[K]) => void;
   onRestore: () => void;
   onApplyVariant: (id: PromptVariantId) => void;
+  highlightField?: keyof QuickAgentForm;
 }
 
-export function StepQuickPrompt({ form, errors, update, onRestore, onApplyVariant }: Props) {
+export function StepQuickPrompt({ form, errors, update, onRestore, onApplyVariant, highlightField }: Props) {
   const activeVariant = detectPromptVariant(form.type as QuickAgentType, form.prompt);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
+
+  useRef; // keep ref import used
+  const promptHighlight = highlightField === 'prompt';
+  // Scroll + focus when highlighted
+  // eslint-disable-next-line react-hooks/rules-of-hooks
+  useEffectOnHighlight(promptHighlight, textareaRef);
 
   const handleChange = (e: ChangeEvent<HTMLTextAreaElement>) => {
     const raw = e.target.value;
