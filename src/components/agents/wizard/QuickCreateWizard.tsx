@@ -15,6 +15,7 @@ import {
   type QuickAgentForm,
 } from '@/lib/validations/quickAgentSchema';
 import { detectPromptContradictions } from '@/lib/validations/promptContradictions';
+import { sanitizePromptInput, PROMPT_LIMITS } from '@/lib/validations/promptSanitizer';
 import {
   QUICK_AGENT_TEMPLATES,
   PERSONA_FROM_TYPE,
@@ -307,6 +308,29 @@ export function QuickCreateWizard({ onBack }: QuickCreateWizardProps) {
     toast.success('Prompt restaurado do template');
   };
 
+  /**
+   * Hard reset to a known-safe state: re-sanitizes the base template,
+   * clears variant lock + selection, resets emoji to the type default,
+   * and clears any field errors. Used as the wizard's "panic button"
+   * when the prompt or live preview ends up in a confusing state.
+   */
+  const safeResetPromptAndPreview = () => {
+    const t = QUICK_AGENT_TEMPLATES[form.type as QuickAgentType];
+    const sanitized = sanitizePromptInput(t.systemPrompt, PROMPT_LIMITS.MAX_TOTAL).clean;
+    setForm((prev) => ({
+      ...prev,
+      prompt: sanitized,
+      emoji: t.emoji,
+    }));
+    setPromptCustomLocked(false);
+    setSelectedVariant(null);
+    setErrors((prev) => ({ ...prev, prompt: undefined }));
+    if (highlightField === 'prompt') setHighlightField(null);
+    toast.success('Estado seguro restaurado', {
+      description: 'Prompt e preview voltaram ao template base do tipo selecionado.',
+    });
+  };
+
   const doApplyPromptVariant = (variantId: import('@/data/quickAgentTemplates').PromptVariantId) => {
     const t = QUICK_AGENT_TEMPLATES[form.type as QuickAgentType];
     const variant = t.promptVariants[variantId];
@@ -450,7 +474,7 @@ export function QuickCreateWizard({ onBack }: QuickCreateWizardProps) {
       case 3: {
         const detected = detectPromptVariant(form.type as QuickAgentType, form.prompt);
         const activeVariant = promptCustomLocked ? null : (selectedVariant ?? detected);
-        return <StepQuickPrompt form={form} errors={errors} onPromptManualEdit={updatePromptManual} onRestore={restorePromptFromType} onApplyVariant={applyPromptVariant} customLocked={promptCustomLocked} onUnlockCustom={() => { setPromptCustomLocked(false); setSelectedVariant(null); }} activeVariant={activeVariant} highlightField={hfFor(['prompt'])} />;
+        return <StepQuickPrompt form={form} errors={errors} onPromptManualEdit={updatePromptManual} onRestore={restorePromptFromType} onSafeReset={safeResetPromptAndPreview} onApplyVariant={applyPromptVariant} customLocked={promptCustomLocked} onUnlockCustom={() => { setPromptCustomLocked(false); setSelectedVariant(null); }} activeVariant={activeVariant} highlightField={hfFor(['prompt'])} />;
       }
       default: return null;
     }
