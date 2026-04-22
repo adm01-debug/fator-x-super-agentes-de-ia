@@ -396,10 +396,53 @@ export function StepQuickPrompt({ form, errors, onPromptManualEdit, onRestore, o
         customLocked={customLocked}
         onInsert={(snippet, key) => {
           if (key) {
-            const { prompt: nextPrompt } = insertSectionAt(form.prompt, key, snippet);
+            const { prompt: nextPrompt, insertedRange } = insertSectionAt(form.prompt, key, snippet);
             handleManualEdit(nextPrompt);
+            // Place the caret at the start of the body (just after the
+            // heading line) so the user can immediately start typing inside
+            // the inserted block instead of overtyping the heading.
+            const bodyStart = Math.min(insertedRange[1] + 1, nextPrompt.length);
+            requestAnimationFrame(() => {
+              const el = textareaRef.current;
+              if (!el) return;
+              el.focus({ preventScroll: true });
+              try { el.setSelectionRange(bodyStart, bodyStart); } catch { /* ignore */ }
+              const linesUpTo = nextPrompt.slice(0, bodyStart).split('\n').length - 1;
+              const lh = parseFloat(getComputedStyle(el).lineHeight || '0') || 16;
+              el.scrollTop = Math.max(0, linesUpTo * lh - el.clientHeight / 3);
+            });
           } else {
             handleManualEdit(form.prompt + snippet);
+          }
+        }}
+        onInsertBatch={(items) => {
+          // Splice every snippet onto a shared working buffer so each
+          // `insertSectionAt` sees the previous inserts (canonical order is
+          // preserved by REQUIRED_PROMPT_SECTIONS). Without this, a sequence
+          // of `onInsert` calls would all use the stale `form.prompt` and
+          // collide on the same insertChar.
+          let working = form.prompt;
+          let lastRange: [number, number] | null = null;
+          for (const it of items) {
+            const { prompt: next, insertedRange } = insertSectionAt(working, it.key, it.snippet);
+            working = next;
+            // Translate the new range into the *final* buffer coords as we go
+            // — since each subsequent splice happens after this one, ranges
+            // already inserted stay valid and the latest range is final.
+            lastRange = insertedRange;
+          }
+          handleManualEdit(working);
+          if (lastRange) {
+            const bodyStart = Math.min(lastRange[1] + 1, working.length);
+            requestAnimationFrame(() => {
+              const el = textareaRef.current;
+              if (!el) return;
+              el.focus({ preventScroll: true });
+              try { el.setSelectionRange(bodyStart, bodyStart); } catch { /* ignore */ }
+              const linesUpTo = working.slice(0, bodyStart).split('\n').length - 1;
+              const lh = parseFloat(getComputedStyle(el).lineHeight || '0') || 16;
+              el.scrollTop = Math.max(0, linesUpTo * lh - el.clientHeight / 3);
+            });
           }
         }}
         onJumpToSection={jumpToSection}
