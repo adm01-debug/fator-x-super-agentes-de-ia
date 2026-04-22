@@ -33,7 +33,7 @@ const ICONS = {
 
 const ORDER: PromptVariantId[] = ['balanced', 'concise', 'detailed'];
 
-export function PromptVariantSelector({ type, activeVariant, onSelect, customLocked, onUnlock }: Props) {
+export function PromptVariantSelector({ type, activeVariant, onSelect, customLocked, onUnlock, currentPrompt }: Props) {
   const template = QUICK_AGENT_TEMPLATES[type];
   const isCustom = activeVariant === null;
   const showLocked = !!customLocked && isCustom;
@@ -70,16 +70,35 @@ export function PromptVariantSelector({ type, activeVariant, onSelect, customLoc
               {showLocked ? <Lock className="h-2.5 w-2.5" /> : null}
               customizado
             </span>
-            {showLocked && onUnlock && (
-              <button
-                type="button"
-                onClick={onUnlock}
-                className="text-[10px] inline-flex items-center gap-1 px-2 py-0.5 rounded-full border border-border/60 bg-secondary/50 text-muted-foreground hover:text-foreground hover:bg-secondary/80 transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-primary/50"
-                title="Manter o texto e voltar à detecção automática das variações."
-              >
-                <Unlock className="h-2.5 w-2.5" />
-                Sair do modo custom
-              </button>
+            {showLocked && onUnlock && currentPrompt !== undefined ? (
+              <PromptUnlockDiffDialog
+                type={type}
+                currentPrompt={currentPrompt}
+                onApplyVariant={onSelect}
+                onKeepText={onUnlock}
+                trigger={
+                  <button
+                    type="button"
+                    className="text-[10px] inline-flex items-center gap-1 px-2 py-0.5 rounded-full border border-border/60 bg-secondary/50 text-muted-foreground hover:text-foreground hover:bg-secondary/80 transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-primary/50"
+                    title="Ver prévia do que muda em cada variação antes de destravar."
+                  >
+                    <Unlock className="h-2.5 w-2.5" />
+                    Sair do modo custom
+                  </button>
+                }
+              />
+            ) : (
+              showLocked && onUnlock && (
+                <button
+                  type="button"
+                  onClick={onUnlock}
+                  className="text-[10px] inline-flex items-center gap-1 px-2 py-0.5 rounded-full border border-border/60 bg-secondary/50 text-muted-foreground hover:text-foreground hover:bg-secondary/80 transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-primary/50"
+                  title="Manter o texto e voltar à detecção automática das variações."
+                >
+                  <Unlock className="h-2.5 w-2.5" />
+                  Sair do modo custom
+                </button>
+              )
             )}
           </div>
         )}
