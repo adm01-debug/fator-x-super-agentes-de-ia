@@ -44,7 +44,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
-import { QUICK_AGENT_TEMPLATES as _QAT_FOR_VARIANT, PROMPT_VARIANT_META as _PVM_FOR_DIALOG } from '@/data/quickAgentTemplates';
+import { QUICK_AGENT_TEMPLATES as TEMPLATES_FOR_DIALOG, PROMPT_VARIANT_META as VARIANT_META_FOR_DIALOG } from '@/data/quickAgentTemplates';
 import {
   loadDrafts,
   saveDrafts,
