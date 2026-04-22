@@ -1,9 +1,10 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { PageHeader } from "@/components/shared/PageHeader";
 import { StatusBadge } from "@/components/shared/StatusBadge";
 import { Button } from "@/components/ui/button";
-import { Bot, Loader2, GitCompare, GitBranch, Activity, Bell, Play, Undo2 } from "lucide-react";
+import { Checkbox } from "@/components/ui/checkbox";
+import { Bot, Loader2, GitCompare, GitBranch, Activity, Bell, Play, Undo2, AlertTriangle, MessageSquare, Wrench, Cpu } from "lucide-react";
 import { useQuery, useQueryClient, useMutation } from "@tanstack/react-query";
 import { getAgentById, getAgentVersions, getAgentDetailTraces, restoreAgentVersion, type AgentTrace, type AgentVersion } from "@/services/agentsService";
 import { VersionDiffDialog } from "@/components/agents/VersionDiffDialog";
