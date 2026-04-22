@@ -1,5 +1,6 @@
 import { useEffect, Suspense, lazy } from 'react';
-import { useParams } from 'react-router-dom';
+import { useParams, useSearchParams } from 'react-router-dom';
+import { TABS } from '@/data/agentBuilderData';
 import { AgentBuilderLayout } from '@/components/agent-builder/AgentBuilderLayout';
 import { useAgentBuilderStore } from '@/stores/agentBuilderStore';
 import { Loader2 } from 'lucide-react';
