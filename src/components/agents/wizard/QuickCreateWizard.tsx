@@ -226,6 +226,7 @@ export function QuickCreateWizard({ onBack }: QuickCreateWizardProps) {
   const update = <K extends keyof QuickAgentForm>(key: K, value: QuickAgentForm[K]) => {
     setForm((prev) => ({ ...prev, [key]: value }));
     setErrors((prev) => ({ ...prev, [key]: undefined }));
+    if (highlightField === key) setHighlightField(null);
   };
 
   const applyTemplate = (type: QuickAgentType) => {
