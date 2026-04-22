@@ -28,7 +28,17 @@ export function useFieldHighlight(
     const el = ref.current;
     if (!el) return;
 
-    el.scrollIntoView({ block: 'center', behavior: 'smooth' });
+    // Antes de rolar/focar, garante que toda Collapsible/Accordion/Tab
+    // ancestral esteja aberta — caso contrário o elemento estaria com
+    // display:none e o scroll/focus seria silenciosamente ignorado.
+    const expanded = expandAncestorContainers(el);
+    // Quando expandimos algo, espera um frame para a animação de abertura
+    // começar antes de calcular a posição final do scroll.
+    const scrollDelay = expanded ? 60 : 0;
+
+    window.setTimeout(() => {
+      el.scrollIntoView({ block: 'center', behavior: 'smooth' });
+    }, scrollDelay);
     setPulsing(true);
 
     focusTimerRef.current = window.setTimeout(() => {
@@ -41,7 +51,7 @@ export function useFieldHighlight(
               'input, textarea, select, button, [tabindex]:not([tabindex="-1"])',
             );
       focusable?.focus({ preventScroll: true });
-    }, 250);
+    }, 250 + scrollDelay);
 
     pulseTimerRef.current = window.setTimeout(() => setPulsing(false), pulseMs);
 
