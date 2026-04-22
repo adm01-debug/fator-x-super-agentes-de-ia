@@ -6,6 +6,15 @@
 import type { AgentDetail, AgentTrace } from '@/services/agentsService';
 import { getModelPrice } from '@/lib/llmPricing';
 
+export type SimulatedErrorType =
+  | 'timeout'
+  | 'rate_limit'
+  | 'tool_failure'
+  | 'hallucination'
+  | 'context_overflow'
+  | 'unsafe_output'
+  | 'parsing_error';
+
 export interface SimulatedRun {
   id: number;
   input: string;
@@ -13,6 +22,7 @@ export interface SimulatedRun {
   latency_ms: number;
   tokens_used: number;
   cost_usd: number;
+  error_type?: SimulatedErrorType;
 }
 
 export interface SimulationSummary {
