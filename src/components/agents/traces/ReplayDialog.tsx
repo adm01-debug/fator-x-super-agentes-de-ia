@@ -40,6 +40,26 @@ export function ReplayDialog({ open, onOpenChange, execution, initialStep = 0, o
   const total = traces.length;
   const current = traces[step];
 
+  // Bookmarks for the current execution (refreshed on open + after save/remove).
+  const sessionId = execution?.session_id ?? '';
+  const [bookmarks, setBookmarks] = useState<TraceBookmark[]>([]);
+  useEffect(() => {
+    if (open && sessionId) setBookmarks(listBookmarks(sessionId));
+    else if (!open) setBookmarks([]);
+  }, [open, sessionId]);
+  const currentBookmark = current ? bookmarks.find((b) => b.traceId === current.id) : undefined;
+
+  /** Jump player to next/previous bookmark relative to the current step. */
+  const jumpBookmark = (dir: 1 | -1) => {
+    if (bookmarks.length === 0) return;
+    const indexes = bookmarks.map((b) => b.stepIndex).sort((a, b) => a - b);
+    const target = dir === 1
+      ? (indexes.find((i) => i > step) ?? indexes[0])
+      : ([...indexes].reverse().find((i) => i < step) ?? indexes[indexes.length - 1]);
+    setStep(target);
+    setPlaying(false);
+  };
+
   const accumulated = useMemo(() => {
     let ms = 0, tokens = 0, cost = 0;
     for (let i = 0; i <= step && i < traces.length; i++) {
