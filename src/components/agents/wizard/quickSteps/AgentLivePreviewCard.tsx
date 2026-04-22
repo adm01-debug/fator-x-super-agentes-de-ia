@@ -1,8 +1,11 @@
 import { useEffect, useRef, useState } from 'react';
-import { ChevronDown, ChevronUp, Sparkles } from 'lucide-react';
+import { ChevronDown, ChevronUp, Sparkles, Coins, Info } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
+import { Tooltip, TooltipContent, TooltipTrigger, TooltipProvider } from '@/components/ui/tooltip';
 import { useDebounce } from '@/hooks/use-debounce';
+import { useCostEstimate } from '@/hooks/useCostEstimate';
+import { QUICK_AGENT_MOCK_INPUTS, type QuickAgentType } from '@/data/quickAgentTemplates';
 import type { QuickAgentForm } from '@/lib/validations/quickAgentSchema';
 import { detectPromptSections, REQUIRED_PROMPT_SECTIONS } from '@/lib/validations/quickAgentSchema';
 import { PROMPT_LIMITS } from '@/lib/validations/promptSanitizer';
