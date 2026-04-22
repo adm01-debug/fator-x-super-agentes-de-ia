@@ -178,7 +178,10 @@ export default function AgentTracesPage() {
                 <ExecutionTimeline
                   execution={selected}
                   selectedStep={selectedStep}
-                  onSelectStep={setSelectedStep}
+                  onSelectStep={(s) => {
+                    setSelectedStep(s);
+                    setReplayOpen(true);
+                  }}
                 />
               </div>
             )}
@@ -186,7 +189,12 @@ export default function AgentTracesPage() {
         </Card>
       </div>
 
-      <ReplayDialog open={replayOpen} onOpenChange={setReplayOpen} execution={selected} />
+      <ReplayDialog
+        open={replayOpen}
+        onOpenChange={setReplayOpen}
+        execution={selected}
+        initialStep={selectedStep}
+      />
     </div>
   );
 }
