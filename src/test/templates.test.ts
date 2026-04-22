@@ -317,6 +317,38 @@ describe('Knowledge Base seeds', () => {
   });
 });
 
+// ═══ Agent readiness upgrade (follow-up pós-10/10) ═══════════════════
+describe('Agent readiness — new checks', () => {
+  it('includes rag_sources, reasoning_chosen, few_shot and hitl_triggers', async () => {
+    const { computeReadinessScore } = await import('@/lib/agentReadiness');
+    const { DEFAULT_AGENT } = await import('@/data/agentBuilderData');
+    const result = computeReadinessScore({
+      ...DEFAULT_AGENT,
+      name: 'Teste',
+      mission: 'Missão de teste com descrição longa o bastante',
+      model: 'claude-sonnet-4.6',
+      system_prompt: 'a'.repeat(250),
+      rag_sources: [
+        {
+          id: 'kb_test',
+          name: 'Teste',
+          type: 'database',
+          location: 'kb',
+          sync_frequency: 'manual',
+          enabled: true,
+        },
+      ],
+      reasoning: 'cot',
+      few_shot_examples: [{ id: '1', input: 'a', expected_output: 'b', tags: [] }],
+    });
+    const ids = result.checks.map((c) => c.id);
+    expect(ids).toContain('rag_sources');
+    expect(ids).toContain('reasoning_chosen');
+    expect(ids).toContain('few_shot');
+    expect(ids).toContain('hitl_triggers');
+  });
+});
+
 // ═══ Sub-agents composition (follow-up #3) ═══════════════════════════
 describe('Sub-agents composition (follow-up #3)', () => {
   it('spec_vendas_closer declares delegate_to_agent tool', () => {

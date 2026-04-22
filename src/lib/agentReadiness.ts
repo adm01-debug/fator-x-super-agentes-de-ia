@@ -70,6 +70,32 @@ export function computeReadinessScore(agent: AgentConfig): ReadinessResult {
         !!(agent as Record<string, unknown>).deploy_channel,
       tabId: 'deploy',
     },
+    {
+      id: 'rag_sources',
+      label: 'Pelo menos 1 Knowledge Base conectada',
+      passed: (agent.rag_sources ?? []).some((s) => s.enabled),
+      tabId: 'rag',
+    },
+    {
+      id: 'reasoning_chosen',
+      label: 'Padrão de raciocínio definido (react/cot/reflection/...)',
+      passed: !!agent.reasoning,
+      tabId: 'brain',
+    },
+    {
+      id: 'few_shot',
+      label: '≥ 1 exemplo few-shot',
+      passed: (agent.few_shot_examples ?? []).length >= 1,
+      tabId: 'prompt',
+    },
+    {
+      id: 'hitl_triggers',
+      label: 'Human-in-the-loop configurado quando crítico',
+      passed:
+        !agent.human_in_loop ||
+        ((agent.human_in_loop_triggers ?? []).length >= 1 && !!agent.human_in_loop),
+      tabId: 'orchestration',
+    },
   ];
 
   const passed = checks.filter((c) => c.passed).length;
