@@ -105,13 +105,21 @@ function MetricCard({ title, value, target, status, icon: Icon }: MetricCardProp
 }
 
 export default function SLODashboard() {
+  // URL is the source of truth for *shareable* state (window + auto cadence).
+  // localStorage stays as a per-user fallback when no param is present.
+  const [searchParams, setSearchParams] = useSearchParams();
+
   const [summary, setSummary] = useState<SLOSummary | null>(null);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
-  const [windowHours, setWindowHours] = useState<number>(24);
-  // User-controlled auto-refresh cadence. 0 = off. Persisted across visits
-  // so the operator's preference survives reloads/navigation.
-  const [autoRefreshMs, setAutoRefreshMs] = useState<number>(readStoredInterval);
+  const [windowHours, setWindowHours] = useState<number>(() =>
+    parseWindowParam(searchParams.get(QP_WINDOW), DEFAULT_WINDOW_HOURS),
+  );
+  // User-controlled auto-refresh cadence. 0 = off. URL wins; otherwise fall
+  // back to the persisted preference so opening the page fresh still works.
+  const [autoRefreshMs, setAutoRefreshMs] = useState<number>(() =>
+    parseAutoParam(searchParams.get(QP_AUTO), readStoredInterval()),
+  );
   const [lastRefreshAt, setLastRefreshAt] = useState<Date | null>(null);
   // Re-renders the "X seg atrás" pill once a second without re-fetching data.
   const [, setNowTick] = useState(0);
