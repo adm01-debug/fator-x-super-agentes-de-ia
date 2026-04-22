@@ -33,6 +33,12 @@ export function ExecutionTimeline({ execution, selectedStep, onSelectStep }: Pro
   const step = selectedStep ?? internalStep;
   const total = execution.traces.length;
 
+  // Bulk expand/collapse: bump a counter + carry the desired state.
+  // TraceItem syncs its local `open` whenever this version changes.
+  const [bulk, setBulk] = useState<{ v: number; open: boolean } | null>(null);
+  const expandAll = () => setBulk((b) => ({ v: (b?.v ?? 0) + 1, open: true }));
+  const collapseAll = () => setBulk((b) => ({ v: (b?.v ?? 0) + 1, open: false }));
+
   const setStep = (i: number) => {
     if (total === 0) return;
     const clamped = Math.max(0, Math.min(total - 1, i));
@@ -68,6 +74,8 @@ export function ExecutionTimeline({ execution, selectedStep, onSelectStep }: Pro
         step={step}
         total={total}
         onStep={setStep}
+        onExpandAll={expandAll}
+        onCollapseAll={collapseAll}
       />
 
       <ol
@@ -84,6 +92,7 @@ export function ExecutionTimeline({ execution, selectedStep, onSelectStep }: Pro
             index={i}
             active={i === step}
             onSelect={() => setStep(i)}
+            bulk={bulk}
           />
         ))}
       </ol>
