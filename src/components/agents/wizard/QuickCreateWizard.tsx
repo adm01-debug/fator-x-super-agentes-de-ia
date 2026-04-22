@@ -32,6 +32,7 @@ import { StepQuickPrompt } from './quickSteps/StepQuickPrompt';
 import { PreflightReviewSummary } from './quickSteps/PreflightReviewSummary';
 import { DraftRecoveryBanner, type DraftBannerEntry } from './DraftRecoveryBanner';
 import { RestoreFeedbackBanner } from './RestoreFeedbackBanner';
+import { DraftRestoredNotification } from './DraftRestoredNotification';
 import { DangerousActionDialog } from '@/components/rbac/DangerousActionDialog';
 import { AlertTriangle } from 'lucide-react';
 import { logAudit } from '@/services/auditLogService';
@@ -325,25 +326,37 @@ export function QuickCreateWizard({ onBack }: QuickCreateWizardProps) {
     } else {
       pushLockEvent('unlocked-draft-restore', `rascunho "${target.form.name?.trim() || 'sem nome'}" (${mode === 'partial' ? 'parcial' : 'completo'})`);
     }
-    if (mode === 'partial') {
-      toast.success('Rascunho restaurado parcialmente', {
-        description: resume.field
-          ? `Só os campos preenchidos foram aplicados. Continue em "${STEPS[resume.stepIdx].label}" — campo destacado: ${FIELD_LABEL[resume.field] ?? String(resume.field)}.`
-          : `Só os campos preenchidos foram aplicados. Continue em "${STEPS[resume.stepIdx].label}".`,
-      });
-    } else if (!check.canRestore) {
-      toast.warning('Rascunho restaurado (incompleto)', {
-        description: resume.field
-          ? `Complete o campo "${FIELD_LABEL[resume.field] ?? String(resume.field)}" em "${STEPS[resume.stepIdx].label}" para continuar.`
-          : `Continue do passo: ${STEPS[resume.stepIdx].label}.`,
-      });
-    } else {
-      toast.success('Rascunho restaurado', {
-        description: resume.field
-          ? `Continue em "${STEPS[resume.stepIdx].label}" — campo: ${FIELD_LABEL[resume.field] ?? String(resume.field)}`
-          : `Continuando do passo: ${STEPS[resume.stepIdx].label}`,
-      });
-    }
+    // Mini-notificação rica via Sonner — confirma de qual rascunho veio,
+    // o passo de retomada e o primeiro campo inválido com tipo de erro,
+    // dando ao usuário uma checagem visual de que a restauração aplicou
+    // exatamente o que ele esperava.
+    const draftDisplayName = target.form.name?.trim() || 'sem nome';
+    const fieldLabel = resume.field ? (FIELD_LABEL[resume.field] ?? String(resume.field)) : undefined;
+    const stepLabel = STEPS[resume.stepIdx]?.label;
+    const jumpToField = () => {
+      if (resume.field) {
+        setStep(resume.stepIdx);
+        setHighlightField(resume.field);
+      }
+    };
+    const tone = mode === 'partial' ? 'success' : !check.canRestore ? 'warning' : 'success';
+    toast.custom((t) => (
+      <div className="nexus-card bg-card border-border/60 shadow-lg w-[min(420px,calc(100vw-2rem))] p-3">
+        <DraftRestoredNotification
+          draftName={draftDisplayName}
+          mode={mode}
+          stepLabel={stepLabel}
+          fieldLabel={fieldLabel}
+          errorType={resume.errorType}
+          onJumpToField={resume.field ? jumpToField : undefined}
+          onDismiss={() => toast.dismiss(t)}
+        />
+      </div>
+    ), {
+      duration: 7000,
+      // Garante semântica correta para leitores de tela mesmo com conteúdo custom.
+      className: tone === 'warning' ? 'border-warning/30' : undefined,
+    });
   };
 
   const handleRenameDraft = (id: string, newName: string) => {
