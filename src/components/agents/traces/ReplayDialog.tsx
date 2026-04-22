@@ -62,6 +62,36 @@ export function ReplayDialog({ open, onOpenChange, execution, initialStep = 0, o
     setPlaying(false);
   };
 
+  // A/B selection for side-by-side comparison. Stores trace ids so the choice
+  // survives play/seek without depending on the moving `step` cursor.
+  const [pickA, setPickA] = useState<string | null>(null);
+  const [pickB, setPickB] = useState<string | null>(null);
+  const [compareOpen, setCompareOpen] = useState(false);
+  // Reset picks whenever the user opens a different execution.
+  useEffect(() => { setPickA(null); setPickB(null); setCompareOpen(false); }, [sessionId]);
+
+  const indexA = pickA ? traces.findIndex((t) => t.id === pickA) : -1;
+  const indexB = pickB ? traces.findIndex((t) => t.id === pickB) : -1;
+  const traceA = indexA >= 0 ? traces[indexA] : null;
+  const traceB = indexB >= 0 ? traces[indexB] : null;
+  const currentIsA = current ? current.id === pickA : false;
+  const currentIsB = current ? current.id === pickB : false;
+
+  /** Mark current step as slot A or B. Re-clicking same slot clears it. */
+  const toggleSlot = (slot: 'A' | 'B') => {
+    if (!current) return;
+    const id = current.id;
+    if (slot === 'A') {
+      setPickA((prev) => (prev === id ? null : id));
+      if (pickB === id) setPickB(null);
+    } else {
+      setPickB((prev) => (prev === id ? null : id));
+      if (pickA === id) setPickA(null);
+    }
+  };
+  const swapPicks = () => { setPickA(pickB); setPickB(pickA); };
+  const canCompare = !!(pickA && pickB && pickA !== pickB);
+
   const accumulated = useMemo(() => {
     let ms = 0, tokens = 0, cost = 0;
     for (let i = 0; i <= step && i < traces.length; i++) {
