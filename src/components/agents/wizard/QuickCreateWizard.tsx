@@ -18,6 +18,7 @@ import { detectPromptContradictions } from '@/lib/validations/promptContradictio
 import {
   QUICK_AGENT_TEMPLATES,
   PERSONA_FROM_TYPE,
+  detectPromptVariant,
   type QuickAgentType,
 } from '@/data/quickAgentTemplates';
 import { StepQuickIdentity } from './quickSteps/StepQuickIdentity';
@@ -450,7 +451,11 @@ export function QuickCreateWizard({ onBack }: QuickCreateWizardProps) {
       case 0: return <StepQuickIdentity form={form} errors={errors} update={update} highlightField={hfFor(['name', 'emoji', 'mission', 'description'])} />;
       case 1: return <StepQuickType form={form} errors={errors} update={update} applyTemplate={applyTemplate} highlightField={hfFor(['type'])} />;
       case 2: return <StepQuickModel form={form} errors={errors} update={update} highlightField={hfFor(['model'])} />;
-      case 3: return <StepQuickPrompt form={form} errors={errors} onPromptManualEdit={updatePromptManual} onRestore={restorePromptFromType} onApplyVariant={applyPromptVariant} customLocked={promptCustomLocked} onUnlockCustom={() => setPromptCustomLocked(false)} highlightField={hfFor(['prompt'])} />;
+      case 3: {
+        const detected = detectPromptVariant(form.type as QuickAgentType, form.prompt);
+        const activeVariant = promptCustomLocked ? null : (selectedVariant ?? detected);
+        return <StepQuickPrompt form={form} errors={errors} onPromptManualEdit={updatePromptManual} onRestore={restorePromptFromType} onApplyVariant={applyPromptVariant} customLocked={promptCustomLocked} onUnlockCustom={() => { setPromptCustomLocked(false); setSelectedVariant(null); }} activeVariant={activeVariant} highlightField={hfFor(['prompt'])} />;
+      }
       default: return null;
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
