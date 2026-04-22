@@ -260,23 +260,62 @@ export function SimulationResultDialog({
           </div>
         )}
 
-        <DialogFooter className="gap-2 sm:gap-2">
-          <Button
-            variant={summary ? 'outline' : 'default'}
-            size="sm"
-            onClick={() => onRun(trimmed, count)}
-            disabled={running || overLimit}
-          >
-            {summary ? (
-              <>
-                <RefreshCw className="h-3.5 w-3.5 mr-1.5" /> Repetir simulação
-              </>
-            ) : (
-              <>
-                <Play className="h-3.5 w-3.5 mr-1.5" /> Executar simulação
-              </>
+        {/* Salvar como Test Run — só com summary, agentId e fora do modo somente leitura */}
+        {canSave && !hideRunControls && (
+          <div className="rounded-lg border border-primary/30 bg-primary/5 p-3 space-y-2">
+            <label htmlFor="sim-save-name" className="flex items-center gap-1.5 text-xs font-medium text-foreground">
+              <Save className="h-3 w-3 text-primary" aria-hidden="true" />
+              Salvar este Test Run
+              <span className="text-muted-foreground font-normal">(opcional, fica no histórico do agente)</span>
+            </label>
+            <div className="flex items-center gap-2">
+              <Input
+                id="sim-save-name"
+                value={saveName}
+                onChange={(e) => setSaveName(e.target.value)}
+                placeholder={`Ex.: Baseline antes da v${new Date().getDate()} — deixe vazio para nome automático`}
+                disabled={!!justSavedId}
+                maxLength={80}
+                className="h-8 text-xs"
+              />
+              <Button
+                size="sm"
+                variant={justSavedId ? 'outline' : 'default'}
+                onClick={handleSave}
+                disabled={!!justSavedId}
+                className="h-8 gap-1.5 shrink-0"
+              >
+                <Save className="h-3.5 w-3.5" />
+                {justSavedId ? 'Salvo ✓' : 'Salvar'}
+              </Button>
+            </div>
+            {justSavedId && (
+              <p className="text-[10px] text-nexus-emerald">
+                Disponível em “Test Runs salvos” na página do agente.
+              </p>
             )}
-          </Button>
+          </div>
+        )}
+
+        <DialogFooter className="gap-2 sm:gap-2">
+          {!hideRunControls && (
+            <Button
+              variant={summary ? 'outline' : 'default'}
+              size="sm"
+              onClick={() => onRun(trimmed, count)}
+              disabled={running || overLimit}
+            >
+              {summary ? (
+                <>
+                  <RefreshCw className="h-3.5 w-3.5 mr-1.5" /> Repetir simulação
+                </>
+              ) : (
+                <>
+                  <Play className="h-3.5 w-3.5 mr-1.5" /> Executar simulação
+                </>
+              )}
+            </Button>
+          )}
           <Button variant={summary ? 'default' : 'outline'} size="sm" onClick={() => onOpenChange(false)}>
             Fechar
           </Button>
