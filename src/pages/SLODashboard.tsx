@@ -375,13 +375,22 @@ export default function SLODashboard() {
             <option value={24}>Últimas 24h</option>
             <option value={168}>Últimos 7d</option>
           </select>
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={() => load(true)}
-            disabled={refreshing}
-            aria-label="Atualizar dados manualmente"
+          <select
+            value={compareHours}
+            onChange={(e) => setCompareHours(Number(e.target.value))}
+            className="rounded-md border border-input bg-background px-3 py-1.5 text-sm focus-ring"
+            aria-label="Janela de comparação"
+            title="Compara a janela atual com outra para ver tendências"
           >
+            <option value={0}>Comparar: —</option>
+            {[1, 6, 24, 168]
+              .filter((h) => h !== windowHours)
+              .map((h) => (
+                <option key={h} value={h}>
+                  Comparar: {windowLabel(h)}
+                </option>
+              ))}
+          </select>
             <RefreshCw className={`h-4 w-4 ${refreshing ? 'animate-spin' : ''}`} />
             <span className="ml-2">Atualizar</span>
           </Button>
