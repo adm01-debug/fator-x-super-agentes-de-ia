@@ -1,5 +1,5 @@
 import { useMemo } from 'react';
-import { CheckCircle2, Circle, Plus, Wand2, AlertTriangle } from 'lucide-react';
+import { CheckCircle2, Circle, Plus, Wand2, AlertTriangle, Crosshair } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import {
   REQUIRED_PROMPT_SECTIONS,
@@ -11,16 +11,22 @@ import { cn } from '@/lib/utils';
 interface Props {
   prompt: string;
   onInsert: (snippet: string) => void;
+  /**
+   * Called when the user wants to jump the editor to a specific section.
+   * If the section is missing, `snippetIfMissing` is provided so the parent
+   * can insert the skeleton before scrolling.
+   */
+  onJumpToSection?: (key: PromptSectionKey, snippetIfMissing?: string) => void;
 }
 
-const SECTION_SNIPPETS: Record<PromptSectionKey, string> = {
+export const SECTION_SNIPPETS: Record<PromptSectionKey, string> = {
   persona: `\n\n## Persona\n- Tom: profissional e direto\n- Idioma: português brasileiro\n- Trate o usuário como ...\n`,
   scope: `\n\n## Escopo\n- Responder dúvidas sobre ...\n- Executar tarefas relacionadas a ...\n- Encaminhar para humano quando ...\n`,
   format: `\n\n## Formato\n- Máximo 200 palavras por resposta\n- Use listas curtas quando ajudar\n- Sempre entregue a resposta antes do contexto\n`,
   rules: `\n\n## Regras\n- Nunca invente informações; admita quando não souber\n- Não compartilhe dados sensíveis\n- Confirme antes de executar ações irreversíveis\n`,
 };
 
-export function PromptSectionChecklist({ prompt, onInsert }: Props) {
+export function PromptSectionChecklist({ prompt, onInsert, onJumpToSection }: Props) {
   const reports = useMemo(() => analyzeSectionContent(prompt), [prompt]);
   const total = REQUIRED_PROMPT_SECTIONS.length;
   const ok = reports.filter((r) => r.present && !r.thinReason).length;
