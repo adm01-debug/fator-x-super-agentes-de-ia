@@ -31,14 +31,52 @@ function inlineFmt(s: string): string {
     .replace(/\{\{([^}]+)\}\}/g, '<span class="px-1 py-0.5 rounded bg-nexus-amber/15 text-nexus-amber font-mono text-[11px]">{{$1}}</span>');
 }
 
-function renderMarkdown(text: string): React.ReactNode {
+function renderMarkdown(text: string, thinByHeading: Map<number, ThinHit> = new Map()): React.ReactNode {
   const lines = text.split('\n');
   const out: React.ReactNode[] = [];
   let listBuf: string[] = [];
 
+  // We accumulate nodes belonging to the current `##` section so we can wrap
+  // a *whole block* (heading + body) inside a highlight container when that
+  // section is flagged as thin. `currentSection` is null while we're outside
+  // any tracked section (e.g. the preamble).
+  let bucket: React.ReactNode[] = [];
+  let bucketHeadingLine: number | null = null;
+  let bucketKey = 0;
+
+  const flushBucket = () => {
+    if (bucket.length === 0) {
+      bucketHeadingLine = null;
+      return;
+    }
+    const thin = bucketHeadingLine !== null ? thinByHeading.get(bucketHeadingLine) : undefined;
+    if (thin) {
+      out.push(
+        <div
+          key={`thin-${bucketKey++}`}
+          data-thin-section={thin.key}
+          className="rounded-md border border-nexus-amber/40 bg-nexus-amber/5 px-2.5 py-2 my-1.5 relative"
+        >
+          <span
+            className="absolute top-1.5 right-1.5 text-[9px] uppercase tracking-wider font-mono px-1.5 py-0.5 rounded-full border border-nexus-amber/40 bg-nexus-amber/15 text-nexus-amber inline-flex items-center gap-1"
+            title={thin.reason}
+          >
+            <AlertTriangle className="h-2.5 w-2.5" />
+            thin · {thin.words}p
+          </span>
+          {bucket}
+        </div>,
+      );
+    } else {
+      out.push(<div key={`sec-${bucketKey++}`}>{bucket}</div>);
+    }
+    bucket = [];
+    bucketHeadingLine = null;
+  };
+
   const flushList = (key: string) => {
     if (listBuf.length === 0) return;
-    out.push(
+    bucket.push(
       <ul key={`ul-${key}`} className="list-disc pl-5 space-y-0.5 my-1.5 text-foreground/90">
         {listBuf.map((it, i) => (
           <li key={i} className="text-xs" dangerouslySetInnerHTML={{ __html: inlineFmt(it) }} />
@@ -57,29 +95,42 @@ function renderMarkdown(text: string): React.ReactNode {
     flushList(String(i));
 
     if (line.startsWith('### ')) {
-      out.push(<h4 key={i} className="text-xs font-heading font-semibold text-foreground mt-2.5">{line.slice(4)}</h4>);
+      bucket.push(<h4 key={i} className="text-xs font-heading font-semibold text-foreground mt-2.5">{line.slice(4)}</h4>);
     } else if (line.startsWith('## ')) {
-      out.push(<h3 key={i} className="text-sm font-heading font-semibold text-foreground mt-3">{line.slice(3)}</h3>);
+      // Boundary between sections — flush whatever we had and start a new
+      // bucket whose first child is this heading.
+      flushList('pre-h2-' + i);
+      flushBucket();
+      bucketHeadingLine = i;
+      bucket.push(<h3 key={i} className="text-sm font-heading font-semibold text-foreground mt-3">{line.slice(3)}</h3>);
     } else if (line.startsWith('# ')) {
-      out.push(<h2 key={i} className="text-base font-heading font-bold text-foreground mt-3">{line.slice(2)}</h2>);
+      bucket.push(<h2 key={i} className="text-base font-heading font-bold text-foreground mt-3">{line.slice(2)}</h2>);
     } else if (line.startsWith('> ')) {
-      out.push(
+      bucket.push(
         <blockquote key={i} className="border-l-2 border-primary/40 pl-2.5 text-muted-foreground italic my-1.5 text-xs">
           {line.slice(2)}
         </blockquote>,
       );
     } else if (line.startsWith('<!--')) {
-      out.push(<p key={i} className="text-[10px] text-muted-foreground/60 font-mono mt-2">{line}</p>);
+      bucket.push(<p key={i} className="text-[10px] text-muted-foreground/60 font-mono mt-2">{line}</p>);
     } else if (line === '') {
-      out.push(<div key={i} className="h-1.5" />);
+      bucket.push(<div key={i} className="h-1.5" />);
     } else {
-      out.push(
+      bucket.push(
         <p key={i} className="text-xs text-foreground/85 leading-relaxed" dangerouslySetInnerHTML={{ __html: inlineFmt(line) }} />,
       );
     }
   });
   flushList('end');
+  flushBucket();
   return out;
+}
+
+interface ThinHit {
+  key: PromptSectionKey;
+  label: string;
+  words: number;
+  reason: string;
 }
 
 export function CompiledPromptPreview({ form, defaultOpen = false, lastChangeKind = null, activeVariantLabel = null }: Props) {
