@@ -211,7 +211,7 @@ export function PromptSectionChecklist({
                                 ? 'border-nexus-amber/40 bg-nexus-amber/10 text-nexus-amber'
                                 : 'border-border bg-background text-muted-foreground',
                             )}
-                            title={isOk ? 'Cobertura suficiente' : isThin ? r.thinReason : 'Seção ausente'}
+                            title={isOk ? 'Cobertura suficiente' : isThin ? (r.thinReason ?? undefined) : 'Seção ausente'}
                           >
                             {body.words} palavra{body.words === 1 ? '' : 's'}
                           </span>
