@@ -84,9 +84,42 @@ interface MetricCardProps {
   target: string;
   status: SLOStatus;
   icon: React.ElementType;
+  /** Optional comparison value (raw number) for delta computation. */
+  current?: number;
+  previous?: number;
+  /** When true, lower is better (latency). When false, higher is better (success rate). */
+  lowerIsBetter?: boolean;
+  /** Formatter applied to the previous value when shown. */
+  formatPrev?: (n: number) => string;
+  /** Label of the comparison window (e.g. "vs 7d"). */
+  compareLabel?: string;
 }
 
-function MetricCard({ title, value, target, status, icon: Icon }: MetricCardProps) {
+function formatDelta(curr: number, prev: number, lowerIsBetter: boolean): {
+  pct: number;
+  isImprovement: boolean;
+  arrow: '↑' | '↓' | '→';
+  className: string;
+} {
+  if (prev === 0) {
+    return { pct: 0, isImprovement: true, arrow: '→', className: 'text-muted-foreground' };
+  }
+  const pct = ((curr - prev) / prev) * 100;
+  const arrow = pct > 0.5 ? '↑' : pct < -0.5 ? '↓' : '→';
+  const isImprovement = lowerIsBetter ? pct < 0 : pct > 0;
+  const className =
+    Math.abs(pct) < 0.5 ? 'text-muted-foreground'
+      : isImprovement ? 'text-nexus-emerald'
+      : 'text-destructive';
+  return { pct, isImprovement, arrow, className };
+}
+
+function MetricCard({
+  title, value, target, status, icon: Icon,
+  current, previous, lowerIsBetter = true, formatPrev, compareLabel,
+}: MetricCardProps) {
+  const showDelta = current !== undefined && previous !== undefined;
+  const delta = showDelta ? formatDelta(current, previous, lowerIsBetter) : null;
   return (
     <Card className="relative overflow-hidden">
       <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
@@ -99,6 +132,19 @@ function MetricCard({ title, value, target, status, icon: Icon }: MetricCardProp
           <p className="text-xs text-muted-foreground">Alvo: {target}</p>
           <StatusBadge status={status} />
         </div>
+        {showDelta && delta && (
+          <div
+            className="mt-2 pt-2 border-t border-border/40 flex items-center justify-between text-[11px]"
+            title={`Comparado com ${compareLabel ?? 'janela anterior'}`}
+          >
+            <span className="text-muted-foreground font-mono">
+              {compareLabel ?? 'anterior'}: {formatPrev ? formatPrev(previous!) : previous}
+            </span>
+            <span className={`font-mono font-semibold tabular-nums ${delta.className}`}>
+              {delta.arrow} {Math.abs(delta.pct).toFixed(1)}%
+            </span>
+          </div>
+        )}
       </CardContent>
     </Card>
   );
