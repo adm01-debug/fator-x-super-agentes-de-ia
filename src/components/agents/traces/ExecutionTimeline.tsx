@@ -180,6 +180,29 @@ function ExecutionSummary({
             title="Último passo (End)"
           >
             <ChevronsRight className="h-3.5 w-3.5" />
+          <Button
+            type="button"
+            size="icon"
+            variant="ghost"
+            className="h-6 w-6"
+            disabled={total === 0}
+            onClick={onExpandAll}
+            aria-label="Expandir todos os passos"
+            title="Expandir tudo"
+          >
+            <ChevronsUpDown className="h-3.5 w-3.5" />
+          </Button>
+          <Button
+            type="button"
+            size="icon"
+            variant="ghost"
+            className="h-6 w-6"
+            disabled={total === 0}
+            onClick={onCollapseAll}
+            aria-label="Recolher todos os passos"
+            title="Recolher tudo"
+          >
+            <ChevronsDownUp className="h-3.5 w-3.5" />
           </Button>
         </div>
       </div>
