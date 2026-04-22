@@ -200,8 +200,17 @@ export function DraftRecoveryBanner({
               Rascunho encontrado
             </h3>
             <p className="text-xs text-muted-foreground mt-0.5">
-              Você começou um agente {subjectOf(only.summary)} {formatRelative(only.savedAt)}. Quer continuar de onde parou?
+              Você começou um agente {formatRelative(only.savedAt)}. Renomeie ou continue de onde parou.
             </p>
+            <div className="mt-2">
+              <NameLabelOrEditor
+                draft={only}
+                isEditing={editingId === only.id}
+                onStartEdit={() => setEditingId(only.id)}
+                onCancel={() => setEditingId(null)}
+                onConfirm={(newName) => handleConfirmRename(only.id, newName)}
+              />
+            </div>
           </div>
         </div>
 
