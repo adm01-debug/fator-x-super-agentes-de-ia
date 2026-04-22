@@ -1,5 +1,5 @@
 import { useMemo, useState } from 'react';
-import { CheckCircle2, AlertTriangle, XCircle, RotateCcw, Flame, Activity, Clock } from 'lucide-react';
+import { CheckCircle2, AlertTriangle, XCircle, RotateCcw, Flame, Activity, Clock, Download } from 'lucide-react';
 import { Slider } from '@/components/ui/slider';
 import { Button } from '@/components/ui/button';
 import { useAgentSLOTargets, DEFAULT_SLO_TARGETS, type SLOTargetsConfig } from '@/hooks/useAgentSLOTargets';
@@ -14,6 +14,8 @@ import {
 } from './agentMetricsHelpers';
 import type { AgentTrace } from '@/services/agentsService';
 import { SLOViolationTimeline } from './SLOViolationTimeline';
+import { generateSLOReportPdf } from './sloReportPdf';
+import { toast } from 'sonner';
 
 type EvalWindowKey = '1h' | '6h' | '24h' | '7d' | '14d' | '30d';
 
@@ -28,6 +30,7 @@ const EVAL_WINDOWS: Array<{ key: EvalWindowKey; label: string; ms: number; bucke
 
 interface Props {
   agentId: string;
+  agentName?: string;
   slo: SLOMetrics;
   traces: AgentTrace[];
   daily: DailyPoint[];
