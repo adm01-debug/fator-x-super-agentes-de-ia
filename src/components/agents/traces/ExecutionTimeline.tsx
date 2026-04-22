@@ -262,16 +262,22 @@ interface TraceItemProps {
   index: number;
   active: boolean;
   onSelect: () => void;
+  bulk: { v: number; open: boolean } | null;
 }
 
 const TraceItem = forwardRef<HTMLLIElement, TraceItemProps>(
-  ({ trace, index, active, onSelect }, ref) => {
+  ({ trace, index, active, onSelect, bulk }, ref) => {
     const [open, setOpen] = useState(false);
     const ts = new Date(trace.created_at).toLocaleTimeString('pt-BR', { hour12: false });
 
     useEffect(() => {
       if (active) setOpen(true);
     }, [active]);
+
+    // Sync with bulk expand/collapse signal from the parent.
+    useEffect(() => {
+      if (bulk) setOpen(bulk.open);
+    }, [bulk]);
 
     const handleClick = () => {
       if (active) setOpen((o) => !o);
