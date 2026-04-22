@@ -343,12 +343,19 @@ export function QuickCreateWizard({ onBack }: QuickCreateWizardProps) {
   }, [step, form, errors]);
 
   const bannerEntries: DraftBannerEntry[] = useMemo(
-    () => pendingDrafts.map((d) => ({
-      id: d.id,
-      savedAt: d.savedAt,
-      summary: summarizeForm(d.form),
-      typeLabel: TYPE_LABEL[d.form.type as QuickAgentType] ?? String(d.form.type),
-    })),
+    () => pendingDrafts.map((d) => {
+      const check = checkDraftRestorable(d.form);
+      return {
+        id: d.id,
+        savedAt: d.savedAt,
+        summary: summarizeForm(d.form),
+        typeLabel: TYPE_LABEL[d.form.type as QuickAgentType] ?? String(d.form.type),
+        restorable: check.canRestore,
+        restoreBlockedReason: check.canRestore
+          ? undefined
+          : `${check.reason ?? 'Incompleto'} — ${check.nextStep ?? ''}`.trim(),
+      };
+    }),
     [pendingDrafts],
   );
 
