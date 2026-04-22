@@ -267,6 +267,24 @@ function ExecutionSummary({
   );
 }
 
+function ShortcutRow({ keys, label }: { keys: string[]; label: string }) {
+  return (
+    <li className="flex items-center justify-between gap-2">
+      <span className="text-muted-foreground">{label}</span>
+      <span className="flex items-center gap-1">
+        {keys.map((k, i) => (
+          <kbd
+            key={i}
+            className="inline-flex items-center justify-center min-w-[20px] h-5 px-1.5 rounded border border-border/60 bg-muted/60 text-[10px] font-mono text-foreground"
+          >
+            {k}
+          </kbd>
+        ))}
+      </span>
+    </li>
+  );
+}
+
 function SummaryStat({
   icon: Icon, value, label, className,
 }: {
