@@ -4,6 +4,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
 import type { QuickAgentForm } from '@/lib/validations/quickAgentSchema';
 import { FIELD_HIGHLIGHT_CLS } from './useFieldHighlight';
+import { expandAncestorContainers } from './expandAncestorContainers';
 import { FieldValidationHint, type FieldValidationHintInfo } from './FieldValidationHint';
 
 const EMOJI_SUGGESTIONS = ['🤖', '💬', '✨', '📊', '💼', '🎧', '🔎', '🎼', '🧠', '🚀', '🛡️', '🌟'];
@@ -33,8 +34,15 @@ export function StepQuickIdentity({ form, errors, update, highlightField, highli
     const id = `qa-${highlightField === 'description' ? 'desc' : highlightField}`;
     const el = document.getElementById(id);
     if (el) {
-      el.scrollIntoView({ block: 'center', behavior: 'smooth' });
-      window.setTimeout(() => (el as HTMLElement).focus?.({ preventScroll: true }), 250);
+      // Garante que ancestrais Collapsible/Accordion/Tabs estejam abertos
+      // antes de rolar — sem isso o input pode estar com display:none e o
+      // scroll/focus falharia silenciosamente.
+      const expanded = expandAncestorContainers(el);
+      const delay = expanded ? 60 : 0;
+      window.setTimeout(() => {
+        el.scrollIntoView({ block: 'center', behavior: 'smooth' });
+      }, delay);
+      window.setTimeout(() => (el as HTMLElement).focus?.({ preventScroll: true }), 250 + delay);
     }
     setPulsingField(highlightField);
     if (pulseTimerRef.current != null) window.clearTimeout(pulseTimerRef.current);
