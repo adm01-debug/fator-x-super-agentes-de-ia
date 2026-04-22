@@ -12,6 +12,7 @@ import { cn } from '@/lib/utils';
 
 export type PromptLockEventKind =
   | 'locked-manual-edit'
+  | 'locked-paste'
   | 'unlocked-template'
   | 'unlocked-variant'
   | 'unlocked-type-change'
@@ -30,6 +31,7 @@ export interface PromptLockEvent {
 
 const KIND_LABEL: Record<PromptLockEventKind, string> = {
   'locked-manual-edit': 'Modo Custom travado (edição manual)',
+  'locked-paste': 'Modo Custom travado (conteúdo colado)',
   'unlocked-template': 'Destravado — template aplicado',
   'unlocked-variant': 'Destravado — variação aplicada',
   'unlocked-type-change': 'Destravado — tipo do agente alterado',
