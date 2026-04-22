@@ -133,6 +133,21 @@ export function QuickCreateWizard({ onBack }: QuickCreateWizardProps) {
   const [promptCustomLocked, setPromptCustomLocked] = useState(false);
   const [selectedVariant, setSelectedVariant] = useState<import('@/data/quickAgentTemplates').PromptVariantId | null>(null);
   const [pendingVariant, setPendingVariant] = useState<import('@/data/quickAgentTemplates').PromptVariantId | null>(null);
+  const [lockEvents, setLockEvents] = useState<import('./quickSteps/PromptLockEventLog').PromptLockEvent[]>([]);
+  const pushLockEvent = (
+    kind: import('./quickSteps/PromptLockEventLog').PromptLockEventKind,
+    detail?: string,
+  ) => {
+    setLockEvents((prev) => [
+      ...prev,
+      {
+        id: `${Date.now()}-${Math.random().toString(36).slice(2, 7)}`,
+        at: Date.now(),
+        kind,
+        detail,
+      },
+    ].slice(-30));
+  };
   const lastTypeRef = useRef<QuickAgentType | null>(null);
   const lastTypeForLockRef = useRef<string>(QUICK_AGENT_DEFAULTS.type);
 
@@ -262,6 +277,11 @@ export function QuickCreateWizard({ onBack }: QuickCreateWizardProps) {
     });
     setPendingDrafts([]);
     setDraftDecided(true);
+    if (target.promptCustomLocked === true) {
+      pushLockEvent('locked-manual-edit', `rascunho "${target.form.name?.trim() || 'sem nome'}" restaurado já travado`);
+    } else {
+      pushLockEvent('unlocked-draft-restore', `rascunho "${target.form.name?.trim() || 'sem nome'}"`);
+    }
     if (!check.canRestore) {
       toast.warning('Rascunho restaurado parcialmente', {
         description: resume.field
@@ -328,6 +348,9 @@ export function QuickCreateWizard({ onBack }: QuickCreateWizardProps) {
     setForm((prev) => ({ ...prev, prompt: next }));
     setErrors((prev) => ({ ...prev, prompt: undefined }));
     if (highlightField === 'prompt') setHighlightField(null);
+    if (!promptCustomLocked) {
+      pushLockEvent('locked-manual-edit', 'edição direta no editor');
+    }
     setPromptCustomLocked(true);
     setSelectedVariant(null);
   };
@@ -335,11 +358,18 @@ export function QuickCreateWizard({ onBack }: QuickCreateWizardProps) {
   // Reset lock + persisted variant when the user changes the agent type.
   useEffect(() => {
     if (lastTypeForLockRef.current !== form.type) {
+      const prevType = lastTypeForLockRef.current;
       lastTypeForLockRef.current = form.type;
+      if (promptCustomLocked) {
+        pushLockEvent(
+          'unlocked-type-change',
+          `${TYPE_LABEL[prevType as QuickAgentType] ?? prevType} → ${TYPE_LABEL[form.type as QuickAgentType] ?? form.type}`,
+        );
+      }
       setPromptCustomLocked(false);
       setSelectedVariant(null);
     }
-  }, [form.type]);
+  }, [form.type]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const applyTemplate = (type: QuickAgentType) => {
     const t = QUICK_AGENT_TEMPLATES[type];
@@ -353,6 +383,9 @@ export function QuickCreateWizard({ onBack }: QuickCreateWizardProps) {
       model: t.recommendedModel,
       prompt: t.systemPrompt,
     }));
+    if (promptCustomLocked) {
+      pushLockEvent('unlocked-template', `template "${t.suggestedName}"`);
+    }
     setPromptCustomLocked(false);
     setSelectedVariant(null);
     toast.success(`Template "${t.suggestedName}" aplicado`, {
@@ -364,6 +397,9 @@ export function QuickCreateWizard({ onBack }: QuickCreateWizardProps) {
   const restorePromptFromType = () => {
     const t = QUICK_AGENT_TEMPLATES[form.type as QuickAgentType];
     update('prompt', t.systemPrompt);
+    if (promptCustomLocked) {
+      pushLockEvent('unlocked-restore-template', `template do tipo ${TYPE_LABEL[form.type as QuickAgentType] ?? form.type}`);
+    }
     setPromptCustomLocked(false);
     setSelectedVariant(null);
     toast.success('Prompt restaurado do template');
@@ -383,6 +419,9 @@ export function QuickCreateWizard({ onBack }: QuickCreateWizardProps) {
       prompt: sanitized,
       emoji: t.emoji,
     }));
+    if (promptCustomLocked) {
+      pushLockEvent('unlocked-safe-reset', `tipo ${TYPE_LABEL[form.type as QuickAgentType] ?? form.type}`);
+    }
     setPromptCustomLocked(false);
     setSelectedVariant(null);
     setErrors((prev) => ({ ...prev, prompt: undefined }));
@@ -396,6 +435,9 @@ export function QuickCreateWizard({ onBack }: QuickCreateWizardProps) {
     const t = QUICK_AGENT_TEMPLATES[form.type as QuickAgentType];
     const variant = t.promptVariants[variantId];
     update('prompt', variant.prompt);
+    if (promptCustomLocked) {
+      pushLockEvent('unlocked-variant', `variação "${variant.label}"`);
+    }
     setPromptCustomLocked(false);
     setSelectedVariant(variantId);
     toast.success(`Variação "${variant.label}" aplicada`, {
@@ -408,6 +450,9 @@ export function QuickCreateWizard({ onBack }: QuickCreateWizardProps) {
     const nextPrompt = t.promptVariants[variantId].prompt;
     if (form.prompt.trim() === nextPrompt.trim()) {
       toast.info(`Já está usando "${t.promptVariants[variantId].label}"`);
+      if (promptCustomLocked) {
+        pushLockEvent('unlocked-variant', `variação "${t.promptVariants[variantId].label}" (sem alterações no texto)`);
+      }
       setSelectedVariant(variantId);
       setPromptCustomLocked(false);
       return;
@@ -591,7 +636,7 @@ export function QuickCreateWizard({ onBack }: QuickCreateWizardProps) {
       case 3: {
         const detected = detectPromptVariant(form.type as QuickAgentType, form.prompt);
         const activeVariant = promptCustomLocked ? null : (selectedVariant ?? detected);
-        return <StepQuickPrompt form={form} errors={errors} onPromptManualEdit={updatePromptManual} onRestore={restorePromptFromType} onSafeReset={safeResetPromptAndPreview} onApplyVariant={applyPromptVariant} customLocked={promptCustomLocked} onUnlockCustom={() => { setPromptCustomLocked(false); setSelectedVariant(null); }} activeVariant={activeVariant} highlightField={hfFor(['prompt'])} />;
+        return <StepQuickPrompt form={form} errors={errors} onPromptManualEdit={updatePromptManual} onRestore={restorePromptFromType} onSafeReset={safeResetPromptAndPreview} onApplyVariant={applyPromptVariant} customLocked={promptCustomLocked} onUnlockCustom={() => { if (promptCustomLocked) pushLockEvent('unlocked-manual', 'botão "Destravar" no editor'); setPromptCustomLocked(false); setSelectedVariant(null); }} activeVariant={activeVariant} lockEvents={lockEvents} highlightField={hfFor(['prompt'])} />;
       }
       default: return null;
     }

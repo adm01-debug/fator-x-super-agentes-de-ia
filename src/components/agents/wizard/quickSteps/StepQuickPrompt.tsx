@@ -25,6 +25,7 @@ import { CompiledPromptPreview } from './CompiledPromptPreview';
 import { PromptSectionChecklist } from './PromptSectionChecklist';
 import { PromptSectionUsage } from './PromptSectionUsage';
 import { PromptVariantSelector } from './PromptVariantSelector';
+import { PromptLockEventLog, type PromptLockEvent } from './PromptLockEventLog';
 import { PromptValidationFeedback } from './PromptValidationFeedback';
 import { AgentLivePreviewCard } from './AgentLivePreviewCard';
 import { QuickAgentTestPanel } from './QuickAgentTestPanel';
@@ -69,10 +70,12 @@ interface Props {
    * choice persists across sessions.
    */
   activeVariant: PromptVariantId | null;
+  /** Chronological log of Custom-mode lock/unlock transitions. */
+  lockEvents?: PromptLockEvent[];
   highlightField?: keyof QuickAgentForm;
 }
 
-export function StepQuickPrompt({ form, errors, onPromptManualEdit, onRestore, onSafeReset, onApplyVariant, customLocked, onUnlockCustom, activeVariant, highlightField }: Props) {
+export function StepQuickPrompt({ form, errors, onPromptManualEdit, onRestore, onSafeReset, onApplyVariant, customLocked, onUnlockCustom, activeVariant, lockEvents, highlightField }: Props) {
   // Active variant template + label — drives the checklist's per-section snippets
   // and the "Completar com X" CTA in real time.
   const activeVariantPrompt = activeVariant
@@ -337,6 +340,8 @@ export function StepQuickPrompt({ form, errors, onPromptManualEdit, onRestore, o
         customLocked={customLocked}
         onUnlock={onUnlockCustom}
       />
+
+      {lockEvents && lockEvents.length > 0 && <PromptLockEventLog events={lockEvents} />}
 
       <div
         className={`nexus-card space-y-3 transition-shadow ${
