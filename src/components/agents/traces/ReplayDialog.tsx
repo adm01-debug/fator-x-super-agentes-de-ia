@@ -226,6 +226,37 @@ export function ReplayDialog({ open, onOpenChange, execution, initialStep = 0, o
             <RotateCcw className="h-3.5 w-3.5" />
           </Button>
 
+          {bookmarks.length > 0 && (
+            <>
+              <span className="h-5 w-px bg-border/60 mx-1" aria-hidden />
+              <Button
+                size="icon"
+                variant="outline"
+                className="h-8 w-8 text-nexus-amber border-nexus-amber/40 hover:bg-nexus-amber/10"
+                onClick={() => jumpBookmark(-1)}
+                aria-label="Marcador anterior"
+                title="Marcador anterior (Shift+B)"
+              >
+                <BookmarkCheck className="h-3.5 w-3.5" />
+                <span className="sr-only">Anterior</span>
+              </Button>
+              <Badge variant="outline" className="text-[10px] gap-1 text-nexus-amber border-nexus-amber/40">
+                <BookmarkCheck className="h-3 w-3" /> {bookmarks.length}
+              </Badge>
+              <Button
+                size="icon"
+                variant="outline"
+                className="h-8 w-8 text-nexus-amber border-nexus-amber/40 hover:bg-nexus-amber/10"
+                onClick={() => jumpBookmark(1)}
+                aria-label="Próximo marcador"
+                title="Próximo marcador (b)"
+              >
+                <BookmarkCheck className="h-3.5 w-3.5" />
+                <span className="sr-only">Próximo</span>
+              </Button>
+            </>
+          )}
+
           <div className="ml-2 flex items-center gap-2">
             <span className="text-[10px] uppercase text-muted-foreground">Velocidade</span>
             <Select value={String(speed)} onValueChange={(v) => setSpeed(Number(v))}>
