@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
 import {
   Activity,
   AlertTriangle,
@@ -13,13 +13,28 @@ import {
   TrendingUp,
   Zap,
 } from 'lucide-react';
-import type { KPIInsight, CauseTone } from './kpiInsights';
+import type { AgentTrace } from '@/services/agentsService';
+import {
+  compareWindows,
+  compareSuccessRateWindows,
+  type DailyPoint,
+} from './agentMetricsHelpers';
+import { buildKPIInsights, type KPIInsight, type CauseTone } from './kpiInsights';
 
 interface Props {
-  insights: KPIInsight[];
+  daily: DailyPoint[];
+  traces: AgentTrace[];
 }
 
 const THRESHOLD_PRESETS = [1, 5, 10, 20] as const;
+
+const WINDOW_PRESETS = [
+  { value: 3, label: '3d' },
+  { value: 7, label: '7d' },
+  { value: 14, label: '14d' },
+] as const;
+
+type WindowValue = (typeof WINDOW_PRESETS)[number]['value'];
 
 const KPI_ICON: Record<KPIInsight['key'], typeof Activity> = {
   success: ShieldCheck,
@@ -34,8 +49,29 @@ const TONE_STYLE: Record<CauseTone, { color: string; bg: string; border: string;
   neutral:  { color: 'text-muted-foreground', bg: 'bg-secondary/40', border: 'border-border/40', Icon: Minus },
 };
 
-export function KPIDeepInsightsPanel({ insights }: Props) {
+export function KPIDeepInsightsPanel({ daily, traces }: Props) {
   const [threshold, setThreshold] = useState<number>(5);
+  const [windowDays, setWindowDays] = useState<WindowValue>(7);
+
+  // How much daily history is actually available (we need 2× the window).
+  const availableDays = daily.length;
+  const supportedWindows = WINDOW_PRESETS.filter((w) => w.value * 2 <= availableDays);
+  const effectiveWindow: WindowValue = supportedWindows.some((w) => w.value === windowDays)
+    ? windowDays
+    : (supportedWindows[supportedWindows.length - 1]?.value ?? WINDOW_PRESETS[0].value);
+
+  const insights = useMemo<KPIInsight[]>(() => {
+    const reqCmp = compareWindows(daily, (d) => d.requests, { window: effectiveWindow });
+    const costCmp = compareWindows(daily, (d) => d.cost, { inverted: true, window: effectiveWindow });
+    const latCmp = compareWindows(daily, (d) => d.avgLatency, { inverted: true, window: effectiveWindow });
+    const successCmp = compareSuccessRateWindows(traces, effectiveWindow);
+    return buildKPIInsights({
+      daily,
+      traces,
+      cmps: { success: successCmp, latency: latCmp, cost: costCmp, requests: reqCmp },
+      window: effectiveWindow,
+    });
+  }, [daily, traces, effectiveWindow]);
 
   // Choose the most "interesting" KPI by default — biggest |delta|.
   const defaultKey =
@@ -51,6 +87,8 @@ export function KPIDeepInsightsPanel({ insights }: Props) {
   const isRelevant = (i: KPIInsight) =>
     i.cmp.hasPrev && i.cmp.trend !== 'flat' && Math.abs(i.cmp.deltaPct) >= threshold;
   const activeRelevant = isRelevant(active);
+
+  const windowLabel = `${effectiveWindow}d vs ${effectiveWindow}d anteriores`;
 
   return (
     <div
@@ -70,34 +108,71 @@ export function KPIDeepInsightsPanel({ insights }: Props) {
               Insights detalhados por KPI
             </h3>
             <p className="text-[11px] text-muted-foreground">
-              O que provavelmente causou o delta nos últimos 7 dias vs 7 dias anteriores
+              O que provavelmente causou o delta nos últimos {windowLabel}
             </p>
           </div>
         </div>
 
-        <div
-          className="flex items-center gap-1.5 rounded-lg border border-border bg-secondary/30 p-1"
-          role="group"
-          aria-label="Limiar de destaque do delta percentual"
-        >
-          <span className="text-[10px] font-semibold text-muted-foreground px-1.5 uppercase tracking-wide">
-            Limiar
-          </span>
-          {THRESHOLD_PRESETS.map((t) => (
-            <button
-              key={t}
-              type="button"
-              onClick={() => setThreshold(t)}
-              aria-pressed={threshold === t}
-              className={`px-2 py-0.5 rounded-md text-[10px] font-mono font-semibold transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring ${
-                threshold === t
-                  ? 'bg-primary text-primary-foreground'
-                  : 'text-muted-foreground hover:text-foreground hover:bg-secondary/60'
-              }`}
-            >
-              ≥{t}%
-            </button>
-          ))}
+        <div className="flex items-center gap-2 flex-wrap">
+          <div
+            className="flex items-center gap-1.5 rounded-lg border border-border bg-secondary/30 p-1"
+            role="group"
+            aria-label="Janela de comparação"
+          >
+            <span className="text-[10px] font-semibold text-muted-foreground px-1.5 uppercase tracking-wide">
+              Janela
+            </span>
+            {WINDOW_PRESETS.map((w) => {
+              const supported = w.value * 2 <= availableDays;
+              const selected = effectiveWindow === w.value;
+              return (
+                <button
+                  key={w.value}
+                  type="button"
+                  onClick={() => supported && setWindowDays(w.value)}
+                  disabled={!supported}
+                  aria-pressed={selected}
+                  title={supported
+                    ? `Comparar últimos ${w.value} dias com os ${w.value} anteriores`
+                    : `Sem histórico suficiente (precisa de ${w.value * 2} dias)`}
+                  className={`px-2 py-0.5 rounded-md text-[10px] font-mono font-semibold transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring ${
+                    selected
+                      ? 'bg-primary text-primary-foreground'
+                      : supported
+                        ? 'text-muted-foreground hover:text-foreground hover:bg-secondary/60'
+                        : 'text-muted-foreground/40 cursor-not-allowed'
+                  }`}
+                >
+                  {w.label}
+                </button>
+              );
+            })}
+          </div>
+
+          <div
+            className="flex items-center gap-1.5 rounded-lg border border-border bg-secondary/30 p-1"
+            role="group"
+            aria-label="Limiar de destaque do delta percentual"
+          >
+            <span className="text-[10px] font-semibold text-muted-foreground px-1.5 uppercase tracking-wide">
+              Limiar
+            </span>
+            {THRESHOLD_PRESETS.map((t) => (
+              <button
+                key={t}
+                type="button"
+                onClick={() => setThreshold(t)}
+                aria-pressed={threshold === t}
+                className={`px-2 py-0.5 rounded-md text-[10px] font-mono font-semibold transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring ${
+                  threshold === t
+                    ? 'bg-primary text-primary-foreground'
+                    : 'text-muted-foreground hover:text-foreground hover:bg-secondary/60'
+                }`}
+              >
+                ≥{t}%
+              </button>
+            ))}
+          </div>
         </div>
       </div>
 
@@ -169,6 +244,7 @@ export function KPIDeepInsightsPanel({ insights }: Props) {
                   ({active.cmp.deltaPct >= 0 ? '+' : ''}{active.cmp.deltaPct.toFixed(1)}%)
                 </span>
               )}
+              <span className="ml-1.5 text-muted-foreground/70">· {windowLabel}</span>
             </p>
           </div>
         </div>
