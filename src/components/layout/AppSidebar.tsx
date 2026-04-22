@@ -187,6 +187,7 @@ const navSections = [
       { title: 'Equipe', url: '/team', icon: Users },
       { title: 'Faturamento', url: '/billing', icon: CreditCard },
       { title: 'Orçamento', url: '/settings/budget', icon: Wallet },
+      { title: 'Cost Attribution', url: '/billing/attribution', icon: TrendingDown },
       { title: 'Configurações', url: '/settings', icon: Settings },
       { title: 'Admin BD', url: '/admin', icon: ServerCog },
     ],

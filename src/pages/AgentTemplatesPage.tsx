@@ -20,7 +20,7 @@ import { AGENT_TEMPLATES, type AgentTemplate } from '@/data/agentTemplates';
 import { toAgentTools } from '@/data/toolCatalog';
 import { buildRagSourcesForAgent } from '@/data/knowledgeBaseSeeds';
 import { DEFAULT_AGENT } from '@/data/agentBuilderData';
-import { saveAgent } from '@/lib/agentService';
+import { saveAgent, getWorkspaceId } from '@/lib/agentService';
 import type {
   AgentConfig,
   AgentPersona,
@@ -32,6 +32,7 @@ import type {
 } from '@/types/agentTypes';
 import { useAuth } from '@/contexts/useAuth';
 import { logger } from '@/lib/logger';
+import { getBudgetSnapshot, shouldBlockCall } from '@/services/costBudget';
 
 const ALL = 'all';
 
@@ -208,6 +209,23 @@ export default function AgentTemplatesPage() {
   const forkMutation = useMutation({
     mutationFn: async (t: AgentTemplate) => {
       if (!user) throw new Error('Faça login para criar agentes');
+      // Gate de orçamento: Rodada 1 Cost Breaker impede fork quando o
+      // workspace está em hard_stop (previne criar novos agentes quando
+      // o admin já estourou o orçamento e pausou chamadas).
+      const wsId = await getWorkspaceId();
+      if (wsId) {
+        try {
+          const snap = await getBudgetSnapshot(wsId);
+          if (shouldBlockCall(snap)) {
+            throw new Error(
+              snap.reason ?? 'Orçamento atingido — forks estão bloqueados até o reset.',
+            );
+          }
+        } catch (e) {
+          if (e instanceof Error && /Orçamento/.test(e.message)) throw e;
+          // erro transiente ao checar budget: não bloqueia o fluxo
+        }
+      }
       const agent = buildAgentFromTemplate(t);
       return saveAgent(agent);
     },

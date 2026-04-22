@@ -47,6 +47,7 @@ const PromptEditorPage = lazy(() => import('./pages/PromptEditorPage'));
 const WorkflowsPage = lazy(() => import('./pages/WorkflowsPage'));
 const EvaluationsPage = lazy(() => import('./pages/EvaluationsPage'));
 const EvalSchedulePage = lazy(() => import('./pages/EvalSchedulePage'));
+const CostAttributionPage = lazy(() => import('./pages/CostAttributionPage'));
 const DeploymentsPage = lazy(() => import('./pages/DeploymentsPage'));
 const OpenclawDeployPage = lazy(() => import('./pages/OpenclawDeployPage'));
 const MonitoringPage = lazy(() => import('./pages/MonitoringPage'));
@@ -465,6 +466,14 @@ const App = () => (
                             element={
                               <SafePage>
                                 <EvalSchedulePage />
+                              </SafePage>
+                            }
+                          />
+                          <Route
+                            path="/billing/attribution"
+                            element={
+                              <SafePage>
+                                <CostAttributionPage />
                               </SafePage>
                             }
                           />

@@ -22,6 +22,14 @@ export interface EvalResult {
     llm_judge: number;
     combined: number;
   };
+  /** RAGAS metrics when contexts are available (optional). */
+  ragas?: {
+    faithfulness: number;
+    answer_relevancy: number;
+    context_precision: number;
+    context_recall: number | null;
+    overall: number;
+  } | null;
   latency_ms: number;
   tokens_used: number;
   cost_usd: number;
