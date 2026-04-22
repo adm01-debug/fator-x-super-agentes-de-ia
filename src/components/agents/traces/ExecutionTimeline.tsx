@@ -1,12 +1,13 @@
-import { forwardRef, useEffect, useRef, useState } from 'react';
+import { forwardRef, useEffect, useMemo, useRef, useState } from 'react';
 import {
   ChevronDown, ChevronRight, Info, AlertTriangle, XCircle,
   CheckCircle2, Clock, DollarSign, Hash, Zap,
   ChevronsLeft, ChevronLeft, ChevronsRight,
-  ChevronsDownUp, ChevronsUpDown, Keyboard,
+  ChevronsDownUp, ChevronsUpDown, Keyboard, Search, X,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
+import { Input } from '@/components/ui/input';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { cn } from '@/lib/utils';
 import type { AgentTraceRow, ExecutionGroup, TraceLevel } from '@/services/agentTracesService';
@@ -29,10 +30,43 @@ interface Props {
   onSelectStep?: (index: number) => void;
 }
 
+/** Stringify safely for in-step search. */
+function traceHaystack(t: AgentTraceRow): string {
+  const parts: string[] = [t.event ?? '', t.level ?? ''];
+  const dump = (v: unknown) => {
+    if (v == null) return '';
+    if (typeof v === 'string') return v;
+    try { return JSON.stringify(v); } catch { return String(v); }
+  };
+  parts.push(dump(t.input));
+  parts.push(dump(t.output));
+  parts.push(dump(t.metadata));
+  return parts.join('\n').toLowerCase();
+}
+
 export function ExecutionTimeline({ execution, selectedStep, onSelectStep }: Props) {
   const [internalStep, setInternalStep] = useState(0);
   const step = selectedStep ?? internalStep;
   const total = execution.traces.length;
+
+  // In-execution text search (event/tool name, error fragment, prompt/response excerpt).
+  const [stepSearch, setStepSearch] = useState('');
+  const normalized = stepSearch.trim().toLowerCase();
+
+  // Indexes of traces that match the current search. Empty array when no search.
+  const matchIndexes = useMemo(() => {
+    if (!normalized) return [] as number[];
+    const out: number[] = [];
+    execution.traces.forEach((t, i) => {
+      if (traceHaystack(t).includes(normalized)) out.push(i);
+    });
+    return out;
+  }, [execution.traces, normalized]);
+
+  const matchSet = useMemo(() => new Set(matchIndexes), [matchIndexes]);
+
+  // Reset search when switching execution.
+  useEffect(() => { setStepSearch(''); }, [execution.session_id]);
 
   // Bulk expand/collapse: bump a counter + carry the desired state.
   // TraceItem syncs its local `open` whenever this version changes.
@@ -47,15 +81,33 @@ export function ExecutionTimeline({ execution, selectedStep, onSelectStep }: Pro
     else setInternalStep(clamped);
   };
 
+  /** Jump to next/previous match relative to the current step. */
+  const jumpMatch = (dir: 1 | -1) => {
+    if (matchIndexes.length === 0) return;
+    if (dir === 1) {
+      const next = matchIndexes.find((i) => i > step) ?? matchIndexes[0];
+      setStep(next);
+    } else {
+      const prev = [...matchIndexes].reverse().find((i) => i < step) ?? matchIndexes[matchIndexes.length - 1];
+      setStep(prev);
+    }
+  };
+
   useEffect(() => {
     if (selectedStep == null) setInternalStep(0);
   }, [execution.session_id, selectedStep]);
 
   const onKeyDown = (e: React.KeyboardEvent) => {
+    // Don't hijack typing inside the search field.
+    const target = e.target as HTMLElement;
+    if (target.tagName === 'INPUT' || target.tagName === 'TEXTAREA') return;
+
     if (e.key === 'ArrowDown' || e.key === 'j') { e.preventDefault(); setStep(step + 1); }
     else if (e.key === 'ArrowUp' || e.key === 'k') { e.preventDefault(); setStep(step - 1); }
     else if (e.key === 'Home') { e.preventDefault(); setStep(0); }
     else if (e.key === 'End') { e.preventDefault(); setStep(total - 1); }
+    else if (e.key === 'n' && matchIndexes.length > 0) { e.preventDefault(); jumpMatch(1); }
+    else if (e.key === 'N' && matchIndexes.length > 0) { e.preventDefault(); jumpMatch(-1); }
   };
 
   const itemsRef = useRef<Array<HTMLLIElement | null>>([]);
@@ -77,6 +129,10 @@ export function ExecutionTimeline({ execution, selectedStep, onSelectStep }: Pro
         onStep={setStep}
         onExpandAll={expandAll}
         onCollapseAll={collapseAll}
+        stepSearch={stepSearch}
+        onStepSearch={setStepSearch}
+        matchCount={matchIndexes.length}
+        onJumpMatch={jumpMatch}
       />
 
       <ol
@@ -85,17 +141,24 @@ export function ExecutionTimeline({ execution, selectedStep, onSelectStep }: Pro
         aria-label="Eventos da execução"
         aria-activedescendant={execution.traces[step] ? `trace-${execution.traces[step].id}` : undefined}
       >
-        {execution.traces.map((t, i) => (
-          <TraceItem
-            key={t.id}
-            ref={(el) => { itemsRef.current[i] = el; }}
-            trace={t}
-            index={i}
-            active={i === step}
-            onSelect={() => setStep(i)}
-            bulk={bulk}
-          />
-        ))}
+        {execution.traces.map((t, i) => {
+          const isMatch = matchSet.has(i);
+          const dim = normalized.length > 0 && !isMatch;
+          return (
+            <TraceItem
+              key={t.id}
+              ref={(el) => { itemsRef.current[i] = el; }}
+              trace={t}
+              index={i}
+              active={i === step}
+              onSelect={() => setStep(i)}
+              bulk={bulk}
+              highlight={normalized}
+              isMatch={isMatch}
+              dim={dim}
+            />
+          );
+        })}
       </ol>
     </div>
   );
@@ -107,6 +170,7 @@ export function ExecutionTimeline({ execution, selectedStep, onSelectStep }: Pro
 
 function ExecutionSummary({
   execution, step, total, onStep, onExpandAll, onCollapseAll,
+  stepSearch, onStepSearch, matchCount, onJumpMatch,
 }: {
   execution: ExecutionGroup;
   step: number;
@@ -114,12 +178,17 @@ function ExecutionSummary({
   onStep: (i: number) => void;
   onExpandAll: () => void;
   onCollapseAll: () => void;
+  stepSearch: string;
+  onStepSearch: (v: string) => void;
+  matchCount: number;
+  onJumpMatch: (dir: 1 | -1) => void;
 }) {
   const { counts, total_ms, total_tokens, total_cost, session_id, traces } = execution;
   const current = traces[step];
   const isAuto = session_id.startsWith('auto-');
   const atStart = step <= 0;
   const atEnd = step >= total - 1;
+  const hasSearch = stepSearch.trim().length > 0;
 
   return (
     <div className="sticky top-0 z-10 bg-background/95 backdrop-blur border border-border/40 rounded-lg p-3 space-y-2">
@@ -233,10 +302,74 @@ function ExecutionSummary({
                 <ShortcutRow keys={['↑', 'k']} label="Passo anterior" />
                 <ShortcutRow keys={['Home']} label="Primeiro passo" />
                 <ShortcutRow keys={['End']} label="Último passo" />
+                <ShortcutRow keys={['n']} label="Próximo match" />
+                <ShortcutRow keys={['N']} label="Match anterior" />
               </ul>
             </PopoverContent>
           </Popover>
         </div>
+      </div>
+
+      {/* In-execution text search */}
+      <div className="flex items-center gap-2">
+        <div className="relative flex-1 min-w-0">
+          <Search className="h-3 w-3 absolute left-2 top-1/2 -translate-y-1/2 text-muted-foreground" />
+          <Input
+            value={stepSearch}
+            onChange={(e) => onStepSearch(e.target.value)}
+            placeholder="Buscar nos eventos: erro, nome de tool, trecho do prompt/resposta..."
+            className="h-7 pl-7 pr-7 text-[11px]"
+            aria-label="Buscar dentro desta execução"
+          />
+          {hasSearch && (
+            <button
+              type="button"
+              onClick={() => onStepSearch('')}
+              className="absolute right-1.5 top-1/2 -translate-y-1/2 h-4 w-4 rounded hover:bg-muted text-muted-foreground hover:text-foreground flex items-center justify-center"
+              aria-label="Limpar busca"
+              title="Limpar busca (Esc)"
+            >
+              <X className="h-3 w-3" />
+            </button>
+          )}
+        </div>
+        {hasSearch && (
+          <>
+            <Badge
+              variant={matchCount > 0 ? 'secondary' : 'outline'}
+              className={cn(
+                'text-[10px] tabular-nums shrink-0',
+                matchCount === 0 && 'text-muted-foreground',
+              )}
+            >
+              {matchCount === 0 ? 'sem matches' : `${matchCount} match${matchCount === 1 ? '' : 'es'}`}
+            </Badge>
+            <Button
+              type="button"
+              size="icon"
+              variant="ghost"
+              className="h-6 w-6 shrink-0"
+              disabled={matchCount === 0}
+              onClick={() => onJumpMatch(-1)}
+              aria-label="Match anterior"
+              title="Match anterior (Shift+N)"
+            >
+              <ChevronLeft className="h-3.5 w-3.5" />
+            </Button>
+            <Button
+              type="button"
+              size="icon"
+              variant="ghost"
+              className="h-6 w-6 shrink-0"
+              disabled={matchCount === 0}
+              onClick={() => onJumpMatch(1)}
+              aria-label="Próximo match"
+              title="Próximo match (n)"
+            >
+              <ChevronRight className="h-3.5 w-3.5" />
+            </Button>
+          </>
+        )}
       </div>
 
       <div className="flex items-center gap-3 flex-wrap text-[11px] text-muted-foreground">
@@ -311,10 +444,13 @@ interface TraceItemProps {
   active: boolean;
   onSelect: () => void;
   bulk: { v: number; open: boolean } | null;
+  highlight: string;
+  isMatch: boolean;
+  dim: boolean;
 }
 
 const TraceItem = forwardRef<HTMLLIElement, TraceItemProps>(
-  ({ trace, index, active, onSelect, bulk }, ref) => {
+  ({ trace, index, active, onSelect, bulk, highlight, isMatch, dim }, ref) => {
     const [open, setOpen] = useState(false);
     const ts = new Date(trace.created_at).toLocaleTimeString('pt-BR', { hour12: false });
 
@@ -326,6 +462,11 @@ const TraceItem = forwardRef<HTMLLIElement, TraceItemProps>(
     useEffect(() => {
       if (bulk) setOpen(bulk.open);
     }, [bulk]);
+
+    // Auto-expand items that match the active search so the highlighted excerpt is visible.
+    useEffect(() => {
+      if (highlight && isMatch) setOpen(true);
+    }, [highlight, isMatch]);
 
     const handleClick = () => {
       if (active) setOpen((o) => !o);
@@ -344,6 +485,8 @@ const TraceItem = forwardRef<HTMLLIElement, TraceItemProps>(
           active
             ? 'bg-primary/10 ring-1 ring-primary/30 shadow-sm'
             : 'bg-card/40 hover:bg-muted/40',
+          isMatch && !active && 'ring-1 ring-primary/40 bg-primary/5',
+          dim && 'opacity-40 hover:opacity-90',
         )}
         onClick={handleClick}
       >
@@ -365,7 +508,7 @@ const TraceItem = forwardRef<HTMLLIElement, TraceItemProps>(
           <span className="font-mono text-[10px] text-muted-foreground tabular-nums">{ts}</span>
           {LEVEL_ICON[trace.level]}
           <span className={cn('font-medium truncate', active ? 'text-foreground' : 'text-foreground/90')}>
-            {trace.event}
+            <Highlighted text={trace.event} query={highlight} />
           </span>
           <span className="ml-auto flex items-center gap-2 text-[10px] text-muted-foreground shrink-0">
             {trace.latency_ms != null && <span className="tabular-nums">{trace.latency_ms}ms</span>}
@@ -376,10 +519,10 @@ const TraceItem = forwardRef<HTMLLIElement, TraceItemProps>(
 
         {open && (
           <div className="mt-2 ml-6 space-y-2" onClick={(e) => e.stopPropagation()}>
-            <JsonBlock label="Input" data={trace.input} />
-            <JsonBlock label="Output" data={trace.output} />
+            <JsonBlock label="Input" data={trace.input} highlight={highlight} />
+            <JsonBlock label="Output" data={trace.output} highlight={highlight} />
             {trace.metadata && Object.keys(trace.metadata).length > 0 && (
-              <JsonBlock label="Metadata" data={trace.metadata} />
+              <JsonBlock label="Metadata" data={trace.metadata} highlight={highlight} />
             )}
             <Badge variant="outline" className="text-[9px] font-mono">{trace.id.slice(0, 8)}</Badge>
           </div>
@@ -390,7 +533,35 @@ const TraceItem = forwardRef<HTMLLIElement, TraceItemProps>(
 );
 TraceItem.displayName = 'TraceItem';
 
-function JsonBlock({ label, data }: { label: string; data: unknown }) {
+/** Escape a string for safe use inside a RegExp. */
+function escapeRegExp(s: string): string {
+  return s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+}
+
+/** Render text with case-insensitive highlights for `query` substrings. */
+function Highlighted({ text, query }: { text: string; query: string }) {
+  if (!query) return <>{text}</>;
+  const re = new RegExp(`(${escapeRegExp(query)})`, 'ig');
+  const parts = text.split(re);
+  return (
+    <>
+      {parts.map((p, i) =>
+        p.toLowerCase() === query.toLowerCase() ? (
+          <mark
+            key={i}
+            className="bg-primary/30 text-foreground rounded-sm px-0.5"
+          >
+            {p}
+          </mark>
+        ) : (
+          <span key={i}>{p}</span>
+        ),
+      )}
+    </>
+  );
+}
+
+function JsonBlock({ label, data, highlight }: { label: string; data: unknown; highlight?: string }) {
   if (data == null) return null;
   let body: string;
   try {
@@ -399,11 +570,17 @@ function JsonBlock({ label, data }: { label: string; data: unknown }) {
     body = String(data);
   }
   if (!body || body === '""' || body === '{}') return null;
+  const hasMatch = highlight && body.toLowerCase().includes(highlight.toLowerCase());
   return (
     <div>
-      <p className="text-[10px] uppercase font-semibold text-muted-foreground mb-1">{label}</p>
+      <p className="text-[10px] uppercase font-semibold text-muted-foreground mb-1 flex items-center gap-1.5">
+        {label}
+        {hasMatch && (
+          <Badge variant="secondary" className="h-3.5 px-1 text-[8px] font-mono normal-case">match</Badge>
+        )}
+      </p>
       <pre className="text-[10.5px] font-mono bg-muted/40 border border-border/40 rounded p-2 overflow-x-auto max-h-40 whitespace-pre-wrap">
-        {body}
+        {highlight ? <Highlighted text={body} query={highlight} /> : body}
       </pre>
     </div>
   );
