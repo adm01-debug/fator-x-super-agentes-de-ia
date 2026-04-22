@@ -39,7 +39,7 @@ export default function AgentDetailPage() {
     setSimOpen(true);
   };
 
-  const handleRunSimulation = async (customInput: string) => {
+  const handleRunSimulation = async (customInput: string, count: number) => {
     if (!agent || !id) return;
     setSimRunning(true);
     setSimSummary(null);
@@ -51,17 +51,19 @@ export default function AgentDetailPage() {
           queryFn: () => getAgentDetailTraces(id, 200),
         });
       }
+      // Escala o "tempo de simulação" levemente com a contagem para dar feedback visual.
+      const delay = Math.min(2000, 600 + count * 30);
       setTimeout(() => {
         const summary = simulateAgentRun(
           { id: agent.id, name: agent.name, model: agent.model },
           traces,
-          10,
+          count,
           { customInput },
         );
         setSimSummary(summary);
         setSimRunning(false);
         toast.success(`Simulação concluída: ${summary.passed}/${summary.total} aprovadas`);
-      }, 900);
+      }, delay);
     } catch (e) {
       setSimRunning(false);
       toast.error(e instanceof Error ? e.message : 'Erro ao simular');
