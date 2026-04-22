@@ -176,6 +176,16 @@ export default function SLODashboard() {
   const [autoRefreshMs, setAutoRefreshMs] = useState<number>(() =>
     parseAutoParam(searchParams.get(QP_AUTO), readStoredInterval()),
   );
+  // Comparison window (0 = disabled). Encoded as `?cmp=` so a shared link
+  // shows the same side-by-side view. Validated against WINDOW_OPTIONS.
+  const [compareHours, setCompareHours] = useState<number>(() => {
+    const raw = searchParams.get(QP_COMPARE);
+    if (raw === null) return 0;
+    const n = Number(raw);
+    return (WINDOW_OPTIONS as readonly number[]).includes(n) ? n : 0;
+  });
+  const [compareSummary, setCompareSummary] = useState<SLOSummary | null>(null);
+
   const [lastRefreshAt, setLastRefreshAt] = useState<Date | null>(null);
   // Re-renders the "X seg atrás" pill once a second without re-fetching data.
   const [, setNowTick] = useState(0);
