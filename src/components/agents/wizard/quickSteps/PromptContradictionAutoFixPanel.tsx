@@ -25,6 +25,7 @@ import {
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
 import { PromptDiff } from '@/components/prompts/PromptDiff';
+import { ContradictionWordDiff } from './ContradictionWordDiff';
 import {
   buildContradictionAutoFixes,
   applyAllContradictionFixes,
