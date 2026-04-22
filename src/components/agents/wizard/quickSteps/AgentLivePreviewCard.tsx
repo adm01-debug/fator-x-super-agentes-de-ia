@@ -142,7 +142,54 @@ export function AgentLivePreviewCard({ form }: Props) {
         </div>
       </div>
 
-      {/* Mission */}
+      {/* Cost estimate */}
+      <div className="space-y-2 pt-3 border-t border-border/50">
+        <div className="flex items-center gap-1.5">
+          <Coins className="h-3 w-3 text-nexus-amber" />
+          <p className="text-[10px] uppercase tracking-wider text-muted-foreground">
+            Custo estimado por execução
+          </p>
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <button
+                type="button"
+                className="ml-auto text-muted-foreground hover:text-foreground transition-colors"
+                aria-label="Sobre a estimativa"
+              >
+                <Info className="h-3 w-3" />
+              </button>
+            </TooltipTrigger>
+            <TooltipContent className="max-w-[260px] text-xs">
+              Estimativa com base no prompt atual + input médio de teste do tipo
+              {' '}<span className="font-mono">"{debounced.type}"</span>. O custo real
+              varia conforme o input do usuário e o tamanho da resposta.
+            </TooltipContent>
+          </Tooltip>
+        </div>
+
+        <div className={`font-mono text-xs ${tierColor}`}>
+          ~{cost.totalTokens.toLocaleString('pt-BR')} tokens · US$ {cost.costUsd.toFixed(4)} ·
+          {' '}R$ {cost.costBrl.toFixed(2).replace('.', ',')} · ~{(cost.estLatencyMs / 1000).toFixed(1)}s
+        </div>
+
+        <div className="flex h-1.5 rounded-full overflow-hidden bg-secondary/40" aria-hidden>
+          <div className="bg-primary/70" style={{ width: `${inputPct}%` }} />
+          <div className="bg-nexus-amber/70" style={{ width: `${100 - inputPct}%` }} />
+        </div>
+        <div className="flex justify-between text-[10px] font-mono text-muted-foreground">
+          <span>entrada {cost.inputTokens.toLocaleString('pt-BR')}</span>
+          <span>saída {cost.outputTokens.toLocaleString('pt-BR')}</span>
+        </div>
+
+        <p className="text-[10px] text-muted-foreground pt-1.5 border-t border-border/30">
+          Em {dailyExecs} execuções/dia:{' '}
+          <span className="font-mono text-foreground/80">US$ {dailyUsd.toFixed(2)}</span>
+          {' · '}
+          <span className="font-mono text-foreground/80">R$ {dailyBrl.toFixed(2).replace('.', ',')}/dia</span>
+        </p>
+      </div>
+
+
       <div className="space-y-1">
         <p className="text-[10px] uppercase tracking-wider text-muted-foreground">Missão</p>
         <p className="text-xs text-foreground/90 line-clamp-2">
