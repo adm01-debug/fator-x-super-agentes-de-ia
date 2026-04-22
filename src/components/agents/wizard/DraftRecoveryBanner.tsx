@@ -236,9 +236,16 @@ export function DraftRecoveryBanner({
         </div>
 
         <div className="flex items-center justify-end gap-2 pt-1">
-          <Button variant="ghost" size="sm" onClick={() => onDiscardOne(only.id)} className="gap-1.5">
-            <X className="h-3.5 w-3.5" /> Descartar
-          </Button>
+          <ConfirmDialog
+            trigger={
+              <Button variant="ghost" size="sm" className="gap-1.5">
+                <X className="h-3.5 w-3.5" /> Descartar
+              </Button>
+            }
+            {...discardCopy(only.summary.name)}
+            confirmLabel="Descartar"
+            onConfirm={() => onDiscardOne(only.id)}
+          />
           <Button
             size="sm"
             onClick={() => onRestore(only.id)}
