@@ -251,6 +251,50 @@ export function WorkflowTimeTravelPanel({
   const totalTokens = lastEntry?.cumulative_tokens ?? 0;
   const totalDuration = lastEntry?.cumulative_duration_ms ?? 0;
 
+  // Toggle helpers for filter chips.
+  const toggleStatus = (s: StatusFilter) => {
+    setStatusFilters((prev) => {
+      const next = new Set(prev);
+      if (next.has(s)) next.delete(s); else next.add(s);
+      return next;
+    });
+  };
+  const toggleKind = (k: KindFilter) => {
+    setKindFilters((prev) => {
+      const next = new Set(prev);
+      if (next.has(k)) next.delete(k); else next.add(k);
+      return next;
+    });
+  };
+  const clearFilters = () => {
+    setStatusFilters(new Set());
+    setKindFilters(new Set());
+  };
+
+  // Apply filters (empty Set = no filter on that dimension).
+  const filteredTimeline = timeline.filter((entry) => {
+    if (statusFilters.size > 0) {
+      const matched = Array.from(statusFilters).some((s) => STATUS_FILTER_META[s].matches(entry.status));
+      if (!matched) return false;
+    }
+    if (kindFilters.size > 0) {
+      const kind = classifyKind(entry.node_type);
+      if (!kindFilters.has(kind)) return false;
+    }
+    return true;
+  });
+
+  // Per-bucket counts (computed from full timeline so chips show totals).
+  const statusCounts: Record<StatusFilter, number> = { success: 0, warning: 0, error: 0 };
+  const kindCounts: Record<KindFilter, number> = { llm: 0, tool: 0, guardrail: 0, other: 0 };
+  for (const e of timeline) {
+    (Object.keys(STATUS_FILTER_META) as StatusFilter[]).forEach((s) => {
+      if (STATUS_FILTER_META[s].matches(e.status)) statusCounts[s]++;
+    });
+    kindCounts[classifyKind(e.node_type)]++;
+  }
+  const activeFilterCount = statusFilters.size + kindFilters.size;
+
   if (loading) {
     return (
       <Card className="bg-card border-border">
