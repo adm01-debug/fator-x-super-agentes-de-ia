@@ -67,6 +67,7 @@ import {
   LifeBuoy,
   GitPullRequest,
   Boxes,
+  Award,
 } from 'lucide-react';
 import {
   Sidebar,
@@ -188,6 +189,7 @@ const navSections = [
       { title: 'Faturamento', url: '/billing', icon: CreditCard },
       { title: 'Orçamento', url: '/settings/budget', icon: Wallet },
       { title: 'Cost Attribution', url: '/billing/attribution', icon: TrendingDown },
+      { title: 'ROI (cliente)', url: '/billing/roi', icon: Award },
       { title: 'Configurações', url: '/settings', icon: Settings },
       { title: 'Admin BD', url: '/admin', icon: ServerCog },
     ],

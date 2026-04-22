@@ -48,6 +48,7 @@ const WorkflowsPage = lazy(() => import('./pages/WorkflowsPage'));
 const EvaluationsPage = lazy(() => import('./pages/EvaluationsPage'));
 const EvalSchedulePage = lazy(() => import('./pages/EvalSchedulePage'));
 const CostAttributionPage = lazy(() => import('./pages/CostAttributionPage'));
+const CustomerRoiPage = lazy(() => import('./pages/CustomerRoiPage'));
 const DeploymentsPage = lazy(() => import('./pages/DeploymentsPage'));
 const OpenclawDeployPage = lazy(() => import('./pages/OpenclawDeployPage'));
 const MonitoringPage = lazy(() => import('./pages/MonitoringPage'));
@@ -474,6 +475,14 @@ const App = () => (
                             element={
                               <SafePage>
                                 <CostAttributionPage />
+                              </SafePage>
+                            }
+                          />
+                          <Route
+                            path="/billing/roi"
+                            element={
+                              <SafePage>
+                                <CustomerRoiPage />
                               </SafePage>
                             }
                           />
