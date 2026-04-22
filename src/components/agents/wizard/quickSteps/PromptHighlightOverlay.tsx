@@ -11,6 +11,12 @@ interface Props {
   paddingLeftPx: number;
   /** 1-indexed line numbers that contain a contradiction (rendered in red). */
   conflictLines?: number[];
+  /**
+   * 0-indexed line numbers to pulse with an emerald band (e.g. the heading
+   * line of a section the user just jumped to / inserted). Auto-clears via
+   * the parent state — this component only renders.
+   */
+  pulseLines?: number[];
 }
 
 /**
@@ -23,7 +29,7 @@ interface Props {
  *  - `pointer-events: none` so clicks fall through.
  *  - scrollTop syncs with the textarea on every scroll event.
  */
-export function PromptHighlightOverlay({ prompt, locations, textareaRef, paddingLeftPx, conflictLines }: Props) {
+export function PromptHighlightOverlay({ prompt, locations, textareaRef, paddingLeftPx, conflictLines, pulseLines }: Props) {
   const overlayRef = useRef<HTMLPreElement>(null);
 
   // Build the overlay content as a sequence of styled segments.
@@ -34,6 +40,7 @@ export function PromptHighlightOverlay({ prompt, locations, textareaRef, padding
     const lineStatus = new Map<number, { kind: 'thin' | 'ok'; label: string }>();
     const ghostInserts: { afterChar: number; label: string }[] = [];
     const conflictSet = new Set<number>((conflictLines ?? []).map((n) => n - 1));
+    const pulseSet = new Set<number>(pulseLines ?? []);
 
     for (const loc of locations) {
       if (loc.status === 'thin') {
@@ -64,10 +71,16 @@ export function PromptHighlightOverlay({ prompt, locations, textareaRef, padding
 
       const status = lineStatus.get(i);
       const isConflict = conflictSet.has(i);
+      const isPulse = pulseSet.has(i);
       if (isConflict) {
         out.push({
           text: line.length > 0 ? line : ' ',
           cls: 'bg-destructive/15 text-destructive/90 border-l-2 border-destructive pl-1 -ml-1',
+        });
+      } else if (isPulse) {
+        out.push({
+          text: line.length > 0 ? line : ' ',
+          cls: 'bg-nexus-emerald/20 text-nexus-emerald border-l-2 border-nexus-emerald pl-1 -ml-1 animate-pulse',
         });
       } else if (status?.kind === 'thin') {
         out.push({
@@ -93,7 +106,7 @@ export function PromptHighlightOverlay({ prompt, locations, textareaRef, padding
     }
 
     return out;
-  }, [prompt, locations, conflictLines]);
+  }, [prompt, locations, conflictLines, pulseLines]);
 
   // Keep the overlay perfectly aligned with the textarea's scroll position.
   // We sync on multiple signals because the textarea can scroll without
@@ -161,7 +174,7 @@ export function PromptHighlightOverlay({ prompt, locations, textareaRef, padding
   }, [textareaRef, prompt]);
 
   // Hide overlay when nothing to show.
-  const hasSomething = locations.some((l) => l.status !== 'ok') || (conflictLines?.length ?? 0) > 0;
+  const hasSomething = locations.some((l) => l.status !== 'ok') || (conflictLines?.length ?? 0) > 0 || (pulseLines?.length ?? 0) > 0;
   if (!hasSomething) return null;
 
   return (
