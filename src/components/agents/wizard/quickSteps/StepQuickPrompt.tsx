@@ -241,6 +241,7 @@ export function StepQuickPrompt({ form, errors, update, onRestore, onApplyVarian
             locations={locations}
             textareaRef={textareaRef}
             paddingLeftPx={EDITOR_PADDING_LEFT}
+            conflictLines={conflictLines}
           />
           <Textarea
             ref={textareaRef}
