@@ -18,10 +18,34 @@ import { useKeyboardShortcuts } from "@/hooks/use-keyboard-shortcuts";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { useDocumentTitle } from "@/hooks/use-document-title";
 
-// Lazy-load dialogs only shown on interaction
-const CommandPalette = lazy(() => import("@/components/shared/CommandPalette").then(m => ({ default: m.CommandPalette })));
-const KeyboardShortcutsDialog = lazy(() => import("@/components/shared/KeyboardShortcutsDialog").then(m => ({ default: m.KeyboardShortcutsDialog })));
-const OnboardingTour = lazy(() => import("@/components/shared/OnboardingTour").then(m => ({ default: m.OnboardingTour })));
+// Lazy-load dialogs only shown on interaction.
+// Retry once on failure — Vite dev/preview occasionally serves a stale chunk
+// reference after HMR, surfacing as "Failed to fetch dynamically imported module".
+// A single hard reload of the import resolves it without forcing a full page refresh.
+function lazyWithRetry<T extends React.ComponentType<unknown>>(
+  factory: () => Promise<{ default: T }>,
+) {
+  return lazy(async () => {
+    try {
+      return await factory();
+    } catch (err) {
+      logger.warn("Dynamic import failed, retrying once:", err);
+      await new Promise((r) => setTimeout(r, 150));
+      try {
+        return await factory();
+      } catch (err2) {
+        // Final fallback: force a full reload so the user is not stuck on a blank screen.
+        logger.error("Dynamic import failed twice, reloading:", err2);
+        if (typeof window !== "undefined") window.location.reload();
+        throw err2;
+      }
+    }
+  });
+}
+
+const CommandPalette = lazyWithRetry(() => import("@/components/shared/CommandPalette").then(m => ({ default: m.CommandPalette })));
+const KeyboardShortcutsDialog = lazyWithRetry(() => import("@/components/shared/KeyboardShortcutsDialog").then(m => ({ default: m.KeyboardShortcutsDialog })));
+const OnboardingTour = lazyWithRetry(() => import("@/components/shared/OnboardingTour").then(m => ({ default: m.OnboardingTour })));
 import { useAuth } from "@/contexts/AuthContext";
 import {
   DropdownMenu, DropdownMenuContent, DropdownMenuItem,
