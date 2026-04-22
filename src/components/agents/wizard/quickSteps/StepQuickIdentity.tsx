@@ -4,6 +4,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
 import type { QuickAgentForm } from '@/lib/validations/quickAgentSchema';
 import { FIELD_HIGHLIGHT_CLS } from './useFieldHighlight';
+import { FieldValidationHint, type FieldValidationHintInfo } from './FieldValidationHint';
 
 const EMOJI_SUGGESTIONS = ['🤖', '💬', '✨', '📊', '💼', '🎧', '🔎', '🎼', '🧠', '🚀', '🛡️', '🌟'];
 
@@ -12,6 +13,8 @@ interface Props {
   errors: Partial<Record<keyof QuickAgentForm, string>>;
   update: <K extends keyof QuickAgentForm>(key: K, value: QuickAgentForm[K]) => void;
   highlightField?: keyof QuickAgentForm;
+  /** Resumo do erro de validação que motivou o highlight (após restaurar). */
+  highlightHint?: FieldValidationHintInfo | null;
 }
 
 function FieldError({ msg }: { msg?: string }) {
