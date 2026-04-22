@@ -19,7 +19,8 @@ export type PromptLockEventKind =
   | 'unlocked-draft-restore'
   | 'unlocked-safe-reset'
   | 'unlocked-manual'
-  | 'unlocked-restore-template';
+  | 'unlocked-restore-template'
+  | 'unlocked-checklist';
 
 export interface PromptLockEvent {
   id: string;
@@ -39,6 +40,7 @@ const KIND_LABEL: Record<PromptLockEventKind, string> = {
   'unlocked-safe-reset': 'Destravado — estado seguro restaurado',
   'unlocked-manual': 'Destravado manualmente',
   'unlocked-restore-template': 'Destravado — prompt restaurado do template',
+  'unlocked-checklist': 'Destravado — edição via checklist (regra automática)',
 };
 
 function formatTime(ts: number): string {

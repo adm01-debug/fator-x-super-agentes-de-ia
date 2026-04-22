@@ -34,6 +34,7 @@ import { DraftRecoveryBanner, type DraftBannerEntry } from './DraftRecoveryBanne
 import { DangerousActionDialog } from '@/components/rbac/DangerousActionDialog';
 import { AlertTriangle } from 'lucide-react';
 import { logAudit } from '@/services/auditLogService';
+import { useChecklistAutoUnlock } from '@/hooks/useChecklistAutoUnlock';
 import {
   Dialog,
   DialogContent,
@@ -134,6 +135,9 @@ export function QuickCreateWizard({ onBack }: QuickCreateWizardProps) {
   const [selectedVariant, setSelectedVariant] = useState<import('@/data/quickAgentTemplates').PromptVariantId | null>(null);
   const [pendingVariant, setPendingVariant] = useState<import('@/data/quickAgentTemplates').PromptVariantId | null>(null);
   const [lockEvents, setLockEvents] = useState<import('./quickSteps/PromptLockEventLog').PromptLockEvent[]>([]);
+  // Persisted user rule: when ON, edits coming from the section checklist
+  // (Inserir Persona/Escopo/Formato/Regras) auto-unlock the Custom mode.
+  const { enabled: checklistAutoUnlock, setEnabled: setChecklistAutoUnlock } = useChecklistAutoUnlock();
   const pushLockEvent = (
     kind: import('./quickSteps/PromptLockEventLog').PromptLockEventKind,
     detail?: string,
@@ -346,14 +350,30 @@ export function QuickCreateWizard({ onBack }: QuickCreateWizardProps) {
   /**
    * Manual prompt edit — flips the custom lock so chips stop auto-detecting.
    * `source` distinguishes typing ('manual', default) from clipboard paste
-   * ('paste'). Paste ALWAYS forces the lock, even if the resulting text
-   * happens to coincide character-for-character with a known variant —
-   * pasted content is treated as opaque user intent.
+   * ('paste') and from edits driven by the section checklist ('checklist').
+   *
+   * Behavior matrix:
+   * - `manual` / `paste`: ALWAYS lock (paste is opaque user intent).
+   * - `checklist`: if the user enabled "Destravar ao usar o checklist" via
+   *   `useChecklistAutoUnlock`, the edit DOES NOT trigger a lock — and if the
+   *   prompt was already locked, releases it and emits `unlocked-checklist`.
+   *   Otherwise, behaves like a regular manual edit.
    */
-  const updatePromptManual = (next: string, source: 'manual' | 'paste' = 'manual') => {
+  const updatePromptManual = (next: string, source: 'manual' | 'paste' | 'checklist' = 'manual') => {
     setForm((prev) => ({ ...prev, prompt: next }));
     setErrors((prev) => ({ ...prev, prompt: undefined }));
     if (highlightField === 'prompt') setHighlightField(null);
+
+    if (source === 'checklist' && checklistAutoUnlock) {
+      // Auto-unlock rule active — release the lock if held, do NOT re-lock.
+      if (promptCustomLocked) {
+        pushLockEvent('unlocked-checklist', 'edição via checklist (regra automática ligada)');
+        setPromptCustomLocked(false);
+        setSelectedVariant(null);
+      }
+      return;
+    }
+
     if (!promptCustomLocked) {
       pushLockEvent(
         source === 'paste' ? 'locked-paste' : 'locked-manual-edit',
@@ -645,7 +665,7 @@ export function QuickCreateWizard({ onBack }: QuickCreateWizardProps) {
       case 3: {
         const detected = detectPromptVariant(form.type as QuickAgentType, form.prompt);
         const activeVariant = promptCustomLocked ? null : (selectedVariant ?? detected);
-        return <StepQuickPrompt form={form} errors={errors} onPromptManualEdit={updatePromptManual} onRestore={restorePromptFromType} onSafeReset={safeResetPromptAndPreview} onApplyVariant={applyPromptVariant} customLocked={promptCustomLocked} onUnlockCustom={() => { if (promptCustomLocked) pushLockEvent('unlocked-manual', 'botão "Destravar" no editor'); setPromptCustomLocked(false); setSelectedVariant(null); }} activeVariant={activeVariant} lockEvents={lockEvents} highlightField={hfFor(['prompt'])} />;
+        return <StepQuickPrompt form={form} errors={errors} onPromptManualEdit={updatePromptManual} onRestore={restorePromptFromType} onSafeReset={safeResetPromptAndPreview} onApplyVariant={applyPromptVariant} customLocked={promptCustomLocked} onUnlockCustom={() => { if (promptCustomLocked) pushLockEvent('unlocked-manual', 'botão "Destravar" no editor'); setPromptCustomLocked(false); setSelectedVariant(null); }} activeVariant={activeVariant} lockEvents={lockEvents} highlightField={hfFor(['prompt'])} checklistAutoUnlock={checklistAutoUnlock} onToggleChecklistAutoUnlock={setChecklistAutoUnlock} />;
       }
       default: return null;
     }

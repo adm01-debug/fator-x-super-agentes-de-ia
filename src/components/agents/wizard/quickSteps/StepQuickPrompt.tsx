@@ -54,7 +54,7 @@ interface Props {
    * `source` distinguishes typing from clipboard paste so the lock event log
    * can render distinct entries (and so paste always forces the lock).
    */
-  onPromptManualEdit: (next: string, source?: 'manual' | 'paste') => void;
+  onPromptManualEdit: (next: string, source?: 'manual' | 'paste' | 'checklist') => void;
   onRestore: () => void;
   /**
    * Hard reset to a known-safe initial state — sanitizes and reapplies the base
@@ -75,9 +75,16 @@ interface Props {
   /** Chronological log of Custom-mode lock/unlock transitions. */
   lockEvents?: PromptLockEvent[];
   highlightField?: keyof QuickAgentForm;
+  /**
+   * Persisted user rule: when true, edits coming from the section checklist
+   * (Inserir Persona/Escopo/Formato/Regras, batch fill) auto-release the
+   * Custom lock instead of forcing a re-lock.
+   */
+  checklistAutoUnlock?: boolean;
+  onToggleChecklistAutoUnlock?: (next: boolean) => void;
 }
 
-export function StepQuickPrompt({ form, errors, onPromptManualEdit, onRestore, onSafeReset, onApplyVariant, customLocked, onUnlockCustom, activeVariant, lockEvents, highlightField }: Props) {
+export function StepQuickPrompt({ form, errors, onPromptManualEdit, onRestore, onSafeReset, onApplyVariant, customLocked, onUnlockCustom, activeVariant, lockEvents, highlightField, checklistAutoUnlock, onToggleChecklistAutoUnlock }: Props) {
   // Active variant template + label — drives the checklist's per-section snippets
   // and the "Completar com X" CTA in real time.
   const activeVariantPrompt = activeVariant
@@ -97,7 +104,7 @@ export function StepQuickPrompt({ form, errors, onPromptManualEdit, onRestore, o
   }, [lastChangeKind]);
 
   // Wrappers that record the change kind alongside the prompt mutation.
-  const handleManualEdit = (next: string, source: 'manual' | 'paste' = 'manual') => {
+  const handleManualEdit = (next: string, source: 'manual' | 'paste' | 'checklist' = 'manual') => {
     setLastChangeKind('manual');
     onPromptManualEdit(next, source);
   };
@@ -172,7 +179,7 @@ export function StepQuickPrompt({ form, errors, onPromptManualEdit, onRestore, o
    */
   const insertSectionSnippet = (key: PromptSectionKey, snippet: string): [number, number] => {
     const { prompt: nextPrompt, insertedRange } = insertSectionAt(form.prompt, key, snippet);
-    handleManualEdit(nextPrompt);
+    handleManualEdit(nextPrompt, 'checklist');
     return insertedRange;
   };
 
@@ -472,10 +479,12 @@ export function StepQuickPrompt({ form, errors, onPromptManualEdit, onRestore, o
         activeVariantPrompt={activeVariantPrompt}
         activeVariantLabel={activeVariantLabel}
         customLocked={customLocked}
+        autoUnlockEnabled={checklistAutoUnlock}
+        onToggleAutoUnlock={onToggleChecklistAutoUnlock}
         onInsert={(snippet, key) => {
           if (key) {
             const { prompt: nextPrompt, insertedRange } = insertSectionAt(form.prompt, key, snippet);
-            handleManualEdit(nextPrompt);
+            handleManualEdit(nextPrompt, 'checklist');
             // Place the caret at the start of the body (just after the
             // heading line) so the user can immediately start typing inside
             // the inserted block instead of overtyping the heading.
@@ -490,7 +499,7 @@ export function StepQuickPrompt({ form, errors, onPromptManualEdit, onRestore, o
               el.scrollTop = Math.max(0, linesUpTo * lh - el.clientHeight / 3);
             });
           } else {
-            handleManualEdit(form.prompt + snippet);
+            handleManualEdit(form.prompt + snippet, 'checklist');
           }
         }}
         onInsertBatch={(items) => {
@@ -509,7 +518,7 @@ export function StepQuickPrompt({ form, errors, onPromptManualEdit, onRestore, o
             // already inserted stay valid and the latest range is final.
             lastRange = insertedRange;
           }
-          handleManualEdit(working);
+          handleManualEdit(working, 'checklist');
           if (lastRange) {
             const bodyStart = Math.min(lastRange[1] + 1, working.length);
             requestAnimationFrame(() => {
