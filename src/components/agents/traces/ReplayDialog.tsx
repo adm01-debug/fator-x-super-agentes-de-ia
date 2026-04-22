@@ -77,6 +77,38 @@ export function ReplayDialog({ open, onOpenChange, execution, initialStep = 0, o
     return () => { if (timerRef.current) window.clearTimeout(timerRef.current); };
   }, [playing, step, speed, current, total]);
 
+  // Keyboard shortcuts while the dialog is open: ←/→ or j/k step, space toggles play,
+  // Home/End jump to bounds, R restarts. Ignored when typing in inputs.
+  useEffect(() => {
+    if (!open) return;
+    const handler = (e: KeyboardEvent) => {
+      const tgt = e.target as HTMLElement | null;
+      if (tgt && (tgt.tagName === 'INPUT' || tgt.tagName === 'TEXTAREA' || tgt.isContentEditable)) return;
+      if (e.key === 'ArrowRight' || e.key === 'l' || e.key === 'j') {
+        e.preventDefault();
+        setStep((s) => Math.min(total - 1, s + 1));
+      } else if (e.key === 'ArrowLeft' || e.key === 'h' || e.key === 'k') {
+        e.preventDefault();
+        setStep((s) => Math.max(0, s - 1));
+      } else if (e.key === ' ') {
+        e.preventDefault();
+        setPlaying((p) => !p);
+      } else if (e.key === 'Home') {
+        e.preventDefault();
+        setStep(0);
+      } else if (e.key === 'End') {
+        e.preventDefault();
+        setStep(Math.max(0, total - 1));
+      } else if (e.key === 'r' || e.key === 'R') {
+        e.preventDefault();
+        setStep(0);
+        setPlaying(false);
+      }
+    };
+    window.addEventListener('keydown', handler);
+    return () => window.removeEventListener('keydown', handler);
+  }, [open, total]);
+
   if (!execution) return null;
 
   const handleExport = () => {
@@ -151,16 +183,16 @@ export function ReplayDialog({ open, onOpenChange, execution, initialStep = 0, o
 
         {/* Controls */}
         <div className="flex items-center gap-2 border-y border-border/40 py-3">
-          <Button size="icon" variant="outline" className="h-8 w-8" onClick={() => setStep((s) => Math.max(0, s - 1))} aria-label="Passo anterior">
+          <Button size="icon" variant="outline" className="h-8 w-8" onClick={() => setStep((s) => Math.max(0, s - 1))} aria-label="Passo anterior" title="Passo anterior (← ou h)">
             <SkipBack className="h-3.5 w-3.5" />
           </Button>
-          <Button size="icon" className="h-8 w-8" onClick={() => setPlaying((p) => !p)} aria-label={playing ? 'Pausar' : 'Reproduzir'}>
+          <Button size="icon" className="h-8 w-8" onClick={() => setPlaying((p) => !p)} aria-label={playing ? 'Pausar' : 'Reproduzir'} title={`${playing ? 'Pausar' : 'Reproduzir'} (Espaço)`}>
             {playing ? <Pause className="h-3.5 w-3.5" /> : <Play className="h-3.5 w-3.5" />}
           </Button>
-          <Button size="icon" variant="outline" className="h-8 w-8" onClick={() => setStep((s) => Math.min(total - 1, s + 1))} aria-label="Próximo passo">
+          <Button size="icon" variant="outline" className="h-8 w-8" onClick={() => setStep((s) => Math.min(total - 1, s + 1))} aria-label="Próximo passo" title="Próximo passo (→ ou l)">
             <SkipForward className="h-3.5 w-3.5" />
           </Button>
-          <Button size="icon" variant="outline" className="h-8 w-8" onClick={() => { setStep(0); setPlaying(false); }} aria-label="Reiniciar">
+          <Button size="icon" variant="outline" className="h-8 w-8" onClick={() => { setStep(0); setPlaying(false); }} aria-label="Reiniciar" title="Reiniciar (R)">
             <RotateCcw className="h-3.5 w-3.5" />
           </Button>
 
