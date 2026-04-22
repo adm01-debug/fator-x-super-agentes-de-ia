@@ -176,6 +176,15 @@ export function InteractiveSLOPanel({ agentId, agentName, slo, traces, daily, on
               );
             })}
           </div>
+          <Button
+            variant="outline"
+            size="sm"
+            className="gap-1.5 text-xs h-7"
+            onClick={handleExportPdf}
+            aria-label="Exportar relatório SLO em PDF"
+          >
+            <Download className="h-3 w-3" /> Exportar PDF
+          </Button>
           <Button variant="ghost" size="sm" className="gap-1.5 text-xs h-7" onClick={reset}>
             <RotateCcw className="h-3 w-3" /> Resetar metas
           </Button>
