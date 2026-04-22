@@ -7,7 +7,7 @@ import { useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
-import { ArrowLeft, Search, Sparkles, Wand2, Tag, Cpu, Wrench } from 'lucide-react';
+import { ArrowLeft, Download, Search, Sparkles, Wand2, Tag, Cpu, Wrench } from 'lucide-react';
 
 import { PageHeader } from '@/components/shared/PageHeader';
 import { Button } from '@/components/ui/button';
@@ -15,6 +15,7 @@ import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { Card } from '@/components/ui/card';
 import { ScrollArea, ScrollBar } from '@/components/ui/scroll-area';
+import { ImportTemplateDialog } from '@/components/agents/ImportTemplateDialog';
 import { AGENT_TEMPLATES, type AgentTemplate } from '@/data/agentTemplates';
 import { toAgentTools } from '@/data/toolCatalog';
 import { DEFAULT_AGENT } from '@/data/agentBuilderData';
@@ -137,26 +138,34 @@ export default function AgentTemplatesPage() {
   const { user } = useAuth();
   const [search, setSearch] = useState('');
   const [category, setCategory] = useState<string>(ALL);
+  // Templates importados nesta sessão (não persistidos no DB).
+  const [importedTemplates, setImportedTemplates] = useState<AgentTemplate[]>([]);
+  const [importOpen, setImportOpen] = useState(false);
+
+  const allTemplates = useMemo(
+    () => [...importedTemplates, ...AGENT_TEMPLATES],
+    [importedTemplates],
+  );
 
   const categories = useMemo(() => {
-    const counts: Record<string, number> = { [ALL]: AGENT_TEMPLATES.length };
-    for (const t of AGENT_TEMPLATES) {
+    const counts: Record<string, number> = { [ALL]: allTemplates.length };
+    for (const t of allTemplates) {
       counts[t.category] = (counts[t.category] ?? 0) + 1;
     }
     return Object.entries(counts).sort(([a], [b]) =>
       a === ALL ? -1 : b === ALL ? 1 : a.localeCompare(b),
     );
-  }, []);
+  }, [allTemplates]);
 
   const filtered = useMemo(() => {
     const q = search.trim().toLowerCase();
-    return AGENT_TEMPLATES.filter((t) => {
+    return allTemplates.filter((t) => {
       if (category !== ALL && t.category !== category) return false;
       if (!q) return true;
       const hay = `${t.name} ${t.description} ${t.tags.join(' ')}`.toLowerCase();
       return hay.includes(q);
     });
-  }, [search, category]);
+  }, [allTemplates, search, category]);
 
   const forkMutation = useMutation({
     mutationFn: async (t: AgentTemplate) => {
@@ -181,15 +190,35 @@ export default function AgentTemplatesPage() {
         title="Galeria de Templates"
         description="Comece em segundos — escolha um template pronto e personalize"
         actions={
-          <Button
-            variant="outline"
-            size="sm"
-            className="gap-1.5"
-            onClick={() => navigate('/agents')}
-          >
-            <ArrowLeft className="h-3.5 w-3.5" /> Voltar
-          </Button>
+          <div className="flex gap-2">
+            <Button
+              variant="outline"
+              size="sm"
+              className="gap-1.5"
+              onClick={() => setImportOpen(true)}
+            >
+              <Download className="h-3.5 w-3.5" /> Importar Template
+            </Button>
+            <Button
+              variant="outline"
+              size="sm"
+              className="gap-1.5"
+              onClick={() => navigate('/agents')}
+            >
+              <ArrowLeft className="h-3.5 w-3.5" /> Voltar
+            </Button>
+          </div>
         }
+      />
+
+      <ImportTemplateDialog
+        open={importOpen}
+        onOpenChange={setImportOpen}
+        onAddToGallery={(t) => {
+          setImportedTemplates((prev) => [t, ...prev]);
+          toast.success(`Template "${t.name}" adicionado à galeria (sessão atual)`);
+        }}
+        onForkNow={(t) => forkMutation.mutate(t)}
       />
 
       <div className="flex items-center gap-3">
