@@ -236,6 +236,7 @@ function VersionHistory({ agentId }: { agentId: string }) {
   const canRollback = !!previous && !!current;
 
   return (
+    <>
     <div className="nexus-card">
       <div className="flex items-center justify-between mb-3">
         <h3 className="text-sm font-heading font-semibold text-foreground">Histórico de Versões</h3>
@@ -392,6 +393,8 @@ function VersionHistory({ agentId }: { agentId: string }) {
         </AlertDialogContent>
       </AlertDialog>
     </div>
+    <RestoreHistorySection agentId={agentId} versions={versions as AgentVersion[]} />
+    </>
   );
 }
 
