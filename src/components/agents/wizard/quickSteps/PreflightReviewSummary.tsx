@@ -1,5 +1,5 @@
 import { useMemo } from 'react';
-import { Rocket, AlertTriangle, CheckCircle2 } from 'lucide-react';
+import { Rocket, AlertTriangle, CheckCircle2, GitMerge } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { compilePrompt } from '@/lib/promptCompiler';
 import {
@@ -11,6 +11,11 @@ import {
   type PromptSectionKey,
   type SectionContentReport,
 } from '@/lib/validations/quickAgentSchema';
+import {
+  detectPromptContradictions,
+  CONTRADICTION_KIND_LABEL,
+  type PromptContradiction,
+} from '@/lib/validations/promptContradictions';
 
 export interface ReviewData {
   sections: Record<PromptSectionKey, boolean>;
@@ -18,9 +23,11 @@ export interface ReviewData {
   sectionReports: SectionContentReport[];
   thinSections: SectionContentReport[];
   compiled: ReturnType<typeof compilePrompt>;
+  contradictions: PromptContradiction[];
   hasUnresolved: boolean;
   hasMissingSections: boolean;
   hasThinSections: boolean;
+  hasContradictions: boolean;
 }
 
 export function useReviewData(form: QuickAgentForm): ReviewData {
