@@ -1,5 +1,5 @@
 import { useMemo, useState } from 'react';
-import { CheckCircle2, AlertTriangle, XCircle, RotateCcw, Flame, Activity, Clock } from 'lucide-react';
+import { CheckCircle2, AlertTriangle, XCircle, RotateCcw, Flame, Activity, Clock, GitCompare, ArrowDown, ArrowUp, Minus } from 'lucide-react';
 import { Slider } from '@/components/ui/slider';
 import { Button } from '@/components/ui/button';
 import { useAgentSLOTargets, DEFAULT_SLO_TARGETS, type SLOTargetsConfig } from '@/hooks/useAgentSLOTargets';
