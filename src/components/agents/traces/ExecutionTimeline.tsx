@@ -354,6 +354,8 @@ function ExecutionSummary({
                 <ShortcutRow keys={['End']} label="Último passo" />
                 <ShortcutRow keys={['n']} label="Próximo match" />
                 <ShortcutRow keys={['N']} label="Match anterior" />
+                <ShortcutRow keys={['b']} label="Próximo marcador" />
+                <ShortcutRow keys={['B']} label="Marcador anterior" />
               </ul>
             </PopoverContent>
           </Popover>
