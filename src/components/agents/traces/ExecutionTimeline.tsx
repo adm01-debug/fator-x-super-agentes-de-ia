@@ -51,6 +51,17 @@ export function ExecutionTimeline({ execution, selectedStep, onSelectStep }: Pro
   const step = selectedStep ?? internalStep;
   const total = execution.traces.length;
 
+  // Per-execution bookmarks (persisted via traceBookmarks). Refreshed when:
+  //  · execution changes
+  //  · child BookmarkButton emits onChange after save/remove
+  const [bookmarks, setBookmarks] = useState<TraceBookmark[]>(() => listBookmarks(execution.session_id));
+  useEffect(() => { setBookmarks(listBookmarks(execution.session_id)); }, [execution.session_id]);
+  const bookmarkByTraceId = useMemo(() => {
+    const m = new Map<string, TraceBookmark>();
+    for (const b of bookmarks) m.set(b.traceId, b);
+    return m;
+  }, [bookmarks]);
+
   // In-execution text search (event/tool name, error fragment, prompt/response excerpt).
   const [stepSearch, setStepSearch] = useState('');
   const normalized = stepSearch.trim().toLowerCase();
