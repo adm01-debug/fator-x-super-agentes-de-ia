@@ -53,7 +53,6 @@ function neutralizePolarity(line: string): string {
 function polaritySuggestions(c: PromptContradiction): ContradictionSuggestion[] {
   const a = stripBullet(c.snippetA);
   const b = stripBullet(c.snippetB);
-  const topic = neutralizePolarity(c.snippetA) || neutralizePolarity(c.snippetB) || 'esse tópico';
 
   return [
     {
