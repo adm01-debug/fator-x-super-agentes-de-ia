@@ -236,3 +236,128 @@ export function PreflightReviewSummary({ form, compact = false, onJumpToSection,
     </div>
   );
 }
+
+/* ----------------------------- ConflictCard ----------------------------- */
+
+/**
+ * Single contradiction card with an inline "Ver sugestões de reescrita" panel.
+ *
+ * The card itself is a non-interactive container (so we can host the
+ * jump-to-line button, the expander toggle, and per-suggestion copy buttons
+ * without nesting a button-in-button). Suggestions come from the offline
+ * `suggestContradictionRewrites` util — kind-aware (polarity / numeric /
+ * language) and deterministic.
+ */
+function ConflictCard({
+  c,
+  onJumpToLine,
+}: {
+  c: PromptContradiction;
+  onJumpToLine?: (line: number) => void;
+}) {
+  const [expanded, setExpanded] = useState(false);
+  const [copiedIdx, setCopiedIdx] = useState<number | null>(null);
+  const suggestions = useMemo(() => suggestContradictionRewrites(c), [c]);
+
+  const copyRewrite = async (text: string, idx: number) => {
+    try {
+      await navigator.clipboard.writeText(text);
+      setCopiedIdx(idx);
+      toast.success('Sugestão copiada', {
+        description: 'Cole no editor para substituir as regras conflitantes.',
+      });
+      window.setTimeout(() => setCopiedIdx((cur) => (cur === idx ? null : cur)), 1800);
+    } catch {
+      toast.error('Não foi possível copiar — selecione e copie manualmente.');
+    }
+  };
+
+  return (
+    <div className="rounded-md border border-nexus-amber/40 bg-nexus-amber/10 px-2.5 py-1.5 space-y-1.5">
+      <div className="flex items-center gap-1.5 text-[10px] font-mono">
+        <span className="px-1.5 py-0.5 rounded-full bg-nexus-amber/20 text-nexus-amber font-semibold">
+          {CONTRADICTION_KIND_LABEL[c.kind]}
+        </span>
+        {onJumpToLine ? (
+          <button
+            type="button"
+            onClick={() => onJumpToLine(c.lineA)}
+            className="text-muted-foreground hover:text-nexus-amber underline-offset-2 hover:underline focus:outline-none focus-visible:ring-2 focus-visible:ring-nexus-amber/50 rounded px-1 py-0.5 -mx-1 -my-0.5 transition-colors"
+            title={`Ir para a linha ${c.lineA} no editor`}
+          >
+            linha {c.lineA} ↔ {c.lineB}
+          </button>
+        ) : (
+          <span className="text-muted-foreground">linha {c.lineA} ↔ {c.lineB}</span>
+        )}
+      </div>
+      <p className="text-[11px] text-nexus-amber/90 leading-snug">{c.reason}</p>
+      <div className="text-[10px] font-mono text-muted-foreground/80 space-y-0.5">
+        <div className="truncate">A: {c.snippetA}</div>
+        <div className="truncate">B: {c.snippetB}</div>
+      </div>
+
+      <button
+        type="button"
+        onClick={() => setExpanded((x) => !x)}
+        aria-expanded={expanded}
+        className="flex items-center gap-1 text-[10px] font-medium text-nexus-amber hover:text-nexus-amber/80 focus:outline-none focus-visible:ring-2 focus-visible:ring-nexus-amber/50 rounded transition-colors"
+      >
+        <Lightbulb className="h-3 w-3" />
+        {expanded ? 'Ocultar sugestões' : `Ver ${suggestions.length} sugestões de reescrita`}
+        <ChevronDown
+          className={cn('h-3 w-3 transition-transform', expanded && 'rotate-180')}
+        />
+      </button>
+
+      {expanded && (
+        <div className="space-y-1.5 pt-1 animate-fade-in">
+          {suggestions.map((s, idx) => {
+            const isCopied = copiedIdx === idx;
+            return (
+              <div
+                key={idx}
+                className="rounded border border-border/60 bg-background/60 p-2 space-y-1"
+              >
+                <div className="flex items-start justify-between gap-2">
+                  <div className="space-y-0.5 flex-1 min-w-0">
+                    <p className="text-[11px] font-medium text-foreground">{s.title}</p>
+                    <p className="text-[10px] text-muted-foreground leading-snug">
+                      {s.rationale}
+                    </p>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => copyRewrite(s.rewrite, idx)}
+                    aria-label={`Copiar sugestão: ${s.title}`}
+                    className={cn(
+                      'shrink-0 inline-flex items-center gap-1 rounded px-1.5 py-0.5 text-[10px] font-medium transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-primary/50',
+                      isCopied
+                        ? 'bg-nexus-emerald/20 text-nexus-emerald'
+                        : 'bg-secondary hover:bg-secondary/80 text-foreground',
+                    )}
+                  >
+                    {isCopied ? (
+                      <>
+                        <Check className="h-2.5 w-2.5" />
+                        Copiado
+                      </>
+                    ) : (
+                      <>
+                        <Copy className="h-2.5 w-2.5" />
+                        Copiar
+                      </>
+                    )}
+                  </button>
+                </div>
+                <pre className="text-[10px] font-mono leading-relaxed text-foreground/80 whitespace-pre-wrap break-words bg-secondary/40 rounded px-1.5 py-1 border border-border/40">
+                  {s.rewrite}
+                </pre>
+              </div>
+            );
+          })}
+        </div>
+      )}
+    </div>
+  );
+}
