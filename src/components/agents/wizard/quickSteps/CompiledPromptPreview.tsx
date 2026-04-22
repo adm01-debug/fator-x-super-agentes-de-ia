@@ -133,6 +133,49 @@ interface ThinHit {
   reason: string;
 }
 
+/**
+ * Raw-text variant: walks the same line-by-line model and wraps each thin
+ * `## heading` block (heading + body until next H2) in a tinted container so
+ * the highlight stays consistent with the rendered preview.
+ */
+function RawWithThinHighlights({
+  text,
+  thinByHeading,
+}: { text: string; thinByHeading: Map<number, ThinHit> }) {
+  const lines = text.split('\n');
+  const blocks: Array<{ thin?: ThinHit; lines: string[] }> = [];
+  let current: { thin?: ThinHit; lines: string[] } = { lines: [] };
+  for (let i = 0; i < lines.length; i++) {
+    const isH2 = /^##\s+/.test(lines[i]);
+    if (isH2) {
+      if (current.lines.length > 0) blocks.push(current);
+      current = { thin: thinByHeading.get(i), lines: [lines[i]] };
+    } else {
+      current.lines.push(lines[i]);
+    }
+  }
+  if (current.lines.length > 0) blocks.push(current);
+
+  return (
+    <pre className="text-[11px] font-mono leading-relaxed text-foreground/85 whitespace-pre-wrap break-words">
+      {blocks.map((b, idx) => (
+        <span
+          key={idx}
+          className={
+            b.thin
+              ? 'block rounded-md border border-nexus-amber/40 bg-nexus-amber/5 px-2 py-1 my-1'
+              : 'block'
+          }
+          title={b.thin?.reason}
+          data-thin-section={b.thin?.key}
+        >
+          {b.lines.join('\n')}
+        </span>
+      ))}
+    </pre>
+  );
+}
+
 export function CompiledPromptPreview({ form, defaultOpen = false, lastChangeKind = null, activeVariantLabel = null }: Props) {
   const [open, setOpen] = useState(defaultOpen);
   const [view, setView] = useState<'preview' | 'raw'>('preview');
