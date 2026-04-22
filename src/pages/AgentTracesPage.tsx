@@ -30,7 +30,30 @@ export default function AgentTracesPage() {
   const [replayOpen, setReplayOpen] = useState(false);
   const debouncedSearch = useDebounce(search, 300);
 
-  useEffect(() => { setSelectedStep(0); }, [selectedId]);
+  // Persist last step viewed per session_id so users can resume where they left off.
+  // Stored as { [session_id]: stepIndex } under a single key, capped to 50 entries.
+  const STEP_STORAGE_KEY = 'nexus.traces.lastStepBySession';
+  const readStepMap = (): Record<string, number> => {
+    try {
+      const raw = localStorage.getItem(STEP_STORAGE_KEY);
+      return raw ? (JSON.parse(raw) as Record<string, number>) : {};
+    } catch {
+      return {};
+    }
+  };
+  const writeStepMap = (map: Record<string, number>) => {
+    try {
+      // Cap to last 50 sessions to avoid unbounded growth.
+      const entries = Object.entries(map).slice(-50);
+      localStorage.setItem(STEP_STORAGE_KEY, JSON.stringify(Object.fromEntries(entries)));
+    } catch {
+      /* quota or disabled — silently ignore */
+    }
+  };
+
+  // When the *effective* selected execution changes, restore its last viewed step
+  // (clamped to the current trace count). Runs after `selected` is computed below.
+  // Persist whenever the step changes for a known effective session.
 
   const effectiveAgentId = agentFilter === 'all' ? undefined : agentFilter;
 
@@ -68,6 +91,25 @@ export default function AgentTracesPage() {
     () => executions.find((e) => e.session_id === selectedId) ?? executions[0] ?? null,
     [executions, selectedId],
   );
+
+  // Restore last viewed step whenever the effective session changes.
+  const effectiveSessionId = selected?.session_id ?? null;
+  const effectiveTotal = selected?.traces.length ?? 0;
+  useEffect(() => {
+    if (!effectiveSessionId) { setSelectedStep(0); return; }
+    const map = readStepMap();
+    const saved = map[effectiveSessionId] ?? 0;
+    setSelectedStep(Math.max(0, Math.min(saved, Math.max(0, effectiveTotal - 1))));
+  }, [effectiveSessionId, effectiveTotal]);
+
+  // Persist step changes for the effective session.
+  useEffect(() => {
+    if (!effectiveSessionId) return;
+    const map = readStepMap();
+    if (map[effectiveSessionId] === selectedStep) return;
+    map[effectiveSessionId] = selectedStep;
+    writeStepMap(map);
+  }, [effectiveSessionId, selectedStep]);
 
   const totals = useMemo(() => {
     const errors = traces.filter((t) => t.level === 'error').length;
