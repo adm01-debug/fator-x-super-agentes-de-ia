@@ -49,6 +49,22 @@ const FIELD_LABEL: Partial<Record<keyof QuickAgentForm, string>> = {
   prompt: 'Prompt',
 };
 
+  const handleRenameDraft = (id: string, newName: string) => {
+    const trimmed = newName.trim();
+    setDraftsStore((prev) => {
+      const next = renameDraft(prev, id, trimmed);
+      saveDrafts(next);
+      return next;
+    });
+    setPendingDrafts((prev) =>
+      prev.map((d) =>
+        d.id === id
+          ? { ...d, form: { ...d.form, name: trimmed }, savedAt: new Date().toISOString() }
+          : d,
+      ),
+    );
+    toast.success('Nome do rascunho atualizado');
+  };
 
 const STEPS = [
   { key: 'identity', label: 'Identidade', schema: quickIdentitySchema, fields: ['name', 'emoji', 'mission', 'description'] },
