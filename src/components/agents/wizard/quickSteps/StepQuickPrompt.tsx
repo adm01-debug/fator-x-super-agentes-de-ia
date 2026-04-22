@@ -135,6 +135,7 @@ export function StepQuickPrompt({ form, errors, onPromptManualEdit, onRestore, o
   // Coordinated scroll + focus + temporary pulse — driven by useFieldHighlight
   // for consistent behavior across all wizard steps.
   const promptPulsing = useFieldHighlight(textareaRef, promptHighlight);
+  const promptRingCls = useFieldHighlightClass(promptPulsing);
 
   // Memoized section locations — drives gutter, overlay, and jump targets.
   const locations = useMemo(() => locateSections(form.prompt), [form.prompt]);
