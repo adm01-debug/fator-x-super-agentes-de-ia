@@ -591,6 +591,39 @@ export function QuickCreateWizard({ onBack }: QuickCreateWizardProps) {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      <AlertDialog open={!!pendingVariant} onOpenChange={(o) => !o && setPendingVariant(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Substituir prompt customizado?</AlertDialogTitle>
+            <AlertDialogDescription>
+              {pendingVariant && (() => {
+                const t = TEMPLATES_FOR_DIALOG[form.type as QuickAgentType];
+                const variant = t.promptVariants[pendingVariant];
+                const meta = VARIANT_META_FOR_DIALOG[pendingVariant];
+                return (
+                  <>
+                    Você editou o prompt manualmente ({form.prompt.length.toLocaleString('pt-BR')} chars).
+                    Aplicar a variação <strong>"{meta.label}"</strong> ({variant.prompt.length.toLocaleString('pt-BR')} chars)
+                    vai sobrescrever todo o texto atual e destravar o modo customizado.
+                  </>
+                );
+              })()}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={() => {
+                if (pendingVariant) doApplyPromptVariant(pendingVariant);
+                setPendingVariant(null);
+              }}
+            >
+              Substituir
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }
