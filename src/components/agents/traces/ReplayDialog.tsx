@@ -4,8 +4,10 @@ import { Button } from '@/components/ui/button';
 import { Slider } from '@/components/ui/slider';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
-import { Pause, Play, RotateCcw, SkipBack, SkipForward, Info, AlertTriangle, XCircle } from 'lucide-react';
+import { Pause, Play, RotateCcw, SkipBack, SkipForward, Info, AlertTriangle, XCircle, Download } from 'lucide-react';
 import type { ExecutionGroup, TraceLevel } from '@/services/agentTracesService';
+import { downloadJSON } from '@/lib/agentExportImport';
+import { toast } from 'sonner';
 
 interface Props {
   open: boolean;
@@ -60,19 +62,74 @@ export function ReplayDialog({ open, onOpenChange, execution }: Props) {
 
   if (!execution) return null;
 
+  const handleExport = () => {
+    const safeId = execution.session_id.replace(/[^a-zA-Z0-9_-]/g, '_').slice(0, 40);
+    const ts = new Date().toISOString().replace(/[:.]/g, '-').slice(0, 19);
+    const payload = {
+      exported_at: new Date().toISOString(),
+      schema_version: 1,
+      execution: {
+        session_id: execution.session_id,
+        agent_id: execution.agent_id,
+        started_at: execution.started_at,
+        ended_at: execution.ended_at,
+        total_ms: execution.total_ms,
+        total_tokens: execution.total_tokens,
+        total_cost_usd: execution.total_cost,
+        counts: execution.counts,
+        event_count: execution.traces.length,
+      },
+      events: execution.traces.map((t, i) => ({
+        index: i,
+        id: t.id,
+        agent_id: t.agent_id,
+        session_id: t.session_id,
+        level: t.level,
+        event: t.event,
+        created_at: t.created_at,
+        latency_ms: t.latency_ms,
+        tokens_used: t.tokens_used,
+        cost_usd: t.cost_usd,
+        input: t.input,
+        output: t.output,
+        metadata: t.metadata,
+      })),
+    };
+    try {
+      downloadJSON(JSON.stringify(payload, null, 2), `execution-${safeId}-${ts}.json`);
+      toast.success('Execução exportada', { description: `${execution.traces.length} eventos salvos como JSON.` });
+    } catch (err) {
+      toast.error('Falha ao exportar', { description: String(err) });
+    }
+  };
+
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-3xl">
         <DialogHeader>
-          <DialogTitle className="flex items-center gap-2">
-            <Play className="h-4 w-4 text-primary" /> Replay da execução
-          </DialogTitle>
-          <DialogDescription>
-            <span className="font-mono text-[11px]">
-              {execution.session_id.startsWith('auto-') ? '∅ sem session_id' : execution.session_id}
-            </span>
-            {' · '}{total} eventos · {execution.total_ms}ms total
-          </DialogDescription>
+          <div className="flex items-start justify-between gap-3">
+            <div className="min-w-0">
+              <DialogTitle className="flex items-center gap-2">
+                <Play className="h-4 w-4 text-primary" /> Replay da execução
+              </DialogTitle>
+              <DialogDescription>
+                <span className="font-mono text-[11px]">
+                  {execution.session_id.startsWith('auto-') ? '∅ sem session_id' : execution.session_id}
+                </span>
+                {' · '}{total} eventos · {execution.total_ms}ms total
+              </DialogDescription>
+            </div>
+            <Button
+              size="sm"
+              variant="outline"
+              onClick={handleExport}
+              className="h-8 shrink-0 mr-6"
+              aria-label="Exportar execução como JSON"
+              title="Baixar execução completa (eventos + contexto) como JSON"
+            >
+              <Download className="h-3.5 w-3.5 mr-1.5" /> Exportar JSON
+            </Button>
+          </div>
         </DialogHeader>
 
         {/* Controls */}
