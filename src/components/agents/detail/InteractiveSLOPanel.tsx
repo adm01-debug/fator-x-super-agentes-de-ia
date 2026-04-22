@@ -1,5 +1,5 @@
 import { useMemo, useState } from 'react';
-import { CheckCircle2, AlertTriangle, XCircle, RotateCcw, Flame, Activity, Clock } from 'lucide-react';
+import { CheckCircle2, AlertTriangle, XCircle, RotateCcw, Flame, Activity, Clock, Download } from 'lucide-react';
 import { Slider } from '@/components/ui/slider';
 import { Button } from '@/components/ui/button';
 import { useAgentSLOTargets, DEFAULT_SLO_TARGETS, type SLOTargetsConfig } from '@/hooks/useAgentSLOTargets';
@@ -14,6 +14,8 @@ import {
 } from './agentMetricsHelpers';
 import type { AgentTrace } from '@/services/agentsService';
 import { SLOViolationTimeline } from './SLOViolationTimeline';
+import { generateSLOReportPdf } from './sloReportPdf';
+import { toast } from 'sonner';
 
 type EvalWindowKey = '1h' | '6h' | '24h' | '7d' | '14d' | '30d';
 
@@ -28,6 +30,7 @@ const EVAL_WINDOWS: Array<{ key: EvalWindowKey; label: string; ms: number; bucke
 
 interface Props {
   agentId: string;
+  agentName?: string;
   slo: SLOMetrics;
   traces: AgentTrace[];
   daily: DailyPoint[];
@@ -55,7 +58,7 @@ function availabilityStatus(value: number, target: number): Status {
   return 'critical';
 }
 
-export function InteractiveSLOPanel({ agentId, slo, traces, daily, onDayClick }: Props) {
+export function InteractiveSLOPanel({ agentId, agentName, slo, traces, daily, onDayClick }: Props) {
   const { targets, setTargets, reset } = useAgentSLOTargets(agentId);
 
   const [windowKey, setWindowKey] = useState<EvalWindowKey>('14d');
@@ -110,6 +113,31 @@ export function InteractiveSLOPanel({ agentId, slo, traces, daily, onDayClick }:
 
   const burnStyle = STATUS[burn.status];
 
+  const handleExportPdf = () => {
+    try {
+      const doc = generateSLOReportPdf({
+        agentName: agentName || 'Agente',
+        windowLabel: activeWindow.label,
+        windowTraces: windowedTraces.length,
+        generatedAt: new Date(),
+        slo: effectiveSlo,
+        targets,
+        burn,
+        timeline,
+        daily,
+      });
+      const safeName = (agentName || 'agente').toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
+      const stamp = new Date().toISOString().slice(0, 10);
+      doc.save(`relatorio-slo-${safeName}-${activeWindow.label}-${stamp}.pdf`);
+      toast.success('Relatório SLO exportado', {
+        description: `Janela ${activeWindow.label} · ${windowedTraces.length} traces`,
+      });
+    } catch (e) {
+      console.error('Erro ao gerar relatório SLO:', e);
+      toast.error('Falha ao gerar o relatório PDF');
+    }
+  };
+
   return (
     <div className="nexus-card" role="region" aria-label="Painel SLO interativo">
       <div className="flex items-start justify-between mb-4 gap-3 flex-wrap">
@@ -148,6 +176,15 @@ export function InteractiveSLOPanel({ agentId, slo, traces, daily, onDayClick }:
               );
             })}
           </div>
+          <Button
+            variant="outline"
+            size="sm"
+            className="gap-1.5 text-xs h-7"
+            onClick={handleExportPdf}
+            aria-label="Exportar relatório SLO em PDF"
+          >
+            <Download className="h-3 w-3" /> Exportar PDF
+          </Button>
           <Button variant="ghost" size="sm" className="gap-1.5 text-xs h-7" onClick={reset}>
             <RotateCcw className="h-3 w-3" /> Resetar metas
           </Button>
