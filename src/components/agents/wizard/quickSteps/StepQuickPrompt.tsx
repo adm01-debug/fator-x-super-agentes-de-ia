@@ -75,7 +75,7 @@ export function StepQuickPrompt({ form, errors, onPromptManualEdit, onRestore, o
   // Wrappers that record the change kind alongside the prompt mutation.
   const handleManualEdit = (next: string) => {
     setLastChangeKind('manual');
-    handleManualEdit(next);
+    onPromptManualEdit(next);
   };
   const handleApplyVariant = (id: PromptVariantId) => {
     setLastChangeKind('variant');
