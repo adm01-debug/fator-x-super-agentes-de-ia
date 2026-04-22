@@ -104,6 +104,7 @@ export function QuickCreateWizard({ onBack }: QuickCreateWizardProps) {
   const [highlightField, setHighlightField] = useState<keyof QuickAgentForm | null>(null);
   const [confirmOpen, setConfirmOpen] = useState(false);
   const [promptCustomLocked, setPromptCustomLocked] = useState(false);
+  const [selectedVariant, setSelectedVariant] = useState<import('@/data/quickAgentTemplates').PromptVariantId | null>(null);
   const [pendingVariant, setPendingVariant] = useState<import('@/data/quickAgentTemplates').PromptVariantId | null>(null);
   const lastTypeRef = useRef<QuickAgentType | null>(null);
   const lastTypeForLockRef = useRef<string>(QUICK_AGENT_DEFAULTS.type);
@@ -148,12 +149,12 @@ export function QuickCreateWizard({ onBack }: QuickCreateWizardProps) {
     if (!draftDecided) return;
     if (!isDraftMeaningful(form) && !draftsStore.activeId) return;
     setDraftsStore((prev) => {
-      const { store } = upsertDraft(prev, { id: prev.activeId ?? undefined, form, promptCustomLocked });
+      const { store } = upsertDraft(prev, { id: prev.activeId ?? undefined, form, promptCustomLocked, selectedVariant });
       saveDrafts(store);
       return store;
     });
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [form, draftDecided, promptCustomLocked]);
+  }, [form, draftDecided, promptCustomLocked, selectedVariant]);
 
   // Heuristic: when user changes the type after editing a meaningful draft,
   // offer to fork into a new draft (one per type).
@@ -201,6 +202,7 @@ export function QuickCreateWizard({ onBack }: QuickCreateWizardProps) {
     }
     setForm(target.form);
     setPromptCustomLocked(target.promptCustomLocked === true);
+    setSelectedVariant(target.selectedVariant ?? null);
     lastTypeForLockRef.current = target.form.type;
     lastTypeRef.current = target.form.type as QuickAgentType;
     const resume = computeResumeTarget(target.form, STEPS);
@@ -272,13 +274,15 @@ export function QuickCreateWizard({ onBack }: QuickCreateWizardProps) {
     setErrors((prev) => ({ ...prev, prompt: undefined }));
     if (highlightField === 'prompt') setHighlightField(null);
     setPromptCustomLocked(true);
+    setSelectedVariant(null);
   };
 
-  // Reset lock automatically when the user changes the agent type.
+  // Reset lock + persisted variant when the user changes the agent type.
   useEffect(() => {
     if (lastTypeForLockRef.current !== form.type) {
       lastTypeForLockRef.current = form.type;
       setPromptCustomLocked(false);
+      setSelectedVariant(null);
     }
   }, [form.type]);
 
@@ -295,6 +299,7 @@ export function QuickCreateWizard({ onBack }: QuickCreateWizardProps) {
       prompt: t.systemPrompt,
     }));
     setPromptCustomLocked(false);
+    setSelectedVariant(null);
     toast.success(`Template "${t.suggestedName}" aplicado`, {
       description: 'Nome, missão, modelo e prompt foram preenchidos.',
     });
@@ -305,6 +310,7 @@ export function QuickCreateWizard({ onBack }: QuickCreateWizardProps) {
     const t = QUICK_AGENT_TEMPLATES[form.type as QuickAgentType];
     update('prompt', t.systemPrompt);
     setPromptCustomLocked(false);
+    setSelectedVariant(null);
     toast.success('Prompt restaurado do template');
   };
 
@@ -313,6 +319,7 @@ export function QuickCreateWizard({ onBack }: QuickCreateWizardProps) {
     const variant = t.promptVariants[variantId];
     update('prompt', variant.prompt);
     setPromptCustomLocked(false);
+    setSelectedVariant(variantId);
     toast.success(`Variação "${variant.label}" aplicada`, {
       description: 'Você pode editar livremente depois.',
     });

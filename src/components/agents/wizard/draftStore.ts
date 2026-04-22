@@ -4,7 +4,15 @@ import {
   quickTypeSchema,
   type QuickAgentForm,
 } from '@/lib/validations/quickAgentSchema';
+import type { PromptVariantId } from '@/data/quickAgentTemplates';
 import type { DraftSummary } from './DraftRecoveryBanner';
+
+const VALID_VARIANTS: ReadonlyArray<PromptVariantId> = ['balanced', 'concise', 'detailed'];
+function normalizeVariant(v: unknown): PromptVariantId | null {
+  return typeof v === 'string' && (VALID_VARIANTS as readonly string[]).includes(v)
+    ? (v as PromptVariantId)
+    : null;
+}
 
 export interface DraftRestoreCheck {
   canRestore: boolean;
@@ -89,6 +97,12 @@ export interface DraftEntry {
   createdAt: string; // ISO
   /** When true, the prompt was manually edited — variant chips should not auto-detect. */
   promptCustomLocked?: boolean;
+  /**
+   * The variant the user explicitly picked (Equilibrado / Conciso / Detalhado),
+   * persisted so we can restore the active chip across sessions instead of
+   * always falling back to the auto-detected first match.
+   */
+  selectedVariant?: PromptVariantId | null;
 }
 
 export interface DraftsStoreV2 {
@@ -128,6 +142,7 @@ export function loadDrafts(): DraftsStoreV2 {
             savedAt: typeof d.savedAt === 'string' ? d.savedAt : new Date().toISOString(),
             createdAt: typeof d.createdAt === 'string' ? d.createdAt : (d.savedAt ?? new Date().toISOString()),
             promptCustomLocked: d.promptCustomLocked === true,
+            selectedVariant: normalizeVariant(d.selectedVariant),
           })),
         };
       }
@@ -179,7 +194,7 @@ export function renameDraft(
 }
 export function upsertDraft(
   store: DraftsStoreV2,
-  draft: { id?: string; form: QuickAgentForm; promptCustomLocked?: boolean },
+  draft: { id?: string; form: QuickAgentForm; promptCustomLocked?: boolean; selectedVariant?: PromptVariantId | null },
 ): { store: DraftsStoreV2; id: string } {
   const now = new Date().toISOString();
   const id = draft.id ?? genId();
@@ -188,7 +203,13 @@ export function upsertDraft(
   if (existing) {
     drafts = store.drafts.map((d) =>
       d.id === id
-        ? { ...d, form: draft.form, savedAt: now, promptCustomLocked: draft.promptCustomLocked ?? d.promptCustomLocked ?? false }
+        ? {
+            ...d,
+            form: draft.form,
+            savedAt: now,
+            promptCustomLocked: draft.promptCustomLocked ?? d.promptCustomLocked ?? false,
+            selectedVariant: draft.selectedVariant !== undefined ? draft.selectedVariant : d.selectedVariant ?? null,
+          }
         : d,
     );
   } else {
@@ -198,6 +219,7 @@ export function upsertDraft(
       savedAt: now,
       createdAt: now,
       promptCustomLocked: draft.promptCustomLocked ?? false,
+      selectedVariant: draft.selectedVariant ?? null,
     };
     drafts = [entry, ...store.drafts];
   }
