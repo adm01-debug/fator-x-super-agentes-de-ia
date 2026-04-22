@@ -70,10 +70,12 @@ interface Props {
    * choice persists across sessions.
    */
   activeVariant: PromptVariantId | null;
+  /** Chronological log of Custom-mode lock/unlock transitions. */
+  lockEvents?: PromptLockEvent[];
   highlightField?: keyof QuickAgentForm;
 }
 
-export function StepQuickPrompt({ form, errors, onPromptManualEdit, onRestore, onSafeReset, onApplyVariant, customLocked, onUnlockCustom, activeVariant, highlightField }: Props) {
+export function StepQuickPrompt({ form, errors, onPromptManualEdit, onRestore, onSafeReset, onApplyVariant, customLocked, onUnlockCustom, activeVariant, lockEvents, highlightField }: Props) {
   // Active variant template + label — drives the checklist's per-section snippets
   // and the "Completar com X" CTA in real time.
   const activeVariantPrompt = activeVariant
