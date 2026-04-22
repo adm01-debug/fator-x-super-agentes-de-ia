@@ -54,35 +54,60 @@ function successBg(rate: number): string {
   return 'bg-destructive/10 border-destructive/30';
 }
 
-export function SimulationResultDialog({ open, onOpenChange, summary, running, onRun, agentName }: Props) {
+export function SimulationResultDialog({
+  open, onOpenChange, summary, running, onRun, agentName,
+  readOnlyTitle, hideRunControls = false, agentId,
+}: Props) {
   const [prompt, setPrompt] = useState('');
   const [count, setCount] = useState<CountValue>(10);
+  const [saveName, setSaveName] = useState('');
+  const [justSavedId, setJustSavedId] = useState<string | null>(null);
 
   // Reseta o prompt cada vez que o diálogo abre sem resultado prévio
   useEffect(() => {
     if (open && !summary && !running) {
       setPrompt('');
     }
+    if (open) {
+      setJustSavedId(null);
+      setSaveName('');
+    }
   }, [open, summary, running]);
 
   const trimmed = prompt.trim();
   const usingCustom = trimmed.length > 0;
   const overLimit = trimmed.length > MAX_PROMPT_LEN;
+  const canSave = !!summary && !!agentId && !running;
+
+  const handleSave = () => {
+    if (!summary || !agentId) return;
+    const defaultName = `Run ${new Date().toLocaleString('pt-BR', { dateStyle: 'short', timeStyle: 'short' })} · ${summary.successRate.toFixed(0)}% · ${summary.total} runs`;
+    const saved = saveRun({
+      agentId,
+      name: saveName.trim() || defaultName,
+      prompt: trimmed,
+      summary,
+    });
+    setJustSavedId(saved.id);
+    toast.success(`Test Run salvo: "${saved.name}"`);
+  };
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-2xl">
+      <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
-            Simular execução do agente
-            {summary && !running && (
+            {readOnlyTitle ?? 'Simular execução do agente'}
+            {!readOnlyTitle && summary && !running && (
               <span className="ml-2 text-xs font-normal text-muted-foreground">
                 {summary.total} execuções · {agentName}
               </span>
             )}
           </DialogTitle>
           <DialogDescription>
-            Simulação client-side com base em traces reais. Não consome créditos de LLM.
+            {readOnlyTitle
+              ? 'Visualizando resultado salvo. Use “Simular run” no header para nova execução.'
+              : 'Simulação client-side com base em traces reais. Não consome créditos de LLM.'}
           </DialogDescription>
         </DialogHeader>
 
