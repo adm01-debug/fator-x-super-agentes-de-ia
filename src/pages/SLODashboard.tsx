@@ -43,6 +43,23 @@ const DEFAULT_WINDOW_HOURS = 24;
 const QP_WINDOW = 'w';
 const QP_AUTO = 'auto';
 const QP_COMPARE = 'cmp';
+const QP_FAILURE_MODES = 'fm';
+
+/**
+ * Failure modes that count toward "violations" in the timeline.
+ * - `error`    → bucket has any traces with level=error
+ * - `critical` → bucket P95 exceeds the P99 target (severe latency outliers)
+ * - `latency`  → bucket P95 exceeds the P95 target
+ * Tool-failure granularity isn't exposed by `get_slo_summary` yet, so we
+ * deliberately omit it instead of showing a filter that does nothing.
+ */
+type FailureMode = 'error' | 'critical' | 'latency';
+const ALL_FAILURE_MODES: readonly FailureMode[] = ['error', 'critical', 'latency'] as const;
+const FAILURE_MODE_META: Record<FailureMode, { label: string; description: string }> = {
+  error:    { label: 'Erros',    description: 'Buckets com pelo menos 1 trace com level=error' },
+  critical: { label: 'Crítico',  description: 'P95 do bucket excede o alvo de P99 (outliers severos)' },
+  latency:  { label: 'Latência', description: 'P95 do bucket excede o alvo de P95' },
+};
 
 /** Human-readable label for a window in hours. */
 function windowLabel(hours: number): string {
