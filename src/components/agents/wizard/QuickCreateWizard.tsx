@@ -31,6 +31,7 @@ import {
   removeDraft,
   setActive,
   summarizeForm,
+  checkDraftRestorable,
   DRAFT_TTL_MS,
   type DraftsStoreV2,
   type DraftEntry,
