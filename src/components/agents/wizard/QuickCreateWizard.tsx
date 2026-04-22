@@ -33,6 +33,7 @@ import {
   summarizeForm,
   checkDraftRestorable,
   computeResumeTarget,
+  renameDraft,
   DRAFT_TTL_MS,
   type DraftsStoreV2,
   type DraftEntry,
@@ -393,6 +394,7 @@ export function QuickCreateWizard({ onBack }: QuickCreateWizardProps) {
           onRestore={restoreDraft}
           onDiscardOne={discardOneDraft}
           onDiscardAll={discardAllDrafts}
+          onRename={handleRenameDraft}
         />
       )}
       <div className="flex items-center gap-3">
