@@ -210,6 +210,10 @@ export function findSectionLineIndex(prompt: string, key: PromptSectionKey): num
 }
 
 import { analyzePromptStructure, PROMPT_LIMITS } from './promptSanitizer';
+import { detectPromptContradictions } from './promptContradictions';
+
+export { detectPromptContradictions } from './promptContradictions';
+export type { PromptContradiction, ContradictionKind } from './promptContradictions';
 
 export const quickPromptSchema = z.object({
   prompt: z
