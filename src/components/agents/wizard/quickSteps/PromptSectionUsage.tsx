@@ -1,5 +1,5 @@
 import { memo, useEffect, useMemo, useRef, useState } from 'react';
-import { CheckCircle2, AlertTriangle, Circle, Flame, Gauge } from 'lucide-react';
+import { CheckCircle2, AlertTriangle, Circle, Flame, Gauge, Scissors, Sparkles } from 'lucide-react';
 import { locateSections, type SectionLocation } from '@/lib/promptSectionLocator';
 import { PROMPT_LIMITS } from '@/lib/validations/promptSanitizer';
 import { type PromptSectionKey } from '@/lib/validations/quickAgentSchema';
