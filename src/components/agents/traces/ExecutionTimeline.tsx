@@ -441,9 +441,21 @@ function ExecutionSummary({
       </div>
 
       {current && (
-        <div className="text-[10px] text-muted-foreground truncate">
-          <span className="font-medium text-foreground">↳</span> {current.event}
-          <span className="font-mono ml-2">{new Date(current.created_at).toLocaleTimeString('pt-BR')}</span>
+        <div className="flex items-center gap-2 text-[10px] text-muted-foreground">
+          <div className="truncate flex-1 min-w-0">
+            <span className="font-medium text-foreground">↳</span> {current.event}
+            <span className="font-mono ml-2">{new Date(current.created_at).toLocaleTimeString('pt-BR')}</span>
+            {currentBookmark?.note && (
+              <span className="ml-2 text-nexus-amber italic truncate">— {currentBookmark.note}</span>
+            )}
+          </div>
+          <BookmarkButton
+            sessionId={session_id}
+            traceId={current.id}
+            stepIndex={step}
+            variant="inline"
+            onChange={onBookmarksChange}
+          />
         </div>
       )}
     </div>
