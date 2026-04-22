@@ -32,9 +32,15 @@ export default function AgentDetailPage() {
     enabled: !!id,
   });
 
-  const handleSimulate = async () => {
+  // Abre o diálogo sem rodar — o usuário decide o prompt e dispara dentro do modal.
+  const handleOpenSimulator = () => {
     if (!agent || !id) return;
+    setSimSummary(null);
     setSimOpen(true);
+  };
+
+  const handleRunSimulation = async (customInput: string) => {
+    if (!agent || !id) return;
     setSimRunning(true);
     setSimSummary(null);
     try {
@@ -50,6 +56,7 @@ export default function AgentDetailPage() {
           { id: agent.id, name: agent.name, model: agent.model },
           traces,
           10,
+          { customInput },
         );
         setSimSummary(summary);
         setSimRunning(false);
@@ -91,7 +98,7 @@ export default function AgentDetailPage() {
             <Button variant="outline" size="sm" onClick={() => navigate(`/agents/${agent.id}/alerts`)}>
               <Bell className="h-3.5 w-3.5 mr-1.5" /> Alertas
             </Button>
-            <Button variant="outline" size="sm" onClick={handleSimulate} disabled={simRunning}>
+            <Button variant="outline" size="sm" onClick={handleOpenSimulator} disabled={simRunning}>
               <Play className="h-3.5 w-3.5 mr-1.5" /> Simular run
             </Button>
             <Button variant="outline" size="sm" onClick={() => navigate(`/builder/${agent.id}`)}>
@@ -149,7 +156,7 @@ export default function AgentDetailPage() {
         onOpenChange={setSimOpen}
         summary={simSummary}
         running={simRunning}
-        onRerun={handleSimulate}
+        onRun={handleRunSimulation}
         agentName={agent.name}
       />
     </div>

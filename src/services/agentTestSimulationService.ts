@@ -56,7 +56,9 @@ export function simulateAgentRun(
   agent: Pick<AgentDetail, 'id' | 'name' | 'model'>,
   baseTraces: AgentTrace[],
   count = 10,
+  options: { customInput?: string } = {},
 ): SimulationSummary {
+  const customInput = options.customInput?.trim();
   const pricing = getModelPrice(agent.model ?? undefined);
 
   // Base estatística: usa traces reais se houver, senão defaults pelo modelo
@@ -80,7 +82,9 @@ export function simulateAgentRun(
 
   const runs: SimulatedRun[] = [];
   for (let i = 0; i < count; i++) {
-    const input = MOCK_INPUTS[i % MOCK_INPUTS.length];
+    const input = customInput && customInput.length > 0
+      ? customInput
+      : MOCK_INPUTS[i % MOCK_INPUTS.length];
     const isError = Math.random() < errorRate;
     const latency = Math.round(jitter(avgLatencyBase, 0.3));
     const tokens = isError ? 0 : Math.round(jitter(avgTokensBase, 0.2));
