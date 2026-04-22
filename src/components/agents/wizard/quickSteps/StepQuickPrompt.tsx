@@ -257,7 +257,10 @@ export function StepQuickPrompt({ form, errors, onPromptManualEdit, onRestore, o
 
     const result = sanitizePromptInput(pasted, Math.max(0, remainingBudget));
     const next = before + result.clean + after;
-    handleManualEdit(next);
+    // Force lock with source='paste' — even if `next` happens to coincide
+    // exactly with one of the known variants, pasted content is treated as
+    // opaque user intent and stays in custom-locked mode.
+    handleManualEdit(next, 'paste');
 
     // Restore caret after the pasted block on next tick.
     requestAnimationFrame(() => {
