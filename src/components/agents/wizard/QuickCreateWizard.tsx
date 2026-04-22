@@ -189,6 +189,12 @@ export function QuickCreateWizard({ onBack }: QuickCreateWizardProps) {
     return () => window.clearTimeout(t);
   }, [highlightField]);
 
+  // Quando o campo destacado é resolvido (ou expira), o banner de feedback
+  // de restauração também desaparece — mantém os dois sincronizados.
+  useEffect(() => {
+    if (!highlightField && restoreFeedback) setRestoreFeedback(null);
+  }, [highlightField, restoreFeedback]);
+
   // On mount: load store, filter recoverable drafts.
   useEffect(() => {
     const store = loadDrafts();
