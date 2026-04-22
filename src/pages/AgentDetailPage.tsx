@@ -156,7 +156,7 @@ export default function AgentDetailPage() {
         onOpenChange={setSimOpen}
         summary={simSummary}
         running={simRunning}
-        onRerun={handleSimulate}
+        onRun={handleRunSimulation}
         agentName={agent.name}
       />
     </div>
