@@ -636,7 +636,7 @@ export function QuickCreateWizard({ onBack }: QuickCreateWizardProps) {
       case 3: {
         const detected = detectPromptVariant(form.type as QuickAgentType, form.prompt);
         const activeVariant = promptCustomLocked ? null : (selectedVariant ?? detected);
-        return <StepQuickPrompt form={form} errors={errors} onPromptManualEdit={updatePromptManual} onRestore={restorePromptFromType} onSafeReset={safeResetPromptAndPreview} onApplyVariant={applyPromptVariant} customLocked={promptCustomLocked} onUnlockCustom={() => { setPromptCustomLocked(false); setSelectedVariant(null); }} activeVariant={activeVariant} highlightField={hfFor(['prompt'])} />;
+        return <StepQuickPrompt form={form} errors={errors} onPromptManualEdit={updatePromptManual} onRestore={restorePromptFromType} onSafeReset={safeResetPromptAndPreview} onApplyVariant={applyPromptVariant} customLocked={promptCustomLocked} onUnlockCustom={() => { if (promptCustomLocked) pushLockEvent('unlocked-manual', 'botão "Destravar" no editor'); setPromptCustomLocked(false); setSelectedVariant(null); }} activeVariant={activeVariant} lockEvents={lockEvents} highlightField={hfFor(['prompt'])} />;
       }
       default: return null;
     }
