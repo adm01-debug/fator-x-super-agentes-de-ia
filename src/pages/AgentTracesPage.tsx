@@ -1,10 +1,11 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useParams } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
-import { Activity, AlertTriangle, DollarSign, Play, RefreshCw, Zap } from 'lucide-react';
+import { Activity, AlertTriangle, DollarSign, Filter, Inbox, Play, RefreshCw, Zap } from 'lucide-react';
 import { PageHeader } from '@/components/shared/PageHeader';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { EmptyState } from '@/components/shared/EmptyState';
 import { useDebounce } from '@/hooks/use-debounce';
 import {
   listAgentTraces, listAvailableEvents, groupBySession,
