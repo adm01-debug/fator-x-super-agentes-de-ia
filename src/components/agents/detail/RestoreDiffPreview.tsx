@@ -1,0 +1,151 @@
+import { useMemo } from 'react';
+import { ArrowRight, Plus, Minus, Pencil, MessageSquare, Wrench, Cpu, CheckCircle2 } from 'lucide-react';
+import type { AgentVersion } from '@/services/agentsService';
+import { computeRestoreDiff, type FieldChange } from './restoreDiffHelpers';
+
+interface Props {
+  current: AgentVersion | null | undefined;
+  source: AgentVersion;
+  options: { copyPrompt: boolean; copyTools: boolean; copyModel: boolean };
+}
+
+const GROUP_META: Record<FieldChange['group'], { label: string; icon: typeof MessageSquare; tone: string }> = {
+  prompt: { label: 'Prompt', icon: MessageSquare, tone: 'text-primary' },
+  tools: { label: 'Ferramentas', icon: Wrench, tone: 'text-nexus-amber' },
+  model: { label: 'Modelo & parâmetros', icon: Cpu, tone: 'text-nexus-emerald' },
+};
+
+const KIND_META: Record<FieldChange['kind'], { icon: typeof Plus; tone: string; label: string }> = {
+  added: { icon: Plus, tone: 'text-nexus-emerald bg-nexus-emerald/10 border-nexus-emerald/30', label: 'Adicionado' },
+  removed: { icon: Minus, tone: 'text-destructive bg-destructive/10 border-destructive/30', label: 'Removido' },
+  modified: { icon: Pencil, tone: 'text-primary bg-primary/10 border-primary/30', label: 'Alterado' },
+};
+
+function preview(v: unknown, max = 70): string {
+  if (v === null || v === undefined || v === '') return '—';
+  if (Array.isArray(v)) {
+    if (v.length === 0) return '[ ]';
+    return `[${v.slice(0, 4).map(String).join(', ')}${v.length > 4 ? `, +${v.length - 4}` : ''}]`;
+  }
+  const s = typeof v === 'string' ? v : JSON.stringify(v);
+  return s.length > max ? s.slice(0, max) + '…' : s;
+}
+
+export function RestoreDiffPreview({ current, source, options }: Props) {
+  const diff = useMemo(() => computeRestoreDiff(current, source, options), [current, source, options]);
+  const grouped = useMemo(() => {
+    const map = new Map<FieldChange['group'], FieldChange[]>();
+    diff.changes.forEach((c) => {
+      if (!map.has(c.group)) map.set(c.group, []);
+      map.get(c.group)!.push(c);
+    });
+    return map;
+  }, [diff.changes]);
+
+  if (diff.changes.length === 0) {
+    return (
+      <div className="rounded-lg border border-nexus-emerald/30 bg-nexus-emerald/5 p-3 flex items-center gap-2.5">
+        <CheckCircle2 className="h-4 w-4 text-nexus-emerald shrink-0" aria-hidden="true" />
+        <div>
+          <p className="text-xs font-semibold text-nexus-emerald">Nenhuma alteração efetiva</p>
+          <p className="text-[11px] text-muted-foreground">A versão de origem é idêntica à atual nos campos selecionados.</p>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="rounded-lg border border-border/60 bg-card/40 overflow-hidden">
+      <div className="flex items-center justify-between px-3 py-2 bg-secondary/40 border-b border-border/50">
+        <p className="text-xs font-semibold text-foreground">
+          {diff.changes.length} alteraç{diff.changes.length === 1 ? 'ão' : 'ões'} a aplicar
+        </p>
+        <div className="flex items-center gap-1.5 text-[10px]">
+          {diff.toolsAdded.length > 0 && (
+            <span className="px-1.5 py-0.5 rounded bg-nexus-emerald/10 text-nexus-emerald font-mono">+{diff.toolsAdded.length} tool</span>
+          )}
+          {diff.toolsRemoved.length > 0 && (
+            <span className="px-1.5 py-0.5 rounded bg-destructive/10 text-destructive font-mono">−{diff.toolsRemoved.length} tool</span>
+          )}
+          {diff.promptDeltaChars !== 0 && (
+            <span className="px-1.5 py-0.5 rounded bg-primary/10 text-primary font-mono">
+              {diff.promptDeltaChars > 0 ? '+' : ''}{diff.promptDeltaChars} chars
+            </span>
+          )}
+        </div>
+      </div>
+
+      <div className="max-h-[280px] overflow-y-auto divide-y divide-border/30">
+        {Array.from(grouped.entries()).map(([group, items]) => {
+          const meta = GROUP_META[group];
+          const GroupIcon = meta.icon;
+          return (
+            <div key={group} className="p-3 space-y-2">
+              <div className="flex items-center gap-1.5">
+                <GroupIcon className={`h-3.5 w-3.5 ${meta.tone}`} aria-hidden="true" />
+                <span className="text-[11px] font-semibold uppercase tracking-wider text-foreground">{meta.label}</span>
+                <span className="text-[10px] text-muted-foreground">({items.length})</span>
+              </div>
+
+              <ul className="space-y-1.5">
+                {items.map((c) => {
+                  const kindMeta = KIND_META[c.kind];
+                  const KindIcon = kindMeta.icon;
+                  // Para ferramentas, mostrar lista detalhada de adições/remoções
+                  if (c.field === 'tools') {
+                    return (
+                      <li key={c.field} className="rounded-md border border-border/40 bg-background/50 p-2 text-[11px] space-y-1.5">
+                        <div className="flex items-center gap-1.5">
+                          <span className={`inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded border text-[10px] font-mono ${kindMeta.tone}`}>
+                            <KindIcon className="h-2.5 w-2.5" aria-hidden="true" />
+                            {kindMeta.label}
+                          </span>
+                          <span className="font-medium text-foreground">{c.label}</span>
+                        </div>
+                        {diff.toolsAdded.length > 0 && (
+                          <p className="text-nexus-emerald font-mono text-[10px]">
+                            + {diff.toolsAdded.join(', ')}
+                          </p>
+                        )}
+                        {diff.toolsRemoved.length > 0 && (
+                          <p className="text-destructive font-mono text-[10px]">
+                            − {diff.toolsRemoved.join(', ')}
+                          </p>
+                        )}
+                      </li>
+                    );
+                  }
+                  return (
+                    <li key={c.field} className="rounded-md border border-border/40 bg-background/50 p-2 text-[11px]">
+                      <div className="flex items-center gap-1.5 mb-1">
+                        <span className={`inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded border text-[10px] font-mono ${kindMeta.tone}`}>
+                          <KindIcon className="h-2.5 w-2.5" aria-hidden="true" />
+                          {kindMeta.label}
+                        </span>
+                        <span className="font-medium text-foreground">{c.label}</span>
+                      </div>
+                      <div className="flex items-center gap-2 font-mono text-[10px] text-muted-foreground">
+                        <span className="line-through opacity-70 truncate max-w-[40%]" title={String(c.before)}>{preview(c.before)}</span>
+                        <ArrowRight className="h-2.5 w-2.5 shrink-0" aria-hidden="true" />
+                        <span className="text-foreground truncate max-w-[55%]" title={String(c.after)}>{preview(c.after)}</span>
+                      </div>
+                    </li>
+                  );
+                })}
+              </ul>
+            </div>
+          );
+        })}
+
+        {diff.unchangedGroups.length > 0 && (
+          <div className="px-3 py-2 bg-secondary/20">
+            <p className="text-[10px] text-muted-foreground">
+              <CheckCircle2 className="h-2.5 w-2.5 inline-block mr-1 text-nexus-emerald" aria-hidden="true" />
+              Sem mudanças em: {diff.unchangedGroups.map((g) => GROUP_META[g].label.toLowerCase()).join(', ')}
+            </p>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
