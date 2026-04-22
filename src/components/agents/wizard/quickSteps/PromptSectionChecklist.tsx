@@ -1,5 +1,5 @@
 import { useMemo, useState } from 'react';
-import { CheckCircle2, Circle, Plus, Wand2, AlertTriangle, Crosshair, Lock, Sparkles, FileSearch } from 'lucide-react';
+import { CheckCircle2, Circle, Plus, Wand2, AlertTriangle, Crosshair, Lock, Sparkles, FileSearch, ChevronDown, FileText } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import {
   REQUIRED_PROMPT_SECTIONS,
@@ -16,6 +16,8 @@ import {
   SheetTitle,
   SheetTrigger,
 } from '@/components/ui/sheet';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import { SECTION_TEMPLATES, getDefaultTemplate, type SectionTemplate } from './sectionTemplates';
 
 interface Props {
   prompt: string;
@@ -43,11 +45,16 @@ interface Props {
   customLocked?: boolean;
 }
 
+/**
+ * Legacy export kept for backwards compatibility — now points to the *first*
+ * template per section (which is guaranteed to clear the depth check).
+ * New code should use `SECTION_TEMPLATES` from './sectionTemplates' instead.
+ */
 export const SECTION_SNIPPETS: Record<PromptSectionKey, string> = {
-  persona: `\n\n## Persona\n- Tom: profissional e direto\n- Idioma: português brasileiro\n- Trate o usuário como ...\n`,
-  scope: `\n\n## Escopo\n- Responder dúvidas sobre ...\n- Executar tarefas relacionadas a ...\n- Encaminhar para humano quando ...\n`,
-  format: `\n\n## Formato\n- Máximo 200 palavras por resposta\n- Use listas curtas quando ajudar\n- Sempre entregue a resposta antes do contexto\n`,
-  rules: `\n\n## Regras\n- Nunca invente informações; admita quando não souber\n- Não compartilhe dados sensíveis\n- Confirme antes de executar ações irreversíveis\n`,
+  persona: getDefaultTemplate('persona').body,
+  scope: getDefaultTemplate('scope').body,
+  format: getDefaultTemplate('format').body,
+  rules: getDefaultTemplate('rules').body,
 };
 
 /** Count words in a snippet (used for the "preencheria com ~N palavras" hint). */
@@ -340,25 +347,40 @@ export function PromptSectionChecklist({
                   </Button>
                 )}
                 {!isOk && (
-                  <Button
-                    type="button"
-                    size="sm"
-                    variant="ghost"
-                    onClick={() => {
-                      if (!r.present && onJumpToSection) {
-                        // Insert + jump in a single action.
-                        onJumpToSection(r.key, eff.snippet);
-                      } else {
-                        // Splice at canonical position via key-aware onInsert.
-                        onInsert(eff.snippet, r.key);
-                        if (onJumpToSection) onJumpToSection(r.key);
-                      }
-                    }}
-                    className="h-7 gap-1 text-[11px] text-primary hover:bg-primary/10"
-                    aria-label={`${isThin ? 'Reinserir' : 'Inserir'} seção ${r.label}${eff.fromVariant ? ` da variação ${activeVariantLabel}` : ''}`}
-                  >
-                    <Plus className="h-3 w-3" /> {isThin ? 'Expandir' : 'Inserir + ir'}
-                  </Button>
+                  <div className="flex items-center">
+                    <Button
+                      type="button"
+                      size="sm"
+                      variant="ghost"
+                      onClick={() => {
+                        if (!r.present && onJumpToSection) {
+                          // Insert + jump in a single action.
+                          onJumpToSection(r.key, eff.snippet);
+                        } else {
+                          // Splice at canonical position via key-aware onInsert.
+                          onInsert(eff.snippet, r.key);
+                          if (onJumpToSection) onJumpToSection(r.key);
+                        }
+                      }}
+                      className="h-7 gap-1 text-[11px] text-primary hover:bg-primary/10 rounded-r-none border-r border-border/40 pr-1.5"
+                      aria-label={`${isThin ? 'Reinserir' : 'Inserir'} seção ${r.label}${eff.fromVariant ? ` da variação ${activeVariantLabel}` : ''}`}
+                    >
+                      <Plus className="h-3 w-3" /> {isThin ? 'Expandir' : 'Inserir + ir'}
+                    </Button>
+                    <SectionTemplatePicker
+                      sectionKey={r.key}
+                      sectionLabel={r.label}
+                      onPick={(tpl) => {
+                        const snippet = `\n\n${tpl.body}\n`;
+                        if (!r.present && onJumpToSection) {
+                          onJumpToSection(r.key, snippet);
+                        } else {
+                          onInsert(snippet, r.key);
+                          if (onJumpToSection) onJumpToSection(r.key);
+                        }
+                      }}
+                    />
+                  </div>
                 )}
               </div>
             </li>
@@ -383,5 +405,80 @@ export function PromptSectionChecklist({
         </div>
       )}
     </div>
+  );
+}
+
+/**
+ * Per-section dropdown that lists every prebuilt template for that section.
+ * Picking a template inserts its body at the canonical position via the
+ * parent's `onPick` callback. Each template is pre-validated to clear the
+ * minimum-depth check (12+ prose words per section).
+ */
+function SectionTemplatePicker({
+  sectionKey,
+  sectionLabel,
+  onPick,
+}: {
+  sectionKey: PromptSectionKey;
+  sectionLabel: string;
+  onPick: (tpl: SectionTemplate) => void;
+}) {
+  const [open, setOpen] = useState(false);
+  const templates = SECTION_TEMPLATES[sectionKey];
+  return (
+    <Popover open={open} onOpenChange={setOpen}>
+      <PopoverTrigger asChild>
+        <Button
+          type="button"
+          size="sm"
+          variant="ghost"
+          className="h-7 px-1.5 text-primary hover:bg-primary/10 rounded-l-none"
+          aria-label={`Escolher template para ${sectionLabel}`}
+          title="Escolher um template pronto"
+        >
+          <ChevronDown className="h-3 w-3" />
+        </Button>
+      </PopoverTrigger>
+      <PopoverContent align="end" className="w-80 p-2">
+        <div className="px-2 py-1.5 mb-1 border-b border-border/40">
+          <p className="text-xs font-heading font-semibold text-foreground flex items-center gap-1.5">
+            <FileText className="h-3 w-3 text-primary" />
+            Templates para {sectionLabel}
+          </p>
+          <p className="text-[10px] text-muted-foreground mt-0.5">
+            Cada template já passa na validação de profundidade.
+          </p>
+        </div>
+        <ul className="space-y-0.5">
+          {templates.map((tpl) => {
+            const words = wordCount(tpl.body);
+            return (
+              <li key={tpl.id}>
+                <button
+                  type="button"
+                  onClick={() => {
+                    onPick(tpl);
+                    setOpen(false);
+                  }}
+                  className="w-full text-left rounded-md px-2 py-1.5 hover:bg-primary/10 focus-visible:bg-primary/10 focus-visible:outline-none transition-colors group"
+                >
+                  <div className="flex items-center justify-between gap-2">
+                    <span className="text-xs font-medium text-foreground group-hover:text-primary">
+                      {tpl.label}
+                    </span>
+                    <span className="text-[10px] font-mono text-muted-foreground tabular-nums">
+                      {words}p
+                    </span>
+                  </div>
+                  <p className="text-[10px] text-muted-foreground mt-0.5 leading-snug">
+                    {tpl.description}
+                  </p>
+                </button>
+              </li>
+            );
+          })}
+        </ul>
+      </PopoverContent>
+    </Popover>
   );
 }
