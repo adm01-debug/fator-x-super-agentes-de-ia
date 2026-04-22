@@ -94,10 +94,19 @@ export function ExecutionTimeline({ execution, selectedStep, onSelectStep }: Pro
 /*  Resumo da execução (sticky)                                         */
 /* ------------------------------------------------------------------ */
 
-function ExecutionSummary({ execution, step }: { execution: ExecutionGroup; step: number }) {
+function ExecutionSummary({
+  execution, step, total, onStep,
+}: {
+  execution: ExecutionGroup;
+  step: number;
+  total: number;
+  onStep: (i: number) => void;
+}) {
   const { counts, total_ms, total_tokens, total_cost, session_id, traces } = execution;
   const current = traces[step];
   const isAuto = session_id.startsWith('auto-');
+  const atStart = step <= 0;
+  const atEnd = step >= total - 1;
 
   return (
     <div className="sticky top-0 z-10 bg-background/95 backdrop-blur border border-border/40 rounded-lg p-3 space-y-2">
@@ -108,9 +117,59 @@ function ExecutionSummary({ execution, step }: { execution: ExecutionGroup; step
             {isAuto ? '∅ sem session_id' : session_id}
           </code>
         </div>
-        <Badge variant="outline" className="text-[10px] tabular-nums shrink-0">
-          Passo {Math.min(step + 1, traces.length)} / {traces.length}
-        </Badge>
+        <div className="flex items-center gap-1 shrink-0">
+          <Button
+            type="button"
+            size="icon"
+            variant="ghost"
+            className="h-6 w-6"
+            disabled={atStart || total === 0}
+            onClick={() => onStep(0)}
+            aria-label="Primeiro passo"
+            title="Primeiro passo (Home)"
+          >
+            <ChevronsLeft className="h-3.5 w-3.5" />
+          </Button>
+          <Button
+            type="button"
+            size="icon"
+            variant="ghost"
+            className="h-6 w-6"
+            disabled={atStart || total === 0}
+            onClick={() => onStep(step - 1)}
+            aria-label="Passo anterior"
+            title="Passo anterior (↑ ou k)"
+          >
+            <ChevronLeft className="h-3.5 w-3.5" />
+          </Button>
+          <Badge variant="outline" className="text-[10px] tabular-nums">
+            {Math.min(step + 1, traces.length)} / {traces.length}
+          </Badge>
+          <Button
+            type="button"
+            size="icon"
+            variant="ghost"
+            className="h-6 w-6"
+            disabled={atEnd || total === 0}
+            onClick={() => onStep(step + 1)}
+            aria-label="Próximo passo"
+            title="Próximo passo (↓ ou j)"
+          >
+            <ChevronRight className="h-3.5 w-3.5" />
+          </Button>
+          <Button
+            type="button"
+            size="icon"
+            variant="ghost"
+            className="h-6 w-6"
+            disabled={atEnd || total === 0}
+            onClick={() => onStep(total - 1)}
+            aria-label="Último passo"
+            title="Último passo (End)"
+          >
+            <ChevronsRight className="h-3.5 w-3.5" />
+          </Button>
+        </div>
       </div>
 
       <div className="flex items-center gap-3 flex-wrap text-[11px] text-muted-foreground">
