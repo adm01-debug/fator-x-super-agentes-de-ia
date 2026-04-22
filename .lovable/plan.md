@@ -1,73 +1,89 @@
 
 
-## Checklist 4/4 em tempo real, sincronizado com a variação selecionada
+## Persistir a variação de prompt selecionada no rascunho
 
-Hoje o `PromptSectionChecklist` já recalcula em tempo real conforme o `prompt` (via `analyzeSectionContent` memoizado). O que falta é:
+Hoje o wizard usa `detectPromptVariant(type, prompt)` para inferir a chip ativa por **comparação textual exata** com o template. Resultado: ao voltar a um rascunho, se o prompt foi minimamente editado, a chip volta para "customizado" — e quando bate com algum template, sempre cai em "Equilibrado" (primeiro da ordem). A escolha explícita do usuário se perde.
 
-1. **Mostrar a variação ativa** dentro do próprio checklist (Equilibrado / Conciso / Detalhado / Customizado), para o usuário entender que o "4/4" é relativo ao que aquela variação **espera entregar**.
-2. **Destacar visualmente as seções que a variação selecionada já preencheria** vs. as que continuam em falta no texto atual.
-3. **Ação de 1 clique "Completar com a variação X"** que insere apenas as seções faltantes a partir do template da variação selecionada (sem sobrescrever o que o usuário já escreveu).
+A solução é guardar a **variação efetivamente escolhida** (`selectedVariant`) ao lado do prompt, persistir no draft e usá-la como fonte de verdade para a chip ativa.
 
 ### O que muda na visão do usuário
 
-- O cabeçalho do checklist agora exibe um **chip da variação ativa** (ex.: `Conciso`) ao lado do `4/4 ✓`.
-  - Em modo customizado/locked, mostra `Customizado 🔒` em âmbar.
-- Cada item da lista (Persona / Escopo / Formato / Regras) ganha um **mini-indicador** do que a variação ativa entregaria:
-  - ✅ verde: já preenchido no texto e atende ao mínimo.
-  - 🟡 âmbar: presente mas raso (já existe hoje).
-  - ⚪ vazio: faltando — e mostra prévia *"a variação X preenche com ~42 palavras"*.
-- Botão principal muda de `Inserir as N pendentes` para **`Completar com Conciso`** quando há variação ativa — e usa os snippets dela em vez dos snippets genéricos.
-- Quando o usuário está em **modo customizado travado**, o botão volta a usar os snippets genéricos atuais (comportamento de hoje), com label `Inserir esqueletos pendentes`.
-- O `4/4` recalcula instantaneamente a cada digitação (já é o caso) e a "fonte de verdade" do snippet de cada item passa a ser a variação ativa.
+1. Ao clicar em **Conciso** (ou outra variação), a escolha é gravada no rascunho. Ao recarregar a página/voltar mais tarde, a chip "Conciso" volta destacada — mesmo que o texto bata com outra variação ou tenha sido levemente editado dentro do lock.
+2. Quando o usuário **edita manualmente** o prompt (já existe `promptCustomLocked = true`), a chip "Customizado 🔒" aparece como hoje, mas a `selectedVariant` é zerada — porque a intenção do usuário deixou de ser uma variação fixa.
+3. Ao **trocar o tipo de agente**, `selectedVariant` reseta junto com o lock (estado coerente para o novo template).
+4. Ao clicar **"Restaurar template"** ou **"Sair do modo custom"**, `selectedVariant` é recalculada a partir do `detectPromptVariant` (auto) — comportamento atual preservado.
+5. Ao clicar em **"Aplicar"** uma variação a partir do estado custom-locked → confirma no AlertDialog → aplica e grava `selectedVariant = variantId`.
 
 ### Como funciona (técnico)
 
-**1. Extrator de seção a partir de uma variante** (`src/lib/promptSectionLocator.ts` — nova função pura):
+**Novo estado no `QuickCreateWizard`**:
 ```ts
-export function extractSectionFromPrompt(prompt: string, key: PromptSectionKey): string | null
+const [selectedVariant, setSelectedVariant] = useState<PromptVariantId | null>(null);
 ```
-- Reusa `findSectionLineIndex` + a lógica já existente em `analyzeSectionContent` para fatiar o bloco de heading até o próximo heading canônico.
-- Retorna o trecho `## Heading\n…body…` ou `null` se a variação não tem essa seção.
 
-**2. Snippets dinâmicos baseados na variação ativa** (`PromptSectionChecklist.tsx`):
-- Nova prop opcional `activeVariantPrompt?: string` e `activeVariantLabel?: string`.
-- `effectiveSnippets[key] = extractSectionFromPrompt(activeVariantPrompt, key) ?? SECTION_SNIPPETS[key]` (fallback no genérico).
-- O contador `wordsFromVariant` é mostrado como prévia ao lado dos itens faltantes.
+**Resolução da chip ativa** (substitui o cálculo direto em `StepQuickPrompt`):
+```ts
+// Em QuickCreateWizard, calculado e passado adiante:
+const detected = detectPromptVariant(form.type, form.prompt);
+const activeVariant = promptCustomLocked
+  ? null
+  : (selectedVariant ?? detected);
+```
+- Prioriza a escolha explícita; cai no auto-detect só quando o usuário nunca clicou em variação para o tipo atual.
+- O `StepQuickPrompt` recebe `activeVariant` direto como prop em vez de calcular sozinho — fonte única de verdade.
 
-**3. Cabeçalho com chip da variação**:
-- Renderiza o badge `meta.label` (importado de `PROMPT_VARIANT_META`) com cor primária quando há variação ativa, ou `Customizado` âmbar (com `Lock` se `customLocked`).
+**Setters que mexem na variação**:
+| Ação | `selectedVariant` | `promptCustomLocked` |
+|---|---|---|
+| `doApplyPromptVariant(id)` | `setSelectedVariant(id)` | `false` |
+| `applyTemplate(type)` | `setSelectedVariant(null)` (template padrão = balanced via auto-detect) | `false` |
+| `restorePromptFromType()` | `setSelectedVariant(null)` | `false` |
+| `updatePromptManual(...)` | `setSelectedVariant(null)` | `true` |
+| Troca de `form.type` | `setSelectedVariant(null)` | `false` |
+| `setPromptCustomLocked(false)` (botão "Sair do custom") | mantém `null` (já era custom) | `false` |
 
-**4. Wiring no `StepQuickPrompt.tsx`**:
-- Calcula `activeVariantPrompt = activeVariant ? template.promptVariants[activeVariant].prompt : null`.
-- Passa `activeVariantPrompt`, `activeVariantLabel`, `customLocked` para o `PromptSectionChecklist`.
-- O callback `onInsert(snippet, key)` continua igual — o checklist já passa o snippet correto (variant ou genérico).
+**Persistência no `DraftEntry`** (`draftStore.ts`):
+- Adicionar campo opcional `selectedVariant?: PromptVariantId | null`.
+- `upsertDraft({ form, promptCustomLocked, selectedVariant })` grava o campo.
+- `loadDrafts()` lê e normaliza (null se inválido).
 
-**5. Botão "Completar com X"**:
-- Quando há variação ativa e `incompleteKeys.length > 0`:
-  - Label: `Completar com {label da variação}`.
-  - Insere, em ordem canônica, **apenas** as seções faltantes usando os snippets da variação.
-  - Mantém a chamada via `onInsert(snippet, key)` que já usa `insertSectionAt` para colocar cada seção na posição canônica correta — sem quebrar o que o usuário já escreveu.
-- Quando não há variação (modo custom travado), comportamento atual preservado.
+**Auto-save no wizard** (efeito atual de upsert):
+```ts
+upsertDraft(prev, { id, form, promptCustomLocked, selectedVariant })
+```
+
+**Restore** (`restoreDraft`):
+```ts
+setForm(target.form);
+setPromptCustomLocked(target.promptCustomLocked === true);
+setSelectedVariant(target.selectedVariant ?? null);
+```
+
+**`StepQuickPrompt`**:
+- Nova prop `activeVariant: PromptVariantId | null` (vinda do wizard).
+- Remove o cálculo local `detectPromptVariant(...)`; mantém `activeVariantPrompt` e `activeVariantLabel` derivados de `activeVariant`.
+- Passa `activeVariant` para `PromptVariantSelector` exatamente como hoje.
+
+### Arquivos tocados
+
+- **Editar** `src/components/agents/wizard/QuickCreateWizard.tsx` — novo estado `selectedVariant`, resolução `activeVariant` centralizada, setters em todos os pontos da tabela acima, propagar para `StepQuickPrompt`, persistir via `upsertDraft` e restaurar via `restoreDraft`.
+- **Editar** `src/components/agents/wizard/draftStore.ts` — campo `selectedVariant?: PromptVariantId | null` em `DraftEntry`, normalização em `loadDrafts`, leitura/escrita em `upsertDraft`.
+- **Editar** `src/components/agents/wizard/quickSteps/StepQuickPrompt.tsx` — receber `activeVariant` como prop em vez de calcular; derivar label/prompt a partir dele.
 
 ### Casos cobertos
 
 | Cenário | Comportamento |
 |---|---|
-| Aplico "Conciso" e apago a seção "Regras" | Checklist mostra 3/4, badge `Conciso`, botão `Completar com Conciso` reinsere a "Regras" do template Conciso. |
-| Modo custom travado, falta "Formato" | Badge `Customizado 🔒`, botão `Inserir esqueletos pendentes` usa snippet genérico. |
-| Digitando dentro de uma seção rasa | Contador `4/4` atualiza em tempo real conforme as palavras passam de 8 (já funciona; só passa a refletir também o badge da variação). |
-| Troco de "Conciso" para "Detalhado" sem editar | Badge muda, snippets de fallback passam a ser do "Detalhado" — nada é reescrito automaticamente. |
-
-### Arquivos tocados
-
-- **Editar** `src/lib/promptSectionLocator.ts` — adicionar `extractSectionFromPrompt(prompt, key)`.
-- **Editar** `src/components/agents/wizard/quickSteps/PromptSectionChecklist.tsx` — props novas (`activeVariantPrompt`, `activeVariantLabel`, `customLocked`), badge da variação, snippets dinâmicos, label do botão "Completar com X".
-- **Editar** `src/components/agents/wizard/quickSteps/StepQuickPrompt.tsx` — calcular `activeVariantPrompt` / `activeVariantLabel` e propagar ao checklist.
+| Aplico "Conciso" → fecho o navegador → volto | Chip "Conciso" destacada (não mais "Equilibrado" por auto-detect). |
+| Aplico "Conciso" → edito 1 char → fecho → volto | Chip "Customizado 🔒" travada (lock vence; `selectedVariant` zerada na edição). |
+| Nunca cliquei numa chip, prompt bate com "Detalhado" | Chip "Detalhado" via auto-detect (fallback). |
+| Troco o tipo de "chatbot" → "sdr" | `selectedVariant` reseta; auto-detect roda no novo template. |
+| Clico "Restaurar template" | `selectedVariant` zerada → auto-detect mostra "Equilibrado" (template padrão). |
+| Clico "Sair do modo custom" sem escolher variação | Auto-detect volta a rodar; se o texto bater, mostra a chip correspondente. |
 
 ### Impacto
 
-- Zero mudança de schema/backend.
-- Zero quebra: assinaturas existentes mantidas (props novas são opcionais).
-- O `4/4` continua sendo calculado pela mesma `analyzeSectionContent` memoizada — já era em tempo real, agora ganha contexto visual da variação ativa.
-- "Completar com X" reduz cliques em prompts que vieram de uma variação e tiveram seções apagadas/colapsadas durante a edição.
+- Zero mudança de schema/backend — só localStorage.
+- Backward-compat: drafts antigos sem `selectedVariant` continuam funcionando (campo opcional, `null` por padrão = comportamento atual de auto-detect).
+- Elimina a perda silenciosa da escolha do usuário entre sessões.
 
