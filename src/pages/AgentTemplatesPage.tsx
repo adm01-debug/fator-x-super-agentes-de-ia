@@ -3,53 +3,139 @@
  * Lista todos os templates de `agentTemplates.ts`, agrupados por categoria,
  * com busca, filtro e ação direta de criar agente a partir do template.
  */
-import { useMemo, useState } from "react";
-import { useNavigate } from "react-router-dom";
-import { useMutation, useQueryClient } from "@tanstack/react-query";
-import { toast } from "sonner";
-import { ArrowLeft, Search, Sparkles, Wand2, Tag, Cpu, Wrench } from "lucide-react";
+import { useMemo, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
+import { useMutation, useQueryClient } from '@tanstack/react-query';
+import { toast } from 'sonner';
+import { ArrowLeft, Search, Sparkles, Wand2, Tag, Cpu, Wrench } from 'lucide-react';
 
-import { PageHeader } from "@/components/shared/PageHeader";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Badge } from "@/components/ui/badge";
-import { Card } from "@/components/ui/card";
-import { ScrollArea, ScrollBar } from "@/components/ui/scroll-area";
-import { AGENT_TEMPLATES, type AgentTemplate } from "@/data/agentTemplates";
-import { saveAgent } from "@/lib/agentService";
-import type { AgentConfig } from "@/types/agentTypes";
-import { useAuth } from "@/contexts/AuthContext";
-import { logger } from "@/lib/logger";
+import { PageHeader } from '@/components/shared/PageHeader';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Badge } from '@/components/ui/badge';
+import { Card } from '@/components/ui/card';
+import { ScrollArea, ScrollBar } from '@/components/ui/scroll-area';
+import { AGENT_TEMPLATES, type AgentTemplate } from '@/data/agentTemplates';
+import { toAgentTools } from '@/data/toolCatalog';
+import { DEFAULT_AGENT } from '@/data/agentBuilderData';
+import { saveAgent } from '@/lib/agentService';
+import type {
+  AgentConfig,
+  AgentPersona,
+  DeployChannelConfig,
+  FewShotExample,
+  GuardrailConfig,
+  LLMModel,
+  TestCase,
+} from '@/types/agentTypes';
+import { useAuth } from '@/contexts/AuthContext';
+import { logger } from '@/lib/logger';
 
-const ALL = "all";
+const ALL = 'all';
+
+/** UUID v4-ish usando crypto.randomUUID com fallback para ambientes sem crypto. */
+function makeId(): string {
+  if (typeof crypto !== 'undefined' && 'randomUUID' in crypto) {
+    return crypto.randomUUID();
+  }
+  return `id_${Date.now().toString(36)}_${Math.random().toString(36).slice(2, 10)}`;
+}
 
 function buildAgentFromTemplate(t: AgentTemplate): AgentConfig {
+  const cfg = t.config;
+
+  // 1. Resolve tools (strings → AgentTool[]) via TOOL_CATALOG.
+  const { tools: resolvedTools, unknown: unknownTools } = toAgentTools(cfg.tools ?? []);
+  if (unknownTools.length) {
+    logger.warn(`Template ${t.id} referencia tools não catalogadas`, unknownTools);
+  }
+
+  // 2. Guardrails detalhados → GuardrailConfig[].
+  const guardrails: GuardrailConfig[] = (cfg.detailed_guardrails ?? []).map((g) => ({
+    id: g.id ?? makeId(),
+    category: g.category,
+    name: g.name,
+    description: g.description ?? '',
+    enabled: true,
+    severity: g.severity,
+    config: g.config,
+  }));
+
+  // 3. Few-shot examples.
+  const fewShots: FewShotExample[] = (cfg.few_shot_examples ?? []).map((ex) => ({
+    id: makeId(),
+    input: ex.input,
+    expected_output: ex.expected_output,
+    tags: ex.tags ?? [],
+  }));
+
+  // 4. Test cases.
+  const testCases: TestCase[] = (cfg.test_cases ?? []).map((tc) => ({
+    id: makeId(),
+    name: tc.name,
+    input: tc.input,
+    expected_behavior: tc.expected_behavior,
+    category: tc.category,
+    tags: tc.tags ?? [],
+    status: 'pending',
+  }));
+
+  // 5. Deploy channels.
+  const deployChannels: DeployChannelConfig[] = (cfg.deploy_channels ?? []).map((dc) => ({
+    id: makeId(),
+    channel: dc.channel,
+    enabled: true,
+    config: dc.config ?? {},
+    status: 'inactive',
+  }));
+
+  // 6. Overrides de memória sobre DEFAULT_AGENT.
+  const memOverrides = cfg.memory_overrides ?? {};
+
+  // 7. Se o template é enriquecido, começa em "configured" para pular direto para testes.
+  const startStatus: AgentConfig['status'] = t.enriched ? 'configured' : 'draft';
+
   return {
+    ...DEFAULT_AGENT,
     name: t.name,
     mission: t.description,
-    persona: t.config.persona,
-    model: t.config.model,
+    persona: cfg.persona as AgentPersona,
+    model: cfg.model as LLMModel,
     avatar_emoji: t.emoji,
-    reasoning: null,
-    status: "draft",
+    temperature: Math.round((cfg.temperature ?? 0.3) * 100), // DEFAULT_AGENT usa escala 0-100
+    status: startStatus,
     version: 1,
-    tags: t.tags ?? [],
-    config: {
-      temperature: t.config.temperature,
-      system_prompt: t.config.system_prompt,
-      tools: t.config.tools,
-      guardrails: t.config.guardrails,
-      memory_types: t.config.memory_types,
-      template_id: t.id,
-    },
-  } as unknown as AgentConfig;
+    tags: [...(t.tags ?? []), `template:${t.id}`],
+
+    system_prompt: cfg.system_prompt,
+    system_prompt_version: 1,
+    few_shot_examples: fewShots,
+
+    tools: resolvedTools,
+    guardrails,
+    test_cases: testCases,
+    deploy_channels: deployChannels,
+
+    human_in_loop: Boolean(cfg.human_in_loop_triggers?.length),
+    human_in_loop_triggers: cfg.human_in_loop_triggers ?? [],
+
+    memory_short_term: memOverrides.short_term ?? DEFAULT_AGENT.memory_short_term,
+    memory_episodic: memOverrides.episodic ?? DEFAULT_AGENT.memory_episodic,
+    memory_semantic: memOverrides.semantic ?? DEFAULT_AGENT.memory_semantic,
+    memory_procedural: memOverrides.procedural ?? DEFAULT_AGENT.memory_procedural,
+    memory_profile: memOverrides.profile ?? DEFAULT_AGENT.memory_profile,
+    memory_shared: memOverrides.shared ?? DEFAULT_AGENT.memory_shared,
+
+    monthly_budget: cfg.monthly_budget ?? DEFAULT_AGENT.monthly_budget,
+    budget_alert_threshold: cfg.budget_alert_threshold ?? DEFAULT_AGENT.budget_alert_threshold,
+  };
 }
 
 export default function AgentTemplatesPage() {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const { user } = useAuth();
-  const [search, setSearch] = useState("");
+  const [search, setSearch] = useState('');
   const [category, setCategory] = useState<string>(ALL);
 
   const categories = useMemo(() => {
@@ -67,25 +153,25 @@ export default function AgentTemplatesPage() {
     return AGENT_TEMPLATES.filter((t) => {
       if (category !== ALL && t.category !== category) return false;
       if (!q) return true;
-      const hay = `${t.name} ${t.description} ${t.tags.join(" ")}`.toLowerCase();
+      const hay = `${t.name} ${t.description} ${t.tags.join(' ')}`.toLowerCase();
       return hay.includes(q);
     });
   }, [search, category]);
 
   const forkMutation = useMutation({
     mutationFn: async (t: AgentTemplate) => {
-      if (!user) throw new Error("Faça login para criar agentes");
+      if (!user) throw new Error('Faça login para criar agentes');
       const agent = buildAgentFromTemplate(t);
       return saveAgent(agent);
     },
     onSuccess: (agent, t) => {
-      toast.success(`Agente "${t.name}" criado!`, { description: "Abrindo no builder…" });
-      queryClient.invalidateQueries({ queryKey: ["agents"] });
+      toast.success(`Agente "${t.name}" criado!`, { description: 'Abrindo no builder…' });
+      queryClient.invalidateQueries({ queryKey: ['agents'] });
       if (agent.id) navigate(`/builder/${agent.id}`);
     },
     onError: (err) => {
-      logger.error("fork template failed", err);
-      toast.error(err instanceof Error ? err.message : "Falha ao criar agente");
+      logger.error('fork template failed', err);
+      toast.error(err instanceof Error ? err.message : 'Falha ao criar agente');
     },
   });
 
@@ -95,7 +181,12 @@ export default function AgentTemplatesPage() {
         title="Galeria de Templates"
         description="Comece em segundos — escolha um template pronto e personalize"
         actions={
-          <Button variant="outline" size="sm" className="gap-1.5" onClick={() => navigate("/agents")}>
+          <Button
+            variant="outline"
+            size="sm"
+            className="gap-1.5"
+            onClick={() => navigate('/agents')}
+          >
             <ArrowLeft className="h-3.5 w-3.5" /> Voltar
           </Button>
         }
@@ -113,7 +204,7 @@ export default function AgentTemplatesPage() {
         </div>
         <Badge variant="secondary" className="gap-1.5">
           <Sparkles className="h-3 w-3" />
-          {filtered.length} {filtered.length === 1 ? "template" : "templates"}
+          {filtered.length} {filtered.length === 1 ? 'template' : 'templates'}
         </Badge>
       </div>
 
@@ -123,11 +214,11 @@ export default function AgentTemplatesPage() {
             <Button
               key={cat}
               size="sm"
-              variant={cat === category ? "default" : "outline"}
+              variant={cat === category ? 'default' : 'outline'}
               onClick={() => setCategory(cat)}
               className="gap-1.5 shrink-0"
             >
-              {cat === ALL ? "Todos" : cat}
+              {cat === ALL ? 'Todos' : cat}
               <Badge
                 variant="secondary"
                 className="ml-0.5 h-5 px-1.5 text-[10px] font-semibold tabular-nums"
@@ -178,8 +269,8 @@ export default function AgentTemplatesPage() {
                   <Wrench className="h-3 w-3 shrink-0" />
                   <span className="truncate">
                     {t.config.tools.length > 0
-                      ? `${t.config.tools.length} ferramenta${t.config.tools.length > 1 ? "s" : ""}`
-                      : "Sem ferramentas"}
+                      ? `${t.config.tools.length} ferramenta${t.config.tools.length > 1 ? 's' : ''}`
+                      : 'Sem ferramentas'}
                   </span>
                 </div>
               </div>
@@ -212,8 +303,8 @@ export default function AgentTemplatesPage() {
               >
                 <Sparkles className="h-3.5 w-3.5" />
                 {forkMutation.isPending && forkMutation.variables?.id === t.id
-                  ? "Criando…"
-                  : "Usar este template"}
+                  ? 'Criando…'
+                  : 'Usar este template'}
               </Button>
             </Card>
           ))}
