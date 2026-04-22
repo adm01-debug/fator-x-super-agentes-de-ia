@@ -89,8 +89,13 @@ export function PromptContradictionAutoFixPanel({ prompt, onApply }: Props) {
 
   if (fixes.length === 0 && !lastApplied) return null;
 
-  const openPreview = (title: string, fixedPrompt: string, summary: string) => {
-    setPreview({ open: true, title, fixedPrompt, summary });
+  const openPreview = (
+    title: string,
+    fixedPrompt: string,
+    summary: string,
+    fix?: ContradictionAutoFix,
+  ) => {
+    setPreview({ open: true, title, fixedPrompt, summary, fix });
   };
 
   const applyAndRecord = (fixedPrompt: string, summary: string) => {
@@ -103,9 +108,12 @@ export function PromptContradictionAutoFixPanel({ prompt, onApply }: Props) {
     onApply(fixedPrompt, summary);
   };
 
+  const closePreview = () =>
+    setPreview({ open: false, title: '', fixedPrompt: '', summary: '', fix: undefined });
+
   const applyFromPreview = () => {
     applyAndRecord(preview.fixedPrompt, preview.summary);
-    setPreview({ open: false, title: '', fixedPrompt: '', summary: '' });
+    closePreview();
   };
 
   const undoLast = () => {
