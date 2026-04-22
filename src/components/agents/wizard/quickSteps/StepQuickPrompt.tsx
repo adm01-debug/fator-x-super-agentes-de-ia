@@ -278,6 +278,35 @@ export function StepQuickPrompt({ form, errors, onPromptManualEdit, onRestore, o
     }
   };
 
+  // Keyboard shortcut: Cmd/Ctrl+U releases the custom lock without changing
+  // the prompt text — only active while locked. Listens on window so it works
+  // regardless of whether the textarea has focus, but bails when the user is
+  // typing in another input/textarea/contentEditable to avoid collisions.
+  useEffect(() => {
+    if (!customLocked) return;
+    const handler = (e: KeyboardEvent) => {
+      const isUnlock = (e.metaKey || e.ctrlKey) && !e.shiftKey && !e.altKey && (e.key === 'u' || e.key === 'U');
+      if (!isUnlock) return;
+      const target = e.target as HTMLElement | null;
+      const tag = target?.tagName;
+      const isEditable =
+        target?.isContentEditable ||
+        (tag === 'INPUT' && target.id !== 'qa-prompt') ||
+        (tag === 'TEXTAREA' && target.id !== 'qa-prompt') ||
+        tag === 'SELECT';
+      // Allow the shortcut from the prompt textarea itself; block from
+      // unrelated inputs so we don't hijack browser/native behaviors.
+      if (isEditable) return;
+      e.preventDefault();
+      onUnlockCustom();
+      toast.success('Modo customizado destravado', {
+        description: 'Detecção automática de variações reativada.',
+      });
+    };
+    window.addEventListener('keydown', handler);
+    return () => window.removeEventListener('keydown', handler);
+  }, [customLocked, onUnlockCustom]);
+
   return (
     <div className="space-y-4">
       <div className="flex items-end justify-between gap-3 flex-wrap">
