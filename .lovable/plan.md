@@ -1,68 +1,92 @@
 
 
-## Pré-visualização consolidada antes de criar o agente
+## Realce no editor + indicador visual de onde inserir cada heading faltante
 
-Hoje o `CompiledPromptPreview` existe, mas:
-- Fica **colapsado por padrão** no fim do passo Prompt, abaixo de Live Preview e Test Panel — fácil de não ver.
-- O botão **Criar agente** dispara o save direto, sem checkpoint visual.
+Hoje, ao clicar em "Inserir" no checklist, o snippet é **anexado ao final** do prompt e o usuário não vê onde foi parar. E quando uma seção está rasa/faltando, não há nenhum indicador visual no editor mostrando o local exato.
 
-Vou entregar **ambos** os reforços (escolha do usuário): preview inline aberto + diálogo de confirmação ao clicar Criar.
+### O que vai mudar (visão do usuário)
 
-### 1. Componente novo: `PreflightReviewSummary`
+1. **Régua de seções ao lado do editor** — uma faixa vertical fina à esquerda do textarea com 4 marcadores empilhados (Persona / Escopo / Formato / Regras). Cada marcador mostra:
+   - 🟢 verde quando a seção existe e tem conteúdo suficiente
+   - 🟡 âmbar pulsante quando existe mas está rasa
+   - ⭕ cinza tracejado quando está faltando
+   - Hover/clique no marcador → rola até a linha do heading (ou até o ponto de inserção sugerido) e seleciona a área no textarea.
 
-**Arquivo:** `src/components/agents/wizard/quickSteps/PreflightReviewSummary.tsx`
+2. **Realce inline na linha do heading rasa/faltante**
+   - Para seções **rasas** (existem mas curtas): a linha do `## Persona` recebe um destaque âmbar via uma camada `<pre>` espelhada por trás do textarea (técnica padrão de overlay highlight em textarea — mesma fonte mono, mesmo padding, `pointer-events: none`).
+   - Para seções **faltantes**: o overlay desenha um marcador fantasma `## Persona ⊕ inserir aqui` na posição sugerida (fim do bloco anterior ou final do prompt), em âmbar tracejado.
 
-Card compacto que resume **identidade + tipo + modelo + cobertura de seções + variáveis não resolvidas**, pensado para ser denso e visual (não duplica o `CompiledPromptPreview`):
+3. **Inserção contextual com posicionamento inteligente**
+   - O "Inserir" do checklist passa a inserir o snippet **na posição correta**, na ordem canônica (Persona → Escopo → Formato → Regras), não mais só no final.
+   - Após inserir, o cursor é posicionado dentro do bloco recém-inserido (na linha do primeiro `- `) e a área é destacada por 2s com pulso âmbar→verde.
 
-- Header: `🚀 Pronto para criar` + emoji/nome/tipo/modelo em uma linha.
-- **Chips de seções obrigatórias** usando `detectPromptSections` + `REQUIRED_PROMPT_SECTIONS`: cada uma com check verde ou warning âmbar.
-- **Chips de variáveis** (verdes resolvidas, âmbar não-resolvidas) reusando `compilePrompt`.
-- **Stats inline**: chars, palavras, ~tokens.
-- Aviso amarelo se houver variáveis não resolvidas ou seções faltando.
-- Sem botão de copiar/expandir — é só um sumário; o `CompiledPromptPreview` logo abaixo serve para inspecionar o texto completo.
+4. **Mensagem flutuante acima do editor** quando `promptHighlight` ativa, do tipo: *"Faltam 2 seções: Escopo, Regras — clique nos marcadores 🟡 ao lado do editor para ir direto ao ponto."*
 
-### 2. Ajuste em `StepQuickPrompt.tsx`
+### Como vai funcionar (técnico)
 
-- Renderiza `PreflightReviewSummary` **acima** do `CompiledPromptPreview` (apenas no passo Prompt, que já é o último).
-- Passa `defaultOpen={true}` para `CompiledPromptPreview` para que o texto compilado fique visível direto sem precisar clicar.
-- Reordena: `AgentLivePreviewCard` → `PreflightReviewSummary` (novo) → `CompiledPromptPreview` (aberto) → `QuickAgentTestPanel`. Live preview fica antes porque foca em identidade visual; o preflight foca em "está tudo pronto?".
+**Novo arquivo `src/lib/promptSectionLocator.ts`** — utilitário puro:
+```ts
+export interface SectionLocation {
+  key: PromptSectionKey;
+  label: string;
+  status: 'ok' | 'thin' | 'missing';
+  // Para 'ok'/'thin': linha 0-indexed do heading existente.
+  // Para 'missing': linha onde DEVE ser inserido (antes da próxima seção canônica
+  // existente, ou final do prompt).
+  headingLine: number;
+  // Range de caracteres do bloco completo da seção (heading + body), para selectionRange.
+  startChar: number;
+  endChar: number;
+  // Sugestão de inserção (apenas 'missing'): índice de char onde colar o snippet.
+  insertChar: number;
+}
 
-### 3. Diálogo de confirmação ao clicar **Criar agente** em `QuickCreateWizard.tsx`
+export function locateSections(prompt: string): SectionLocation[];
+```
+Reaproveita `analyzeSectionContent` + `extractHeadings` do `quickAgentSchema.ts`. Para a posição de inserção de uma seção faltante: encontra a próxima seção canônica que **existe** depois dela na ordem `[persona, scope, format, rules]` — insere antes; se não houver, anexa ao final com 2 quebras de linha de margem.
 
-- Estado novo: `const [confirmOpen, setConfirmOpen] = useState(false)`.
-- Substituo o botão final por um trigger que:
-  1. Roda `validateStep(i)` em todos os passos primeiro (mesma lógica de `saveAgent`); se algum falhar, vai pro passo errado e mostra toast — **não abre o diálogo**.
-  2. Se tudo ok, abre `Dialog` (do `@/components/ui/dialog`) com:
-     - Título: `Criar "${form.name}"?`
-     - Resumo curto (emoji + nome + tipo + modelo).
-     - **Chips de seções** + **chips de variáveis não resolvidas** (mesma fonte do `PreflightReviewSummary`, função compartilhada).
-     - Stats: `~X tokens · Y linhas`.
-     - Aviso âmbar se houver `unresolvedVariables` (`"N variável(eis) ficarão literais — confirme mesmo assim?"`) ou se faltar seção (defensivo, embora schema já bloqueie).
-     - Footer: **Cancelar** (fecha) + **Criar agente** (dispara `saveAgent`).
-  3. `saveAgent` perde a re-validação dupla (já feita antes de abrir) — passo `setConfirmOpen(false)` no início e mantém o resto.
-- Atalho `Ctrl+Enter` no último passo agora abre o diálogo (em vez de salvar direto), preservando o checkpoint.
+**Novo componente `src/components/agents/wizard/quickSteps/PromptSectionGutter.tsx`**
+- Recebe `locations: SectionLocation[]`, `onJump: (loc) => void`.
+- Renderiza coluna fixa de ~28px de largura à esquerda do textarea, com 4 botões verticais distribuídos proporcionalmente à altura (cada um posicionado em `top: (headingLine / totalLines) * 100%` quando OK/thin; ou no slot livre entre seções vizinhas quando missing).
+- Tooltip em cada marcador com label + status + linha.
 
-### 4. Helper compartilhado para evitar duplicação
+**Novo componente `src/components/agents/wizard/quickSteps/PromptHighlightOverlay.tsx`**
+- `<pre>` posicionado absolutamente sobre o textarea (`pointer-events:none`), espelha exatamente o conteúdo com:
+  - Linhas normais → `color: transparent`
+  - Linha de heading de seção **thin** → fundo `bg-warning/15` + borda esquerda âmbar
+  - Linha **missing** → renderiza placeholder fantasma `## {Label} ← inserir aqui` em `text-warning/60 italic`
+- Sincronizado com `scrollTop`/`scrollLeft` do textarea via ref + listener de scroll.
+- Usa exatamente a mesma classe de fonte/padding/line-height do `Textarea` para alinhamento perfeito.
 
-Em `PreflightReviewSummary.tsx` exporto também `useReviewData(form)` (hook leve com `useMemo`) que retorna `{ sections, missingSections, compiled, hasUnresolved, hasMissingSections }`. O diálogo no wizard reusa esse hook → zero duplicação de lógica entre summary inline e modal.
+**Refatoração de `StepQuickPrompt.tsx`**
+- Envolve o `<Textarea>` num `<div className="relative">` com:
+  - `<PromptSectionGutter>` à esquerda (absolute)
+  - `<PromptHighlightOverlay>` por trás do textarea (absolute, z-0)
+  - `<Textarea>` com `padding-left` ajustado para abrir espaço para a régua, `bg-transparent` e z-10
+- Nova função `jumpToSection(loc)` que:
+  - Para `ok`/`thin`: posiciona caret no início do heading, faz `scrollIntoView` proporcional, seleciona o range `startChar`–`endChar`.
+  - Para `missing`: posiciona caret em `insertChar`, faz scroll, e dispara o destaque pulse âmbar por 2s via state local `pulseRange`.
 
-### Comportamento
+**Refatoração de `PromptSectionChecklist.tsx`**
+- Substitui `onInsert(snippet)` por `onInsertAt(key, snippet)`.
+- O pai recebe a key, calcula `insertChar` via `locateSections`, e faz `update('prompt', before + snippet + after)` em vez de concatenar no final.
+- Botões individuais ("Inserir") e o botão em massa ("Inserir as N pendentes") usam o mesmo caminho ordenado.
 
-- Usuário no passo Prompt vê de cara: card "Pronto para criar" + prompt compilado expandido logo abaixo.
-- Ao clicar **Criar agente** → diálogo modal de confirmação com mesmas informações resumidas. Pode cancelar (Esc, Cancel, fora do modal) ou confirmar.
-- Validação só passa para o diálogo se tudo estiver correto — diálogo nunca aparece em estado inválido.
-- `Ctrl+Enter` agora abre o diálogo, não salva direto (mais seguro).
+**Refatoração de `PromptSectionGutter` ↔ `StepQuickPrompt`**
+- O step passa `locations` (memoizado) e `onJump`. O gutter é dumb.
 
-### Arquivos
+### Arquivos tocados
 
-- **Criar:** `src/components/agents/wizard/quickSteps/PreflightReviewSummary.tsx`
-- **Editar:** `src/components/agents/wizard/quickSteps/StepQuickPrompt.tsx` (renderiza summary + abre o `CompiledPromptPreview` por padrão)
-- **Editar:** `src/components/agents/wizard/QuickCreateWizard.tsx` (estado do diálogo, novo handler `requestCreate` que valida-e-abre, atalho `Ctrl+Enter` redirecionado, JSX do `Dialog` no rodapé)
+- **Novo** `src/lib/promptSectionLocator.ts` — locator puro testável.
+- **Novo** `src/components/agents/wizard/quickSteps/PromptSectionGutter.tsx`
+- **Novo** `src/components/agents/wizard/quickSteps/PromptHighlightOverlay.tsx`
+- **Editar** `src/components/agents/wizard/quickSteps/StepQuickPrompt.tsx` (wrapper relativo, jump handler, inserção posicionada)
+- **Editar** `src/components/agents/wizard/quickSteps/PromptSectionChecklist.tsx` (assinatura do callback `onInsertAt(key, snippet)`)
 
 ### Impacto
 
-- Zero criação acidental — passa-se por modal explícito de confirmação.
-- Usuário enxerga prompt final sem cliques extras.
-- Reusa lógica existente (`compilePrompt`, `detectPromptSections`) — zero novo schema/backend.
-- Nenhuma mudança em props públicas dos componentes existentes (`CompiledPromptPreview` já aceitava `defaultOpen`).
+- Zero mudança de schema/backend.
+- Zero quebra em `quickAgentSchema.ts` — só consome funções já existentes.
+- Snippets agora caem no lugar certo, na ordem canônica — reduz prompts bagunçados.
+- Visual claro de "está faltando AQUI" sem precisar abrir o checklist.
 
