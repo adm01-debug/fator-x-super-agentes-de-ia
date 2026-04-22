@@ -110,6 +110,7 @@ export function PromptContradictionAutoFixPanel({ prompt, onApply }: Props) {
 
   return (
     <>
+      <div className="space-y-2">
       {fixes.length > 0 && (
         <div className="rounded-lg border border-nexus-amber/40 bg-nexus-amber/5 p-2.5 space-y-2">
           <div className="flex items-center justify-between gap-2 flex-wrap">
