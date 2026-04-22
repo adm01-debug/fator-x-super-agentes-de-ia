@@ -60,15 +60,52 @@ export function PromptContradictionAutoFixPanel({ prompt, onApply }: Props) {
     summary: '',
   });
 
-  if (fixes.length === 0) return null;
+  // Histórico de 1 nível: guarda o snapshot do prompt + resumo da última
+  // aplicação. Permite "Desfazer" em um clique enquanto o usuário ainda
+  // não fez outra edição manual. Invalidado quando o prompt externo muda
+  // por algum caminho que não seja a próxima aplicação deste painel.
+  const [lastApplied, setLastApplied] = useState<{
+    previousPrompt: string;
+    appliedPrompt: string;
+    summary: string;
+    appliedAt: number;
+  } | null>(null);
+
+  // Se o prompt externo divergiu do que aplicamos por último (ex: usuário
+  // digitou no editor, mudou variante, restaurou snapshot), o histórico
+  // perde a referência segura — limpamos para evitar undo "fantasma".
+  useEffect(() => {
+    if (!lastApplied) return;
+    if (prompt !== lastApplied.appliedPrompt) {
+      setLastApplied(null);
+    }
+  }, [prompt, lastApplied]);
+
+  if (fixes.length === 0 && !lastApplied) return null;
 
   const openPreview = (title: string, fixedPrompt: string, summary: string) => {
     setPreview({ open: true, title, fixedPrompt, summary });
   };
 
+  const applyAndRecord = (fixedPrompt: string, summary: string) => {
+    setLastApplied({
+      previousPrompt: prompt,
+      appliedPrompt: fixedPrompt,
+      summary,
+      appliedAt: Date.now(),
+    });
+    onApply(fixedPrompt, summary);
+  };
+
   const applyFromPreview = () => {
-    onApply(preview.fixedPrompt, preview.summary);
+    applyAndRecord(preview.fixedPrompt, preview.summary);
     setPreview({ open: false, title: '', fixedPrompt: '', summary: '' });
+  };
+
+  const undoLast = () => {
+    if (!lastApplied) return;
+    onApply(lastApplied.previousPrompt, `Desfeito: ${lastApplied.summary}`);
+    setLastApplied(null);
   };
 
   return (
