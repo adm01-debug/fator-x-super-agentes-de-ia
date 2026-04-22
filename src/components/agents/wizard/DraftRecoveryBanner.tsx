@@ -523,6 +523,8 @@ export function DraftRecoveryBanner({
 
         <DraftPreviewLine entry={only} />
 
+        <RestoreModeSelector mode={restoreMode} onChange={setRestoreMode} summary={only.summary} />
+
         <div className="flex items-center justify-end gap-2 pt-1">
           <ConfirmDialog
             trigger={
@@ -542,13 +544,19 @@ export function DraftRecoveryBanner({
           />
           <Button
             size="sm"
-            onClick={() => onRestore(only.id)}
+            onClick={() => onRestore(only.id, restoreMode)}
             autoFocus
-            title={blocked ? (only.restoreBlockedReason ?? 'Rascunho incompleto — vamos pular direto ao primeiro campo pendente') : 'Restaurar e continuar do primeiro campo pendente'}
+            title={
+              blocked
+                ? (only.restoreBlockedReason ?? 'Rascunho incompleto — vamos pular direto ao primeiro campo pendente')
+                : restoreMode === 'partial'
+                ? 'Restaurar só os campos preenchidos e destacar os pendentes'
+                : 'Restaurar tudo do rascunho e continuar do primeiro campo pendente'
+            }
             className="gap-1.5 nexus-gradient-bg text-primary-foreground"
           >
             <RotateCcw className="h-3.5 w-3.5" />
-            Restaurar
+            {restoreMode === 'partial' ? 'Restaurar parcial' : 'Restaurar completo'}
           </Button>
         </div>
       </div>
