@@ -313,9 +313,13 @@ export function DraftRecoveryBanner({
 
               <div className="min-w-0 flex-1 space-y-1.5">
                 <div className="flex items-center gap-2 flex-wrap">
-                  <span className="text-sm font-medium text-foreground truncate">
-                    {subjectOf(d.summary)}
-                  </span>
+                  <NameLabelOrEditor
+                    draft={d}
+                    isEditing={editingId === d.id}
+                    onStartEdit={() => setEditingId(d.id)}
+                    onCancel={() => setEditingId(null)}
+                    onConfirm={(newName) => handleConfirmRename(d.id, newName)}
+                  />
                   {d.typeLabel && (
                     <span className="text-[10px] uppercase tracking-wide px-1.5 py-0.5 rounded bg-secondary/60 text-muted-foreground">
                       {d.typeLabel}
