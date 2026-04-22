@@ -35,17 +35,9 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog';
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-} from '@/components/ui/alert-dialog';
+// AlertDialog moved into PromptVariantDiffDialog
 import { QUICK_AGENT_TEMPLATES as TEMPLATES_FOR_DIALOG, PROMPT_VARIANT_META as VARIANT_META_FOR_DIALOG } from '@/data/quickAgentTemplates';
+import { PromptVariantDiffDialog } from './quickSteps/PromptVariantDiffDialog';
 import {
   loadDrafts,
   saveDrafts,
@@ -327,11 +319,15 @@ export function QuickCreateWizard({ onBack }: QuickCreateWizardProps) {
   };
 
   const applyPromptVariant = (variantId: import('@/data/quickAgentTemplates').PromptVariantId) => {
-    if (promptCustomLocked && form.prompt.trim().length > 0) {
-      setPendingVariant(variantId);
+    const t = QUICK_AGENT_TEMPLATES[form.type as QuickAgentType];
+    const nextPrompt = t.promptVariants[variantId].prompt;
+    if (form.prompt.trim() === nextPrompt.trim()) {
+      toast.info(`Já está usando "${t.promptVariants[variantId].label}"`);
+      setSelectedVariant(variantId);
+      setPromptCustomLocked(false);
       return;
     }
-    doApplyPromptVariant(variantId);
+    setPendingVariant(variantId);
   };
 
   const validateStep = (idx: number): boolean => {
@@ -604,38 +600,31 @@ export function QuickCreateWizard({ onBack }: QuickCreateWizardProps) {
         </DialogContent>
       </Dialog>
 
-      <AlertDialog open={!!pendingVariant} onOpenChange={(o) => !o && setPendingVariant(null)}>
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>Substituir prompt customizado?</AlertDialogTitle>
-            <AlertDialogDescription>
-              {pendingVariant && (() => {
-                const t = TEMPLATES_FOR_DIALOG[form.type as QuickAgentType];
-                const variant = t.promptVariants[pendingVariant];
-                const meta = VARIANT_META_FOR_DIALOG[pendingVariant];
-                return (
-                  <>
-                    Você editou o prompt manualmente ({form.prompt.length.toLocaleString('pt-BR')} chars).
-                    Aplicar a variação <strong>"{meta.label}"</strong> ({variant.prompt.length.toLocaleString('pt-BR')} chars)
-                    vai sobrescrever todo o texto atual e destravar o modo customizado.
-                  </>
-                );
-              })()}
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel>Cancelar</AlertDialogCancel>
-            <AlertDialogAction
-              onClick={() => {
-                if (pendingVariant) doApplyPromptVariant(pendingVariant);
-                setPendingVariant(null);
-              }}
-            >
-              Substituir
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
+      {pendingVariant && (() => {
+        const t = TEMPLATES_FOR_DIALOG[form.type as QuickAgentType];
+        const variant = t.promptVariants[pendingVariant];
+        const nextLabel = VARIANT_META_FOR_DIALOG[pendingVariant].label;
+        const currentLabel = promptCustomLocked
+          ? 'Customizado'
+          : selectedVariant
+          ? VARIANT_META_FOR_DIALOG[selectedVariant].label
+          : 'Atual';
+        return (
+          <PromptVariantDiffDialog
+            open={!!pendingVariant}
+            onOpenChange={(o) => !o && setPendingVariant(null)}
+            currentPrompt={form.prompt}
+            currentLabel={currentLabel}
+            nextPrompt={variant.prompt}
+            nextLabel={nextLabel}
+            customLocked={promptCustomLocked}
+            onConfirm={() => {
+              if (pendingVariant) doApplyPromptVariant(pendingVariant);
+              setPendingVariant(null);
+            }}
+          />
+        );
+      })()}
     </div>
   );
 }

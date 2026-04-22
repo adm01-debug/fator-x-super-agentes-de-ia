@@ -7,7 +7,7 @@ interface Props {
   labelB: string;
 }
 
-function diffLines(a: string, b: string): { linesA: { text: string; type: 'same' | 'removed' }[]; linesB: { text: string; type: 'same' | 'added' }[] } {
+export function diffLines(a: string, b: string): { linesA: { text: string; type: 'same' | 'removed' }[]; linesB: { text: string; type: 'same' | 'added' }[] } {
   const aLines = a.split('\n');
   const bLines = b.split('\n');
 
