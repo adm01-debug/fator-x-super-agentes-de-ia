@@ -222,13 +222,45 @@ export function WorkflowTimeTravelPanel({
       {/* Header Stats */}
       <Card className="bg-card border-border">
         <CardHeader className="pb-3">
-          <CardTitle className="flex items-center gap-2 text-base text-foreground">
-            <Clock className="w-4 h-4 text-primary" />
-            Time-Travel Debugger
-            <Badge className="bg-primary/20 text-primary text-[10px] ml-2">
-              {timeline.length} checkpoints
-            </Badge>
+          <CardTitle className="flex items-center justify-between gap-2 text-base text-foreground">
+            <span className="flex items-center gap-2">
+              <Clock className="w-4 h-4 text-primary" />
+              Time-Travel Debugger
+              <Badge className="bg-primary/20 text-primary text-[10px] ml-2">
+                {timeline.length} checkpoints
+              </Badge>
+            </span>
+            <Button
+              size="sm"
+              variant={compareMode ? 'default' : 'outline'}
+              className={`h-7 text-xs ${
+                compareMode
+                  ? 'bg-nexus-purple text-primary-foreground hover:bg-nexus-purple/90'
+                  : 'border-border hover:bg-nexus-purple/20 hover:text-nexus-purple'
+              }`}
+              onClick={() => {
+                const next = !compareMode;
+                setCompareMode(next);
+                if (!next) resetCompare();
+                else setInspectedState(null);
+              }}
+              aria-pressed={compareMode}
+            >
+              <ArrowLeftRight className="w-3 h-3 mr-1" />
+              {compareMode ? 'Sair da comparação' : 'Comparar steps'}
+            </Button>
           </CardTitle>
+          {compareMode && (
+            <p className="text-[11px] text-muted-foreground mt-2">
+              {!compareAId
+                ? 'Clique em um step para escolher A.'
+                : !compareBId
+                ? 'Agora clique em outro step para escolher B.'
+                : comparing
+                ? 'Carregando comparação…'
+                : 'Comparando A × B abaixo. Clique em outro step para substituir A.'}
+            </p>
+          )}
         </CardHeader>
         <CardContent>
           <div className="grid grid-cols-3 gap-4">
