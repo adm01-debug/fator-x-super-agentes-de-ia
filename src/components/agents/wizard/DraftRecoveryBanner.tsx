@@ -450,6 +450,9 @@ export function DraftRecoveryBanner({
 }: DraftRecoveryBannerProps) {
   const [selectedId, setSelectedId] = useState<string>(drafts[0]?.id ?? '');
   const [editingId, setEditingId] = useState<string | null>(null);
+  // Modo escolhido pelo usuário antes de clicar em Restaurar.
+  // Default: 'full' — mais previsível, retorna o estado exato salvo.
+  const [restoreMode, setRestoreMode] = useState<RestoreMode>('full');
   const itemsRef = useRef<Record<string, HTMLDivElement | null>>({});
 
   const handleConfirmRename = (id: string, newName: string) => {
