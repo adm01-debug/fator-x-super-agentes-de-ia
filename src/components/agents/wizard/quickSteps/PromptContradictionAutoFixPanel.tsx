@@ -28,9 +28,11 @@ import { PromptDiff } from '@/components/prompts/PromptDiff';
 import {
   buildContradictionAutoFixes,
   applyAllContradictionFixes,
+  buildContradictionFixFromSuggestion,
+  suggestContradictionRewrites,
   type ContradictionAutoFix,
 } from '@/lib/validations/contradictionSuggestions';
-import { CONTRADICTION_KIND_LABEL } from '@/lib/validations/promptContradictions';
+import { CONTRADICTION_KIND_LABEL, type PromptContradiction } from '@/lib/validations/promptContradictions';
 import { cn } from '@/lib/utils';
 
 interface Props {
@@ -142,18 +144,19 @@ export function PromptContradictionAutoFixPanel({ prompt, onApply }: Props) {
             {fixes.map((fix, idx) => (
               <FixRow
                 key={idx}
-                fix={fix}
-                onPreview={() =>
+                prompt={prompt}
+                conflict={fix.conflict}
+                onPreview={(builtFix) =>
                   openPreview(
-                    `Unificar regras (${CONTRADICTION_KIND_LABEL[fix.conflict.kind]})`,
-                    fix.fixedPrompt,
-                    `Linhas ${fix.conflict.lineA} e ${fix.conflict.lineB} substituídas por uma única regra unificada.`,
+                    `Unificar regras (${CONTRADICTION_KIND_LABEL[builtFix.conflict.kind]})`,
+                    builtFix.fixedPrompt,
+                    `Linhas ${builtFix.conflict.lineA} e ${builtFix.conflict.lineB} substituídas pela sugestão escolhida.`,
                   )
                 }
-                onApply={() =>
+                onApply={(builtFix) =>
                   applyAndRecord(
-                    fix.fixedPrompt,
-                    `Contradição (${CONTRADICTION_KIND_LABEL[fix.conflict.kind]}) resolvida nas linhas ${fix.conflict.lineA} ↔ ${fix.conflict.lineB}.`,
+                    builtFix.fixedPrompt,
+                    `Contradição (${CONTRADICTION_KIND_LABEL[builtFix.conflict.kind]}) resolvida nas linhas ${builtFix.conflict.lineA} ↔ ${builtFix.conflict.lineB}.`,
                   )
                 }
               />
@@ -237,56 +240,110 @@ export function PromptContradictionAutoFixPanel({ prompt, onApply }: Props) {
 /* ------------------------------- FixRow ------------------------------- */
 
 interface FixRowProps {
-  fix: ContradictionAutoFix;
-  onPreview: () => void;
-  onApply: () => void;
+  prompt: string;
+  conflict: PromptContradiction;
+  onPreview: (builtFix: ContradictionAutoFix) => void;
+  onApply: (builtFix: ContradictionAutoFix) => void;
 }
 
-function FixRow({ fix, onPreview, onApply }: FixRowProps) {
-  const { conflict, unifiedRule, rationale } = fix;
+/**
+ * Linha de uma contradição com seletor de sugestão unificada.
+ *
+ * O usuário pode escolher entre 2–3 reescritas geradas por
+ * `suggestContradictionRewrites` (ex.: manter o positivo, adicionar exceção,
+ * reformular como condicional). A sugestão escolhida é usada como a "regra
+ * unificada" pelo `buildContradictionFixFromSuggestion` — o splice em si
+ * é o mesmo, só muda o texto que substitui as duas linhas conflitantes.
+ *
+ * Estado local porque a escolha é efêmera e não precisa subir até o wizard.
+ */
+function FixRow({ prompt, conflict, onPreview, onApply }: FixRowProps) {
+  const suggestions = useMemo(() => suggestContradictionRewrites(conflict), [conflict]);
+  const [selectedIdx, setSelectedIdx] = useState(0);
+  const builtFix = useMemo(
+    () => buildContradictionFixFromSuggestion(prompt, conflict, selectedIdx),
+    [prompt, conflict, selectedIdx],
+  );
+  const { unifiedRule, rationale } = builtFix;
+
   return (
-    <li className="flex items-start justify-between gap-2 text-xs bg-background/60 rounded-md px-2 py-1.5 border border-border/40">
-      <div className="flex items-start gap-2 min-w-0 flex-1">
-        <span
-          className={cn(
-            'shrink-0 mt-0.5 px-1.5 py-0.5 rounded-full text-[9px] font-mono font-semibold uppercase tracking-wider',
-            'bg-nexus-amber/20 text-nexus-amber',
-          )}
-        >
-          {CONTRADICTION_KIND_LABEL[conflict.kind]}
-        </span>
-        <div className="min-w-0 space-y-0.5">
-          <p className="text-foreground font-medium">
-            Linhas {conflict.lineA} ↔ {conflict.lineB} → regra unificada
-          </p>
-          <p className="text-[10px] font-mono text-muted-foreground/90 truncate" title={unifiedRule}>
-            {unifiedRule}
-          </p>
-          <p className="text-[10px] text-muted-foreground/70 leading-snug">{rationale}</p>
+    <li className="flex flex-col gap-2 text-xs bg-background/60 rounded-md px-2 py-1.5 border border-border/40">
+      <div className="flex items-start justify-between gap-2">
+        <div className="flex items-start gap-2 min-w-0 flex-1">
+          <span
+            className={cn(
+              'shrink-0 mt-0.5 px-1.5 py-0.5 rounded-full text-[9px] font-mono font-semibold uppercase tracking-wider',
+              'bg-nexus-amber/20 text-nexus-amber',
+            )}
+          >
+            {CONTRADICTION_KIND_LABEL[conflict.kind]}
+          </span>
+          <div className="min-w-0 space-y-0.5 flex-1">
+            <p className="text-foreground font-medium">
+              Linhas {conflict.lineA} ↔ {conflict.lineB} → regra unificada
+            </p>
+            <p className="text-[10px] font-mono text-muted-foreground/90 truncate" title={unifiedRule}>
+              {unifiedRule}
+            </p>
+            <p className="text-[10px] text-muted-foreground/70 leading-snug">{rationale}</p>
+          </div>
+        </div>
+        <div className="flex items-center gap-1 shrink-0">
+          <Button
+            type="button"
+            size="sm"
+            variant="ghost"
+            onClick={() => onPreview(builtFix)}
+            className="h-7 gap-1 text-[11px]"
+            aria-label={`Pré-visualizar correção da contradição nas linhas ${conflict.lineA} e ${conflict.lineB}`}
+          >
+            <Eye className="h-3 w-3" /> Prévia
+          </Button>
+          <Button
+            type="button"
+            size="sm"
+            variant="outline"
+            onClick={() => onApply(builtFix)}
+            className="h-7 gap-1 text-[11px] border-nexus-amber/40 text-nexus-amber hover:bg-nexus-amber/10 hover:text-nexus-amber"
+            aria-label={`Aplicar correção da contradição nas linhas ${conflict.lineA} e ${conflict.lineB}`}
+          >
+            <Wand2 className="h-3 w-3" /> Aplicar
+          </Button>
         </div>
       </div>
-      <div className="flex items-center gap-1 shrink-0">
-        <Button
-          type="button"
-          size="sm"
-          variant="ghost"
-          onClick={onPreview}
-          className="h-7 gap-1 text-[11px]"
-          aria-label={`Pré-visualizar correção da contradição nas linhas ${conflict.lineA} e ${conflict.lineB}`}
-        >
-          <Eye className="h-3 w-3" /> Prévia
-        </Button>
-        <Button
-          type="button"
-          size="sm"
-          variant="outline"
-          onClick={onApply}
-          className="h-7 gap-1 text-[11px] border-nexus-amber/40 text-nexus-amber hover:bg-nexus-amber/10 hover:text-nexus-amber"
-          aria-label={`Aplicar correção da contradição nas linhas ${conflict.lineA} e ${conflict.lineB}`}
-        >
-          <Wand2 className="h-3 w-3" /> Aplicar
-        </Button>
-      </div>
+
+      {/* Seletor de sugestões — chips clicáveis com a estratégia de cada
+          reescrita. Só aparece quando há mais de uma opção disponível. */}
+      {suggestions.length > 1 && (
+        <fieldset className="flex flex-wrap items-center gap-1.5 pl-1">
+          <legend className="sr-only">
+            Escolha qual sugestão unificada usar para esta contradição
+          </legend>
+          <span className="text-[10px] uppercase tracking-wider text-muted-foreground/70 mr-1">
+            Sugestão:
+          </span>
+          {suggestions.map((s, i) => {
+            const active = i === selectedIdx;
+            return (
+              <button
+                key={i}
+                type="button"
+                onClick={() => setSelectedIdx(i)}
+                aria-pressed={active}
+                title={s.rationale}
+                className={cn(
+                  'h-6 px-2 rounded-full text-[10px] font-medium border transition-colors',
+                  active
+                    ? 'bg-nexus-amber/20 text-nexus-amber border-nexus-amber/40'
+                    : 'bg-secondary/40 text-muted-foreground border-border/50 hover:bg-secondary',
+                )}
+              >
+                {s.title}
+              </button>
+            );
+          })}
+        </fieldset>
+      )}
     </li>
   );
 }
