@@ -9,6 +9,8 @@ interface Props {
   textareaRef: React.RefObject<HTMLTextAreaElement>;
   /** Tailwind padding-left on the textarea so the overlay aligns. */
   paddingLeftPx: number;
+  /** 1-indexed line numbers that contain a contradiction (rendered in red). */
+  conflictLines?: number[];
 }
 
 /**
