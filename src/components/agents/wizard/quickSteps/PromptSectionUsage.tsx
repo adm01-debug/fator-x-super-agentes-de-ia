@@ -1,5 +1,5 @@
 import { memo, useEffect, useMemo, useRef, useState } from 'react';
-import { CheckCircle2, AlertTriangle, Circle, Flame, Gauge } from 'lucide-react';
+import { CheckCircle2, AlertTriangle, Circle, Flame, Gauge, Scissors, Sparkles } from 'lucide-react';
 import { locateSections, type SectionLocation } from '@/lib/promptSectionLocator';
 import { PROMPT_LIMITS } from '@/lib/validations/promptSanitizer';
 import { type PromptSectionKey } from '@/lib/validations/quickAgentSchema';
@@ -28,10 +28,163 @@ interface UsageSnapshot {
   sectionsSum: number;
   topKey: PromptSectionKey | null;
   totalPct: number;
+  suggestions: ReductionSuggestion[];
+}
+
+/**
+ * A concrete, low-risk reduction the user can apply to shrink the prompt
+ * without losing intent. Generated heuristically from the prompt text.
+ */
+interface ReductionSuggestion {
+  id: string;
+  /** Section the cut applies to (drives "Ir para" jump). */
+  sectionKey: PromptSectionKey | null;
+  sectionLabel: string;
+  /** One-line action title shown in bold. */
+  title: string;
+  /** Short explanation of WHY this is safe. */
+  rationale: string;
+  /** Estimated characters saved if applied. */
+  estCharsSaved: number;
+  /** Convenience: estCharsSaved / 4 rounded up. */
+  estTokensSaved: number;
 }
 
 function countWords(s: string): number {
   return s.trim().split(/\s+/).filter(Boolean).length;
+}
+
+/**
+ * Detect 1–2 highest-impact, low-risk reductions inside a single section
+ * block. Heuristics are intentionally conservative — they only flag patterns
+ * that are very likely safe to remove without losing intent:
+ *
+ *  • Duplicated lines (same trimmed content appearing 2+ times).
+ *  • Bullet items with the same head verb stacked back-to-back (often
+ *    redundant rules: "Não faça X / Não faça Y / Não faça Z" → consolidate).
+ *  • "Filler" prefaces ("É importante notar que…", "Vale ressaltar que…",
+ *    "Lembrando que…") that add tokens without instruction value.
+ *  • Excessively long bullet lists in CONSTRAINTS (>12 items) — suggests
+ *    pruning the bottom third, which is usually low-priority.
+ */
+const FILLER_PATTERNS: Array<{ regex: RegExp; label: string }> = [
+  { regex: /\b(é|e)\s+importante\s+(notar|destacar|ressaltar|lembrar)\s+que\b[^.\n]*\.?/gi, label: 'preâmbulos "é importante notar que…"' },
+  { regex: /\bvale\s+(ressaltar|destacar|notar|lembrar)\s+que\b[^.\n]*\.?/gi, label: 'preâmbulos "vale ressaltar que…"' },
+  { regex: /\blembrando\s+que\b[^.\n]*\.?/gi, label: 'preâmbulos "lembrando que…"' },
+  { regex: /\b(por\s+favor|please)\b[,.\s]?/gi, label: 'cortesias ("por favor")' },
+  { regex: /\b(de\s+forma|de\s+maneira)\s+(clara|objetiva|sucinta|concisa)\b/gi, label: 'redundâncias "de forma clara/objetiva"' },
+];
+
+function analyzeBlockReductions(
+  block: string,
+  sectionKey: PromptSectionKey,
+  sectionLabel: string,
+): ReductionSuggestion[] {
+  const out: ReductionSuggestion[] = [];
+  if (block.length < 80) return out;
+
+  // (1) Duplicated lines
+  const lines = block.split('\n').map((l) => l.trim()).filter((l) => l.length > 8);
+  const counts = new Map<string, number>();
+  for (const l of lines) counts.set(l, (counts.get(l) ?? 0) + 1);
+  let dupChars = 0;
+  let dupCount = 0;
+  for (const [line, n] of counts) {
+    if (n >= 2) {
+      dupChars += line.length * (n - 1);
+      dupCount += n - 1;
+    }
+  }
+  if (dupCount >= 1 && dupChars >= 30) {
+    out.push({
+      id: `${sectionKey}-dups`,
+      sectionKey,
+      sectionLabel,
+      title: `Remover ${dupCount} linha${dupCount > 1 ? 's' : ''} duplicada${dupCount > 1 ? 's' : ''}`,
+      rationale: 'Linhas idênticas repetidas no bloco — manter apenas uma preserva 100% da intenção.',
+      estCharsSaved: dupChars,
+      estTokensSaved: Math.ceil(dupChars / 4),
+    });
+  }
+
+  // (2) Filler prefaces
+  let fillerChars = 0;
+  const fillerHits: string[] = [];
+  for (const { regex, label } of FILLER_PATTERNS) {
+    const matches = block.match(regex);
+    if (matches && matches.length > 0) {
+      const sum = matches.reduce((s, m) => s + m.length, 0);
+      if (sum >= 12) {
+        fillerChars += sum;
+        fillerHits.push(label);
+      }
+    }
+  }
+  if (fillerChars >= 30 && fillerHits.length > 0) {
+    out.push({
+      id: `${sectionKey}-filler`,
+      sectionKey,
+      sectionLabel,
+      title: 'Cortar preâmbulos e cortesias redundantes',
+      rationale: `Frases de preenchimento sem valor instrucional: ${fillerHits.slice(0, 2).join(', ')}.`,
+      estCharsSaved: fillerChars,
+      estTokensSaved: Math.ceil(fillerChars / 4),
+    });
+  }
+
+  // (3) Stacked bullets with same head verb (typical of redundant rules)
+  const bulletRegex = /^[\s]*[-•*]\s+(.+)$/gm;
+  const bulletMatches = [...block.matchAll(bulletRegex)].map((m) => m[1].trim());
+  if (bulletMatches.length >= 4) {
+    const headCounts = new Map<string, { count: number; chars: number }>();
+    for (const b of bulletMatches) {
+      const head = b.split(/\s+/).slice(0, 2).join(' ').toLowerCase();
+      const prev = headCounts.get(head) ?? { count: 0, chars: 0 };
+      headCounts.set(head, { count: prev.count + 1, chars: prev.chars + b.length });
+    }
+    let stackedHead: string | null = null;
+    let stackedSavings = 0;
+    for (const [head, { count, chars }] of headCounts) {
+      if (count >= 3 && chars >= 60) {
+        // Estimate savings = consolidate N bullets into 1, save (N-1)/N of chars
+        const saved = Math.floor((chars * (count - 1)) / count);
+        if (saved > stackedSavings) {
+          stackedSavings = saved;
+          stackedHead = head;
+        }
+      }
+    }
+    if (stackedHead && stackedSavings >= 40) {
+      out.push({
+        id: `${sectionKey}-stacked`,
+        sectionKey,
+        sectionLabel,
+        title: `Consolidar regras que começam com "${stackedHead}…"`,
+        rationale: 'Vários itens da lista repetem o mesmo verbo/comando — agrupar em uma regra única reduz tokens sem perder cobertura.',
+        estCharsSaved: stackedSavings,
+        estTokensSaved: Math.ceil(stackedSavings / 4),
+      });
+    }
+
+    // (4) Very long lists — suggest pruning the tail
+    if (bulletMatches.length > 12) {
+      const tail = bulletMatches.slice(Math.floor(bulletMatches.length * 0.7));
+      const tailChars = tail.reduce((s, b) => s + b.length + 4, 0);
+      if (tailChars >= 80) {
+        out.push({
+          id: `${sectionKey}-longlist`,
+          sectionKey,
+          sectionLabel,
+          title: `Reduzir lista de ${bulletMatches.length} itens (manter top ~70%)`,
+          rationale: 'Listas muito longas têm itens de baixa prioridade no final — modelos costumam priorizar os primeiros.',
+          estCharsSaved: tailChars,
+          estTokensSaved: Math.ceil(tailChars / 4),
+        });
+      }
+    }
+  }
+
+  return out;
 }
 
 /** Color tone for the bar based on % of MAX_TOTAL. */
@@ -57,6 +210,7 @@ const computeUsage = (prompt: string): UsageSnapshot => {
   let sectionsSum = 0;
   let topKey: PromptSectionKey | null = null;
   let topChars = 0;
+  const allSuggestions: ReductionSuggestion[] = [];
 
   const sectionRows: SectionUsage[] = locations.map((loc) => {
     if (loc.status === 'missing') {
@@ -80,6 +234,11 @@ const computeUsage = (prompt: string): UsageSnapshot => {
     if (chars > topChars) {
       topChars = chars;
       topKey = loc.key;
+    }
+    // Only analyze sections that are at least somewhat substantial — tiny
+    // sections aren't worth surfacing reductions for.
+    if (chars >= 80) {
+      allSuggestions.push(...analyzeBlockReductions(block, loc.key, loc.label));
     }
     return {
       key: loc.key,
@@ -105,12 +264,18 @@ const computeUsage = (prompt: string): UsageSnapshot => {
     pctOfLimit: Math.min(100, (othersChars / limit) * 100),
   };
 
+  // Pick the top 1–2 highest-impact suggestions across all sections.
+  const suggestions = allSuggestions
+    .sort((a, b) => b.estCharsSaved - a.estCharsSaved)
+    .slice(0, 2);
+
   return {
     rows: [...sectionRows, othersRow],
     totalChars,
     sectionsSum,
     topKey,
     totalPct: Math.min(100, (totalChars / limit) * 100),
+    suggestions,
   };
 };
 
@@ -188,7 +353,7 @@ function PromptSectionUsageImpl({ prompt, onJumpToSection }: Props) {
     return fresh;
   }, [debouncedPrompt]);
 
-  const { rows, totalChars, sectionsSum, topKey, totalPct } = snapshot;
+  const { rows, totalChars, sectionsSum, topKey, totalPct, suggestions } = snapshot;
   const limit = PROMPT_LIMITS.MAX_TOTAL;
   const sectionsCoverage = totalChars > 0 ? Math.round((sectionsSum / totalChars) * 100) : 0;
   const totalTone = toneClass(totalPct);
@@ -322,6 +487,65 @@ function PromptSectionUsageImpl({ prompt, onJumpToSection }: Props) {
           );
         })}
       </ul>
+
+      {suggestions.length > 0 && (
+        <div className="space-y-2 pt-2 border-t border-border/40">
+          <div className="flex items-center gap-1.5">
+            <Sparkles className="h-3.5 w-3.5 text-primary" aria-hidden />
+            <p className="text-[11px] font-heading font-semibold text-foreground">
+              Reduções recomendadas
+            </p>
+            <span className="text-[9px] font-mono uppercase tracking-wider text-muted-foreground/70">
+              top {suggestions.length}
+            </span>
+          </div>
+          <ul className="space-y-1.5">
+            {suggestions.map((s) => {
+              const interactive = !!onJumpToSection && !!s.sectionKey;
+              const Wrapper: React.ElementType = interactive ? 'button' : 'div';
+              return (
+                <li key={s.id}>
+                  <Wrapper
+                    {...(interactive
+                      ? {
+                          type: 'button',
+                          onClick: () => s.sectionKey && onJumpToSection?.(s.sectionKey),
+                          'aria-label': `Aplicar redução em ${s.sectionLabel}: ${s.title}`,
+                        }
+                      : {})}
+                    className={cn(
+                      'w-full text-left rounded-md p-2 border border-primary/20 bg-primary/5 space-y-1',
+                      interactive && 'hover:bg-primary/10 hover:border-primary/40 transition-colors cursor-pointer',
+                    )}
+                  >
+                    <div className="flex items-start justify-between gap-2 flex-wrap">
+                      <div className="flex items-start gap-1.5 min-w-0 flex-1">
+                        <Scissors className="h-3 w-3 text-primary shrink-0 mt-0.5" aria-hidden />
+                        <div className="min-w-0">
+                          <p className="text-xs font-medium text-foreground leading-snug">
+                            {s.title}
+                          </p>
+                          <p className="text-[10px] text-muted-foreground leading-snug mt-0.5">
+                            <span className="text-foreground/70">{s.sectionLabel}</span>
+                            {' · '}
+                            {s.rationale}
+                          </p>
+                        </div>
+                      </div>
+                      <span
+                        className="inline-flex items-center text-[10px] font-mono tabular-nums px-1.5 py-0.5 rounded-full border border-nexus-emerald/30 bg-nexus-emerald/10 text-nexus-emerald shrink-0"
+                        title={`Estimativa: ~${s.estCharsSaved} chars / ~${s.estTokensSaved} tokens economizados`}
+                      >
+                        −{s.estCharsSaved.toLocaleString('pt-BR')} chars · ~−{s.estTokensSaved.toLocaleString('pt-BR')} tk
+                      </span>
+                    </div>
+                  </Wrapper>
+                </li>
+              );
+            })}
+          </ul>
+        </div>
+      )}
 
       <div className="text-[10px] font-mono text-muted-foreground pt-2 border-t border-border/40 flex items-center justify-between gap-2 flex-wrap">
         <span>
