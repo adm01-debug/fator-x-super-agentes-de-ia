@@ -106,6 +106,16 @@ export function ExecutionTimeline({ execution, selectedStep, onSelectStep }: Pro
     }
   };
 
+  /** Jump to next/previous bookmark relative to the current step. */
+  const jumpBookmark = (dir: 1 | -1) => {
+    if (bookmarks.length === 0) return;
+    const indexes = bookmarks.map((b) => b.stepIndex).sort((a, b) => a - b);
+    const target = dir === 1
+      ? (indexes.find((i) => i > step) ?? indexes[0])
+      : ([...indexes].reverse().find((i) => i < step) ?? indexes[indexes.length - 1]);
+    setStep(target);
+  };
+
   useEffect(() => {
     if (selectedStep == null) setInternalStep(0);
   }, [execution.session_id, selectedStep]);
@@ -121,6 +131,8 @@ export function ExecutionTimeline({ execution, selectedStep, onSelectStep }: Pro
     else if (e.key === 'End') { e.preventDefault(); setStep(total - 1); }
     else if (e.key === 'n' && matchIndexes.length > 0) { e.preventDefault(); jumpMatch(1); }
     else if (e.key === 'N' && matchIndexes.length > 0) { e.preventDefault(); jumpMatch(-1); }
+    else if (e.key === 'b' && bookmarks.length > 0) { e.preventDefault(); jumpBookmark(1); }
+    else if (e.key === 'B' && bookmarks.length > 0) { e.preventDefault(); jumpBookmark(-1); }
   };
 
   const itemsRef = useRef<Array<HTMLLIElement | null>>([]);
