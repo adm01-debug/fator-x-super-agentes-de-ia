@@ -18,13 +18,15 @@ interface Props {
   summary: SimulationSummary | null;
   running: boolean;
   /** Disparado quando o usuário aciona "Executar simulação". */
-  onRun: (customInput: string) => void;
+  onRun: (customInput: string, count: number) => void;
   agentName: string;
 }
 
 const MAX_PROMPT_LEN = 1000;
+const COUNT_PRESETS = [10, 25, 50] as const;
+type CountValue = (typeof COUNT_PRESETS)[number];
 const PLACEHOLDER =
-  'Digite um prompt customizado para usar em todas as 10 execuções. Deixe vazio para usar a amostra padrão (8 perguntas variadas de clientes).';
+  'Digite um prompt customizado para usar em todas as execuções. Deixe vazio para usar a amostra padrão (8 perguntas variadas de clientes).';
 
 function formatCost(v: number): string {
   if (v >= 1) return `$${v.toFixed(2)}`;
