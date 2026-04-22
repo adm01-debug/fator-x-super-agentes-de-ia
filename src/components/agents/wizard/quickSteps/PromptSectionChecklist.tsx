@@ -1,9 +1,9 @@
 import { useMemo } from 'react';
-import { CheckCircle2, Circle, Plus, Wand2 } from 'lucide-react';
+import { CheckCircle2, Circle, Plus, Wand2, AlertTriangle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import {
   REQUIRED_PROMPT_SECTIONS,
-  detectPromptSections,
+  analyzeSectionContent,
   type PromptSectionKey,
 } from '@/lib/validations/quickAgentSchema';
 import { cn } from '@/lib/utils';
