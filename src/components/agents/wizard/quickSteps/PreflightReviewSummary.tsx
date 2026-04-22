@@ -196,34 +196,9 @@ export function PreflightReviewSummary({ form, compact = false, onJumpToSection,
             Conflitos detectados ({contradictions.length})
           </p>
           <div className="space-y-1.5">
-            {contradictions.map((c, idx) => {
-              const canJump = !!onJumpToLine;
-              const Tag: React.ElementType = canJump ? 'button' : 'div';
-              return (
-                <Tag
-                  key={idx}
-                  type={canJump ? 'button' : undefined}
-                  onClick={canJump ? () => onJumpToLine!(c.lineA) : undefined}
-                  className={cn(
-                    'w-full text-left rounded-md border border-nexus-amber/40 bg-nexus-amber/10 px-2.5 py-1.5 space-y-1',
-                    canJump && 'hover:bg-nexus-amber/20 hover:border-nexus-amber/60 cursor-pointer transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-nexus-amber/50',
-                  )}
-                  title={canJump ? `Ir para a linha ${c.lineA} no editor` : undefined}
-                >
-                  <div className="flex items-center gap-1.5 text-[10px] font-mono">
-                    <span className="px-1.5 py-0.5 rounded-full bg-nexus-amber/20 text-nexus-amber font-semibold">
-                      {CONTRADICTION_KIND_LABEL[c.kind]}
-                    </span>
-                    <span className="text-muted-foreground">linha {c.lineA} ↔ {c.lineB}</span>
-                  </div>
-                  <p className="text-[11px] text-nexus-amber/90 leading-snug">{c.reason}</p>
-                  <div className="text-[10px] font-mono text-muted-foreground/80 space-y-0.5">
-                    <div className="truncate">A: {c.snippetA}</div>
-                    <div className="truncate">B: {c.snippetB}</div>
-                  </div>
-                </Tag>
-              );
-            })}
+            {contradictions.map((c, idx) => (
+              <ConflictCard key={idx} c={c} onJumpToLine={onJumpToLine} />
+            ))}
           </div>
         </div>
       )}
