@@ -1,3 +1,4 @@
+import { useMemo, useState } from 'react';
 import { CheckCircle2, AlertTriangle, XCircle, RotateCcw, Flame, Activity, Clock, GitCompare, ArrowDown, ArrowUp, Minus } from 'lucide-react';
 import { Slider } from '@/components/ui/slider';
 import { Button } from '@/components/ui/button';
