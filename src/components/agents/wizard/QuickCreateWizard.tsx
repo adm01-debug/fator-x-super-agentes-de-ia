@@ -863,7 +863,7 @@ export function QuickCreateWizard({ onBack }: QuickCreateWizardProps) {
                 ? `Faltam ${Math.max(minPromptDepth - promptWordCount, 0)} palavra(s)`
                 : 'Confirmar e criar';
               return (
-                <Button onClick={saveAgent} disabled={saving || blocked} className="gap-2" title={title}>
+                <Button onClick={() => saveAgent()} disabled={saving || blocked} className="gap-2" title={title}>
                   {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : <Rocket className="h-4 w-4" />}
                   {label}
                 </Button>
