@@ -148,7 +148,27 @@ export default function AgentTracesPage() {
             )}
           </CardHeader>
           <CardContent>
-            {!selected ? (
+            {executions.length === 0 ? (
+              <div className="h-[560px] flex items-center justify-center">
+                {hasActiveFilters ? (
+                  <EmptyState
+                    icon={Filter}
+                    illustration="search"
+                    title="Nenhuma execução para esses filtros"
+                    description="Ajuste o nível, evento, agente ou janela temporal para ampliar a busca."
+                    actionLabel="Limpar filtros"
+                    onAction={handleClearFilters}
+                  />
+                ) : (
+                  <EmptyState
+                    icon={Inbox}
+                    illustration="data"
+                    title="Sem traces ainda"
+                    description="Quando seus agentes começarem a executar, a linha do tempo aparecerá aqui."
+                  />
+                )}
+              </div>
+            ) : !selected ? (
               <div className="h-[560px] flex flex-col items-center justify-center text-sm text-muted-foreground gap-2">
                 <Activity className="h-8 w-8 opacity-40" />
                 Selecione uma execução para ver os eventos.
