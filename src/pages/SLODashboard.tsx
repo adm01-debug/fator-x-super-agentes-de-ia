@@ -280,6 +280,20 @@ export default function SLODashboard() {
     if (wFromUrl !== windowHours) setWindowHours(wFromUrl);
     if (aFromUrl !== autoRefreshMs) setAutoRefreshMs(aFromUrl);
     if (cmpFromUrl !== compareHours) setCompareHours(cmpFromUrl);
+
+    const fmRaw = searchParams.get(QP_FAILURE_MODES);
+    const fmFromUrl = fmRaw === null
+      ? new Set<FailureMode>(ALL_FAILURE_MODES)
+      : new Set<FailureMode>(
+          fmRaw.split(',').filter((m): m is FailureMode =>
+            (ALL_FAILURE_MODES as readonly string[]).includes(m),
+          ),
+        );
+    if (fmFromUrl.size > 0) {
+      const sameMembers = fmFromUrl.size === failureModes.size
+        && [...fmFromUrl].every((m) => failureModes.has(m));
+      if (!sameMembers) setFailureModes(fmFromUrl);
+    }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [searchParams]);
 
