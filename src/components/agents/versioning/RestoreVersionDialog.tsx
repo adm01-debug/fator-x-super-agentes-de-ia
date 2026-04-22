@@ -345,6 +345,7 @@ function LiveDiffPreview({
   overallImpact,
   overallRisk,
   onShowFullDiff,
+  onGoToBuilder,
 }: {
   changes: FieldChange[];
   toolsAdded: string[];
@@ -357,6 +358,7 @@ function LiveDiffPreview({
   overallImpact: number;
   overallRisk: RiskLevel;
   onShowFullDiff: () => void;
+  onGoToBuilder: (tab: 'prompt' | 'tools' | 'brain') => void;
 }) {
   const groupLabel: Record<'prompt' | 'tools' | 'model', string> = {
     prompt: 'Prompt',
