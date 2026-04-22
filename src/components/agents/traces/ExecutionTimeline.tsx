@@ -1,9 +1,9 @@
-import { forwardRef, useEffect, useMemo, useRef, useState } from 'react';
+import { forwardRef, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
   ChevronDown, ChevronRight, Info, AlertTriangle, XCircle,
   CheckCircle2, Clock, DollarSign, Hash, Zap,
   ChevronsLeft, ChevronLeft, ChevronsRight,
-  ChevronsDownUp, ChevronsUpDown, Keyboard, Search, X,
+  ChevronsDownUp, ChevronsUpDown, Keyboard, Search, X, BookmarkCheck,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -11,6 +11,8 @@ import { Input } from '@/components/ui/input';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { cn } from '@/lib/utils';
 import type { AgentTraceRow, ExecutionGroup, TraceLevel } from '@/services/agentTracesService';
+import { listBookmarks, type TraceBookmark } from '@/lib/traceBookmarks';
+import { BookmarkButton } from './BookmarkButton';
 
 const LEVEL_ICON: Record<TraceLevel, JSX.Element> = {
   info: <Info className="h-3 w-3 text-nexus-emerald" aria-hidden />,
