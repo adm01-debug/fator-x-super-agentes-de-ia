@@ -5,6 +5,8 @@
  */
 import type { AgentVersion } from '@/services/agentsService';
 
+export type RiskLevel = 'critical' | 'high' | 'medium' | 'low';
+
 export interface FieldChange<T = unknown> {
   field: string;
   label: string;
@@ -13,6 +15,12 @@ export interface FieldChange<T = unknown> {
   after: T;
   /** 'added' | 'removed' | 'modified' — facilita ícone/cor na UI. */
   kind: 'added' | 'removed' | 'modified';
+  /** Score numérico de impacto (0-100). Quanto maior, mais arriscado. */
+  impact: number;
+  /** Nível de risco derivado do score, para badges. */
+  risk: RiskLevel;
+  /** Razão curta do score, exibida como tooltip/legenda. */
+  reason: string;
 }
 
 export interface RestoreDiff {
@@ -21,6 +29,31 @@ export interface RestoreDiff {
   toolsAdded: string[];
   toolsRemoved: string[];
   promptDeltaChars: number; // length(after) - length(before)
+  /** Score agregado (0-100) de toda a restauração. */
+  overallImpact: number;
+  overallRisk: RiskLevel;
+}
+
+export function riskFromImpact(impact: number): RiskLevel {
+  if (impact >= 75) return 'critical';
+  if (impact >= 50) return 'high';
+  if (impact >= 25) return 'medium';
+  return 'low';
+}
+
+/** Score de impacto para mudança de prompt baseado em delta de chars. */
+function scorePrompt(beforeLen: number, afterLen: number): { impact: number; reason: string } {
+  const delta = Math.abs(afterLen - beforeLen);
+  const base = Math.max(beforeLen, afterLen, 1);
+  const ratio = delta / base; // 0..1+
+  // Empty → conteúdo (ou vice-versa) é crítico
+  if (beforeLen === 0 || afterLen === 0) {
+    return { impact: 90, reason: afterLen === 0 ? 'Prompt esvaziado' : 'Prompt criado do zero' };
+  }
+  if (ratio >= 0.5) return { impact: 85, reason: `Reescrita massiva (${Math.round(ratio * 100)}% do prompt)` };
+  if (ratio >= 0.25) return { impact: 65, reason: `Mudança grande (${Math.round(ratio * 100)}% do prompt)` };
+  if (ratio >= 0.1) return { impact: 40, reason: `Mudança moderada (${Math.round(ratio * 100)}%)` };
+  return { impact: 20, reason: `Pequeno ajuste (${delta} chars)` };
 }
 
 function cfg(v?: AgentVersion | null): Record<string, unknown> {
