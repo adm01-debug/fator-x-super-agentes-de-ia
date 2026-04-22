@@ -191,6 +191,7 @@ export function PromptContradictionAutoFixPanel({ prompt, onApply }: Props) {
           </Button>
         </div>
       )}
+      </div>
 
       <AlertDialog
         open={preview.open}
