@@ -46,14 +46,28 @@ export default function AgentVersioningPage() {
 
   // Auto-select latest, and last 2 for compare
   useEffect(() => {
-    if (versions.length > 0 && !selectedId) {
+    if (versions.length === 0) return;
+    // Prioridade 1: ?focus= vindo do Detail page após restore.
+    if (focusId && versions.some(v => v.id === focusId)) {
+      setSelectedId(focusId);
+      setHighlightId(focusId);
+      // Limpa o param para que refresh/voltar não re-destaque.
+      const next = new URLSearchParams(searchParams);
+      next.delete('focus');
+      setSearchParams(next, { replace: true });
+      // Auto-fade do destaque após ~2.8s (cobre 1 ciclo da animação pulse).
+      const t = setTimeout(() => setHighlightId(null), 2800);
+      return () => clearTimeout(t);
+    }
+    // Prioridade 2: seleção inicial padrão.
+    if (!selectedId) {
       setSelectedId(versions[0].id);
       if (versions.length >= 2) {
         setAId(versions[1].id);
         setBId(versions[0].id);
       }
     }
-  }, [versions, selectedId]);
+  }, [versions, focusId, selectedId, searchParams, setSearchParams]);
 
   const selected = useMemo(() => versions.find(v => v.id === selectedId) ?? versions[0] ?? null, [versions, selectedId]);
   const versionA = useMemo(() => versions.find(v => v.id === aId) ?? null, [versions, aId]);
@@ -70,7 +84,10 @@ export default function AgentVersioningPage() {
       toast.success(`Versão v${data.version} criada — ${data.change_summary ?? 'restauração'}`);
       queryClient.invalidateQueries({ queryKey: ['agent-versions', id] });
       queryClient.invalidateQueries({ queryKey: ['agent', id] });
+      // Sincroniza seleção + destaque para que o usuário veja a nova versão imediatamente.
       setSelectedId(data.id);
+      setHighlightId(data.id);
+      setTimeout(() => setHighlightId(null), 2800);
     },
     onError: (e: Error) => toast.error(e.message || 'Erro ao restaurar'),
   });
