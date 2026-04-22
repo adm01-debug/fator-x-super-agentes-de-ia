@@ -246,15 +246,21 @@ export function InteractiveSLOPanel({ agentId, slo, traces, daily, onDayClick }:
 
       {/* Timeline */}
       <div className="mt-4 pt-4 border-t border-border/50">
-        <div className="flex items-center justify-between mb-3">
+        <div className="flex items-center justify-between mb-3 flex-wrap gap-2">
           <div className="flex items-center gap-2">
             <Activity className="h-3.5 w-3.5 text-muted-foreground" />
-            <h4 className="text-xs font-heading font-semibold text-foreground">Timeline de violações (14 dias)</h4>
+            <h4 className="text-xs font-heading font-semibold text-foreground">
+              Timeline de violações ({activeWindow.label})
+            </h4>
           </div>
-          <span className="text-[10px] text-muted-foreground">Hover para detalhes · clique para abrir o dia</span>
+          <span className="text-[10px] text-muted-foreground">
+            {activeWindow.buckets} bucket{activeWindow.buckets !== 1 ? 's' : ''} · hover para detalhes
+          </span>
         </div>
-        {traces.length === 0 ? (
-          <p className="text-xs text-muted-foreground text-center py-6">Sem traces para calcular violações</p>
+        {windowedTraces.length === 0 ? (
+          <p className="text-xs text-muted-foreground text-center py-6">
+            Sem traces na janela de {activeWindow.label}
+          </p>
         ) : (
           <SLOViolationTimeline data={timeline} daily={daily} onDayClick={onDayClick} />
         )}
