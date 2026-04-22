@@ -81,6 +81,12 @@ function buildAgentFromTemplate(t: AgentTemplate): AgentConfig {
     status: 'pending',
   }));
 
+  // 5a. Output validation: quando o template pede validação, elevamos cada tool
+  //     para output_validation='schema' (rejeita output fora do formato do input_schema).
+  const resolvedToolsWithValidation = cfg.output_validation_schema
+    ? resolvedTools.map((tool) => ({ ...tool, output_validation: 'schema' as const }))
+    : resolvedTools;
+
   // 5. Deploy channels.
   const deployChannels: DeployChannelConfig[] = (cfg.deploy_channels ?? []).map((dc) => ({
     id: makeId(),
@@ -112,7 +118,11 @@ function buildAgentFromTemplate(t: AgentTemplate): AgentConfig {
     system_prompt_version: 1,
     few_shot_examples: fewShots,
 
-    tools: resolvedTools,
+    reasoning: (cfg.reasoning ?? DEFAULT_AGENT.reasoning) as AgentConfig['reasoning'],
+    output_format: (cfg.output_format ??
+      DEFAULT_AGENT.output_format) as AgentConfig['output_format'],
+
+    tools: resolvedToolsWithValidation,
     guardrails,
     test_cases: testCases,
     deploy_channels: deployChannels,

@@ -59,6 +59,16 @@ export interface EnrichedTestCase {
   tags?: string[];
 }
 
+export type EnrichedReasoningPattern =
+  | 'react'
+  | 'cot'
+  | 'tot'
+  | 'reflection'
+  | 'plan_execute'
+  | 'smolagent';
+
+export type EnrichedOutputFormat = 'text' | 'json' | 'markdown' | 'structured';
+
 export interface AgentTemplateRaw {
   id: string;
   name: string;
@@ -75,6 +85,12 @@ export interface AgentTemplateRaw {
     guardrails: string[];
     memory_types: string[];
     // ─── Enriquecimento opcional ─────────────────────────────────
+    /** Padrão de raciocínio (react, cot, tot, reflection, plan_execute, smolagent). */
+    reasoning?: EnrichedReasoningPattern;
+    /** Formato de output esperado. 'json' + validação schema nas tools recomenda-se forçar. */
+    output_format?: EnrichedOutputFormat;
+    /** Ativa validação automática do output via Zod schema (para agentes JSON-first). */
+    output_validation_schema?: boolean;
     /** Exemplos few-shot para injetar no prompt. */
     few_shot_examples?: EnrichedFewShot[];
     /** Guardrails detalhados (category, severity, config). */
@@ -310,6 +326,9 @@ Texto em parágrafos curtos. Ao final, sempre um CTA claro: próximo passo ou pe
         'create_ticket',
         'query_datahub',
       ],
+      reasoning: 'cot',
+      output_format: 'json',
+      output_validation_schema: true,
       guardrails: ['pii_detection'],
       memory_types: ['semantic', 'episodic'],
       detailed_guardrails: [
@@ -532,7 +551,9 @@ PDF: [url]
       deploy_channels: [{ channel: 'api' }, { channel: 'web_chat' }, { channel: 'bitrix24' }],
       monthly_budget: 80,
       budget_alert_threshold: 80,
-      memory_overrides: { semantic: true, episodic: true },
+      // memory_procedural aprende com cotações rejeitadas o padrão aceitável por cliente:
+      // cada cotação perdida por preço vira um "procedimento" que ajusta o próximo envio.
+      memory_overrides: { semantic: true, episodic: true, procedural: true },
     },
   },
   {
@@ -1235,6 +1256,16 @@ const SPECIALIST_TEMPLATES: AgentTemplateRaw[] = [
 8. **Carteira ativa**: mensalmente avalie com \`query_datahub\` oportunidades de upsell (cliente comprou canecas → ofereça conjunto squeeze + camiseta para próximo evento).
 9. **Decisão complexa** (ex.: contraproposta grande, cláusula especial): use \`consult_oracle\` para segunda opinião antes de levar ao gestor.
 
+## Sub-agentes (delegação via \`delegate_to_agent\`)
+Você é o maestro da negociação. Delegue sempre que o subproblema tem dono natural:
+- **\`spec_vendas_intel\`** — antes de qualquer proposta de upsell, delegue \`spec_vendas_intel\` perguntando "qual histórico de compra + pipeline deste cliente?" — ele volta com forecast e segmentação RFM que você usa na ancoragem.
+- **\`quote_generator\`** — NÃO calcule preço sozinho. Delegue a cotação (produto + qtd + técnica + prazo) para o \`quote_generator\`; ele já aplica a matriz de desconto, gera PDF e respeita os guardrails de alçada.
+- **\`spec_direito_trabalhista\`** — se o cliente pedir cláusula especial (exclusividade, SLA, NDA), delegue revisão jurídica antes de topar.
+- **\`spec_arte_final\`** — se houver dúvida sobre viabilidade de gravação (ex.: DTF em metal, Fiber em plástico), delegue a análise técnica antes de prometer prazo.
+- **\`oracle_council\`** (via \`consult_oracle\`) — para decisões estratégicas (contraproposta grande, desconto acima da alçada), painel multi-LLM dá segunda opinião.
+
+Regra: se você se viu escrevendo lógica de preço, arte ou cláusula contratual no próprio output, PARE e delegue. Sua função é orquestrar, não recalcular.
+
 ## Regras comerciais
 - Desconto máx. sem aprovação: 12%. Entre 12-20% → HITL. > 20% → gestor comercial.
 - Condição de pagamento máx. sem aprovação: 30/60. Mais que isso → HITL.
@@ -1256,7 +1287,12 @@ Para cada interação, retorne:
         'consult_oracle',
         'send_email',
         'search_knowledge',
+        'delegate_to_agent',
       ],
+      // reflection: antes de entregar proposta, o agente critica sua própria
+      // saída (preço justo? cláusula escapou? prazo realista?). Reduz propostas
+      // tortas ao custo de +1 chamada LLM.
+      reasoning: 'reflection',
       guardrails: ['toxicity', 'pii_detection'],
       memory_types: ['episodic', 'user_profile', 'semantic'],
       detailed_guardrails: [
@@ -1403,6 +1439,10 @@ Relatório em seções:
 4. Gráficos anexados (URLs).
 5. Riscos / alertas.`,
       tools: ['query_datahub', 'generate_chart', 'consult_oracle', 'search_crm'],
+      // plan_execute: primeiro planeja QUAIS queries rodar (pipeline, ICP,
+      // RFM), depois dispara em paralelo. Reduz latência em 30-40% vs.
+      // react sequencial para relatórios complexos.
+      reasoning: 'plan_execute',
       guardrails: ['secret_leakage'],
       memory_types: ['semantic', 'episodic'],
       detailed_guardrails: [
@@ -1515,6 +1555,13 @@ Relatório em seções:
 7. **Notifique o closer** (\`notify_seller\` priority=high) com resumo: empresa, contato (nome+cargo), necessidade, volume estimado, prazo, decisor.
 8. **Crie task** (\`create_task\`) para preparação do closer com deadline 1h antes da reunião.
 
+## Sub-agentes (delegação via \`delegate_to_agent\`)
+Você é um orquestrador fino. Antes de enviar o 1º e-mail, SEMPRE delegue:
+- **\`lead_qualifier\`** — delegue o lead cru antes da cadência. Se voltar \`classification: "cold"\` ou \`score < 30\`, NÃO envie e-mail; apenas marque nurturing. Se voltar "hot", pule para o passo 6 (notificar closer direto).
+- **\`web_search\`** (via sub-agente de pesquisa) — quando \`enrich_company\` não traz contexto suficiente, delegue busca web para pegar notícias recentes da empresa (aquisição, prêmio, evento confirmado) e use como gatilho.
+
+Regra: nunca rode a cadência cega sem passar pelo \`lead_qualifier\`. Evita queimar leads e desperdiçar e-mails.
+
 ## Regras
 - LGPD: use só dados públicos (LinkedIn, site) e consentimento de opt-in quando houver.
 - Nunca envie mais de 2 e-mails/semana ao mesmo contato.
@@ -1538,6 +1585,7 @@ Olá [Nome],
         'create_task',
         'web_search',
         'query_datahub',
+        'delegate_to_agent',
       ],
       guardrails: ['pii_detection', 'toxicity'],
       memory_types: ['episodic', 'user_profile', 'semantic'],

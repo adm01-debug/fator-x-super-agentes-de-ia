@@ -147,9 +147,67 @@ describe('Enriched sales templates', () => {
         }
       });
 
+      it('reasoning (when set) is a known pattern', () => {
+        if (t.config.reasoning) {
+          expect(['react', 'cot', 'tot', 'reflection', 'plan_execute', 'smolagent']).toContain(
+            t.config.reasoning,
+          );
+        }
+      });
+
       it('is flagged as enriched', () => {
         expect(t.enriched).toBe(true);
       });
     });
   }
+});
+
+// ═══ Reasoning upgrades específicos aplicados no follow-up 5 ═════════
+describe('Reasoning upgrades (follow-up #5)', () => {
+  it('lead_qualifier has output_validation_schema + json output', () => {
+    const t = AGENT_TEMPLATES.find((x) => x.id === 'lead_qualifier');
+    expect(t?.config.output_format).toBe('json');
+    expect(t?.config.output_validation_schema).toBe(true);
+    expect(t?.config.reasoning).toBe('cot');
+  });
+
+  it('spec_vendas_closer uses reflection reasoning', () => {
+    const t = AGENT_TEMPLATES.find((x) => x.id === 'spec_vendas_closer');
+    expect(t?.config.reasoning).toBe('reflection');
+  });
+
+  it('spec_vendas_intel uses plan_execute reasoning', () => {
+    const t = AGENT_TEMPLATES.find((x) => x.id === 'spec_vendas_intel');
+    expect(t?.config.reasoning).toBe('plan_execute');
+  });
+
+  it('quote_generator enables procedural memory for price learning', () => {
+    const t = AGENT_TEMPLATES.find((x) => x.id === 'quote_generator');
+    expect(t?.config.memory_overrides?.procedural).toBe(true);
+  });
+});
+
+// ═══ Sub-agents composition (follow-up #3) ═══════════════════════════
+describe('Sub-agents composition (follow-up #3)', () => {
+  it('spec_vendas_closer declares delegate_to_agent tool', () => {
+    const t = AGENT_TEMPLATES.find((x) => x.id === 'spec_vendas_closer');
+    expect(t?.config.tools).toContain('delegate_to_agent');
+  });
+
+  it('spec_vendas_sdr declares delegate_to_agent tool', () => {
+    const t = AGENT_TEMPLATES.find((x) => x.id === 'spec_vendas_sdr');
+    expect(t?.config.tools).toContain('delegate_to_agent');
+  });
+
+  it('closer prompt documents its sub-agent delegation', () => {
+    const t = AGENT_TEMPLATES.find((x) => x.id === 'spec_vendas_closer');
+    expect(t?.config.system_prompt).toMatch(/Sub-agentes/i);
+    expect(t?.config.system_prompt).toMatch(/quote_generator/);
+    expect(t?.config.system_prompt).toMatch(/spec_vendas_intel/);
+  });
+
+  it('SDR prompt documents delegation to lead_qualifier', () => {
+    const t = AGENT_TEMPLATES.find((x) => x.id === 'spec_vendas_sdr');
+    expect(t?.config.system_prompt).toMatch(/lead_qualifier/);
+  });
 });
