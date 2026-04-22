@@ -211,12 +211,15 @@ export default function SLODashboard() {
     if (autoRefreshMs === DEFAULT_AUTO_REFRESH_MS) next.delete(QP_AUTO);
     else next.set(QP_AUTO, String(autoRefreshMs));
 
+    if (compareHours <= 0) next.delete(QP_COMPARE);
+    else next.set(QP_COMPARE, String(compareHours));
+
     // Avoid an infinite update loop: only call setSearchParams when the
     // serialized result actually differs from what's already in the URL.
     if (next.toString() !== searchParams.toString()) {
       setSearchParams(next, { replace: true });
     }
-  }, [windowHours, autoRefreshMs, searchParams, setSearchParams]);
+  }, [windowHours, autoRefreshMs, compareHours, searchParams, setSearchParams]);
 
   // React to back/forward navigation (or another link that mutates the URL)
   // by re-reading the params into local state.
