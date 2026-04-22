@@ -17,6 +17,7 @@ import {
   CONTRADICTION_KIND_LABEL,
   type PromptContradiction,
 } from '@/lib/validations/promptContradictions';
+import { suggestContradictionRewrites } from '@/lib/validations/contradictionSuggestions';
 
 export interface ReviewData {
   sections: Record<PromptSectionKey, boolean>;
