@@ -18,6 +18,7 @@ import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { Progress } from '@/components/ui/progress';
 import { useWorkspaceId } from '@/hooks/use-data';
+import { supabase } from '@/integrations/supabase/client';
 import {
   DEFAULT_PRICING,
   rollupBilling,
@@ -29,12 +30,30 @@ import { computeAttribution, lastNDays, startOfMonth } from '@/services/costAttr
 type Range = 'month' | 'last7' | 'last30';
 
 /**
- * Stub: em produção, `listOutcomeEvents` viria de uma edge function que
- * lê `outcome_events` table. Aqui começamos com array vazio e o
- * dashboard se degrada graciosamente.
+ * Lê `public.outcome_events` do workspace dentro da janela. A tabela é
+ * criada pela migration `20260422180000_rodadas_6_8_tables.sql`. Antes
+ * dela rodar no ambiente, o fetch devolve [] graceful-degrade.
  */
-async function listOutcomeEvents(_workspaceId: string, _range: Range): Promise<OutcomeEvent[]> {
-  return [];
+async function listOutcomeEvents(
+  workspaceId: string,
+  window: { from: string; to: string },
+): Promise<OutcomeEvent[]> {
+  try {
+    const { data, error } = await supabase
+      .from('outcome_events' as never)
+      .select(
+        'id, agent_id, workspace_id, kind, reference_id, metadata, occurred_at, unit_price_usd, billable',
+      )
+      .eq('workspace_id', workspaceId)
+      .gte('occurred_at', window.from)
+      .lte('occurred_at', window.to)
+      .order('occurred_at', { ascending: false })
+      .limit(2000);
+    if (error) return [];
+    return (data ?? []) as unknown as OutcomeEvent[];
+  } catch {
+    return [];
+  }
 }
 
 export default function CustomerRoiPage() {
@@ -48,9 +67,9 @@ export default function CustomerRoiPage() {
   }, [range]);
 
   const { data: outcomes = [] } = useQuery({
-    queryKey: ['outcome_events', workspaceId, range],
+    queryKey: ['outcome_events', workspaceId, range, window.from, window.to],
     enabled: !!workspaceId,
-    queryFn: () => listOutcomeEvents(workspaceId!, range),
+    queryFn: () => listOutcomeEvents(workspaceId!, window),
   });
 
   const { data: attribution } = useQuery({

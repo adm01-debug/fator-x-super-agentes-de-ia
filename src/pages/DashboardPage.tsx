@@ -32,6 +32,9 @@ import { ActivityFeed } from '@/components/dashboard/ActivityFeed';
 import { AutomationOverviewWidget } from '@/components/automation/AutomationOverviewWidget';
 import { DashboardAlerts } from '@/components/dashboard/DashboardAlerts';
 import { DashboardInsight } from '@/components/dashboard/DashboardInsight';
+import { OpsHealthWidget } from '@/components/shared/OpsHealthWidget';
+import { HitlQueueWidget } from '@/components/shared/HitlQueueWidget';
+import { BudgetWidget } from '@/components/dashboard/BudgetWidget';
 
 function DashboardLoadingSkeleton() {
   return (
@@ -316,6 +319,13 @@ export default function DashboardPage() {
               ))}
             </div>
           )}
+
+          {/* Ops Health row — Rodada 10: expõe os widgets operacionais no dashboard */}
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-3 sm:gap-4">
+            <OpsHealthWidget />
+            <HitlQueueWidget />
+            <BudgetWidget />
+          </div>
 
           <div className="animate-chart-reveal">
             <UsageCharts data={usageData ?? []} />
