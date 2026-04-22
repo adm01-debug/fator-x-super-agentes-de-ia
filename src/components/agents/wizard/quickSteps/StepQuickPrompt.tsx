@@ -332,6 +332,8 @@ export function StepQuickPrompt({ form, errors, onPromptManualEdit, onRestore, o
       />
 
       <PromptSectionUsage prompt={form.prompt} onJumpToSection={jumpToSection} />
+
+      <PromptHistoryPanel
         prompt={form.prompt}
         type={form.type}
         onRestore={(restored) => handleManualEdit(restored)}
