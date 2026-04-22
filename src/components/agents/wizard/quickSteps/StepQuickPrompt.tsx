@@ -32,7 +32,6 @@ const EDITOR_PADDING_LEFT = 36; // px — leaves room for the gutter
 interface Props {
   form: QuickAgentForm;
   errors: Partial<Record<keyof QuickAgentForm, string>>;
-  update: <K extends keyof QuickAgentForm>(key: K, value: QuickAgentForm[K]) => void;
   /**
    * Manual prompt edits (typing, paste, snippet insert, history restore)
    * go through this — the wizard uses it to flip the "custom locked" flag.
@@ -47,7 +46,7 @@ interface Props {
   highlightField?: keyof QuickAgentForm;
 }
 
-export function StepQuickPrompt({ form, errors, update, onPromptManualEdit, onRestore, onApplyVariant, customLocked, onUnlockCustom, highlightField }: Props) {
+export function StepQuickPrompt({ form, errors, onPromptManualEdit, onRestore, onApplyVariant, customLocked, onUnlockCustom, highlightField }: Props) {
   const detected = detectPromptVariant(form.type as QuickAgentType, form.prompt);
   const activeVariant = customLocked ? null : detected;
   const textareaRef = useRef<HTMLTextAreaElement>(null);
