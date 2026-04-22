@@ -145,12 +145,14 @@ export function StepQuickIdentity({ form, errors, update, highlightField, highli
             onChange={(e) => update('description', e.target.value)}
             placeholder="Para listagens e cards"
             maxLength={300}
+            aria-describedby={highlightField === 'description' && highlightHint ? 'qa-desc-hint' : undefined}
             className={`mt-1.5 bg-secondary/50 border-border/50${hl('description')}`}
           />
           <div className="flex justify-between items-start mt-1">
             <FieldError msg={errors.description} />
             <span className="text-[10px] text-muted-foreground ml-auto font-mono">{form.description.length}/300</span>
           </div>
+          {hintFor('description')}
         </div>
       </div>
     </div>
