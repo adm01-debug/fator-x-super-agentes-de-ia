@@ -108,7 +108,7 @@ export function StepQuickPrompt({ form, errors, update, onPromptManualEdit, onRe
    */
   const insertSectionSnippet = (key: PromptSectionKey, snippet: string): [number, number] => {
     const { prompt: nextPrompt, insertedRange } = insertSectionAt(form.prompt, key, snippet);
-    update('prompt', nextPrompt);
+    onPromptManualEdit(nextPrompt);
     return insertedRange;
   };
 
@@ -169,7 +169,7 @@ export function StepQuickPrompt({ form, errors, update, onPromptManualEdit, onRe
         description: 'Tags HTML perigosas foram filtradas do prompt.',
       });
     }
-    update('prompt', result.clean);
+    onPromptManualEdit(result.clean);
   };
 
   const handlePaste = (e: ClipboardEvent<HTMLTextAreaElement>) => {
@@ -186,7 +186,7 @@ export function StepQuickPrompt({ form, errors, update, onPromptManualEdit, onRe
 
     const result = sanitizePromptInput(pasted, Math.max(0, remainingBudget));
     const next = before + result.clean + after;
-    update('prompt', next);
+    onPromptManualEdit(next);
 
     // Restore caret after the pasted block on next tick.
     requestAnimationFrame(() => {
