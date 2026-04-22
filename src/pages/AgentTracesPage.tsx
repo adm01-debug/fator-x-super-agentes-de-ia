@@ -1,10 +1,11 @@
 import { useEffect, useMemo, useState } from 'react';
 import { useParams } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
-import { Activity, AlertTriangle, DollarSign, Play, RefreshCw, Zap } from 'lucide-react';
+import { Activity, AlertTriangle, DollarSign, Filter, Inbox, Play, RefreshCw, Zap } from 'lucide-react';
 import { PageHeader } from '@/components/shared/PageHeader';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { EmptyState } from '@/components/shared/EmptyState';
 import { useDebounce } from '@/hooks/use-debounce';
 import {
   listAgentTraces, listAvailableEvents, groupBySession,
@@ -74,6 +75,22 @@ export default function AgentTracesPage() {
     return { execs: executions.length, traces: traces.length, errors, cost };
   }, [traces, executions]);
 
+  const hasActiveFilters =
+    debouncedSearch.trim() !== '' ||
+    level !== 'all' ||
+    event !== 'all' ||
+    (id ? agentFilter !== id : agentFilter !== 'all') ||
+    sinceHours !== 24;
+
+  const handleClearFilters = () => {
+    setSearch('');
+    setLevel('all');
+    setEvent('all');
+    setAgentFilter(id ?? 'all');
+    setSinceHours(24);
+    setSelectedId(null);
+  };
+
   return (
     <div className="p-6 sm:p-8 lg:p-10 space-y-5 max-w-[1500px] mx-auto animate-page-enter">
       <PageHeader
@@ -115,6 +132,8 @@ export default function AgentTracesPage() {
               onSelect={(e) => setSelectedId(e.session_id)}
               onReplay={(e) => { setSelectedId(e.session_id); setReplayOpen(true); }}
               loading={isLoading}
+              hasActiveFilters={hasActiveFilters}
+              onClearFilters={handleClearFilters}
             />
           </CardContent>
         </Card>
@@ -129,7 +148,27 @@ export default function AgentTracesPage() {
             )}
           </CardHeader>
           <CardContent>
-            {!selected ? (
+            {executions.length === 0 ? (
+              <div className="h-[560px] flex items-center justify-center">
+                {hasActiveFilters ? (
+                  <EmptyState
+                    icon={Filter}
+                    illustration="search"
+                    title="Nenhuma execução para esses filtros"
+                    description="Ajuste o nível, evento, agente ou janela temporal para ampliar a busca."
+                    actionLabel="Limpar filtros"
+                    onAction={handleClearFilters}
+                  />
+                ) : (
+                  <EmptyState
+                    icon={Inbox}
+                    illustration="data"
+                    title="Sem traces ainda"
+                    description="Quando seus agentes começarem a executar, a linha do tempo aparecerá aqui."
+                  />
+                )}
+              </div>
+            ) : !selected ? (
               <div className="h-[560px] flex flex-col items-center justify-center text-sm text-muted-foreground gap-2">
                 <Activity className="h-8 w-8 opacity-40" />
                 Selecione uma execução para ver os eventos.
