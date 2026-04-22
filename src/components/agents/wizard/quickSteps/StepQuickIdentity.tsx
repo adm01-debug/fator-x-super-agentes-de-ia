@@ -1,8 +1,9 @@
-import { useEffect } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
 import type { QuickAgentForm } from '@/lib/validations/quickAgentSchema';
+import { FIELD_HIGHLIGHT_CLS } from './useFieldHighlight';
 
 const EMOJI_SUGGESTIONS = ['🤖', '💬', '✨', '📊', '💼', '🎧', '🔎', '🎼', '🧠', '🚀', '🛡️', '🌟'];
 
@@ -18,19 +19,29 @@ function FieldError({ msg }: { msg?: string }) {
   return <p className="text-xs text-destructive mt-1">{msg}</p>;
 }
 
-const HIGHLIGHT_CLS = 'ring-2 ring-warning ring-offset-2 ring-offset-background animate-pulse';
-
 export function StepQuickIdentity({ form, errors, update, highlightField }: Props) {
+  // Track which field is currently pulsing — auto-clears after 3s so the
+  // visual cue doesn't linger after the user has acknowledged it.
+  const [pulsingField, setPulsingField] = useState<keyof QuickAgentForm | null>(null);
+  const pulseTimerRef = useRef<number | null>(null);
+
   useEffect(() => {
     if (!highlightField) return;
-    const el = document.getElementById(`qa-${highlightField === 'description' ? 'desc' : highlightField}`);
+    const id = `qa-${highlightField === 'description' ? 'desc' : highlightField}`;
+    const el = document.getElementById(id);
     if (el) {
       el.scrollIntoView({ block: 'center', behavior: 'smooth' });
-      window.setTimeout(() => (el as HTMLElement).focus?.(), 250);
+      window.setTimeout(() => (el as HTMLElement).focus?.({ preventScroll: true }), 250);
     }
+    setPulsingField(highlightField);
+    if (pulseTimerRef.current != null) window.clearTimeout(pulseTimerRef.current);
+    pulseTimerRef.current = window.setTimeout(() => setPulsingField(null), 3000);
+    return () => {
+      if (pulseTimerRef.current != null) window.clearTimeout(pulseTimerRef.current);
+    };
   }, [highlightField]);
 
-  const hl = (f: keyof QuickAgentForm) => (highlightField === f ? ` ${HIGHLIGHT_CLS}` : '');
+  const hl = (f: keyof QuickAgentForm) => (pulsingField === f ? ` ${FIELD_HIGHLIGHT_CLS}` : '');
 
   return (
     <div className="nexus-card space-y-5">
