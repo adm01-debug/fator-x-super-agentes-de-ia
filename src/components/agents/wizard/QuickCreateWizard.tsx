@@ -183,9 +183,9 @@ export function QuickCreateWizard({ onBack }: QuickCreateWizardProps) {
     }
     setForm(target.form);
     lastTypeRef.current = target.form.type as QuickAgentType;
-    const resumeIdx = STEPS.findIndex((s) => !s.schema.safeParse(target.form).success);
-    const resumeStep = resumeIdx === -1 ? STEPS.length - 1 : resumeIdx;
-    setStep(resumeStep);
+    const resume = computeResumeTarget(target.form, STEPS);
+    setStep(resume.stepIdx);
+    setHighlightField(resume.field ?? null);
     setDraftsStore((prev) => {
       const next = setActive(prev, id);
       saveDrafts(next);
@@ -194,7 +194,9 @@ export function QuickCreateWizard({ onBack }: QuickCreateWizardProps) {
     setPendingDrafts([]);
     setDraftDecided(true);
     toast.success('Rascunho restaurado', {
-      description: `Continuando do passo: ${STEPS[resumeStep].label}`,
+      description: resume.field
+        ? `Continue em "${STEPS[resume.stepIdx].label}" — campo: ${FIELD_LABEL[resume.field] ?? String(resume.field)}`
+        : `Continuando do passo: ${STEPS[resume.stepIdx].label}`,
     });
   };
 
