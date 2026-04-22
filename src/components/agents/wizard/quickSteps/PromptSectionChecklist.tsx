@@ -1,5 +1,5 @@
-import { useMemo } from 'react';
-import { CheckCircle2, Circle, Plus, Wand2, AlertTriangle, Crosshair, Lock, Sparkles } from 'lucide-react';
+import { useMemo, useState } from 'react';
+import { CheckCircle2, Circle, Plus, Wand2, AlertTriangle, Crosshair, Lock, Sparkles, FileSearch } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import {
   REQUIRED_PROMPT_SECTIONS,
@@ -8,6 +8,14 @@ import {
 } from '@/lib/validations/quickAgentSchema';
 import { extractSectionFromPrompt } from '@/lib/promptSectionLocator';
 import { cn } from '@/lib/utils';
+import {
+  Sheet,
+  SheetContent,
+  SheetDescription,
+  SheetHeader,
+  SheetTitle,
+  SheetTrigger,
+} from '@/components/ui/sheet';
 
 interface Props {
   prompt: string;
@@ -83,6 +91,19 @@ export function PromptSectionChecklist({
 
   const hasVariant = !!activeVariantPrompt && !customLocked;
 
+  // Per-section extracted body from the *current* prompt — feeds the drawer.
+  const sectionBodies = useMemo(() => {
+    const out = {} as Record<PromptSectionKey, { body: string | null; words: number }>;
+    for (const sec of REQUIRED_PROMPT_SECTIONS) {
+      const body = extractSectionFromPrompt(prompt, sec.key);
+      out[sec.key] = { body, words: body ? wordCount(body) : 0 };
+    }
+    return out;
+  }, [prompt]);
+  const totalWords = Object.values(sectionBodies).reduce((acc, s) => acc + s.words, 0);
+
+  const [drawerOpen, setDrawerOpen] = useState(false);
+
   return (
     <div
       role="status"
@@ -125,6 +146,107 @@ export function PromptSectionChecklist({
               customizado
             </span>
           )}
+          {/* Drawer trigger — opens the side panel with extracted bodies. */}
+          <Sheet open={drawerOpen} onOpenChange={setDrawerOpen}>
+            <SheetTrigger asChild>
+              <Button
+                type="button"
+                size="sm"
+                variant="outline"
+                className="h-7 gap-1.5 text-[11px]"
+                aria-label="Inspecionar conteúdo extraído de cada seção"
+                title="Ver corpo extraído + contagem de palavras de cada seção"
+              >
+                <FileSearch className="h-3 w-3" />
+                Inspecionar
+              </Button>
+            </SheetTrigger>
+            <SheetContent side="right" className="w-full sm:max-w-lg overflow-y-auto">
+              <SheetHeader className="space-y-1.5">
+                <SheetTitle className="flex items-center gap-2">
+                  <FileSearch className="h-4 w-4 text-primary" />
+                  Inspeção das seções
+                </SheetTitle>
+                <SheetDescription>
+                  Conteúdo extraído do prompt atual, agrupado por seção.{' '}
+                  <span className="font-mono tabular-nums">{totalWords}</span>{' '}
+                  palavra{totalWords === 1 ? '' : 's'} no total · {ok}/{total} seções completas.
+                </SheetDescription>
+              </SheetHeader>
+              <div className="mt-6 space-y-4">
+                {reports.map((r) => {
+                  const body = sectionBodies[r.key];
+                  const isOk = r.present && !r.thinReason;
+                  const isThin = r.present && !!r.thinReason;
+                  const tone = isOk
+                    ? 'border-nexus-emerald/30 bg-nexus-emerald/5'
+                    : isThin
+                    ? 'border-nexus-amber/40 bg-nexus-amber/5'
+                    : 'border-border/50 bg-secondary/30';
+                  return (
+                    <section
+                      key={r.key}
+                      className={cn('rounded-lg border p-3 space-y-2 transition-colors', tone)}
+                    >
+                      <header className="flex items-center justify-between gap-2 flex-wrap">
+                        <div className="flex items-center gap-2 min-w-0">
+                          {isOk ? (
+                            <CheckCircle2 className="h-4 w-4 text-nexus-emerald shrink-0" aria-hidden />
+                          ) : isThin ? (
+                            <AlertTriangle className="h-4 w-4 text-nexus-amber shrink-0" aria-hidden />
+                          ) : (
+                            <Circle className="h-4 w-4 text-muted-foreground shrink-0" aria-hidden />
+                          )}
+                          <h3 className="text-sm font-medium text-foreground truncate">
+                            ## {r.label}
+                          </h3>
+                        </div>
+                        <div className="flex items-center gap-2 shrink-0">
+                          <span
+                            className={cn(
+                              'text-[10px] font-mono px-2 py-0.5 rounded-full border',
+                              isOk
+                                ? 'border-nexus-emerald/40 bg-nexus-emerald/10 text-nexus-emerald'
+                                : isThin
+                                ? 'border-nexus-amber/40 bg-nexus-amber/10 text-nexus-amber'
+                                : 'border-border bg-background text-muted-foreground',
+                            )}
+                            title={isOk ? 'Cobertura suficiente' : isThin ? (r.thinReason ?? undefined) : 'Seção ausente'}
+                          >
+                            {body.words} palavra{body.words === 1 ? '' : 's'}
+                          </span>
+                          {onJumpToSection && r.present && (
+                            <Button
+                              type="button"
+                              size="sm"
+                              variant="ghost"
+                              onClick={() => { onJumpToSection(r.key); setDrawerOpen(false); }}
+                              className="h-6 gap-1 text-[10px] text-primary hover:bg-primary/10 px-2"
+                              aria-label={`Ir para a seção ${r.label} no editor`}
+                            >
+                              <Crosshair className="h-3 w-3" /> Ir
+                            </Button>
+                          )}
+                        </div>
+                      </header>
+                      {body.body ? (
+                        <pre className="text-[12px] leading-relaxed whitespace-pre-wrap break-words font-mono text-foreground/85 max-h-64 overflow-y-auto bg-background/60 rounded-md p-2.5 border border-border/40">
+                          {body.body.trim()}
+                        </pre>
+                      ) : (
+                        <p className="text-[11px] italic text-muted-foreground">
+                          Seção não encontrada no prompt atual.
+                          {hasVariant
+                            ? ` "Inserir + ir" preencheria com ~${effectiveSnippets[r.key].words} palavras da variação ${activeVariantLabel}.`
+                            : ' Use "Inserir + ir" para adicionar o esqueleto.'}
+                        </p>
+                      )}
+                    </section>
+                  );
+                })}
+              </div>
+            </SheetContent>
+          </Sheet>
           {!allOk && (
             <Button
               type="button"
