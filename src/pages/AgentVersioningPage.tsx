@@ -156,6 +156,7 @@ export default function AgentVersioningPage() {
               onSelect={(vid) => { setSelectedId(vid); setMode('detail'); }}
               onPickA={(vid) => { setAId(vid); if (bId && vid !== bId) setMode('compare'); }}
               onPickB={(vid) => { setBId(vid); if (aId && vid !== aId) setMode('compare'); }}
+              highlightId={highlightId}
             />
           </div>
 
