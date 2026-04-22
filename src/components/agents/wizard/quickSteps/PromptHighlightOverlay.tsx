@@ -63,7 +63,13 @@ export function PromptHighlightOverlay({ prompt, locations, textareaRef, padding
       }
 
       const status = lineStatus.get(i);
-      if (status?.kind === 'thin') {
+      const isConflict = conflictSet.has(i);
+      if (isConflict) {
+        out.push({
+          text: line.length > 0 ? line : ' ',
+          cls: 'bg-destructive/15 text-destructive/90 border-l-2 border-destructive pl-1 -ml-1',
+        });
+      } else if (status?.kind === 'thin') {
         out.push({
           text: line,
           cls: 'bg-nexus-amber/15 text-nexus-amber/90 border-l-2 border-nexus-amber pl-1 -ml-1',
@@ -87,7 +93,7 @@ export function PromptHighlightOverlay({ prompt, locations, textareaRef, padding
     }
 
     return out;
-  }, [prompt, locations]);
+  }, [prompt, locations, conflictLines]);
 
   // Sync scroll with the textarea.
   useEffect(() => {
