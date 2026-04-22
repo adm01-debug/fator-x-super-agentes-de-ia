@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState, type KeyboardEvent as ReactKeyboardEvent } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Check, FileClock, FolderOpen, Minus, Pencil, X } from 'lucide-react';
+import { Check, FileClock, FolderOpen, Minus, Pencil, RotateCcw, X } from 'lucide-react';
 import { quickIdentitySchema } from '@/lib/validations/quickAgentSchema';
 import { ConfirmDialog } from '@/components/shared/ConfirmDialog';
 
@@ -250,11 +250,11 @@ export function DraftRecoveryBanner({
             size="sm"
             onClick={() => onRestore(only.id)}
             autoFocus
-            disabled={blocked}
-            title={blocked ? (only.restoreBlockedReason ?? 'Rascunho incompleto demais para retomar') : undefined}
+            title={blocked ? (only.restoreBlockedReason ?? 'Rascunho incompleto — vamos pular direto ao primeiro campo pendente') : 'Restaurar e continuar do primeiro campo pendente'}
             className="gap-1.5 nexus-gradient-bg text-primary-foreground"
           >
-            Continuar de onde parei
+            <RotateCcw className="h-3.5 w-3.5" />
+            Restaurar
           </Button>
         </div>
       </div>
@@ -403,11 +403,12 @@ export function DraftRecoveryBanner({
             <Button
               size="sm"
               onClick={() => selectedId && onRestore(selectedId)}
-              disabled={!selectedId || blocked}
-              title={blocked ? (selected?.restoreBlockedReason ?? 'Rascunho incompleto demais para retomar') : undefined}
+              disabled={!selectedId}
+              title={blocked ? (selected?.restoreBlockedReason ?? 'Rascunho incompleto — vamos pular direto ao primeiro campo pendente') : 'Restaurar o rascunho selecionado e continuar do primeiro campo pendente'}
               className="gap-1.5 nexus-gradient-bg text-primary-foreground"
             >
-              Continuar selecionado
+              <RotateCcw className="h-3.5 w-3.5" />
+              Restaurar
             </Button>
           );
         })()}
