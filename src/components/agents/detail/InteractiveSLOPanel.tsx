@@ -13,9 +13,10 @@ import {
   type DailyPoint,
 } from './agentMetricsHelpers';
 import type { AgentTrace } from '@/services/agentsService';
-import { SLOViolationTimeline } from './SLOViolationTimeline';
+import { SLOViolationTimeline, type ViolationKind } from './SLOViolationTimeline';
+import { ViolationDrillDownDialog } from './ViolationDrillDownDialog';
+import type { ViolationDay } from './agentMetricsHelpers';
 import { generateSLOReportPdf } from './sloReportPdf';
-import { AlertRulesSimulator } from './AlertRulesSimulator';
 import { toast } from 'sonner';
 
 type EvalWindowKey = '1h' | '6h' | '24h' | '7d' | '14d' | '30d';
@@ -64,6 +65,15 @@ export function InteractiveSLOPanel({ agentId, agentName, slo, traces, daily, on
 
   const [windowKey, setWindowKey] = useState<EvalWindowKey>('14d');
   const activeWindow = EVAL_WINDOWS.find((w) => w.key === windowKey) ?? EVAL_WINDOWS[4];
+  const bucketMs = activeWindow.ms / activeWindow.buckets;
+
+  const [drillBucket, setDrillBucket] = useState<ViolationDay | null>(null);
+  const [drillKind, setDrillKind] = useState<ViolationKind>('p95');
+
+  const handleViolationClick = (bucket: ViolationDay, kind: ViolationKind) => {
+    setDrillBucket(bucket);
+    setDrillKind(kind);
+  };
 
   // Filter traces by selected evaluation window and recompute SLO from that subset.
   const windowedTraces = useMemo(
@@ -300,7 +310,12 @@ export function InteractiveSLOPanel({ agentId, agentName, slo, traces, daily, on
             Sem traces na janela de {activeWindow.label}
           </p>
         ) : (
-          <SLOViolationTimeline data={timeline} daily={daily} onDayClick={onDayClick} />
+          <SLOViolationTimeline
+            data={timeline}
+            daily={daily}
+            onDayClick={onDayClick}
+            onViolationClick={handleViolationClick}
+          />
         )}
         <div className="flex items-center gap-3 mt-3 text-[10px] text-muted-foreground flex-wrap">
           <LegendDot color="bg-nexus-emerald" label="Saudável" />
@@ -312,8 +327,16 @@ export function InteractiveSLOPanel({ agentId, agentName, slo, traces, daily, on
         </div>
       </div>
 
-      {/* Simulador de regras de alerta */}
-      <AlertRulesSimulator traces={traces} days={14} />
+      <ViolationDrillDownDialog
+        open={drillBucket !== null}
+        onOpenChange={(o) => { if (!o) setDrillBucket(null); }}
+        bucket={drillBucket}
+        traces={windowedTraces}
+        bucketMs={bucketMs}
+        windowLabel={activeWindow.label}
+        targets={{ p95: targets.p95, p99: targets.p99 }}
+        initialKind={drillKind}
+      />
     </div>
   );
 }
