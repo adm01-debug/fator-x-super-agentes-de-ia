@@ -140,12 +140,29 @@ export function ExecutionTimeline({ execution, selectedStep, onSelectStep }: Pro
     itemsRef.current[step]?.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
   }, [step]);
 
+  // Track focus on the timeline container so we can show a clear visual cue
+  // ("atalhos ativos") whenever ↑/↓/j/k/Home/End/n/b would actually be captured.
+  const [focused, setFocused] = useState(false);
+
   return (
     <div
       tabIndex={0}
       onKeyDown={onKeyDown}
-      className="outline-none focus-visible:ring-2 focus-visible:ring-primary/30 rounded-md"
+      onFocus={() => setFocused(true)}
+      onBlur={(e) => {
+        // Only blur when focus leaves the entire container — moving into a
+        // child input/button keeps the timeline "focused" so the pill doesn't
+        // flicker while the user types in the search box.
+        if (!e.currentTarget.contains(e.relatedTarget as Node | null)) setFocused(false);
+      }}
+      className={cn(
+        'outline-none rounded-md transition-shadow',
+        focused
+          ? 'ring-2 ring-primary/60 shadow-[0_0_0_4px_hsl(var(--primary)/0.08)]'
+          : 'ring-1 ring-transparent',
+      )}
       aria-label="Linha do tempo navegável"
+      aria-describedby="timeline-shortcuts-hint"
     >
       <ExecutionSummary
         execution={execution}
@@ -161,7 +178,13 @@ export function ExecutionTimeline({ execution, selectedStep, onSelectStep }: Pro
         bookmarks={bookmarks}
         onJumpBookmark={jumpBookmark}
         onBookmarksChange={setBookmarks}
+        focused={focused}
       />
+      <span id="timeline-shortcuts-hint" className="sr-only">
+        {focused
+          ? 'Atalhos de teclado ativos: setas para navegar, n para próximo match, b para próximo marcador.'
+          : 'Clique na linha do tempo para ativar os atalhos de teclado.'}
+      </span>
 
       <ol
         className="space-y-1.5 mt-3"
