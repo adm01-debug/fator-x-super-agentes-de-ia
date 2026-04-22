@@ -1,9 +1,14 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Check, ChevronDown, ChevronUp, Copy, Eye, FileText, Sparkles } from 'lucide-react';
+import { AlertTriangle, Check, ChevronDown, ChevronUp, Copy, Eye, FileText, Sparkles } from 'lucide-react';
 import { compilePrompt } from '@/lib/promptCompiler';
 import type { QuickAgentForm } from '@/lib/validations/quickAgentSchema';
+import {
+  REQUIRED_PROMPT_SECTIONS,
+  analyzeSectionContent,
+  type PromptSectionKey,
+} from '@/lib/validations/quickAgentSchema';
 import { cn } from '@/lib/utils';
 
 interface Props {
@@ -26,14 +31,52 @@ function inlineFmt(s: string): string {
     .replace(/\{\{([^}]+)\}\}/g, '<span class="px-1 py-0.5 rounded bg-nexus-amber/15 text-nexus-amber font-mono text-[11px]">{{$1}}</span>');
 }
 
-function renderMarkdown(text: string): React.ReactNode {
+function renderMarkdown(text: string, thinByHeading: Map<number, ThinHit> = new Map()): React.ReactNode {
   const lines = text.split('\n');
   const out: React.ReactNode[] = [];
   let listBuf: string[] = [];
 
+  // We accumulate nodes belonging to the current `##` section so we can wrap
+  // a *whole block* (heading + body) inside a highlight container when that
+  // section is flagged as thin. `currentSection` is null while we're outside
+  // any tracked section (e.g. the preamble).
+  let bucket: React.ReactNode[] = [];
+  let bucketHeadingLine: number | null = null;
+  let bucketKey = 0;
+
+  const flushBucket = () => {
+    if (bucket.length === 0) {
+      bucketHeadingLine = null;
+      return;
+    }
+    const thin = bucketHeadingLine !== null ? thinByHeading.get(bucketHeadingLine) : undefined;
+    if (thin) {
+      out.push(
+        <div
+          key={`thin-${bucketKey++}`}
+          data-thin-section={thin.key}
+          className="rounded-md border border-nexus-amber/40 bg-nexus-amber/5 px-2.5 py-2 my-1.5 relative"
+        >
+          <span
+            className="absolute top-1.5 right-1.5 text-[9px] uppercase tracking-wider font-mono px-1.5 py-0.5 rounded-full border border-nexus-amber/40 bg-nexus-amber/15 text-nexus-amber inline-flex items-center gap-1"
+            title={thin.reason}
+          >
+            <AlertTriangle className="h-2.5 w-2.5" />
+            thin · {thin.words}p
+          </span>
+          {bucket}
+        </div>,
+      );
+    } else {
+      out.push(<div key={`sec-${bucketKey++}`}>{bucket}</div>);
+    }
+    bucket = [];
+    bucketHeadingLine = null;
+  };
+
   const flushList = (key: string) => {
     if (listBuf.length === 0) return;
-    out.push(
+    bucket.push(
       <ul key={`ul-${key}`} className="list-disc pl-5 space-y-0.5 my-1.5 text-foreground/90">
         {listBuf.map((it, i) => (
           <li key={i} className="text-xs" dangerouslySetInnerHTML={{ __html: inlineFmt(it) }} />
@@ -52,29 +95,85 @@ function renderMarkdown(text: string): React.ReactNode {
     flushList(String(i));
 
     if (line.startsWith('### ')) {
-      out.push(<h4 key={i} className="text-xs font-heading font-semibold text-foreground mt-2.5">{line.slice(4)}</h4>);
+      bucket.push(<h4 key={i} className="text-xs font-heading font-semibold text-foreground mt-2.5">{line.slice(4)}</h4>);
     } else if (line.startsWith('## ')) {
-      out.push(<h3 key={i} className="text-sm font-heading font-semibold text-foreground mt-3">{line.slice(3)}</h3>);
+      // Boundary between sections — flush whatever we had and start a new
+      // bucket whose first child is this heading.
+      flushList('pre-h2-' + i);
+      flushBucket();
+      bucketHeadingLine = i;
+      bucket.push(<h3 key={i} className="text-sm font-heading font-semibold text-foreground mt-3">{line.slice(3)}</h3>);
     } else if (line.startsWith('# ')) {
-      out.push(<h2 key={i} className="text-base font-heading font-bold text-foreground mt-3">{line.slice(2)}</h2>);
+      bucket.push(<h2 key={i} className="text-base font-heading font-bold text-foreground mt-3">{line.slice(2)}</h2>);
     } else if (line.startsWith('> ')) {
-      out.push(
+      bucket.push(
         <blockquote key={i} className="border-l-2 border-primary/40 pl-2.5 text-muted-foreground italic my-1.5 text-xs">
           {line.slice(2)}
         </blockquote>,
       );
     } else if (line.startsWith('<!--')) {
-      out.push(<p key={i} className="text-[10px] text-muted-foreground/60 font-mono mt-2">{line}</p>);
+      bucket.push(<p key={i} className="text-[10px] text-muted-foreground/60 font-mono mt-2">{line}</p>);
     } else if (line === '') {
-      out.push(<div key={i} className="h-1.5" />);
+      bucket.push(<div key={i} className="h-1.5" />);
     } else {
-      out.push(
+      bucket.push(
         <p key={i} className="text-xs text-foreground/85 leading-relaxed" dangerouslySetInnerHTML={{ __html: inlineFmt(line) }} />,
       );
     }
   });
   flushList('end');
+  flushBucket();
   return out;
+}
+
+interface ThinHit {
+  key: PromptSectionKey;
+  label: string;
+  words: number;
+  reason: string;
+}
+
+/**
+ * Raw-text variant: walks the same line-by-line model and wraps each thin
+ * `## heading` block (heading + body until next H2) in a tinted container so
+ * the highlight stays consistent with the rendered preview.
+ */
+function RawWithThinHighlights({
+  text,
+  thinByHeading,
+}: { text: string; thinByHeading: Map<number, ThinHit> }) {
+  const lines = text.split('\n');
+  const blocks: Array<{ thin?: ThinHit; lines: string[] }> = [];
+  let current: { thin?: ThinHit; lines: string[] } = { lines: [] };
+  for (let i = 0; i < lines.length; i++) {
+    const isH2 = /^##\s+/.test(lines[i]);
+    if (isH2) {
+      if (current.lines.length > 0) blocks.push(current);
+      current = { thin: thinByHeading.get(i), lines: [lines[i]] };
+    } else {
+      current.lines.push(lines[i]);
+    }
+  }
+  if (current.lines.length > 0) blocks.push(current);
+
+  return (
+    <pre className="text-[11px] font-mono leading-relaxed text-foreground/85 whitespace-pre-wrap break-words">
+      {blocks.map((b, idx) => (
+        <span
+          key={idx}
+          className={
+            b.thin
+              ? 'block rounded-md border border-nexus-amber/40 bg-nexus-amber/5 px-2 py-1 my-1'
+              : 'block'
+          }
+          title={b.thin?.reason}
+          data-thin-section={b.thin?.key}
+        >
+          {b.lines.join('\n')}
+        </span>
+      ))}
+    </pre>
+  );
 }
 
 export function CompiledPromptPreview({ form, defaultOpen = false, lastChangeKind = null, activeVariantLabel = null }: Props) {
@@ -85,6 +184,41 @@ export function CompiledPromptPreview({ form, defaultOpen = false, lastChangeKin
   const [tokenDelta, setTokenDelta] = useState<number | null>(null);
 
   const compiled = useMemo(() => compilePrompt(form), [form]);
+
+  // Map every thin section back to its heading line *inside the compiled text*
+  // so we can wrap the corresponding rendered block with a warning highlight.
+  // We re-scan compiled.text (instead of just form.prompt) because the
+  // compiler may inject preamble/headers — line numbers must match what
+  // renderMarkdown will iterate over.
+  const thinByHeading = useMemo(() => {
+    const map = new Map<number, ThinHit>();
+    const reports = analyzeSectionContent(compiled.text);
+    const thin = reports.filter((r) => r.present && !!r.thinReason);
+    if (thin.length === 0) return map;
+
+    const lines = compiled.text.split('\n');
+    const stripAccents = (s: string) =>
+      s.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase();
+    for (let i = 0; i < lines.length; i++) {
+      const m = lines[i].match(/^##\s+(.+?)\s*$/);
+      if (!m) continue;
+      const norm = stripAccents(m[1]);
+      const hit = thin.find((t) => {
+        const sec = REQUIRED_PROMPT_SECTIONS.find((s) => s.key === t.key);
+        return sec ? sec.aliases.some((a) => norm.includes(a)) : false;
+      });
+      if (hit && !Array.from(map.values()).some((v) => v.key === hit.key)) {
+        map.set(i, {
+          key: hit.key,
+          label: hit.label,
+          words: hit.wordCount,
+          reason: hit.thinReason ?? 'Conteúdo insuficiente',
+        });
+      }
+    }
+    return map;
+  }, [compiled.text]);
+  const thinCount = thinByHeading.size;
 
   const prevTokensRef = useRef<number>(compiled.stats.estimatedTokens);
   const initRef = useRef(true);
@@ -109,6 +243,15 @@ export function CompiledPromptPreview({ form, defaultOpen = false, lastChangeKin
     if (lastChangeKind === 'variant' && !open) setOpen(true);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [lastChangeKind]);
+
+  // Auto-expand once when a thin section first appears, so the user actually
+  // sees the highlight without manually opening the preview.
+  const prevThinCountRef = useRef(thinCount);
+  useEffect(() => {
+    if (prevThinCountRef.current === 0 && thinCount > 0 && !open) setOpen(true);
+    prevThinCountRef.current = thinCount;
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [thinCount]);
 
   const handleCopy = async () => {
     try {
@@ -163,6 +306,15 @@ export function CompiledPromptPreview({ form, defaultOpen = false, lastChangeKin
               title={`${unresolvedCount} variável(eis) sem valor`}
             >
               ⚠ {unresolvedCount}
+            </span>
+          )}
+          {thinCount > 0 && (
+            <span
+              className="text-[10px] font-mono px-1.5 py-0.5 rounded-full border border-nexus-amber/40 bg-nexus-amber/15 text-nexus-amber inline-flex items-center gap-1"
+              title={`${thinCount} seção(ões) com conteúdo insuficiente — destacadas no preview`}
+            >
+              <AlertTriangle className="h-2.5 w-2.5" />
+              {thinCount} thin
             </span>
           )}
           <Badge variant="outline" className="text-[10px] font-mono">
@@ -259,11 +411,9 @@ export function CompiledPromptPreview({ form, defaultOpen = false, lastChangeKin
             aria-live="polite"
           >
             {view === 'preview' ? (
-              <div className="space-y-0.5">{renderMarkdown(compiled.text)}</div>
+              <div className="space-y-0.5">{renderMarkdown(compiled.text, thinByHeading)}</div>
             ) : (
-              <pre className="text-[11px] font-mono leading-relaxed text-foreground/85 whitespace-pre-wrap break-words">
-                {compiled.text}
-              </pre>
+              <RawWithThinHighlights text={compiled.text} thinByHeading={thinByHeading} />
             )}
           </div>
 
