@@ -479,10 +479,12 @@ export function StepQuickPrompt({ form, errors, onPromptManualEdit, onRestore, o
         activeVariantPrompt={activeVariantPrompt}
         activeVariantLabel={activeVariantLabel}
         customLocked={customLocked}
+        autoUnlockEnabled={checklistAutoUnlock}
+        onToggleAutoUnlock={onToggleChecklistAutoUnlock}
         onInsert={(snippet, key) => {
           if (key) {
             const { prompt: nextPrompt, insertedRange } = insertSectionAt(form.prompt, key, snippet);
-            handleManualEdit(nextPrompt);
+            handleManualEdit(nextPrompt, 'checklist');
             // Place the caret at the start of the body (just after the
             // heading line) so the user can immediately start typing inside
             // the inserted block instead of overtyping the heading.
@@ -497,7 +499,7 @@ export function StepQuickPrompt({ form, errors, onPromptManualEdit, onRestore, o
               el.scrollTop = Math.max(0, linesUpTo * lh - el.clientHeight / 3);
             });
           } else {
-            handleManualEdit(form.prompt + snippet);
+            handleManualEdit(form.prompt + snippet, 'checklist');
           }
         }}
         onInsertBatch={(items) => {
@@ -516,7 +518,7 @@ export function StepQuickPrompt({ form, errors, onPromptManualEdit, onRestore, o
             // already inserted stay valid and the latest range is final.
             lastRange = insertedRange;
           }
-          handleManualEdit(working);
+          handleManualEdit(working, 'checklist');
           if (lastRange) {
             const bodyStart = Math.min(lastRange[1] + 1, working.length);
             requestAnimationFrame(() => {
