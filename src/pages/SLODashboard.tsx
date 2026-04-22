@@ -693,9 +693,9 @@ export default function SLODashboard() {
                         { label: 'Total de traces', curr: summary.total_traces, prev: compareSummary.total_traces, suffix: '', lowerBetter: false },
                         { label: 'Erros', curr: summary.error_count, prev: compareSummary.error_count, suffix: '', lowerBetter: true },
                         {
-                          label: 'Violações P95',
-                          curr: (summary.timeseries ?? []).filter((p) => p.p95_ms > SLO_TARGETS.p95LatencyMs).length,
-                          prev: (compareSummary.timeseries ?? []).filter((p) => p.p95_ms > SLO_TARGETS.p95LatencyMs).length,
+                          label: `Violações (${[...failureModes].map((m) => FAILURE_MODE_META[m].label.toLowerCase()).join(' + ')})`,
+                          curr: filteredViolations,
+                          prev: filteredViolationsCompare,
                           suffix: '',
                           lowerBetter: true,
                         },
