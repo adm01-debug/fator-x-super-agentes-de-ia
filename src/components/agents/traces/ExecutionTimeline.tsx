@@ -140,12 +140,29 @@ export function ExecutionTimeline({ execution, selectedStep, onSelectStep }: Pro
     itemsRef.current[step]?.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
   }, [step]);
 
+  // Track focus on the timeline container so we can show a clear visual cue
+  // ("atalhos ativos") whenever ↑/↓/j/k/Home/End/n/b would actually be captured.
+  const [focused, setFocused] = useState(false);
+
   return (
     <div
       tabIndex={0}
       onKeyDown={onKeyDown}
-      className="outline-none focus-visible:ring-2 focus-visible:ring-primary/30 rounded-md"
+      onFocus={() => setFocused(true)}
+      onBlur={(e) => {
+        // Only blur when focus leaves the entire container — moving into a
+        // child input/button keeps the timeline "focused" so the pill doesn't
+        // flicker while the user types in the search box.
+        if (!e.currentTarget.contains(e.relatedTarget as Node | null)) setFocused(false);
+      }}
+      className={cn(
+        'outline-none rounded-md transition-shadow',
+        focused
+          ? 'ring-2 ring-primary/60 shadow-[0_0_0_4px_hsl(var(--primary)/0.08)]'
+          : 'ring-1 ring-transparent',
+      )}
       aria-label="Linha do tempo navegável"
+      aria-describedby="timeline-shortcuts-hint"
     >
       <ExecutionSummary
         execution={execution}
@@ -161,7 +178,13 @@ export function ExecutionTimeline({ execution, selectedStep, onSelectStep }: Pro
         bookmarks={bookmarks}
         onJumpBookmark={jumpBookmark}
         onBookmarksChange={setBookmarks}
+        focused={focused}
       />
+      <span id="timeline-shortcuts-hint" className="sr-only">
+        {focused
+          ? 'Atalhos de teclado ativos: setas para navegar, n para próximo match, b para próximo marcador.'
+          : 'Clique na linha do tempo para ativar os atalhos de teclado.'}
+      </span>
 
       <ol
         className="space-y-1.5 mt-3"
@@ -203,7 +226,7 @@ export function ExecutionTimeline({ execution, selectedStep, onSelectStep }: Pro
 function ExecutionSummary({
   execution, step, total, onStep, onExpandAll, onCollapseAll,
   stepSearch, onStepSearch, matchCount, onJumpMatch,
-  bookmarks, onJumpBookmark, onBookmarksChange,
+  bookmarks, onJumpBookmark, onBookmarksChange, focused,
 }: {
   execution: ExecutionGroup;
   step: number;
@@ -218,6 +241,8 @@ function ExecutionSummary({
   bookmarks: TraceBookmark[];
   onJumpBookmark: (dir: 1 | -1) => void;
   onBookmarksChange: (bookmarks: TraceBookmark[]) => void;
+  /** Whether the parent timeline container is currently capturing keyboard events. */
+  focused: boolean;
 }) {
   
   const { counts, total_ms, total_tokens, total_cost, session_id, traces } = execution;
@@ -248,6 +273,29 @@ function ExecutionSummary({
               {bookmarks.length}
             </Badge>
           )}
+          {/* Live indicator: makes it obvious the timeline is capturing keys. */}
+          <Badge
+            variant="outline"
+            aria-live="polite"
+            className={cn(
+              'text-[10px] gap-1 transition-all duration-200 select-none',
+              focused
+                ? 'border-primary/60 bg-primary/10 text-primary shadow-[0_0_8px_hsl(var(--primary)/0.25)]'
+                : 'border-border/50 bg-muted/30 text-muted-foreground',
+            )}
+            title={focused
+              ? 'Atalhos de teclado ativos (↑/↓, j/k, Home/End, n, b)'
+              : 'Clique aqui ou pressione Tab para ativar atalhos de teclado'}
+          >
+            <Keyboard className="h-3 w-3" />
+            {focused ? 'Atalhos ativos' : 'Atalhos inativos'}
+            {focused && (
+              <span
+                className="ml-0.5 inline-block h-1.5 w-1.5 rounded-full bg-primary animate-pulse"
+                aria-hidden
+              />
+            )}
+          </Badge>
         </div>
         <div className="flex items-center gap-1 shrink-0">
           <Button
