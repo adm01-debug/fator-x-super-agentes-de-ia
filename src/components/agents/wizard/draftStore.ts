@@ -127,6 +127,7 @@ export function loadDrafts(): DraftsStoreV2 {
             form: normalizeForm(d.form),
             savedAt: typeof d.savedAt === 'string' ? d.savedAt : new Date().toISOString(),
             createdAt: typeof d.createdAt === 'string' ? d.createdAt : (d.savedAt ?? new Date().toISOString()),
+            promptCustomLocked: d.promptCustomLocked === true,
           })),
         };
       }
