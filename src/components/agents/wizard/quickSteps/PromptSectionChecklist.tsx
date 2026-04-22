@@ -1,5 +1,5 @@
 import { useMemo } from 'react';
-import { CheckCircle2, Circle, Plus, Wand2, AlertTriangle } from 'lucide-react';
+import { CheckCircle2, Circle, Plus, Wand2, AlertTriangle, Crosshair } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import {
   REQUIRED_PROMPT_SECTIONS,
@@ -11,16 +11,22 @@ import { cn } from '@/lib/utils';
 interface Props {
   prompt: string;
   onInsert: (snippet: string) => void;
+  /**
+   * Called when the user wants to jump the editor to a specific section.
+   * If the section is missing, `snippetIfMissing` is provided so the parent
+   * can insert the skeleton before scrolling.
+   */
+  onJumpToSection?: (key: PromptSectionKey, snippetIfMissing?: string) => void;
 }
 
-const SECTION_SNIPPETS: Record<PromptSectionKey, string> = {
+export const SECTION_SNIPPETS: Record<PromptSectionKey, string> = {
   persona: `\n\n## Persona\n- Tom: profissional e direto\n- Idioma: português brasileiro\n- Trate o usuário como ...\n`,
   scope: `\n\n## Escopo\n- Responder dúvidas sobre ...\n- Executar tarefas relacionadas a ...\n- Encaminhar para humano quando ...\n`,
   format: `\n\n## Formato\n- Máximo 200 palavras por resposta\n- Use listas curtas quando ajudar\n- Sempre entregue a resposta antes do contexto\n`,
   rules: `\n\n## Regras\n- Nunca invente informações; admita quando não souber\n- Não compartilhe dados sensíveis\n- Confirme antes de executar ações irreversíveis\n`,
 };
 
-export function PromptSectionChecklist({ prompt, onInsert }: Props) {
+export function PromptSectionChecklist({ prompt, onInsert, onJumpToSection }: Props) {
   const reports = useMemo(() => analyzeSectionContent(prompt), [prompt]);
   const total = REQUIRED_PROMPT_SECTIONS.length;
   const ok = reports.filter((r) => r.present && !r.thinReason).length;
@@ -117,18 +123,41 @@ export function PromptSectionChecklist({ prompt, onInsert }: Props) {
                     : `adicione "## ${r.label}"`}
                 </span>
               </div>
-              {!isOk && (
-                <Button
-                  type="button"
-                  size="sm"
-                  variant="ghost"
-                  onClick={() => onInsert(SECTION_SNIPPETS[r.key])}
-                  className="h-7 gap-1 text-[11px] text-primary hover:bg-primary/10 shrink-0"
-                  aria-label={`${isThin ? 'Reinserir esqueleto da' : 'Inserir esqueleto da'} seção ${r.label}`}
-                >
-                  <Plus className="h-3 w-3" /> {isThin ? 'Expandir' : 'Inserir'}
-                </Button>
-              )}
+              <div className="flex items-center gap-1 shrink-0">
+                {isThin && onJumpToSection && (
+                  <Button
+                    type="button"
+                    size="sm"
+                    variant="ghost"
+                    onClick={() => onJumpToSection(r.key)}
+                    className="h-7 gap-1 text-[11px] text-nexus-amber hover:bg-nexus-amber/10"
+                    aria-label={`Ir para a seção ${r.label} no editor`}
+                    title="Pular para esta seção no editor"
+                  >
+                    <Crosshair className="h-3 w-3" /> Ir para
+                  </Button>
+                )}
+                {!isOk && (
+                  <Button
+                    type="button"
+                    size="sm"
+                    variant="ghost"
+                    onClick={() => {
+                      if (!r.present && onJumpToSection) {
+                        // Insert + jump in a single action.
+                        onJumpToSection(r.key, SECTION_SNIPPETS[r.key]);
+                      } else {
+                        onInsert(SECTION_SNIPPETS[r.key]);
+                        if (onJumpToSection) onJumpToSection(r.key);
+                      }
+                    }}
+                    className="h-7 gap-1 text-[11px] text-primary hover:bg-primary/10"
+                    aria-label={`${isThin ? 'Reinserir esqueleto da' : 'Inserir esqueleto da'} seção ${r.label}`}
+                  >
+                    <Plus className="h-3 w-3" /> {isThin ? 'Expandir' : 'Inserir + ir'}
+                  </Button>
+                )}
+              </div>
             </li>
           );
         })}

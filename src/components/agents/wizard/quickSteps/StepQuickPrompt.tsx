@@ -1,10 +1,14 @@
-import { useEffect, useRef, type ChangeEvent, type ClipboardEvent } from 'react';
+import { useEffect, useRef, useState, type ChangeEvent, type ClipboardEvent } from 'react';
 import { toast } from 'sonner';
 import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
 import { Button } from '@/components/ui/button';
 import { RefreshCw } from 'lucide-react';
-import type { QuickAgentForm } from '@/lib/validations/quickAgentSchema';
+import {
+  findSectionLineIndex,
+  type PromptSectionKey,
+  type QuickAgentForm,
+} from '@/lib/validations/quickAgentSchema';
 import { CompiledPromptPreview } from './CompiledPromptPreview';
 import { PromptSectionChecklist } from './PromptSectionChecklist';
 import { PromptVariantSelector } from './PromptVariantSelector';
@@ -32,6 +36,9 @@ export function StepQuickPrompt({ form, errors, update, onRestore, onApplyVarian
   const activeVariant = detectPromptVariant(form.type as QuickAgentType, form.prompt);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const promptHighlight = highlightField === 'prompt';
+  // Section-level pulse highlight (set briefly after a "jump to section" action).
+  const [pulsedSection, setPulsedSection] = useState<PromptSectionKey | null>(null);
+  const sectionPulseRef = useRef<number | null>(null);
 
   useEffect(() => {
     if (!promptHighlight) return;
@@ -41,6 +48,55 @@ export function StepQuickPrompt({ form, errors, update, onRestore, onApplyVarian
       window.setTimeout(() => el.focus(), 250);
     }
   }, [promptHighlight]);
+
+  /**
+   * Scroll the textarea, place the caret on the section's heading line,
+   * select that line, and apply a brief pulse highlight on the editor.
+   * If the section heading isn't present yet, insert a snippet first then jump to it.
+   */
+  const jumpToSection = (key: PromptSectionKey, snippetIfMissing?: string) => {
+    let workingPrompt = form.prompt;
+    let lineIdx = findSectionLineIndex(workingPrompt, key);
+
+    if (lineIdx === -1 && snippetIfMissing) {
+      // Insert and immediately operate on the new value (textarea will reflect on next tick).
+      workingPrompt = workingPrompt + snippetIfMissing;
+      update('prompt', workingPrompt);
+      lineIdx = findSectionLineIndex(workingPrompt, key);
+    }
+
+    // Visual pulse — works even if the textarea isn't focusable yet.
+    setPulsedSection(key);
+    if (sectionPulseRef.current) window.clearTimeout(sectionPulseRef.current);
+    sectionPulseRef.current = window.setTimeout(() => setPulsedSection(null), 1500);
+
+    if (lineIdx === -1) return;
+
+    // Compute caret offset = sum of line lengths + newlines up to lineIdx.
+    const lines = workingPrompt.split('\n');
+    let offset = 0;
+    for (let i = 0; i < lineIdx; i++) offset += lines[i].length + 1;
+    const lineLen = lines[lineIdx].length;
+
+    // Need to wait for state to flush so textarea contains the newly-inserted snippet.
+    requestAnimationFrame(() => {
+      const el = textareaRef.current;
+      if (!el) return;
+      el.focus({ preventScroll: true });
+      // Approximate scroll: use line height heuristic on the textarea itself.
+      const lineHeight =
+        parseFloat(getComputedStyle(el).lineHeight || '0') || 16;
+      el.scrollTop = Math.max(0, lineIdx * lineHeight - el.clientHeight / 3);
+      try {
+        el.setSelectionRange(offset, offset + lineLen);
+      } catch {/* some browsers throw on huge values; ignore */}
+      el.scrollIntoView({ block: 'center', behavior: 'smooth' });
+    });
+  };
+
+  useEffect(() => () => {
+    if (sectionPulseRef.current) window.clearTimeout(sectionPulseRef.current);
+  }, []);
 
   const handleChange = (e: ChangeEvent<HTMLTextAreaElement>) => {
     const raw = e.target.value;
@@ -104,8 +160,23 @@ export function StepQuickPrompt({ form, errors, update, onRestore, onApplyVarian
         onSelect={onApplyVariant}
       />
 
-      <div className="nexus-card space-y-3">
+      <div
+        className={`nexus-card space-y-3 transition-shadow ${
+          pulsedSection ? 'ring-2 ring-nexus-amber/60 shadow-[0_0_0_4px_hsl(var(--nexus-amber)/0.15)]' : ''
+        }`}
+      >
         <Label htmlFor="qa-prompt" className="sr-only">System prompt</Label>
+        {pulsedSection && (
+          <div
+            role="status"
+            aria-live="polite"
+            className="text-[11px] text-nexus-amber bg-nexus-amber/10 border border-nexus-amber/30 rounded-md px-2.5 py-1 flex items-center justify-between gap-2"
+          >
+            <span>
+              📍 Ancorado em <strong>## {pulsedSection.charAt(0).toUpperCase() + pulsedSection.slice(1)}</strong> — corrija e clique para sair.
+            </span>
+          </div>
+        )}
         <Textarea
           ref={textareaRef}
           id="qa-prompt"
@@ -119,7 +190,9 @@ export function StepQuickPrompt({ form, errors, update, onRestore, onApplyVarian
           placeholder="## Persona&#10;...&#10;&#10;## Escopo&#10;...&#10;&#10;## Formato&#10;...&#10;&#10;## Regras&#10;..."
           className={`bg-secondary/50 border-border/50 font-mono text-xs leading-relaxed resize-none ${
             errors.prompt ? 'border-destructive' : ''
-          } ${promptHighlight ? 'ring-2 ring-warning ring-offset-2 ring-offset-background animate-pulse' : ''}`}
+          } ${promptHighlight ? 'ring-2 ring-warning ring-offset-2 ring-offset-background animate-pulse' : ''} ${
+            pulsedSection ? 'border-nexus-amber/50' : ''
+          }`}
         />
         {errors.prompt && (
           <div className="text-[11px] text-destructive" role="alert">
@@ -134,12 +207,13 @@ export function StepQuickPrompt({ form, errors, update, onRestore, onApplyVarian
       <PromptSectionChecklist
         prompt={form.prompt}
         onInsert={(snippet) => update('prompt', form.prompt + snippet)}
+        onJumpToSection={jumpToSection}
       />
 
       <AgentLivePreviewCard form={form} />
 
       {/* Pre-flight review summary — quick "ready to create?" snapshot */}
-      <PreflightReviewSummary form={form} />
+      <PreflightReviewSummary form={form} onJumpToSection={jumpToSection} />
 
       {/* Consolidated prompt preview — final text the LLM will receive (open by default on the last step) */}
       <CompiledPromptPreview form={form} defaultOpen />

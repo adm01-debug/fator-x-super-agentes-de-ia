@@ -47,9 +47,11 @@ interface SummaryProps {
   form: QuickAgentForm;
   /** When true, renders compactly (used inside dialogs). */
   compact?: boolean;
+  /** When provided, problem chips become clickable and jump the editor to that section. */
+  onJumpToSection?: (key: PromptSectionKey) => void;
 }
 
-export function PreflightReviewSummary({ form, compact = false }: SummaryProps) {
+export function PreflightReviewSummary({ form, compact = false, onJumpToSection }: SummaryProps) {
   const {
     sectionReports,
     thinSections,
@@ -106,27 +108,35 @@ export function PreflightReviewSummary({ form, compact = false }: SummaryProps) 
           {sectionReports.map((r) => {
             const isOk = r.present && !r.thinReason;
             const isThin = r.present && !!r.thinReason;
+            const canJump = !isOk && !!onJumpToSection;
+            const Tag: React.ElementType = canJump ? 'button' : 'span';
             return (
-              <span
+              <Tag
                 key={r.key}
+                type={canJump ? 'button' : undefined}
+                onClick={canJump ? () => onJumpToSection!(r.key) : undefined}
                 className={cn(
-                  'inline-flex items-center gap-1 px-2 py-0.5 rounded-full border text-[10px] font-medium',
+                  'inline-flex items-center gap-1 px-2 py-0.5 rounded-full border text-[10px] font-medium transition-colors',
                   isOk
                     ? 'border-nexus-emerald/30 bg-nexus-emerald/10 text-nexus-emerald'
                     : 'border-nexus-amber/40 bg-nexus-amber/10 text-nexus-amber',
+                  canJump && 'hover:bg-nexus-amber/20 hover:border-nexus-amber/60 cursor-pointer focus:outline-none focus-visible:ring-2 focus-visible:ring-nexus-amber/50',
                 )}
                 title={
                   isOk
                     ? `${r.wordCount} palavras`
+                    : canJump
+                    ? `${isThin ? r.thinReason : 'Heading ausente'} — clique para ir até a seção`
                     : isThin
                     ? `${r.thinReason} (${r.wordCount} palavras)`
                     : 'Heading ausente'
                 }
+                aria-label={canJump ? `Ir para a seção ${r.label} no editor` : undefined}
               >
                 {isOk ? <CheckCircle2 className="h-2.5 w-2.5" /> : <AlertTriangle className="h-2.5 w-2.5" />}
                 {r.label}
                 {isThin && <span className="font-mono opacity-80">·{r.wordCount}p</span>}
-              </span>
+              </Tag>
             );
           })}
         </div>

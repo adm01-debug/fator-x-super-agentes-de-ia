@@ -193,6 +193,22 @@ export function getThinSections(prompt: string): SectionContentReport[] {
   return analyzeSectionContent(prompt).filter((r) => r.present && r.thinReason !== null);
 }
 
+/**
+ * Returns the 0-based line index of a section's heading in the prompt,
+ * or -1 if no matching heading exists.
+ */
+export function findSectionLineIndex(prompt: string, key: PromptSectionKey): number {
+  const lines = prompt.split('\n');
+  for (let i = 0; i < lines.length; i++) {
+    const m = lines[i].match(/^\s{0,3}#{1,3}\s+(.+?)\s*#*\s*$/);
+    if (!m) continue;
+    const norm = stripAccents(m[1]);
+    const sec = REQUIRED_PROMPT_SECTIONS.find((s) => s.key === key);
+    if (sec && sec.aliases.some((a) => norm.includes(a))) return i;
+  }
+  return -1;
+}
+
 import { analyzePromptStructure, PROMPT_LIMITS } from './promptSanitizer';
 
 export const quickPromptSchema = z.object({
