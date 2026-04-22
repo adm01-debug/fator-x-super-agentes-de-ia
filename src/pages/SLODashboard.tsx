@@ -42,6 +42,16 @@ const DEFAULT_WINDOW_HOURS = 24;
 // URL query param keys — short on purpose so shared links stay clean.
 const QP_WINDOW = 'w';
 const QP_AUTO = 'auto';
+const QP_COMPARE = 'cmp';
+
+/** Human-readable label for a window in hours. */
+function windowLabel(hours: number): string {
+  if (hours === 1) return '1h';
+  if (hours < 24) return `${hours}h`;
+  if (hours === 24) return '24h';
+  if (hours === 168) return '7d';
+  return `${hours}h`;
+}
 
 function readStoredInterval(): number {
   try {
