@@ -100,6 +100,27 @@ export default function AgentVersioningPage() {
   const versionB = useMemo(() => versions.find(v => v.id === bId) ?? null, [versions, bId]);
   const canCompare = !!versionA && !!versionB && versionA.id !== versionB.id;
 
+  // Aplica o preset de filtro à timeline. Sempre garantimos que a versão
+  // atual (índice 0), a selecionada e A/B continuem visíveis para não
+  // quebrar a UX de comparação/restore — filtros restringem o ruído, não a navegação.
+  const pinnedIds = useMemo(
+    () => new Set([versions[0]?.id, selectedId, aId, bId].filter(Boolean) as string[]),
+    [versions, selectedId, aId, bId],
+  );
+  const filteredVersions = useMemo(() => {
+    if (activePreset.id === 'all') return versions;
+    return versions.filter((v) => pinnedIds.has(v.id) || matchesPreset(v, activePreset));
+  }, [versions, activePreset, pinnedIds]);
+  const presetCounts = useMemo(() => {
+    const counts: Record<string, number> = {};
+    for (const preset of TIMELINE_PRESETS) {
+      counts[preset.id] = preset.id === 'all'
+        ? versions.length
+        : versions.filter((v) => matchesPreset(v, preset)).length;
+    }
+    return counts;
+  }, [versions]);
+
   const current = versions[0] ?? null;
   const nextVersionNumber = (current?.version ?? 0) + 1;
 
