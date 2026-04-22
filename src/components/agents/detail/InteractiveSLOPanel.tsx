@@ -1,5 +1,5 @@
 import { useMemo, useState } from 'react';
-import { CheckCircle2, AlertTriangle, XCircle, RotateCcw, Flame, Activity, Clock, Download } from 'lucide-react';
+import { CheckCircle2, AlertTriangle, XCircle, RotateCcw, Flame, Activity, Clock, GitCompare, ArrowDown, ArrowUp, Minus } from 'lucide-react';
 import { Slider } from '@/components/ui/slider';
 import { Button } from '@/components/ui/button';
 import { useAgentSLOTargets, DEFAULT_SLO_TARGETS, type SLOTargetsConfig } from '@/hooks/useAgentSLOTargets';
@@ -14,8 +14,6 @@ import {
 } from './agentMetricsHelpers';
 import type { AgentTrace } from '@/services/agentsService';
 import { SLOViolationTimeline } from './SLOViolationTimeline';
-import { generateSLOReportPdf } from './sloReportPdf';
-import { toast } from 'sonner';
 
 type EvalWindowKey = '1h' | '6h' | '24h' | '7d' | '14d' | '30d';
 
@@ -30,7 +28,6 @@ const EVAL_WINDOWS: Array<{ key: EvalWindowKey; label: string; ms: number; bucke
 
 interface Props {
   agentId: string;
-  agentName?: string;
   slo: SLOMetrics;
   traces: AgentTrace[];
   daily: DailyPoint[];
@@ -43,6 +40,19 @@ const STATUS = {
   healthy: { color: 'text-nexus-emerald', bg: 'bg-nexus-emerald/10', border: 'border-nexus-emerald/30', Icon: CheckCircle2, label: 'Saudável' },
   warning: { color: 'text-nexus-amber', bg: 'bg-nexus-amber/10', border: 'border-nexus-amber/30', Icon: AlertTriangle, label: 'Atenção' },
   critical: { color: 'text-destructive', bg: 'bg-destructive/10', border: 'border-destructive/30', Icon: XCircle, label: 'Crítico' },
+} as const;
+
+/**
+ * Baseline mockado representando "média do setor" para comparação.
+ * Valores fixos para que o usuário veja diferenças estáveis ao alternar o modo.
+ */
+const BASELINE_MOCK = {
+  p50: 620,
+  p95: 1850,
+  p99: 4400,
+  successRate: 99.0,
+  errorRate: 1.0,
+  label: 'Baseline (média do setor)',
 } as const;
 
 function latencyStatus(value: number, target: number): Status {
@@ -58,10 +68,11 @@ function availabilityStatus(value: number, target: number): Status {
   return 'critical';
 }
 
-export function InteractiveSLOPanel({ agentId, agentName, slo, traces, daily, onDayClick }: Props) {
+export function InteractiveSLOPanel({ agentId, slo, traces, daily, onDayClick }: Props) {
   const { targets, setTargets, reset } = useAgentSLOTargets(agentId);
 
   const [windowKey, setWindowKey] = useState<EvalWindowKey>('14d');
+  const [compareMode, setCompareMode] = useState(false);
   const activeWindow = EVAL_WINDOWS.find((w) => w.key === windowKey) ?? EVAL_WINDOWS[4];
 
   // Filter traces by selected evaluation window and recompute SLO from that subset.
@@ -89,6 +100,9 @@ export function InteractiveSLOPanel({ agentId, agentName, slo, traces, daily, on
     key: keyof SLOTargetsConfig;
     label: string;
     value: number;
+    baseline: number;
+    /** true = lower is better (latency); false = higher is better (availability) */
+    lowerIsBetter: boolean;
     unit: string;
     min: number;
     max: number;
@@ -96,47 +110,31 @@ export function InteractiveSLOPanel({ agentId, agentName, slo, traces, daily, on
     status: Status;
     valueFmt: (v: number) => string;
     targetFmt: (v: number) => string;
+    deltaFmt: (delta: number) => string;
   }> = [
-    { key: 'p50', label: 'Latência p50', value: effectiveSlo.p50, unit: 'ms', min: 100, max: 3000, step: 50,
+    { key: 'p50', label: 'Latência p50', value: effectiveSlo.p50, baseline: BASELINE_MOCK.p50, lowerIsBetter: true,
+      unit: 'ms', min: 100, max: 3000, step: 50,
       status: latencyStatus(effectiveSlo.p50, targets.p50),
-      valueFmt: (v) => `${formatNumber(Math.round(v))}ms`, targetFmt: (v) => `${formatNumber(v)}ms` },
-    { key: 'p95', label: 'Latência p95', value: effectiveSlo.p95, unit: 'ms', min: 500, max: 5000, step: 100,
+      valueFmt: (v) => `${formatNumber(Math.round(v))}ms`, targetFmt: (v) => `${formatNumber(v)}ms`,
+      deltaFmt: (d) => `${d > 0 ? '+' : ''}${formatNumber(Math.round(d))}ms` },
+    { key: 'p95', label: 'Latência p95', value: effectiveSlo.p95, baseline: BASELINE_MOCK.p95, lowerIsBetter: true,
+      unit: 'ms', min: 500, max: 5000, step: 100,
       status: latencyStatus(effectiveSlo.p95, targets.p95),
-      valueFmt: (v) => `${formatNumber(Math.round(v))}ms`, targetFmt: (v) => `${formatNumber(v)}ms` },
-    { key: 'p99', label: 'Latência p99', value: effectiveSlo.p99, unit: 'ms', min: 1000, max: 10000, step: 100,
+      valueFmt: (v) => `${formatNumber(Math.round(v))}ms`, targetFmt: (v) => `${formatNumber(v)}ms`,
+      deltaFmt: (d) => `${d > 0 ? '+' : ''}${formatNumber(Math.round(d))}ms` },
+    { key: 'p99', label: 'Latência p99', value: effectiveSlo.p99, baseline: BASELINE_MOCK.p99, lowerIsBetter: true,
+      unit: 'ms', min: 1000, max: 10000, step: 100,
       status: latencyStatus(effectiveSlo.p99, targets.p99),
-      valueFmt: (v) => `${formatNumber(Math.round(v))}ms`, targetFmt: (v) => `${formatNumber(v)}ms` },
-    { key: 'availability', label: 'Disponibilidade', value: effectiveSlo.successRate, unit: '%', min: 95, max: 100, step: 0.1,
+      valueFmt: (v) => `${formatNumber(Math.round(v))}ms`, targetFmt: (v) => `${formatNumber(v)}ms`,
+      deltaFmt: (d) => `${d > 0 ? '+' : ''}${formatNumber(Math.round(d))}ms` },
+    { key: 'availability', label: 'Disponibilidade', value: effectiveSlo.successRate, baseline: BASELINE_MOCK.successRate, lowerIsBetter: false,
+      unit: '%', min: 95, max: 100, step: 0.1,
       status: availabilityStatus(effectiveSlo.successRate, targets.availability),
-      valueFmt: (v) => `${v.toFixed(2)}%`, targetFmt: (v) => `${v.toFixed(1)}%` },
+      valueFmt: (v) => `${v.toFixed(2)}%`, targetFmt: (v) => `${v.toFixed(1)}%`,
+      deltaFmt: (d) => `${d > 0 ? '+' : ''}${d.toFixed(2)} p.p.` },
   ];
 
   const burnStyle = STATUS[burn.status];
-
-  const handleExportPdf = () => {
-    try {
-      const doc = generateSLOReportPdf({
-        agentName: agentName || 'Agente',
-        windowLabel: activeWindow.label,
-        windowTraces: windowedTraces.length,
-        generatedAt: new Date(),
-        slo: effectiveSlo,
-        targets,
-        burn,
-        timeline,
-        daily,
-      });
-      const safeName = (agentName || 'agente').toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
-      const stamp = new Date().toISOString().slice(0, 10);
-      doc.save(`relatorio-slo-${safeName}-${activeWindow.label}-${stamp}.pdf`);
-      toast.success('Relatório SLO exportado', {
-        description: `Janela ${activeWindow.label} · ${windowedTraces.length} traces`,
-      });
-    } catch (e) {
-      console.error('Erro ao gerar relatório SLO:', e);
-      toast.error('Falha ao gerar o relatório PDF');
-    }
-  };
 
   return (
     <div className="nexus-card" role="region" aria-label="Painel SLO interativo">
@@ -177,13 +175,14 @@ export function InteractiveSLOPanel({ agentId, agentName, slo, traces, daily, on
             })}
           </div>
           <Button
-            variant="outline"
+            variant={compareMode ? 'default' : 'outline'}
             size="sm"
             className="gap-1.5 text-xs h-7"
-            onClick={handleExportPdf}
-            aria-label="Exportar relatório SLO em PDF"
+            onClick={() => setCompareMode((v) => !v)}
+            aria-pressed={compareMode}
+            aria-label="Alternar modo de comparação com baseline"
           >
-            <Download className="h-3 w-3" /> Exportar PDF
+            <GitCompare className="h-3 w-3" /> {compareMode ? 'Comparando' : 'Comparar baseline'}
           </Button>
           <Button variant="ghost" size="sm" className="gap-1.5 text-xs h-7" onClick={reset}>
             <RotateCcw className="h-3 w-3" /> Resetar metas
@@ -212,6 +211,15 @@ export function InteractiveSLOPanel({ agentId, agentName, slo, traces, daily, on
                   alvo: {c.targetFmt(targets[c.key])}
                 </span>
               </div>
+              {compareMode && (
+                <BaselineDelta
+                  value={c.value}
+                  baseline={c.baseline}
+                  lowerIsBetter={c.lowerIsBetter}
+                  valueFmt={c.valueFmt}
+                  deltaFmt={c.deltaFmt}
+                />
+              )}
               <Slider
                 value={[targets[c.key]]}
                 min={c.min}
@@ -250,6 +258,16 @@ export function InteractiveSLOPanel({ agentId, agentName, slo, traces, daily, on
             {effectiveSlo.errorRate.toFixed(2)}% / {targets.errorBudget.toFixed(1)}%
           </span>
         </div>
+        {compareMode && (
+          <BaselineDelta
+            value={effectiveSlo.errorRate}
+            baseline={BASELINE_MOCK.errorRate}
+            lowerIsBetter={true}
+            valueFmt={(v) => `${v.toFixed(2)}%`}
+            deltaFmt={(d) => `${d > 0 ? '+' : ''}${d.toFixed(2)} p.p.`}
+            label="Taxa de erro vs baseline"
+          />
+        )}
         <div className="h-2 bg-secondary/60 rounded-full overflow-hidden mb-3">
           <div
             className={`h-full transition-all ${burn.status === 'critical' ? 'bg-destructive' : burn.status === 'warning' ? 'bg-nexus-amber' : 'bg-nexus-emerald'}`}
@@ -320,5 +338,49 @@ function LegendDot({ color, label }: { color: string; label: string }) {
       <span className={`h-2 w-2 rounded-sm ${color}`} />
       {label}
     </span>
+  );
+}
+
+interface BaselineDeltaProps {
+  value: number;
+  baseline: number;
+  /** true = lower is better (latency, error rate); false = higher is better (availability) */
+  lowerIsBetter: boolean;
+  valueFmt: (v: number) => string;
+  deltaFmt: (delta: number) => string;
+  label?: string;
+}
+
+function BaselineDelta({ value, baseline, lowerIsBetter, valueFmt, deltaFmt, label }: BaselineDeltaProps) {
+  const delta = value - baseline;
+  const FLAT_THRESHOLD = Math.max(0.01, Math.abs(baseline) * 0.005);
+  const trend: 'up' | 'down' | 'flat' = Math.abs(delta) <= FLAT_THRESHOLD ? 'flat' : delta > 0 ? 'up' : 'down';
+  // "better" = good direction
+  const better = trend === 'flat' ? null : lowerIsBetter ? trend === 'down' : trend === 'up';
+
+  const tone =
+    better === null
+      ? { color: 'text-muted-foreground', bg: 'bg-secondary/40', border: 'border-border', Icon: Minus, word: 'Igual ao baseline' }
+      : better
+      ? { color: 'text-nexus-emerald', bg: 'bg-nexus-emerald/10', border: 'border-nexus-emerald/30',
+          Icon: lowerIsBetter ? ArrowDown : ArrowUp,
+          word: lowerIsBetter ? 'mais rápido' : 'acima do baseline' }
+      : { color: 'text-destructive', bg: 'bg-destructive/10', border: 'border-destructive/30',
+          Icon: lowerIsBetter ? ArrowUp : ArrowDown,
+          word: lowerIsBetter ? 'mais lento' : 'abaixo do baseline' };
+
+  return (
+    <div
+      className={`mb-2 flex items-center gap-2 rounded-md border ${tone.border} ${tone.bg} px-2 py-1.5 text-[10px]`}
+      role="status"
+      aria-label={label ?? `Comparação com baseline: ${tone.word}`}
+    >
+      <tone.Icon className={`h-3 w-3 ${tone.color}`} />
+      <span className={`font-mono font-semibold ${tone.color}`}>{deltaFmt(delta)}</span>
+      <span className="text-muted-foreground">{tone.word}</span>
+      <span className="ml-auto text-muted-foreground font-mono">
+        baseline: <span className="text-foreground">{valueFmt(baseline)}</span>
+      </span>
+    </div>
   );
 }

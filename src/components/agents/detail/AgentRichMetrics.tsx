@@ -21,11 +21,10 @@ import { TrendInsightsBanner } from './TrendInsightsBanner';
 
 interface Props {
   agentId: string;
-  agentName?: string;
   days?: number;
 }
 
-export function AgentRichMetrics({ agentId, agentName, days = 14 }: Props) {
+export function AgentRichMetrics({ agentId, days = 14 }: Props) {
   const { data: usage = [], isLoading: usageLoading } = useQuery({
     queryKey: ['agent_usage_rich', agentId, days],
     queryFn: () => getAgentUsage(agentId, days),
@@ -197,7 +196,6 @@ export function AgentRichMetrics({ agentId, agentName, days = 14 }: Props) {
         <div className="lg:col-span-2">
           <InteractiveSLOPanel
             agentId={agentId}
-            agentName={agentName}
             slo={slo}
             traces={traces}
             daily={daily}

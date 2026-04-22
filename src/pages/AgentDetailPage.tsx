@@ -141,7 +141,7 @@ export default function AgentDetailPage() {
       </div>
 
       {/* Agent Metrics — rich panel with charts, SLO and daily history */}
-      <AgentRichMetrics agentId={id!} agentName={agent.name} days={14} />
+      <AgentRichMetrics agentId={id!} days={14} />
       <VersionHistory agentId={id!} />
 
       <SimulationResultDialog
