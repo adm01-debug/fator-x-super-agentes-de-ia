@@ -160,8 +160,23 @@ export function StepQuickPrompt({ form, errors, update, onRestore, onApplyVarian
         onSelect={onApplyVariant}
       />
 
-      <div className="nexus-card space-y-3">
+      <div
+        className={`nexus-card space-y-3 transition-shadow ${
+          pulsedSection ? 'ring-2 ring-nexus-amber/60 shadow-[0_0_0_4px_hsl(var(--nexus-amber)/0.15)]' : ''
+        }`}
+      >
         <Label htmlFor="qa-prompt" className="sr-only">System prompt</Label>
+        {pulsedSection && (
+          <div
+            role="status"
+            aria-live="polite"
+            className="text-[11px] text-nexus-amber bg-nexus-amber/10 border border-nexus-amber/30 rounded-md px-2.5 py-1 flex items-center justify-between gap-2"
+          >
+            <span>
+              📍 Ancorado em <strong>## {pulsedSection.charAt(0).toUpperCase() + pulsedSection.slice(1)}</strong> — corrija e clique para sair.
+            </span>
+          </div>
+        )}
         <Textarea
           ref={textareaRef}
           id="qa-prompt"
@@ -175,7 +190,9 @@ export function StepQuickPrompt({ form, errors, update, onRestore, onApplyVarian
           placeholder="## Persona&#10;...&#10;&#10;## Escopo&#10;...&#10;&#10;## Formato&#10;...&#10;&#10;## Regras&#10;..."
           className={`bg-secondary/50 border-border/50 font-mono text-xs leading-relaxed resize-none ${
             errors.prompt ? 'border-destructive' : ''
-          } ${promptHighlight ? 'ring-2 ring-warning ring-offset-2 ring-offset-background animate-pulse' : ''}`}
+          } ${promptHighlight ? 'ring-2 ring-warning ring-offset-2 ring-offset-background animate-pulse' : ''} ${
+            pulsedSection ? 'border-nexus-amber/50' : ''
+          }`}
         />
         {errors.prompt && (
           <div className="text-[11px] text-destructive" role="alert">
@@ -190,12 +207,13 @@ export function StepQuickPrompt({ form, errors, update, onRestore, onApplyVarian
       <PromptSectionChecklist
         prompt={form.prompt}
         onInsert={(snippet) => update('prompt', form.prompt + snippet)}
+        onJumpToSection={jumpToSection}
       />
 
       <AgentLivePreviewCard form={form} />
 
       {/* Pre-flight review summary — quick "ready to create?" snapshot */}
-      <PreflightReviewSummary form={form} />
+      <PreflightReviewSummary form={form} onJumpToSection={jumpToSection} />
 
       {/* Consolidated prompt preview — final text the LLM will receive (open by default on the last step) */}
       <CompiledPromptPreview form={form} defaultOpen />
