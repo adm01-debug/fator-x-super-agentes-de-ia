@@ -260,18 +260,35 @@ export function QuickCreateWizard({ onBack }: QuickCreateWizardProps) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [form.type]);
 
-  const restoreDraft = (id: string) => {
+  const restoreDraft = (id: string, mode: 'full' | 'partial' = 'full') => {
     const target = pendingDrafts.find((d) => d.id === id);
     if (!target) return;
     const check = checkDraftRestorable(target.form);
-    // Always restore — even incomplete drafts. We jump to the first invalid
-    // field and highlight it so the user knows exactly what to fill next.
-    setForm(target.form);
-    setPromptCustomLocked(target.promptCustomLocked === true);
-    setSelectedVariant(target.selectedVariant ?? null);
-    lastTypeForLockRef.current = target.form.type;
-    lastTypeRef.current = target.form.type as QuickAgentType;
-    const resume = computeResumeTarget(target.form, STEPS);
+    // No modo "parcial" só aplicamos os campos efetivamente preenchidos —
+    // o restante mantém o default do form (vazio), forçando o usuário a
+    // completar conscientemente cada um. No modo "completo" restauramos
+    // exatamente o estado salvo, incluindo campos vazios do rascunho.
+    const summary = summarizeForm(target.form);
+    const formToApply: typeof target.form = mode === 'partial'
+      ? {
+          ...form, // base = estado atual (defaults)
+          ...(summary.hasIdentity ? {
+            name: target.form.name,
+            mission: target.form.mission,
+            description: target.form.description,
+          } : {}),
+          ...(summary.hasType ? { type: target.form.type } : {}),
+          ...(summary.hasModel ? { model: target.form.model } : {}),
+          ...(summary.hasPrompt ? { prompt: target.form.prompt } : {}),
+        }
+      : target.form;
+
+    setForm(formToApply);
+    setPromptCustomLocked(target.promptCustomLocked === true && mode === 'full');
+    setSelectedVariant(mode === 'full' ? (target.selectedVariant ?? null) : null);
+    lastTypeForLockRef.current = formToApply.type;
+    lastTypeRef.current = formToApply.type as QuickAgentType;
+    const resume = computeResumeTarget(formToApply, STEPS);
     setStep(resume.stepIdx);
     setHighlightField(resume.field ?? null);
     setDraftsStore((prev) => {
@@ -281,13 +298,19 @@ export function QuickCreateWizard({ onBack }: QuickCreateWizardProps) {
     });
     setPendingDrafts([]);
     setDraftDecided(true);
-    if (target.promptCustomLocked === true) {
+    if (target.promptCustomLocked === true && mode === 'full') {
       pushLockEvent('locked-manual-edit', `rascunho "${target.form.name?.trim() || 'sem nome'}" restaurado já travado`);
     } else {
-      pushLockEvent('unlocked-draft-restore', `rascunho "${target.form.name?.trim() || 'sem nome'}"`);
+      pushLockEvent('unlocked-draft-restore', `rascunho "${target.form.name?.trim() || 'sem nome'}" (${mode === 'partial' ? 'parcial' : 'completo'})`);
     }
-    if (!check.canRestore) {
-      toast.warning('Rascunho restaurado parcialmente', {
+    if (mode === 'partial') {
+      toast.success('Rascunho restaurado parcialmente', {
+        description: resume.field
+          ? `Só os campos preenchidos foram aplicados. Continue em "${STEPS[resume.stepIdx].label}" — campo destacado: ${FIELD_LABEL[resume.field] ?? String(resume.field)}.`
+          : `Só os campos preenchidos foram aplicados. Continue em "${STEPS[resume.stepIdx].label}".`,
+      });
+    } else if (!check.canRestore) {
+      toast.warning('Rascunho restaurado (incompleto)', {
         description: resume.field
           ? `Complete o campo "${FIELD_LABEL[resume.field] ?? String(resume.field)}" em "${STEPS[resume.stepIdx].label}" para continuar.`
           : `Continue do passo: ${STEPS[resume.stepIdx].label}.`,
