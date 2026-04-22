@@ -66,7 +66,31 @@ export function AgentLivePreviewCard({ form }: Props) {
 
   const hasPrompt = debounced.prompt.trim().length > 0;
 
+  // Live cost estimate
+  const mockInput =
+    QUICK_AGENT_MOCK_INPUTS[debounced.type as QuickAgentType]?.[0]?.input ?? '';
+  const cost = useCostEstimate({
+    model: debounced.model,
+    systemPrompt: debounced.prompt,
+    userInput: mockInput,
+    maxTokens: 1000,
+    toolsCount: 0,
+  });
+  const dailyExecs = 100;
+  const dailyUsd = cost.costUsd * dailyExecs;
+  const dailyBrl = cost.costBrl * dailyExecs;
+  const inputPct = cost.totalTokens > 0
+    ? Math.round((cost.inputTokens / cost.totalTokens) * 100)
+    : 50;
+  const tier: 'low' | 'mid' | 'high' =
+    cost.costUsd < 0.01 ? 'low' : cost.costUsd < 0.05 ? 'mid' : 'high';
+  const tierColor =
+    tier === 'low' ? 'text-nexus-emerald'
+    : tier === 'mid' ? 'text-nexus-amber'
+    : 'text-destructive';
+
   return (
+    <TooltipProvider delayDuration={200}>
     <div className="nexus-card space-y-4">
       {/* Header */}
       <div className="flex items-center justify-between gap-2">
