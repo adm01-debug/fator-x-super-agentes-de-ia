@@ -1,3 +1,4 @@
+import { useEffect } from 'react';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
@@ -9,6 +10,7 @@ interface Props {
   form: QuickAgentForm;
   errors: Partial<Record<keyof QuickAgentForm, string>>;
   update: <K extends keyof QuickAgentForm>(key: K, value: QuickAgentForm[K]) => void;
+  highlightField?: keyof QuickAgentForm;
 }
 
 function FieldError({ msg }: { msg?: string }) {
@@ -16,7 +18,20 @@ function FieldError({ msg }: { msg?: string }) {
   return <p className="text-xs text-destructive mt-1">{msg}</p>;
 }
 
-export function StepQuickIdentity({ form, errors, update }: Props) {
+const HIGHLIGHT_CLS = 'ring-2 ring-warning ring-offset-2 ring-offset-background animate-pulse';
+
+export function StepQuickIdentity({ form, errors, update, highlightField }: Props) {
+  useEffect(() => {
+    if (!highlightField) return;
+    const el = document.getElementById(`qa-${highlightField === 'description' ? 'desc' : highlightField}`);
+    if (el) {
+      el.scrollIntoView({ block: 'center', behavior: 'smooth' });
+      window.setTimeout(() => (el as HTMLElement).focus?.(), 250);
+    }
+  }, [highlightField]);
+
+  const hl = (f: keyof QuickAgentForm) => (highlightField === f ? ` ${HIGHLIGHT_CLS}` : '');
+
   return (
     <div className="nexus-card space-y-5">
       <div>
