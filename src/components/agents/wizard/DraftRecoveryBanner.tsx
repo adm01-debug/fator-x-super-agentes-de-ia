@@ -517,6 +517,11 @@ export function DraftRecoveryBanner({
         })}
       </div>
 
+      {(() => {
+        const selected = drafts.find((d) => d.id === selectedId);
+        return selected ? <DraftPreviewLine entry={selected} /> : null;
+      })()}
+
       <div className="flex items-center justify-between gap-2 pt-1">
         <ConfirmDialog
           trigger={
