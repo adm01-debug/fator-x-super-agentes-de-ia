@@ -35,8 +35,6 @@ export default function AgentVersioningPage() {
   const mode: 'detail' | 'compare' = modeParam === 'compare' ? 'compare' : 'detail';
   const presetId = searchParams.get('preset') ?? 'all';
   const activePreset = getPresetById(presetId);
-  const setPreset = (pid: string) =>
-    updateParamsRef.current?.((p) => { pid && pid !== 'all' ? p.set('preset', pid) : p.delete('preset'); });
   const [newOpen, setNewOpen] = useState(false);
   // Quando vier um ?focus=<id>, destaca a versão por ~3s e remove o param da URL.
   const [highlightId, setHighlightId] = useState<string | null>(null);
