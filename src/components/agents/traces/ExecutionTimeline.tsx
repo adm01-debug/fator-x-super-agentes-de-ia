@@ -105,12 +105,14 @@ export function ExecutionTimeline({ execution, selectedStep, onSelectStep }: Pro
 /* ------------------------------------------------------------------ */
 
 function ExecutionSummary({
-  execution, step, total, onStep,
+  execution, step, total, onStep, onExpandAll, onCollapseAll,
 }: {
   execution: ExecutionGroup;
   step: number;
   total: number;
   onStep: (i: number) => void;
+  onExpandAll: () => void;
+  onCollapseAll: () => void;
 }) {
   const { counts, total_ms, total_tokens, total_cost, session_id, traces } = execution;
   const current = traces[step];
