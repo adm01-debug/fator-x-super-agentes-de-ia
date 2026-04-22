@@ -89,6 +89,8 @@ export function PromptSectionChecklist({
     return out;
   }, [activeVariantPrompt]);
 
+  const hasVariant = !!activeVariantPrompt && !customLocked;
+
   // Per-section extracted body from the *current* prompt — feeds the drawer.
   const sectionBodies = useMemo(() => {
     const out = {} as Record<PromptSectionKey, { body: string | null; words: number }>;
