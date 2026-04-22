@@ -193,10 +193,17 @@ export function StepQuickPrompt({ form, errors, onPromptManualEdit, onRestore, o
       selRange = [existing.startChar, Math.min(workingPrompt.length, existing.endChar)];
     }
 
-    // Visual pulse on the editor card.
+    // Visual pulse on the editor card + the heading line band.
     setPulsedSection(key);
+    if (selRange) {
+      const headingLine = workingPrompt.slice(0, selRange[0]).split('\n').length - 1;
+      setPulsedLine(headingLine);
+    }
     if (sectionPulseRef.current) window.clearTimeout(sectionPulseRef.current);
-    sectionPulseRef.current = window.setTimeout(() => setPulsedSection(null), 1800);
+    sectionPulseRef.current = window.setTimeout(() => {
+      setPulsedSection(null);
+      setPulsedLine(null);
+    }, 1800);
 
     if (!selRange) return;
     const [start, end] = selRange;
