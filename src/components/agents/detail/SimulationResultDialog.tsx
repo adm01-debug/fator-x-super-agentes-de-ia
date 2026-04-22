@@ -13,6 +13,7 @@ import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import type { SimulationSummary } from '@/services/agentTestSimulationService';
 import { saveRun } from '@/services/savedTestRunsStore';
+import { ErrorAnalysisPanel } from './ErrorAnalysisPanel';
 import { toast } from 'sonner';
 
 interface Props {
@@ -242,8 +243,12 @@ export function SimulationResultDialog({
                               <CheckCircle2 className="h-3 w-3" aria-hidden="true" /> OK
                             </span>
                           ) : (
-                            <span className="inline-flex items-center gap-1 text-destructive">
-                              <XCircle className="h-3 w-3" aria-hidden="true" /> Err
+                            <span
+                              className="inline-flex items-center gap-1 text-destructive"
+                              title={r.error_type ? `Tipo de erro: ${r.error_type}` : undefined}
+                            >
+                              <XCircle className="h-3 w-3" aria-hidden="true" />
+                              {r.error_type ? r.error_type.replace('_', ' ') : 'Err'}
                             </span>
                           )}
                         </td>
@@ -257,6 +262,9 @@ export function SimulationResultDialog({
                 </table>
               </div>
             </div>
+
+            {/* Análise de erros + sugestões de guardrails */}
+            <ErrorAnalysisPanel runs={summary.runs} />
           </div>
         )}
 

@@ -6,6 +6,15 @@
 import type { AgentDetail, AgentTrace } from '@/services/agentsService';
 import { getModelPrice } from '@/lib/llmPricing';
 
+export type SimulatedErrorType =
+  | 'timeout'
+  | 'rate_limit'
+  | 'tool_failure'
+  | 'hallucination'
+  | 'context_overflow'
+  | 'unsafe_output'
+  | 'parsing_error';
+
 export interface SimulatedRun {
   id: number;
   input: string;
@@ -13,6 +22,7 @@ export interface SimulatedRun {
   latency_ms: number;
   tokens_used: number;
   cost_usd: number;
+  error_type?: SimulatedErrorType;
 }
 
 export interface SimulationSummary {
@@ -80,6 +90,28 @@ export function simulateAgentRun(
     ? Math.min(0.25, Math.max(0.05, realErrors / baseTraces.length))
     : 0.08;
 
+  // Distribuição plausível de tipos de erro (somam 1.0). Latência alta tende a timeout.
+  const ERROR_WEIGHTS: Array<{ type: SimulatedErrorType; weight: number }> = [
+    { type: 'tool_failure', weight: 0.28 },
+    { type: 'timeout', weight: 0.22 },
+    { type: 'hallucination', weight: 0.18 },
+    { type: 'rate_limit', weight: 0.12 },
+    { type: 'context_overflow', weight: 0.10 },
+    { type: 'parsing_error', weight: 0.06 },
+    { type: 'unsafe_output', weight: 0.04 },
+  ];
+  const pickErrorType = (latency: number): SimulatedErrorType => {
+    // Se latência muito alta, força timeout em ~60% dos casos
+    if (latency > avgLatencyBase * 1.6 && Math.random() < 0.6) return 'timeout';
+    const r = Math.random();
+    let acc = 0;
+    for (const e of ERROR_WEIGHTS) {
+      acc += e.weight;
+      if (r <= acc) return e.type;
+    }
+    return 'tool_failure';
+  };
+
   const runs: SimulatedRun[] = [];
   for (let i = 0; i < count; i++) {
     const input = customInput && customInput.length > 0
@@ -102,6 +134,7 @@ export function simulateAgentRun(
       latency_ms: latency,
       tokens_used: tokens,
       cost_usd: cost,
+      error_type: isError ? pickErrorType(latency) : undefined,
     });
   }
 
