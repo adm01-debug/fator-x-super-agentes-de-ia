@@ -339,6 +339,11 @@ export function QuickCreateWizard({ onBack }: QuickCreateWizardProps) {
 
   const saveAgent = async () => {
     setConfirmOpen(false);
+    if (!user) {
+      toast.error('Faça login para criar agentes');
+      navigate('/auth');
+      return;
+    }
     setSaving(true);
     const { error } = await supabaseExternal.from('agents').insert({
       user_id: user.id,
