@@ -11,6 +11,7 @@ import { AgentCardViewer } from "@/components/agents/AgentCardViewer";
 import { AgentRichMetrics } from "@/components/agents/detail/AgentRichMetrics";
 import { SimulationResultDialog } from "@/components/agents/detail/SimulationResultDialog";
 import { SavedTestRunsPanel } from "@/components/agents/detail/SavedTestRunsPanel";
+import { RestoreDiffPreview } from "@/components/agents/detail/RestoreDiffPreview";
 import { simulateAgentRun, type SimulationSummary } from "@/services/agentTestSimulationService";
 import {
   AlertDialog, AlertDialogContent, AlertDialogHeader, AlertDialogFooter,
@@ -242,7 +243,7 @@ function VersionHistory({ agentId }: { agentId: string }) {
       <VersionDiffDialog open={diffOpen} onOpenChange={setDiffOpen} agentId={agentId} versions={versions as unknown as Array<{ id: string; version: number; model: string | null; persona: string | null; mission: string | null; config: Record<string, unknown>; change_summary: string | null; created_at: string }>} />
 
       <AlertDialog open={rollbackOpen} onOpenChange={setRollbackOpen}>
-        <AlertDialogContent>
+        <AlertDialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
           <AlertDialogHeader>
             <AlertDialogTitle className="flex items-center gap-2">
               <Undo2 className="h-4 w-4 text-nexus-amber" aria-hidden />
@@ -269,6 +270,13 @@ function VersionHistory({ agentId }: { agentId: string }) {
                     <span className="font-mono text-nexus-emerald">v{nextVersionNumber}</span>
                   </div>
                 </div>
+                {previous && (
+                  <RestoreDiffPreview
+                    current={current}
+                    source={previous}
+                    options={{ copyPrompt: true, copyTools: true, copyModel: true }}
+                  />
+                )}
                 <p className="text-xs text-muted-foreground">
                   Nenhum histórico será apagado — o rollback é não destrutivo.
                 </p>
