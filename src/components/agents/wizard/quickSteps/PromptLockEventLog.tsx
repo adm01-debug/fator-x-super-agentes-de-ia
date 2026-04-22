@@ -12,6 +12,7 @@ import { cn } from '@/lib/utils';
 
 export type PromptLockEventKind =
   | 'locked-manual-edit'
+  | 'locked-paste'
   | 'unlocked-template'
   | 'unlocked-variant'
   | 'unlocked-type-change'
@@ -30,6 +31,7 @@ export interface PromptLockEvent {
 
 const KIND_LABEL: Record<PromptLockEventKind, string> = {
   'locked-manual-edit': 'Modo Custom travado (edição manual)',
+  'locked-paste': 'Modo Custom travado (conteúdo colado)',
   'unlocked-template': 'Destravado — template aplicado',
   'unlocked-variant': 'Destravado — variação aplicada',
   'unlocked-type-change': 'Destravado — tipo do agente alterado',
@@ -59,7 +61,7 @@ export function PromptLockEventLog({ events, max = 8 }: Props) {
 
   const sorted = [...events].sort((a, b) => b.at - a.at).slice(0, max);
   const last = sorted[0];
-  const isLocked = last.kind === 'locked-manual-edit';
+  const isLocked = last.kind === 'locked-manual-edit' || last.kind === 'locked-paste';
 
   return (
     <div className="rounded-lg border border-border/60 bg-secondary/30 text-xs overflow-hidden">
@@ -94,7 +96,7 @@ export function PromptLockEventLog({ events, max = 8 }: Props) {
       {open && (
         <ul className="divide-y divide-border/40 border-t border-border/40 max-h-40 overflow-y-auto" aria-label="Eventos de bloqueio do prompt">
           {sorted.map((ev) => {
-            const locked = ev.kind === 'locked-manual-edit';
+            const locked = ev.kind === 'locked-manual-edit' || ev.kind === 'locked-paste';
             return (
               <li key={ev.id} className="flex items-start gap-2 px-2.5 py-1.5">
                 <span

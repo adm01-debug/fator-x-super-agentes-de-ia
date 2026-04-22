@@ -51,8 +51,10 @@ interface Props {
   /**
    * Manual prompt edits (typing, paste, snippet insert, history restore)
    * go through this — the wizard uses it to flip the "custom locked" flag.
+   * `source` distinguishes typing from clipboard paste so the lock event log
+   * can render distinct entries (and so paste always forces the lock).
    */
-  onPromptManualEdit: (next: string) => void;
+  onPromptManualEdit: (next: string, source?: 'manual' | 'paste') => void;
   onRestore: () => void;
   /**
    * Hard reset to a known-safe initial state — sanitizes and reapplies the base
@@ -95,9 +97,9 @@ export function StepQuickPrompt({ form, errors, onPromptManualEdit, onRestore, o
   }, [lastChangeKind]);
 
   // Wrappers that record the change kind alongside the prompt mutation.
-  const handleManualEdit = (next: string) => {
+  const handleManualEdit = (next: string, source: 'manual' | 'paste' = 'manual') => {
     setLastChangeKind('manual');
-    onPromptManualEdit(next);
+    onPromptManualEdit(next, source);
   };
   const handleApplyVariant = (id: PromptVariantId) => {
     setLastChangeKind('variant');
@@ -255,7 +257,10 @@ export function StepQuickPrompt({ form, errors, onPromptManualEdit, onRestore, o
 
     const result = sanitizePromptInput(pasted, Math.max(0, remainingBudget));
     const next = before + result.clean + after;
-    handleManualEdit(next);
+    // Force lock with source='paste' — even if `next` happens to coincide
+    // exactly with one of the known variants, pasted content is treated as
+    // opaque user intent and stays in custom-locked mode.
+    handleManualEdit(next, 'paste');
 
     // Restore caret after the pasted block on next tick.
     requestAnimationFrame(() => {
