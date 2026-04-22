@@ -3,6 +3,15 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Check, FileClock, FolderOpen, Minus, Pencil, X } from 'lucide-react';
 import { quickIdentitySchema } from '@/lib/validations/quickAgentSchema';
+import { ConfirmDialog } from '@/components/shared/ConfirmDialog';
+
+function discardCopy(name: string) {
+  const label = name.trim() ? `"${name.trim()}"` : 'sem nome ainda';
+  return {
+    title: 'Descartar este rascunho?',
+    description: `O rascunho ${label} será removido permanentemente. Esta ação não pode ser desfeita.`,
+  };
+}
 
 export interface DraftSummary {
   name: string;
