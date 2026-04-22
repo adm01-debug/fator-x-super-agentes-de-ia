@@ -78,6 +78,7 @@ export function DraftRecoveryBanner({
   // ───── Single-draft mode (compat) ─────
   if (drafts.length === 1) {
     const only = drafts[0];
+    const blocked = only.restorable === false;
     return (
       <div
         role="status"
@@ -103,6 +104,11 @@ export function DraftRecoveryBanner({
           <StatusChip label="Tipo" ok={only.summary.hasType} />
           <StatusChip label="Modelo" ok={only.summary.hasModel} />
           <StatusChip label="Prompt" ok={only.summary.hasPrompt} />
+          {blocked && (
+            <span className="inline-flex items-center gap-1 text-[11px] px-2 py-0.5 rounded-full border border-warning/30 bg-warning/10 text-warning">
+              Incompleto
+            </span>
+          )}
         </div>
 
         <div className="flex items-center justify-end gap-2 pt-1">
@@ -113,6 +119,8 @@ export function DraftRecoveryBanner({
             size="sm"
             onClick={() => onRestore(only.id)}
             autoFocus
+            disabled={blocked}
+            title={blocked ? (only.restoreBlockedReason ?? 'Rascunho incompleto demais para retomar') : undefined}
             className="gap-1.5 nexus-gradient-bg text-primary-foreground"
           >
             Continuar de onde parei
