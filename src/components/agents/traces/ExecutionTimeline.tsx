@@ -509,12 +509,16 @@ interface TraceItemProps {
   highlight: string;
   isMatch: boolean;
   dim: boolean;
+  sessionId: string;
+  bookmark: TraceBookmark | undefined;
+  onBookmarksChange: (bookmarks: TraceBookmark[]) => void;
 }
 
 const TraceItem = forwardRef<HTMLLIElement, TraceItemProps>(
-  ({ trace, index, active, onSelect, bulk, highlight, isMatch, dim }, ref) => {
+  ({ trace, index, active, onSelect, bulk, highlight, isMatch, dim, sessionId, bookmark, onBookmarksChange }, ref) => {
     const [open, setOpen] = useState(false);
     const ts = new Date(trace.created_at).toLocaleTimeString('pt-BR', { hour12: false });
+    const isBookmarked = !!bookmark;
 
     useEffect(() => {
       if (active) setOpen(true);
@@ -542,45 +546,85 @@ const TraceItem = forwardRef<HTMLLIElement, TraceItemProps>(
         role="option"
         aria-selected={active}
         className={cn(
-          'border-l-2 pl-3 py-1.5 rounded-r-md transition-colors cursor-pointer',
+          'border-l-2 pl-3 py-1.5 rounded-r-md transition-colors cursor-pointer relative',
           LEVEL_BORDER[trace.level],
           active
             ? 'bg-primary/10 ring-1 ring-primary/30 shadow-sm'
             : 'bg-card/40 hover:bg-muted/40',
           isMatch && !active && 'ring-1 ring-primary/40 bg-primary/5',
+          isBookmarked && 'border-l-nexus-amber bg-nexus-amber/[0.04]',
           dim && 'opacity-40 hover:opacity-90',
         )}
         onClick={handleClick}
       >
-        <button
-          type="button"
-          onClick={(e) => { e.stopPropagation(); handleClick(); }}
-          className="w-full text-left flex items-center gap-2 text-xs hover:text-foreground"
-          aria-expanded={open}
-        >
-          {open
-            ? <ChevronDown className="h-3 w-3 text-muted-foreground" />
-            : <ChevronRight className="h-3 w-3 text-muted-foreground" />}
-          <span className={cn(
-            'font-mono text-[10px] tabular-nums w-8',
-            active ? 'text-primary font-semibold' : 'text-muted-foreground',
-          )}>
-            #{index + 1}
-          </span>
-          <span className="font-mono text-[10px] text-muted-foreground tabular-nums">{ts}</span>
-          {LEVEL_ICON[trace.level]}
-          <span className={cn('font-medium truncate', active ? 'text-foreground' : 'text-foreground/90')}>
-            <Highlighted text={trace.event} query={highlight} />
-          </span>
-          <span className="ml-auto flex items-center gap-2 text-[10px] text-muted-foreground shrink-0">
-            {trace.latency_ms != null && <span className="tabular-nums">{trace.latency_ms}ms</span>}
-            {trace.tokens_used != null && trace.tokens_used > 0 && <span className="tabular-nums">{trace.tokens_used} tk</span>}
-            {trace.cost_usd != null && Number(trace.cost_usd) > 0 && <span className="tabular-nums">${Number(trace.cost_usd).toFixed(5)}</span>}
-          </span>
-        </button>
+        {/* Marker rail: a thin amber notch to make bookmarks scannable. */}
+        {isBookmarked && (
+          <span
+            className="absolute -left-[3px] top-1/2 -translate-y-1/2 w-[3px] h-5 rounded-full bg-nexus-amber"
+            aria-hidden
+          />
+        )}
+        <div className="flex items-center gap-2 text-xs">
+          <button
+            type="button"
+            onClick={(e) => { e.stopPropagation(); handleClick(); }}
+            className="flex items-center gap-2 flex-1 min-w-0 text-left hover:text-foreground"
+            aria-expanded={open}
+          >
+            {open
+              ? <ChevronDown className="h-3 w-3 text-muted-foreground shrink-0" />
+              : <ChevronRight className="h-3 w-3 text-muted-foreground shrink-0" />}
+            <span className={cn(
+              'font-mono text-[10px] tabular-nums w-8 shrink-0',
+              active ? 'text-primary font-semibold' : 'text-muted-foreground',
+            )}>
+              #{index + 1}
+            </span>
+            <span className="font-mono text-[10px] text-muted-foreground tabular-nums shrink-0">{ts}</span>
+            {LEVEL_ICON[trace.level]}
+            {isBookmarked && (
+              <BookmarkCheck
+                className="h-3 w-3 text-nexus-amber shrink-0"
+                aria-label="Passo marcado"
+              />
+            )}
+            <span className={cn('font-medium truncate', active ? 'text-foreground' : 'text-foreground/90')}>
+              <Highlighted text={trace.event} query={highlight} />
+            </span>
+            <span className="ml-auto flex items-center gap-2 text-[10px] text-muted-foreground shrink-0">
+              {trace.latency_ms != null && <span className="tabular-nums">{trace.latency_ms}ms</span>}
+              {trace.tokens_used != null && trace.tokens_used > 0 && <span className="tabular-nums">{trace.tokens_used} tk</span>}
+              {trace.cost_usd != null && Number(trace.cost_usd) > 0 && <span className="tabular-nums">${Number(trace.cost_usd).toFixed(5)}</span>}
+            </span>
+          </button>
+          {/* Bookmark trigger appears on hover OR when already marked. */}
+          <div className={cn('shrink-0 transition-opacity', isBookmarked ? 'opacity-100' : 'opacity-0 group-hover:opacity-100 hover:opacity-100 focus-within:opacity-100')}>
+            <BookmarkButton
+              sessionId={sessionId}
+              traceId={trace.id}
+              stepIndex={index}
+              onChange={onBookmarksChange}
+            />
+          </div>
+        </div>
+
+        {isBookmarked && bookmark.note && !open && (
+          <p
+            className="ml-6 mt-1 text-[10.5px] italic text-nexus-amber/90 truncate"
+            title={bookmark.note}
+          >
+            “{bookmark.note}”
+          </p>
+        )}
 
         {open && (
           <div className="mt-2 ml-6 space-y-2" onClick={(e) => e.stopPropagation()}>
+            {isBookmarked && bookmark.note && (
+              <div className="rounded border border-nexus-amber/30 bg-nexus-amber/10 p-2 text-[11px] text-foreground flex items-start gap-1.5">
+                <BookmarkCheck className="h-3 w-3 text-nexus-amber mt-0.5 shrink-0" />
+                <span className="italic">{bookmark.note}</span>
+              </div>
+            )}
             <JsonBlock label="Input" data={trace.input} highlight={highlight} />
             <JsonBlock label="Output" data={trace.output} highlight={highlight} />
             {trace.metadata && Object.keys(trace.metadata).length > 0 && (
