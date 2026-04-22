@@ -3,7 +3,8 @@ import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
 import type { QuickAgentForm } from '@/lib/validations/quickAgentSchema';
-import { FIELD_HIGHLIGHT_CLS } from './useFieldHighlight';
+import { FIELD_HIGHLIGHT_CLS, FIELD_HIGHLIGHT_CLS_STATIC } from './useFieldHighlight';
+import { usePrefersReducedMotion } from '@/hooks/usePrefersReducedMotion';
 
 const EMOJI_SUGGESTIONS = ['🤖', '💬', '✨', '📊', '💼', '🎧', '🔎', '🎼', '🧠', '🚀', '🛡️', '🌟'];
 
@@ -24,14 +25,20 @@ export function StepQuickIdentity({ form, errors, update, highlightField }: Prop
   // visual cue doesn't linger after the user has acknowledged it.
   const [pulsingField, setPulsingField] = useState<keyof QuickAgentForm | null>(null);
   const pulseTimerRef = useRef<number | null>(null);
+  const prefersReducedMotion = usePrefersReducedMotion();
 
   useEffect(() => {
     if (!highlightField) return;
     const id = `qa-${highlightField === 'description' ? 'desc' : highlightField}`;
     const el = document.getElementById(id);
     if (el) {
-      el.scrollIntoView({ block: 'center', behavior: 'smooth' });
-      window.setTimeout(() => (el as HTMLElement).focus?.({ preventScroll: true }), 250);
+      // Smooth scroll + delayed focus respeitam reduced-motion: vão direto.
+      el.scrollIntoView({
+        block: 'center',
+        behavior: prefersReducedMotion ? 'auto' : 'smooth',
+      });
+      const focusDelay = prefersReducedMotion ? 0 : 250;
+      window.setTimeout(() => (el as HTMLElement).focus?.({ preventScroll: true }), focusDelay);
     }
     setPulsingField(highlightField);
     if (pulseTimerRef.current != null) window.clearTimeout(pulseTimerRef.current);
@@ -39,9 +46,11 @@ export function StepQuickIdentity({ form, errors, update, highlightField }: Prop
     return () => {
       if (pulseTimerRef.current != null) window.clearTimeout(pulseTimerRef.current);
     };
-  }, [highlightField]);
+  }, [highlightField, prefersReducedMotion]);
 
-  const hl = (f: keyof QuickAgentForm) => (pulsingField === f ? ` ${FIELD_HIGHLIGHT_CLS}` : '');
+  // Em reduced-motion: ring estático sem keyframe; fora dele: pulse padrão.
+  const ringCls = prefersReducedMotion ? FIELD_HIGHLIGHT_CLS_STATIC : FIELD_HIGHLIGHT_CLS;
+  const hl = (f: keyof QuickAgentForm) => (pulsingField === f ? ` ${ringCls}` : '');
 
   return (
     <div className="nexus-card space-y-5">
