@@ -445,8 +445,8 @@ export function WorkflowTimeTravelPanel({
         </CardContent>
       </Card>
 
-      {/* State Inspector */}
-      {inspectedState && (
+      {/* State Inspector — hidden in compare mode to give space to the comparison panel */}
+      {!compareMode && inspectedState && (
         <Card className="bg-card border-border">
           <CardHeader className="pb-2">
             <CardTitle className="flex items-center justify-between text-sm text-foreground">
@@ -472,6 +472,16 @@ export function WorkflowTimeTravelPanel({
             </ScrollArea>
           </CardContent>
         </Card>
+      )}
+
+      {/* Side-by-side step comparison */}
+      {compareMode && compareA && compareB && (
+        <StepComparePanel
+          checkpointA={compareA}
+          checkpointB={compareB}
+          onClose={resetCompare}
+          onSwap={swapCompare}
+        />
       )}
     </div>
   );
