@@ -254,6 +254,17 @@ export const quickPromptSchema = z.object({
           message: `Linha ${first.line} excede ${PROMPT_LIMITS.MAX_LINE_LENGTH} caracteres (${first.length}). Quebre em parágrafos menores.`,
         });
       }
+      const conflicts = detectPromptContradictions(value);
+      if (conflicts.length > 0) {
+        const preview = conflicts
+          .slice(0, 3)
+          .map((c) => `linha ${c.lineA}↔${c.lineB} (${c.reason})`)
+          .join('; ');
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          message: `Foram encontrados ${conflicts.length} conflito(s) entre regras: ${preview}${conflicts.length > 3 ? '…' : ''}`,
+        });
+      }
     }),
 });
 
