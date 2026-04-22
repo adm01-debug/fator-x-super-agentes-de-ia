@@ -273,6 +273,29 @@ function ExecutionSummary({
               {bookmarks.length}
             </Badge>
           )}
+          {/* Live indicator: makes it obvious the timeline is capturing keys. */}
+          <Badge
+            variant="outline"
+            aria-live="polite"
+            className={cn(
+              'text-[10px] gap-1 transition-all duration-200 select-none',
+              focused
+                ? 'border-primary/60 bg-primary/10 text-primary shadow-[0_0_8px_hsl(var(--primary)/0.25)]'
+                : 'border-border/50 bg-muted/30 text-muted-foreground',
+            )}
+            title={focused
+              ? 'Atalhos de teclado ativos (↑/↓, j/k, Home/End, n, b)'
+              : 'Clique aqui ou pressione Tab para ativar atalhos de teclado'}
+          >
+            <Keyboard className="h-3 w-3" />
+            {focused ? 'Atalhos ativos' : 'Atalhos inativos'}
+            {focused && (
+              <span
+                className="ml-0.5 inline-block h-1.5 w-1.5 rounded-full bg-primary animate-pulse"
+                aria-hidden
+              />
+            )}
+          </Badge>
         </div>
         <div className="flex items-center gap-1 shrink-0">
           <Button
