@@ -1,4 +1,4 @@
-import { useRef, type ChangeEvent, type ClipboardEvent } from 'react';
+import { useEffect, useRef, type ChangeEvent, type ClipboardEvent } from 'react';
 import { toast } from 'sonner';
 import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
@@ -30,12 +30,16 @@ interface Props {
 export function StepQuickPrompt({ form, errors, update, onRestore, onApplyVariant, highlightField }: Props) {
   const activeVariant = detectPromptVariant(form.type as QuickAgentType, form.prompt);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
-
-  useRef; // keep ref import used
   const promptHighlight = highlightField === 'prompt';
-  // Scroll + focus when highlighted
-  // eslint-disable-next-line react-hooks/rules-of-hooks
-  useEffectOnHighlight(promptHighlight, textareaRef);
+
+  useEffect(() => {
+    if (!promptHighlight) return;
+    const el = textareaRef.current;
+    if (el) {
+      el.scrollIntoView({ block: 'center', behavior: 'smooth' });
+      window.setTimeout(() => el.focus(), 250);
+    }
+  }, [promptHighlight]);
 
   const handleChange = (e: ChangeEvent<HTMLTextAreaElement>) => {
     const raw = e.target.value;
