@@ -75,7 +75,7 @@ export function StepQuickPrompt({ form, errors, onPromptManualEdit, onRestore, o
   // Wrappers that record the change kind alongside the prompt mutation.
   const handleManualEdit = (next: string) => {
     setLastChangeKind('manual');
-    onPromptManualEdit(next);
+    handleManualEdit(next);
   };
   const handleApplyVariant = (id: PromptVariantId) => {
     setLastChangeKind('variant');
@@ -137,7 +137,7 @@ export function StepQuickPrompt({ form, errors, onPromptManualEdit, onRestore, o
    */
   const insertSectionSnippet = (key: PromptSectionKey, snippet: string): [number, number] => {
     const { prompt: nextPrompt, insertedRange } = insertSectionAt(form.prompt, key, snippet);
-    onPromptManualEdit(nextPrompt);
+    handleManualEdit(nextPrompt);
     return insertedRange;
   };
 
@@ -198,7 +198,7 @@ export function StepQuickPrompt({ form, errors, onPromptManualEdit, onRestore, o
         description: 'Tags HTML perigosas foram filtradas do prompt.',
       });
     }
-    onPromptManualEdit(result.clean);
+    handleManualEdit(result.clean);
   };
 
   const handlePaste = (e: ClipboardEvent<HTMLTextAreaElement>) => {
@@ -215,7 +215,7 @@ export function StepQuickPrompt({ form, errors, onPromptManualEdit, onRestore, o
 
     const result = sanitizePromptInput(pasted, Math.max(0, remainingBudget));
     const next = before + result.clean + after;
-    onPromptManualEdit(next);
+    handleManualEdit(next);
 
     // Restore caret after the pasted block on next tick.
     requestAnimationFrame(() => {
@@ -321,9 +321,9 @@ export function StepQuickPrompt({ form, errors, onPromptManualEdit, onRestore, o
         onInsert={(snippet, key) => {
           if (key) {
             const { prompt: nextPrompt } = insertSectionAt(form.prompt, key, snippet);
-            onPromptManualEdit(nextPrompt);
+            handleManualEdit(nextPrompt);
           } else {
-            onPromptManualEdit(form.prompt + snippet);
+            handleManualEdit(form.prompt + snippet);
           }
         }}
         onJumpToSection={jumpToSection}
@@ -332,7 +332,7 @@ export function StepQuickPrompt({ form, errors, onPromptManualEdit, onRestore, o
       <PromptHistoryPanel
         prompt={form.prompt}
         type={form.type}
-        onRestore={(restored) => onPromptManualEdit(restored)}
+        onRestore={(restored) => handleManualEdit(restored)}
       />
 
       <AgentLivePreviewCard form={form} />
