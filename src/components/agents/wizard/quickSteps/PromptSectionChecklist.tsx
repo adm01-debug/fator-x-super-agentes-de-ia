@@ -1,11 +1,12 @@
 import { useMemo } from 'react';
-import { CheckCircle2, Circle, Plus, Wand2, AlertTriangle, Crosshair } from 'lucide-react';
+import { CheckCircle2, Circle, Plus, Wand2, AlertTriangle, Crosshair, Lock, Sparkles } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import {
   REQUIRED_PROMPT_SECTIONS,
   analyzeSectionContent,
   type PromptSectionKey,
 } from '@/lib/validations/quickAgentSchema';
+import { extractSectionFromPrompt } from '@/lib/promptSectionLocator';
 import { cn } from '@/lib/utils';
 
 interface Props {
@@ -21,6 +22,17 @@ interface Props {
    * can insert the skeleton before scrolling.
    */
   onJumpToSection?: (key: PromptSectionKey, snippetIfMissing?: string) => void;
+  /**
+   * Full text of the currently active variant template (Equilibrado / Conciso /
+   * Detalhado). When provided, the checklist uses this as the source of snippets
+   * for missing sections — so "Inserir + ir" preenche com o conteúdo da variação,
+   * não com o esqueleto genérico.
+   */
+  activeVariantPrompt?: string | null;
+  /** Display label of the active variant (e.g. "Conciso"). */
+  activeVariantLabel?: string | null;
+  /** Whether the prompt is in custom-locked mode (no variant active). */
+  customLocked?: boolean;
 }
 
 export const SECTION_SNIPPETS: Record<PromptSectionKey, string> = {
@@ -30,7 +42,19 @@ export const SECTION_SNIPPETS: Record<PromptSectionKey, string> = {
   rules: `\n\n## Regras\n- Nunca invente informações; admita quando não souber\n- Não compartilhe dados sensíveis\n- Confirme antes de executar ações irreversíveis\n`,
 };
 
-export function PromptSectionChecklist({ prompt, onInsert, onJumpToSection }: Props) {
+/** Count words in a snippet (used for the "preencheria com ~N palavras" hint). */
+function wordCount(text: string): number {
+  return text.trim().split(/\s+/).filter(Boolean).length;
+}
+
+export function PromptSectionChecklist({
+  prompt,
+  onInsert,
+  onJumpToSection,
+  activeVariantPrompt,
+  activeVariantLabel,
+  customLocked,
+}: Props) {
   const reports = useMemo(() => analyzeSectionContent(prompt), [prompt]);
   const total = REQUIRED_PROMPT_SECTIONS.length;
   const ok = reports.filter((r) => r.present && !r.thinReason).length;
@@ -38,6 +62,26 @@ export function PromptSectionChecklist({ prompt, onInsert, onJumpToSection }: Pr
   const missingCount = reports.filter((r) => !r.present).length;
   const thinCount = reports.filter((r) => r.present && r.thinReason).length;
   const incompleteKeys = reports.filter((r) => !r.present || r.thinReason).map((r) => r.key);
+
+  // Per-section effective snippet: prefer the active variant's content, fall
+  // back to the generic skeleton. Recomputed in real time.
+  const effectiveSnippets = useMemo(() => {
+    const out = {} as Record<PromptSectionKey, { snippet: string; fromVariant: boolean; words: number }>;
+    for (const sec of REQUIRED_PROMPT_SECTIONS) {
+      const fromVariant = activeVariantPrompt
+        ? extractSectionFromPrompt(activeVariantPrompt, sec.key)
+        : null;
+      const snippet = fromVariant ?? SECTION_SNIPPETS[sec.key];
+      out[sec.key] = {
+        snippet,
+        fromVariant: !!fromVariant,
+        words: wordCount(snippet),
+      };
+    }
+    return out;
+  }, [activeVariantPrompt]);
+
+  const hasVariant = !!activeVariantPrompt && !customLocked;
 
   return (
     <div
@@ -54,27 +98,54 @@ export function PromptSectionChecklist({ prompt, onInsert, onJumpToSection }: Pr
             Checklist do prompt
           </p>
           <p className="text-[11px] text-muted-foreground">
-            Seções mínimas + conteúdo suficiente em cada uma
+            {hasVariant
+              ? `Cobertura mínima — fonte: variação "${activeVariantLabel}"`
+              : customLocked
+              ? 'Cobertura mínima — modo customizado (snippets genéricos)'
+              : 'Seções mínimas + conteúdo suficiente em cada uma'}
           </p>
         </div>
         <div className="flex items-center gap-2 shrink-0">
+          {/* Variant badge — clarifies the "4/4" reference. */}
+          {hasVariant && activeVariantLabel && (
+            <span
+              className="text-[10px] uppercase tracking-wider font-mono px-2 py-0.5 rounded-full border inline-flex items-center gap-1 border-primary/40 bg-primary/10 text-primary"
+              title={`O preenchimento das seções pendentes virá da variação "${activeVariantLabel}".`}
+            >
+              <Sparkles className="h-2.5 w-2.5" />
+              {activeVariantLabel}
+            </span>
+          )}
+          {customLocked && (
+            <span
+              className="text-[10px] uppercase tracking-wider font-mono px-2 py-0.5 rounded-full border inline-flex items-center gap-1 border-nexus-amber/40 bg-nexus-amber/10 text-nexus-amber"
+              title="Edição manual detectada — usando snippets genéricos."
+            >
+              <Lock className="h-2.5 w-2.5" />
+              customizado
+            </span>
+          )}
           {!allOk && (
             <Button
               type="button"
               size="sm"
               variant="outline"
               onClick={() => {
-                // Insert each pending section AT its canonical position, in order.
-                // Parent handles the actual splice via onInsert(snippet, key).
                 for (const k of incompleteKeys) {
-                  onInsert(SECTION_SNIPPETS[k], k);
+                  onInsert(effectiveSnippets[k].snippet, k);
                 }
               }}
               className="h-7 gap-1.5 text-[11px] border-nexus-amber/40 text-nexus-amber hover:bg-nexus-amber/10 hover:text-nexus-amber hover:border-nexus-amber/60"
-              aria-label={`Inserir esqueletos de ${incompleteKeys.length} ${incompleteKeys.length === 1 ? 'seção pendente' : 'seções pendentes'}`}
+              aria-label={
+                hasVariant
+                  ? `Completar com variação ${activeVariantLabel} (${incompleteKeys.length} pendentes)`
+                  : `Inserir esqueletos de ${incompleteKeys.length} ${incompleteKeys.length === 1 ? 'seção pendente' : 'seções pendentes'}`
+              }
             >
               <Wand2 className="h-3 w-3" />
-              Inserir {incompleteKeys.length === 1 ? 'a pendente' : `as ${incompleteKeys.length} pendentes`}
+              {hasVariant
+                ? `Completar com ${activeVariantLabel}`
+                : `Inserir ${incompleteKeys.length === 1 ? 'a pendente' : `as ${incompleteKeys.length} pendentes`}`}
             </Button>
           )}
           <span
@@ -84,6 +155,7 @@ export function PromptSectionChecklist({ prompt, onInsert, onJumpToSection }: Pr
                 ? 'border-nexus-emerald/40 bg-nexus-emerald/15 text-nexus-emerald'
                 : 'border-nexus-amber/50 bg-nexus-amber/15 text-nexus-amber',
             )}
+            title={`${ok} de ${total} seções obrigatórias com conteúdo suficiente`}
           >
             {ok}/{total} ✓
           </span>
@@ -94,6 +166,7 @@ export function PromptSectionChecklist({ prompt, onInsert, onJumpToSection }: Pr
         {reports.map((r) => {
           const isOk = r.present && !r.thinReason;
           const isThin = r.present && !!r.thinReason;
+          const eff = effectiveSnippets[r.key];
           return (
             <li
               key={r.key}
@@ -125,6 +198,8 @@ export function PromptSectionChecklist({ prompt, onInsert, onJumpToSection }: Pr
                     ? `detectada · ${r.wordCount} palavras`
                     : isThin
                     ? `${r.thinReason}`
+                    : hasVariant && eff.fromVariant
+                    ? `${activeVariantLabel} preenche com ~${eff.words} palavras`
                     : `adicione "## ${r.label}"`}
                 </span>
               </div>
@@ -150,15 +225,15 @@ export function PromptSectionChecklist({ prompt, onInsert, onJumpToSection }: Pr
                     onClick={() => {
                       if (!r.present && onJumpToSection) {
                         // Insert + jump in a single action.
-                        onJumpToSection(r.key, SECTION_SNIPPETS[r.key]);
+                        onJumpToSection(r.key, eff.snippet);
                       } else {
                         // Splice at canonical position via key-aware onInsert.
-                        onInsert(SECTION_SNIPPETS[r.key], r.key);
+                        onInsert(eff.snippet, r.key);
                         if (onJumpToSection) onJumpToSection(r.key);
                       }
                     }}
                     className="h-7 gap-1 text-[11px] text-primary hover:bg-primary/10"
-                    aria-label={`${isThin ? 'Reinserir esqueleto da' : 'Inserir esqueleto da'} seção ${r.label}`}
+                    aria-label={`${isThin ? 'Reinserir' : 'Inserir'} seção ${r.label}${eff.fromVariant ? ` da variação ${activeVariantLabel}` : ''}`}
                   >
                     <Plus className="h-3 w-3" /> {isThin ? 'Expandir' : 'Inserir + ir'}
                   </Button>

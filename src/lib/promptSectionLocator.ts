@@ -172,3 +172,19 @@ export function insertSectionAt(
 export function getIncompleteLocations(prompt: string): SectionLocation[] {
   return locateSections(prompt).filter((l) => l.status !== 'ok');
 }
+
+/**
+ * Extract the heading + body of a single canonical section from a given prompt
+ * (typically a variant template). Returns the raw block including the `## Heading`
+ * line and stops at the next canonical heading or end of prompt.
+ *
+ * Returns `null` if the section is not present in the source prompt.
+ */
+export function extractSectionFromPrompt(
+  prompt: string,
+  key: PromptSectionKey,
+): string | null {
+  const loc = locateSections(prompt).find((l) => l.key === key);
+  if (!loc || loc.status === 'missing') return null;
+  return prompt.slice(loc.startChar, loc.endChar).replace(/\s+$/, '');
+}
