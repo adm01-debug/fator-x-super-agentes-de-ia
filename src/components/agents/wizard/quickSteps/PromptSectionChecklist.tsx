@@ -347,25 +347,40 @@ export function PromptSectionChecklist({
                   </Button>
                 )}
                 {!isOk && (
-                  <Button
-                    type="button"
-                    size="sm"
-                    variant="ghost"
-                    onClick={() => {
-                      if (!r.present && onJumpToSection) {
-                        // Insert + jump in a single action.
-                        onJumpToSection(r.key, eff.snippet);
-                      } else {
-                        // Splice at canonical position via key-aware onInsert.
-                        onInsert(eff.snippet, r.key);
-                        if (onJumpToSection) onJumpToSection(r.key);
-                      }
-                    }}
-                    className="h-7 gap-1 text-[11px] text-primary hover:bg-primary/10"
-                    aria-label={`${isThin ? 'Reinserir' : 'Inserir'} seção ${r.label}${eff.fromVariant ? ` da variação ${activeVariantLabel}` : ''}`}
-                  >
-                    <Plus className="h-3 w-3" /> {isThin ? 'Expandir' : 'Inserir + ir'}
-                  </Button>
+                  <div className="flex items-center">
+                    <Button
+                      type="button"
+                      size="sm"
+                      variant="ghost"
+                      onClick={() => {
+                        if (!r.present && onJumpToSection) {
+                          // Insert + jump in a single action.
+                          onJumpToSection(r.key, eff.snippet);
+                        } else {
+                          // Splice at canonical position via key-aware onInsert.
+                          onInsert(eff.snippet, r.key);
+                          if (onJumpToSection) onJumpToSection(r.key);
+                        }
+                      }}
+                      className="h-7 gap-1 text-[11px] text-primary hover:bg-primary/10 rounded-r-none border-r border-border/40 pr-1.5"
+                      aria-label={`${isThin ? 'Reinserir' : 'Inserir'} seção ${r.label}${eff.fromVariant ? ` da variação ${activeVariantLabel}` : ''}`}
+                    >
+                      <Plus className="h-3 w-3" /> {isThin ? 'Expandir' : 'Inserir + ir'}
+                    </Button>
+                    <SectionTemplatePicker
+                      sectionKey={r.key}
+                      sectionLabel={r.label}
+                      onPick={(tpl) => {
+                        const snippet = `\n\n${tpl.body}\n`;
+                        if (!r.present && onJumpToSection) {
+                          onJumpToSection(r.key, snippet);
+                        } else {
+                          onInsert(snippet, r.key);
+                          if (onJumpToSection) onJumpToSection(r.key);
+                        }
+                      }}
+                    />
+                  </div>
                 )}
               </div>
             </li>
