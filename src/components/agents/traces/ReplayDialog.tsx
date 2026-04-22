@@ -10,6 +10,7 @@ import { downloadJSON } from '@/lib/agentExportImport';
 import { toast } from 'sonner';
 import { listBookmarks, type TraceBookmark } from '@/lib/traceBookmarks';
 import { BookmarkButton } from './BookmarkButton';
+import { cn } from '@/lib/utils';
 
 interface Props {
   open: boolean;
