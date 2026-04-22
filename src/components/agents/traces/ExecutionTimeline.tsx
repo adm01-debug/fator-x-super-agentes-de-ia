@@ -207,6 +207,35 @@ function ExecutionSummary({
           >
             <ChevronsDownUp className="h-3.5 w-3.5" />
           </Button>
+          <span className="h-4 w-px bg-border/60 mx-1" aria-hidden />
+          <Popover>
+            <PopoverTrigger asChild>
+              <Button
+                type="button"
+                size="icon"
+                variant="ghost"
+                className="h-6 w-6"
+                aria-label="Mostrar atalhos de teclado"
+                title="Atalhos de teclado"
+              >
+                <Keyboard className="h-3.5 w-3.5" />
+              </Button>
+            </PopoverTrigger>
+            <PopoverContent align="end" className="w-64 p-3 text-xs">
+              <p className="font-semibold text-foreground mb-2 flex items-center gap-1.5">
+                <Keyboard className="h-3.5 w-3.5 text-primary" /> Atalhos de teclado
+              </p>
+              <p className="text-[10px] text-muted-foreground mb-2">
+                Clique na timeline para focar e use:
+              </p>
+              <ul className="space-y-1.5">
+                <ShortcutRow keys={['↓', 'j']} label="Próximo passo" />
+                <ShortcutRow keys={['↑', 'k']} label="Passo anterior" />
+                <ShortcutRow keys={['Home']} label="Primeiro passo" />
+                <ShortcutRow keys={['End']} label="Último passo" />
+              </ul>
+            </PopoverContent>
+          </Popover>
         </div>
       </div>
 
