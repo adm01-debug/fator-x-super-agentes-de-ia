@@ -4,7 +4,7 @@ import { Check, Star } from 'lucide-react';
 import { MODELS } from '../wizardConstants';
 import { QUICK_AGENT_TEMPLATES, type QuickAgentType } from '@/data/quickAgentTemplates';
 import type { QuickAgentForm } from '@/lib/validations/quickAgentSchema';
-import { useFieldHighlight, FIELD_HIGHLIGHT_CLS } from './useFieldHighlight';
+import { useFieldHighlight, useFieldHighlightClass } from './useFieldHighlight';
 
 interface Props {
   form: QuickAgentForm;
@@ -16,6 +16,7 @@ interface Props {
 export function StepQuickModel({ form, errors, update, highlightField }: Props) {
   const gridRef = useRef<HTMLDivElement>(null);
   const pulsing = useFieldHighlight(gridRef, highlightField === 'model');
+  const ringCls = useFieldHighlightClass(pulsing);
 
   const recommended = form.type
     ? QUICK_AGENT_TEMPLATES[form.type as QuickAgentType]?.recommendedModel
@@ -30,7 +31,7 @@ export function StepQuickModel({ form, errors, update, highlightField }: Props) 
         </p>
       </div>
 
-      <div ref={gridRef} className={`grid gap-3 sm:grid-cols-2 rounded-lg p-2 ${pulsing ? FIELD_HIGHLIGHT_CLS : ''}`}>
+      <div ref={gridRef} className={`grid gap-3 sm:grid-cols-2 rounded-lg p-2 ${ringCls}`}>
         {MODELS.map((m) => {
           const selected = form.model === m.id;
           const isRecommended = recommended === m.id;
