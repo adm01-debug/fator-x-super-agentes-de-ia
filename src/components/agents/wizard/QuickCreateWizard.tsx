@@ -703,8 +703,15 @@ export function QuickCreateWizard({ onBack }: QuickCreateWizardProps) {
     const hf = highlightField;
     const hfFor = (fields: ReadonlyArray<keyof QuickAgentForm>) =>
       hf && fields.includes(hf) ? hf : undefined;
+    // Hint inline ao lado do campo destacado — só fica ativa enquanto o
+    // restoreFeedback aponta para esse mesmo campo. Quando o usuário corrige,
+    // o wizard limpa highlightField → restoreFeedback → hint some.
+    const hintFor = (fields: ReadonlyArray<keyof QuickAgentForm>) =>
+      hf && fields.includes(hf) && restoreFeedback && restoreFeedback.field === hf
+        ? { errorType: restoreFeedback.errorType, errorMessage: restoreFeedback.errorMessage }
+        : null;
     switch (step) {
-      case 0: return <StepQuickIdentity form={form} errors={errors} update={update} highlightField={hfFor(['name', 'emoji', 'mission', 'description'])} />;
+      case 0: return <StepQuickIdentity form={form} errors={errors} update={update} highlightField={hfFor(['name', 'emoji', 'mission', 'description'])} highlightHint={hintFor(['name', 'emoji', 'mission', 'description'])} />;
       case 1: return <StepQuickType form={form} errors={errors} update={update} applyTemplate={applyTemplate} highlightField={hfFor(['type'])} />;
       case 2: return <StepQuickModel form={form} errors={errors} update={update} highlightField={hfFor(['model'])} />;
       case 3: {
@@ -715,7 +722,7 @@ export function QuickCreateWizard({ onBack }: QuickCreateWizardProps) {
       default: return null;
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [step, form, errors, highlightField, promptCustomLocked, selectedVariant]);
+  }, [step, form, errors, highlightField, restoreFeedback, promptCustomLocked, selectedVariant]);
 
   const bannerEntries: DraftBannerEntry[] = useMemo(
     () => pendingDrafts.map((d) => {
