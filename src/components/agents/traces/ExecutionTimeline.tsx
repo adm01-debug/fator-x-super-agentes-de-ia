@@ -3,6 +3,7 @@ import {
   ChevronDown, ChevronRight, Info, AlertTriangle, XCircle,
   CheckCircle2, Clock, DollarSign, Hash, Zap,
   ChevronsLeft, ChevronLeft, ChevronsRight,
+  ChevronsDownUp, ChevronsUpDown,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -31,6 +32,12 @@ export function ExecutionTimeline({ execution, selectedStep, onSelectStep }: Pro
   const [internalStep, setInternalStep] = useState(0);
   const step = selectedStep ?? internalStep;
   const total = execution.traces.length;
+
+  // Bulk expand/collapse: bump a counter + carry the desired state.
+  // TraceItem syncs its local `open` whenever this version changes.
+  const [bulk, setBulk] = useState<{ v: number; open: boolean } | null>(null);
+  const expandAll = () => setBulk((b) => ({ v: (b?.v ?? 0) + 1, open: true }));
+  const collapseAll = () => setBulk((b) => ({ v: (b?.v ?? 0) + 1, open: false }));
 
   const setStep = (i: number) => {
     if (total === 0) return;
@@ -67,6 +74,8 @@ export function ExecutionTimeline({ execution, selectedStep, onSelectStep }: Pro
         step={step}
         total={total}
         onStep={setStep}
+        onExpandAll={expandAll}
+        onCollapseAll={collapseAll}
       />
 
       <ol
@@ -83,6 +92,7 @@ export function ExecutionTimeline({ execution, selectedStep, onSelectStep }: Pro
             index={i}
             active={i === step}
             onSelect={() => setStep(i)}
+            bulk={bulk}
           />
         ))}
       </ol>
@@ -95,12 +105,14 @@ export function ExecutionTimeline({ execution, selectedStep, onSelectStep }: Pro
 /* ------------------------------------------------------------------ */
 
 function ExecutionSummary({
-  execution, step, total, onStep,
+  execution, step, total, onStep, onExpandAll, onCollapseAll,
 }: {
   execution: ExecutionGroup;
   step: number;
   total: number;
   onStep: (i: number) => void;
+  onExpandAll: () => void;
+  onCollapseAll: () => void;
 }) {
   const { counts, total_ms, total_tokens, total_cost, session_id, traces } = execution;
   const current = traces[step];
@@ -169,6 +181,31 @@ function ExecutionSummary({
           >
             <ChevronsRight className="h-3.5 w-3.5" />
           </Button>
+          <span className="h-4 w-px bg-border/60 mx-1" aria-hidden />
+          <Button
+            type="button"
+            size="icon"
+            variant="ghost"
+            className="h-6 w-6"
+            disabled={total === 0}
+            onClick={onExpandAll}
+            aria-label="Expandir todos os passos"
+            title="Expandir tudo"
+          >
+            <ChevronsUpDown className="h-3.5 w-3.5" />
+          </Button>
+          <Button
+            type="button"
+            size="icon"
+            variant="ghost"
+            className="h-6 w-6"
+            disabled={total === 0}
+            onClick={onCollapseAll}
+            aria-label="Recolher todos os passos"
+            title="Recolher tudo"
+          >
+            <ChevronsDownUp className="h-3.5 w-3.5" />
+          </Button>
         </div>
       </div>
 
@@ -225,16 +262,22 @@ interface TraceItemProps {
   index: number;
   active: boolean;
   onSelect: () => void;
+  bulk: { v: number; open: boolean } | null;
 }
 
 const TraceItem = forwardRef<HTMLLIElement, TraceItemProps>(
-  ({ trace, index, active, onSelect }, ref) => {
+  ({ trace, index, active, onSelect, bulk }, ref) => {
     const [open, setOpen] = useState(false);
     const ts = new Date(trace.created_at).toLocaleTimeString('pt-BR', { hour12: false });
 
     useEffect(() => {
       if (active) setOpen(true);
     }, [active]);
+
+    // Sync with bulk expand/collapse signal from the parent.
+    useEffect(() => {
+      if (bulk) setOpen(bulk.open);
+    }, [bulk]);
 
     const handleClick = () => {
       if (active) setOpen((o) => !o);
