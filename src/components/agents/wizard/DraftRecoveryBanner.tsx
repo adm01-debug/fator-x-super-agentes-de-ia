@@ -357,6 +357,8 @@ export function DraftRecoveryBanner({
           </div>
         </div>
 
+        <DraftPreviewLine entry={only} />
+
         <div className="flex items-center justify-end gap-2 pt-1">
           <ConfirmDialog
             trigger={
