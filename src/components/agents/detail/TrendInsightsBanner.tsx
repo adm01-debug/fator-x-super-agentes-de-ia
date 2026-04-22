@@ -56,14 +56,16 @@ export function TrendInsightsBanner({ insights }: Props) {
             const color = cmp.isPositive ? 'text-nexus-emerald' : 'text-destructive';
             const arrow = cmp.trend === 'up' ? '↗' : '↘';
             const direction = cmp.trend === 'up' ? 'cresceu' : 'caiu';
-            const judgment = cmp.isPositive ? 'positivo' : cmp.inverted && cmp.trend === 'up' ? 'precisa atenção' : 'precisa atenção';
+            const judgment = cmp.isPositive ? 'positivo' : 'precisa atenção';
+            const unit = cmp.deltaUnit ?? '%';
+            const digits = unit === 'pp' ? 2 : 1;
             return (
               <li key={i.key} className="flex items-start gap-2 text-xs">
                 <Icon className={`h-3.5 w-3.5 mt-0.5 shrink-0 ${color}`} aria-hidden="true" />
                 <p className="text-muted-foreground">
                   <span className={`font-semibold ${color}`}>
                     {arrow} {i.label} {direction} {cmp.deltaPct >= 0 ? '+' : ''}
-                    {cmp.deltaPct.toFixed(1)}%
+                    {cmp.deltaPct.toFixed(digits)}{unit}
                   </span>{' '}
                   <span className="text-foreground/80">
                     ({i.format(cmp.previous)} → {i.format(cmp.current)})
