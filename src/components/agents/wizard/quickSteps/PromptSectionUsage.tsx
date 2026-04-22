@@ -28,6 +28,26 @@ interface UsageSnapshot {
   sectionsSum: number;
   topKey: PromptSectionKey | null;
   totalPct: number;
+  suggestions: ReductionSuggestion[];
+}
+
+/**
+ * A concrete, low-risk reduction the user can apply to shrink the prompt
+ * without losing intent. Generated heuristically from the prompt text.
+ */
+interface ReductionSuggestion {
+  id: string;
+  /** Section the cut applies to (drives "Ir para" jump). */
+  sectionKey: PromptSectionKey | null;
+  sectionLabel: string;
+  /** One-line action title shown in bold. */
+  title: string;
+  /** Short explanation of WHY this is safe. */
+  rationale: string;
+  /** Estimated characters saved if applied. */
+  estCharsSaved: number;
+  /** Convenience: estCharsSaved / 4 rounded up. */
+  estTokensSaved: number;
 }
 
 function countWords(s: string): number {
