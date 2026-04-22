@@ -210,7 +210,7 @@ export function InteractiveSLOPanel({ agentId, slo, traces, daily, onDayClick }:
           </span>
           <span className="text-[11px] text-muted-foreground">do budget consumido</span>
           <span className="text-[10px] text-muted-foreground ml-auto font-mono">
-            {slo.errorRate.toFixed(2)}% / {targets.errorBudget.toFixed(1)}%
+            {effectiveSlo.errorRate.toFixed(2)}% / {targets.errorBudget.toFixed(1)}%
           </span>
         </div>
         <div className="h-2 bg-secondary/60 rounded-full overflow-hidden mb-3">
