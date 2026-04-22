@@ -250,11 +250,11 @@ export function DraftRecoveryBanner({
             size="sm"
             onClick={() => onRestore(only.id)}
             autoFocus
-            disabled={blocked}
-            title={blocked ? (only.restoreBlockedReason ?? 'Rascunho incompleto demais para retomar') : undefined}
+            title={blocked ? (only.restoreBlockedReason ?? 'Rascunho incompleto — vamos pular direto ao primeiro campo pendente') : 'Restaurar e continuar do primeiro campo pendente'}
             className="gap-1.5 nexus-gradient-bg text-primary-foreground"
           >
-            Continuar de onde parei
+            <RotateCcw className="h-3.5 w-3.5" />
+            Restaurar
           </Button>
         </div>
       </div>
