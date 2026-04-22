@@ -60,7 +60,7 @@ export function KPIDeepInsightsPanel({ insights }: Props) {
     >
       <div className="absolute top-0 right-0 w-40 h-40 bg-primary/[0.04] rounded-full blur-3xl -translate-y-1/2 translate-x-1/2" aria-hidden />
 
-      <div className="flex items-center justify-between mb-4 relative">
+      <div className="flex items-center justify-between gap-3 mb-4 relative flex-wrap">
         <div className="flex items-center gap-2">
           <div className="h-7 w-7 rounded-lg bg-primary/10 flex items-center justify-center">
             <Lightbulb className="h-3.5 w-3.5 text-primary" aria-hidden />
@@ -74,6 +74,31 @@ export function KPIDeepInsightsPanel({ insights }: Props) {
             </p>
           </div>
         </div>
+
+        <div
+          className="flex items-center gap-1.5 rounded-lg border border-border bg-secondary/30 p-1"
+          role="group"
+          aria-label="Limiar de destaque do delta percentual"
+        >
+          <span className="text-[10px] font-semibold text-muted-foreground px-1.5 uppercase tracking-wide">
+            Limiar
+          </span>
+          {THRESHOLD_PRESETS.map((t) => (
+            <button
+              key={t}
+              type="button"
+              onClick={() => setThreshold(t)}
+              aria-pressed={threshold === t}
+              className={`px-2 py-0.5 rounded-md text-[10px] font-mono font-semibold transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring ${
+                threshold === t
+                  ? 'bg-primary text-primary-foreground'
+                  : 'text-muted-foreground hover:text-foreground hover:bg-secondary/60'
+              }`}
+            >
+              ≥{t}%
+            </button>
+          ))}
+        </div>
       </div>
 
       {/* KPI selector tabs */}
@@ -81,8 +106,9 @@ export function KPIDeepInsightsPanel({ insights }: Props) {
         {insights.map((i) => {
           const Icon = KPI_ICON[i.key];
           const active = i.key === activeKey;
+          const relevant = isRelevant(i);
           const Trend = i.cmp.trend === 'up' ? TrendingUp : i.cmp.trend === 'down' ? TrendingDown : Minus;
-          const deltaColor = !i.cmp.hasPrev || i.cmp.trend === 'flat'
+          const deltaColor = !relevant
             ? 'text-muted-foreground'
             : i.cmp.isPositive ? 'text-nexus-emerald' : 'text-destructive';
           return (
@@ -104,11 +130,20 @@ export function KPIDeepInsightsPanel({ insights }: Props) {
                 <span className="text-base font-heading font-extrabold text-foreground tabular-nums">
                   {i.currentLabel}
                 </span>
-                {i.cmp.hasPrev && i.cmp.trend !== 'flat' && (
-                  <span className={`flex items-center gap-0.5 text-[10px] font-mono font-semibold ${deltaColor}`}>
-                    <Trend className="h-3 w-3" />
-                    {i.cmp.deltaPct >= 0 ? '+' : ''}{i.cmp.deltaPct.toFixed(1)}%
-                  </span>
+                {i.cmp.hasPrev && (
+                  relevant ? (
+                    <span className={`flex items-center gap-0.5 text-[10px] font-mono font-semibold ${deltaColor}`}>
+                      <Trend className="h-3 w-3" />
+                      {i.cmp.deltaPct >= 0 ? '+' : ''}{i.cmp.deltaPct.toFixed(1)}%
+                    </span>
+                  ) : (
+                    <span
+                      className="text-[10px] font-mono text-muted-foreground/70"
+                      title={`Δ ${i.cmp.deltaPct >= 0 ? '+' : ''}${i.cmp.deltaPct.toFixed(1)}% < limiar ≥${threshold}%`}
+                    >
+                      —
+                    </span>
+                  )
                 )}
               </div>
             </button>
