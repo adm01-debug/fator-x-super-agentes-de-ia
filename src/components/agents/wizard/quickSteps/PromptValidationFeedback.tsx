@@ -1,6 +1,7 @@
 import { AlertCircle, AlertTriangle, FileText } from 'lucide-react';
 import { analyzePromptStructure, getPromptIssues, PROMPT_LIMITS } from '@/lib/validations/promptSanitizer';
 import { PromptAutoFixPanel } from './PromptAutoFixPanel';
+import { PromptContradictionAutoFixPanel } from './PromptContradictionAutoFixPanel';
 import { PromptDiagnosticsPanel } from './PromptDiagnosticsPanel';
 
 interface Props {
