@@ -281,21 +281,23 @@ export function KPIDeepInsightsPanel({ daily, traces, agentName }: Props) {
                 <span className="text-base font-heading font-extrabold text-foreground tabular-nums">
                   {i.currentLabel}
                 </span>
-                {i.cmp.hasPrev && (
-                  relevant ? (
+                {i.cmp.hasPrev && (() => {
+                  const unit = i.cmp.deltaUnit ?? '%';
+                  const digits = unit === 'pp' ? 2 : 1;
+                  return relevant ? (
                     <span className={`flex items-center gap-0.5 text-[10px] font-mono font-semibold ${deltaColor}`}>
                       <Trend className="h-3 w-3" />
-                      {i.cmp.deltaPct >= 0 ? '+' : ''}{i.cmp.deltaPct.toFixed(1)}%
+                      {i.cmp.deltaPct >= 0 ? '+' : ''}{i.cmp.deltaPct.toFixed(digits)}{unit}
                     </span>
                   ) : (
                     <span
                       className="text-[10px] font-mono text-muted-foreground/70"
-                      title={`Δ ${i.cmp.deltaPct >= 0 ? '+' : ''}${i.cmp.deltaPct.toFixed(1)}% < limiar ≥${threshold}%`}
+                      title={`Δ ${i.cmp.deltaPct >= 0 ? '+' : ''}${i.cmp.deltaPct.toFixed(digits)}${unit} < limiar ≥${threshold}${unit === 'pp' ? 'pp' : '%'}`}
                     >
                       —
                     </span>
-                  )
-                )}
+                  );
+                })()}
               </div>
             </button>
           );
