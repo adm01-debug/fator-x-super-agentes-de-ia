@@ -23,6 +23,8 @@ import { PromptHighlightOverlay } from './PromptHighlightOverlay';
 import { sanitizePromptInput, PROMPT_LIMITS } from '@/lib/validations/promptSanitizer';
 import {
   detectPromptVariant,
+  QUICK_AGENT_TEMPLATES,
+  PROMPT_VARIANT_META,
   type QuickAgentType,
   type PromptVariantId,
 } from '@/data/quickAgentTemplates';
@@ -49,6 +51,12 @@ interface Props {
 export function StepQuickPrompt({ form, errors, onPromptManualEdit, onRestore, onApplyVariant, customLocked, onUnlockCustom, highlightField }: Props) {
   const detected = detectPromptVariant(form.type as QuickAgentType, form.prompt);
   const activeVariant = customLocked ? null : detected;
+  // Active variant template + label — drives the checklist's per-section snippets
+  // and the "Completar com X" CTA in real time.
+  const activeVariantPrompt = activeVariant
+    ? QUICK_AGENT_TEMPLATES[form.type as QuickAgentType]?.promptVariants[activeVariant]?.prompt ?? null
+    : null;
+  const activeVariantLabel = activeVariant ? PROMPT_VARIANT_META[activeVariant].label : null;
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const promptHighlight = highlightField === 'prompt';
   // Section-level pulse highlight (set briefly after a "jump to section" action).
@@ -285,6 +293,9 @@ export function StepQuickPrompt({ form, errors, onPromptManualEdit, onRestore, o
 
       <PromptSectionChecklist
         prompt={form.prompt}
+        activeVariantPrompt={activeVariantPrompt}
+        activeVariantLabel={activeVariantLabel}
+        customLocked={customLocked}
         onInsert={(snippet, key) => {
           if (key) {
             const { prompt: nextPrompt } = insertSectionAt(form.prompt, key, snippet);
