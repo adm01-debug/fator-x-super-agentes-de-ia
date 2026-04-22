@@ -201,6 +201,15 @@ export function CompiledPromptPreview({ form, defaultOpen = false, lastChangeKin
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [lastChangeKind]);
 
+  // Auto-expand once when a thin section first appears, so the user actually
+  // sees the highlight without manually opening the preview.
+  const prevThinCountRef = useRef(thinCount);
+  useEffect(() => {
+    if (prevThinCountRef.current === 0 && thinCount > 0 && !open) setOpen(true);
+    prevThinCountRef.current = thinCount;
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [thinCount]);
+
   const handleCopy = async () => {
     try {
       await navigator.clipboard.writeText(compiled.text);
