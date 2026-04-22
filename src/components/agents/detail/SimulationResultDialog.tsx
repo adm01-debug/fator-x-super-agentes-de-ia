@@ -226,7 +226,7 @@ export function SimulationResultDialog({ open, onOpenChange, summary, running, o
           <Button
             variant={summary ? 'outline' : 'default'}
             size="sm"
-            onClick={() => onRun(trimmed)}
+            onClick={() => onRun(trimmed, count)}
             disabled={running || overLimit}
           >
             {summary ? (
