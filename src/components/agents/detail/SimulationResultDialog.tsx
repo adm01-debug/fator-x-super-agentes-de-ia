@@ -111,6 +111,8 @@ export function SimulationResultDialog({
           </DialogDescription>
         </DialogHeader>
 
+        {!hideRunControls && (
+        <>
         {/* Editor de prompt — sempre visível para permitir editar e re-rodar */}
         <div className="space-y-1.5">
           <label htmlFor="sim-prompt" className="flex items-center gap-1.5 text-xs font-medium text-foreground">
