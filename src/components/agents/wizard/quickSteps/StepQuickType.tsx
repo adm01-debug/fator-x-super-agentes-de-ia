@@ -1,4 +1,4 @@
-import { useEffect, useRef } from 'react';
+import { useRef } from 'react';
 import { Button } from '@/components/ui/button';
 import { Sparkles, Check } from 'lucide-react';
 import {
@@ -7,6 +7,7 @@ import {
   type QuickAgentType,
 } from '@/data/quickAgentTemplates';
 import type { QuickAgentForm } from '@/lib/validations/quickAgentSchema';
+import { useFieldHighlight, FIELD_HIGHLIGHT_CLS } from './useFieldHighlight';
 
 interface Props {
   form: QuickAgentForm;
@@ -18,12 +19,7 @@ interface Props {
 
 export function StepQuickType({ form, errors, update, applyTemplate, highlightField }: Props) {
   const gridRef = useRef<HTMLDivElement>(null);
-  useEffect(() => {
-    if (highlightField === 'type' && gridRef.current) {
-      gridRef.current.scrollIntoView({ block: 'center', behavior: 'smooth' });
-    }
-  }, [highlightField]);
-  const highlight = highlightField === 'type';
+  const pulsing = useFieldHighlight(gridRef, highlightField === 'type');
   const selectedTemplate = form.type ? QUICK_AGENT_TEMPLATES[form.type as QuickAgentType] : null;
 
   return (
