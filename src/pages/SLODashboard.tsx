@@ -5,6 +5,7 @@
  * Sprint 27 — Continuous Hardening.
  */
 import { useCallback, useEffect, useRef, useState } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import { Activity, AlertTriangle, Check, RefreshCw, TrendingUp, Zap } from 'lucide-react';
 import { LightAreaChart } from '@/components/charts';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
