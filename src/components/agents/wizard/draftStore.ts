@@ -159,7 +159,21 @@ export function saveDrafts(store: DraftsStoreV2): void {
   } catch {/* ignore */}
 }
 
-/** Insert or update a draft. Enforces MAX_DRAFTS via LRU on savedAt. */
+/** Renames the agent inside a specific draft. Pure function. */
+export function renameDraft(
+  store: DraftsStoreV2,
+  id: string,
+  newName: string,
+): DraftsStoreV2 {
+  const trimmed = newName.trim();
+  const now = new Date().toISOString();
+  return {
+    ...store,
+    drafts: store.drafts.map((d) =>
+      d.id === id ? { ...d, form: { ...d.form, name: trimmed }, savedAt: now } : d,
+    ),
+  };
+}
 export function upsertDraft(
   store: DraftsStoreV2,
   draft: { id?: string; form: QuickAgentForm },

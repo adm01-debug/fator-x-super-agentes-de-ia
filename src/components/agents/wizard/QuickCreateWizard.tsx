@@ -33,6 +33,7 @@ import {
   summarizeForm,
   checkDraftRestorable,
   computeResumeTarget,
+  renameDraft,
   DRAFT_TTL_MS,
   type DraftsStoreV2,
   type DraftEntry,
@@ -47,8 +48,6 @@ const FIELD_LABEL: Partial<Record<keyof QuickAgentForm, string>> = {
   model: 'Modelo',
   prompt: 'Prompt',
 };
-
-
 const STEPS = [
   { key: 'identity', label: 'Identidade', schema: quickIdentitySchema, fields: ['name', 'emoji', 'mission', 'description'] },
   { key: 'type', label: 'Tipo', schema: quickTypeSchema, fields: ['type'] },
@@ -192,6 +191,23 @@ export function QuickCreateWizard({ onBack }: QuickCreateWizardProps) {
         ? `Continue em "${STEPS[resume.stepIdx].label}" — campo: ${FIELD_LABEL[resume.field] ?? String(resume.field)}`
         : `Continuando do passo: ${STEPS[resume.stepIdx].label}`,
     });
+  };
+
+  const handleRenameDraft = (id: string, newName: string) => {
+    const trimmed = newName.trim();
+    setDraftsStore((prev) => {
+      const next = renameDraft(prev, id, trimmed);
+      saveDrafts(next);
+      return next;
+    });
+    setPendingDrafts((prev) =>
+      prev.map((d) =>
+        d.id === id
+          ? { ...d, form: { ...d.form, name: trimmed }, savedAt: new Date().toISOString() }
+          : d,
+      ),
+    );
+    toast.success('Nome do rascunho atualizado');
   };
 
   const discardOneDraft = (id: string) => {
@@ -393,6 +409,7 @@ export function QuickCreateWizard({ onBack }: QuickCreateWizardProps) {
           onRestore={restoreDraft}
           onDiscardOne={discardOneDraft}
           onDiscardAll={discardAllDrafts}
+          onRename={handleRenameDraft}
         />
       )}
       <div className="flex items-center gap-3">
