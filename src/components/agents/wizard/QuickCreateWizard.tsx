@@ -491,7 +491,7 @@ export function QuickCreateWizard({ onBack }: QuickCreateWizardProps) {
     setConfirmOpen(true);
   };
 
-  const saveAgent = async () => {
+  const saveAgent = async (override?: { reason: string; conflictCount: number }) => {
     setConfirmOpen(false);
     if (!user) {
       toast.error('Faça login para criar agentes');
@@ -499,25 +499,56 @@ export function QuickCreateWizard({ onBack }: QuickCreateWizardProps) {
       return;
     }
     setSaving(true);
-    const { error } = await supabaseExternal.from('agents').insert({
-      user_id: user.id,
-      name: form.name.trim(),
-      mission: form.mission.trim(),
-      persona: PERSONA_FROM_TYPE[form.type as QuickAgentType],
-      model: form.model,
-      avatar_emoji: form.emoji,
-      status: 'draft' as const,
-      config: {
-        type: form.type,
-        system_prompt: form.prompt,
-        description: form.description,
-        created_via: 'quick_wizard',
-      },
-    });
+    const { data: inserted, error } = await supabaseExternal
+      .from('agents')
+      .insert({
+        user_id: user.id,
+        name: form.name.trim(),
+        mission: form.mission.trim(),
+        persona: PERSONA_FROM_TYPE[form.type as QuickAgentType],
+        model: form.model,
+        avatar_emoji: form.emoji,
+        status: 'draft' as const,
+        config: {
+          type: form.type,
+          system_prompt: form.prompt,
+          description: form.description,
+          created_via: 'quick_wizard',
+          ...(override
+            ? {
+                created_with_conflicts: true,
+                conflicts_override_reason: override.reason,
+                conflicts_count_at_creation: override.conflictCount,
+              }
+            : {}),
+        },
+      })
+      .select('id')
+      .maybeSingle();
     setSaving(false);
     if (error) {
       toast.error('Erro ao salvar agente', { description: error.message });
       return;
+    }
+    // If the user opted to bypass contradiction warnings, log a high-signal
+    // audit entry so admins can review the rationale later.
+    if (override) {
+      const insertedId = (inserted as { id?: string } | null)?.id;
+      void logAudit({
+        action: 'create',
+        resource_type: 'agent',
+        resource_id: insertedId,
+        resource_name: form.name.trim(),
+        reason: override.reason,
+        status: 'success',
+        metadata: {
+          override: 'create_with_conflicts',
+          conflicts_count: override.conflictCount,
+          agent_type: form.type,
+          model: form.model,
+          created_via: 'quick_wizard',
+        },
+      });
     }
     // Remove only the active draft (preserve other parallel drafts)
     if (draftsStore.activeId) {
@@ -527,7 +558,11 @@ export function QuickCreateWizard({ onBack }: QuickCreateWizardProps) {
         return next;
       });
     }
-    toast.success('Agente criado com sucesso!', { description: `${form.name} foi salvo como rascunho.` });
+    toast.success('Agente criado com sucesso!', {
+      description: override
+        ? `${form.name} foi salvo como rascunho com ${override.conflictCount} conflito(s) registrados.`
+        : `${form.name} foi salvo como rascunho.`,
+    });
     navigate('/agents');
   };
 
