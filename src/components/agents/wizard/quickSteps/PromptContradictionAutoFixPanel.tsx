@@ -47,6 +47,9 @@ interface PreviewState {
   title: string;
   fixedPrompt: string;
   summary: string;
+  /** When set, render the per-conflict word-level diff instead of the full
+   *  prompt diff. Absent for the "Apply all" preview which spans many lines. */
+  fix?: ContradictionAutoFix;
 }
 
 export function PromptContradictionAutoFixPanel({ prompt, onApply }: Props) {
