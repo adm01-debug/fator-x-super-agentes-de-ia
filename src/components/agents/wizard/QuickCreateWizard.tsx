@@ -253,6 +253,22 @@ export function QuickCreateWizard({ onBack }: QuickCreateWizardProps) {
     if (highlightField === key) setHighlightField(null);
   };
 
+  /** Manual prompt edit — flips the custom lock so chips stop auto-detecting. */
+  const updatePromptManual = (next: string) => {
+    setForm((prev) => ({ ...prev, prompt: next }));
+    setErrors((prev) => ({ ...prev, prompt: undefined }));
+    if (highlightField === 'prompt') setHighlightField(null);
+    setPromptCustomLocked(true);
+  };
+
+  // Reset lock automatically when the user changes the agent type.
+  useEffect(() => {
+    if (lastTypeForLockRef.current !== form.type) {
+      lastTypeForLockRef.current = form.type;
+      setPromptCustomLocked(false);
+    }
+  }, [form.type]);
+
   const applyTemplate = (type: QuickAgentType) => {
     const t = QUICK_AGENT_TEMPLATES[type];
     setForm((prev) => ({
@@ -265,6 +281,7 @@ export function QuickCreateWizard({ onBack }: QuickCreateWizardProps) {
       model: t.recommendedModel,
       prompt: t.systemPrompt,
     }));
+    setPromptCustomLocked(false);
     toast.success(`Template "${t.suggestedName}" aplicado`, {
       description: 'Nome, missão, modelo e prompt foram preenchidos.',
     });
@@ -274,16 +291,26 @@ export function QuickCreateWizard({ onBack }: QuickCreateWizardProps) {
   const restorePromptFromType = () => {
     const t = QUICK_AGENT_TEMPLATES[form.type as QuickAgentType];
     update('prompt', t.systemPrompt);
+    setPromptCustomLocked(false);
     toast.success('Prompt restaurado do template');
   };
 
-  const applyPromptVariant = (variantId: import('@/data/quickAgentTemplates').PromptVariantId) => {
+  const doApplyPromptVariant = (variantId: import('@/data/quickAgentTemplates').PromptVariantId) => {
     const t = QUICK_AGENT_TEMPLATES[form.type as QuickAgentType];
     const variant = t.promptVariants[variantId];
     update('prompt', variant.prompt);
+    setPromptCustomLocked(false);
     toast.success(`Variação "${variant.label}" aplicada`, {
       description: 'Você pode editar livremente depois.',
     });
+  };
+
+  const applyPromptVariant = (variantId: import('@/data/quickAgentTemplates').PromptVariantId) => {
+    if (promptCustomLocked && form.prompt.trim().length > 0) {
+      setPendingVariant(variantId);
+      return;
+    }
+    doApplyPromptVariant(variantId);
   };
 
   const validateStep = (idx: number): boolean => {
