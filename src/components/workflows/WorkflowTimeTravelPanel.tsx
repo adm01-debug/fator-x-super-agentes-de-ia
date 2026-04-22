@@ -243,25 +243,89 @@ export function WorkflowTimeTravelPanel({
                 {timeline.length} checkpoints
               </Badge>
             </span>
-            <Button
-              size="sm"
-              variant={compareMode ? 'default' : 'outline'}
-              className={`h-7 text-xs ${
-                compareMode
-                  ? 'bg-nexus-purple text-primary-foreground hover:bg-nexus-purple/90'
-                  : 'border-border hover:bg-nexus-purple/20 hover:text-nexus-purple'
-              }`}
-              onClick={() => {
-                const next = !compareMode;
-                setCompareMode(next);
-                if (!next) resetCompare();
-                else setInspectedState(null);
-              }}
-              aria-pressed={compareMode}
-            >
-              <ArrowLeftRight className="w-3 h-3 mr-1" />
-              {compareMode ? 'Sair da comparação' : 'Comparar steps'}
-            </Button>
+            <div className="flex items-center gap-2">
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    className="h-7 text-xs border-border hover:bg-nexus-amber/20 hover:text-nexus-amber"
+                    disabled={timeline.length === 0}
+                  >
+                    <Download className="w-3 h-3 mr-1" />
+                    Exportar
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end" className="w-56">
+                  <DropdownMenuLabel className="text-xs">
+                    Compartilhar execução
+                  </DropdownMenuLabel>
+                  <DropdownMenuSeparator />
+                  <DropdownMenuItem
+                    className="text-xs cursor-pointer"
+                    onClick={() => {
+                      openPrintablePdf({
+                        executionId,
+                        timeline,
+                        activeCheckpoint:
+                          timeline.find((t) => t.id === selectedCheckpoint) ?? null,
+                        activeState: inspectedState,
+                        totals: {
+                          cost_usd: totalCost,
+                          tokens: totalTokens,
+                          duration_ms: totalDuration,
+                        },
+                      });
+                      toast.success('Relatório aberto — use Ctrl/Cmd+P para salvar como PDF');
+                    }}
+                  >
+                    <Printer className="w-3.5 h-3.5 mr-2" />
+                    PDF (imprimir)
+                  </DropdownMenuItem>
+                  <DropdownMenuItem
+                    className="text-xs cursor-pointer"
+                    onClick={() => {
+                      downloadMarkdown({
+                        executionId,
+                        timeline,
+                        activeCheckpoint:
+                          timeline.find((t) => t.id === selectedCheckpoint) ?? null,
+                        activeState: inspectedState,
+                        totals: {
+                          cost_usd: totalCost,
+                          tokens: totalTokens,
+                          duration_ms: totalDuration,
+                        },
+                      });
+                      toast.success('Markdown baixado');
+                    }}
+                  >
+                    <FileText className="w-3.5 h-3.5 mr-2" />
+                    Markdown (.md)
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
+
+              <Button
+                size="sm"
+                variant={compareMode ? 'default' : 'outline'}
+                className={`h-7 text-xs ${
+                  compareMode
+                    ? 'bg-nexus-purple text-primary-foreground hover:bg-nexus-purple/90'
+                    : 'border-border hover:bg-nexus-purple/20 hover:text-nexus-purple'
+                }`}
+                onClick={() => {
+                  const next = !compareMode;
+                  setCompareMode(next);
+                  if (!next) resetCompare();
+                  else setInspectedState(null);
+                }}
+                aria-pressed={compareMode}
+              >
+                <ArrowLeftRight className="w-3 h-3 mr-1" />
+                {compareMode ? 'Sair da comparação' : 'Comparar steps'}
+              </Button>
+            </div>
           </CardTitle>
           {compareMode && (
             <p className="text-[11px] text-muted-foreground mt-2">
