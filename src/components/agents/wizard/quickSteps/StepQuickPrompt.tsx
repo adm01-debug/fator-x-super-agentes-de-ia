@@ -196,23 +196,38 @@ export function StepQuickPrompt({ form, errors, update, onRestore, onApplyVarian
             </span>
           </div>
         )}
-        <Textarea
-          ref={textareaRef}
-          id="qa-prompt"
-          value={form.prompt}
-          onChange={handleChange}
-          onPaste={handlePaste}
-          rows={16}
-          maxLength={PROMPT_LIMITS.MAX_TOTAL}
-          aria-invalid={!!errors.prompt}
-          aria-describedby="qa-prompt-feedback"
-          placeholder="## Persona&#10;...&#10;&#10;## Escopo&#10;...&#10;&#10;## Formato&#10;...&#10;&#10;## Regras&#10;..."
-          className={`bg-secondary/50 border-border/50 font-mono text-xs leading-relaxed resize-none ${
-            errors.prompt ? 'border-destructive' : ''
-          } ${promptHighlight ? 'ring-2 ring-warning ring-offset-2 ring-offset-background animate-pulse' : ''} ${
-            pulsedSection ? 'border-nexus-amber/50' : ''
-          }`}
-        />
+        <div className="relative">
+          <PromptSectionGutter
+            locations={locations}
+            totalLines={totalLines}
+            activeKey={pulsedSection}
+            onJump={(loc) => jumpToSection(loc.key, loc.status === 'missing' ? `## ${loc.label}\n- ` : undefined)}
+          />
+          <PromptHighlightOverlay
+            prompt={form.prompt}
+            locations={locations}
+            textareaRef={textareaRef}
+            paddingLeftPx={EDITOR_PADDING_LEFT}
+          />
+          <Textarea
+            ref={textareaRef}
+            id="qa-prompt"
+            value={form.prompt}
+            onChange={handleChange}
+            onPaste={handlePaste}
+            rows={16}
+            maxLength={PROMPT_LIMITS.MAX_TOTAL}
+            aria-invalid={!!errors.prompt}
+            aria-describedby="qa-prompt-feedback"
+            placeholder="## Persona&#10;...&#10;&#10;## Escopo&#10;...&#10;&#10;## Formato&#10;...&#10;&#10;## Regras&#10;..."
+            style={{ paddingLeft: EDITOR_PADDING_LEFT, position: 'relative', zIndex: 2, background: 'transparent' }}
+            className={`bg-secondary/50 border-border/50 font-mono text-xs leading-relaxed resize-none ${
+              errors.prompt ? 'border-destructive' : ''
+            } ${promptHighlight ? 'ring-2 ring-warning ring-offset-2 ring-offset-background animate-pulse' : ''} ${
+              pulsedSection ? 'border-nexus-amber/50' : ''
+            }`}
+          />
+        </div>
         {errors.prompt && (
           <div className="text-[11px] text-destructive" role="alert">
             {errors.prompt}
@@ -225,7 +240,14 @@ export function StepQuickPrompt({ form, errors, update, onRestore, onApplyVarian
 
       <PromptSectionChecklist
         prompt={form.prompt}
-        onInsert={(snippet) => update('prompt', form.prompt + snippet)}
+        onInsert={(snippet, key) => {
+          if (key) {
+            const { prompt: nextPrompt } = insertSectionAt(form.prompt, key, snippet);
+            update('prompt', nextPrompt);
+          } else {
+            update('prompt', form.prompt + snippet);
+          }
+        }}
         onJumpToSection={jumpToSection}
       />
 
