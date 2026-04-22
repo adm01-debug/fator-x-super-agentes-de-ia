@@ -343,7 +343,9 @@ export function KPIDeepInsightsPanel({ daily, traces, agentName }: Props) {
               <p className="text-[11px] text-muted-foreground mt-0.5 leading-snug">
                 Variação de{' '}
                 <span className="font-mono text-foreground/80">
-                  {active.cmp.deltaPct >= 0 ? '+' : ''}{active.cmp.deltaPct.toFixed(1)}%
+                  {active.cmp.deltaPct >= 0 ? '+' : ''}
+                  {active.cmp.deltaPct.toFixed((active.cmp.deltaUnit ?? '%') === 'pp' ? 2 : 1)}
+                  {active.cmp.deltaUnit ?? '%'}
                 </span>{' '}
                 está abaixo do limiar configurado de{' '}
                 <span className="font-mono text-foreground/80">≥{threshold}%</span>. Ajuste o limiar acima para inspecionar deltas menores.
