@@ -47,6 +47,7 @@ function successBg(rate: number): string {
 
 export function SimulationResultDialog({ open, onOpenChange, summary, running, onRun, agentName }: Props) {
   const [prompt, setPrompt] = useState('');
+  const [count, setCount] = useState<CountValue>(10);
 
   // Reseta o prompt cada vez que o diálogo abre sem resultado prévio
   useEffect(() => {
