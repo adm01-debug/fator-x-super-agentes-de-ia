@@ -92,6 +92,25 @@ export default function AgentTracesPage() {
     [executions, selectedId],
   );
 
+  // Restore last viewed step whenever the effective session changes.
+  const effectiveSessionId = selected?.session_id ?? null;
+  const effectiveTotal = selected?.traces.length ?? 0;
+  useEffect(() => {
+    if (!effectiveSessionId) { setSelectedStep(0); return; }
+    const map = readStepMap();
+    const saved = map[effectiveSessionId] ?? 0;
+    setSelectedStep(Math.max(0, Math.min(saved, Math.max(0, effectiveTotal - 1))));
+  }, [effectiveSessionId, effectiveTotal]);
+
+  // Persist step changes for the effective session.
+  useEffect(() => {
+    if (!effectiveSessionId) return;
+    const map = readStepMap();
+    if (map[effectiveSessionId] === selectedStep) return;
+    map[effectiveSessionId] = selectedStep;
+    writeStepMap(map);
+  }, [effectiveSessionId, selectedStep]);
+
   const totals = useMemo(() => {
     const errors = traces.filter((t) => t.level === 'error').length;
     const cost = traces.reduce((s, t) => s + Number(t.cost_usd ?? 0), 0);
