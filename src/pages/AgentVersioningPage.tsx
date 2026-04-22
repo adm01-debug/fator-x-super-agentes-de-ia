@@ -16,6 +16,8 @@ import { VersionTimeline } from "@/components/agents/versioning/VersionTimeline"
 import { VersionDetailPanel } from "@/components/agents/versioning/VersionDetailPanel";
 import { VersionComparePanel } from "@/components/agents/versioning/VersionComparePanel";
 import { NewVersionDialog } from "@/components/agents/versioning/NewVersionDialog";
+import { TimelinePresetBar } from "@/components/agents/versioning/TimelinePresetBar";
+import { TIMELINE_PRESETS, getPresetById, matchesPreset } from "@/components/agents/versioning/timelineFilters";
 
 export default function AgentVersioningPage() {
   const { id } = useParams();
