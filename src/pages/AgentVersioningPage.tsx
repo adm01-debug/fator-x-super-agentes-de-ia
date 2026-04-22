@@ -124,9 +124,18 @@ export default function AgentVersioningPage() {
     [versions, selectedId, aId, bId],
   );
   const filteredVersions = useMemo(() => {
-    if (activePreset.id === 'all') return versions;
-    return versions.filter((v) => pinnedIds.has(v.id) || matchesPreset(v, activePreset));
-  }, [versions, activePreset, pinnedIds]);
+    let list = versions;
+    if (range.mode !== 'off') {
+      list = filterByRange(list, range).filter((v) => true);
+      // Mantém pinned (current/sel/A/B) para não quebrar a navegação ativa.
+      const pinned = versions.filter((v) => pinnedIds.has(v.id) && !list.some((x) => x.id === v.id));
+      list = [...list, ...pinned].sort((a, b) => b.version - a.version);
+    }
+    if (activePreset.id !== 'all') {
+      list = list.filter((v) => pinnedIds.has(v.id) || matchesPreset(v, activePreset));
+    }
+    return list;
+  }, [versions, activePreset, pinnedIds, range]);
   const presetCounts = useMemo(() => {
     const counts: Record<string, number> = {};
     for (const preset of TIMELINE_PRESETS) {
