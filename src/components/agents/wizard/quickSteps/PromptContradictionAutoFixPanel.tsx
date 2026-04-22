@@ -11,8 +11,8 @@
  * Designed to sit ABOVE the existing PromptAutoFixPanel because contradictions
  * block agent creation and have higher priority than housekeeping fixes.
  */
-import { useMemo, useState } from 'react';
-import { GitMerge, Eye, Wand2, Sparkles } from 'lucide-react';
+import { useEffect, useMemo, useRef, useState } from 'react';
+import { GitMerge, Eye, Wand2, Sparkles, Undo2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import {
   AlertDialog,
