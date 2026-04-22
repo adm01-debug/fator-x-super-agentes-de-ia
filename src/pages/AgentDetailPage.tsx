@@ -271,7 +271,7 @@ function VersionHistory({ agentId }: { agentId: string }) {
               <div className="space-y-3 text-sm">
                 <p>
                   Será criada uma nova versão <span className="font-mono font-semibold text-foreground">v{nextVersionNumber}</span>{' '}
-                  copiando prompt, ferramentas e modelo de{' '}
+                  copiando os campos selecionados de{' '}
                   <span className="font-mono font-semibold text-foreground">v{previous?.version}</span>.
                 </p>
                 <div className="rounded-lg bg-secondary/40 p-3 text-xs space-y-1.5">
@@ -288,11 +288,55 @@ function VersionHistory({ agentId }: { agentId: string }) {
                     <span className="font-mono text-nexus-emerald">v{nextVersionNumber}</span>
                   </div>
                 </div>
-                {previous && (
+
+                {/* Seleção granular de campos a copiar — desmarcar tudo bloqueia o rollback */}
+                <fieldset className="rounded-lg border border-border bg-card/40 p-3 space-y-2">
+                  <legend className="text-[11px] font-semibold uppercase tracking-wider text-foreground px-1">
+                    Campos a copiar
+                  </legend>
+                  <RestoreOptionRow
+                    id="opt-prompt"
+                    icon={MessageSquare}
+                    label="Prompt"
+                    description="System prompt, prompt legado e missão"
+                    checked={copyPrompt}
+                    onChange={setCopyPrompt}
+                    disabled={rollbackMut.isPending}
+                  />
+                  <RestoreOptionRow
+                    id="opt-tools"
+                    icon={Wrench}
+                    label="Ferramentas"
+                    description="Lista de tools/functions ativas"
+                    checked={copyTools}
+                    onChange={setCopyTools}
+                    disabled={rollbackMut.isPending}
+                  />
+                  <RestoreOptionRow
+                    id="opt-model"
+                    icon={Cpu}
+                    label="Modelo & parâmetros"
+                    description="Modelo, persona, temperature, max_tokens, reasoning"
+                    checked={copyModel}
+                    onChange={setCopyModel}
+                    disabled={rollbackMut.isPending}
+                  />
+                  {!hasAnyOptionSelected && (
+                    <div
+                      role="alert"
+                      className="flex items-start gap-2 rounded-md border border-destructive/40 bg-destructive/10 px-2.5 py-1.5 text-[11px] text-destructive"
+                    >
+                      <AlertTriangle className="h-3 w-3 mt-0.5 shrink-0" aria-hidden />
+                      <span>Selecione ao menos um campo para restaurar — sem nada marcado o rollback não tem efeito.</span>
+                    </div>
+                  )}
+                </fieldset>
+
+                {previous && hasAnyOptionSelected && (
                   <RestoreDiffPreview
                     current={current}
                     source={previous}
-                    options={{ copyPrompt: true, copyTools: true, copyModel: true }}
+                    options={restoreOptions}
                   />
                 )}
                 <p className="text-xs text-muted-foreground">
@@ -305,8 +349,9 @@ function VersionHistory({ agentId }: { agentId: string }) {
             <AlertDialogCancel disabled={rollbackMut.isPending}>Cancelar</AlertDialogCancel>
             <AlertDialogAction
               onClick={(e) => { e.preventDefault(); rollbackMut.mutate(); }}
-              disabled={rollbackMut.isPending}
+              disabled={rollbackMut.isPending || !hasAnyOptionSelected}
               className="gap-1.5"
+              title={!hasAnyOptionSelected ? 'Selecione ao menos um campo' : undefined}
             >
               {rollbackMut.isPending ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Undo2 className="h-3.5 w-3.5" />}
               Confirmar rollback
