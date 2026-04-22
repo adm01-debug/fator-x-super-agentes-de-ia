@@ -54,47 +54,61 @@ export function StepQuickPrompt({ form, errors, update, onRestore, onApplyVarian
     }
   }, [promptHighlight]);
 
+  // Memoized section locations — drives gutter, overlay, and jump targets.
+  const locations = useMemo(() => locateSections(form.prompt), [form.prompt]);
+  const totalLines = useMemo(() => form.prompt.split('\n').length, [form.prompt]);
+
+  /**
+   * Insert a section snippet at its canonical position (Persona → Escopo →
+   * Formato → Regras), then return the inserted heading char range so the
+   * caller can focus / select it.
+   */
+  const insertSectionSnippet = (key: PromptSectionKey, snippet: string): [number, number] => {
+    const { prompt: nextPrompt, insertedRange } = insertSectionAt(form.prompt, key, snippet);
+    update('prompt', nextPrompt);
+    return insertedRange;
+  };
+
   /**
    * Scroll the textarea, place the caret on the section's heading line,
    * select that line, and apply a brief pulse highlight on the editor.
-   * If the section heading isn't present yet, insert a snippet first then jump to it.
+   * If the section heading isn't present yet, insert a snippet at its canonical
+   * position first then jump to it.
    */
   const jumpToSection = (key: PromptSectionKey, snippetIfMissing?: string) => {
     let workingPrompt = form.prompt;
-    let lineIdx = findSectionLineIndex(workingPrompt, key);
+    let selRange: [number, number] | null = null;
 
-    if (lineIdx === -1 && snippetIfMissing) {
-      // Insert and immediately operate on the new value (textarea will reflect on next tick).
-      workingPrompt = workingPrompt + snippetIfMissing;
-      update('prompt', workingPrompt);
-      lineIdx = findSectionLineIndex(workingPrompt, key);
+    const existing = locations.find((l) => l.key === key);
+    if ((!existing || existing.status === 'missing') && snippetIfMissing) {
+      const inserted = insertSectionSnippet(key, snippetIfMissing);
+      // Recompute working prompt locally for offset math (state hasn't flushed yet).
+      const { prompt: np, insertedRange } = insertSectionAt(form.prompt, key, snippetIfMissing);
+      workingPrompt = np;
+      selRange = insertedRange;
+      void inserted;
+    } else if (existing && existing.status !== 'missing') {
+      selRange = [existing.startChar, Math.min(workingPrompt.length, existing.endChar)];
     }
 
-    // Visual pulse — works even if the textarea isn't focusable yet.
+    // Visual pulse on the editor card.
     setPulsedSection(key);
     if (sectionPulseRef.current) window.clearTimeout(sectionPulseRef.current);
-    sectionPulseRef.current = window.setTimeout(() => setPulsedSection(null), 1500);
+    sectionPulseRef.current = window.setTimeout(() => setPulsedSection(null), 1800);
 
-    if (lineIdx === -1) return;
+    if (!selRange) return;
+    const [start, end] = selRange;
 
-    // Compute caret offset = sum of line lengths + newlines up to lineIdx.
-    const lines = workingPrompt.split('\n');
-    let offset = 0;
-    for (let i = 0; i < lineIdx; i++) offset += lines[i].length + 1;
-    const lineLen = lines[lineIdx].length;
+    // Approximate line index from char offset for scrollTop math.
+    const linesUpTo = workingPrompt.slice(0, start).split('\n').length - 1;
 
-    // Need to wait for state to flush so textarea contains the newly-inserted snippet.
     requestAnimationFrame(() => {
       const el = textareaRef.current;
       if (!el) return;
       el.focus({ preventScroll: true });
-      // Approximate scroll: use line height heuristic on the textarea itself.
-      const lineHeight =
-        parseFloat(getComputedStyle(el).lineHeight || '0') || 16;
-      el.scrollTop = Math.max(0, lineIdx * lineHeight - el.clientHeight / 3);
-      try {
-        el.setSelectionRange(offset, offset + lineLen);
-      } catch {/* some browsers throw on huge values; ignore */}
+      const lineHeight = parseFloat(getComputedStyle(el).lineHeight || '0') || 16;
+      el.scrollTop = Math.max(0, linesUpTo * lineHeight - el.clientHeight / 3);
+      try { el.setSelectionRange(start, end); } catch { /* ignore */ }
       el.scrollIntoView({ block: 'center', behavior: 'smooth' });
     });
   };
