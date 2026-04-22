@@ -42,14 +42,10 @@ interface ResumeStepDef {
   fields: readonly string[];
 }
 
-// Mapeia o code do zod (ou heurística) para um tipo curto e legível.
 function classifyZodCode(code: string | undefined, message: string | undefined, isEmpty: boolean): DraftResumeTarget['errorType'] {
   if (isEmpty) return 'required';
   if (!code) return 'unknown';
-  if (code === 'too_small') {
-    // zod usa "too_small" tanto para string vazia quanto curta — diferenciamos pela presença de texto
-    return isEmpty ? 'required' : 'too_small';
-  }
+  if (code === 'too_small') return isEmpty ? 'required' : 'too_small';
   if (code === 'too_big') return 'too_big';
   if (code === 'invalid_type') return 'invalid_type';
   if (code === 'custom') return 'custom';

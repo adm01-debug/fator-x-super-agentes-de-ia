@@ -14,7 +14,6 @@ interface Props {
   onDismiss: () => void;
 }
 
-// Tradução do tipo de erro vindo do zod para uma label curta e visual.
 const ERROR_TYPE_LABEL: Record<NonNullable<DraftResumeTarget['errorType']>, string> = {
   required: 'Campo obrigatório',
   too_small: 'Muito curto',
@@ -34,10 +33,9 @@ const ERROR_TYPE_TONE: Record<NonNullable<DraftResumeTarget['errorType']>, strin
 };
 
 /**
- * Banner inline que aparece logo após o usuário restaurar um rascunho,
- * destacando o primeiro erro encontrado: tipo, campo, passo e mensagem.
- * Espelha o `highlightField` — quando o usuário corrige o campo, o banner
- * é dispensado pelo wizard.
+ * Banner inline que aparece logo após restaurar um rascunho. Destaca o
+ * primeiro erro encontrado e oferece o CTA "Corrigir agora", que abre o
+ * passo correspondente do wizard e foca o campo com pulse visual.
  */
 export function RestoreFeedbackBanner({ info, onJumpToField, onDismiss }: Props) {
   const errorType = info.errorType ?? 'unknown';
@@ -85,14 +83,15 @@ export function RestoreFeedbackBanner({ info, onJumpToField, onDismiss }: Props)
         )}
       </div>
 
-      <div className="flex items-center gap-1 shrink-0">
+      <div className="flex items-center gap-1.5 shrink-0">
         <button
           type="button"
           onClick={onJumpToField}
-          className="inline-flex items-center gap-1 h-7 px-2 rounded-md text-[11px] font-medium bg-primary/10 text-primary hover:bg-primary/20 transition-colors"
-          title="Rolar até o campo destacado"
+          className="inline-flex items-center gap-1.5 h-8 px-3 rounded-md text-[12px] font-semibold bg-primary text-primary-foreground hover:bg-primary/90 shadow-sm hover:shadow-md transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background"
+          title="Abrir o passo correspondente e focar o campo destacado"
+          autoFocus
         >
-          Ir ao campo <ArrowRight className="h-3 w-3" />
+          Corrigir agora <ArrowRight className="h-3.5 w-3.5" />
         </button>
         <button
           type="button"
