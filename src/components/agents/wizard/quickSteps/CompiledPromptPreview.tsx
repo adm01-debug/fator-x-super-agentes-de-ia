@@ -1,9 +1,14 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Check, ChevronDown, ChevronUp, Copy, Eye, FileText, Sparkles } from 'lucide-react';
+import { AlertTriangle, Check, ChevronDown, ChevronUp, Copy, Eye, FileText, Sparkles } from 'lucide-react';
 import { compilePrompt } from '@/lib/promptCompiler';
 import type { QuickAgentForm } from '@/lib/validations/quickAgentSchema';
+import {
+  REQUIRED_PROMPT_SECTIONS,
+  analyzeSectionContent,
+  type PromptSectionKey,
+} from '@/lib/validations/quickAgentSchema';
 import { cn } from '@/lib/utils';
 
 interface Props {
