@@ -80,10 +80,13 @@ export function PromptVariantSelector({ type, activeVariant, onSelect, customLoc
                   <button
                     type="button"
                     className="text-[10px] inline-flex items-center gap-1 px-2 py-0.5 rounded-full border border-border/60 bg-secondary/50 text-muted-foreground hover:text-foreground hover:bg-secondary/80 transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-primary/50"
-                    title="Ver prévia do que muda em cada variação antes de destravar."
+                    title="Ver prévia do que muda em cada variação antes de destravar. Atalho: Ctrl/Cmd+U destrava direto."
                   >
                     <Unlock className="h-2.5 w-2.5" />
                     Sair do modo custom
+                    <kbd className="ml-1 hidden sm:inline-flex items-center gap-0.5 px-1 rounded border border-border/60 bg-background/60 text-[9px] font-mono text-muted-foreground">
+                      ⌘U
+                    </kbd>
                   </button>
                 }
               />
