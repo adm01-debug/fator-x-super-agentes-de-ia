@@ -58,12 +58,29 @@ function availabilityStatus(value: number, target: number): Status {
 export function InteractiveSLOPanel({ agentId, slo, traces, daily, onDayClick }: Props) {
   const { targets, setTargets, reset } = useAgentSLOTargets(agentId);
 
+  const [windowKey, setWindowKey] = useState<EvalWindowKey>('14d');
+  const activeWindow = EVAL_WINDOWS.find((w) => w.key === windowKey) ?? EVAL_WINDOWS[4];
+
+  // Filter traces by selected evaluation window and recompute SLO from that subset.
+  const windowedTraces = useMemo(
+    () => filterTracesByWindow(traces, activeWindow.ms),
+    [traces, activeWindow.ms],
+  );
+  const windowedSlo = useMemo(() => computeSLO(windowedTraces), [windowedTraces]);
+
   const timeline = useMemo(
-    () => buildViolationTimeline(traces, { p95: targets.p95, p99: targets.p99 }, 14),
-    [traces, targets.p95, targets.p99],
+    () => buildViolationBuckets(
+      windowedTraces,
+      { p95: targets.p95, p99: targets.p99 },
+      activeWindow.ms,
+      activeWindow.buckets,
+    ),
+    [windowedTraces, targets.p95, targets.p99, activeWindow.ms, activeWindow.buckets],
   );
 
-  const burn = useMemo(() => computeBudgetBurn(slo, targets.errorBudget), [slo, targets.errorBudget]);
+  // Use windowed SLO for cards/burn so everything reflects the same window.
+  const effectiveSlo = windowedTraces.length > 0 ? windowedSlo : slo;
+  const burn = useMemo(() => computeBudgetBurn(effectiveSlo, targets.errorBudget), [effectiveSlo, targets.errorBudget]);
 
   const cards: Array<{
     key: keyof SLOTargetsConfig;
