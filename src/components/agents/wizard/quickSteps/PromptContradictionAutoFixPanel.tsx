@@ -144,18 +144,19 @@ export function PromptContradictionAutoFixPanel({ prompt, onApply }: Props) {
             {fixes.map((fix, idx) => (
               <FixRow
                 key={idx}
-                fix={fix}
-                onPreview={() =>
+                prompt={prompt}
+                conflict={fix.conflict}
+                onPreview={(builtFix) =>
                   openPreview(
-                    `Unificar regras (${CONTRADICTION_KIND_LABEL[fix.conflict.kind]})`,
-                    fix.fixedPrompt,
-                    `Linhas ${fix.conflict.lineA} e ${fix.conflict.lineB} substituídas por uma única regra unificada.`,
+                    `Unificar regras (${CONTRADICTION_KIND_LABEL[builtFix.conflict.kind]})`,
+                    builtFix.fixedPrompt,
+                    `Linhas ${builtFix.conflict.lineA} e ${builtFix.conflict.lineB} substituídas pela sugestão escolhida.`,
                   )
                 }
-                onApply={() =>
+                onApply={(builtFix) =>
                   applyAndRecord(
-                    fix.fixedPrompt,
-                    `Contradição (${CONTRADICTION_KIND_LABEL[fix.conflict.kind]}) resolvida nas linhas ${fix.conflict.lineA} ↔ ${fix.conflict.lineB}.`,
+                    builtFix.fixedPrompt,
+                    `Contradição (${CONTRADICTION_KIND_LABEL[builtFix.conflict.kind]}) resolvida nas linhas ${builtFix.conflict.lineA} ↔ ${builtFix.conflict.lineB}.`,
                   )
                 }
               />
