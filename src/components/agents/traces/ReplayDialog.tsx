@@ -56,6 +56,13 @@ export function ReplayDialog({ open, onOpenChange, execution, initialStep = 0, o
     setPlaying(false);
   }, [open, execution?.session_id, initialStep, total]);
 
+  // Notify parent on every step change while the dialog is open so the external
+  // timeline stays highlighted in sync with the replay.
+  useEffect(() => {
+    if (!open) return;
+    onStepChange?.(step);
+  }, [open, step, onStepChange]);
+
   // Player loop
   useEffect(() => {
     if (!playing || !current) return;
