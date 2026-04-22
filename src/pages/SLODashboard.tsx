@@ -255,12 +255,18 @@ export default function SLODashboard() {
     if (compareHours <= 0) next.delete(QP_COMPARE);
     else next.set(QP_COMPARE, String(compareHours));
 
+    // Failure-mode filters: omit when "all selected" (default), otherwise
+    // serialize as a stable comma-separated list so URLs are deterministic.
+    const fmArr = ALL_FAILURE_MODES.filter((m) => failureModes.has(m));
+    if (fmArr.length === ALL_FAILURE_MODES.length) next.delete(QP_FAILURE_MODES);
+    else next.set(QP_FAILURE_MODES, fmArr.join(','));
+
     // Avoid an infinite update loop: only call setSearchParams when the
     // serialized result actually differs from what's already in the URL.
     if (next.toString() !== searchParams.toString()) {
       setSearchParams(next, { replace: true });
     }
-  }, [windowHours, autoRefreshMs, compareHours, searchParams, setSearchParams]);
+  }, [windowHours, autoRefreshMs, compareHours, failureModes, searchParams, setSearchParams]);
 
   // React to back/forward navigation (or another link that mutates the URL)
   // by re-reading the params into local state.
