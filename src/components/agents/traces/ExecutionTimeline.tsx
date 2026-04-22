@@ -219,7 +219,7 @@ function ExecutionSummary({
   onJumpBookmark: (dir: 1 | -1) => void;
   onBookmarksChange: (bookmarks: TraceBookmark[]) => void;
 }) {
-  const currentTrace = execution.traces[step];
+  
   const { counts, total_ms, total_tokens, total_cost, session_id, traces } = execution;
   const current = traces[step];
   const isAuto = session_id.startsWith('auto-');
