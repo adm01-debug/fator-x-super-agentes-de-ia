@@ -32,10 +32,28 @@ import {
   setActive,
   summarizeForm,
   checkDraftRestorable,
+  computeResumeTarget,
   DRAFT_TTL_MS,
   type DraftsStoreV2,
   type DraftEntry,
 } from './draftStore';
+
+const FIELD_LABEL: Partial<Record<keyof QuickAgentForm, string>> = {
+  name: 'Nome',
+  emoji: 'Emoji',
+  mission: 'Missão',
+  description: 'Descrição',
+  type: 'Tipo',
+  model: 'Modelo',
+  prompt: 'Prompt',
+};
+
+const STEP_FIELDS: Record<number, ReadonlyArray<keyof QuickAgentForm>> = {
+  0: ['name', 'emoji', 'mission', 'description'],
+  1: ['type'],
+  2: ['model'],
+  3: ['prompt'],
+};
 
 const STEPS = [
   { key: 'identity', label: 'Identidade', schema: quickIdentitySchema, fields: ['name', 'emoji', 'mission', 'description'] },
