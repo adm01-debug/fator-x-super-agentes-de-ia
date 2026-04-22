@@ -87,6 +87,8 @@ export interface DraftEntry {
   form: QuickAgentForm;
   savedAt: string;   // ISO
   createdAt: string; // ISO
+  /** When true, the prompt was manually edited — variant chips should not auto-detect. */
+  promptCustomLocked?: boolean;
 }
 
 export interface DraftsStoreV2 {
