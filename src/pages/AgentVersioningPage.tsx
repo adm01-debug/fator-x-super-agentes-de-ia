@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-import { useParams, useNavigate } from "react-router-dom";
+import { useParams, useNavigate, useSearchParams } from "react-router-dom";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { Loader2, Plus, GitCompare, Eye, GitBranch } from "lucide-react";
@@ -21,12 +21,16 @@ export default function AgentVersioningPage() {
   const { id } = useParams();
   const navigate = useNavigate();
   const queryClient = useQueryClient();
+  const [searchParams, setSearchParams] = useSearchParams();
+  const focusId = searchParams.get('focus');
 
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [aId, setAId] = useState<string | null>(null);
   const [bId, setBId] = useState<string | null>(null);
   const [mode, setMode] = useState<'detail' | 'compare'>('detail');
   const [newOpen, setNewOpen] = useState(false);
+  // Quando vier um ?focus=<id>, destaca a versão por ~3s e remove o param da URL.
+  const [highlightId, setHighlightId] = useState<string | null>(null);
 
   const { data: agent } = useQuery({
     queryKey: ['agent', id],
