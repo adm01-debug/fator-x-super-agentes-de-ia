@@ -31,10 +31,6 @@ function genId(): string {
   return `p_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
 }
 
-function empty(): PromptHistoryStore {
-  return { version: 1, snapshots: [] };
-}
-
 export function loadPromptHistory(): PromptSnapshot[] {
   try {
     const raw = localStorage.getItem(PROMPT_HISTORY_KEY);
