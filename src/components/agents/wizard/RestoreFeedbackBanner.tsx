@@ -1,5 +1,6 @@
 import { AlertCircle, ArrowRight, X } from 'lucide-react';
 import type { DraftResumeTarget } from './draftStore';
+import { usePrefersReducedMotion } from '@/hooks/usePrefersReducedMotion';
 
 export interface RestoreFeedbackInfo extends DraftResumeTarget {
   /** Label legível do campo (ex: "Missão" em vez de "mission"). */
