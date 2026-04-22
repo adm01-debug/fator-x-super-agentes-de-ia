@@ -248,14 +248,21 @@ export function DraftRecoveryBanner({
         <Button variant="ghost" size="sm" onClick={onDiscardAll} className="gap-1.5 text-muted-foreground hover:text-destructive">
           <X className="h-3.5 w-3.5" /> Descartar todos
         </Button>
-        <Button
-          size="sm"
-          onClick={() => selectedId && onRestore(selectedId)}
-          disabled={!selectedId}
-          className="gap-1.5 nexus-gradient-bg text-primary-foreground"
-        >
-          Continuar selecionado
-        </Button>
+        {(() => {
+          const selected = drafts.find((d) => d.id === selectedId);
+          const blocked = selected?.restorable === false;
+          return (
+            <Button
+              size="sm"
+              onClick={() => selectedId && onRestore(selectedId)}
+              disabled={!selectedId || blocked}
+              title={blocked ? (selected?.restoreBlockedReason ?? 'Rascunho incompleto demais para retomar') : undefined}
+              className="gap-1.5 nexus-gradient-bg text-primary-foreground"
+            >
+              Continuar selecionado
+            </Button>
+          );
+        })()}
       </div>
     </div>
   );
