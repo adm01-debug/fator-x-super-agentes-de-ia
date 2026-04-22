@@ -125,11 +125,19 @@ export function ReplayDialog({ open, onOpenChange, execution, initialStep = 0, o
         e.preventDefault();
         setStep(0);
         setPlaying(false);
+      } else if (e.key === 'b' && bookmarks.length > 0) {
+        e.preventDefault();
+        jumpBookmark(1);
+      } else if (e.key === 'B' && bookmarks.length > 0) {
+        e.preventDefault();
+        jumpBookmark(-1);
       }
     };
     window.addEventListener('keydown', handler);
     return () => window.removeEventListener('keydown', handler);
-  }, [open, total]);
+    // jumpBookmark closes over `step` but we read from setState callbacks; bookmarks list change retriggers.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [open, total, bookmarks, step]);
 
   if (!execution) return null;
 
