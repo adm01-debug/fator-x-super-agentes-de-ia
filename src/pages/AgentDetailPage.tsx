@@ -15,6 +15,7 @@ import { SavedTestRunsPanel } from "@/components/agents/detail/SavedTestRunsPane
 import { RestoreDiffPreview } from "@/components/agents/detail/RestoreDiffPreview";
 import { RestoreChangelogEditor, buildAutoSummary } from "@/components/agents/detail/RestoreChangelogEditor";
 import { computeRestoreDiff } from "@/components/agents/detail/restoreDiffHelpers";
+import { RestoreHistorySection } from "@/components/agents/detail/RestoreHistorySection";
 import { simulateAgentRun, type SimulationSummary } from "@/services/agentTestSimulationService";
 import {
   AlertDialog, AlertDialogContent, AlertDialogHeader, AlertDialogFooter,
@@ -235,6 +236,7 @@ function VersionHistory({ agentId }: { agentId: string }) {
   const canRollback = !!previous && !!current;
 
   return (
+    <>
     <div className="nexus-card">
       <div className="flex items-center justify-between mb-3">
         <h3 className="text-sm font-heading font-semibold text-foreground">Histórico de Versões</h3>
@@ -391,6 +393,8 @@ function VersionHistory({ agentId }: { agentId: string }) {
         </AlertDialogContent>
       </AlertDialog>
     </div>
+    <RestoreHistorySection agentId={agentId} versions={versions as AgentVersion[]} />
+    </>
   );
 }
 
