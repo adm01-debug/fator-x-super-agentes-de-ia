@@ -157,6 +157,164 @@ function NameLabelOrEditor({ draft, isEditing, onStartEdit, onCancel, onConfirm 
   );
 }
 
+// Lista nominal dos campos NÃO preenchidos — usada no painel de explicação
+// do modo parcial (o que será pulado/destacado).
+function missingFieldsList(summary: DraftSummary): string[] {
+  const out: string[] = [];
+  if (!summary.hasIdentity) out.push('Identidade');
+  if (!summary.hasType) out.push('Tipo');
+  if (!summary.hasModel) out.push('Modelo');
+  if (!summary.hasPrompt) out.push('Prompt');
+  return out;
+}
+
+interface RestoreModeSelectorProps {
+  mode: RestoreMode;
+  onChange: (mode: RestoreMode) => void;
+  summary: DraftSummary;
+}
+
+// Seletor visual entre "Restaurar completo" e "Restaurar parcial".
+// Mostra explicitamente o que será pulado e o que será destacado, pra o
+// usuário entender o efeito antes de clicar em Restaurar.
+function RestoreModeSelector({ mode, onChange, summary }: RestoreModeSelectorProps) {
+  const filled = filledFieldsList(summary);
+  const missing = missingFieldsList(summary);
+  const allFilled = missing.length === 0;
+  const noneFilled = filled.length === 0;
+  // Se tudo está preenchido, parcial não faz sentido — mantemos o seletor
+  // visível mas com tooltip explicando.
+  const partialDisabled = allFilled || noneFilled;
+
+  return (
+    <div className="rounded-lg border border-border/40 bg-background/30 p-2 space-y-2">
+      <div
+        role="radiogroup"
+        aria-label="Modo de restauração"
+        className="grid grid-cols-2 gap-1.5"
+      >
+        <button
+          type="button"
+          role="radio"
+          aria-checked={mode === 'full'}
+          onClick={() => onChange('full')}
+          className={cn(
+            'flex items-start gap-2 rounded-md border px-2.5 py-2 text-left transition-all focus:outline-none focus-visible:ring-2 focus-visible:ring-ring',
+            mode === 'full'
+              ? 'border-primary/50 bg-primary/10'
+              : 'border-border/50 bg-background/40 hover:border-border hover:bg-background/60',
+          )}
+        >
+          <Layers
+            className={cn(
+              'h-3.5 w-3.5 mt-0.5 shrink-0',
+              mode === 'full' ? 'text-primary' : 'text-muted-foreground',
+            )}
+            aria-hidden
+          />
+          <div className="min-w-0 flex-1">
+            <p className={cn(
+              'text-[11px] font-semibold leading-tight',
+              mode === 'full' ? 'text-foreground' : 'text-muted-foreground',
+            )}>
+              Restaurar completo
+            </p>
+            <p className="text-[10px] text-muted-foreground mt-0.5 leading-tight">
+              Tudo do rascunho — campos vazios também
+            </p>
+          </div>
+        </button>
+
+        <button
+          type="button"
+          role="radio"
+          aria-checked={mode === 'partial'}
+          onClick={() => !partialDisabled && onChange('partial')}
+          disabled={partialDisabled}
+          title={
+            allFilled
+              ? 'Todos os campos estão preenchidos — não há nada para pular'
+              : noneFilled
+              ? 'Nenhum campo foi preenchido ainda — comece pelo modo completo'
+              : undefined
+          }
+          className={cn(
+            'flex items-start gap-2 rounded-md border px-2.5 py-2 text-left transition-all focus:outline-none focus-visible:ring-2 focus-visible:ring-ring',
+            mode === 'partial' && !partialDisabled
+              ? 'border-primary/50 bg-primary/10'
+              : 'border-border/50 bg-background/40 hover:border-border hover:bg-background/60',
+            partialDisabled && 'opacity-50 cursor-not-allowed hover:border-border/50 hover:bg-background/40',
+          )}
+        >
+          <Zap
+            className={cn(
+              'h-3.5 w-3.5 mt-0.5 shrink-0',
+              mode === 'partial' && !partialDisabled ? 'text-primary' : 'text-muted-foreground',
+            )}
+            aria-hidden
+          />
+          <div className="min-w-0 flex-1">
+            <p className={cn(
+              'text-[11px] font-semibold leading-tight',
+              mode === 'partial' && !partialDisabled ? 'text-foreground' : 'text-muted-foreground',
+            )}>
+              Restaurar parcial
+            </p>
+            <p className="text-[10px] text-muted-foreground mt-0.5 leading-tight">
+              Só preenchidos — pula e destaca o resto
+            </p>
+          </div>
+        </button>
+      </div>
+
+      {/* Painel de explicação do efeito do modo escolhido */}
+      <div className="rounded-md bg-secondary/30 px-2.5 py-2 space-y-1.5 text-[10px]">
+        {mode === 'full' ? (
+          <>
+            <div className="flex items-start gap-1.5">
+              <Sparkles className="h-3 w-3 text-primary mt-0.5 shrink-0" aria-hidden />
+              <p className="text-muted-foreground">
+                <span className="text-foreground font-medium">Vai destacar:</span>{' '}
+                {missing.length > 0
+                  ? `${missing.join(', ')} — primeiro campo pendente`
+                  : 'nada — rascunho está completo'}
+              </p>
+            </div>
+            <div className="flex items-start gap-1.5">
+              <SkipForward className="h-3 w-3 text-muted-foreground/70 mt-0.5 shrink-0" aria-hidden />
+              <p className="text-muted-foreground">
+                <span className="text-foreground font-medium">Vai pular:</span>{' '}
+                <span className="italic">nada — todas as etapas serão carregadas</span>
+              </p>
+            </div>
+          </>
+        ) : (
+          <>
+            <div className="flex items-start gap-1.5">
+              <Sparkles className="h-3 w-3 text-nexus-amber mt-0.5 shrink-0" aria-hidden />
+              <p className="text-muted-foreground">
+                <span className="text-foreground font-medium">Vai destacar:</span>{' '}
+                {missing.length > 0
+                  ? <span className="text-nexus-amber">{missing.join(', ')}</span>
+                  : 'nada — rascunho está completo'}
+              </p>
+            </div>
+            <div className="flex items-start gap-1.5">
+              <SkipForward className="h-3 w-3 text-nexus-emerald mt-0.5 shrink-0" aria-hidden />
+              <p className="text-muted-foreground">
+                <span className="text-foreground font-medium">Vai carregar:</span>{' '}
+                {filled.length > 0
+                  ? <span className="text-nexus-emerald">{filled.join(', ')}</span>
+                  : 'nada — nenhum campo preenchido'}
+              </p>
+            </div>
+          </>
+        )}
+      </div>
+    </div>
+  );
+}
+
 
 function formatRelative(iso: string): string {
   const then = new Date(iso).getTime();
