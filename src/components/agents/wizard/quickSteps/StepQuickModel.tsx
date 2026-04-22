@@ -16,6 +16,7 @@ interface Props {
 export function StepQuickModel({ form, errors, update, highlightField }: Props) {
   const gridRef = useRef<HTMLDivElement>(null);
   const pulsing = useFieldHighlight(gridRef, highlightField === 'model');
+  const ringCls = useFieldHighlightClass(pulsing);
 
   const recommended = form.type
     ? QUICK_AGENT_TEMPLATES[form.type as QuickAgentType]?.recommendedModel
