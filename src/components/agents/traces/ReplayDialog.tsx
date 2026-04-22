@@ -4,10 +4,13 @@ import { Button } from '@/components/ui/button';
 import { Slider } from '@/components/ui/slider';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
-import { Pause, Play, RotateCcw, SkipBack, SkipForward, Info, AlertTriangle, XCircle, Download } from 'lucide-react';
+import { Pause, Play, RotateCcw, SkipBack, SkipForward, Info, AlertTriangle, XCircle, Download, BookmarkCheck } from 'lucide-react';
 import type { ExecutionGroup, TraceLevel } from '@/services/agentTracesService';
 import { downloadJSON } from '@/lib/agentExportImport';
 import { toast } from 'sonner';
+import { listBookmarks, type TraceBookmark } from '@/lib/traceBookmarks';
+import { BookmarkButton } from './BookmarkButton';
+import { cn } from '@/lib/utils';
 
 interface Props {
   open: boolean;
@@ -37,6 +40,26 @@ export function ReplayDialog({ open, onOpenChange, execution, initialStep = 0, o
   const traces = execution?.traces ?? [];
   const total = traces.length;
   const current = traces[step];
+
+  // Bookmarks for the current execution (refreshed on open + after save/remove).
+  const sessionId = execution?.session_id ?? '';
+  const [bookmarks, setBookmarks] = useState<TraceBookmark[]>([]);
+  useEffect(() => {
+    if (open && sessionId) setBookmarks(listBookmarks(sessionId));
+    else if (!open) setBookmarks([]);
+  }, [open, sessionId]);
+  const currentBookmark = current ? bookmarks.find((b) => b.traceId === current.id) : undefined;
+
+  /** Jump player to next/previous bookmark relative to the current step. */
+  const jumpBookmark = (dir: 1 | -1) => {
+    if (bookmarks.length === 0) return;
+    const indexes = bookmarks.map((b) => b.stepIndex).sort((a, b) => a - b);
+    const target = dir === 1
+      ? (indexes.find((i) => i > step) ?? indexes[0])
+      : ([...indexes].reverse().find((i) => i < step) ?? indexes[indexes.length - 1]);
+    setStep(target);
+    setPlaying(false);
+  };
 
   const accumulated = useMemo(() => {
     let ms = 0, tokens = 0, cost = 0;
@@ -103,11 +126,19 @@ export function ReplayDialog({ open, onOpenChange, execution, initialStep = 0, o
         e.preventDefault();
         setStep(0);
         setPlaying(false);
+      } else if (e.key === 'b' && bookmarks.length > 0) {
+        e.preventDefault();
+        jumpBookmark(1);
+      } else if (e.key === 'B' && bookmarks.length > 0) {
+        e.preventDefault();
+        jumpBookmark(-1);
       }
     };
     window.addEventListener('keydown', handler);
     return () => window.removeEventListener('keydown', handler);
-  }, [open, total]);
+    // jumpBookmark closes over `step` but we read from setState callbacks; bookmarks list change retriggers.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [open, total, bookmarks, step]);
 
   if (!execution) return null;
 
@@ -196,6 +227,37 @@ export function ReplayDialog({ open, onOpenChange, execution, initialStep = 0, o
             <RotateCcw className="h-3.5 w-3.5" />
           </Button>
 
+          {bookmarks.length > 0 && (
+            <>
+              <span className="h-5 w-px bg-border/60 mx-1" aria-hidden />
+              <Button
+                size="icon"
+                variant="outline"
+                className="h-8 w-8 text-nexus-amber border-nexus-amber/40 hover:bg-nexus-amber/10"
+                onClick={() => jumpBookmark(-1)}
+                aria-label="Marcador anterior"
+                title="Marcador anterior (Shift+B)"
+              >
+                <BookmarkCheck className="h-3.5 w-3.5" />
+                <span className="sr-only">Anterior</span>
+              </Button>
+              <Badge variant="outline" className="text-[10px] gap-1 text-nexus-amber border-nexus-amber/40">
+                <BookmarkCheck className="h-3 w-3" /> {bookmarks.length}
+              </Badge>
+              <Button
+                size="icon"
+                variant="outline"
+                className="h-8 w-8 text-nexus-amber border-nexus-amber/40 hover:bg-nexus-amber/10"
+                onClick={() => jumpBookmark(1)}
+                aria-label="Próximo marcador"
+                title="Próximo marcador (b)"
+              >
+                <BookmarkCheck className="h-3.5 w-3.5" />
+                <span className="sr-only">Próximo</span>
+              </Button>
+            </>
+          )}
+
           <div className="ml-2 flex items-center gap-2">
             <span className="text-[10px] uppercase text-muted-foreground">Velocidade</span>
             <Select value={String(speed)} onValueChange={(v) => setSpeed(Number(v))}>
@@ -214,8 +276,8 @@ export function ReplayDialog({ open, onOpenChange, execution, initialStep = 0, o
           </div>
         </div>
 
-        {/* Progress slider */}
-        <div className="px-1">
+        {/* Progress slider with bookmark markers overlay */}
+        <div className="px-1 relative">
           <Slider
             value={[step]}
             min={0}
@@ -224,20 +286,55 @@ export function ReplayDialog({ open, onOpenChange, execution, initialStep = 0, o
             onValueChange={(v) => { setStep(v[0]); setPlaying(false); }}
             aria-label="Progresso do replay"
           />
+          {bookmarks.length > 0 && total > 1 && (
+            <div className="absolute inset-x-0 top-1/2 -translate-y-1/2 pointer-events-none h-2">
+              {bookmarks.map((b) => {
+                const left = `${(b.stepIndex / Math.max(1, total - 1)) * 100}%`;
+                return (
+                  <button
+                    key={b.traceId}
+                    type="button"
+                    onClick={() => { setStep(b.stepIndex); setPlaying(false); }}
+                    className="absolute -translate-x-1/2 -translate-y-1/2 top-1/2 w-2 h-3.5 rounded-sm bg-nexus-amber border border-nexus-amber/80 shadow-sm pointer-events-auto hover:scale-125 transition-transform"
+                    style={{ left }}
+                    aria-label={`Ir para marcador no passo ${b.stepIndex + 1}`}
+                    title={b.note ? `#${b.stepIndex + 1}: ${b.note}` : `Marcador no passo ${b.stepIndex + 1}`}
+                  />
+                );
+              })}
+            </div>
+          )}
         </div>
 
         {/* Current step */}
         <div aria-live="polite" className="space-y-3">
           {current && (
             <>
-              <div className="flex items-center gap-2 p-3 rounded-md border border-border/40 bg-muted/30">
+              <div className={cn(
+                'flex items-center gap-2 p-3 rounded-md border bg-muted/30',
+                currentBookmark ? 'border-nexus-amber/40 bg-nexus-amber/5' : 'border-border/40',
+              )}>
                 {LEVEL_ICON[current.level]}
                 <div className="min-w-0 flex-1">
-                  <p className="text-sm font-medium text-foreground truncate">{current.event}</p>
+                  <p className="text-sm font-medium text-foreground truncate flex items-center gap-1.5">
+                    {currentBookmark && <BookmarkCheck className="h-3.5 w-3.5 text-nexus-amber shrink-0" />}
+                    {current.event}
+                  </p>
                   <p className="text-[10px] font-mono text-muted-foreground">
                     {new Date(current.created_at).toLocaleString('pt-BR')}
                   </p>
+                  {currentBookmark?.note && (
+                    <p className="text-[11px] italic text-nexus-amber/90 mt-1 line-clamp-2">
+                      “{currentBookmark.note}”
+                    </p>
+                  )}
                 </div>
+                <BookmarkButton
+                  sessionId={sessionId}
+                  traceId={current.id}
+                  stepIndex={step}
+                  onChange={setBookmarks}
+                />
                 <Badge variant="outline" className="text-[10px]">{current.level}</Badge>
               </div>
 

@@ -3,7 +3,7 @@ import {
   ChevronDown, ChevronRight, Info, AlertTriangle, XCircle,
   CheckCircle2, Clock, DollarSign, Hash, Zap,
   ChevronsLeft, ChevronLeft, ChevronsRight,
-  ChevronsDownUp, ChevronsUpDown, Keyboard, Search, X,
+  ChevronsDownUp, ChevronsUpDown, Keyboard, Search, X, BookmarkCheck,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -11,6 +11,8 @@ import { Input } from '@/components/ui/input';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { cn } from '@/lib/utils';
 import type { AgentTraceRow, ExecutionGroup, TraceLevel } from '@/services/agentTracesService';
+import { listBookmarks, type TraceBookmark } from '@/lib/traceBookmarks';
+import { BookmarkButton } from './BookmarkButton';
 
 const LEVEL_ICON: Record<TraceLevel, JSX.Element> = {
   info: <Info className="h-3 w-3 text-nexus-emerald" aria-hidden />,
@@ -48,6 +50,17 @@ export function ExecutionTimeline({ execution, selectedStep, onSelectStep }: Pro
   const [internalStep, setInternalStep] = useState(0);
   const step = selectedStep ?? internalStep;
   const total = execution.traces.length;
+
+  // Per-execution bookmarks (persisted via traceBookmarks). Refreshed when:
+  //  · execution changes
+  //  · child BookmarkButton emits onChange after save/remove
+  const [bookmarks, setBookmarks] = useState<TraceBookmark[]>(() => listBookmarks(execution.session_id));
+  useEffect(() => { setBookmarks(listBookmarks(execution.session_id)); }, [execution.session_id]);
+  const bookmarkByTraceId = useMemo(() => {
+    const m = new Map<string, TraceBookmark>();
+    for (const b of bookmarks) m.set(b.traceId, b);
+    return m;
+  }, [bookmarks]);
 
   // In-execution text search (event/tool name, error fragment, prompt/response excerpt).
   const [stepSearch, setStepSearch] = useState('');
@@ -93,6 +106,16 @@ export function ExecutionTimeline({ execution, selectedStep, onSelectStep }: Pro
     }
   };
 
+  /** Jump to next/previous bookmark relative to the current step. */
+  const jumpBookmark = (dir: 1 | -1) => {
+    if (bookmarks.length === 0) return;
+    const indexes = bookmarks.map((b) => b.stepIndex).sort((a, b) => a - b);
+    const target = dir === 1
+      ? (indexes.find((i) => i > step) ?? indexes[0])
+      : ([...indexes].reverse().find((i) => i < step) ?? indexes[indexes.length - 1]);
+    setStep(target);
+  };
+
   useEffect(() => {
     if (selectedStep == null) setInternalStep(0);
   }, [execution.session_id, selectedStep]);
@@ -108,6 +131,8 @@ export function ExecutionTimeline({ execution, selectedStep, onSelectStep }: Pro
     else if (e.key === 'End') { e.preventDefault(); setStep(total - 1); }
     else if (e.key === 'n' && matchIndexes.length > 0) { e.preventDefault(); jumpMatch(1); }
     else if (e.key === 'N' && matchIndexes.length > 0) { e.preventDefault(); jumpMatch(-1); }
+    else if (e.key === 'b' && bookmarks.length > 0) { e.preventDefault(); jumpBookmark(1); }
+    else if (e.key === 'B' && bookmarks.length > 0) { e.preventDefault(); jumpBookmark(-1); }
   };
 
   const itemsRef = useRef<Array<HTMLLIElement | null>>([]);
@@ -133,6 +158,9 @@ export function ExecutionTimeline({ execution, selectedStep, onSelectStep }: Pro
         onStepSearch={setStepSearch}
         matchCount={matchIndexes.length}
         onJumpMatch={jumpMatch}
+        bookmarks={bookmarks}
+        onJumpBookmark={jumpBookmark}
+        onBookmarksChange={setBookmarks}
       />
 
       <ol
@@ -144,6 +172,7 @@ export function ExecutionTimeline({ execution, selectedStep, onSelectStep }: Pro
         {execution.traces.map((t, i) => {
           const isMatch = matchSet.has(i);
           const dim = normalized.length > 0 && !isMatch;
+          const bookmark = bookmarkByTraceId.get(t.id);
           return (
             <TraceItem
               key={t.id}
@@ -156,6 +185,9 @@ export function ExecutionTimeline({ execution, selectedStep, onSelectStep }: Pro
               highlight={normalized}
               isMatch={isMatch}
               dim={dim}
+              sessionId={execution.session_id}
+              bookmark={bookmark}
+              onBookmarksChange={setBookmarks}
             />
           );
         })}
@@ -171,6 +203,7 @@ export function ExecutionTimeline({ execution, selectedStep, onSelectStep }: Pro
 function ExecutionSummary({
   execution, step, total, onStep, onExpandAll, onCollapseAll,
   stepSearch, onStepSearch, matchCount, onJumpMatch,
+  bookmarks, onJumpBookmark, onBookmarksChange,
 }: {
   execution: ExecutionGroup;
   step: number;
@@ -182,13 +215,19 @@ function ExecutionSummary({
   onStepSearch: (v: string) => void;
   matchCount: number;
   onJumpMatch: (dir: 1 | -1) => void;
+  bookmarks: TraceBookmark[];
+  onJumpBookmark: (dir: 1 | -1) => void;
+  onBookmarksChange: (bookmarks: TraceBookmark[]) => void;
 }) {
+  
   const { counts, total_ms, total_tokens, total_cost, session_id, traces } = execution;
   const current = traces[step];
   const isAuto = session_id.startsWith('auto-');
   const atStart = step <= 0;
   const atEnd = step >= total - 1;
   const hasSearch = stepSearch.trim().length > 0;
+  const hasBookmarks = bookmarks.length > 0;
+  const currentBookmark = current ? bookmarks.find((b) => b.traceId === current.id) : undefined;
 
   return (
     <div className="sticky top-0 z-10 bg-background/95 backdrop-blur border border-border/40 rounded-lg p-3 space-y-2">
@@ -198,6 +237,17 @@ function ExecutionSummary({
           <code className="text-[11px] font-mono text-foreground truncate">
             {isAuto ? '∅ sem session_id' : session_id}
           </code>
+          {hasBookmarks && (
+            <Badge
+              variant="outline"
+              className="text-[10px] gap-1 text-nexus-amber border-nexus-amber/40 bg-nexus-amber/10 cursor-pointer hover:bg-nexus-amber/20"
+              onClick={() => onJumpBookmark(1)}
+              title="Pular para próximo marcador (b)"
+            >
+              <BookmarkCheck className="h-3 w-3" />
+              {bookmarks.length}
+            </Badge>
+          )}
         </div>
         <div className="flex items-center gap-1 shrink-0">
           <Button
@@ -304,6 +354,8 @@ function ExecutionSummary({
                 <ShortcutRow keys={['End']} label="Último passo" />
                 <ShortcutRow keys={['n']} label="Próximo match" />
                 <ShortcutRow keys={['N']} label="Match anterior" />
+                <ShortcutRow keys={['b']} label="Próximo marcador" />
+                <ShortcutRow keys={['B']} label="Marcador anterior" />
               </ul>
             </PopoverContent>
           </Popover>
@@ -391,9 +443,21 @@ function ExecutionSummary({
       </div>
 
       {current && (
-        <div className="text-[10px] text-muted-foreground truncate">
-          <span className="font-medium text-foreground">↳</span> {current.event}
-          <span className="font-mono ml-2">{new Date(current.created_at).toLocaleTimeString('pt-BR')}</span>
+        <div className="flex items-center gap-2 text-[10px] text-muted-foreground">
+          <div className="truncate flex-1 min-w-0">
+            <span className="font-medium text-foreground">↳</span> {current.event}
+            <span className="font-mono ml-2">{new Date(current.created_at).toLocaleTimeString('pt-BR')}</span>
+            {currentBookmark?.note && (
+              <span className="ml-2 text-nexus-amber italic truncate">— {currentBookmark.note}</span>
+            )}
+          </div>
+          <BookmarkButton
+            sessionId={session_id}
+            traceId={current.id}
+            stepIndex={step}
+            variant="inline"
+            onChange={onBookmarksChange}
+          />
         </div>
       )}
     </div>
@@ -447,12 +511,16 @@ interface TraceItemProps {
   highlight: string;
   isMatch: boolean;
   dim: boolean;
+  sessionId: string;
+  bookmark: TraceBookmark | undefined;
+  onBookmarksChange: (bookmarks: TraceBookmark[]) => void;
 }
 
 const TraceItem = forwardRef<HTMLLIElement, TraceItemProps>(
-  ({ trace, index, active, onSelect, bulk, highlight, isMatch, dim }, ref) => {
+  ({ trace, index, active, onSelect, bulk, highlight, isMatch, dim, sessionId, bookmark, onBookmarksChange }, ref) => {
     const [open, setOpen] = useState(false);
     const ts = new Date(trace.created_at).toLocaleTimeString('pt-BR', { hour12: false });
+    const isBookmarked = !!bookmark;
 
     useEffect(() => {
       if (active) setOpen(true);
@@ -480,45 +548,85 @@ const TraceItem = forwardRef<HTMLLIElement, TraceItemProps>(
         role="option"
         aria-selected={active}
         className={cn(
-          'border-l-2 pl-3 py-1.5 rounded-r-md transition-colors cursor-pointer',
+          'border-l-2 pl-3 py-1.5 rounded-r-md transition-colors cursor-pointer relative',
           LEVEL_BORDER[trace.level],
           active
             ? 'bg-primary/10 ring-1 ring-primary/30 shadow-sm'
             : 'bg-card/40 hover:bg-muted/40',
           isMatch && !active && 'ring-1 ring-primary/40 bg-primary/5',
+          isBookmarked && 'border-l-nexus-amber bg-nexus-amber/[0.04]',
           dim && 'opacity-40 hover:opacity-90',
         )}
         onClick={handleClick}
       >
-        <button
-          type="button"
-          onClick={(e) => { e.stopPropagation(); handleClick(); }}
-          className="w-full text-left flex items-center gap-2 text-xs hover:text-foreground"
-          aria-expanded={open}
-        >
-          {open
-            ? <ChevronDown className="h-3 w-3 text-muted-foreground" />
-            : <ChevronRight className="h-3 w-3 text-muted-foreground" />}
-          <span className={cn(
-            'font-mono text-[10px] tabular-nums w-8',
-            active ? 'text-primary font-semibold' : 'text-muted-foreground',
-          )}>
-            #{index + 1}
-          </span>
-          <span className="font-mono text-[10px] text-muted-foreground tabular-nums">{ts}</span>
-          {LEVEL_ICON[trace.level]}
-          <span className={cn('font-medium truncate', active ? 'text-foreground' : 'text-foreground/90')}>
-            <Highlighted text={trace.event} query={highlight} />
-          </span>
-          <span className="ml-auto flex items-center gap-2 text-[10px] text-muted-foreground shrink-0">
-            {trace.latency_ms != null && <span className="tabular-nums">{trace.latency_ms}ms</span>}
-            {trace.tokens_used != null && trace.tokens_used > 0 && <span className="tabular-nums">{trace.tokens_used} tk</span>}
-            {trace.cost_usd != null && Number(trace.cost_usd) > 0 && <span className="tabular-nums">${Number(trace.cost_usd).toFixed(5)}</span>}
-          </span>
-        </button>
+        {/* Marker rail: a thin amber notch to make bookmarks scannable. */}
+        {isBookmarked && (
+          <span
+            className="absolute -left-[3px] top-1/2 -translate-y-1/2 w-[3px] h-5 rounded-full bg-nexus-amber"
+            aria-hidden
+          />
+        )}
+        <div className="flex items-center gap-2 text-xs">
+          <button
+            type="button"
+            onClick={(e) => { e.stopPropagation(); handleClick(); }}
+            className="flex items-center gap-2 flex-1 min-w-0 text-left hover:text-foreground"
+            aria-expanded={open}
+          >
+            {open
+              ? <ChevronDown className="h-3 w-3 text-muted-foreground shrink-0" />
+              : <ChevronRight className="h-3 w-3 text-muted-foreground shrink-0" />}
+            <span className={cn(
+              'font-mono text-[10px] tabular-nums w-8 shrink-0',
+              active ? 'text-primary font-semibold' : 'text-muted-foreground',
+            )}>
+              #{index + 1}
+            </span>
+            <span className="font-mono text-[10px] text-muted-foreground tabular-nums shrink-0">{ts}</span>
+            {LEVEL_ICON[trace.level]}
+            {isBookmarked && (
+              <BookmarkCheck
+                className="h-3 w-3 text-nexus-amber shrink-0"
+                aria-label="Passo marcado"
+              />
+            )}
+            <span className={cn('font-medium truncate', active ? 'text-foreground' : 'text-foreground/90')}>
+              <Highlighted text={trace.event} query={highlight} />
+            </span>
+            <span className="ml-auto flex items-center gap-2 text-[10px] text-muted-foreground shrink-0">
+              {trace.latency_ms != null && <span className="tabular-nums">{trace.latency_ms}ms</span>}
+              {trace.tokens_used != null && trace.tokens_used > 0 && <span className="tabular-nums">{trace.tokens_used} tk</span>}
+              {trace.cost_usd != null && Number(trace.cost_usd) > 0 && <span className="tabular-nums">${Number(trace.cost_usd).toFixed(5)}</span>}
+            </span>
+          </button>
+          {/* Bookmark trigger appears on hover OR when already marked. */}
+          <div className={cn('shrink-0 transition-opacity', isBookmarked ? 'opacity-100' : 'opacity-0 group-hover:opacity-100 hover:opacity-100 focus-within:opacity-100')}>
+            <BookmarkButton
+              sessionId={sessionId}
+              traceId={trace.id}
+              stepIndex={index}
+              onChange={onBookmarksChange}
+            />
+          </div>
+        </div>
+
+        {isBookmarked && bookmark.note && !open && (
+          <p
+            className="ml-6 mt-1 text-[10.5px] italic text-nexus-amber/90 truncate"
+            title={bookmark.note}
+          >
+            “{bookmark.note}”
+          </p>
+        )}
 
         {open && (
           <div className="mt-2 ml-6 space-y-2" onClick={(e) => e.stopPropagation()}>
+            {isBookmarked && bookmark.note && (
+              <div className="rounded border border-nexus-amber/30 bg-nexus-amber/10 p-2 text-[11px] text-foreground flex items-start gap-1.5">
+                <BookmarkCheck className="h-3 w-3 text-nexus-amber mt-0.5 shrink-0" />
+                <span className="italic">{bookmark.note}</span>
+              </div>
+            )}
             <JsonBlock label="Input" data={trace.input} highlight={highlight} />
             <JsonBlock label="Output" data={trace.output} highlight={highlight} />
             {trace.metadata && Object.keys(trace.metadata).length > 0 && (
