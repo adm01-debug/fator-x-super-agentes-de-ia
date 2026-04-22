@@ -393,6 +393,36 @@ export function ReplayDialog({ open, onOpenChange, execution, initialStep = 0, o
                     </p>
                   )}
                 </div>
+                <div className="flex items-center gap-1">
+                  <Button
+                    type="button"
+                    size="sm"
+                    variant={currentIsA ? 'default' : 'outline'}
+                    className={cn(
+                      'h-7 px-2 text-[11px] font-mono',
+                      currentIsA && 'bg-destructive text-destructive-foreground hover:bg-destructive/90',
+                    )}
+                    onClick={() => toggleSlot('A')}
+                    title={currentIsA ? 'Remover este passo do slot A' : 'Marcar este passo como A'}
+                    aria-pressed={currentIsA}
+                  >
+                    A
+                  </Button>
+                  <Button
+                    type="button"
+                    size="sm"
+                    variant={currentIsB ? 'default' : 'outline'}
+                    className={cn(
+                      'h-7 px-2 text-[11px] font-mono',
+                      currentIsB && 'bg-nexus-emerald text-white hover:bg-nexus-emerald/90',
+                    )}
+                    onClick={() => toggleSlot('B')}
+                    title={currentIsB ? 'Remover este passo do slot B' : 'Marcar este passo como B'}
+                    aria-pressed={currentIsB}
+                  >
+                    B
+                  </Button>
+                </div>
                 <BookmarkButton
                   sessionId={sessionId}
                   traceId={current.id}
