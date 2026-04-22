@@ -368,11 +368,9 @@ export function CompiledPromptPreview({ form, defaultOpen = false, lastChangeKin
             aria-live="polite"
           >
             {view === 'preview' ? (
-              <div className="space-y-0.5">{renderMarkdown(compiled.text)}</div>
+              <div className="space-y-0.5">{renderMarkdown(compiled.text, thinByHeading)}</div>
             ) : (
-              <pre className="text-[11px] font-mono leading-relaxed text-foreground/85 whitespace-pre-wrap break-words">
-                {compiled.text}
-              </pre>
+              <RawWithThinHighlights text={compiled.text} thinByHeading={thinByHeading} />
             )}
           </div>
 
