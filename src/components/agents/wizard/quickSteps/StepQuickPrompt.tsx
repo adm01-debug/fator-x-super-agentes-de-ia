@@ -248,7 +248,7 @@ export function StepQuickPrompt({ form, errors, onPromptManualEdit, onRestore, o
       <PromptVariantSelector
         type={form.type as QuickAgentType}
         activeVariant={activeVariant}
-        onSelect={onApplyVariant}
+        onSelect={handleApplyVariant}
         customLocked={customLocked}
         onUnlock={onUnlockCustom}
       />
@@ -341,7 +341,12 @@ export function StepQuickPrompt({ form, errors, onPromptManualEdit, onRestore, o
       <PreflightReviewSummary form={form} onJumpToSection={jumpToSection} onJumpToLine={jumpToLine} />
 
       {/* Consolidated prompt preview — final text the LLM will receive (open by default on the last step) */}
-      <CompiledPromptPreview form={form} defaultOpen />
+      <CompiledPromptPreview
+        form={form}
+        defaultOpen
+        lastChangeKind={lastChangeKind}
+        activeVariantLabel={customLocked ? 'Customizado' : activeVariantLabel}
+      />
 
       {/* Live test against the LLM with mock payload */}
       <QuickAgentTestPanel form={form} />
