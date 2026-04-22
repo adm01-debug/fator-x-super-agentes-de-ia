@@ -71,7 +71,7 @@ interface Props {
   highlightField?: keyof QuickAgentForm;
 }
 
-export function StepQuickPrompt({ form, errors, onPromptManualEdit, onRestore, onApplyVariant, customLocked, onUnlockCustom, activeVariant, highlightField }: Props) {
+export function StepQuickPrompt({ form, errors, onPromptManualEdit, onRestore, onSafeReset, onApplyVariant, customLocked, onUnlockCustom, activeVariant, highlightField }: Props) {
   // Active variant template + label — drives the checklist's per-section snippets
   // and the "Completar com X" CTA in real time.
   const activeVariantPrompt = activeVariant
