@@ -133,6 +133,21 @@ export function QuickCreateWizard({ onBack }: QuickCreateWizardProps) {
   const [promptCustomLocked, setPromptCustomLocked] = useState(false);
   const [selectedVariant, setSelectedVariant] = useState<import('@/data/quickAgentTemplates').PromptVariantId | null>(null);
   const [pendingVariant, setPendingVariant] = useState<import('@/data/quickAgentTemplates').PromptVariantId | null>(null);
+  const [lockEvents, setLockEvents] = useState<import('./quickSteps/PromptLockEventLog').PromptLockEvent[]>([]);
+  const pushLockEvent = (
+    kind: import('./quickSteps/PromptLockEventLog').PromptLockEventKind,
+    detail?: string,
+  ) => {
+    setLockEvents((prev) => [
+      ...prev,
+      {
+        id: `${Date.now()}-${Math.random().toString(36).slice(2, 7)}`,
+        at: Date.now(),
+        kind,
+        detail,
+      },
+    ].slice(-30));
+  };
   const lastTypeRef = useRef<QuickAgentType | null>(null);
   const lastTypeForLockRef = useRef<string>(QUICK_AGENT_DEFAULTS.type);
 
