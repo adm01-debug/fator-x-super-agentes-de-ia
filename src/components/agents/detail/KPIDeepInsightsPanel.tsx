@@ -19,6 +19,8 @@ interface Props {
   insights: KPIInsight[];
 }
 
+const THRESHOLD_PRESETS = [1, 5, 10, 20] as const;
+
 const KPI_ICON: Record<KPIInsight['key'], typeof Activity> = {
   success: ShieldCheck,
   latency: Zap,
@@ -33,6 +35,8 @@ const TONE_STYLE: Record<CauseTone, { color: string; bg: string; border: string;
 };
 
 export function KPIDeepInsightsPanel({ insights }: Props) {
+  const [threshold, setThreshold] = useState<number>(5);
+
   // Choose the most "interesting" KPI by default — biggest |delta|.
   const defaultKey =
     [...insights]
@@ -43,6 +47,10 @@ export function KPIDeepInsightsPanel({ insights }: Props) {
   const active = insights.find((i) => i.key === activeKey) ?? insights[0];
 
   if (!active) return null;
+
+  const isRelevant = (i: KPIInsight) =>
+    i.cmp.hasPrev && i.cmp.trend !== 'flat' && Math.abs(i.cmp.deltaPct) >= threshold;
+  const activeRelevant = isRelevant(active);
 
   return (
     <div
