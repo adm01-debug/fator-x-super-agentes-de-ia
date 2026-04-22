@@ -20,6 +20,7 @@ interface Props {
 export function StepQuickType({ form, errors, update, applyTemplate, highlightField }: Props) {
   const gridRef = useRef<HTMLDivElement>(null);
   const pulsing = useFieldHighlight(gridRef, highlightField === 'type');
+  const ringCls = useFieldHighlightClass(pulsing);
   const selectedTemplate = form.type ? QUICK_AGENT_TEMPLATES[form.type as QuickAgentType] : null;
 
   return (
