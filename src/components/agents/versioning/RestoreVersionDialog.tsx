@@ -1,4 +1,5 @@
 import { useMemo, useState } from "react";
+import { useNavigate } from "react-router-dom";
 import {
   Dialog,
   DialogContent,
@@ -40,9 +41,18 @@ interface Props {
 }
 
 export function RestoreVersionDialog({ open, onOpenChange, source, current, nextVersionNumber, restoring, onConfirm }: Props) {
+  const navigate = useNavigate();
   const [copyPrompt, setCopyPrompt] = useState(true);
   const [copyTools, setCopyTools] = useState(true);
   const [copyModel, setCopyModel] = useState(false);
+
+  // Atalhos para ir direto às telas de configuração do agente. Usam deep-link
+  // por query param ?tab=... no AgentBuilder. Fechamos o dialog antes de
+  // navegar para evitar overlay travado e oferecer uma transição limpa.
+  const goToBuilder = (tab: 'prompt' | 'tools' | 'brain') => {
+    onOpenChange(false);
+    navigate(`/builder/${source.agent_id}?tab=${tab}`);
+  };
   // "Ver detalhes" abre uma sub-view dentro do mesmo Dialog para mostrar o
   // diff em texto completo (antes/depois) com realce e rolagem. Mantemos no
   // mesmo Dialog para preservar o estado dos toggles.
@@ -147,6 +157,7 @@ export function RestoreVersionDialog({ open, onOpenChange, source, current, next
               overallImpact={diff.overallImpact}
               overallRisk={diff.overallRisk}
               onShowFullDiff={() => setShowFullDiff(true)}
+              onGoToBuilder={goToBuilder}
             />
 
             <div className="rounded-lg border border-border/50 bg-secondary/30 px-3 py-2.5">
@@ -333,6 +344,7 @@ function LiveDiffPreview({
   overallImpact,
   overallRisk,
   onShowFullDiff,
+  onGoToBuilder,
 }: {
   changes: FieldChange[];
   toolsAdded: string[];
@@ -345,6 +357,7 @@ function LiveDiffPreview({
   overallImpact: number;
   overallRisk: RiskLevel;
   onShowFullDiff: () => void;
+  onGoToBuilder: (tab: 'prompt' | 'tools' | 'brain') => void;
 }) {
   const groupLabel: Record<'prompt' | 'tools' | 'model', string> = {
     prompt: 'Prompt',
@@ -470,6 +483,49 @@ function LiveDiffPreview({
           </ul>
         </>
       )}
+
+      {/* Atalhos para ir direto à configuração no AgentBuilder. Disponíveis
+          mesmo sem mudanças, para permitir editar antes de restaurar. */}
+      <div className="pt-2 border-t border-border/30 space-y-1.5">
+        <p className="text-[9px] uppercase tracking-wider text-muted-foreground font-semibold">
+          Editar diretamente no agente
+        </p>
+        <div className="grid grid-cols-3 gap-1.5">
+          <Button
+            type="button"
+            variant="outline"
+            size="sm"
+            onClick={() => onGoToBuilder('prompt')}
+            className="h-8 text-[10px] gap-1 justify-start px-2 hover:border-primary/40 hover:bg-primary/5"
+            title="Abre a aba 'Prompts & Versões' do AgentBuilder"
+          >
+            <FileText className="h-3 w-3 shrink-0 text-primary" aria-hidden="true" />
+            <span className="truncate">Editar prompt</span>
+          </Button>
+          <Button
+            type="button"
+            variant="outline"
+            size="sm"
+            onClick={() => onGoToBuilder('tools')}
+            className="h-8 text-[10px] gap-1 justify-start px-2 hover:border-primary/40 hover:bg-primary/5"
+            title="Abre a aba 'Ferramentas & MCP' do AgentBuilder"
+          >
+            <Wrench className="h-3 w-3 shrink-0 text-primary" aria-hidden="true" />
+            <span className="truncate">Gerenciar tools</span>
+          </Button>
+          <Button
+            type="button"
+            variant="outline"
+            size="sm"
+            onClick={() => onGoToBuilder('brain')}
+            className="h-8 text-[10px] gap-1 justify-start px-2 hover:border-primary/40 hover:bg-primary/5"
+            title="Abre a aba 'Cérebro (LLM)' do AgentBuilder"
+          >
+            <Cpu className="h-3 w-3 shrink-0 text-primary" aria-hidden="true" />
+            <span className="truncate">Ajustar modelo</span>
+          </Button>
+        </div>
+      </div>
 
       {unchangedGroups.length > 0 && anyOptionSelected && (
         <p className="text-[10px] text-muted-foreground/70 pt-1 border-t border-border/30">
