@@ -19,14 +19,24 @@ import { ReplayDialog } from '@/components/agents/traces/ReplayDialog';
 
 export default function AgentTracesPage() {
   const { id } = useParams();
+  const [searchParams, setSearchParams] = useSearchParams();
+
+  // URL is the source of truth on load; localStorage is the fallback.
+  const urlSession = searchParams.get('session');
+  const urlStep = (() => {
+    const raw = searchParams.get('step');
+    if (raw == null) return null;
+    const n = Number(raw);
+    return Number.isFinite(n) && n >= 0 ? Math.floor(n) : null;
+  })();
 
   const [agentFilter, setAgentFilter] = useState<string>(id ?? 'all');
   const [level, setLevel] = useState<TraceLevel | 'all'>('all');
   const [event, setEvent] = useState<string>('all');
   const [search, setSearch] = useState('');
   const [sinceHours, setSinceHours] = useState(24);
-  const [selectedId, setSelectedId] = useState<string | null>(null);
-  const [selectedStep, setSelectedStep] = useState(0);
+  const [selectedId, setSelectedId] = useState<string | null>(urlSession);
+  const [selectedStep, setSelectedStep] = useState(urlStep ?? 0);
   const [replayOpen, setReplayOpen] = useState(false);
   const debouncedSearch = useDebounce(search, 300);
 
