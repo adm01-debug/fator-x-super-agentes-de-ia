@@ -132,6 +132,36 @@ export default function SLODashboard() {
     };
   }, []);
 
+  // ── URL ⇄ state sync ───────────────────────────────────────────────────
+  // Write current selections back to the URL (replace, not push, so the back
+  // button doesn't fill up with intermediate values). Default values are
+  // omitted to keep the URL clean; non-default values are encoded so the link
+  // can be shared and reopened with the exact same view.
+  useEffect(() => {
+    const next = new URLSearchParams(searchParams);
+    if (windowHours === DEFAULT_WINDOW_HOURS) next.delete(QP_WINDOW);
+    else next.set(QP_WINDOW, String(windowHours));
+
+    if (autoRefreshMs === DEFAULT_AUTO_REFRESH_MS) next.delete(QP_AUTO);
+    else next.set(QP_AUTO, String(autoRefreshMs));
+
+    // Avoid an infinite update loop: only call setSearchParams when the
+    // serialized result actually differs from what's already in the URL.
+    if (next.toString() !== searchParams.toString()) {
+      setSearchParams(next, { replace: true });
+    }
+  }, [windowHours, autoRefreshMs, searchParams, setSearchParams]);
+
+  // React to back/forward navigation (or another link that mutates the URL)
+  // by re-reading the params into local state.
+  useEffect(() => {
+    const wFromUrl = parseWindowParam(searchParams.get(QP_WINDOW), DEFAULT_WINDOW_HOURS);
+    const aFromUrl = parseAutoParam(searchParams.get(QP_AUTO), autoRefreshMs);
+    if (wFromUrl !== windowHours) setWindowHours(wFromUrl);
+    if (aFromUrl !== autoRefreshMs) setAutoRefreshMs(aFromUrl);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [searchParams]);
+
   const load = useCallback(async (showSpinner = false) => {
     if (showSpinner) setRefreshing(true);
     try {
