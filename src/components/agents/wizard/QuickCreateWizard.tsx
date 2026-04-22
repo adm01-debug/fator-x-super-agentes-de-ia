@@ -188,12 +188,8 @@ export function QuickCreateWizard({ onBack }: QuickCreateWizardProps) {
     const target = pendingDrafts.find((d) => d.id === id);
     if (!target) return;
     const check = checkDraftRestorable(target.form);
-    if (!check.canRestore) {
-      toast.warning(check.reason ?? 'Rascunho incompleto demais para retomar', {
-        description: `Próximo passo necessário: ${check.nextStep ?? 'Identidade'}. Continue daqui ou descarte.`,
-      });
-      return;
-    }
+    // Always restore — even incomplete drafts. We jump to the first invalid
+    // field and highlight it so the user knows exactly what to fill next.
     setForm(target.form);
     setPromptCustomLocked(target.promptCustomLocked === true);
     setSelectedVariant(target.selectedVariant ?? null);
@@ -209,11 +205,19 @@ export function QuickCreateWizard({ onBack }: QuickCreateWizardProps) {
     });
     setPendingDrafts([]);
     setDraftDecided(true);
-    toast.success('Rascunho restaurado', {
-      description: resume.field
-        ? `Continue em "${STEPS[resume.stepIdx].label}" — campo: ${FIELD_LABEL[resume.field] ?? String(resume.field)}`
-        : `Continuando do passo: ${STEPS[resume.stepIdx].label}`,
-    });
+    if (!check.canRestore) {
+      toast.warning('Rascunho restaurado parcialmente', {
+        description: resume.field
+          ? `Complete o campo "${FIELD_LABEL[resume.field] ?? String(resume.field)}" em "${STEPS[resume.stepIdx].label}" para continuar.`
+          : `Continue do passo: ${STEPS[resume.stepIdx].label}.`,
+      });
+    } else {
+      toast.success('Rascunho restaurado', {
+        description: resume.field
+          ? `Continue em "${STEPS[resume.stepIdx].label}" — campo: ${FIELD_LABEL[resume.field] ?? String(resume.field)}`
+          : `Continuando do passo: ${STEPS[resume.stepIdx].label}`,
+      });
+    }
   };
 
   const handleRenameDraft = (id: string, newName: string) => {
