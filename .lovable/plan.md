@@ -1,58 +1,88 @@
 
 
-## Validação extra no "Continuar de onde parei"
+## Retomada inteligente: focar no primeiro campo inválido + destaque visual
 
-Hoje `restoreDraft` aceita qualquer rascunho marcado como `meaningful` (basta um campo digitado) e abre direto no primeiro passo inválido. Vou adicionar uma **validação de mínimo viável** antes de restaurar: se o rascunho não tiver pelo menos a **identidade básica** (`name` + `mission` válidos pelo `quickIdentitySchema`), bloqueia a restauração e mostra toast indicando qual é o próximo passo necessário.
+Hoje `restoreDraft` calcula `resumeIdx` apenas com `STEPS[i].schema.safeParse(form).success`. Isso leva ao **passo** correto, mas dentro dele o usuário ainda precisa caçar o campo problemático. Vou:
 
-### Regra de "incompleto demais"
+1. Calcular o **primeiro campo inválido** (não só o passo) usando os campos declarados em `STEPS[i].fields`.
+2. Propagar esse campo para os steps quick e renderizar um **destaque visual** (ring + scroll/focus automático).
 
-Um rascunho é restaurável se passar em **pelo menos** `quickIdentitySchema` (nome 2-60 chars + emoji + missão ≥10 chars). Justificativa: sem nome+missão o usuário não consegue se reconectar mentalmente ao trabalho — restaurar gera mais confusão que valor.
+### Cálculo do "primeiro campo inválido"
 
-### Comportamento
+Nova função pura em `draftStore.ts`:
 
-1. Usuário clica **Continuar selecionado** (multi) ou **Continuar de onde parei** (single).
-2. `restoreDraft(id)` valida via `quickIdentitySchema` antes de hidratar `form`.
-3. Se inválido:
-   - **Não** restaura, **não** muda `activeId`, **não** fecha o banner.
-   - `toast.warning('Rascunho incompleto demais para retomar', { description: 'Próximo passo necessário: <campo>. Continue daqui ou descarte.' })`.
-   - Mensagem específica do primeiro erro do schema (ex.: "Defina um nome para o agente", "Escreva uma missão de pelo menos 10 caracteres").
-4. Se válido: fluxo atual (hidrata form, calcula `resumeIdx`, toast de sucesso).
-
-### Sinalização visual no banner
-
-Itens incompletos demais ganham um chip `Incompleto` discreto ao lado do tempo, e o botão "Continuar selecionado" fica `disabled` enquanto o item selecionado for inválido (com `title` explicando). No modo single, o botão também desabilita com tooltip.
-
-### Mudanças
-
-**`src/components/agents/wizard/draftStore.ts`** — utilitário puro novo:
 ```ts
-export interface DraftRestoreCheck {
-  canRestore: boolean;
-  reason?: string;        // mensagem amigável p/ toast
-  nextStep?: string;      // label do passo (Identidade/Tipo/Modelo/Prompt)
+export interface DraftResumeTarget {
+  stepIdx: number;             // 0..STEPS.length-1
+  stepKey: 'identity' | 'type' | 'model' | 'prompt';
+  field?: keyof QuickAgentForm; // campo pendente, se houver
 }
-export function checkDraftRestorable(form: QuickAgentForm): DraftRestoreCheck;
+
+export function computeResumeTarget(
+  form: QuickAgentForm,
+  steps: ReadonlyArray<{ key: string; schema: z.ZodTypeAny; fields: readonly string[] }>,
+): DraftResumeTarget;
 ```
-Usa `quickIdentitySchema.safeParse` e mapeia o primeiro erro (`name`/`emoji`/`mission`) para uma frase PT-BR. Retorna `nextStep: 'Identidade'` quando bloqueia.
 
-**`src/components/agents/wizard/DraftRecoveryBanner.tsx`**:
-- Aceitar nova prop opcional por entry: `restorable?: boolean` em `DraftBannerEntry`.
-- Renderizar chip "Incompleto" (estilo warning) quando `restorable === false`.
-- Desabilitar o CTA principal (single + multi) quando o item selecionado/único for `restorable === false`, com `title` explicativo.
+Lógica: percorre `STEPS` na ordem; no primeiro step que falha o `safeParse`, usa `error.errors[0].path[0]` para extrair o campo. Se o caminho for vazio (erros de `superRefine` em `prompt`), faz fallback para o **primeiro campo da lista do step que esteja vazio/inválido por heurística simples** (ex.: `prompt.trim().length < 50`). Se nenhum step falha, retorna o último step com `field: undefined`.
 
-**`src/components/agents/wizard/QuickCreateWizard.tsx`**:
-- Em `bannerEntries`: adicionar `restorable: checkDraftRestorable(d.form).canRestore`.
-- Em `restoreDraft(id)`: chamar `checkDraftRestorable(target.form)` antes; se `!canRestore`, `toast.warning(reason, { description: 'Próximo passo necessário: <nextStep>' })` e abortar.
+### Destaque visual no campo
+
+- Estado novo no wizard: `highlightField: keyof QuickAgentForm | null`.
+- Setado em `restoreDraft` após escolher o passo; limpo automaticamente após **3.5s** via `setTimeout` ou no primeiro `update()` do form.
+- Cada `StepQuick*` recebe prop opcional `highlightField?: keyof QuickAgentForm`.
+- Cada campo cuja `id` corresponda ao `highlightField` ganha:
+  - `ring-2 ring-warning ring-offset-2 ring-offset-background animate-pulse-glow` (já existe no design system; senão usa `animate-pulse`).
+  - `data-highlight="true"` para hook de scroll.
+- `useEffect` no step monta → se `highlightField` presente, faz `document.getElementById(\`qa-\${field}\`)?.scrollIntoView({ block: 'center', behavior: 'smooth' })` e chama `.focus()` no input correspondente.
+
+### Toast atualizado
+
+```ts
+toast.success('Rascunho restaurado', {
+  description: target.field
+    ? `Continue em "${STEPS[target.stepIdx].label}" — campo: ${FIELD_LABEL[target.field]}`
+    : `Continuando do passo: ${STEPS[target.stepIdx].label}`,
+});
+```
+
+`FIELD_LABEL` mapeia `name → "Nome"`, `emoji → "Emoji"`, `mission → "Missão"`, `type → "Tipo"`, `model → "Modelo"`, `prompt → "Prompt"`, `description → "Descrição"`.
+
+### Mudanças por arquivo
+
+**`src/components/agents/wizard/draftStore.ts`**
+- Adicionar `computeResumeTarget(form, steps)` puro.
+- Mantém `checkDraftRestorable` atual.
+
+**`src/components/agents/wizard/QuickCreateWizard.tsx`**
+- Importar `computeResumeTarget`.
+- Em `restoreDraft`: substituir cálculo atual por `const target = computeResumeTarget(target.form, STEPS);` → `setStep(target.stepIdx)` + `setHighlightField(target.field ?? null)`.
+- Adicionar `highlightField` state + efeito de auto-clear (3.5s e em `update()`).
+- Repassar `highlightField` (apenas quando o step atual contém aquele campo) para `StepQuickIdentity`, `StepQuickType`, `StepQuickModel`, `StepQuickPrompt`.
+- `FIELD_LABEL` map para o toast.
+
+**`src/components/agents/wizard/quickSteps/StepQuickIdentity.tsx`**
+- Aceitar prop `highlightField?: keyof QuickAgentForm`.
+- Helper `highlightCls(field)` → retorna classe extra `ring-2 ring-warning ring-offset-2 ring-offset-background animate-pulse` se bater.
+- Aplicar no `Input`/`Textarea` de `name`, `emoji`, `mission`, `description`.
+- `useEffect` para scroll + focus quando `highlightField` mudar.
+
+**`src/components/agents/wizard/quickSteps/StepQuickType.tsx`** e **`StepQuickModel.tsx`** e **`StepQuickPrompt.tsx`**
+- Mesmo padrão: aceitar `highlightField`, aplicar destaque no container do campo correspondente (`type`, `model`, `prompt`), scroll+focus no mount.
 
 ### Arquivos
 
-- **Editar**: `src/components/agents/wizard/draftStore.ts` — novo `checkDraftRestorable`.
-- **Editar**: `src/components/agents/wizard/DraftRecoveryBanner.tsx` — chip "Incompleto" + CTA disabled.
-- **Editar**: `src/components/agents/wizard/QuickCreateWizard.tsx` — gate em `restoreDraft` + propaga `restorable`.
+- **Editar**: `src/components/agents/wizard/draftStore.ts`
+- **Editar**: `src/components/agents/wizard/QuickCreateWizard.tsx`
+- **Editar**: `src/components/agents/wizard/quickSteps/StepQuickIdentity.tsx`
+- **Editar**: `src/components/agents/wizard/quickSteps/StepQuickType.tsx`
+- **Editar**: `src/components/agents/wizard/quickSteps/StepQuickModel.tsx`
+- **Editar**: `src/components/agents/wizard/quickSteps/StepQuickPrompt.tsx`
 
 ### Impacto
 
-- Evita restaurar rascunhos vazios/sem identidade que só atrapalham.
-- Usuário vê *exatamente* o que falta, sem precisar abrir o passo.
-- Zero mudança em backend/store schema; tudo lógica de UI.
+- Usuário cai exatamente no campo que falta corrigir, com pulso visual + foco automático — zero caça.
+- Pure function `computeResumeTarget` é testável isoladamente (sem React).
+- Destaque some sozinho ao primeiro toque, evitando ruído visual persistente.
+- Zero mudança em backend/store schema.
 
