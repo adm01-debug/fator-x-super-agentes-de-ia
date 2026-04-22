@@ -1,3 +1,4 @@
+import { useEffect } from 'react';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
@@ -9,6 +10,7 @@ interface Props {
   form: QuickAgentForm;
   errors: Partial<Record<keyof QuickAgentForm, string>>;
   update: <K extends keyof QuickAgentForm>(key: K, value: QuickAgentForm[K]) => void;
+  highlightField?: keyof QuickAgentForm;
 }
 
 function FieldError({ msg }: { msg?: string }) {
@@ -16,7 +18,20 @@ function FieldError({ msg }: { msg?: string }) {
   return <p className="text-xs text-destructive mt-1">{msg}</p>;
 }
 
-export function StepQuickIdentity({ form, errors, update }: Props) {
+const HIGHLIGHT_CLS = 'ring-2 ring-warning ring-offset-2 ring-offset-background animate-pulse';
+
+export function StepQuickIdentity({ form, errors, update, highlightField }: Props) {
+  useEffect(() => {
+    if (!highlightField) return;
+    const el = document.getElementById(`qa-${highlightField === 'description' ? 'desc' : highlightField}`);
+    if (el) {
+      el.scrollIntoView({ block: 'center', behavior: 'smooth' });
+      window.setTimeout(() => (el as HTMLElement).focus?.(), 250);
+    }
+  }, [highlightField]);
+
+  const hl = (f: keyof QuickAgentForm) => (highlightField === f ? ` ${HIGHLIGHT_CLS}` : '');
+
   return (
     <div className="nexus-card space-y-5">
       <div>
@@ -34,7 +49,7 @@ export function StepQuickIdentity({ form, errors, update }: Props) {
             placeholder="Ex: Aurora, Atlas, Pink Sales..."
             maxLength={60}
             aria-invalid={!!errors.name}
-            className={`mt-1.5 bg-secondary/50 border-border/50 ${errors.name ? 'border-destructive' : ''}`}
+            className={`mt-1.5 bg-secondary/50 border-border/50 ${errors.name ? 'border-destructive' : ''}${hl('name')}`}
           />
           <div className="flex justify-between items-start mt-1">
             <FieldError msg={errors.name} />
@@ -51,7 +66,7 @@ export function StepQuickIdentity({ form, errors, update }: Props) {
               onChange={(e) => update('emoji', e.target.value)}
               maxLength={4}
               aria-invalid={!!errors.emoji}
-              className={`w-20 text-center text-xl bg-secondary/50 border-border/50 ${errors.emoji ? 'border-destructive' : ''}`}
+              className={`w-20 text-center text-xl bg-secondary/50 border-border/50 ${errors.emoji ? 'border-destructive' : ''}${hl('emoji')}`}
             />
             <div className="flex flex-wrap gap-1">
               {EMOJI_SUGGESTIONS.map((e) => (
@@ -82,7 +97,7 @@ export function StepQuickIdentity({ form, errors, update }: Props) {
             rows={3}
             maxLength={500}
             aria-invalid={!!errors.mission}
-            className={`mt-1.5 bg-secondary/50 border-border/50 resize-none ${errors.mission ? 'border-destructive' : ''}`}
+            className={`mt-1.5 bg-secondary/50 border-border/50 resize-none ${errors.mission ? 'border-destructive' : ''}${hl('mission')}`}
           />
           <div className="flex justify-between items-start mt-1">
             <FieldError msg={errors.mission} />
@@ -98,7 +113,7 @@ export function StepQuickIdentity({ form, errors, update }: Props) {
             onChange={(e) => update('description', e.target.value)}
             placeholder="Para listagens e cards"
             maxLength={300}
-            className="mt-1.5 bg-secondary/50 border-border/50"
+            className={`mt-1.5 bg-secondary/50 border-border/50${hl('description')}`}
           />
           <div className="flex justify-between items-start mt-1">
             <FieldError msg={errors.description} />

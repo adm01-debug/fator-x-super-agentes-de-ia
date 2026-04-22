@@ -32,10 +32,22 @@ import {
   setActive,
   summarizeForm,
   checkDraftRestorable,
+  computeResumeTarget,
   DRAFT_TTL_MS,
   type DraftsStoreV2,
   type DraftEntry,
 } from './draftStore';
+
+const FIELD_LABEL: Partial<Record<keyof QuickAgentForm, string>> = {
+  name: 'Nome',
+  emoji: 'Emoji',
+  mission: 'Missão',
+  description: 'Descrição',
+  type: 'Tipo',
+  model: 'Modelo',
+  prompt: 'Prompt',
+};
+
 
 const STEPS = [
   { key: 'identity', label: 'Identidade', schema: quickIdentitySchema, fields: ['name', 'emoji', 'mission', 'description'] },
@@ -69,7 +81,15 @@ export function QuickCreateWizard({ onBack }: QuickCreateWizardProps) {
   const [draftsStore, setDraftsStore] = useState<DraftsStoreV2>({ version: 2, activeId: null, drafts: [] });
   const [pendingDrafts, setPendingDrafts] = useState<DraftEntry[]>([]);
   const [draftDecided, setDraftDecided] = useState(false);
+  const [highlightField, setHighlightField] = useState<keyof QuickAgentForm | null>(null);
   const lastTypeRef = useRef<QuickAgentType | null>(null);
+
+  // Auto-clear field highlight after 4s
+  useEffect(() => {
+    if (!highlightField) return;
+    const t = window.setTimeout(() => setHighlightField(null), 4000);
+    return () => window.clearTimeout(t);
+  }, [highlightField]);
 
   // On mount: load store, filter recoverable drafts.
   useEffect(() => {
@@ -157,9 +177,9 @@ export function QuickCreateWizard({ onBack }: QuickCreateWizardProps) {
     }
     setForm(target.form);
     lastTypeRef.current = target.form.type as QuickAgentType;
-    const resumeIdx = STEPS.findIndex((s) => !s.schema.safeParse(target.form).success);
-    const resumeStep = resumeIdx === -1 ? STEPS.length - 1 : resumeIdx;
-    setStep(resumeStep);
+    const resume = computeResumeTarget(target.form, STEPS);
+    setStep(resume.stepIdx);
+    setHighlightField(resume.field ?? null);
     setDraftsStore((prev) => {
       const next = setActive(prev, id);
       saveDrafts(next);
@@ -168,7 +188,9 @@ export function QuickCreateWizard({ onBack }: QuickCreateWizardProps) {
     setPendingDrafts([]);
     setDraftDecided(true);
     toast.success('Rascunho restaurado', {
-      description: `Continuando do passo: ${STEPS[resumeStep].label}`,
+      description: resume.field
+        ? `Continue em "${STEPS[resume.stepIdx].label}" — campo: ${FIELD_LABEL[resume.field] ?? String(resume.field)}`
+        : `Continuando do passo: ${STEPS[resume.stepIdx].label}`,
     });
   };
 
@@ -198,6 +220,7 @@ export function QuickCreateWizard({ onBack }: QuickCreateWizardProps) {
   const update = <K extends keyof QuickAgentForm>(key: K, value: QuickAgentForm[K]) => {
     setForm((prev) => ({ ...prev, [key]: value }));
     setErrors((prev) => ({ ...prev, [key]: undefined }));
+    if (highlightField === key) setHighlightField(null);
   };
 
   const applyTemplate = (type: QuickAgentType) => {
@@ -332,15 +355,18 @@ export function QuickCreateWizard({ onBack }: QuickCreateWizardProps) {
   }, [step, form]);
 
   const stepNode = useMemo(() => {
+    const hf = highlightField;
+    const hfFor = (fields: ReadonlyArray<keyof QuickAgentForm>) =>
+      hf && fields.includes(hf) ? hf : undefined;
     switch (step) {
-      case 0: return <StepQuickIdentity form={form} errors={errors} update={update} />;
-      case 1: return <StepQuickType form={form} errors={errors} update={update} applyTemplate={applyTemplate} />;
-      case 2: return <StepQuickModel form={form} errors={errors} update={update} />;
-      case 3: return <StepQuickPrompt form={form} errors={errors} update={update} onRestore={restorePromptFromType} onApplyVariant={applyPromptVariant} />;
+      case 0: return <StepQuickIdentity form={form} errors={errors} update={update} highlightField={hfFor(['name', 'emoji', 'mission', 'description'])} />;
+      case 1: return <StepQuickType form={form} errors={errors} update={update} applyTemplate={applyTemplate} highlightField={hfFor(['type'])} />;
+      case 2: return <StepQuickModel form={form} errors={errors} update={update} highlightField={hfFor(['model'])} />;
+      case 3: return <StepQuickPrompt form={form} errors={errors} update={update} onRestore={restorePromptFromType} onApplyVariant={applyPromptVariant} highlightField={hfFor(['prompt'])} />;
       default: return null;
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [step, form, errors]);
+  }, [step, form, errors, highlightField]);
 
   const bannerEntries: DraftBannerEntry[] = useMemo(
     () => pendingDrafts.map((d) => {

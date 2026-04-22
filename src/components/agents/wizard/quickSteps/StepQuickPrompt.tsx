@@ -1,4 +1,4 @@
-import { useRef, type ChangeEvent, type ClipboardEvent } from 'react';
+import { useEffect, useRef, type ChangeEvent, type ClipboardEvent } from 'react';
 import { toast } from 'sonner';
 import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
@@ -24,11 +24,22 @@ interface Props {
   update: <K extends keyof QuickAgentForm>(key: K, value: QuickAgentForm[K]) => void;
   onRestore: () => void;
   onApplyVariant: (id: PromptVariantId) => void;
+  highlightField?: keyof QuickAgentForm;
 }
 
-export function StepQuickPrompt({ form, errors, update, onRestore, onApplyVariant }: Props) {
+export function StepQuickPrompt({ form, errors, update, onRestore, onApplyVariant, highlightField }: Props) {
   const activeVariant = detectPromptVariant(form.type as QuickAgentType, form.prompt);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
+  const promptHighlight = highlightField === 'prompt';
+
+  useEffect(() => {
+    if (!promptHighlight) return;
+    const el = textareaRef.current;
+    if (el) {
+      el.scrollIntoView({ block: 'center', behavior: 'smooth' });
+      window.setTimeout(() => el.focus(), 250);
+    }
+  }, [promptHighlight]);
 
   const handleChange = (e: ChangeEvent<HTMLTextAreaElement>) => {
     const raw = e.target.value;
@@ -107,7 +118,7 @@ export function StepQuickPrompt({ form, errors, update, onRestore, onApplyVarian
           placeholder="## Persona&#10;...&#10;&#10;## Escopo&#10;...&#10;&#10;## Formato&#10;...&#10;&#10;## Regras&#10;..."
           className={`bg-secondary/50 border-border/50 font-mono text-xs leading-relaxed resize-none ${
             errors.prompt ? 'border-destructive' : ''
-          }`}
+          } ${promptHighlight ? 'ring-2 ring-warning ring-offset-2 ring-offset-background animate-pulse' : ''}`}
         />
         {errors.prompt && (
           <div className="text-[11px] text-destructive" role="alert">
