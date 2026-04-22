@@ -116,6 +116,8 @@ export function StepQuickPrompt({ form, errors, onPromptManualEdit, onRestore, o
   };
   // Section-level pulse highlight (set briefly after a "jump to section" action).
   const [pulsedSection, setPulsedSection] = useState<PromptSectionKey | null>(null);
+  // 0-indexed line of the heading we just jumped to — drives the in-editor band pulse.
+  const [pulsedLine, setPulsedLine] = useState<number | null>(null);
   const sectionPulseRef = useRef<number | null>(null);
 
   // Coordinated scroll + focus + temporary pulse — driven by useFieldHighlight
