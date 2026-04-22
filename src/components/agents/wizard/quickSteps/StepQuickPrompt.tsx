@@ -368,6 +368,7 @@ export function StepQuickPrompt({ form, errors, onPromptManualEdit, onRestore, o
             textareaRef={textareaRef}
             paddingLeftPx={EDITOR_PADDING_LEFT}
             conflictLines={conflictLines}
+            pulseLines={pulsedLine != null ? [pulsedLine] : undefined}
           />
           <Textarea
             ref={textareaRef}
