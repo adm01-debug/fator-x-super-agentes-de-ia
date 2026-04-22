@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState, type RefObject } from 'react';
+import { expandAncestorContainers } from './expandAncestorContainers';
 
 /**
  * Coordinated scroll + focus + visual pulse for a "first invalid field" target.
