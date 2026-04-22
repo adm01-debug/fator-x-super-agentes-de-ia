@@ -12,6 +12,8 @@
  * Não cria estado paralelo — apenas empacota para os call sites.
  */
 import { budgetService, type BudgetStatus } from '@/services/budgetService';
+import { supabase } from '@/integrations/supabase/client';
+import { startOfMonth } from '@/services/costAttribution';
 
 export interface BudgetSnapshot {
   configured: boolean;
@@ -104,4 +106,93 @@ export async function enforceAgents(): Promise<{
   agents_paused: number;
 }> {
   return budgetService.enforceBudget();
+}
+
+// ═══ Agent-level budget enforcement ════════════════════════════
+// Cada agente tem `monthly_budget` + `budget_alert_threshold`. A função
+// `computeAgentSpendThisMonth` soma `agent_eval_runs.total_cost_usd` do
+// mês corrente e o helper abaixo decide se o agente excedeu seu limite.
+
+export interface AgentBudgetStatus {
+  agent_id: string;
+  configured: boolean;
+  spend_usd: number;
+  limit_usd: number | null;
+  pct_used: number;
+  threshold_pct: number;
+  warning: boolean;
+  blocked: boolean;
+}
+
+export async function computeAgentSpendThisMonth(agentId: string): Promise<number> {
+  const window = startOfMonth();
+  const { data, error } = await supabase
+    .from('agent_eval_runs')
+    .select('total_cost_usd, completed_at, status')
+    .eq('agent_id', agentId)
+    .eq('status', 'completed')
+    .gte('completed_at', window.from)
+    .lte('completed_at', window.to);
+  if (error) throw error;
+  return ((data ?? []) as Array<{ total_cost_usd: number | null }>).reduce(
+    (s, r) => s + Number(r.total_cost_usd ?? 0),
+    0,
+  );
+}
+
+export async function getAgentBudgetStatus(
+  agentId: string,
+  overrides?: { monthly_budget?: number | null; threshold_pct?: number | null },
+): Promise<AgentBudgetStatus> {
+  let limit = overrides?.monthly_budget ?? null;
+  let threshold = overrides?.threshold_pct ?? null;
+
+  if (limit === null || threshold === null) {
+    const { data } = await supabase.from('agents').select('config').eq('id', agentId).maybeSingle();
+    const cfg = ((data as { config?: Record<string, unknown> } | null)?.config ?? {}) as Record<
+      string,
+      unknown
+    >;
+    if (limit === null) limit = (cfg.monthly_budget as number | undefined) ?? null;
+    if (threshold === null) threshold = (cfg.budget_alert_threshold as number | undefined) ?? 80;
+  }
+
+  const spend = await computeAgentSpendThisMonth(agentId);
+  const pct = limit && limit > 0 ? (spend / limit) * 100 : 0;
+  const thr = threshold ?? 80;
+
+  return {
+    agent_id: agentId,
+    configured: limit !== null && limit > 0,
+    spend_usd: round4(spend),
+    limit_usd: limit,
+    pct_used: round2(pct),
+    threshold_pct: thr,
+    warning: pct >= thr && pct < 100,
+    blocked: pct >= 100,
+  };
+}
+
+export class AgentBudgetExceededError extends Error {
+  readonly status: AgentBudgetStatus;
+  constructor(status: AgentBudgetStatus) {
+    super(
+      `Agente ${status.agent_id} excedeu orçamento mensal: ${status.pct_used}% de US$ ${status.limit_usd ?? 0}.`,
+    );
+    this.name = 'AgentBudgetExceededError';
+    this.status = status;
+  }
+}
+
+export async function assertAgentBudget(agentId: string): Promise<AgentBudgetStatus> {
+  const status = await getAgentBudgetStatus(agentId);
+  if (status.configured && status.blocked) throw new AgentBudgetExceededError(status);
+  return status;
+}
+
+function round2(n: number): number {
+  return Math.round(n * 100) / 100;
+}
+function round4(n: number): number {
+  return Math.round(n * 10000) / 10000;
 }
