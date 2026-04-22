@@ -49,7 +49,7 @@ export function StepQuickIdentity({ form, errors, update, highlightField }: Prop
             placeholder="Ex: Aurora, Atlas, Pink Sales..."
             maxLength={60}
             aria-invalid={!!errors.name}
-            className={`mt-1.5 bg-secondary/50 border-border/50 ${errors.name ? 'border-destructive' : ''}`}
+            className={`mt-1.5 bg-secondary/50 border-border/50 ${errors.name ? 'border-destructive' : ''}${hl('name')}`}
           />
           <div className="flex justify-between items-start mt-1">
             <FieldError msg={errors.name} />
