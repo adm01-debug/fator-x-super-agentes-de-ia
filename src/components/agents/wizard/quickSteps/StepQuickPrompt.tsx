@@ -62,6 +62,25 @@ export function StepQuickPrompt({ form, errors, onPromptManualEdit, onRestore, o
   const activeVariantLabel = activeVariant ? PROMPT_VARIANT_META[activeVariant].label : null;
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const promptHighlight = highlightField === 'prompt';
+  // Tracks the source of the most recent prompt change to drive the
+  // CompiledPromptPreview's pulse + auto-expand behavior.
+  const [lastChangeKind, setLastChangeKind] = useState<'variant' | 'manual' | null>(null);
+  // Auto-clear the flag so a re-render doesn't re-trigger animations.
+  useEffect(() => {
+    if (!lastChangeKind) return;
+    const t = window.setTimeout(() => setLastChangeKind(null), 800);
+    return () => window.clearTimeout(t);
+  }, [lastChangeKind]);
+
+  // Wrappers that record the change kind alongside the prompt mutation.
+  const handleManualEdit = (next: string) => {
+    setLastChangeKind('manual');
+    onPromptManualEdit(next);
+  };
+  const handleApplyVariant = (id: PromptVariantId) => {
+    setLastChangeKind('variant');
+    onApplyVariant(id);
+  };
   // Section-level pulse highlight (set briefly after a "jump to section" action).
   const [pulsedSection, setPulsedSection] = useState<PromptSectionKey | null>(null);
   const sectionPulseRef = useRef<number | null>(null);
@@ -118,7 +137,7 @@ export function StepQuickPrompt({ form, errors, onPromptManualEdit, onRestore, o
    */
   const insertSectionSnippet = (key: PromptSectionKey, snippet: string): [number, number] => {
     const { prompt: nextPrompt, insertedRange } = insertSectionAt(form.prompt, key, snippet);
-    onPromptManualEdit(nextPrompt);
+    handleManualEdit(nextPrompt);
     return insertedRange;
   };
 
@@ -179,7 +198,7 @@ export function StepQuickPrompt({ form, errors, onPromptManualEdit, onRestore, o
         description: 'Tags HTML perigosas foram filtradas do prompt.',
       });
     }
-    onPromptManualEdit(result.clean);
+    handleManualEdit(result.clean);
   };
 
   const handlePaste = (e: ClipboardEvent<HTMLTextAreaElement>) => {
@@ -196,7 +215,7 @@ export function StepQuickPrompt({ form, errors, onPromptManualEdit, onRestore, o
 
     const result = sanitizePromptInput(pasted, Math.max(0, remainingBudget));
     const next = before + result.clean + after;
-    onPromptManualEdit(next);
+    handleManualEdit(next);
 
     // Restore caret after the pasted block on next tick.
     requestAnimationFrame(() => {
@@ -229,7 +248,7 @@ export function StepQuickPrompt({ form, errors, onPromptManualEdit, onRestore, o
       <PromptVariantSelector
         type={form.type as QuickAgentType}
         activeVariant={activeVariant}
-        onSelect={onApplyVariant}
+        onSelect={handleApplyVariant}
         customLocked={customLocked}
         onUnlock={onUnlockCustom}
       />
@@ -302,9 +321,9 @@ export function StepQuickPrompt({ form, errors, onPromptManualEdit, onRestore, o
         onInsert={(snippet, key) => {
           if (key) {
             const { prompt: nextPrompt } = insertSectionAt(form.prompt, key, snippet);
-            onPromptManualEdit(nextPrompt);
+            handleManualEdit(nextPrompt);
           } else {
-            onPromptManualEdit(form.prompt + snippet);
+            handleManualEdit(form.prompt + snippet);
           }
         }}
         onJumpToSection={jumpToSection}
@@ -313,7 +332,7 @@ export function StepQuickPrompt({ form, errors, onPromptManualEdit, onRestore, o
       <PromptHistoryPanel
         prompt={form.prompt}
         type={form.type}
-        onRestore={(restored) => onPromptManualEdit(restored)}
+        onRestore={(restored) => handleManualEdit(restored)}
       />
 
       <AgentLivePreviewCard form={form} />
@@ -322,7 +341,12 @@ export function StepQuickPrompt({ form, errors, onPromptManualEdit, onRestore, o
       <PreflightReviewSummary form={form} onJumpToSection={jumpToSection} onJumpToLine={jumpToLine} />
 
       {/* Consolidated prompt preview — final text the LLM will receive (open by default on the last step) */}
-      <CompiledPromptPreview form={form} defaultOpen />
+      <CompiledPromptPreview
+        form={form}
+        defaultOpen
+        lastChangeKind={lastChangeKind}
+        activeVariantLabel={customLocked ? 'Customizado' : activeVariantLabel}
+      />
 
       {/* Live test against the LLM with mock payload */}
       <QuickAgentTestPanel form={form} />
