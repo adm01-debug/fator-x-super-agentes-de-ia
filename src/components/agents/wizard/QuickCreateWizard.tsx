@@ -130,6 +130,13 @@ export function QuickCreateWizard({ onBack }: QuickCreateWizardProps) {
   const lastTypeRef = useRef<QuickAgentType | null>(null);
   const lastTypeForLockRef = useRef<string>(QUICK_AGENT_DEFAULTS.type);
 
+  const [minPromptDepth, setMinPromptDepth] = useState<PromptDepth>(() => loadPromptDepth());
+  useEffect(() => {
+    try { localStorage.setItem(PROMPT_DEPTH_KEY, String(minPromptDepth)); } catch { /* ignore quota */ }
+  }, [minPromptDepth]);
+  const promptWordCount = useMemo(() => countPromptWords(form.prompt), [form.prompt]);
+  const meetsDepth = promptWordCount >= minPromptDepth;
+
   // Auto-clear field highlight after 4s
   useEffect(() => {
     if (!highlightField) return;
