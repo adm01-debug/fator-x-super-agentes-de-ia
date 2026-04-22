@@ -340,3 +340,47 @@ function LegendDot({ color, label }: { color: string; label: string }) {
     </span>
   );
 }
+
+interface BaselineDeltaProps {
+  value: number;
+  baseline: number;
+  /** true = lower is better (latency, error rate); false = higher is better (availability) */
+  lowerIsBetter: boolean;
+  valueFmt: (v: number) => string;
+  deltaFmt: (delta: number) => string;
+  label?: string;
+}
+
+function BaselineDelta({ value, baseline, lowerIsBetter, valueFmt, deltaFmt, label }: BaselineDeltaProps) {
+  const delta = value - baseline;
+  const FLAT_THRESHOLD = Math.max(0.01, Math.abs(baseline) * 0.005);
+  const trend: 'up' | 'down' | 'flat' = Math.abs(delta) <= FLAT_THRESHOLD ? 'flat' : delta > 0 ? 'up' : 'down';
+  // "better" = good direction
+  const better = trend === 'flat' ? null : lowerIsBetter ? trend === 'down' : trend === 'up';
+
+  const tone =
+    better === null
+      ? { color: 'text-muted-foreground', bg: 'bg-secondary/40', border: 'border-border', Icon: Minus, word: 'Igual ao baseline' }
+      : better
+      ? { color: 'text-nexus-emerald', bg: 'bg-nexus-emerald/10', border: 'border-nexus-emerald/30',
+          Icon: lowerIsBetter ? ArrowDown : ArrowUp,
+          word: lowerIsBetter ? 'mais rápido' : 'acima do baseline' }
+      : { color: 'text-destructive', bg: 'bg-destructive/10', border: 'border-destructive/30',
+          Icon: lowerIsBetter ? ArrowUp : ArrowDown,
+          word: lowerIsBetter ? 'mais lento' : 'abaixo do baseline' };
+
+  return (
+    <div
+      className={`mb-2 flex items-center gap-2 rounded-md border ${tone.border} ${tone.bg} px-2 py-1.5 text-[10px]`}
+      role="status"
+      aria-label={label ?? `Comparação com baseline: ${tone.word}`}
+    >
+      <tone.Icon className={`h-3 w-3 ${tone.color}`} />
+      <span className={`font-mono font-semibold ${tone.color}`}>{deltaFmt(delta)}</span>
+      <span className="text-muted-foreground">{tone.word}</span>
+      <span className="ml-auto text-muted-foreground font-mono">
+        baseline: <span className="text-foreground">{valueFmt(baseline)}</span>
+      </span>
+    </div>
+  );
+}
