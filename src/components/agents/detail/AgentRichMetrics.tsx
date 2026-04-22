@@ -81,18 +81,7 @@ export function AgentRichMetrics({ agentId, agentName, days = 14 }: Props) {
         ]}
       />
 
-      <KPIDeepInsightsPanel
-        insights={buildKPIInsights({
-          daily,
-          traces,
-          cmps: {
-            success: totals.successCmp,
-            latency: totals.latCmp,
-            cost: totals.costCmp,
-            requests: totals.reqCmp,
-          },
-        })}
-      />
+      <KPIDeepInsightsPanel daily={daily} traces={traces} />
 
       {/* Top metric cards */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
