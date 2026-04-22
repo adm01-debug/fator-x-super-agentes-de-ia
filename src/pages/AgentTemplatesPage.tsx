@@ -18,6 +18,7 @@ import { ScrollArea, ScrollBar } from '@/components/ui/scroll-area';
 import { ImportTemplateDialog } from '@/components/agents/ImportTemplateDialog';
 import { AGENT_TEMPLATES, type AgentTemplate } from '@/data/agentTemplates';
 import { toAgentTools } from '@/data/toolCatalog';
+import { buildRagSourcesForAgent } from '@/data/knowledgeBaseSeeds';
 import { DEFAULT_AGENT } from '@/data/agentBuilderData';
 import { saveAgent } from '@/lib/agentService';
 import type {
@@ -126,6 +127,11 @@ function buildAgentFromTemplate(t: AgentTemplate): AgentConfig {
     guardrails,
     test_cases: testCases,
     deploy_channels: deployChannels,
+
+    // 8. Knowledge Bases: injeta automaticamente as KBs canônicas
+    //    (definidas em `knowledgeBaseSeeds`) que mapeiam para este agente
+    //    via `intended_agents`. Admin ingere docs manualmente na UI de KB.
+    rag_sources: buildRagSourcesForAgent(t.id),
 
     human_in_loop: Boolean(cfg.human_in_loop_triggers?.length),
     human_in_loop_triggers: cfg.human_in_loop_triggers ?? [],

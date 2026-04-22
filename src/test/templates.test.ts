@@ -7,6 +7,12 @@ import {
   toAgentTools,
   listTools,
 } from '@/data/toolCatalog';
+import {
+  KNOWLEDGE_BASE_SEEDS,
+  getKnowledgeBaseIdsForAgent,
+  getKnowledgeBaseSeed,
+  buildRagSourcesForAgent,
+} from '@/data/knowledgeBaseSeeds';
 
 // ═══ Templates existentes ═══════════════════════════════════════════
 describe('Agent Templates', () => {
@@ -184,6 +190,130 @@ describe('Reasoning upgrades (follow-up #5)', () => {
   it('quote_generator enables procedural memory for price learning', () => {
     const t = AGENT_TEMPLATES.find((x) => x.id === 'quote_generator');
     expect(t?.config.memory_overrides?.procedural).toBe(true);
+  });
+});
+
+// ═══ TOOL_CATALOG expansion (follow-up #2) ═══════════════════════════
+describe('TOOL_CATALOG expansion — external MCPs', () => {
+  const NEW_TOOLS = [
+    'send_whatsapp',
+    'send_whatsapp_media',
+    'check_whatsapp_number',
+    'calculate_shipping',
+    'calculate_shipping_braspress',
+    'calculate_shipping_totalexpress',
+    'track_delivery',
+    'scrape_web_page',
+    'screenshot_page',
+    'update_deal',
+    'add_timeline_event',
+    'list_tasks',
+    'create_email_draft',
+    'search_email_threads',
+    'cache_get',
+    'cache_put',
+  ];
+
+  it('catalog has at least 36 tools after expansion', () => {
+    expect(Object.keys(TOOL_CATALOG).length).toBeGreaterThanOrEqual(36);
+  });
+
+  it('every newly-added tool is defined with mcp_server', () => {
+    for (const id of NEW_TOOLS) {
+      const def = resolveTool(id);
+      expect(def, `Tool ${id} missing from catalog`).not.toBeNull();
+      expect(def?.mcp_server, `Tool ${id} should have mcp_server set`).toBeTruthy();
+      expect(def?.mcp_method, `Tool ${id} should have mcp_method set`).toBeTruthy();
+    }
+  });
+
+  it('customer_support uses WhatsApp tools', () => {
+    const t = AGENT_TEMPLATES.find((x) => x.id === 'customer_support');
+    expect(t?.config.tools).toContain('send_whatsapp');
+    expect(t?.config.tools).toContain('check_whatsapp_number');
+    expect(t?.config.tools).toContain('track_delivery');
+  });
+
+  it('quote_generator uses shipping calculators from 3 providers', () => {
+    const t = AGENT_TEMPLATES.find((x) => x.id === 'quote_generator');
+    expect(t?.config.tools).toContain('calculate_shipping');
+    expect(t?.config.tools).toContain('calculate_shipping_braspress');
+    expect(t?.config.tools).toContain('calculate_shipping_totalexpress');
+  });
+
+  it('spec_vendas_closer uses update_deal + timeline for Bitrix24 ops', () => {
+    const t = AGENT_TEMPLATES.find((x) => x.id === 'spec_vendas_closer');
+    expect(t?.config.tools).toContain('update_deal');
+    expect(t?.config.tools).toContain('add_timeline_event');
+  });
+
+  it('spec_vendas_sdr uses email_draft + scrape + whatsapp', () => {
+    const t = AGENT_TEMPLATES.find((x) => x.id === 'spec_vendas_sdr');
+    expect(t?.config.tools).toContain('create_email_draft');
+    expect(t?.config.tools).toContain('scrape_web_page');
+    expect(t?.config.tools).toContain('send_whatsapp');
+  });
+
+  it('spec_vendas_intel uses cache_get + cache_put for forecast snapshots', () => {
+    const t = AGENT_TEMPLATES.find((x) => x.id === 'spec_vendas_intel');
+    expect(t?.config.tools).toContain('cache_get');
+    expect(t?.config.tools).toContain('cache_put');
+  });
+});
+
+// ═══ Knowledge Base seeds (follow-up #1) ════════════════════════════
+describe('Knowledge Base seeds', () => {
+  it('defines at least 7 KBs', () => {
+    expect(KNOWLEDGE_BASE_SEEDS.length).toBeGreaterThanOrEqual(7);
+  });
+
+  it('every KB has unique id', () => {
+    const ids = KNOWLEDGE_BASE_SEEDS.map((kb) => kb.id);
+    expect(new Set(ids).size).toBe(ids.length);
+  });
+
+  it('every KB has at least one essential doc type', () => {
+    for (const kb of KNOWLEDGE_BASE_SEEDS) {
+      const hasEssential = kb.suggested_docs.some((d) => d.essential);
+      expect(hasEssential, `KB ${kb.id} should have at least 1 essential doc`).toBe(true);
+    }
+  });
+
+  it('every KB id starts with kb_ prefix', () => {
+    for (const kb of KNOWLEDGE_BASE_SEEDS) {
+      expect(kb.id).toMatch(/^kb_/);
+    }
+  });
+
+  it('each of the 7 enriched agents has at least one KB assigned', () => {
+    const ENRICHED = [
+      'customer_support',
+      'lead_qualifier',
+      'quote_generator',
+      'sales_assistant',
+      'spec_vendas_sdr',
+      'spec_vendas_closer',
+      'spec_vendas_intel',
+    ];
+    for (const agentId of ENRICHED) {
+      const kbIds = getKnowledgeBaseIdsForAgent(agentId);
+      expect(kbIds.length, `Agent ${agentId} has no KB assigned`).toBeGreaterThan(0);
+    }
+  });
+
+  it('buildRagSourcesForAgent returns correctly typed RAGSource[]', () => {
+    const sources = buildRagSourcesForAgent('quote_generator');
+    expect(sources.length).toBeGreaterThan(0);
+    for (const s of sources) {
+      expect(s.id).toMatch(/^kb_/);
+      expect(s.enabled).toBe(true);
+      expect(s.type).toBe('database');
+      expect(s.location).toMatch(/knowledge_bases\/kb_/);
+    }
+  });
+
+  it('getKnowledgeBaseSeed returns undefined for unknown id', () => {
+    expect(getKnowledgeBaseSeed('kb_nonexistent')).toBeUndefined();
   });
 });
 

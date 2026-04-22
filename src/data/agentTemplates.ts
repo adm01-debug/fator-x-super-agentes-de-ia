@@ -184,7 +184,16 @@ const RAW_TEMPLATES: AgentTemplateRaw[] = [
 
 ## Formato de saída
 Texto em parágrafos curtos. Ao final, sempre um CTA claro: próximo passo ou pergunta de confirmação.`,
-      tools: ['search_knowledge', 'search_crm', 'create_ticket', 'send_notification'],
+      tools: [
+        'search_knowledge',
+        'search_crm',
+        'create_ticket',
+        'send_notification',
+        'send_whatsapp',
+        'check_whatsapp_number',
+        'track_delivery',
+        'add_timeline_event',
+      ],
       guardrails: ['toxicity', 'pii_detection'],
       memory_types: ['episodic', 'user_profile'],
       detailed_guardrails: [
@@ -466,6 +475,10 @@ PDF: [url]
         'search_crm',
         'search_knowledge',
         'send_email',
+        'calculate_shipping',
+        'calculate_shipping_braspress',
+        'calculate_shipping_totalexpress',
+        'send_whatsapp_media',
       ],
       guardrails: ['pii_detection', 'secret_leakage'],
       memory_types: ['semantic', 'episodic'],
@@ -1288,6 +1301,10 @@ Para cada interação, retorne:
         'send_email',
         'search_knowledge',
         'delegate_to_agent',
+        'update_deal',
+        'add_timeline_event',
+        'search_email_threads',
+        'send_whatsapp_media',
       ],
       // reflection: antes de entregar proposta, o agente critica sua própria
       // saída (preço justo? cláusula escapou? prazo realista?). Reduz propostas
@@ -1438,7 +1455,14 @@ Relatório em seções:
 3. Top 3 insights com ação sugerida.
 4. Gráficos anexados (URLs).
 5. Riscos / alertas.`,
-      tools: ['query_datahub', 'generate_chart', 'consult_oracle', 'search_crm'],
+      tools: [
+        'query_datahub',
+        'generate_chart',
+        'consult_oracle',
+        'search_crm',
+        'cache_get',
+        'cache_put',
+      ],
       // plan_execute: primeiro planeja QUAIS queries rodar (pipeline, ICP,
       // RFM), depois dispara em paralelo. Reduz latência em 30-40% vs.
       // react sequencial para relatórios complexos.
@@ -1586,6 +1610,12 @@ Olá [Nome],
         'web_search',
         'query_datahub',
         'delegate_to_agent',
+        'create_email_draft',
+        'search_email_threads',
+        'scrape_web_page',
+        'check_whatsapp_number',
+        'send_whatsapp',
+        'list_tasks',
       ],
       guardrails: ['pii_detection', 'toxicity'],
       memory_types: ['episodic', 'user_profile', 'semantic'],

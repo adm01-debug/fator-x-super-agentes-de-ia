@@ -52,7 +52,8 @@ export const TOOL_CATALOG: Record<string, ToolDefinition> = {
   search_knowledge: {
     id: 'search_knowledge',
     name: 'Buscar Conhecimento (RAG)',
-    description: 'Busca semântica na base de conhecimento do workspace (manuais, políticas, catálogo).',
+    description:
+      'Busca semântica na base de conhecimento do workspace (manuais, políticas, catálogo).',
     category: 'data',
     permission_level: 'read_only',
     edge_function: 'semantic-search',
@@ -62,11 +63,13 @@ export const TOOL_CATALOG: Record<string, ToolDefinition> = {
       knowledge_base_id: z.string().uuid().optional(),
     }),
     output_schema: z.object({
-      results: z.array(z.object({
-        content: z.string(),
-        source: z.string(),
-        score: z.number(),
-      })),
+      results: z.array(
+        z.object({
+          content: z.string(),
+          source: z.string(),
+          score: z.number(),
+        }),
+      ),
     }),
     requires_approval: false,
     max_calls_per_session: 30,
@@ -123,7 +126,8 @@ export const TOOL_CATALOG: Record<string, ToolDefinition> = {
   search_products: {
     id: 'search_products',
     name: 'Buscar Produtos',
-    description: 'Consulta o catálogo de produtos da Promo Brindes (SKU, categoria, estoque, preço).',
+    description:
+      'Consulta o catálogo de produtos da Promo Brindes (SKU, categoria, estoque, preço).',
     category: 'data',
     permission_level: 'read_only',
     edge_function: 'datahub-query',
@@ -134,13 +138,15 @@ export const TOOL_CATALOG: Record<string, ToolDefinition> = {
       limit: z.number().int().min(1).max(100).default(20),
     }),
     output_schema: z.object({
-      products: z.array(z.object({
-        sku: z.string(),
-        name: z.string(),
-        category: z.string(),
-        base_price: z.number(),
-        stock: z.number(),
-      })),
+      products: z.array(
+        z.object({
+          sku: z.string(),
+          name: z.string(),
+          category: z.string(),
+          base_price: z.number(),
+          stock: z.number(),
+        }),
+      ),
     }),
     requires_approval: false,
     max_calls_per_session: 30,
@@ -152,17 +158,20 @@ export const TOOL_CATALOG: Record<string, ToolDefinition> = {
   enrich_company: {
     id: 'enrich_company',
     name: 'Enriquecer Empresa',
-    description: 'Enriquece dados de uma empresa (CNPJ, setor, porte, contatos) combinando Bitrix24 + web.',
+    description:
+      'Enriquece dados de uma empresa (CNPJ, setor, porte, contatos) combinando Bitrix24 + web.',
     category: 'data',
     permission_level: 'read_only',
     edge_function: 'bitrix24-api',
-    input_schema: z.object({
-      cnpj: z.string().optional(),
-      company_name: z.string().optional(),
-      website: z.string().url().optional(),
-    }).refine(v => v.cnpj || v.company_name || v.website, {
-      message: 'Informe cnpj, company_name ou website',
-    }),
+    input_schema: z
+      .object({
+        cnpj: z.string().optional(),
+        company_name: z.string().optional(),
+        website: z.string().url().optional(),
+      })
+      .refine((v) => v.cnpj || v.company_name || v.website, {
+        message: 'Informe cnpj, company_name ou website',
+      }),
     output_schema: z.object({
       company: z.record(z.unknown()),
       contacts: z.array(z.record(z.unknown())),
@@ -212,11 +221,13 @@ export const TOOL_CATALOG: Record<string, ToolDefinition> = {
       max_results: z.number().int().min(1).max(20).default(5),
     }),
     output_schema: z.object({
-      results: z.array(z.object({
-        title: z.string(),
-        url: z.string().url(),
-        snippet: z.string(),
-      })),
+      results: z.array(
+        z.object({
+          title: z.string(),
+          url: z.string().url(),
+          snippet: z.string(),
+        }),
+      ),
     }),
     requires_approval: false,
     max_calls_per_session: 20,
@@ -428,7 +439,8 @@ export const TOOL_CATALOG: Record<string, ToolDefinition> = {
   calculate_price: {
     id: 'calculate_price',
     name: 'Calcular Preço',
-    description: 'Calcula preço de venda com base em SKU, quantidade, técnica de gravação e descontos por volume.',
+    description:
+      'Calcula preço de venda com base em SKU, quantidade, técnica de gravação e descontos por volume.',
     category: 'compute',
     permission_level: 'read_only',
     edge_function: 'datahub-query',
@@ -481,11 +493,13 @@ export const TOOL_CATALOG: Record<string, ToolDefinition> = {
       rule_types: z.array(z.string()).optional(),
     }),
     output_schema: z.object({
-      rules: z.array(z.object({
-        type: z.string(),
-        text: z.string(),
-        confidence: z.number(),
-      })),
+      rules: z.array(
+        z.object({
+          type: z.string(),
+          text: z.string(),
+          confidence: z.number(),
+        }),
+      ),
     }),
     requires_approval: false,
     max_calls_per_session: 10,
@@ -515,6 +529,374 @@ export const TOOL_CATALOG: Record<string, ToolDefinition> = {
     max_calls_per_session: 10,
     max_calls_per_day: 100,
     cost_per_call_usd: 0.02,
+    output_validation: 'schema',
+  },
+
+  // ═══ WhatsApp (Evolution MCP) ══════════════════════════════════
+  send_whatsapp: {
+    id: 'send_whatsapp',
+    name: 'Enviar WhatsApp (texto)',
+    description: 'Envia mensagem de texto via Evolution API (WhatsApp Business).',
+    category: 'action',
+    permission_level: 'read_write',
+    mcp_server: 'evolution',
+    mcp_method: 'evo_send_text',
+    input_schema: z.object({
+      instance: z.string(),
+      number: z.string().min(10),
+      text: z.string().min(1).max(4096),
+    }),
+    output_schema: OkResponse.extend({ message_id: z.string().optional() }),
+    requires_approval: true,
+    max_calls_per_session: 20,
+    max_calls_per_day: 500,
+    cost_per_call_usd: 0.005,
+    output_validation: 'schema',
+  },
+
+  send_whatsapp_media: {
+    id: 'send_whatsapp_media',
+    name: 'Enviar WhatsApp (mídia)',
+    description: 'Envia imagem/PDF/documento via WhatsApp (mockup, cotação).',
+    category: 'action',
+    permission_level: 'read_write',
+    mcp_server: 'evolution',
+    mcp_method: 'evo_send_media',
+    input_schema: z.object({
+      instance: z.string(),
+      number: z.string().min(10),
+      media_url: z.string().url(),
+      caption: z.string().optional(),
+    }),
+    output_schema: OkResponse,
+    requires_approval: true,
+    max_calls_per_session: 10,
+    max_calls_per_day: 200,
+    cost_per_call_usd: 0.01,
+    output_validation: 'schema',
+  },
+
+  check_whatsapp_number: {
+    id: 'check_whatsapp_number',
+    name: 'Validar Número WhatsApp',
+    description: 'Verifica se um número é um contato WhatsApp ativo.',
+    category: 'data',
+    permission_level: 'read_only',
+    mcp_server: 'evolution',
+    mcp_method: 'evo_check_number',
+    input_schema: z.object({
+      instance: z.string(),
+      numbers: z.array(z.string()).min(1).max(100),
+    }),
+    output_schema: z.object({
+      results: z.array(z.object({ number: z.string(), exists: z.boolean() })),
+    }),
+    requires_approval: false,
+    max_calls_per_session: 20,
+    max_calls_per_day: 300,
+    cost_per_call_usd: 0.0005,
+    output_validation: 'schema',
+  },
+
+  // ═══ Shipping (múltiplas transportadoras) ══════════════════════
+  calculate_shipping: {
+    id: 'calculate_shipping',
+    name: 'Calcular Frete (Frenet)',
+    description: 'Cotação de frete multi-transportadora via Frenet (Sedex, JadLog, Loggi, etc.).',
+    category: 'data',
+    permission_level: 'read_only',
+    mcp_server: 'frenet',
+    mcp_method: 'frenet_cotar_frete',
+    input_schema: z.object({
+      cep_origem: z.string().length(8),
+      cep_destino: z.string().length(8),
+      peso_kg: z.number().positive(),
+      valor_declarado: z.number().optional(),
+    }),
+    output_schema: z.object({
+      options: z.array(
+        z.object({
+          transportadora: z.string(),
+          servico: z.string(),
+          prazo_dias: z.number(),
+          valor: z.number(),
+        }),
+      ),
+    }),
+    requires_approval: false,
+    max_calls_per_session: 20,
+    max_calls_per_day: 300,
+    cost_per_call_usd: 0.001,
+    output_validation: 'schema',
+  },
+
+  calculate_shipping_braspress: {
+    id: 'calculate_shipping_braspress',
+    name: 'Cotar Frete Braspress',
+    description: 'Cotação rápida pela Braspress (especializada em carga industrial).',
+    category: 'data',
+    permission_level: 'read_only',
+    mcp_server: 'braspress',
+    mcp_method: 'braspress_cotacao_rapida',
+    input_schema: z.object({
+      cnpj_remetente: z.string(),
+      cep_origem: z.string(),
+      cep_destino: z.string(),
+      peso_kg: z.number().positive(),
+      valor_mercadoria: z.number().positive(),
+    }),
+    output_schema: z.object({ valor: z.number(), prazo_dias: z.number() }),
+    requires_approval: false,
+    max_calls_per_session: 15,
+    max_calls_per_day: 200,
+    cost_per_call_usd: 0.001,
+    output_validation: 'schema',
+  },
+
+  calculate_shipping_totalexpress: {
+    id: 'calculate_shipping_totalexpress',
+    name: 'Cotar Frete Total Express',
+    description: 'Cotação Total Express (especializada em e-commerce e última milha).',
+    category: 'data',
+    permission_level: 'read_only',
+    mcp_server: 'totalexpress',
+    mcp_method: 'totalexpress_cotacao_completa',
+    input_schema: z.object({
+      cep_destino: z.string(),
+      peso_kg: z.number().positive(),
+      valor_mercadoria: z.number().positive(),
+    }),
+    output_schema: z.object({
+      valor: z.number(),
+      prazo_dias: z.number(),
+      modalidade: z.string(),
+    }),
+    requires_approval: false,
+    max_calls_per_session: 15,
+    max_calls_per_day: 200,
+    cost_per_call_usd: 0.001,
+    output_validation: 'schema',
+  },
+
+  track_delivery: {
+    id: 'track_delivery',
+    name: 'Rastrear Entrega',
+    description: 'Rastreia pedido em andamento via Frenet (multi-transportadora).',
+    category: 'data',
+    permission_level: 'read_only',
+    mcp_server: 'frenet',
+    mcp_method: 'frenet_rastrear',
+    input_schema: z.object({
+      codigo_rastreio: z.string().min(5),
+      transportadora: z.string().optional(),
+    }),
+    output_schema: z.object({
+      status_atual: z.string(),
+      eventos: z.array(z.object({ data: z.string(), descricao: z.string(), local: z.string() })),
+      previsao_entrega: z.string().optional(),
+    }),
+    requires_approval: false,
+    max_calls_per_session: 30,
+    max_calls_per_day: 500,
+    cost_per_call_usd: 0.0005,
+    output_validation: 'schema',
+  },
+
+  // ═══ Web scraping / browser ═════════════════════════════════════
+  scrape_web_page: {
+    id: 'scrape_web_page',
+    name: 'Scrape de Página Web',
+    description:
+      'Baixa HTML limpo (ou markdown) de uma página web. Útil para enriquecer empresa via site oficial.',
+    category: 'data',
+    permission_level: 'read_only',
+    mcp_server: 'chrome',
+    mcp_method: 'chrome_markdown',
+    input_schema: z.object({
+      url: z.string().url(),
+      selector: z.string().optional(),
+    }),
+    output_schema: z.object({ content: z.string(), title: z.string().optional() }),
+    requires_approval: false,
+    max_calls_per_session: 20,
+    max_calls_per_day: 200,
+    cost_per_call_usd: 0.003,
+    output_validation: 'schema',
+  },
+
+  screenshot_page: {
+    id: 'screenshot_page',
+    name: 'Screenshot de Página',
+    description: 'Captura screenshot de página web (para anexar em proposta/relatório).',
+    category: 'data',
+    permission_level: 'read_only',
+    mcp_server: 'chrome',
+    mcp_method: 'chrome_screenshot',
+    input_schema: z.object({ url: z.string().url(), full_page: z.boolean().default(false) }),
+    output_schema: z.object({ image_url: z.string().url() }),
+    requires_approval: false,
+    max_calls_per_session: 10,
+    max_calls_per_day: 100,
+    cost_per_call_usd: 0.005,
+    output_validation: 'schema',
+  },
+
+  // ═══ Bitrix24 — métodos estendidos ═════════════════════════════
+  update_deal: {
+    id: 'update_deal',
+    name: 'Atualizar Deal (Bitrix24)',
+    description: 'Move deal entre estágios, atualiza valor/fechamento estimado, muda responsável.',
+    category: 'action',
+    permission_level: 'read_write',
+    mcp_server: 'bitrix24',
+    mcp_method: 'b24_deal_update',
+    input_schema: z.object({
+      deal_id: z.string(),
+      fields: z.record(z.unknown()),
+    }),
+    output_schema: OkResponse,
+    requires_approval: true,
+    max_calls_per_session: 20,
+    max_calls_per_day: 300,
+    cost_per_call_usd: 0.0,
+    output_validation: 'schema',
+  },
+
+  add_timeline_event: {
+    id: 'add_timeline_event',
+    name: 'Adicionar Evento na Timeline (Bitrix24)',
+    description: 'Registra comentário / ação executada na timeline de um deal ou contato.',
+    category: 'action',
+    permission_level: 'read_write',
+    mcp_server: 'bitrix24',
+    mcp_method: 'b24_timeline_add',
+    input_schema: z.object({
+      entity_type: z.enum(['deal', 'contact', 'company', 'lead']),
+      entity_id: z.string(),
+      comment: z.string().min(1),
+    }),
+    output_schema: OkResponse,
+    requires_approval: false,
+    max_calls_per_session: 30,
+    max_calls_per_day: 500,
+    cost_per_call_usd: 0.0,
+    output_validation: 'schema',
+  },
+
+  list_tasks: {
+    id: 'list_tasks',
+    name: 'Listar Tarefas (Bitrix24)',
+    description:
+      'Lista tarefas de um responsável/projeto (para SDR/closer saberem o que está pendente).',
+    category: 'data',
+    permission_level: 'read_only',
+    mcp_server: 'bitrix24',
+    mcp_method: 'b24_task_list',
+    input_schema: z.object({
+      responsible_id: z.string().optional(),
+      filter: z.record(z.unknown()).optional(),
+      limit: z.number().int().min(1).max(100).default(20),
+    }),
+    output_schema: z.object({ tasks: z.array(z.record(z.unknown())) }),
+    requires_approval: false,
+    max_calls_per_session: 20,
+    max_calls_per_day: 300,
+    cost_per_call_usd: 0.0,
+    output_validation: 'schema',
+  },
+
+  // ═══ E-mail (Gmail MCP) ══════════════════════════════════════════
+  create_email_draft: {
+    id: 'create_email_draft',
+    name: 'Criar Rascunho de E-mail (Gmail)',
+    description: 'Cria rascunho no Gmail para aprovação humana antes do envio (SDR outbound).',
+    category: 'action',
+    permission_level: 'read_write',
+    mcp_server: 'gmail',
+    mcp_method: 'create_draft',
+    input_schema: z.object({
+      to: z.string().email(),
+      subject: z.string().min(1).max(200),
+      body: z.string().min(1),
+      cc: z.array(z.string().email()).optional(),
+    }),
+    output_schema: z.object({ draft_id: z.string(), thread_id: z.string().optional() }),
+    requires_approval: true,
+    max_calls_per_session: 15,
+    max_calls_per_day: 150,
+    cost_per_call_usd: 0.001,
+    output_validation: 'schema',
+  },
+
+  search_email_threads: {
+    id: 'search_email_threads',
+    name: 'Buscar Threads de E-mail',
+    description: 'Pesquisa threads no Gmail (histórico de contato com lead/cliente).',
+    category: 'data',
+    permission_level: 'read_only',
+    mcp_server: 'gmail',
+    mcp_method: 'search_threads',
+    input_schema: z.object({
+      query: z.string().min(1),
+      max_results: z.number().int().min(1).max(50).default(10),
+    }),
+    output_schema: z.object({
+      threads: z.array(z.object({ id: z.string(), subject: z.string(), snippet: z.string() })),
+    }),
+    requires_approval: false,
+    max_calls_per_session: 15,
+    max_calls_per_day: 200,
+    cost_per_call_usd: 0.0005,
+    output_validation: 'schema',
+  },
+
+  // ═══ Cache / persistência distribuída (Cloudflare KV) ══════════
+  cache_get: {
+    id: 'cache_get',
+    name: 'Cache — Ler',
+    description:
+      'Lê valor do cache distribuído (Cloudflare KV). Útil para snapshots de dashboard, rate-limit por cliente.',
+    category: 'data',
+    permission_level: 'read_only',
+    mcp_server: 'cloudflare',
+    mcp_method: 'cf_kv_get',
+    input_schema: z.object({
+      namespace: z.string(),
+      key: z.string().min(1),
+    }),
+    output_schema: z.object({ value: z.unknown().nullable(), hit: z.boolean() }),
+    requires_approval: false,
+    max_calls_per_session: 50,
+    max_calls_per_day: 5000,
+    cost_per_call_usd: 0.0,
+    output_validation: 'schema',
+  },
+
+  cache_put: {
+    id: 'cache_put',
+    name: 'Cache — Gravar',
+    description:
+      'Grava valor no cache distribuído com TTL (para evitar recomputar forecast/análise idênticas).',
+    category: 'action',
+    permission_level: 'read_write',
+    mcp_server: 'cloudflare',
+    mcp_method: 'cf_kv_put',
+    input_schema: z.object({
+      namespace: z.string(),
+      key: z.string().min(1),
+      value: z.unknown(),
+      ttl_seconds: z
+        .number()
+        .int()
+        .min(60)
+        .max(86400 * 30)
+        .default(3600),
+    }),
+    output_schema: OkResponse,
+    requires_approval: false,
+    max_calls_per_session: 30,
+    max_calls_per_day: 2000,
+    cost_per_call_usd: 0.0,
     output_validation: 'schema',
   },
 };
