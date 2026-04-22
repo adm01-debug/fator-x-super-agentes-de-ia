@@ -32,6 +32,7 @@ import { StepQuickPrompt } from './quickSteps/StepQuickPrompt';
 import { PreflightReviewSummary } from './quickSteps/PreflightReviewSummary';
 import { DraftRecoveryBanner, type DraftBannerEntry } from './DraftRecoveryBanner';
 import { RestoreFeedbackBanner } from './RestoreFeedbackBanner';
+import { DraftRestoredNotification } from './DraftRestoredNotification';
 import { DangerousActionDialog } from '@/components/rbac/DangerousActionDialog';
 import { AlertTriangle } from 'lucide-react';
 import { logAudit } from '@/services/auditLogService';
