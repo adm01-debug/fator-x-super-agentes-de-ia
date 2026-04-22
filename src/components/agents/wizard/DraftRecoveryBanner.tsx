@@ -283,16 +283,24 @@ export function DraftRecoveryBanner({
           </div>
         </div>
 
-        <div className="flex flex-wrap gap-1.5">
-          <StatusChip label="Identidade" ok={only.summary.hasIdentity} />
-          <StatusChip label="Tipo" ok={only.summary.hasType} />
-          <StatusChip label="Modelo" ok={only.summary.hasModel} />
-          <StatusChip label="Prompt" ok={only.summary.hasPrompt} />
-          {blocked && (
-            <span className="inline-flex items-center gap-1 text-[11px] px-2 py-0.5 rounded-full border border-warning/30 bg-warning/10 text-warning">
-              Incompleto
+        <div className="space-y-2">
+          <div className="flex items-center gap-2">
+            <span className="text-[11px] uppercase tracking-wide text-muted-foreground shrink-0">
+              Completude
             </span>
-          )}
+            <CompletionMeter summary={only.summary} />
+          </div>
+          <div className="flex flex-wrap gap-1.5">
+            <StatusChip label="Identidade" ok={only.summary.hasIdentity} />
+            <StatusChip label="Tipo" ok={only.summary.hasType} />
+            <StatusChip label="Modelo" ok={only.summary.hasModel} />
+            <StatusChip label="Prompt" ok={only.summary.hasPrompt} />
+            {blocked && (
+              <span className="inline-flex items-center gap-1 text-[11px] px-2 py-0.5 rounded-full border border-warning/30 bg-warning/10 text-warning">
+                Incompleto
+              </span>
+            )}
+          </div>
         </div>
 
         <div className="flex items-center justify-end gap-2 pt-1">
