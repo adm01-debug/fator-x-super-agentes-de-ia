@@ -87,7 +87,15 @@ export function QuickCreateWizard({ onBack }: QuickCreateWizardProps) {
   const [draftsStore, setDraftsStore] = useState<DraftsStoreV2>({ version: 2, activeId: null, drafts: [] });
   const [pendingDrafts, setPendingDrafts] = useState<DraftEntry[]>([]);
   const [draftDecided, setDraftDecided] = useState(false);
+  const [highlightField, setHighlightField] = useState<keyof QuickAgentForm | null>(null);
   const lastTypeRef = useRef<QuickAgentType | null>(null);
+
+  // Auto-clear field highlight after 4s
+  useEffect(() => {
+    if (!highlightField) return;
+    const t = window.setTimeout(() => setHighlightField(null), 4000);
+    return () => window.clearTimeout(t);
+  }, [highlightField]);
 
   // On mount: load store, filter recoverable drafts.
   useEffect(() => {
