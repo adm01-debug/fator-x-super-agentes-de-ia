@@ -1,5 +1,7 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
+import { useRestoreDialogMemory } from "./useRestoreDialogMemory";
+import { History, RotateCw } from "lucide-react";
 import {
   Dialog,
   DialogContent,
@@ -42,9 +44,53 @@ interface Props {
 
 export function RestoreVersionDialog({ open, onOpenChange, source, current, nextVersionNumber, restoring, onConfirm }: Props) {
   const navigate = useNavigate();
-  const [copyPrompt, setCopyPrompt] = useState(true);
-  const [copyTools, setCopyTools] = useState(true);
-  const [copyModel, setCopyModel] = useState(false);
+  // Memória persistente por agente: hidrata as escolhas de rollback e o
+  // último modo de visualização (resumo vs diff completo) salvos na
+  // sessão anterior, para reabrir já no mesmo estado.
+  const { memory, save: saveMemory, clear: clearMemory } = useRestoreDialogMemory(source.agent_id);
+
+  const [copyPrompt, setCopyPrompt] = useState(memory?.copyPrompt ?? true);
+  const [copyTools, setCopyTools] = useState(memory?.copyTools ?? true);
+  const [copyModel, setCopyModel] = useState(memory?.copyModel ?? false);
+  const [showFullDiff, setShowFullDiff] = useState(memory?.showFullDiff ?? false);
+
+  // Indica se as preferências atuais vieram de uma sessão anterior (para o aviso).
+  const restoredFromMemoryRef = useRef<boolean>(!!memory);
+  const [showRestoredHint, setShowRestoredHint] = useState<boolean>(!!memory && open);
+
+  // Sempre que o dialog abrir, re-hidrata a partir do storage (caso outro
+  // agente/usuário tenha gravado entre aberturas) e mostra o hint de novo.
+  useEffect(() => {
+    if (!open) return;
+    if (memory) {
+      setCopyPrompt(memory.copyPrompt);
+      setCopyTools(memory.copyTools);
+      setCopyModel(memory.copyModel);
+      setShowFullDiff(memory.showFullDiff);
+      restoredFromMemoryRef.current = true;
+      setShowRestoredHint(true);
+    } else {
+      restoredFromMemoryRef.current = false;
+      setShowRestoredHint(false);
+    }
+    // Só queremos rodar quando o dialog abre.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [open]);
+
+  // Persiste qualquer mudança nas preferências enquanto o dialog está aberto.
+  useEffect(() => {
+    if (!open) return;
+    saveMemory({
+      copyPrompt,
+      copyTools,
+      copyModel,
+      showFullDiff,
+      lastSourceVersionId: source.id,
+      lastSourceVersionNumber: source.version,
+    });
+    // saveMemory é estável o suficiente; evitamos loop incluindo só os campos.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [open, copyPrompt, copyTools, copyModel, showFullDiff, source.id, source.version]);
 
   // Atalhos para ir direto às telas de configuração do agente. Usam deep-link
   // por query param ?tab=... no AgentBuilder. Fechamos o dialog antes de
@@ -53,10 +99,16 @@ export function RestoreVersionDialog({ open, onOpenChange, source, current, next
     onOpenChange(false);
     navigate(`/builder/${source.agent_id}?tab=${tab}`);
   };
-  // "Ver detalhes" abre uma sub-view dentro do mesmo Dialog para mostrar o
-  // diff em texto completo (antes/depois) com realce e rolagem. Mantemos no
-  // mesmo Dialog para preservar o estado dos toggles.
-  const [showFullDiff, setShowFullDiff] = useState(false);
+
+  const resetPreferences = () => {
+    setCopyPrompt(true);
+    setCopyTools(true);
+    setCopyModel(false);
+    setShowFullDiff(false);
+    clearMemory();
+    setShowRestoredHint(false);
+    restoredFromMemoryRef.current = false;
+  };
 
   const tools = useMemo(() => getVersionTools(source), [source]);
   const prompt = useMemo(() => getVersionPrompt(source), [source]);
@@ -110,6 +162,42 @@ export function RestoreVersionDialog({ open, onOpenChange, source, current, next
             {sameAsCurrent && (
               <div className="text-xs text-nexus-amber bg-nexus-amber/10 border border-nexus-amber/30 rounded-lg px-3 py-2">
                 Você está restaurando a versão atual sobre ela mesma — a nova versão será praticamente idêntica.
+              </div>
+            )}
+
+            {showRestoredHint && memory && (
+              <div className="flex items-start gap-2 rounded-lg border border-primary/30 bg-primary/[0.06] px-3 py-2">
+                <History className="h-3.5 w-3.5 text-primary mt-0.5 shrink-0" aria-hidden="true" />
+                <div className="min-w-0 flex-1">
+                  <p className="text-[11px] text-foreground">
+                    Restauramos suas escolhas anteriores de rollback
+                    {memory.lastSourceVersionNumber != null && (
+                      <> (última visualização em <span className="font-mono">v{memory.lastSourceVersionNumber}</span>)</>
+                    )}
+                    .
+                  </p>
+                  <div className="flex items-center gap-2 mt-1">
+                    <Button
+                      type="button"
+                      size="sm"
+                      variant="ghost"
+                      className="h-6 px-2 text-[10px] gap-1 text-muted-foreground hover:text-foreground"
+                      onClick={resetPreferences}
+                    >
+                      <RotateCw className="h-3 w-3" aria-hidden="true" />
+                      Restaurar padrões
+                    </Button>
+                    <Button
+                      type="button"
+                      size="sm"
+                      variant="ghost"
+                      className="h-6 px-2 text-[10px] text-muted-foreground hover:text-foreground"
+                      onClick={() => setShowRestoredHint(false)}
+                    >
+                      Ocultar
+                    </Button>
+                  </div>
+                </div>
               </div>
             )}
 
