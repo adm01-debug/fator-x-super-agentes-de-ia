@@ -272,9 +272,57 @@ export function StepQuickPrompt({ form, errors, onPromptManualEdit, onRestore, o
           <h2 className="text-lg font-heading font-semibold text-foreground">System Prompt</h2>
           <p className="text-sm text-muted-foreground">Instruções de comportamento do agente.</p>
         </div>
-        <Button type="button" variant="ghost" size="sm" onClick={onRestore} className="gap-1.5">
-          <RefreshCw className="h-3.5 w-3.5" /> Restaurar template
-        </Button>
+        <div className="flex items-center gap-1.5">
+          <Button type="button" variant="ghost" size="sm" onClick={onRestore} className="gap-1.5">
+            <RefreshCw className="h-3.5 w-3.5" /> Restaurar template
+          </Button>
+          <AlertDialog>
+            <AlertDialogTrigger asChild>
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                className="gap-1.5 border-destructive/40 text-destructive hover:bg-destructive/10 hover:text-destructive"
+              >
+                <ShieldCheck className="h-3.5 w-3.5" /> Reset seguro
+              </Button>
+            </AlertDialogTrigger>
+            <AlertDialogContent>
+              <AlertDialogHeader>
+                <AlertDialogTitle>Resetar para estado seguro?</AlertDialogTitle>
+                <AlertDialogDescription asChild>
+                  <div className="space-y-2 text-sm text-muted-foreground">
+                    <p>
+                      Esta ação volta o <strong>system prompt</strong> e o <strong>preview do agente</strong>{' '}
+                      para o template base do tipo selecionado, em um estado conhecido e validado.
+                    </p>
+                    <ul className="list-disc pl-5 space-y-1 text-xs">
+                      <li>Substitui o prompt atual pelo template padrão (sanitizado).</li>
+                      <li>Limpa a variação ativa e o bloqueio "customizado".</li>
+                      <li>Restaura o emoji do tipo de agente.</li>
+                      <li>Mantém nome, missão, descrição e modelo intactos.</li>
+                    </ul>
+                    <p className="text-xs text-destructive">
+                      Suas edições atuais no prompt serão perdidas — considere salvar uma versão antes.
+                    </p>
+                  </div>
+                </AlertDialogDescription>
+              </AlertDialogHeader>
+              <AlertDialogFooter>
+                <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                <AlertDialogAction
+                  onClick={() => {
+                    setLastChangeKind('variant');
+                    onSafeReset();
+                  }}
+                  className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                >
+                  Resetar agora
+                </AlertDialogAction>
+              </AlertDialogFooter>
+            </AlertDialogContent>
+          </AlertDialog>
+        </div>
       </div>
 
       <PromptVariantSelector
