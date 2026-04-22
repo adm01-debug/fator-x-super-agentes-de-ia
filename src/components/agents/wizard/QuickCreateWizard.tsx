@@ -343,13 +343,22 @@ export function QuickCreateWizard({ onBack }: QuickCreateWizardProps) {
     if (highlightField === key) setHighlightField(null);
   };
 
-  /** Manual prompt edit — flips the custom lock so chips stop auto-detecting. */
-  const updatePromptManual = (next: string) => {
+  /**
+   * Manual prompt edit — flips the custom lock so chips stop auto-detecting.
+   * `source` distinguishes typing ('manual', default) from clipboard paste
+   * ('paste'). Paste ALWAYS forces the lock, even if the resulting text
+   * happens to coincide character-for-character with a known variant —
+   * pasted content is treated as opaque user intent.
+   */
+  const updatePromptManual = (next: string, source: 'manual' | 'paste' = 'manual') => {
     setForm((prev) => ({ ...prev, prompt: next }));
     setErrors((prev) => ({ ...prev, prompt: undefined }));
     if (highlightField === 'prompt') setHighlightField(null);
     if (!promptCustomLocked) {
-      pushLockEvent('locked-manual-edit', 'edição direta no editor');
+      pushLockEvent(
+        source === 'paste' ? 'locked-paste' : 'locked-manual-edit',
+        source === 'paste' ? 'colagem no editor' : 'edição direta no editor',
+      );
     }
     setPromptCustomLocked(true);
     setSelectedVariant(null);
