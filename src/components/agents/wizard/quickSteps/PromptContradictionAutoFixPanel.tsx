@@ -211,9 +211,7 @@ export function PromptContradictionAutoFixPanel({ prompt, onApply }: Props) {
 
       <AlertDialog
         open={preview.open}
-        onOpenChange={(open) =>
-          !open && setPreview({ open: false, title: '', fixedPrompt: '', summary: '' })
-        }
+        onOpenChange={(open) => !open && closePreview()}
       >
         <AlertDialogContent className="max-w-3xl">
           <AlertDialogHeader>
@@ -227,12 +225,20 @@ export function PromptContradictionAutoFixPanel({ prompt, onApply }: Props) {
           </AlertDialogHeader>
 
           <div className="my-2 max-h-[420px] overflow-auto">
-            <PromptDiff
-              textA={prompt}
-              textB={preview.fixedPrompt}
-              labelA="Atual (com contradição)"
-              labelB="Após unificação"
-            />
+            {preview.fix ? (
+              // Per-conflict preview → focused word-level diff of just the
+              // affected lines, so removed/added tokens jump out immediately.
+              <ContradictionWordDiff prompt={prompt} fix={preview.fix} />
+            ) : (
+              // "Apply all" preview → keep the full side-by-side line diff
+              // because the change spans many non-contiguous lines.
+              <PromptDiff
+                textA={prompt}
+                textB={preview.fixedPrompt}
+                labelA="Atual (com contradições)"
+                labelB="Após unificação"
+              />
+            )}
           </div>
 
           <AlertDialogFooter>
