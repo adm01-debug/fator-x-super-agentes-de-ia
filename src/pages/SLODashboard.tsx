@@ -503,7 +503,7 @@ export default function SLODashboard() {
             const missingBuckets = Math.max(0, expectedBuckets - bucketsWithData);
             const tracesPerHour = summary.total_traces / expectedBuckets;
             const coverageStatus: SLOStatus =
-              coveragePct >= 90 ? 'healthy' : coveragePct >= 60 ? 'warning' : 'critical';
+              coveragePct >= 90 ? 'healthy' : coveragePct >= 60 ? 'warning' : 'breached';
             const coverageColor =
               coverageStatus === 'healthy' ? 'bg-nexus-emerald'
                 : coverageStatus === 'warning' ? 'bg-nexus-amber'
