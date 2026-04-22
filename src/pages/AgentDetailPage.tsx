@@ -243,7 +243,7 @@ function VersionHistory({ agentId }: { agentId: string }) {
       <VersionDiffDialog open={diffOpen} onOpenChange={setDiffOpen} agentId={agentId} versions={versions as unknown as Array<{ id: string; version: number; model: string | null; persona: string | null; mission: string | null; config: Record<string, unknown>; change_summary: string | null; created_at: string }>} />
 
       <AlertDialog open={rollbackOpen} onOpenChange={setRollbackOpen}>
-        <AlertDialogContent>
+        <AlertDialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
           <AlertDialogHeader>
             <AlertDialogTitle className="flex items-center gap-2">
               <Undo2 className="h-4 w-4 text-nexus-amber" aria-hidden />
