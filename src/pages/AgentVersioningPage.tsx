@@ -63,6 +63,15 @@ export default function AgentVersioningPage() {
   const setPreset = (pid: string) =>
     updateParams((p) => { pid && pid !== 'all' ? p.set('preset', pid) : p.delete('preset'); });
 
+  // Intervalo (versão ou tempo) também persiste na URL via `range=` para
+  // manter o link compartilhável com a mesma "fatia" da timeline.
+  const range: TimelineRange = parseRange(searchParams.get('range'));
+  const setRange = (r: TimelineRange) =>
+    updateParams((p) => {
+      const s = serializeRange(r);
+      s ? p.set('range', s) : p.delete('range');
+    });
+
   const { data: agent } = useQuery({
     queryKey: ['agent', id],
     queryFn: () => getAgentById(id!),
