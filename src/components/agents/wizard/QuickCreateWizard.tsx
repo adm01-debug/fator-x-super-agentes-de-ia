@@ -92,7 +92,10 @@ export function QuickCreateWizard({ onBack }: QuickCreateWizardProps) {
   const [draftDecided, setDraftDecided] = useState(false);
   const [highlightField, setHighlightField] = useState<keyof QuickAgentForm | null>(null);
   const [confirmOpen, setConfirmOpen] = useState(false);
+  const [promptCustomLocked, setPromptCustomLocked] = useState(false);
+  const [pendingVariant, setPendingVariant] = useState<import('@/data/quickAgentTemplates').PromptVariantId | null>(null);
   const lastTypeRef = useRef<QuickAgentType | null>(null);
+  const lastTypeForLockRef = useRef<string>(QUICK_AGENT_DEFAULTS.type);
 
   // Auto-clear field highlight after 4s
   useEffect(() => {
