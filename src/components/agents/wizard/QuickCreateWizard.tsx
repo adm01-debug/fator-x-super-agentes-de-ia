@@ -277,6 +277,11 @@ export function QuickCreateWizard({ onBack }: QuickCreateWizardProps) {
     });
     setPendingDrafts([]);
     setDraftDecided(true);
+    if (target.promptCustomLocked === true) {
+      pushLockEvent('locked-manual-edit', `rascunho "${target.form.name?.trim() || 'sem nome'}" restaurado já travado`);
+    } else {
+      pushLockEvent('unlocked-draft-restore', `rascunho "${target.form.name?.trim() || 'sem nome'}"`);
+    }
     if (!check.canRestore) {
       toast.warning('Rascunho restaurado parcialmente', {
         description: resume.field
