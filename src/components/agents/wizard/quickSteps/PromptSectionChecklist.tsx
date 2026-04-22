@@ -83,6 +83,8 @@ export function PromptSectionChecklist({
   activeVariantPrompt,
   activeVariantLabel,
   customLocked,
+  autoUnlockEnabled,
+  onToggleAutoUnlock,
 }: Props) {
   const reports = useMemo(() => analyzeSectionContent(prompt), [prompt]);
   const total = REQUIRED_PROMPT_SECTIONS.length;
