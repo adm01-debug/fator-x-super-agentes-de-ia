@@ -726,10 +726,53 @@ export default function SLODashboard() {
           <div className="grid gap-4 lg:grid-cols-3">
             <Card className="lg:col-span-2">
               <CardHeader>
-                <CardTitle>Latência ao longo do tempo</CardTitle>
-                <CardDescription>
-                  P95 e P50 — linha pontilhada indica o alvo de {SLO_TARGETS.p95LatencyMs}ms
-                </CardDescription>
+                <div className="flex items-start justify-between gap-3 flex-wrap">
+                  <div>
+                    <CardTitle>Latência ao longo do tempo</CardTitle>
+                    <CardDescription>
+                      P95 e P50 — linha pontilhada indica o alvo de {SLO_TARGETS.p95LatencyMs}ms.
+                      {' '}
+                      <span className="font-medium text-foreground">
+                        {filteredViolations} {filteredViolations === 1 ? 'violação' : 'violações'}
+                      </span>
+                      {' '}sob o filtro atual.
+                    </CardDescription>
+                  </div>
+                </div>
+                {/* Failure-mode filters: choose which signals count as a
+                    violation in the timeline + comparison table. */}
+                <div className="flex items-center gap-2 flex-wrap pt-2">
+                  <span className="text-[11px] uppercase text-muted-foreground tracking-wide">
+                    Tipos de falha:
+                  </span>
+                  {ALL_FAILURE_MODES.map((mode) => {
+                    const active = failureModes.has(mode);
+                    return (
+                      <button
+                        key={mode}
+                        type="button"
+                        onClick={() => toggleFailureMode(mode)}
+                        title={FAILURE_MODE_META[mode].description}
+                        aria-pressed={active}
+                        className={`px-2.5 py-1 text-xs rounded-full border transition-colors focus-ring ${
+                          active
+                            ? 'bg-primary/15 border-primary/40 text-primary font-medium'
+                            : 'bg-secondary/30 border-border text-muted-foreground hover:bg-secondary/60'
+                        }`}
+                      >
+                        {FAILURE_MODE_META[mode].label}
+                      </button>
+                    );
+                  })}
+                  <button
+                    type="button"
+                    disabled
+                    title="Granularidade de falhas de ferramentas requer extensão do RPC get_slo_summary — em breve."
+                    className="px-2.5 py-1 text-xs rounded-full border border-dashed border-border text-muted-foreground/60 cursor-not-allowed"
+                  >
+                    Tool failures (em breve)
+                  </button>
+                </div>
               </CardHeader>
               <CardContent>
                 {chartData.length === 0 ? (
