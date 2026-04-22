@@ -118,7 +118,15 @@ export interface KPIComparison {
   current: number;
   previous: number;
   deltaAbs: number;
+  /**
+   * Magnitude do delta exibida no UI. Para a maioria dos KPIs é a variação
+   * percentual relativa (`%`). Para taxas que já são percentuais (como Taxa
+   * de sucesso) usamos pontos percentuais (`pp`) — mais intuitivo do que a
+   * variação relativa de uma taxa.
+   */
   deltaPct: number;
+  /** Unidade do `deltaPct` para exibição. Default: '%'. */
+  deltaUnit?: '%' | 'pp';
   hasPrev: boolean;
   trend: 'up' | 'down' | 'flat';
   isPositive: boolean;
@@ -147,7 +155,15 @@ export function compareWindows(
   return { current, previous, deltaAbs, deltaPct, hasPrev, trend, isPositive, inverted };
 }
 
-/** Compara taxa de sucesso (%) entre últimos 7d e 7d anteriores a partir dos traces. */
+/**
+ * Compara taxa de sucesso (%) entre janela atual e anterior.
+ * Convenções:
+ *   - `current`/`previous` em % (0..100)
+ *   - `deltaAbs` em pontos percentuais (pp)
+ *   - `deltaPct` reflete a variação em **pp** (mais intuitivo para taxas), não
+ *     o crescimento relativo. `deltaUnit = 'pp'`.
+ *   - "Maior é melhor": `isPositive` é `true` quando a taxa cresceu.
+ */
 export function compareSuccessRateWindows(
   traces: AgentTrace[],
   window = 7,
@@ -177,13 +193,24 @@ export function compareSuccessRateWindows(
   const current = curTotal > 0 ? ((curTotal - curErr) / curTotal) * 100 : 0;
   const previous = prevTotal > 0 ? ((prevTotal - prevErr) / prevTotal) * 100 : 0;
   const hasPrev = prevTotal > 0;
-  const deltaAbs = current - previous;
-  const deltaPct = hasPrev && previous > 0 ? (deltaAbs / previous) * 100 : 0;
-  const absPct = Math.abs(deltaPct);
-  const trend: 'up' | 'down' | 'flat' = absPct <= 0.1 ? 'flat' : deltaPct > 0 ? 'up' : 'down';
-  // sucesso: maior é melhor
-  const isPositive = deltaPct > 0;
-  return { current, previous, deltaAbs, deltaPct, hasPrev, trend, isPositive, inverted: false };
+  const deltaAbs = current - previous;             // em pontos percentuais
+  const deltaPct = hasPrev ? deltaAbs : 0;          // mostramos pp, não % relativo
+  // ~0.1pp considerado ruído estatístico (≈ 1 erro em 1000 requisições)
+  const trend: 'up' | 'down' | 'flat' =
+    !hasPrev || Math.abs(deltaAbs) < 0.1 ? 'flat' : deltaAbs > 0 ? 'up' : 'down';
+  // Maior taxa de sucesso é sempre melhor.
+  const isPositive = deltaAbs > 0;
+  return {
+    current,
+    previous,
+    deltaAbs,
+    deltaPct,
+    deltaUnit: 'pp',
+    hasPrev,
+    trend,
+    isPositive,
+    inverted: false,
+  };
 }
 
 export function formatCost(v: number): string {

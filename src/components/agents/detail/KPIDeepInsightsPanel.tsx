@@ -281,21 +281,23 @@ export function KPIDeepInsightsPanel({ daily, traces, agentName }: Props) {
                 <span className="text-base font-heading font-extrabold text-foreground tabular-nums">
                   {i.currentLabel}
                 </span>
-                {i.cmp.hasPrev && (
-                  relevant ? (
+                {i.cmp.hasPrev && (() => {
+                  const unit = i.cmp.deltaUnit ?? '%';
+                  const digits = unit === 'pp' ? 2 : 1;
+                  return relevant ? (
                     <span className={`flex items-center gap-0.5 text-[10px] font-mono font-semibold ${deltaColor}`}>
                       <Trend className="h-3 w-3" />
-                      {i.cmp.deltaPct >= 0 ? '+' : ''}{i.cmp.deltaPct.toFixed(1)}%
+                      {i.cmp.deltaPct >= 0 ? '+' : ''}{i.cmp.deltaPct.toFixed(digits)}{unit}
                     </span>
                   ) : (
                     <span
                       className="text-[10px] font-mono text-muted-foreground/70"
-                      title={`Δ ${i.cmp.deltaPct >= 0 ? '+' : ''}${i.cmp.deltaPct.toFixed(1)}% < limiar ≥${threshold}%`}
+                      title={`Δ ${i.cmp.deltaPct >= 0 ? '+' : ''}${i.cmp.deltaPct.toFixed(digits)}${unit} < limiar ≥${threshold}${unit === 'pp' ? 'pp' : '%'}`}
                     >
                       —
                     </span>
-                  )
-                )}
+                  );
+                })()}
               </div>
             </button>
           );
@@ -315,11 +317,15 @@ export function KPIDeepInsightsPanel({ daily, traces, agentName }: Props) {
             <p className="text-[11px] text-muted-foreground">
               <span className="font-mono">{active.previousLabel}</span> →{' '}
               <span className="font-mono text-foreground font-semibold">{active.currentLabel}</span>
-              {active.cmp.hasPrev && active.cmp.trend !== 'flat' && (
-                <span className="ml-1.5">
-                  ({active.cmp.deltaPct >= 0 ? '+' : ''}{active.cmp.deltaPct.toFixed(1)}%)
-                </span>
-              )}
+              {active.cmp.hasPrev && active.cmp.trend !== 'flat' && (() => {
+                const unit = active.cmp.deltaUnit ?? '%';
+                const digits = unit === 'pp' ? 2 : 1;
+                return (
+                  <span className="ml-1.5">
+                    ({active.cmp.deltaPct >= 0 ? '+' : ''}{active.cmp.deltaPct.toFixed(digits)}{unit})
+                  </span>
+                );
+              })()}
               <span className="ml-1.5 text-muted-foreground/70">· {windowLabel}</span>
             </p>
           </div>
@@ -337,7 +343,9 @@ export function KPIDeepInsightsPanel({ daily, traces, agentName }: Props) {
               <p className="text-[11px] text-muted-foreground mt-0.5 leading-snug">
                 Variação de{' '}
                 <span className="font-mono text-foreground/80">
-                  {active.cmp.deltaPct >= 0 ? '+' : ''}{active.cmp.deltaPct.toFixed(1)}%
+                  {active.cmp.deltaPct >= 0 ? '+' : ''}
+                  {active.cmp.deltaPct.toFixed((active.cmp.deltaUnit ?? '%') === 'pp' ? 2 : 1)}
+                  {active.cmp.deltaUnit ?? '%'}
                 </span>{' '}
                 está abaixo do limiar configurado de{' '}
                 <span className="font-mono text-foreground/80">≥{threshold}%</span>. Ajuste o limiar acima para inspecionar deltas menores.

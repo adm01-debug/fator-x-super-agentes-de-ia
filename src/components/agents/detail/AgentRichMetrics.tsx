@@ -133,7 +133,7 @@ export function AgentRichMetrics({ agentId, agentName, days = 14 }: Props) {
           subtitle={`${slo.successCount}/${slo.totalTraces} traces`}
           icon={ShieldCheck}
           trend={totals.successCmp.hasPrev && totals.successCmp.trend !== 'flat' ? {
-            value: `${totals.successCmp.deltaPct >= 0 ? '+' : ''}${totals.successCmp.deltaPct.toFixed(1)}% vs 7d ant.`,
+            value: `${totals.successCmp.deltaAbs >= 0 ? '+' : ''}${totals.successCmp.deltaAbs.toFixed(2)}pp vs 7d ant.`,
             positive: totals.successCmp.isPositive,
           } : { value: `${slo.errorCount} erros`, positive: slo.errorCount === 0 }}
         />

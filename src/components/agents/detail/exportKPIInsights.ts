@@ -36,7 +36,9 @@ function fileSafe(name: string): string {
 function fmtDeltaPct(i: KPIInsight): string {
   if (!i.cmp.hasPrev) return 'sem dados';
   const sign = i.cmp.deltaPct >= 0 ? '+' : '';
-  return `${sign}${i.cmp.deltaPct.toFixed(2)}%`;
+  const unit = i.cmp.deltaUnit ?? '%';
+  const digits = unit === 'pp' ? 2 : 2;
+  return `${sign}${i.cmp.deltaPct.toFixed(digits)}${unit}`;
 }
 
 function trendLabel(i: KPIInsight): string {
