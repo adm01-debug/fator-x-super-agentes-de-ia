@@ -28,9 +28,11 @@ import { PromptDiff } from '@/components/prompts/PromptDiff';
 import {
   buildContradictionAutoFixes,
   applyAllContradictionFixes,
+  buildContradictionFixFromSuggestion,
+  suggestContradictionRewrites,
   type ContradictionAutoFix,
 } from '@/lib/validations/contradictionSuggestions';
-import { CONTRADICTION_KIND_LABEL } from '@/lib/validations/promptContradictions';
+import { CONTRADICTION_KIND_LABEL, type PromptContradiction } from '@/lib/validations/promptContradictions';
 import { cn } from '@/lib/utils';
 
 interface Props {
