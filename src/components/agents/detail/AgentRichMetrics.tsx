@@ -33,6 +33,13 @@ export function AgentRichMetrics({ agentId, agentName, days = 14 }: Props) {
     queryFn: () => getAgentUsage(agentId, days),
   });
 
+  // Extra-long history just for the deep insights panel so the user can
+  // compare 14d vs 14d (needs at least 28 days of daily history).
+  const { data: usageExtended = [] } = useQuery({
+    queryKey: ['agent_usage_rich_extended', agentId],
+    queryFn: () => getAgentUsage(agentId, 28),
+  });
+
   const { data: traces = [], isLoading: tracesLoading } = useQuery({
     queryKey: ['agent_traces_rich', agentId],
     queryFn: () => getAgentDetailTraces(agentId, 200),
@@ -44,6 +51,7 @@ export function AgentRichMetrics({ agentId, agentName, days = 14 }: Props) {
   });
 
   const daily = useMemo(() => buildDailySeries(usage, days), [usage, days]);
+  const dailyExtended = useMemo(() => buildDailySeries(usageExtended, 28), [usageExtended]);
   const slo = useMemo(() => computeSLO(traces), [traces]);
 
   const totals = useMemo(() => {
