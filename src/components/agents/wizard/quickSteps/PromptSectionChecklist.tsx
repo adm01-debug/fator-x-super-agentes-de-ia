@@ -1,5 +1,5 @@
 import { useMemo } from 'react';
-import { CheckCircle2, Circle, Plus } from 'lucide-react';
+import { CheckCircle2, Circle, Plus, Wand2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import {
   REQUIRED_PROMPT_SECTIONS,
@@ -36,7 +36,7 @@ export function PromptSectionChecklist({ prompt, onInsert }: Props) {
         allOk ? 'border-nexus-emerald/30 bg-nexus-emerald/5' : 'border-nexus-amber/40 bg-nexus-amber/5',
       )}
     >
-      <div className="flex items-center justify-between gap-2">
+      <div className="flex items-center justify-between gap-2 flex-wrap">
         <div className="min-w-0">
           <p className="text-sm font-heading font-semibold text-foreground">
             Checklist do prompt
@@ -45,16 +45,35 @@ export function PromptSectionChecklist({ prompt, onInsert }: Props) {
             Seções mínimas para um system prompt completo
           </p>
         </div>
-        <span
-          className={cn(
-            'shrink-0 text-[11px] font-mono font-semibold px-2 py-0.5 rounded-full border',
-            allOk
-              ? 'border-nexus-emerald/40 bg-nexus-emerald/15 text-nexus-emerald'
-              : 'border-nexus-amber/50 bg-nexus-amber/15 text-nexus-amber',
+        <div className="flex items-center gap-2 shrink-0">
+          {!allOk && (
+            <Button
+              type="button"
+              size="sm"
+              variant="outline"
+              onClick={() => {
+                const missing = REQUIRED_PROMPT_SECTIONS.filter((s) => !detected[s.key]);
+                const combined = missing.map((s) => SECTION_SNIPPETS[s.key]).join('');
+                onInsert(combined);
+              }}
+              className="h-7 gap-1.5 text-[11px] border-nexus-amber/40 text-nexus-amber hover:bg-nexus-amber/10 hover:text-nexus-amber hover:border-nexus-amber/60"
+              aria-label={`Inserir esqueletos de ${missingCount} ${missingCount === 1 ? 'seção faltante' : 'seções faltantes'}`}
+            >
+              <Wand2 className="h-3 w-3" />
+              Inserir {missingCount === 1 ? 'a faltante' : `as ${missingCount} faltantes`}
+            </Button>
           )}
-        >
-          {ok}/{total} ✓
-        </span>
+          <span
+            className={cn(
+              'text-[11px] font-mono font-semibold px-2 py-0.5 rounded-full border',
+              allOk
+                ? 'border-nexus-emerald/40 bg-nexus-emerald/15 text-nexus-emerald'
+                : 'border-nexus-amber/50 bg-nexus-amber/15 text-nexus-amber',
+            )}
+          >
+            {ok}/{total} ✓
+          </span>
+        </div>
       </div>
 
       <ul className="space-y-1.5">
