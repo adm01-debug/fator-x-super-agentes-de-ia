@@ -174,7 +174,7 @@ export function PromptHighlightOverlay({ prompt, locations, textareaRef, padding
   }, [textareaRef, prompt]);
 
   // Hide overlay when nothing to show.
-  const hasSomething = locations.some((l) => l.status !== 'ok') || (conflictLines?.length ?? 0) > 0;
+  const hasSomething = locations.some((l) => l.status !== 'ok') || (conflictLines?.length ?? 0) > 0 || (pulseLines?.length ?? 0) > 0;
   if (!hasSomething) return null;
 
   return (
