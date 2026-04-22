@@ -15,6 +15,7 @@ import {
   type QuickAgentForm,
 } from '@/lib/validations/quickAgentSchema';
 import { detectPromptContradictions } from '@/lib/validations/promptContradictions';
+import { sanitizePromptInput, PROMPT_LIMITS } from '@/lib/validations/promptSanitizer';
 import {
   QUICK_AGENT_TEMPLATES,
   PERSONA_FROM_TYPE,
