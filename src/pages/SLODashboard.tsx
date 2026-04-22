@@ -391,6 +391,13 @@ export default function SLODashboard() {
                 </option>
               ))}
           </select>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => load(true)}
+            disabled={refreshing}
+            aria-label="Atualizar dados manualmente"
+          >
             <RefreshCw className={`h-4 w-4 ${refreshing ? 'animate-spin' : ''}`} />
             <span className="ml-2">Atualizar</span>
           </Button>
