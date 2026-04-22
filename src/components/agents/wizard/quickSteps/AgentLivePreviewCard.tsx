@@ -1,8 +1,11 @@
 import { useEffect, useRef, useState } from 'react';
-import { ChevronDown, ChevronUp, Sparkles } from 'lucide-react';
+import { ChevronDown, ChevronUp, Sparkles, Coins, Info } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
+import { Tooltip, TooltipContent, TooltipTrigger, TooltipProvider } from '@/components/ui/tooltip';
 import { useDebounce } from '@/hooks/use-debounce';
+import { useCostEstimate } from '@/hooks/useCostEstimate';
+import { QUICK_AGENT_MOCK_INPUTS, type QuickAgentType } from '@/data/quickAgentTemplates';
 import type { QuickAgentForm } from '@/lib/validations/quickAgentSchema';
 import { detectPromptSections, REQUIRED_PROMPT_SECTIONS } from '@/lib/validations/quickAgentSchema';
 import { PROMPT_LIMITS } from '@/lib/validations/promptSanitizer';
@@ -63,7 +66,31 @@ export function AgentLivePreviewCard({ form }: Props) {
 
   const hasPrompt = debounced.prompt.trim().length > 0;
 
+  // Live cost estimate
+  const mockInput =
+    QUICK_AGENT_MOCK_INPUTS[debounced.type as QuickAgentType]?.[0]?.input ?? '';
+  const cost = useCostEstimate({
+    model: debounced.model,
+    systemPrompt: debounced.prompt,
+    userInput: mockInput,
+    maxTokens: 1000,
+    toolsCount: 0,
+  });
+  const dailyExecs = 100;
+  const dailyUsd = cost.costUsd * dailyExecs;
+  const dailyBrl = cost.costBrl * dailyExecs;
+  const inputPct = cost.totalTokens > 0
+    ? Math.round((cost.inputTokens / cost.totalTokens) * 100)
+    : 50;
+  const tier: 'low' | 'mid' | 'high' =
+    cost.costUsd < 0.01 ? 'low' : cost.costUsd < 0.05 ? 'mid' : 'high';
+  const tierColor =
+    tier === 'low' ? 'text-nexus-emerald'
+    : tier === 'mid' ? 'text-nexus-amber'
+    : 'text-destructive';
+
   return (
+    <TooltipProvider delayDuration={200}>
     <div className="nexus-card space-y-4">
       {/* Header */}
       <div className="flex items-center justify-between gap-2">
@@ -115,7 +142,54 @@ export function AgentLivePreviewCard({ form }: Props) {
         </div>
       </div>
 
-      {/* Mission */}
+      {/* Cost estimate */}
+      <div className="space-y-2 pt-3 border-t border-border/50">
+        <div className="flex items-center gap-1.5">
+          <Coins className="h-3 w-3 text-nexus-amber" />
+          <p className="text-[10px] uppercase tracking-wider text-muted-foreground">
+            Custo estimado por execução
+          </p>
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <button
+                type="button"
+                className="ml-auto text-muted-foreground hover:text-foreground transition-colors"
+                aria-label="Sobre a estimativa"
+              >
+                <Info className="h-3 w-3" />
+              </button>
+            </TooltipTrigger>
+            <TooltipContent className="max-w-[260px] text-xs">
+              Estimativa com base no prompt atual + input médio de teste do tipo
+              {' '}<span className="font-mono">"{debounced.type}"</span>. O custo real
+              varia conforme o input do usuário e o tamanho da resposta.
+            </TooltipContent>
+          </Tooltip>
+        </div>
+
+        <div className={`font-mono text-xs ${tierColor}`}>
+          ~{cost.totalTokens.toLocaleString('pt-BR')} tokens · US$ {cost.costUsd.toFixed(4)} ·
+          {' '}R$ {cost.costBrl.toFixed(2).replace('.', ',')} · ~{(cost.estLatencyMs / 1000).toFixed(1)}s
+        </div>
+
+        <div className="flex h-1.5 rounded-full overflow-hidden bg-secondary/40" aria-hidden>
+          <div className="bg-primary/70" style={{ width: `${inputPct}%` }} />
+          <div className="bg-nexus-amber/70" style={{ width: `${100 - inputPct}%` }} />
+        </div>
+        <div className="flex justify-between text-[10px] font-mono text-muted-foreground">
+          <span>entrada {cost.inputTokens.toLocaleString('pt-BR')}</span>
+          <span>saída {cost.outputTokens.toLocaleString('pt-BR')}</span>
+        </div>
+
+        <p className="text-[10px] text-muted-foreground pt-1.5 border-t border-border/30">
+          Em {dailyExecs} execuções/dia:{' '}
+          <span className="font-mono text-foreground/80">US$ {dailyUsd.toFixed(2)}</span>
+          {' · '}
+          <span className="font-mono text-foreground/80">R$ {dailyBrl.toFixed(2).replace('.', ',')}/dia</span>
+        </p>
+      </div>
+
+
       <div className="space-y-1">
         <p className="text-[10px] uppercase tracking-wider text-muted-foreground">Missão</p>
         <p className="text-xs text-foreground/90 line-clamp-2">
@@ -176,5 +250,6 @@ export function AgentLivePreviewCard({ form }: Props) {
         )}
       </div>
     </div>
+    </TooltipProvider>
   );
 }
