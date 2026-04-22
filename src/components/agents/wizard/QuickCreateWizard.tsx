@@ -307,6 +307,29 @@ export function QuickCreateWizard({ onBack }: QuickCreateWizardProps) {
     toast.success('Prompt restaurado do template');
   };
 
+  /**
+   * Hard reset to a known-safe state: re-sanitizes the base template,
+   * clears variant lock + selection, resets emoji to the type default,
+   * and clears any field errors. Used as the wizard's "panic button"
+   * when the prompt or live preview ends up in a confusing state.
+   */
+  const safeResetPromptAndPreview = () => {
+    const t = QUICK_AGENT_TEMPLATES[form.type as QuickAgentType];
+    const sanitized = sanitizePromptInput(t.systemPrompt, PROMPT_LIMITS.MAX_TOTAL).clean;
+    setForm((prev) => ({
+      ...prev,
+      prompt: sanitized,
+      emoji: t.emoji,
+    }));
+    setPromptCustomLocked(false);
+    setSelectedVariant(null);
+    setErrors((prev) => ({ ...prev, prompt: undefined }));
+    if (highlightField === 'prompt') setHighlightField(null);
+    toast.success('Estado seguro restaurado', {
+      description: 'Prompt e preview voltaram ao template base do tipo selecionado.',
+    });
+  };
+
   const doApplyPromptVariant = (variantId: import('@/data/quickAgentTemplates').PromptVariantId) => {
     const t = QUICK_AGENT_TEMPLATES[form.type as QuickAgentType];
     const variant = t.promptVariants[variantId];
