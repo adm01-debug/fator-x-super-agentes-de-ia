@@ -22,7 +22,7 @@ function FieldError({ msg }: { msg?: string }) {
   return <p className="text-xs text-destructive mt-1">{msg}</p>;
 }
 
-export function StepQuickIdentity({ form, errors, update, highlightField }: Props) {
+export function StepQuickIdentity({ form, errors, update, highlightField, highlightHint }: Props) {
   // Track which field is currently pulsing — auto-clears after 3s so the
   // visual cue doesn't linger after the user has acknowledged it.
   const [pulsingField, setPulsingField] = useState<keyof QuickAgentForm | null>(null);
@@ -45,6 +45,18 @@ export function StepQuickIdentity({ form, errors, update, highlightField }: Prop
   }, [highlightField]);
 
   const hl = (f: keyof QuickAgentForm) => (pulsingField === f ? ` ${FIELD_HIGHLIGHT_CLS}` : '');
+
+  // Renderiza a hint inline somente para o campo atualmente destacado e
+  // apenas enquanto houver `highlightHint` — assim que o usuário corrige,
+  // o wizard limpa o highlight e a hint desaparece junto.
+  const hintFor = (f: keyof QuickAgentForm) =>
+    highlightField === f && highlightHint ? (
+      <FieldValidationHint
+        info={highlightHint}
+        id={`qa-${f === 'description' ? 'desc' : f}-hint`}
+      />
+    ) : null;
+
 
   return (
     <div className="nexus-card space-y-5">
