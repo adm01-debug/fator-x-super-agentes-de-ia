@@ -300,7 +300,7 @@ export function StepQuickPrompt({ form, errors, update, onPromptManualEdit, onRe
       <PromptHistoryPanel
         prompt={form.prompt}
         type={form.type}
-        onRestore={(restored) => update('prompt', restored)}
+        onRestore={(restored) => onPromptManualEdit(restored)}
       />
 
       <AgentLivePreviewCard form={form} />
