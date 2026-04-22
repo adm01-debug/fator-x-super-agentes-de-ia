@@ -47,7 +47,15 @@ function buildAgentFromTemplate(t: AgentTemplate): AgentConfig {
   const cfg = t.config;
 
   // 1. Resolve tools (strings → AgentTool[]) via TOOL_CATALOG.
-  const { tools: resolvedTools, unknown: unknownTools } = toAgentTools(cfg.tools ?? []);
+  //    Para templates enriquecidos injetamos:
+  //      - guard_input           → defesa contra prompt injection (llmGuardrail.ts)
+  //      - request_human_approval → quando há triggers de HITL (hitlQueue.ts)
+  const requestedTools = cfg.tools ?? [];
+  const autoTools: string[] = [];
+  if (t.enriched) autoTools.push('guard_input');
+  if ((cfg.human_in_loop_triggers ?? []).length > 0) autoTools.push('request_human_approval');
+  const toolsWithGuard = Array.from(new Set([...autoTools, ...requestedTools]));
+  const { tools: resolvedTools, unknown: unknownTools } = toAgentTools(toolsWithGuard);
   if (unknownTools.length) {
     logger.warn(`Template ${t.id} referencia tools não catalogadas`, unknownTools);
   }
@@ -62,6 +70,20 @@ function buildAgentFromTemplate(t: AgentTemplate): AgentConfig {
     severity: g.severity,
     config: g.config,
   }));
+
+  // 2b. Defesa contra prompt injection — padrão para templates enriquecidos.
+  if (t.enriched && !guardrails.some((g) => g.name === 'LLM Injection Defense')) {
+    guardrails.unshift({
+      id: makeId(),
+      category: 'input_validation',
+      name: 'LLM Injection Defense',
+      description:
+        'Passa toda entrada pelo guardrails-engine (local + remoto) e bloqueia tentativas de ignorar instruções, revelar prompt ou exfiltrar dados.',
+      enabled: true,
+      severity: 'block',
+      config: { rail: 'llm_injection_defense' },
+    });
+  }
 
   // 3. Few-shot examples.
   const fewShots: FewShotExample[] = (cfg.few_shot_examples ?? []).map((ex) => ({

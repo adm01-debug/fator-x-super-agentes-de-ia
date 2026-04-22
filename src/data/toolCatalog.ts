@@ -899,6 +899,64 @@ export const TOOL_CATALOG: Record<string, ToolDefinition> = {
     cost_per_call_usd: 0.0,
     output_validation: 'schema',
   },
+
+  request_human_approval: {
+    id: 'request_human_approval',
+    name: 'HITL — Solicitar aprovação humana',
+    description:
+      'Enfileira um pedido de aprovação humana (workflow_runs.status = awaiting_approval) quando o agente dispara um trigger crítico (desconto > X, pedido > Y, cláusula contratual nova). A retomada do fluxo é orquestrada por `workflow-engine-v2`.',
+    category: 'action',
+    permission_level: 'read_write',
+    edge_function: 'workflow-engine-v2',
+    input_schema: z.object({
+      agent_id: z.string().uuid(),
+      trigger_key: z.string().min(1),
+      reason: z.string().min(1).max(500),
+      context: z.record(z.unknown()).optional(),
+      workflow_id: z.string().uuid().optional(),
+    }),
+    output_schema: z.object({
+      id: z.string().uuid(),
+      status: z.literal('awaiting_approval'),
+      reason: z.string(),
+    }),
+    requires_approval: false, // a própria tool *cria* aprovação; não exige aprovação prévia
+    max_calls_per_session: 5,
+    max_calls_per_day: 200,
+    cost_per_call_usd: 0.0,
+    output_validation: 'schema',
+  },
+
+  guard_input: {
+    id: 'guard_input',
+    name: 'Guardrail — Checar entrada do usuário',
+    description:
+      'Passa o texto do usuário pelo guardrails-engine (NeMo-style) para detectar prompt injection, PII e tentativas de exfiltração antes de entregar ao LLM.',
+    category: 'compute',
+    permission_level: 'read_only',
+    edge_function: 'guardrails-engine',
+    input_schema: z.object({
+      text: z.string().min(1).max(50_000),
+      agent_id: z.string().uuid().optional(),
+    }),
+    output_schema: z.object({
+      action: z.enum(['allow', 'warn', 'block', 'modify']),
+      rails: z.array(
+        z.object({
+          rail: z.string(),
+          layer: z.enum(['input', 'dialog', 'output', 'runtime']),
+          action: z.enum(['allow', 'warn', 'block', 'modify']),
+          confidence: z.number().min(0).max(1),
+          reason: z.string(),
+        }),
+      ),
+    }),
+    requires_approval: false,
+    max_calls_per_session: 200,
+    max_calls_per_day: 20_000,
+    cost_per_call_usd: 0.0002,
+    output_validation: 'schema',
+  },
 };
 
 // ─── API do catálogo ────────────────────────────────────────────
