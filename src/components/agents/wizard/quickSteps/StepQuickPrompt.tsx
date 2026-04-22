@@ -294,7 +294,7 @@ export function StepQuickPrompt({ form, errors, update, onRestore, onApplyVarian
       <AgentLivePreviewCard form={form} />
 
       {/* Pre-flight review summary — quick "ready to create?" snapshot */}
-      <PreflightReviewSummary form={form} onJumpToSection={jumpToSection} />
+      <PreflightReviewSummary form={form} onJumpToSection={jumpToSection} onJumpToLine={jumpToLine} />
 
       {/* Consolidated prompt preview — final text the LLM will receive (open by default on the last step) */}
       <CompiledPromptPreview form={form} defaultOpen />
