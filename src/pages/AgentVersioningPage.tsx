@@ -126,7 +126,7 @@ export default function AgentVersioningPage() {
   const filteredVersions = useMemo(() => {
     let list = versions;
     if (range.mode !== 'off') {
-      list = filterByRange(list, range).filter((v) => true);
+      list = filterByRange(list, range);
       // Mantém pinned (current/sel/A/B) para não quebrar a navegação ativa.
       const pinned = versions.filter((v) => pinnedIds.has(v.id) && !list.some((x) => x.id === v.id));
       list = [...list, ...pinned].sort((a, b) => b.version - a.version);
