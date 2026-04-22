@@ -4,8 +4,8 @@
  * Real-time view of Service Level Objectives.
  * Sprint 27 — Continuous Hardening.
  */
-import { useCallback, useEffect, useState } from 'react';
-import { Activity, AlertTriangle, Check, RefreshCw, TrendingUp, Zap } from 'lucide-react';
+import { useCallback, useEffect, useRef, useState } from 'react';
+import { Activity, AlertTriangle, Check, Pause, Play, RefreshCw, TrendingUp, Zap } from 'lucide-react';
 import { LightAreaChart } from '@/components/charts';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -25,7 +25,25 @@ import {
 import { logger } from '@/lib/logger';
 import { toast } from 'sonner';
 
-const REFRESH_MS = 60_000;
+/** Auto-refresh interval options (ms). 0 = disabled. */
+const AUTO_REFRESH_OPTIONS: Array<{ value: number; label: string }> = [
+  { value: 0, label: 'Desligado' },
+  { value: 30_000, label: '30 segundos' },
+  { value: 60_000, label: '1 minuto' },
+];
+const AUTO_REFRESH_STORAGE_KEY = 'nexus.slo.autoRefreshMs';
+const DEFAULT_AUTO_REFRESH_MS = 60_000;
+
+function readStoredInterval(): number {
+  try {
+    const raw = localStorage.getItem(AUTO_REFRESH_STORAGE_KEY);
+    if (raw === null) return DEFAULT_AUTO_REFRESH_MS;
+    const n = Number(raw);
+    return AUTO_REFRESH_OPTIONS.some((o) => o.value === n) ? n : DEFAULT_AUTO_REFRESH_MS;
+  } catch {
+    return DEFAULT_AUTO_REFRESH_MS;
+  }
+}
 
 function StatusBadge({ status }: { status: SLOStatus }) {
   const Icon = status === 'healthy' ? Check : status === 'warning' ? AlertTriangle : AlertTriangle;
