@@ -268,8 +268,18 @@ export function PromptSectionChecklist({
               size="sm"
               variant="outline"
               onClick={() => {
-                for (const k of incompleteKeys) {
-                  onInsert(effectiveSnippets[k].snippet, k);
+                const items = incompleteKeys.map((k) => ({
+                  snippet: effectiveSnippets[k].snippet,
+                  key: k,
+                }));
+                if (onInsertBatch) {
+                  // Preferred path: parent splices everything onto a shared
+                  // working buffer in one shot, then places the cursor inside
+                  // the last inserted block.
+                  onInsertBatch(items);
+                } else {
+                  // Legacy fallback — kept for callers that haven't migrated.
+                  for (const it of items) onInsert(it.snippet, it.key);
                 }
               }}
               className="h-7 gap-1.5 text-[11px] border-nexus-amber/40 text-nexus-amber hover:bg-nexus-amber/10 hover:text-nexus-amber hover:border-nexus-amber/60"
