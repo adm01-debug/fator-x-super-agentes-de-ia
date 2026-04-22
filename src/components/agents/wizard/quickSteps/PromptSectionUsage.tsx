@@ -488,6 +488,65 @@ function PromptSectionUsageImpl({ prompt, onJumpToSection }: Props) {
         })}
       </ul>
 
+      {suggestions.length > 0 && (
+        <div className="space-y-2 pt-2 border-t border-border/40">
+          <div className="flex items-center gap-1.5">
+            <Sparkles className="h-3.5 w-3.5 text-primary" aria-hidden />
+            <p className="text-[11px] font-heading font-semibold text-foreground">
+              Reduções recomendadas
+            </p>
+            <span className="text-[9px] font-mono uppercase tracking-wider text-muted-foreground/70">
+              top {suggestions.length}
+            </span>
+          </div>
+          <ul className="space-y-1.5">
+            {suggestions.map((s) => {
+              const interactive = !!onJumpToSection && !!s.sectionKey;
+              const Wrapper: React.ElementType = interactive ? 'button' : 'div';
+              return (
+                <li key={s.id}>
+                  <Wrapper
+                    {...(interactive
+                      ? {
+                          type: 'button',
+                          onClick: () => s.sectionKey && onJumpToSection?.(s.sectionKey),
+                          'aria-label': `Aplicar redução em ${s.sectionLabel}: ${s.title}`,
+                        }
+                      : {})}
+                    className={cn(
+                      'w-full text-left rounded-md p-2 border border-primary/20 bg-primary/5 space-y-1',
+                      interactive && 'hover:bg-primary/10 hover:border-primary/40 transition-colors cursor-pointer',
+                    )}
+                  >
+                    <div className="flex items-start justify-between gap-2 flex-wrap">
+                      <div className="flex items-start gap-1.5 min-w-0 flex-1">
+                        <Scissors className="h-3 w-3 text-primary shrink-0 mt-0.5" aria-hidden />
+                        <div className="min-w-0">
+                          <p className="text-xs font-medium text-foreground leading-snug">
+                            {s.title}
+                          </p>
+                          <p className="text-[10px] text-muted-foreground leading-snug mt-0.5">
+                            <span className="text-foreground/70">{s.sectionLabel}</span>
+                            {' · '}
+                            {s.rationale}
+                          </p>
+                        </div>
+                      </div>
+                      <span
+                        className="inline-flex items-center text-[10px] font-mono tabular-nums px-1.5 py-0.5 rounded-full border border-nexus-emerald/30 bg-nexus-emerald/10 text-nexus-emerald shrink-0"
+                        title={`Estimativa: ~${s.estCharsSaved} chars / ~${s.estTokensSaved} tokens economizados`}
+                      >
+                        −{s.estCharsSaved.toLocaleString('pt-BR')} chars · ~−{s.estTokensSaved.toLocaleString('pt-BR')} tk
+                      </span>
+                    </div>
+                  </Wrapper>
+                </li>
+              );
+            })}
+          </ul>
+        </div>
+      )}
+
       <div className="text-[10px] font-mono text-muted-foreground pt-2 border-t border-border/40 flex items-center justify-between gap-2 flex-wrap">
         <span>
           total: <span className={cn('font-semibold', totalTone.text)}>{totalChars.toLocaleString('pt-BR')}</span> / {limit.toLocaleString('pt-BR')} chars ({totalPct.toFixed(0)}%)
