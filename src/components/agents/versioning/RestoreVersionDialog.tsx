@@ -1,4 +1,5 @@
 import { useMemo, useState } from "react";
+import { useNavigate } from "react-router-dom";
 import {
   Dialog,
   DialogContent,
@@ -24,6 +25,7 @@ import {
   ShieldAlert,
   ShieldCheck,
   Flame,
+  ExternalLink,
 } from "lucide-react";
 import type { AgentVersion, RestoreOptions } from "@/services/agentsService";
 import { getVersionTools, getVersionPrompt, getVersionScalar } from "@/lib/agentChangelog";
