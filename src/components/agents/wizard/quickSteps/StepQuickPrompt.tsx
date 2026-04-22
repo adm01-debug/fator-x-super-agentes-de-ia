@@ -62,6 +62,25 @@ export function StepQuickPrompt({ form, errors, onPromptManualEdit, onRestore, o
   const activeVariantLabel = activeVariant ? PROMPT_VARIANT_META[activeVariant].label : null;
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const promptHighlight = highlightField === 'prompt';
+  // Tracks the source of the most recent prompt change to drive the
+  // CompiledPromptPreview's pulse + auto-expand behavior.
+  const [lastChangeKind, setLastChangeKind] = useState<'variant' | 'manual' | null>(null);
+  // Auto-clear the flag so a re-render doesn't re-trigger animations.
+  useEffect(() => {
+    if (!lastChangeKind) return;
+    const t = window.setTimeout(() => setLastChangeKind(null), 800);
+    return () => window.clearTimeout(t);
+  }, [lastChangeKind]);
+
+  // Wrappers that record the change kind alongside the prompt mutation.
+  const handleManualEdit = (next: string) => {
+    setLastChangeKind('manual');
+    onPromptManualEdit(next);
+  };
+  const handleApplyVariant = (id: PromptVariantId) => {
+    setLastChangeKind('variant');
+    onApplyVariant(id);
+  };
   // Section-level pulse highlight (set briefly after a "jump to section" action).
   const [pulsedSection, setPulsedSection] = useState<PromptSectionKey | null>(null);
   const sectionPulseRef = useRef<number | null>(null);

@@ -210,10 +210,17 @@ export function CompiledPromptPreview({ form, defaultOpen = false, lastChangeKin
                 <FileText className="h-3 w-3" /> Texto bruto
               </button>
             </div>
-            <Button type="button" size="sm" variant="outline" onClick={handleCopy} className="gap-1.5">
-              {copied ? <Check className="h-3.5 w-3.5 text-nexus-emerald" /> : <Copy className="h-3.5 w-3.5" />}
-              {copied ? 'Copiado!' : 'Copiar prompt final'}
-            </Button>
+            <div className="flex items-center gap-2 flex-wrap">
+              {activeVariantLabel && (
+                <Badge variant="outline" className="text-[10px] font-mono border-primary/30 text-primary bg-primary/5">
+                  Aplicado: {activeVariantLabel}
+                </Badge>
+              )}
+              <Button type="button" size="sm" variant="outline" onClick={handleCopy} className="gap-1.5">
+                {copied ? <Check className="h-3.5 w-3.5 text-nexus-emerald" /> : <Copy className="h-3.5 w-3.5" />}
+                {copied ? 'Copiado!' : 'Copiar prompt final'}
+              </Button>
+            </div>
           </div>
 
           <div className="flex items-start gap-1.5 flex-wrap text-[11px]">
