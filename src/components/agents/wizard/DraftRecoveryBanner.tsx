@@ -210,6 +210,14 @@ export function DraftRecoveryBanner({
                   <span className="text-[11px] text-muted-foreground">
                     {formatRelative(d.savedAt)}
                   </span>
+                  {d.restorable === false && (
+                    <span
+                      className="text-[10px] uppercase tracking-wide px-1.5 py-0.5 rounded border border-warning/30 bg-warning/10 text-warning"
+                      title={d.restoreBlockedReason ?? 'Incompleto demais para retomar'}
+                    >
+                      Incompleto
+                    </span>
+                  )}
                 </div>
                 <div className="flex flex-wrap gap-1">
                   <StatusChip label="Identidade" ok={d.summary.hasIdentity} />
