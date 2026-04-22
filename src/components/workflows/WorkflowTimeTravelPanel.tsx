@@ -30,7 +30,10 @@ import {
   Download,
   FileText,
   Printer,
+  Filter,
+  X,
 } from 'lucide-react';
+import { Toggle } from '@/components/ui/toggle';
 import {
   getExecutionTimeline,
   getCheckpoint,
