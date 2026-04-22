@@ -15,6 +15,11 @@ interface Props {
   execution: ExecutionGroup | null;
   /** Step index to start at when the dialog opens (clamped to bounds). */
   initialStep?: number;
+  /**
+   * Emitted whenever the active replay step changes (play tick, prev/next,
+   * slider drag, restart). Use to keep an external timeline in sync.
+   */
+  onStepChange?: (step: number) => void;
 }
 
 const LEVEL_ICON: Record<TraceLevel, JSX.Element> = {
