@@ -5,7 +5,8 @@
  * Sprint 27 — Continuous Hardening.
  */
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { Activity, AlertTriangle, Check, RefreshCw, TrendingUp, Zap } from 'lucide-react';
+import { useSearchParams } from 'react-router-dom';
+import { Activity, AlertTriangle, Check, Link2, RefreshCw, TrendingUp, Zap } from 'lucide-react';
 import { LightAreaChart } from '@/components/charts';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -34,6 +35,14 @@ const AUTO_REFRESH_OPTIONS: Array<{ value: number; label: string }> = [
 const AUTO_REFRESH_STORAGE_KEY = 'nexus.slo.autoRefreshMs';
 const DEFAULT_AUTO_REFRESH_MS = 60_000;
 
+/** Window options (hours). Used to validate the URL param. */
+const WINDOW_OPTIONS = [1, 6, 24, 168] as const;
+const DEFAULT_WINDOW_HOURS = 24;
+
+// URL query param keys — short on purpose so shared links stay clean.
+const QP_WINDOW = 'w';
+const QP_AUTO = 'auto';
+
 function readStoredInterval(): number {
   try {
     const raw = localStorage.getItem(AUTO_REFRESH_STORAGE_KEY);
@@ -43,6 +52,20 @@ function readStoredInterval(): number {
   } catch {
     return DEFAULT_AUTO_REFRESH_MS;
   }
+}
+
+/** Parse + validate `?w=` from the URL. Falls back to the provided default. */
+function parseWindowParam(raw: string | null, fallback: number): number {
+  if (raw === null) return fallback;
+  const n = Number(raw);
+  return (WINDOW_OPTIONS as readonly number[]).includes(n) ? n : fallback;
+}
+
+/** Parse + validate `?auto=` from the URL. Falls back to the provided default. */
+function parseAutoParam(raw: string | null, fallback: number): number {
+  if (raw === null) return fallback;
+  const n = Number(raw);
+  return AUTO_REFRESH_OPTIONS.some((o) => o.value === n) ? n : fallback;
 }
 
 function StatusBadge({ status }: { status: SLOStatus }) {
@@ -82,13 +105,21 @@ function MetricCard({ title, value, target, status, icon: Icon }: MetricCardProp
 }
 
 export default function SLODashboard() {
+  // URL is the source of truth for *shareable* state (window + auto cadence).
+  // localStorage stays as a per-user fallback when no param is present.
+  const [searchParams, setSearchParams] = useSearchParams();
+
   const [summary, setSummary] = useState<SLOSummary | null>(null);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
-  const [windowHours, setWindowHours] = useState<number>(24);
-  // User-controlled auto-refresh cadence. 0 = off. Persisted across visits
-  // so the operator's preference survives reloads/navigation.
-  const [autoRefreshMs, setAutoRefreshMs] = useState<number>(readStoredInterval);
+  const [windowHours, setWindowHours] = useState<number>(() =>
+    parseWindowParam(searchParams.get(QP_WINDOW), DEFAULT_WINDOW_HOURS),
+  );
+  // User-controlled auto-refresh cadence. 0 = off. URL wins; otherwise fall
+  // back to the persisted preference so opening the page fresh still works.
+  const [autoRefreshMs, setAutoRefreshMs] = useState<number>(() =>
+    parseAutoParam(searchParams.get(QP_AUTO), readStoredInterval()),
+  );
   const [lastRefreshAt, setLastRefreshAt] = useState<Date | null>(null);
   // Re-renders the "X seg atrás" pill once a second without re-fetching data.
   const [, setNowTick] = useState(0);
@@ -100,6 +131,36 @@ export default function SLODashboard() {
       isMountedRef.current = false;
     };
   }, []);
+
+  // ── URL ⇄ state sync ───────────────────────────────────────────────────
+  // Write current selections back to the URL (replace, not push, so the back
+  // button doesn't fill up with intermediate values). Default values are
+  // omitted to keep the URL clean; non-default values are encoded so the link
+  // can be shared and reopened with the exact same view.
+  useEffect(() => {
+    const next = new URLSearchParams(searchParams);
+    if (windowHours === DEFAULT_WINDOW_HOURS) next.delete(QP_WINDOW);
+    else next.set(QP_WINDOW, String(windowHours));
+
+    if (autoRefreshMs === DEFAULT_AUTO_REFRESH_MS) next.delete(QP_AUTO);
+    else next.set(QP_AUTO, String(autoRefreshMs));
+
+    // Avoid an infinite update loop: only call setSearchParams when the
+    // serialized result actually differs from what's already in the URL.
+    if (next.toString() !== searchParams.toString()) {
+      setSearchParams(next, { replace: true });
+    }
+  }, [windowHours, autoRefreshMs, searchParams, setSearchParams]);
+
+  // React to back/forward navigation (or another link that mutates the URL)
+  // by re-reading the params into local state.
+  useEffect(() => {
+    const wFromUrl = parseWindowParam(searchParams.get(QP_WINDOW), DEFAULT_WINDOW_HOURS);
+    const aFromUrl = parseAutoParam(searchParams.get(QP_AUTO), autoRefreshMs);
+    if (wFromUrl !== windowHours) setWindowHours(wFromUrl);
+    if (aFromUrl !== autoRefreshMs) setAutoRefreshMs(aFromUrl);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [searchParams]);
 
   const load = useCallback(async (showSpinner = false) => {
     if (showSpinner) setRefreshing(true);
@@ -243,6 +304,23 @@ export default function SLODashboard() {
           >
             <RefreshCw className={`h-4 w-4 ${refreshing ? 'animate-spin' : ''}`} />
             <span className="ml-2">Atualizar</span>
+          </Button>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => {
+              try {
+                navigator.clipboard.writeText(window.location.href);
+                toast.success('Link copiado', { description: 'Janela e cadência preservadas na URL' });
+              } catch {
+                toast.error('Não foi possível copiar o link');
+              }
+            }}
+            aria-label="Copiar link compartilhável da visualização atual"
+            title="Copia URL com janela e auto-atualização preservadas"
+          >
+            <Link2 className="h-4 w-4" />
+            <span className="ml-2 hidden md:inline">Copiar link</span>
           </Button>
         </div>
       </div>
