@@ -1,6 +1,8 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useRef, useState, type KeyboardEvent as ReactKeyboardEvent } from 'react';
 import { Button } from '@/components/ui/button';
-import { Check, FileClock, FolderOpen, Minus, X } from 'lucide-react';
+import { Input } from '@/components/ui/input';
+import { Check, FileClock, FolderOpen, Minus, Pencil, X } from 'lucide-react';
+import { quickIdentitySchema } from '@/lib/validations/quickAgentSchema';
 
 export interface DraftSummary {
   name: string;
@@ -24,7 +26,104 @@ interface DraftRecoveryBannerProps {
   onRestore: (id: string) => void;
   onDiscardOne: (id: string) => void;
   onDiscardAll: () => void;
+  onRename: (id: string, newName: string) => void;
 }
+
+function validateDraftName(value: string): string | null {
+  const r = quickIdentitySchema.shape.name.safeParse(value.trim());
+  return r.success ? null : (r.error.errors[0]?.message ?? 'Nome inválido');
+}
+
+interface NameEditorProps {
+  draft: DraftBannerEntry;
+  isEditing: boolean;
+  onStartEdit: () => void;
+  onCancel: () => void;
+  onConfirm: (newName: string) => void;
+}
+
+function NameLabelOrEditor({ draft, isEditing, onStartEdit, onCancel, onConfirm }: NameEditorProps) {
+  const [value, setValue] = useState(draft.summary.name);
+  const [error, setError] = useState<string | null>(null);
+  const inputRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    if (isEditing) {
+      setValue(draft.summary.name);
+      setError(null);
+      requestAnimationFrame(() => {
+        inputRef.current?.focus();
+        inputRef.current?.select();
+      });
+    }
+  }, [isEditing, draft.summary.name]);
+
+  const submit = () => {
+    const err = validateDraftName(value);
+    if (err) { setError(err); return; }
+    onConfirm(value.trim());
+  };
+
+  const onKey = (e: ReactKeyboardEvent<HTMLInputElement>) => {
+    if (e.key === 'Enter') { e.preventDefault(); submit(); }
+    if (e.key === 'Escape') { e.preventDefault(); onCancel(); }
+  };
+
+  if (isEditing) {
+    return (
+      <div className="flex flex-col gap-1 flex-1 min-w-0" onClick={(e) => e.stopPropagation()}>
+        <div className="flex items-center gap-1.5">
+          <Input
+            ref={inputRef}
+            value={value}
+            onChange={(e) => { setValue(e.target.value); if (error) setError(null); }}
+            onKeyDown={onKey}
+            maxLength={60}
+            aria-invalid={!!error}
+            aria-label="Novo nome do agente"
+            className="h-7 text-sm py-1"
+          />
+          <button
+            type="button"
+            onClick={submit}
+            className="h-7 w-7 rounded-md flex items-center justify-center text-nexus-emerald hover:bg-nexus-emerald/10 shrink-0"
+            aria-label="Confirmar novo nome"
+            title="Confirmar (Enter)"
+          >
+            <Check className="h-3.5 w-3.5" />
+          </button>
+          <button
+            type="button"
+            onClick={onCancel}
+            className="h-7 w-7 rounded-md flex items-center justify-center text-muted-foreground hover:text-destructive hover:bg-destructive/10 shrink-0"
+            aria-label="Cancelar renomear"
+            title="Cancelar (Esc)"
+          >
+            <X className="h-3.5 w-3.5" />
+          </button>
+        </div>
+        {error && <p className="text-[11px] text-destructive">{error}</p>}
+      </div>
+    );
+  }
+
+  const display = draft.summary.name.trim() ? `"${draft.summary.name.trim()}"` : 'sem nome ainda';
+  return (
+    <span className="inline-flex items-center gap-1 min-w-0">
+      <span className="text-sm font-medium text-foreground truncate">{display}</span>
+      <button
+        type="button"
+        onClick={(e) => { e.stopPropagation(); onStartEdit(); }}
+        className="opacity-60 hover:opacity-100 hover:text-primary transition shrink-0 p-1 rounded-md hover:bg-primary/10"
+        aria-label="Renomear rascunho"
+        title="Renomear"
+      >
+        <Pencil className="h-3 w-3" />
+      </button>
+    </span>
+  );
+}
+
 
 function formatRelative(iso: string): string {
   const then = new Date(iso).getTime();
