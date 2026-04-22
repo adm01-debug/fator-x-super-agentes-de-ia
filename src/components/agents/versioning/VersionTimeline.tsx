@@ -1,3 +1,4 @@
+import { useEffect, useRef } from "react";
 import { GitBranch, CircleDot, Circle } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -11,6 +12,8 @@ interface Props {
   onSelect: (id: string) => void;
   onPickA: (id: string) => void;
   onPickB: (id: string) => void;
+  /** Quando definido, rola até o item correspondente e aplica destaque temporário (pulse + ring). */
+  highlightId?: string | null;
 }
 
 function formatWhen(iso: string): string {
