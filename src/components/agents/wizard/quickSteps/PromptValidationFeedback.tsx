@@ -8,7 +8,7 @@ interface Props {
   onApplyFix?: (fixed: string, summary: string) => void;
 }
 
-export function PromptValidationFeedback({ prompt }: Props) {
+export function PromptValidationFeedback({ prompt, onApplyFix }: Props) {
   const stats = analyzePromptStructure(prompt);
   const issues = getPromptIssues(prompt);
 
