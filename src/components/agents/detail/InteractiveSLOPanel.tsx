@@ -115,11 +115,43 @@ export function InteractiveSLOPanel({ agentId, slo, traces, daily, onDayClick }:
       <div className="flex items-start justify-between mb-4 gap-3 flex-wrap">
         <div>
           <h3 className="text-sm font-heading font-semibold text-foreground">Painel SLO interativo</h3>
-          <p className="text-[11px] text-muted-foreground">Ajuste as metas com os sliders — alterações ficam salvas neste agente</p>
+          <p className="text-[11px] text-muted-foreground">
+            Ajuste as metas com os sliders · janela:{' '}
+            <span className="font-mono text-foreground">{activeWindow.label}</span> ·{' '}
+            <span className="font-mono">{windowedTraces.length}</span> trace{windowedTraces.length !== 1 ? 's' : ''}
+          </p>
         </div>
-        <Button variant="ghost" size="sm" className="gap-1.5 text-xs h-7" onClick={reset}>
-          <RotateCcw className="h-3 w-3" /> Resetar metas
-        </Button>
+        <div className="flex items-center gap-2 flex-wrap">
+          <div
+            role="tablist"
+            aria-label="Janela de avaliação"
+            className="inline-flex items-center gap-0.5 rounded-md border border-border bg-secondary/40 p-0.5"
+          >
+            <Clock className="h-3 w-3 text-muted-foreground ml-1.5 mr-0.5" aria-hidden />
+            {EVAL_WINDOWS.map((w) => {
+              const active = w.key === windowKey;
+              return (
+                <button
+                  key={w.key}
+                  type="button"
+                  role="tab"
+                  aria-selected={active}
+                  onClick={() => setWindowKey(w.key)}
+                  className={`px-2 h-6 text-[11px] font-mono rounded transition-colors ${
+                    active
+                      ? 'bg-primary text-primary-foreground'
+                      : 'text-muted-foreground hover:text-foreground hover:bg-secondary'
+                  }`}
+                >
+                  {w.label}
+                </button>
+              );
+            })}
+          </div>
+          <Button variant="ghost" size="sm" className="gap-1.5 text-xs h-7" onClick={reset}>
+            <RotateCcw className="h-3 w-3" /> Resetar metas
+          </Button>
+        </div>
       </div>
 
       {/* Cards de meta */}
