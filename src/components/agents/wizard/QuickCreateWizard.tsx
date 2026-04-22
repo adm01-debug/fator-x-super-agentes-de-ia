@@ -80,6 +80,33 @@ const TYPE_LABEL: Record<QuickAgentType, string> = {
   orchestrator: 'Orquestrador',
 };
 
+// User-tunable minimum prompt depth before "Criar agente" unlocks.
+// Persisted across sessions so the choice sticks per browser.
+const PROMPT_DEPTH_OPTIONS = [5, 8, 12] as const;
+type PromptDepth = typeof PROMPT_DEPTH_OPTIONS[number];
+const PROMPT_DEPTH_KEY = 'nexus.quickWizard.minPromptDepth';
+const DEFAULT_PROMPT_DEPTH: PromptDepth = 8;
+
+function loadPromptDepth(): PromptDepth {
+  try {
+    const raw = localStorage.getItem(PROMPT_DEPTH_KEY);
+    const n = raw ? Number(raw) : NaN;
+    return (PROMPT_DEPTH_OPTIONS as readonly number[]).includes(n) ? (n as PromptDepth) : DEFAULT_PROMPT_DEPTH;
+  } catch {
+    return DEFAULT_PROMPT_DEPTH;
+  }
+}
+
+function countPromptWords(text: string): number {
+  // Strip code fences/markdown noise so the count reflects real prose, not
+  // boilerplate the user pasted in.
+  const stripped = text
+    .replace(/```[\s\S]*?```/g, ' ')
+    .replace(/[`*_~#>\-]/g, ' ');
+  const matches = stripped.trim().match(/\S+/g);
+  return matches ? matches.length : 0;
+}
+
 interface QuickCreateWizardProps {
   onBack: () => void;
 }
