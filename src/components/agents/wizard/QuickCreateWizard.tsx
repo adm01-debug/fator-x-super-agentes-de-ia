@@ -464,6 +464,19 @@ export function QuickCreateWizard({ onBack }: QuickCreateWizardProps) {
         return;
       }
     }
+    if (sectionStatus.blocked) {
+      setStep(STEPS.length - 1);
+      setHighlightField('prompt');
+      const parts: string[] = [];
+      if (sectionStatus.missingLabels.length)
+        parts.push(`faltam ${sectionStatus.missingLabels.join(', ')}`);
+      if (sectionStatus.thinLabels.length)
+        parts.push(`muito curtas: ${sectionStatus.thinLabels.join(', ')}`);
+      toast.error('Seções obrigatórias incompletas', {
+        description: parts.join(' · '),
+      });
+      return;
+    }
     if (!meetsDepth) {
       setStep(STEPS.length - 1);
       setHighlightField('prompt');
