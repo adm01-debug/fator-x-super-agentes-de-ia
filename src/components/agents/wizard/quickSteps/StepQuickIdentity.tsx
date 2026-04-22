@@ -75,12 +75,14 @@ export function StepQuickIdentity({ form, errors, update, highlightField, highli
             placeholder="Ex: Aurora, Atlas, Pink Sales..."
             maxLength={60}
             aria-invalid={!!errors.name}
+            aria-describedby={highlightField === 'name' && highlightHint ? 'qa-name-hint' : undefined}
             className={`mt-1.5 bg-secondary/50 border-border/50 ${errors.name ? 'border-destructive' : ''}${hl('name')}`}
           />
           <div className="flex justify-between items-start mt-1">
             <FieldError msg={errors.name} />
             <span className="text-[10px] text-muted-foreground ml-auto font-mono">{form.name.length}/60</span>
           </div>
+          {hintFor('name')}
         </div>
 
         <div>
