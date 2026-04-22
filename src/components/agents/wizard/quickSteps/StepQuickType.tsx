@@ -7,7 +7,7 @@ import {
   type QuickAgentType,
 } from '@/data/quickAgentTemplates';
 import type { QuickAgentForm } from '@/lib/validations/quickAgentSchema';
-import { useFieldHighlight, FIELD_HIGHLIGHT_CLS } from './useFieldHighlight';
+import { useFieldHighlight, useFieldHighlightClass } from './useFieldHighlight';
 
 interface Props {
   form: QuickAgentForm;
