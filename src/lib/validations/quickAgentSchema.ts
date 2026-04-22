@@ -87,6 +87,112 @@ export function getMissingSections(prompt: string): PromptSectionKey[] {
   return REQUIRED_PROMPT_SECTIONS.filter((s) => !detected[s.key]).map((s) => s.key);
 }
 
+/** Minimum content depth per section (counted on the body BELOW its heading). */
+export const SECTION_CONTENT_LIMITS = {
+  MIN_WORDS: 8,
+  MIN_NON_EMPTY_LINES: 1,
+} as const;
+
+export interface SectionContentReport {
+  key: PromptSectionKey;
+  label: string;
+  present: boolean;
+  /** Trimmed body text between this heading and the next heading (or EOF). */
+  body: string;
+  wordCount: number;
+  nonEmptyLines: number;
+  /** Reason it's considered too thin; null when OK. */
+  thinReason: string | null;
+}
+
+/**
+ * Splits the prompt by headings and returns a depth report per required section.
+ * A section is considered "thin" when present but its body has too few words/lines,
+ * is only the heading itself, or contains only placeholder content (… ... TODO etc).
+ */
+export function analyzeSectionContent(prompt: string): SectionContentReport[] {
+  const lines = prompt.split('\n');
+
+  // Find each heading line index + which section key it matches (if any).
+  type HeadingHit = { lineIdx: number; key: PromptSectionKey | null };
+  const headingHits: HeadingHit[] = [];
+  for (let i = 0; i < lines.length; i++) {
+    const m = lines[i].match(/^\s{0,3}#{1,3}\s+(.+?)\s*#*\s*$/);
+    if (!m) continue;
+    const norm = stripAccents(m[1]);
+    const matched = REQUIRED_PROMPT_SECTIONS.find((sec) =>
+      sec.aliases.some((a) => norm.includes(a)),
+    );
+    headingHits.push({ lineIdx: i, key: matched?.key ?? null });
+  }
+
+  const reports: SectionContentReport[] = [];
+
+  for (const sec of REQUIRED_PROMPT_SECTIONS) {
+    const hitIdx = headingHits.findIndex((h) => h.key === sec.key);
+    if (hitIdx === -1) {
+      reports.push({
+        key: sec.key,
+        label: sec.label,
+        present: false,
+        body: '',
+        wordCount: 0,
+        nonEmptyLines: 0,
+        thinReason: 'Seção ausente',
+      });
+      continue;
+    }
+
+    const start = headingHits[hitIdx].lineIdx + 1;
+    const end = hitIdx + 1 < headingHits.length ? headingHits[hitIdx + 1].lineIdx : lines.length;
+    const bodyLines = lines.slice(start, end);
+    const body = bodyLines.join('\n').trim();
+
+    // Strip markdown bullets / ordering chars before counting words.
+    const stripped = body
+      .replace(/^[\s>*\-+]+/gm, '')
+      .replace(/^\d+\.\s+/gm, '');
+    const words = stripped.split(/\s+/).filter(Boolean);
+    const nonEmptyLines = bodyLines.filter((l) => l.trim().length > 0).length;
+
+    // Placeholder detection — single ellipsis lines, "TODO", "..." etc.
+    const placeholderOnly =
+      body.length > 0 &&
+      stripped
+        .replace(/[.…\-_*]/g, '')
+        .replace(/\b(todo|tbd|fixme|exemplo|example)\b/gi, '')
+        .trim().length === 0;
+
+    let thinReason: string | null = null;
+    if (body.length === 0) {
+      thinReason = 'Sem conteúdo abaixo do heading';
+    } else if (placeholderOnly) {
+      thinReason = 'Apenas placeholder (… / TODO)';
+    } else if (nonEmptyLines < SECTION_CONTENT_LIMITS.MIN_NON_EMPTY_LINES) {
+      thinReason = `Adicione ao menos ${SECTION_CONTENT_LIMITS.MIN_NON_EMPTY_LINES} linha de conteúdo`;
+    } else if (words.length < SECTION_CONTENT_LIMITS.MIN_WORDS) {
+      thinReason = `Muito curto (${words.length}/${SECTION_CONTENT_LIMITS.MIN_WORDS} palavras)`;
+    }
+
+    reports.push({
+      key: sec.key,
+      label: sec.label,
+      present: true,
+      body,
+      wordCount: words.length,
+      nonEmptyLines,
+      thinReason,
+    });
+  }
+
+  return reports;
+}
+
+/** Sections that exist as headings but are too thin to count as real content. */
+export function getThinSections(prompt: string): SectionContentReport[] {
+  return analyzeSectionContent(prompt).filter((r) => r.present && r.thinReason !== null);
+}
+
 import { analyzePromptStructure, PROMPT_LIMITS } from './promptSanitizer';
 
 export const quickPromptSchema = z.object({
@@ -104,6 +210,14 @@ export const quickPromptSchema = z.object({
         ctx.addIssue({
           code: z.ZodIssueCode.custom,
           message: `Faltam seções obrigatórias: ${labels}. Use headings markdown (## Persona, ## Escopo, ## Formato, ## Regras).`,
+        });
+      }
+      const thin = getThinSections(value);
+      if (thin.length > 0) {
+        const details = thin.map((t) => `${t.label} (${t.thinReason})`).join('; ');
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          message: `Conteúdo insuficiente em ${thin.length === 1 ? 'uma seção' : `${thin.length} seções`}: ${details}. Mínimo: ${SECTION_CONTENT_LIMITS.MIN_WORDS} palavras por seção.`,
         });
       }
       const struct = analyzePromptStructure(value);

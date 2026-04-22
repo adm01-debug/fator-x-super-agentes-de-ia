@@ -5,30 +5,40 @@ import { compilePrompt } from '@/lib/promptCompiler';
 import {
   detectPromptSections,
   getMissingSections,
+  analyzeSectionContent,
   REQUIRED_PROMPT_SECTIONS,
   type QuickAgentForm,
   type PromptSectionKey,
+  type SectionContentReport,
 } from '@/lib/validations/quickAgentSchema';
 
 export interface ReviewData {
   sections: Record<PromptSectionKey, boolean>;
   missingSections: PromptSectionKey[];
+  sectionReports: SectionContentReport[];
+  thinSections: SectionContentReport[];
   compiled: ReturnType<typeof compilePrompt>;
   hasUnresolved: boolean;
   hasMissingSections: boolean;
+  hasThinSections: boolean;
 }
 
 export function useReviewData(form: QuickAgentForm): ReviewData {
   return useMemo(() => {
     const sections = detectPromptSections(form.prompt);
     const missingSections = getMissingSections(form.prompt);
+    const sectionReports = analyzeSectionContent(form.prompt);
+    const thinSections = sectionReports.filter((r) => r.present && r.thinReason !== null);
     const compiled = compilePrompt(form);
     return {
       sections,
       missingSections,
+      sectionReports,
+      thinSections,
       compiled,
       hasUnresolved: compiled.unresolvedVariables.length > 0,
       hasMissingSections: missingSections.length > 0,
+      hasThinSections: thinSections.length > 0,
     };
   }, [form]);
 }
@@ -40,10 +50,17 @@ interface SummaryProps {
 }
 
 export function PreflightReviewSummary({ form, compact = false }: SummaryProps) {
-  const { sections, compiled, hasUnresolved, hasMissingSections } = useReviewData(form);
+  const {
+    sectionReports,
+    thinSections,
+    compiled,
+    hasUnresolved,
+    hasMissingSections,
+    hasThinSections,
+  } = useReviewData(form);
   const totalSections = REQUIRED_PROMPT_SECTIONS.length;
-  const presentSections = Object.values(sections).filter(Boolean).length;
-  const allGood = !hasMissingSections && !hasUnresolved;
+  const presentOk = sectionReports.filter((r) => r.present && !r.thinReason).length;
+  const allGood = !hasMissingSections && !hasThinSections && !hasUnresolved;
 
   return (
     <div
@@ -80,27 +97,35 @@ export function PreflightReviewSummary({ form, compact = false }: SummaryProps) 
         </div>
       </div>
 
-      {/* Sections checklist */}
+      {/* Sections checklist with depth */}
       <div className="space-y-1.5">
         <p className="text-[10px] uppercase tracking-wider text-muted-foreground">
-          Seções obrigatórias ({presentSections}/{totalSections})
+          Seções obrigatórias ({presentOk}/{totalSections} completas)
         </p>
         <div className="flex flex-wrap gap-1.5">
-          {REQUIRED_PROMPT_SECTIONS.map((sec) => {
-            const present = sections[sec.key];
+          {sectionReports.map((r) => {
+            const isOk = r.present && !r.thinReason;
+            const isThin = r.present && !!r.thinReason;
             return (
               <span
-                key={sec.key}
+                key={r.key}
                 className={cn(
                   'inline-flex items-center gap-1 px-2 py-0.5 rounded-full border text-[10px] font-medium',
-                  present
+                  isOk
                     ? 'border-nexus-emerald/30 bg-nexus-emerald/10 text-nexus-emerald'
                     : 'border-nexus-amber/40 bg-nexus-amber/10 text-nexus-amber',
                 )}
-                title={present ? 'Detectada no prompt' : 'Faltando — adicione um heading'}
+                title={
+                  isOk
+                    ? `${r.wordCount} palavras`
+                    : isThin
+                    ? `${r.thinReason} (${r.wordCount} palavras)`
+                    : 'Heading ausente'
+                }
               >
-                {present ? <CheckCircle2 className="h-2.5 w-2.5" /> : <AlertTriangle className="h-2.5 w-2.5" />}
-                {sec.label}
+                {isOk ? <CheckCircle2 className="h-2.5 w-2.5" /> : <AlertTriangle className="h-2.5 w-2.5" />}
+                {r.label}
+                {isThin && <span className="font-mono opacity-80">·{r.wordCount}p</span>}
               </span>
             );
           })}
@@ -138,16 +163,21 @@ export function PreflightReviewSummary({ form, compact = false }: SummaryProps) 
       </div>
 
       {/* Warnings */}
-      {(hasUnresolved || hasMissingSections) && (
+      {(hasUnresolved || hasMissingSections || hasThinSections) && (
         <div className="text-[11px] text-nexus-amber bg-nexus-amber/10 border border-nexus-amber/30 rounded-md px-2.5 py-1.5 space-y-0.5">
           {hasMissingSections && (
             <p>
-              <strong>{compiled.unresolvedVariables.length === 0 ? '' : '· '}</strong>
-              Faltam seções:{' '}
+              ⚠ Faltam seções:{' '}
               {getMissingSections(form.prompt)
                 .map((k) => REQUIRED_PROMPT_SECTIONS.find((s) => s.key === k)?.label ?? k)
                 .join(', ')}
               .
+            </p>
+          )}
+          {hasThinSections && (
+            <p>
+              ⚠ Conteúdo insuficiente em:{' '}
+              {thinSections.map((t) => `${t.label} (${t.thinReason})`).join('; ')}.
             </p>
           )}
           {hasUnresolved && (
