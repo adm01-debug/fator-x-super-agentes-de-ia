@@ -58,7 +58,7 @@ function availabilityStatus(value: number, target: number): Status {
   return 'critical';
 }
 
-export function InteractiveSLOPanel({ agentId, slo, traces, daily, onDayClick }: Props) {
+export function InteractiveSLOPanel({ agentId, agentName, slo, traces, daily, onDayClick }: Props) {
   const { targets, setTargets, reset } = useAgentSLOTargets(agentId);
 
   const [windowKey, setWindowKey] = useState<EvalWindowKey>('14d');
