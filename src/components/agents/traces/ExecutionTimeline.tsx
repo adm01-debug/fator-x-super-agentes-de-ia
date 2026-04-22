@@ -226,7 +226,7 @@ export function ExecutionTimeline({ execution, selectedStep, onSelectStep }: Pro
 function ExecutionSummary({
   execution, step, total, onStep, onExpandAll, onCollapseAll,
   stepSearch, onStepSearch, matchCount, onJumpMatch,
-  bookmarks, onJumpBookmark, onBookmarksChange,
+  bookmarks, onJumpBookmark, onBookmarksChange, focused,
 }: {
   execution: ExecutionGroup;
   step: number;
@@ -241,6 +241,8 @@ function ExecutionSummary({
   bookmarks: TraceBookmark[];
   onJumpBookmark: (dir: 1 | -1) => void;
   onBookmarksChange: (bookmarks: TraceBookmark[]) => void;
+  /** Whether the parent timeline container is currently capturing keyboard events. */
+  focused: boolean;
 }) {
   
   const { counts, total_ms, total_tokens, total_cost, session_id, traces } = execution;
