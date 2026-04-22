@@ -3,10 +3,11 @@ import {
   ChevronDown, ChevronRight, Info, AlertTriangle, XCircle,
   CheckCircle2, Clock, DollarSign, Hash, Zap,
   ChevronsLeft, ChevronLeft, ChevronsRight,
-  ChevronsDownUp, ChevronsUpDown,
+  ChevronsDownUp, ChevronsUpDown, Keyboard,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { cn } from '@/lib/utils';
 import type { AgentTraceRow, ExecutionGroup, TraceLevel } from '@/services/agentTracesService';
 
@@ -206,6 +207,35 @@ function ExecutionSummary({
           >
             <ChevronsDownUp className="h-3.5 w-3.5" />
           </Button>
+          <span className="h-4 w-px bg-border/60 mx-1" aria-hidden />
+          <Popover>
+            <PopoverTrigger asChild>
+              <Button
+                type="button"
+                size="icon"
+                variant="ghost"
+                className="h-6 w-6"
+                aria-label="Mostrar atalhos de teclado"
+                title="Atalhos de teclado"
+              >
+                <Keyboard className="h-3.5 w-3.5" />
+              </Button>
+            </PopoverTrigger>
+            <PopoverContent align="end" className="w-64 p-3 text-xs">
+              <p className="font-semibold text-foreground mb-2 flex items-center gap-1.5">
+                <Keyboard className="h-3.5 w-3.5 text-primary" /> Atalhos de teclado
+              </p>
+              <p className="text-[10px] text-muted-foreground mb-2">
+                Clique na timeline para focar e use:
+              </p>
+              <ul className="space-y-1.5">
+                <ShortcutRow keys={['↓', 'j']} label="Próximo passo" />
+                <ShortcutRow keys={['↑', 'k']} label="Passo anterior" />
+                <ShortcutRow keys={['Home']} label="Primeiro passo" />
+                <ShortcutRow keys={['End']} label="Último passo" />
+              </ul>
+            </PopoverContent>
+          </Popover>
         </div>
       </div>
 
@@ -234,6 +264,24 @@ function ExecutionSummary({
         </div>
       )}
     </div>
+  );
+}
+
+function ShortcutRow({ keys, label }: { keys: string[]; label: string }) {
+  return (
+    <li className="flex items-center justify-between gap-2">
+      <span className="text-muted-foreground">{label}</span>
+      <span className="flex items-center gap-1">
+        {keys.map((k, i) => (
+          <kbd
+            key={i}
+            className="inline-flex items-center justify-center min-w-[20px] h-5 px-1.5 rounded border border-border/60 bg-muted/60 text-[10px] font-mono text-foreground"
+          >
+            {k}
+          </kbd>
+        ))}
+      </span>
+    </li>
   );
 }
 
