@@ -241,6 +241,28 @@ export default function AgentVersioningPage() {
               onChange={setPreset}
               counts={presetCounts}
             />
+            <div className="flex items-center gap-1.5 mb-2">
+              <span className="text-[10px] uppercase tracking-wider text-muted-foreground font-semibold">
+                Intervalo
+              </span>
+              <TimelineRangeFilter range={range} onChange={setRange} versions={versions} />
+              {(versionA && versionB) && range.mode !== 'version' && (
+                <Button
+                  type="button"
+                  size="sm"
+                  variant="ghost"
+                  className="h-6 px-2 text-[10px] text-muted-foreground hover:text-foreground"
+                  onClick={() => setRange({
+                    mode: 'version',
+                    vMin: Math.min(versionA.version, versionB.version),
+                    vMax: Math.max(versionA.version, versionB.version),
+                  })}
+                  title="Filtrar timeline para o intervalo entre A e B"
+                >
+                  entre A↔B
+                </Button>
+              )}
+            </div>
             <VersionTimeline
               versions={filteredVersions}
               selectedId={selectedId}
@@ -251,9 +273,11 @@ export default function AgentVersioningPage() {
               onPickB={(vid) => { setBId(vid); if (aId && vid !== aId) setMode('compare'); }}
               highlightId={highlightId}
             />
-            {activePreset.id !== 'all' && filteredVersions.length < versions.length && (
+            {(activePreset.id !== 'all' || range.mode !== 'off') && filteredVersions.length < versions.length && (
               <p className="text-[10px] text-muted-foreground mt-2 px-1">
-                Mostrando {filteredVersions.length} de {versions.length} versões — preset "{activePreset.label}".
+                Mostrando {filteredVersions.length} de {versions.length} versões
+                {activePreset.id !== 'all' && <> · preset "{activePreset.label}"</>}
+                {range.mode !== 'off' && <> · intervalo ativo</>}.
               </p>
             )}
           </div>
