@@ -13,8 +13,9 @@ const SHORTCUTS: ShortcutEntry[] = [
   { keys: ["A"], description: "Ir para Agentes", category: "Navegação" },
   { keys: ["⇧", "N"], description: "Criar novo agente", category: "Navegação" },
   { keys: ["Alt", "←"], description: "Voltar página anterior", category: "Navegação" },
-  { keys: ["?"], description: "Mostrar atalhos de teclado", category: "Geral" },
-  { keys: ["Esc"], description: "Fechar modal / dialog", category: "Geral" },
+  { keys: ["?"], description: "Abrir/fechar atalhos de teclado", category: "Geral" },
+  { keys: ["⇧", "/"], description: "Abrir/fechar atalhos (alternativo)", category: "Geral" },
+  { keys: ["Esc"], description: "Fechar este popover / modal", category: "Geral" },
 ];
 
 export function KeyboardShortcutsDialog() {
@@ -22,15 +23,21 @@ export function KeyboardShortcutsDialog() {
 
   useEffect(() => {
     const handleKey = (e: KeyboardEvent) => {
+      // Esc always closes when open, even if focus is inside an input within the dialog
+      if (e.key === "Escape" && open) {
+        e.preventDefault();
+        e.stopPropagation();
+        setOpen(false);
+        return;
+      }
+
       const target = e.target as HTMLElement;
       if (target.tagName === "INPUT" || target.tagName === "TEXTAREA" || target.isContentEditable) return;
 
-      if (e.key === "?" && !e.ctrlKey && !e.metaKey) {
+      // Toggle with "?" (Shift+/ on most layouts) — works for both open and close
+      if (e.key === "?" && !e.ctrlKey && !e.metaKey && !e.altKey) {
         e.preventDefault();
         setOpen((prev) => !prev);
-      }
-      if (e.key === "Escape" && open) {
-        setOpen(false);
       }
     };
     window.addEventListener("keydown", handleKey);
