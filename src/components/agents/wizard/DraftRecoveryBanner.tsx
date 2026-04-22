@@ -162,9 +162,16 @@ export function DraftRecoveryBanner({
   onRestore,
   onDiscardOne,
   onDiscardAll,
+  onRename,
 }: DraftRecoveryBannerProps) {
   const [selectedId, setSelectedId] = useState<string>(drafts[0]?.id ?? '');
+  const [editingId, setEditingId] = useState<string | null>(null);
   const itemsRef = useRef<Record<string, HTMLDivElement | null>>({});
+
+  const handleConfirmRename = (id: string, newName: string) => {
+    onRename(id, newName);
+    setEditingId(null);
+  };
 
   useEffect(() => {
     if (!drafts.find((d) => d.id === selectedId)) {
