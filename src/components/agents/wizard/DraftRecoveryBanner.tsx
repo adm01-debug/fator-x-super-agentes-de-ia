@@ -187,6 +187,45 @@ function subjectOf(summary: DraftSummary): string {
   return summary.name.trim() ? `"${summary.name.trim()}"` : 'sem nome ainda';
 }
 
+// 4 etapas iguais — cada uma vale 25%. Mantém o cálculo previsível e
+// alinhado com os StatusChips exibidos logo abaixo.
+function completionOf(summary: DraftSummary): { done: number; total: number; pct: number } {
+  const flags = [summary.hasIdentity, summary.hasType, summary.hasModel, summary.hasPrompt];
+  const done = flags.filter(Boolean).length;
+  const total = flags.length;
+  return { done, total, pct: Math.round((done / total) * 100) };
+}
+
+function CompletionMeter({ summary, compact = false }: { summary: DraftSummary; compact?: boolean }) {
+  const { done, total, pct } = completionOf(summary);
+  // Cor sinaliza maturidade do rascunho: vermelho < 50%, âmbar < 100%, verde = 100%.
+  const tone =
+    pct === 100
+      ? 'bg-nexus-emerald'
+      : pct >= 50
+      ? 'bg-nexus-amber'
+      : 'bg-destructive';
+  const toneText =
+    pct === 100 ? 'text-nexus-emerald' : pct >= 50 ? 'text-nexus-amber' : 'text-destructive';
+  return (
+    <div
+      className={`flex items-center gap-2 ${compact ? 'min-w-[110px]' : 'min-w-[140px]'}`}
+      title={`${done} de ${total} etapas concluídas`}
+      aria-label={`Completude: ${pct}% — ${done} de ${total} etapas`}
+    >
+      <div className="flex-1 h-1.5 rounded-full bg-secondary/60 overflow-hidden">
+        <div
+          className={`h-full rounded-full transition-all duration-500 ${tone}`}
+          style={{ width: `${pct}%` }}
+        />
+      </div>
+      <span className={`text-[11px] font-mono tabular-nums shrink-0 ${toneText}`}>
+        {pct}%
+      </span>
+    </div>
+  );
+}
+
 export function DraftRecoveryBanner({
   drafts,
   onRestore,
@@ -244,16 +283,24 @@ export function DraftRecoveryBanner({
           </div>
         </div>
 
-        <div className="flex flex-wrap gap-1.5">
-          <StatusChip label="Identidade" ok={only.summary.hasIdentity} />
-          <StatusChip label="Tipo" ok={only.summary.hasType} />
-          <StatusChip label="Modelo" ok={only.summary.hasModel} />
-          <StatusChip label="Prompt" ok={only.summary.hasPrompt} />
-          {blocked && (
-            <span className="inline-flex items-center gap-1 text-[11px] px-2 py-0.5 rounded-full border border-warning/30 bg-warning/10 text-warning">
-              Incompleto
+        <div className="space-y-2">
+          <div className="flex items-center gap-2">
+            <span className="text-[11px] uppercase tracking-wide text-muted-foreground shrink-0">
+              Completude
             </span>
-          )}
+            <CompletionMeter summary={only.summary} />
+          </div>
+          <div className="flex flex-wrap gap-1.5">
+            <StatusChip label="Identidade" ok={only.summary.hasIdentity} />
+            <StatusChip label="Tipo" ok={only.summary.hasType} />
+            <StatusChip label="Modelo" ok={only.summary.hasModel} />
+            <StatusChip label="Prompt" ok={only.summary.hasPrompt} />
+            {blocked && (
+              <span className="inline-flex items-center gap-1 text-[11px] px-2 py-0.5 rounded-full border border-warning/30 bg-warning/10 text-warning">
+                Incompleto
+              </span>
+            )}
+          </div>
         </div>
 
         <div className="flex items-center justify-end gap-2 pt-1">
@@ -381,11 +428,14 @@ export function DraftRecoveryBanner({
                     </span>
                   )}
                 </div>
-                <div className="flex flex-wrap gap-1">
-                  <StatusChip label="Identidade" ok={d.summary.hasIdentity} />
-                  <StatusChip label="Tipo" ok={d.summary.hasType} />
-                  <StatusChip label="Modelo" ok={d.summary.hasModel} />
-                  <StatusChip label="Prompt" ok={d.summary.hasPrompt} />
+                <div className="flex flex-wrap items-center gap-2">
+                  <div className="flex flex-wrap gap-1">
+                    <StatusChip label="Identidade" ok={d.summary.hasIdentity} />
+                    <StatusChip label="Tipo" ok={d.summary.hasType} />
+                    <StatusChip label="Modelo" ok={d.summary.hasModel} />
+                    <StatusChip label="Prompt" ok={d.summary.hasPrompt} />
+                  </div>
+                  <CompletionMeter summary={d.summary} compact />
                 </div>
               </div>
 
