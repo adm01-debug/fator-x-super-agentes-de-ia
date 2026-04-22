@@ -113,6 +113,31 @@ export function InteractiveSLOPanel({ agentId, agentName, slo, traces, daily, on
 
   const burnStyle = STATUS[burn.status];
 
+  const handleExportPdf = () => {
+    try {
+      const doc = generateSLOReportPdf({
+        agentName: agentName || 'Agente',
+        windowLabel: activeWindow.label,
+        windowTraces: windowedTraces.length,
+        generatedAt: new Date(),
+        slo: effectiveSlo,
+        targets,
+        burn,
+        timeline,
+        daily,
+      });
+      const safeName = (agentName || 'agente').toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
+      const stamp = new Date().toISOString().slice(0, 10);
+      doc.save(`relatorio-slo-${safeName}-${activeWindow.label}-${stamp}.pdf`);
+      toast.success('Relatório SLO exportado', {
+        description: `Janela ${activeWindow.label} · ${windowedTraces.length} traces`,
+      });
+    } catch (e) {
+      console.error('Erro ao gerar relatório SLO:', e);
+      toast.error('Falha ao gerar o relatório PDF');
+    }
+  };
+
   return (
     <div className="nexus-card" role="region" aria-label="Painel SLO interativo">
       <div className="flex items-start justify-between mb-4 gap-3 flex-wrap">
