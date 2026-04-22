@@ -4,12 +4,13 @@ import { Button } from '@/components/ui/button';
 import { Slider } from '@/components/ui/slider';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
-import { Pause, Play, RotateCcw, SkipBack, SkipForward, Info, AlertTriangle, XCircle, Download, BookmarkCheck } from 'lucide-react';
+import { Pause, Play, RotateCcw, SkipBack, SkipForward, Info, AlertTriangle, XCircle, Download, BookmarkCheck, ArrowLeftRight, GitCompare } from 'lucide-react';
 import type { ExecutionGroup, TraceLevel } from '@/services/agentTracesService';
 import { downloadJSON } from '@/lib/agentExportImport';
 import { toast } from 'sonner';
 import { listBookmarks, type TraceBookmark } from '@/lib/traceBookmarks';
 import { BookmarkButton } from './BookmarkButton';
+import { TraceCompareDialog } from './TraceCompareDialog';
 import { cn } from '@/lib/utils';
 
 interface Props {
