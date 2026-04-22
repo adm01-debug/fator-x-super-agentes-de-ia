@@ -341,6 +341,8 @@ export function StepQuickPrompt({ form, errors, onPromptManualEdit, onRestore, o
         onUnlock={onUnlockCustom}
       />
 
+      {lockEvents && lockEvents.length > 0 && <PromptLockEventLog events={lockEvents} />}
+
       <div
         className={`nexus-card space-y-3 transition-shadow ${
           pulsedSection ? 'ring-2 ring-nexus-amber/60 shadow-[0_0_0_4px_hsl(var(--nexus-amber)/0.15)]' : ''
