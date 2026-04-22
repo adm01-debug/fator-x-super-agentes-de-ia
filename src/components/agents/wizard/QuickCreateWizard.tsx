@@ -14,6 +14,7 @@ import {
   isDraftMeaningful,
   type QuickAgentForm,
 } from '@/lib/validations/quickAgentSchema';
+import { detectPromptContradictions } from '@/lib/validations/promptContradictions';
 import {
   QUICK_AGENT_TEMPLATES,
   PERSONA_FROM_TYPE,
