@@ -1,17 +1,30 @@
-import { useMemo } from 'react';
-import { CheckCircle2, AlertTriangle, XCircle, RotateCcw, Flame, Activity } from 'lucide-react';
+import { useMemo, useState } from 'react';
+import { CheckCircle2, AlertTriangle, XCircle, RotateCcw, Flame, Activity, Clock } from 'lucide-react';
 import { Slider } from '@/components/ui/slider';
 import { Button } from '@/components/ui/button';
 import { useAgentSLOTargets, DEFAULT_SLO_TARGETS, type SLOTargetsConfig } from '@/hooks/useAgentSLOTargets';
 import {
-  buildViolationTimeline,
+  buildViolationBuckets,
   computeBudgetBurn,
+  computeSLO,
+  filterTracesByWindow,
   formatNumber,
   type SLOMetrics,
   type DailyPoint,
 } from './agentMetricsHelpers';
 import type { AgentTrace } from '@/services/agentsService';
 import { SLOViolationTimeline } from './SLOViolationTimeline';
+
+type EvalWindowKey = '1h' | '6h' | '24h' | '7d' | '14d' | '30d';
+
+const EVAL_WINDOWS: Array<{ key: EvalWindowKey; label: string; ms: number; buckets: number }> = [
+  { key: '1h',  label: '1h',  ms: 60 * 60 * 1000,                buckets: 12 },
+  { key: '6h',  label: '6h',  ms: 6 * 60 * 60 * 1000,            buckets: 12 },
+  { key: '24h', label: '24h', ms: 24 * 60 * 60 * 1000,           buckets: 12 },
+  { key: '7d',  label: '7d',  ms: 7 * 24 * 60 * 60 * 1000,       buckets: 14 },
+  { key: '14d', label: '14d', ms: 14 * 24 * 60 * 60 * 1000,      buckets: 14 },
+  { key: '30d', label: '30d', ms: 30 * 24 * 60 * 60 * 1000,      buckets: 15 },
+];
 
 interface Props {
   agentId: string;
