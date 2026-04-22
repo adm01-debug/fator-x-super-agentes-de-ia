@@ -35,6 +35,14 @@ const AUTO_REFRESH_OPTIONS: Array<{ value: number; label: string }> = [
 const AUTO_REFRESH_STORAGE_KEY = 'nexus.slo.autoRefreshMs';
 const DEFAULT_AUTO_REFRESH_MS = 60_000;
 
+/** Window options (hours). Used to validate the URL param. */
+const WINDOW_OPTIONS = [1, 6, 24, 168] as const;
+const DEFAULT_WINDOW_HOURS = 24;
+
+// URL query param keys — short on purpose so shared links stay clean.
+const QP_WINDOW = 'w';
+const QP_AUTO = 'auto';
+
 function readStoredInterval(): number {
   try {
     const raw = localStorage.getItem(AUTO_REFRESH_STORAGE_KEY);
@@ -44,6 +52,20 @@ function readStoredInterval(): number {
   } catch {
     return DEFAULT_AUTO_REFRESH_MS;
   }
+}
+
+/** Parse + validate `?w=` from the URL. Falls back to the provided default. */
+function parseWindowParam(raw: string | null, fallback: number): number {
+  if (raw === null) return fallback;
+  const n = Number(raw);
+  return (WINDOW_OPTIONS as readonly number[]).includes(n) ? n : fallback;
+}
+
+/** Parse + validate `?auto=` from the URL. Falls back to the provided default. */
+function parseAutoParam(raw: string | null, fallback: number): number {
+  if (raw === null) return fallback;
+  const n = Number(raw);
+  return AUTO_REFRESH_OPTIONS.some((o) => o.value === n) ? n : fallback;
 }
 
 function StatusBadge({ status }: { status: SLOStatus }) {
