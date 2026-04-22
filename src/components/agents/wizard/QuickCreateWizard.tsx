@@ -327,11 +327,15 @@ export function QuickCreateWizard({ onBack }: QuickCreateWizardProps) {
   };
 
   const applyPromptVariant = (variantId: import('@/data/quickAgentTemplates').PromptVariantId) => {
-    if (promptCustomLocked && form.prompt.trim().length > 0) {
-      setPendingVariant(variantId);
+    const t = QUICK_AGENT_TEMPLATES[form.type as QuickAgentType];
+    const nextPrompt = t.promptVariants[variantId].prompt;
+    if (form.prompt.trim() === nextPrompt.trim()) {
+      toast.info(`Já está usando "${t.promptVariants[variantId].label}"`);
+      setSelectedVariant(variantId);
+      setPromptCustomLocked(false);
       return;
     }
-    doApplyPromptVariant(variantId);
+    setPendingVariant(variantId);
   };
 
   const validateStep = (idx: number): boolean => {
