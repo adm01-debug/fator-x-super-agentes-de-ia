@@ -168,6 +168,60 @@ function formatRelative(iso: string): string {
   return `há ${d} ${d === 1 ? 'dia' : 'dias'}`;
 }
 
+// Data/hora absoluta usada em tooltip e na prévia ("12/04/2026 14:32")
+function formatAbsolute(iso: string): string {
+  const d = new Date(iso);
+  if (Number.isNaN(d.getTime())) return iso;
+  return d.toLocaleString('pt-BR', {
+    day: '2-digit', month: '2-digit', year: 'numeric',
+    hour: '2-digit', minute: '2-digit',
+  });
+}
+
+// Lista textual dos campos já preenchidos do rascunho.
+function filledFieldsList(summary: DraftSummary): string[] {
+  const out: string[] = [];
+  if (summary.hasIdentity) out.push('Identidade');
+  if (summary.hasType) out.push('Tipo');
+  if (summary.hasModel) out.push('Modelo');
+  if (summary.hasPrompt) out.push('Prompt');
+  return out;
+}
+
+// Prévia rápida do rascunho — nome, data absoluta e campos preenchidos —
+// pra o usuário avaliar antes de clicar em Restaurar.
+function DraftPreviewLine({ entry }: { entry: DraftBannerEntry }) {
+  const filled = filledFieldsList(entry.summary);
+  const name = entry.summary.name.trim() || 'Sem nome';
+  const absolute = formatAbsolute(entry.savedAt);
+  return (
+    <div
+      className="rounded-md border border-border/40 bg-background/40 px-2.5 py-2 text-[11px] text-muted-foreground space-y-1"
+      aria-label="Prévia do rascunho antes de restaurar"
+    >
+      <div className="flex items-center gap-1.5 flex-wrap">
+        <span className="text-muted-foreground/70 uppercase tracking-wider text-[10px]">Prévia</span>
+        <span className="text-foreground font-medium truncate max-w-[220px]" title={name}>{name}</span>
+        <span className="text-muted-foreground/50">·</span>
+        <span className="font-mono tabular-nums" title="Salvo em">{absolute}</span>
+      </div>
+      <div className="flex items-center gap-1 flex-wrap">
+        <span className="text-muted-foreground/70">Preenchidos:</span>
+        {filled.length === 0 ? (
+          <span className="italic text-muted-foreground/60">nenhum campo ainda</span>
+        ) : (
+          filled.map((f, i) => (
+            <span key={f} className="inline-flex items-center">
+              <span className="text-nexus-emerald font-medium">{f}</span>
+              {i < filled.length - 1 && <span className="text-muted-foreground/40 mx-1">·</span>}
+            </span>
+          ))
+        )}
+      </div>
+    </div>
+  );
+}
+
 function StatusChip({ label, ok }: { label: string; ok: boolean }) {
   return (
     <span
@@ -302,6 +356,8 @@ export function DraftRecoveryBanner({
             )}
           </div>
         </div>
+
+        <DraftPreviewLine entry={only} />
 
         <div className="flex items-center justify-end gap-2 pt-1">
           <ConfirmDialog
@@ -460,6 +516,11 @@ export function DraftRecoveryBanner({
           );
         })}
       </div>
+
+      {(() => {
+        const selected = drafts.find((d) => d.id === selectedId);
+        return selected ? <DraftPreviewLine entry={selected} /> : null;
+      })()}
 
       <div className="flex items-center justify-between gap-2 pt-1">
         <ConfirmDialog
