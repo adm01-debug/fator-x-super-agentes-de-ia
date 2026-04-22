@@ -153,7 +153,7 @@ describe('wizard / prompt variant state', () => {
     });
 
     it('falls back to detectPromptVariant only when the user has never picked one', () => {
-      const type: QuickAgentType = 'agent';
+      const type: QuickAgentType = 'analyst';
       const tpl = QUICK_AGENT_TEMPLATES[type];
 
       // Fresh form, prompt was filled by template (== balanced) but user
