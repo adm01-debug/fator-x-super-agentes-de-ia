@@ -203,6 +203,7 @@ export function ExecutionTimeline({ execution, selectedStep, onSelectStep }: Pro
 function ExecutionSummary({
   execution, step, total, onStep, onExpandAll, onCollapseAll,
   stepSearch, onStepSearch, matchCount, onJumpMatch,
+  bookmarks, onJumpBookmark, onBookmarksChange,
 }: {
   execution: ExecutionGroup;
   step: number;
@@ -214,7 +215,11 @@ function ExecutionSummary({
   onStepSearch: (v: string) => void;
   matchCount: number;
   onJumpMatch: (dir: 1 | -1) => void;
+  bookmarks: TraceBookmark[];
+  onJumpBookmark: (dir: 1 | -1) => void;
+  onBookmarksChange: (bookmarks: TraceBookmark[]) => void;
 }) {
+  const currentTrace = execution.traces[step];
   const { counts, total_ms, total_tokens, total_cost, session_id, traces } = execution;
   const current = traces[step];
   const isAuto = session_id.startsWith('auto-');
