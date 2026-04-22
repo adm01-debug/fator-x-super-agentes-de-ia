@@ -25,6 +25,7 @@ import {
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
 import { PromptDiff } from '@/components/prompts/PromptDiff';
+import { ContradictionWordDiff } from './ContradictionWordDiff';
 import {
   buildContradictionAutoFixes,
   applyAllContradictionFixes,
@@ -46,6 +47,9 @@ interface PreviewState {
   title: string;
   fixedPrompt: string;
   summary: string;
+  /** When set, render the per-conflict word-level diff instead of the full
+   *  prompt diff. Absent for the "Apply all" preview which spans many lines. */
+  fix?: ContradictionAutoFix;
 }
 
 export function PromptContradictionAutoFixPanel({ prompt, onApply }: Props) {
@@ -85,8 +89,13 @@ export function PromptContradictionAutoFixPanel({ prompt, onApply }: Props) {
 
   if (fixes.length === 0 && !lastApplied) return null;
 
-  const openPreview = (title: string, fixedPrompt: string, summary: string) => {
-    setPreview({ open: true, title, fixedPrompt, summary });
+  const openPreview = (
+    title: string,
+    fixedPrompt: string,
+    summary: string,
+    fix?: ContradictionAutoFix,
+  ) => {
+    setPreview({ open: true, title, fixedPrompt, summary, fix });
   };
 
   const applyAndRecord = (fixedPrompt: string, summary: string) => {
@@ -99,9 +108,12 @@ export function PromptContradictionAutoFixPanel({ prompt, onApply }: Props) {
     onApply(fixedPrompt, summary);
   };
 
+  const closePreview = () =>
+    setPreview({ open: false, title: '', fixedPrompt: '', summary: '', fix: undefined });
+
   const applyFromPreview = () => {
     applyAndRecord(preview.fixedPrompt, preview.summary);
-    setPreview({ open: false, title: '', fixedPrompt: '', summary: '' });
+    closePreview();
   };
 
   const undoLast = () => {
@@ -151,6 +163,7 @@ export function PromptContradictionAutoFixPanel({ prompt, onApply }: Props) {
                     `Unificar regras (${CONTRADICTION_KIND_LABEL[builtFix.conflict.kind]})`,
                     builtFix.fixedPrompt,
                     `Linhas ${builtFix.conflict.lineA} e ${builtFix.conflict.lineB} substituídas pela sugestão escolhida.`,
+                    builtFix,
                   )
                 }
                 onApply={(builtFix) =>
@@ -198,9 +211,7 @@ export function PromptContradictionAutoFixPanel({ prompt, onApply }: Props) {
 
       <AlertDialog
         open={preview.open}
-        onOpenChange={(open) =>
-          !open && setPreview({ open: false, title: '', fixedPrompt: '', summary: '' })
-        }
+        onOpenChange={(open) => !open && closePreview()}
       >
         <AlertDialogContent className="max-w-3xl">
           <AlertDialogHeader>
@@ -214,12 +225,20 @@ export function PromptContradictionAutoFixPanel({ prompt, onApply }: Props) {
           </AlertDialogHeader>
 
           <div className="my-2 max-h-[420px] overflow-auto">
-            <PromptDiff
-              textA={prompt}
-              textB={preview.fixedPrompt}
-              labelA="Atual (com contradição)"
-              labelB="Após unificação"
-            />
+            {preview.fix ? (
+              // Per-conflict preview → focused word-level diff of just the
+              // affected lines, so removed/added tokens jump out immediately.
+              <ContradictionWordDiff prompt={prompt} fix={preview.fix} />
+            ) : (
+              // "Apply all" preview → keep the full side-by-side line diff
+              // because the change spans many non-contiguous lines.
+              <PromptDiff
+                textA={prompt}
+                textB={preview.fixedPrompt}
+                labelA="Atual (com contradições)"
+                labelB="Após unificação"
+              />
+            )}
           </div>
 
           <AlertDialogFooter>
