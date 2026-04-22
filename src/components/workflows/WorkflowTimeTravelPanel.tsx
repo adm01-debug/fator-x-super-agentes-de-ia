@@ -27,6 +27,9 @@ import {
   XCircle,
   Loader2,
   ArrowLeftRight,
+  Download,
+  FileText,
+  Printer,
 } from 'lucide-react';
 import {
   getExecutionTimeline,
@@ -36,6 +39,16 @@ import {
   type WorkflowCheckpoint,
 } from '@/services/workflowCheckpointService';
 import { StepComparePanel } from './StepComparePanel';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
+import { downloadMarkdown, openPrintablePdf } from '@/lib/workflows/exportTimeTravelReport';
+import { toast } from 'sonner';
 
 // ──────── Types ────────
 
