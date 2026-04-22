@@ -33,6 +33,7 @@ export function PromptHighlightOverlay({ prompt, locations, textareaRef, padding
     // Build a map: line index → status for thin/ok/missing display.
     const lineStatus = new Map<number, { kind: 'thin' | 'ok'; label: string }>();
     const ghostInserts: { afterChar: number; label: string }[] = [];
+    const conflictSet = new Set<number>((conflictLines ?? []).map((n) => n - 1));
 
     for (const loc of locations) {
       if (loc.status === 'thin') {
