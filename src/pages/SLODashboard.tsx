@@ -86,28 +86,77 @@ export default function SLODashboard() {
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [windowHours, setWindowHours] = useState<number>(24);
+  // User-controlled auto-refresh cadence. 0 = off. Persisted across visits
+  // so the operator's preference survives reloads/navigation.
+  const [autoRefreshMs, setAutoRefreshMs] = useState<number>(readStoredInterval);
+  const [lastRefreshAt, setLastRefreshAt] = useState<Date | null>(null);
+  // Re-renders the "X seg atrás" pill once a second without re-fetching data.
+  const [, setNowTick] = useState(0);
+  const isMountedRef = useRef(true);
+
+  useEffect(() => {
+    isMountedRef.current = true;
+    return () => {
+      isMountedRef.current = false;
+    };
+  }, []);
 
   const load = useCallback(async (showSpinner = false) => {
     if (showSpinner) setRefreshing(true);
     try {
       const data = await fetchSLOSummary(windowHours);
+      if (!isMountedRef.current) return;
       setSummary(data);
+      setLastRefreshAt(new Date());
     } catch (err) {
       logger.error('Failed to load SLO summary', err);
-      toast.error('Erro ao carregar métricas SLO', {
-        description: err instanceof Error ? err.message : 'Erro desconhecido',
-      });
+      // Silent on auto-refresh — only toast on user-initiated reloads to
+      // avoid spamming the operator if the backend hiccups for a beat.
+      if (showSpinner) {
+        toast.error('Erro ao carregar métricas SLO', {
+          description: err instanceof Error ? err.message : 'Erro desconhecido',
+        });
+      }
     } finally {
+      if (!isMountedRef.current) return;
       setLoading(false);
       setRefreshing(false);
     }
   }, [windowHours]);
 
+  // Initial load + scheduled auto-refresh. Runs invisibly (no spinner) so
+  // the page doesn't flash; the manual button still shows the spinning icon.
   useEffect(() => {
     load();
-    const id = window.setInterval(() => load(false), REFRESH_MS);
+    if (autoRefreshMs <= 0) return;
+    const id = window.setInterval(() => {
+      // Don't pile up requests in background tabs — browsers throttle the
+      // interval already, but skipping when hidden also saves the API call.
+      if (document.visibilityState === 'hidden') return;
+      load(false);
+    }, autoRefreshMs);
     return () => window.clearInterval(id);
-  }, [load]);
+  }, [load, autoRefreshMs]);
+
+  // Tick the relative-time label ("há Xs") every second.
+  useEffect(() => {
+    if (!lastRefreshAt) return;
+    const id = window.setInterval(() => setNowTick((n) => n + 1), 1000);
+    return () => window.clearInterval(id);
+  }, [lastRefreshAt]);
+
+  const handleAutoRefreshChange = (value: number) => {
+    setAutoRefreshMs(value);
+    try {
+      localStorage.setItem(AUTO_REFRESH_STORAGE_KEY, String(value));
+    } catch {/* quota / privacy mode — ignore */}
+    if (value > 0) {
+      const label = AUTO_REFRESH_OPTIONS.find((o) => o.value === value)?.label;
+      toast.success('Auto-atualização ativada', { description: `A cada ${label}` });
+    } else {
+      toast.info('Auto-atualização desligada');
+    }
+  };
 
   const isEmpty = !loading && summary && summary.total_traces === 0;
 
