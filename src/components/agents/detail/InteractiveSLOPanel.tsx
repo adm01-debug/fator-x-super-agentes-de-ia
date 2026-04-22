@@ -310,7 +310,12 @@ export function InteractiveSLOPanel({ agentId, agentName, slo, traces, daily, on
             Sem traces na janela de {activeWindow.label}
           </p>
         ) : (
-          <SLOViolationTimeline data={timeline} daily={daily} onDayClick={onDayClick} />
+          <SLOViolationTimeline
+            data={timeline}
+            daily={daily}
+            onDayClick={onDayClick}
+            onViolationClick={handleViolationClick}
+          />
         )}
         <div className="flex items-center gap-3 mt-3 text-[10px] text-muted-foreground flex-wrap">
           <LegendDot color="bg-nexus-emerald" label="Saudável" />
@@ -321,6 +326,17 @@ export function InteractiveSLOPanel({ agentId, agentName, slo, traces, daily, on
           </span>
         </div>
       </div>
+
+      <ViolationDrillDownDialog
+        open={drillBucket !== null}
+        onOpenChange={(o) => { if (!o) setDrillBucket(null); }}
+        bucket={drillBucket}
+        traces={windowedTraces}
+        bucketMs={bucketMs}
+        windowLabel={activeWindow.label}
+        targets={{ p95: targets.p95, p99: targets.p99 }}
+        initialKind={drillKind}
+      />
     </div>
   );
 }
