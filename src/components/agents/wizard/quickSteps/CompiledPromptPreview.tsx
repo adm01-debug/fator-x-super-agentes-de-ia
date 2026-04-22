@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Check, ChevronDown, ChevronUp, Copy, Eye, FileText, Sparkles } from 'lucide-react';
@@ -9,6 +9,10 @@ import { cn } from '@/lib/utils';
 interface Props {
   form: QuickAgentForm;
   defaultOpen?: boolean;
+  /** Indicates the source of the most recent prompt change — drives auto-expand + pulse. */
+  lastChangeKind?: 'variant' | 'manual' | null;
+  /** Label of the active variant (e.g. "Conciso") to display when expanded. */
+  activeVariantLabel?: string | null;
 }
 
 function escapeHtml(s: string): string {
