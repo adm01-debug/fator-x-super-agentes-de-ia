@@ -98,11 +98,48 @@ export function SimulationResultDialog({ open, onOpenChange, summary, running, o
           <div id="sim-prompt-help" className="flex items-center justify-between text-[10px] text-muted-foreground">
             <span>
               {usingCustom
-                ? '✓ Todas as 10 execuções vão usar este prompt customizado'
+                ? `✓ Todas as ${count} execuções vão usar este prompt customizado`
                 : 'Sem prompt: usa amostra padrão variada (8 perguntas)'}
             </span>
             <span className={overLimit ? 'text-destructive' : ''}>
               {trimmed.length}/{MAX_PROMPT_LEN}
+            </span>
+          </div>
+        </div>
+
+        {/* Seletor de contagem de execuções */}
+        <div className="space-y-1.5">
+          <span className="flex items-center gap-1.5 text-xs font-medium text-foreground">
+            <RefreshCw className="h-3 w-3 text-primary" aria-hidden="true" />
+            Número de execuções
+          </span>
+          <div
+            role="radiogroup"
+            aria-label="Número de execuções a simular"
+            className="flex items-center gap-1.5 rounded-lg border border-border bg-secondary/30 p-1 w-fit"
+          >
+            {COUNT_PRESETS.map((c) => {
+              const selected = count === c;
+              return (
+                <button
+                  key={c}
+                  type="button"
+                  role="radio"
+                  aria-checked={selected}
+                  onClick={() => setCount(c)}
+                  disabled={running}
+                  className={`px-3 py-1 rounded-md text-[11px] font-mono font-semibold transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring ${
+                    selected
+                      ? 'bg-primary text-primary-foreground'
+                      : 'text-muted-foreground hover:text-foreground hover:bg-secondary/60 disabled:opacity-50'
+                  }`}
+                >
+                  {c} runs
+                </button>
+              );
+            })}
+            <span className="text-[10px] text-muted-foreground/70 ml-1.5 pr-1">
+              Mais runs = estatísticas mais estáveis
             </span>
           </div>
         </div>
