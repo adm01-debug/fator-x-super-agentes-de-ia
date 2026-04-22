@@ -94,6 +94,7 @@ export function StepQuickIdentity({ form, errors, update, highlightField, highli
               onChange={(e) => update('emoji', e.target.value)}
               maxLength={4}
               aria-invalid={!!errors.emoji}
+              aria-describedby={highlightField === 'emoji' && highlightHint ? 'qa-emoji-hint' : undefined}
               className={`w-20 text-center text-xl bg-secondary/50 border-border/50 ${errors.emoji ? 'border-destructive' : ''}${hl('emoji')}`}
             />
             <div className="flex flex-wrap gap-1">
@@ -113,6 +114,7 @@ export function StepQuickIdentity({ form, errors, update, highlightField, highli
             </div>
           </div>
           <FieldError msg={errors.emoji} />
+          {hintFor('emoji')}
         </div>
 
         <div>
