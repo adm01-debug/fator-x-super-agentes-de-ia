@@ -1,83 +1,56 @@
 
 
-## Diff visual ao alternar entre variações de prompt
+## Pré-visualização do prompt consolidado responsiva à variação
 
-Hoje o `applyPromptVariant` se comporta assim:
-- Se o prompt está **custom-locked** (usuário editou) → abre `AlertDialog` "Substituir prompt customizado?" com só contagem de chars, **sem mostrar o que muda**.
-- Se **não está locked** → aplica direto, sem confirmação, sobrescrevendo o texto atual (que pode ter pequenas edições dentro do lock-off, ou ser uma variação anterior diferente).
+Hoje `CompiledPromptPreview` já recompila o prompt em tempo real (`useMemo([form])`) e mostra tokens, variáveis ✓/⚠ e stats — **mas só quando expandida**. Quando o usuário aplica uma variação (Conciso, Detalhado, etc.), o card fica colapsado e nada sinaliza que o conteúdo mudou. Resultado: parece que a prévia "não atualiza".
 
-A mudança mostra um **diff lado a lado** (atual ↔ nova variação) **antes** da substituição, em ambos os casos quando há diferença real.
+A mudança expõe os sinais relevantes **no header colapsado** e adiciona um destaque visual transitório quando o prompt muda.
 
 ### O que muda na visão do usuário
 
-1. Clico em **Conciso** estando em **Detalhado** → abre dialog "Trocar para Conciso?" com diff visual mostrando linhas removidas (vermelho, prefixo `−`) e linhas adicionadas (verde, prefixo `+`). Boto **Aplicar** confirma; **Cancelar** mantém o prompt atual.
-2. Clico em **Conciso** estando em **custom-locked** → mesmo dialog, header destaca o lock (`"Você editou o prompt manualmente"`) + diff completo do texto atual contra a variação alvo.
-3. Clico em **Conciso** estando **já em Conciso** sem nenhuma edição → não abre dialog (texto idêntico, no-op silencioso com toast "Já está usando Conciso").
-4. Clico em **Conciso** estando em Conciso **com edições leves** → abre dialog mostrando o diff entre o texto editado e o template puro de Conciso, para o usuário decidir se quer descartar as edições.
-5. Header do dialog mostra contagem agregada: `"12 linhas removidas, 8 adicionadas, 4 inalteradas"`.
+1. **Header colapsado mais informativo**:
+   - Hoje: badge `~1.234 tokens` + chevron.
+   - Depois: badge tokens + mini-pílula `✓ 3` (variáveis resolvidas) + `⚠ 1` (não resolvidas, em âmbar) + delta `+45 tokens` em verde/vermelho quando o último recompile mudou o total.
+2. **Pulse de atualização**: ao aplicar uma variação (ou qualquer mudança que altere `compiled.text`), o card pulsa rapidamente (anel `ring-primary/40` por 600ms) e os tokens animam o delta.
+3. **Auto-expandir uma vez na aplicação de variação**: quando o `prompt` muda por uma aplicação de variante (props nova `lastChangeKind: 'variant' | 'manual' | null`), o card abre se estava fechado, para o usuário ver imediatamente o resultado. Para edição manual contínua não auto-expande (evita pular durante digitação).
+4. **Badge de variação ativa** dentro do header expandido: `Aplicado: Conciso` ou `Customizado` ao lado dos toggles `Renderizado / Texto bruto`, espelhando o que o checklist já mostra.
 
 ### Como funciona (técnico)
 
-**Reaproveitar `src/components/prompts/PromptDiff.tsx`** — já faz diff LCS por linhas com cores (`destructive` para removido, `nexus-emerald` para adicionado), labels customizáveis e scroll. Zero código novo de diff.
+**`CompiledPromptPreview.tsx`**:
+- Nova prop opcional `lastChangeKind?: 'variant' | 'manual' | null` e `activeVariantLabel?: string | null`.
+- `useRef<number>(prevTokens)` + `useEffect([compiled.stats.estimatedTokens])` para calcular `tokenDelta` e disparar `setPulse(true)` por 600ms via `setTimeout`.
+- `useEffect([lastChangeKind])`: quando vira `'variant'`, `setOpen(true)` se `!open`.
+- Header colapsado renderiza `tokenDelta` (+/−) com cor semântica e contagens `compiled.detectedVariables.length - unresolvedVariables.length` ✓ e `unresolvedVariables.length` ⚠ como pílulas pequenas.
+- Header expandido ganha pílula `Aplicado: {activeVariantLabel}` ao lado do switch `Renderizado/Texto bruto`.
 
-**Novo dialog `PromptVariantDiffDialog`** em `src/components/agents/wizard/quickSteps/PromptVariantDiffDialog.tsx`:
-- Props: `open`, `onOpenChange`, `currentPrompt`, `currentLabel` (ex: `"Detalhado"` / `"Customizado"`), `nextPrompt`, `nextLabel` (ex: `"Conciso"`), `customLocked`, `onConfirm`.
-- Layout: `AlertDialog` largo (`max-w-3xl`), header com título dinâmico + descrição contextual (lock vs. troca normal) + badge de stats (linhas +/−), corpo com `<PromptDiff textA={currentPrompt} textB={nextPrompt} labelA={currentLabel} labelB={nextLabel} />`, footer com Cancelar / Aplicar.
-- Stats calculadas via mesma `diffLines` (export adicional do `PromptDiff` ou recálculo local com helper extraído).
+**`StepQuickPrompt.tsx`**:
+- Manter um `useState<'variant' | 'manual' | null>(lastChangeKind)`:
+  - `onApplyVariant` (no callback do wrapper local) → `setLastChangeKind('variant')`.
+  - `onPromptManualEdit` → `setLastChangeKind('manual')`.
+- Passar `lastChangeKind` e `activeVariantLabel` para `<CompiledPromptPreview ... />`.
+- Resetar para `null` após 800ms via `useEffect` para não reanimar em re-renders subsequentes.
 
-**Alterar `applyPromptVariant` em `QuickCreateWizard.tsx`**:
-```ts
-const applyPromptVariant = (variantId: PromptVariantId) => {
-  const t = QUICK_AGENT_TEMPLATES[form.type as QuickAgentType];
-  const nextPrompt = t.promptVariants[variantId].prompt;
-  // No-op se idêntico
-  if (form.prompt.trim() === nextPrompt.trim()) {
-    toast.info(`Já está usando "${t.promptVariants[variantId].label}"`);
-    setSelectedVariant(variantId);
-    setPromptCustomLocked(false);
-    return;
-  }
-  // Sempre passa pelo dialog quando há diferença real
-  setPendingVariant(variantId);
-};
-```
-
-**Substituir o `AlertDialog` inline atual** (linhas 607-638) pelo novo `PromptVariantDiffDialog`, propagando:
-- `currentPrompt={form.prompt}`
-- `currentLabel` derivado do `selectedVariant` ou `"Customizado"` se locked / `"Atual"` como fallback
-- `nextPrompt` / `nextLabel` resolvidos do `pendingVariant`
-- `customLocked={promptCustomLocked}`
-- `onConfirm={() => { doApplyPromptVariant(pendingVariant!); setPendingVariant(null); }}`
-
-**Helper de stats** — pequeno utilitário no topo do `PromptVariantDiffDialog`:
-```ts
-function diffStats(a: string, b: string) {
-  // contar linhas iguais/adicionadas/removidas via mesma LCS do PromptDiff
-}
-```
-Para evitar duplicar a LCS, exportar `diffLines` de `PromptDiff.tsx` (named export) e importar no dialog para gerar o resumo.
+Sem mudança em `promptCompiler.ts` — a recompilação já é determinística e instantânea.
 
 ### Casos cobertos
 
 | Cenário | Comportamento |
 |---|---|
-| Troca Equilibrado → Conciso | Dialog com diff mostrando seções encurtadas. |
-| Custom-locked → Detalhado | Dialog com badge "Você editou manualmente" + diff completo. |
-| Mesmo template, sem edições | No-op silencioso, sem dialog. |
-| Mesmo template, com edições | Dialog mostra diff entre edição e template puro. |
-| Cancelar no dialog | Prompt e estado de lock/variant preservados. |
-| Confirmar | `doApplyPromptVariant` roda como hoje (substitui, destrava lock, grava `selectedVariant`). |
+| Aplico "Conciso" estando colapsado | Card auto-expande, anel pulsa, delta `−180 tokens` em vermelho aparece no header. |
+| Edito 1 caractere | Sem auto-expand; se aberto, pulse leve + delta `+1 token` (não distrai). |
+| Aplico variação idêntica (no-op) | Sem pulse, sem delta — `compiled.stats.estimatedTokens` não mudou. |
+| Variável `{{name}}` agora resolvida após preencher Identidade | Pílula `✓` incrementa, `⚠` decrementa em tempo real. |
+| Volto ao step do prompt | Card abre por `defaultOpen` como hoje; `lastChangeKind=null` evita pulse falso. |
 
 ### Arquivos tocados
 
-- **Criar** `src/components/agents/wizard/quickSteps/PromptVariantDiffDialog.tsx` — novo dialog com diff, stats e confirmação.
-- **Editar** `src/components/prompts/PromptDiff.tsx` — exportar `diffLines` como named export para o dialog calcular stats sem duplicar LCS.
-- **Editar** `src/components/agents/wizard/QuickCreateWizard.tsx` — `applyPromptVariant` sempre dispara `pendingVariant` quando há diff (com early-return para no-op); substituir o `AlertDialog` inline pelo `PromptVariantDiffDialog`.
+- **Editar** `src/components/agents/wizard/quickSteps/CompiledPromptPreview.tsx` — props `lastChangeKind` / `activeVariantLabel`, lógica de pulse + delta, pílulas no header colapsado, badge de variação no expandido.
+- **Editar** `src/components/agents/wizard/quickSteps/StepQuickPrompt.tsx` — rastrear `lastChangeKind` em torno de `onApplyVariant` / `onPromptManualEdit` e propagar `activeVariantLabel`.
 
 ### Impacto
 
-- Zero mudança de schema/backend.
-- Zero quebra: o fluxo de confirmação para custom-locked continua funcionando (ganha diff visual em vez de só contagem de chars).
-- Adiciona uma confirmação onde antes não havia (variante → variante), mas com no-op silencioso quando texto é idêntico — não vira fricção em cliques redundantes.
-- Reaproveita componente `PromptDiff` já maduro do projeto (mesma UX visual de versionamento de agente).
+- Zero schema/backend.
+- Zero quebra: props novas opcionais; comportamento default é o atual.
+- Resolve a percepção de "preview parado" — agora o feedback de tokens/variáveis é visível **antes** de expandir o card.
 
