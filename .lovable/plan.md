@@ -1,88 +1,60 @@
 
 
-## Retomada inteligente: focar no primeiro campo inválido + destaque visual
+## Renomear agente do rascunho direto no banner
 
-Hoje `restoreDraft` calcula `resumeIdx` apenas com `STEPS[i].schema.safeParse(form).success`. Isso leva ao **passo** correto, mas dentro dele o usuário ainda precisa caçar o campo problemático. Vou:
+Adiciono um botão **lápis** ao lado do nome de cada rascunho no `DraftRecoveryBanner` que troca aquele item para modo edição inline. Salvar persiste no `localStorage` (via novo helper) e propaga para a UI imediatamente — sem precisar restaurar primeiro.
 
-1. Calcular o **primeiro campo inválido** (não só o passo) usando os campos declarados em `STEPS[i].fields`.
-2. Propagar esse campo para os steps quick e renderizar um **destaque visual** (ring + scroll/focus automático).
+### Comportamento
 
-### Cálculo do "primeiro campo inválido"
+- Cada item do banner (single OU multi) ganha um botão lápis pequeno ao lado do nome.
+- Clicar → o nome vira `<input>` inline com 2 botões: ✓ confirmar, ✗ cancelar.
+- `Enter` confirma, `Esc` cancela. Validado contra `quickIdentitySchema.shape.name` (2-60 chars + regex).
+- Erro inline em vermelho abaixo do input (sem toast, evita ruído).
+- Ao confirmar:
+  - Atualiza o `form.name` do rascunho no `localStorage`.
+  - Atualiza `pendingDrafts` no wizard (re-renderiza summary + chip "Identidade" + estado `restorable`).
+  - Toast curto: `Nome do rascunho atualizado`.
 
-Nova função pura em `draftStore.ts`:
+### Por que isso resolve
 
+Hoje, se o rascunho está marcado como **Incompleto** só porque faltou o nome, o usuário precisa descartar ou tentar restaurar (bloqueado pela validação). Com renomear inline, ele conserta em 3s e o botão **Continuar** destrava na hora.
+
+### Mudanças
+
+**`src/components/agents/wizard/draftStore.ts`** — novo helper puro:
 ```ts
-export interface DraftResumeTarget {
-  stepIdx: number;             // 0..STEPS.length-1
-  stepKey: 'identity' | 'type' | 'model' | 'prompt';
-  field?: keyof QuickAgentForm; // campo pendente, se houver
-}
-
-export function computeResumeTarget(
-  form: QuickAgentForm,
-  steps: ReadonlyArray<{ key: string; schema: z.ZodTypeAny; fields: readonly string[] }>,
-): DraftResumeTarget;
+export function renameDraft(
+  store: DraftsStoreV2,
+  id: string,
+  newName: string,
+): DraftsStoreV2;
 ```
+Atualiza `form.name` (trimmed) do rascunho `id` e bumpa `savedAt`.
 
-Lógica: percorre `STEPS` na ordem; no primeiro step que falha o `safeParse`, usa `error.errors[0].path[0]` para extrair o campo. Se o caminho for vazio (erros de `superRefine` em `prompt`), faz fallback para o **primeiro campo da lista do step que esteja vazio/inválido por heurística simples** (ex.: `prompt.trim().length < 50`). Se nenhum step falha, retorna o último step com `field: undefined`.
+**`src/components/agents/wizard/DraftRecoveryBanner.tsx`**:
+- Nova prop `onRename: (id: string, newName: string) => void`.
+- State local `editingId | draftName | nameError`.
+- Componente interno `<NameLabelOrEditor>` reutilizado em modo single + multi.
+- Validação local com `quickIdentitySchema.shape.name.safeParse(...)`.
+- A11y: `aria-label="Renomear rascunho"`, `aria-invalid` no input, autofocus ao entrar em edição.
 
-### Destaque visual no campo
-
-- Estado novo no wizard: `highlightField: keyof QuickAgentForm | null`.
-- Setado em `restoreDraft` após escolher o passo; limpo automaticamente após **3.5s** via `setTimeout` ou no primeiro `update()` do form.
-- Cada `StepQuick*` recebe prop opcional `highlightField?: keyof QuickAgentForm`.
-- Cada campo cuja `id` corresponda ao `highlightField` ganha:
-  - `ring-2 ring-warning ring-offset-2 ring-offset-background animate-pulse-glow` (já existe no design system; senão usa `animate-pulse`).
-  - `data-highlight="true"` para hook de scroll.
-- `useEffect` no step monta → se `highlightField` presente, faz `document.getElementById(\`qa-\${field}\`)?.scrollIntoView({ block: 'center', behavior: 'smooth' })` e chama `.focus()` no input correspondente.
-
-### Toast atualizado
-
-```ts
-toast.success('Rascunho restaurado', {
-  description: target.field
-    ? `Continue em "${STEPS[target.stepIdx].label}" — campo: ${FIELD_LABEL[target.field]}`
-    : `Continuando do passo: ${STEPS[target.stepIdx].label}`,
-});
-```
-
-`FIELD_LABEL` mapeia `name → "Nome"`, `emoji → "Emoji"`, `mission → "Missão"`, `type → "Tipo"`, `model → "Modelo"`, `prompt → "Prompt"`, `description → "Descrição"`.
-
-### Mudanças por arquivo
-
-**`src/components/agents/wizard/draftStore.ts`**
-- Adicionar `computeResumeTarget(form, steps)` puro.
-- Mantém `checkDraftRestorable` atual.
-
-**`src/components/agents/wizard/QuickCreateWizard.tsx`**
-- Importar `computeResumeTarget`.
-- Em `restoreDraft`: substituir cálculo atual por `const target = computeResumeTarget(target.form, STEPS);` → `setStep(target.stepIdx)` + `setHighlightField(target.field ?? null)`.
-- Adicionar `highlightField` state + efeito de auto-clear (3.5s e em `update()`).
-- Repassar `highlightField` (apenas quando o step atual contém aquele campo) para `StepQuickIdentity`, `StepQuickType`, `StepQuickModel`, `StepQuickPrompt`.
-- `FIELD_LABEL` map para o toast.
-
-**`src/components/agents/wizard/quickSteps/StepQuickIdentity.tsx`**
-- Aceitar prop `highlightField?: keyof QuickAgentForm`.
-- Helper `highlightCls(field)` → retorna classe extra `ring-2 ring-warning ring-offset-2 ring-offset-background animate-pulse` se bater.
-- Aplicar no `Input`/`Textarea` de `name`, `emoji`, `mission`, `description`.
-- `useEffect` para scroll + focus quando `highlightField` mudar.
-
-**`src/components/agents/wizard/quickSteps/StepQuickType.tsx`** e **`StepQuickModel.tsx`** e **`StepQuickPrompt.tsx`**
-- Mesmo padrão: aceitar `highlightField`, aplicar destaque no container do campo correspondente (`type`, `model`, `prompt`), scroll+focus no mount.
+**`src/components/agents/wizard/QuickCreateWizard.tsx`**:
+- Novo `handleRenameDraft(id, newName)`:
+  - `setDraftsStore` com `renameDraft` + `saveDrafts`.
+  - `setPendingDrafts` mapeando o item alterado.
+  - `toast.success('Nome do rascunho atualizado')`.
+- Passa `onRename={handleRenameDraft}` para o banner.
 
 ### Arquivos
 
 - **Editar**: `src/components/agents/wizard/draftStore.ts`
+- **Editar**: `src/components/agents/wizard/DraftRecoveryBanner.tsx`
 - **Editar**: `src/components/agents/wizard/QuickCreateWizard.tsx`
-- **Editar**: `src/components/agents/wizard/quickSteps/StepQuickIdentity.tsx`
-- **Editar**: `src/components/agents/wizard/quickSteps/StepQuickType.tsx`
-- **Editar**: `src/components/agents/wizard/quickSteps/StepQuickModel.tsx`
-- **Editar**: `src/components/agents/wizard/quickSteps/StepQuickPrompt.tsx`
 
 ### Impacto
 
-- Usuário cai exatamente no campo que falta corrigir, com pulso visual + foco automático — zero caça.
-- Pure function `computeResumeTarget` é testável isoladamente (sem React).
-- Destaque some sozinho ao primeiro toque, evitando ruído visual persistente.
+- Conserta o rascunho sem sair do banner (zero context switch).
+- Destrava CTA "Continuar" automaticamente quando o nome era o único bloqueador.
+- Validação 100% consistente com o wizard (mesmo schema).
 - Zero mudança em backend/store schema.
 
