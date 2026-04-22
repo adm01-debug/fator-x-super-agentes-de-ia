@@ -211,6 +211,15 @@ export function InteractiveSLOPanel({ agentId, slo, traces, daily, onDayClick }:
                   alvo: {c.targetFmt(targets[c.key])}
                 </span>
               </div>
+              {compareMode && (
+                <BaselineDelta
+                  value={c.value}
+                  baseline={c.baseline}
+                  lowerIsBetter={c.lowerIsBetter}
+                  valueFmt={c.valueFmt}
+                  deltaFmt={c.deltaFmt}
+                />
+              )}
               <Slider
                 value={[targets[c.key]]}
                 min={c.min}
