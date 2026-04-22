@@ -34,6 +34,7 @@ import { PromptHistoryPanel } from './PromptHistoryPanel';
 import { PromptSectionGutter } from './PromptSectionGutter';
 import { PromptHighlightOverlay } from './PromptHighlightOverlay';
 import { sanitizePromptInput, PROMPT_LIMITS } from '@/lib/validations/promptSanitizer';
+import { useFieldHighlight, FIELD_HIGHLIGHT_CLS } from './useFieldHighlight';
 import {
   QUICK_AGENT_TEMPLATES,
   PROMPT_VARIANT_META,
@@ -117,14 +118,9 @@ export function StepQuickPrompt({ form, errors, onPromptManualEdit, onRestore, o
   const [pulsedSection, setPulsedSection] = useState<PromptSectionKey | null>(null);
   const sectionPulseRef = useRef<number | null>(null);
 
-  useEffect(() => {
-    if (!promptHighlight) return;
-    const el = textareaRef.current;
-    if (el) {
-      el.scrollIntoView({ block: 'center', behavior: 'smooth' });
-      window.setTimeout(() => el.focus(), 250);
-    }
-  }, [promptHighlight]);
+  // Coordinated scroll + focus + temporary pulse — driven by useFieldHighlight
+  // for consistent behavior across all wizard steps.
+  const promptPulsing = useFieldHighlight(textareaRef, promptHighlight);
 
   // Memoized section locations — drives gutter, overlay, and jump targets.
   const locations = useMemo(() => locateSections(form.prompt), [form.prompt]);
@@ -378,7 +374,7 @@ export function StepQuickPrompt({ form, errors, onPromptManualEdit, onRestore, o
             style={{ paddingLeft: EDITOR_PADDING_LEFT, position: 'relative', zIndex: 2, background: 'transparent' }}
             className={`bg-secondary/50 border-border/50 font-mono text-xs leading-relaxed resize-none ${
               errors.prompt ? 'border-destructive' : ''
-            } ${promptHighlight ? 'ring-2 ring-warning ring-offset-2 ring-offset-background animate-pulse' : ''} ${
+            } ${promptPulsing ? FIELD_HIGHLIGHT_CLS : ''} ${
               pulsedSection ? 'border-nexus-amber/50' : ''
             }`}
           />

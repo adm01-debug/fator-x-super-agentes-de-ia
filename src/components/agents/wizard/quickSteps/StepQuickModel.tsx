@@ -1,9 +1,10 @@
-import { useEffect, useRef } from 'react';
+import { useRef } from 'react';
 import { Badge } from '@/components/ui/badge';
 import { Check, Star } from 'lucide-react';
 import { MODELS } from '../wizardConstants';
 import { QUICK_AGENT_TEMPLATES, type QuickAgentType } from '@/data/quickAgentTemplates';
 import type { QuickAgentForm } from '@/lib/validations/quickAgentSchema';
+import { useFieldHighlight, FIELD_HIGHLIGHT_CLS } from './useFieldHighlight';
 
 interface Props {
   form: QuickAgentForm;
@@ -14,12 +15,7 @@ interface Props {
 
 export function StepQuickModel({ form, errors, update, highlightField }: Props) {
   const gridRef = useRef<HTMLDivElement>(null);
-  useEffect(() => {
-    if (highlightField === 'model' && gridRef.current) {
-      gridRef.current.scrollIntoView({ block: 'center', behavior: 'smooth' });
-    }
-  }, [highlightField]);
-  const highlight = highlightField === 'model';
+  const pulsing = useFieldHighlight(gridRef, highlightField === 'model');
 
   const recommended = form.type
     ? QUICK_AGENT_TEMPLATES[form.type as QuickAgentType]?.recommendedModel
@@ -34,7 +30,7 @@ export function StepQuickModel({ form, errors, update, highlightField }: Props) 
         </p>
       </div>
 
-      <div ref={gridRef} className={`grid gap-3 sm:grid-cols-2 rounded-lg ${highlight ? 'ring-2 ring-warning ring-offset-4 ring-offset-background animate-pulse p-2' : ''}`}>
+      <div ref={gridRef} className={`grid gap-3 sm:grid-cols-2 rounded-lg p-2 ${pulsing ? FIELD_HIGHLIGHT_CLS : ''}`}>
         {MODELS.map((m) => {
           const selected = form.model === m.id;
           const isRecommended = recommended === m.id;
