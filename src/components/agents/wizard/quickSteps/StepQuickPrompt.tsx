@@ -54,7 +54,7 @@ interface Props {
    * `source` distinguishes typing from clipboard paste so the lock event log
    * can render distinct entries (and so paste always forces the lock).
    */
-  onPromptManualEdit: (next: string, source?: 'manual' | 'paste') => void;
+  onPromptManualEdit: (next: string, source?: 'manual' | 'paste' | 'checklist') => void;
   onRestore: () => void;
   /**
    * Hard reset to a known-safe initial state — sanitizes and reapplies the base
@@ -75,9 +75,16 @@ interface Props {
   /** Chronological log of Custom-mode lock/unlock transitions. */
   lockEvents?: PromptLockEvent[];
   highlightField?: keyof QuickAgentForm;
+  /**
+   * Persisted user rule: when true, edits coming from the section checklist
+   * (Inserir Persona/Escopo/Formato/Regras, batch fill) auto-release the
+   * Custom lock instead of forcing a re-lock.
+   */
+  checklistAutoUnlock?: boolean;
+  onToggleChecklistAutoUnlock?: (next: boolean) => void;
 }
 
-export function StepQuickPrompt({ form, errors, onPromptManualEdit, onRestore, onSafeReset, onApplyVariant, customLocked, onUnlockCustom, activeVariant, lockEvents, highlightField }: Props) {
+export function StepQuickPrompt({ form, errors, onPromptManualEdit, onRestore, onSafeReset, onApplyVariant, customLocked, onUnlockCustom, activeVariant, lockEvents, highlightField, checklistAutoUnlock, onToggleChecklistAutoUnlock }: Props) {
   // Active variant template + label — drives the checklist's per-section snippets
   // and the "Completar com X" CTA in real time.
   const activeVariantPrompt = activeVariant
