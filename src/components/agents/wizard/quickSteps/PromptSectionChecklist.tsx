@@ -50,6 +50,12 @@ interface Props {
   activeVariantLabel?: string | null;
   /** Whether the prompt is in custom-locked mode (no variant active). */
   customLocked?: boolean;
+  /**
+   * User rule: when ON, edits driven by this checklist will auto-release the
+   * Custom lock instead of forcing a re-lock. The wizard owns persistence.
+   */
+  autoUnlockEnabled?: boolean;
+  onToggleAutoUnlock?: (next: boolean) => void;
 }
 
 /**
