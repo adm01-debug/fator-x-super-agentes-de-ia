@@ -28,7 +28,7 @@ const LEVEL_ICON: Record<TraceLevel, JSX.Element> = {
   error: <XCircle className="h-3.5 w-3.5 text-destructive" aria-hidden />,
 };
 
-export function ReplayDialog({ open, onOpenChange, execution, initialStep = 0 }: Props) {
+export function ReplayDialog({ open, onOpenChange, execution, initialStep = 0, onStepChange }: Props) {
   const [step, setStep] = useState(0);
   const [playing, setPlaying] = useState(false);
   const [speed, setSpeed] = useState(1);
