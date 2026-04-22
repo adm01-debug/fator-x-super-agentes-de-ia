@@ -30,7 +30,10 @@ import {
   Download,
   FileText,
   Printer,
+  Filter,
+  X,
 } from 'lucide-react';
+import { Toggle } from '@/components/ui/toggle';
 import {
   getExecutionTimeline,
   getCheckpoint,
@@ -90,6 +93,31 @@ function formatTokens(tokens: number): string {
   return String(tokens);
 }
 
+// ──────── Filter Helpers ────────
+
+type StatusFilter = 'success' | 'warning' | 'error';
+type KindFilter = 'llm' | 'tool' | 'guardrail' | 'other';
+
+const STATUS_FILTER_META: Record<StatusFilter, { label: string; icon: string; color: string; matches: (s: string) => boolean }> = {
+  success: { label: 'Sucesso', icon: '✓', color: 'hsl(var(--nexus-emerald))', matches: (s) => s === 'completed' || s === 'success' || s === 'ok' },
+  warning: { label: 'Atenção', icon: '⚠', color: 'hsl(var(--nexus-yellow))', matches: (s) => s === 'pending' || s === 'running' || s === 'skipped' || s === 'warning' },
+  error:   { label: 'Falha',   icon: '✗', color: 'hsl(var(--destructive))',  matches: (s) => s === 'failed' || s === 'error' },
+};
+
+const KIND_FILTER_META: Record<KindFilter, { label: string; matches: (nodeType: string) => boolean }> = {
+  llm:       { label: 'LLM',       matches: (t) => /llm|model|gpt|gemini|claude|chat|completion|prompt/i.test(t) },
+  tool:      { label: 'Tool',      matches: (t) => /tool|function|action|api|webhook|http|skill/i.test(t) },
+  guardrail: { label: 'Guardrail', matches: (t) => /guard|policy|filter|moderation|safety|validate/i.test(t) },
+  other:     { label: 'Outros',    matches: () => true }, // fallback handled separately
+};
+
+function classifyKind(nodeType: string): KindFilter {
+  if (KIND_FILTER_META.llm.matches(nodeType)) return 'llm';
+  if (KIND_FILTER_META.tool.matches(nodeType)) return 'tool';
+  if (KIND_FILTER_META.guardrail.matches(nodeType)) return 'guardrail';
+  return 'other';
+}
+
 // ──────── Main Component ────────
 
 export function WorkflowTimeTravelPanel({
@@ -103,6 +131,10 @@ export function WorkflowTimeTravelPanel({
   const [loading, setLoading] = useState(true);
   const [forking, setForking] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  // Filters: empty Set = "show all".
+  const [statusFilters, setStatusFilters] = useState<Set<StatusFilter>>(new Set());
+  const [kindFilters, setKindFilters] = useState<Set<KindFilter>>(new Set());
 
   // Compare mode: when active, clicking a step picks A then B (round-robin).
   const [compareMode, setCompareMode] = useState(false);
@@ -218,6 +250,50 @@ export function WorkflowTimeTravelPanel({
   const totalCost = lastEntry?.cumulative_cost_usd ?? 0;
   const totalTokens = lastEntry?.cumulative_tokens ?? 0;
   const totalDuration = lastEntry?.cumulative_duration_ms ?? 0;
+
+  // Toggle helpers for filter chips.
+  const toggleStatus = (s: StatusFilter) => {
+    setStatusFilters((prev) => {
+      const next = new Set(prev);
+      if (next.has(s)) next.delete(s); else next.add(s);
+      return next;
+    });
+  };
+  const toggleKind = (k: KindFilter) => {
+    setKindFilters((prev) => {
+      const next = new Set(prev);
+      if (next.has(k)) next.delete(k); else next.add(k);
+      return next;
+    });
+  };
+  const clearFilters = () => {
+    setStatusFilters(new Set());
+    setKindFilters(new Set());
+  };
+
+  // Apply filters (empty Set = no filter on that dimension).
+  const filteredTimeline = timeline.filter((entry) => {
+    if (statusFilters.size > 0) {
+      const matched = Array.from(statusFilters).some((s) => STATUS_FILTER_META[s].matches(entry.status));
+      if (!matched) return false;
+    }
+    if (kindFilters.size > 0) {
+      const kind = classifyKind(entry.node_type);
+      if (!kindFilters.has(kind)) return false;
+    }
+    return true;
+  });
+
+  // Per-bucket counts (computed from full timeline so chips show totals).
+  const statusCounts: Record<StatusFilter, number> = { success: 0, warning: 0, error: 0 };
+  const kindCounts: Record<KindFilter, number> = { llm: 0, tool: 0, guardrail: 0, other: 0 };
+  for (const e of timeline) {
+    (Object.keys(STATUS_FILTER_META) as StatusFilter[]).forEach((s) => {
+      if (STATUS_FILTER_META[s].matches(e.status)) statusCounts[s]++;
+    });
+    kindCounts[classifyKind(e.node_type)]++;
+  }
+  const activeFilterCount = statusFilters.size + kindFilters.size;
 
   if (loading) {
     return (
@@ -374,16 +450,85 @@ export function WorkflowTimeTravelPanel({
         </div>
       )}
 
+      {/* Filters */}
+      <div className="flex flex-wrap items-center gap-2 px-1">
+        <div className="flex items-center gap-1.5 text-[11px] text-muted-foreground">
+          <Filter className="w-3.5 h-3.5" />
+          <span>Status:</span>
+        </div>
+        {(Object.keys(STATUS_FILTER_META) as StatusFilter[]).map((s) => {
+          const meta = STATUS_FILTER_META[s];
+          const active = statusFilters.has(s);
+          const count = statusCounts[s];
+          return (
+            <Toggle
+              key={s}
+              size="sm"
+              pressed={active}
+              onPressedChange={() => toggleStatus(s)}
+              disabled={count === 0}
+              className="h-6 px-2 text-[11px] gap-1 data-[state=on]:bg-primary/15 data-[state=on]:text-foreground border border-border/60 data-[state=on]:border-primary/50"
+              aria-label={`Filtrar ${meta.label}`}
+            >
+              <span style={{ color: meta.color }}>{meta.icon}</span>
+              {meta.label}
+              <span className="text-muted-foreground">({count})</span>
+            </Toggle>
+          );
+        })}
+
+        <div className="w-px h-4 bg-border mx-1" />
+
+        <div className="flex items-center gap-1.5 text-[11px] text-muted-foreground">
+          <span>Tipo:</span>
+        </div>
+        {(Object.keys(KIND_FILTER_META) as KindFilter[]).map((k) => {
+          const active = kindFilters.has(k);
+          const count = kindCounts[k];
+          return (
+            <Toggle
+              key={k}
+              size="sm"
+              pressed={active}
+              onPressedChange={() => toggleKind(k)}
+              disabled={count === 0}
+              className="h-6 px-2 text-[11px] gap-1 data-[state=on]:bg-nexus-purple/15 data-[state=on]:text-foreground border border-border/60 data-[state=on]:border-nexus-purple/50"
+              aria-label={`Filtrar ${KIND_FILTER_META[k].label}`}
+            >
+              {KIND_FILTER_META[k].label}
+              <span className="text-muted-foreground">({count})</span>
+            </Toggle>
+          );
+        })}
+
+        {activeFilterCount > 0 && (
+          <Button
+            size="sm"
+            variant="ghost"
+            className="h-6 px-2 text-[11px] text-muted-foreground hover:text-foreground ml-auto"
+            onClick={clearFilters}
+          >
+            <X className="w-3 h-3 mr-1" />
+            Limpar ({activeFilterCount})
+          </Button>
+        )}
+      </div>
+
       {/* Timeline */}
       <Card className="bg-card border-border">
         <CardContent className="p-0">
           <ScrollArea className="h-[400px]">
             <div className="p-4 space-y-1">
-              {timeline.map((entry, idx) => {
+              {filteredTimeline.length === 0 && timeline.length > 0 && (
+                <div className="text-center py-12 text-xs text-muted-foreground">
+                  Nenhum step corresponde aos filtros selecionados.
+                </div>
+              )}
+              {filteredTimeline.map((entry, idx) => {
                 const statusCfg = STATUS_CONFIG[entry.status] ?? STATUS_CONFIG.pending;
                 const StatusIcon = statusCfg.icon;
                 const isSelected = selectedCheckpoint === entry.id;
-                const isLast = idx === timeline.length - 1;
+                const isLast = idx === filteredTimeline.length - 1;
 
                 const isPickedA = compareMode && compareAId === entry.id;
                 const isPickedB = compareMode && compareBId === entry.id;
