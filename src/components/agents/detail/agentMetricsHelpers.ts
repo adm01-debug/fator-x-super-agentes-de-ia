@@ -118,7 +118,15 @@ export interface KPIComparison {
   current: number;
   previous: number;
   deltaAbs: number;
+  /**
+   * Magnitude do delta exibida no UI. Para a maioria dos KPIs é a variação
+   * percentual relativa (`%`). Para taxas que já são percentuais (como Taxa
+   * de sucesso) usamos pontos percentuais (`pp`) — mais intuitivo do que a
+   * variação relativa de uma taxa.
+   */
   deltaPct: number;
+  /** Unidade do `deltaPct` para exibição. Default: '%'. */
+  deltaUnit?: '%' | 'pp';
   hasPrev: boolean;
   trend: 'up' | 'down' | 'flat';
   isPositive: boolean;
