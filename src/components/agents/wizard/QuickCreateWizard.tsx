@@ -320,7 +320,8 @@ export function QuickCreateWizard({ onBack }: QuickCreateWizardProps) {
     else if (validateStep(step)) setStep(idx);
   };
 
-  const saveAgent = async () => {
+  /** Validate everything; if OK, open the confirmation dialog. */
+  const requestCreate = () => {
     if (!user) {
       toast.error('Faça login para criar agentes');
       navigate('/auth');
@@ -333,6 +334,11 @@ export function QuickCreateWizard({ onBack }: QuickCreateWizardProps) {
         return;
       }
     }
+    setConfirmOpen(true);
+  };
+
+  const saveAgent = async () => {
+    setConfirmOpen(false);
     setSaving(true);
     const { error } = await supabaseExternal.from('agents').insert({
       user_id: user.id,
