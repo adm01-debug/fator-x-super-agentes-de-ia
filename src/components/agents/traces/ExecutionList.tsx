@@ -1,6 +1,8 @@
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Button } from '@/components/ui/button';
-import { Activity, AlertTriangle, CheckCircle2, Clock, DollarSign, Filter, Play, XCircle } from 'lucide-react';
+import { Activity, AlertTriangle, CheckCircle2, Clock, DollarSign, Filter, Inbox, Play, XCircle } from 'lucide-react';
+import { Skeleton } from '@/components/ui/skeleton';
+import { EmptyState } from '@/components/shared/EmptyState';
 import type { ExecutionGroup } from '@/services/agentTracesService';
 
 interface Props {
@@ -9,18 +11,37 @@ interface Props {
   onSelect: (e: ExecutionGroup) => void;
   onReplay?: (e: ExecutionGroup) => void;
   loading: boolean;
+  hasActiveFilters?: boolean;
+  onClearFilters?: () => void;
 }
 
-export function ExecutionList({ executions, selectedId, onSelect, onReplay, loading }: Props) {
+export function ExecutionList({ executions, selectedId, onSelect, onReplay, loading, hasActiveFilters, onClearFilters }: Props) {
   if (loading) {
-    return <div className="p-6 text-center text-sm text-muted-foreground">Carregando execuções…</div>;
+    return (
+      <div className="p-3 space-y-2" aria-busy="true" aria-label="Carregando execuções">
+        {Array.from({ length: 5 }).map((_, i) => (
+          <Skeleton key={i} className="h-14 w-full" style={{ animationDelay: `${i * 60}ms` }} />
+        ))}
+      </div>
+    );
   }
   if (executions.length === 0) {
-    return (
-      <div className="p-8 text-center text-sm text-muted-foreground">
-        <Filter className="h-8 w-8 mx-auto mb-2 opacity-40" />
-        Nenhuma execução encontrada com esses filtros.
-      </div>
+    return hasActiveFilters ? (
+      <EmptyState
+        icon={Filter}
+        illustration="search"
+        title="Nenhuma execução para esses filtros"
+        description="Ajuste o nível, evento, agente ou janela temporal para ampliar a busca."
+        actionLabel={onClearFilters ? 'Limpar filtros' : undefined}
+        onAction={onClearFilters}
+      />
+    ) : (
+      <EmptyState
+        icon={Inbox}
+        illustration="data"
+        title="Sem traces ainda"
+        description="Quando seus agentes começarem a executar, as sessões aparecerão aqui em tempo real."
+      />
     );
   }
 
