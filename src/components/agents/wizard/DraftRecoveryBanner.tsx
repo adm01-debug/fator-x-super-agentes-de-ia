@@ -238,12 +238,18 @@ export function DraftRecoveryBanner({
         <div className="flex items-center justify-end gap-2 pt-1">
           <ConfirmDialog
             trigger={
-              <Button variant="ghost" size="sm" className="gap-1.5">
-                <X className="h-3.5 w-3.5" /> Descartar
+              <Button
+                variant="ghost"
+                size="sm"
+                className="gap-1.5 text-muted-foreground hover:text-destructive hover:bg-destructive/10"
+                aria-label="Excluir este rascunho"
+                title="Excluir rascunho"
+              >
+                <Trash2 className="h-3.5 w-3.5" /> Excluir rascunho
               </Button>
             }
             {...discardCopy(only.summary.name)}
-            confirmLabel="Descartar"
+            confirmLabel="Excluir"
             onConfirm={() => onDiscardOne(only.id)}
           />
           <Button
