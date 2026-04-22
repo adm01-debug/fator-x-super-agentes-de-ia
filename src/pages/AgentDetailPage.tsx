@@ -11,6 +11,7 @@ import { AgentCardViewer } from "@/components/agents/AgentCardViewer";
 import { AgentRichMetrics } from "@/components/agents/detail/AgentRichMetrics";
 import { SimulationResultDialog } from "@/components/agents/detail/SimulationResultDialog";
 import { SavedTestRunsPanel } from "@/components/agents/detail/SavedTestRunsPanel";
+import { RestoreDiffPreview } from "@/components/agents/detail/RestoreDiffPreview";
 import { simulateAgentRun, type SimulationSummary } from "@/services/agentTestSimulationService";
 import {
   AlertDialog, AlertDialogContent, AlertDialogHeader, AlertDialogFooter,
@@ -269,6 +270,13 @@ function VersionHistory({ agentId }: { agentId: string }) {
                     <span className="font-mono text-nexus-emerald">v{nextVersionNumber}</span>
                   </div>
                 </div>
+                {previous && (
+                  <RestoreDiffPreview
+                    current={current}
+                    source={previous}
+                    options={{ copyPrompt: true, copyTools: true, copyModel: true }}
+                  />
+                )}
                 <p className="text-xs text-muted-foreground">
                   Nenhum histórico será apagado — o rollback é não destrutivo.
                 </p>
