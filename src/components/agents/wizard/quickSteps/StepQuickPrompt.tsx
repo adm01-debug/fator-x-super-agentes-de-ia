@@ -8,6 +8,7 @@ import {
   type PromptSectionKey,
   type QuickAgentForm,
 } from '@/lib/validations/quickAgentSchema';
+import { detectPromptContradictions } from '@/lib/validations/promptContradictions';
 import { locateSections, insertSectionAt } from '@/lib/promptSectionLocator';
 import { CompiledPromptPreview } from './CompiledPromptPreview';
 import { PromptSectionChecklist } from './PromptSectionChecklist';
