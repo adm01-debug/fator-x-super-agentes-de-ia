@@ -18,13 +18,15 @@ interface Props {
   summary: SimulationSummary | null;
   running: boolean;
   /** Disparado quando o usuário aciona "Executar simulação". */
-  onRun: (customInput: string) => void;
+  onRun: (customInput: string, count: number) => void;
   agentName: string;
 }
 
 const MAX_PROMPT_LEN = 1000;
+const COUNT_PRESETS = [10, 25, 50] as const;
+type CountValue = (typeof COUNT_PRESETS)[number];
 const PLACEHOLDER =
-  'Digite um prompt customizado para usar em todas as 10 execuções. Deixe vazio para usar a amostra padrão (8 perguntas variadas de clientes).';
+  'Digite um prompt customizado para usar em todas as execuções. Deixe vazio para usar a amostra padrão (8 perguntas variadas de clientes).';
 
 function formatCost(v: number): string {
   if (v >= 1) return `$${v.toFixed(2)}`;
@@ -45,6 +47,7 @@ function successBg(rate: number): string {
 
 export function SimulationResultDialog({ open, onOpenChange, summary, running, onRun, agentName }: Props) {
   const [prompt, setPrompt] = useState('');
+  const [count, setCount] = useState<CountValue>(10);
 
   // Reseta o prompt cada vez que o diálogo abre sem resultado prévio
   useEffect(() => {
@@ -95,7 +98,7 @@ export function SimulationResultDialog({ open, onOpenChange, summary, running, o
           <div id="sim-prompt-help" className="flex items-center justify-between text-[10px] text-muted-foreground">
             <span>
               {usingCustom
-                ? '✓ Todas as 10 execuções vão usar este prompt customizado'
+                ? `✓ Todas as ${count} execuções vão usar este prompt customizado`
                 : 'Sem prompt: usa amostra padrão variada (8 perguntas)'}
             </span>
             <span className={overLimit ? 'text-destructive' : ''}>
@@ -104,10 +107,47 @@ export function SimulationResultDialog({ open, onOpenChange, summary, running, o
           </div>
         </div>
 
+        {/* Seletor de contagem de execuções */}
+        <div className="space-y-1.5">
+          <span className="flex items-center gap-1.5 text-xs font-medium text-foreground">
+            <RefreshCw className="h-3 w-3 text-primary" aria-hidden="true" />
+            Número de execuções
+          </span>
+          <div
+            role="radiogroup"
+            aria-label="Número de execuções a simular"
+            className="flex items-center gap-1.5 rounded-lg border border-border bg-secondary/30 p-1 w-fit"
+          >
+            {COUNT_PRESETS.map((c) => {
+              const selected = count === c;
+              return (
+                <button
+                  key={c}
+                  type="button"
+                  role="radio"
+                  aria-checked={selected}
+                  onClick={() => setCount(c)}
+                  disabled={running}
+                  className={`px-3 py-1 rounded-md text-[11px] font-mono font-semibold transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring ${
+                    selected
+                      ? 'bg-primary text-primary-foreground'
+                      : 'text-muted-foreground hover:text-foreground hover:bg-secondary/60 disabled:opacity-50'
+                  }`}
+                >
+                  {c} runs
+                </button>
+              );
+            })}
+            <span className="text-[10px] text-muted-foreground/70 ml-1.5 pr-1">
+              Mais runs = estatísticas mais estáveis
+            </span>
+          </div>
+        </div>
+
         {running && (
           <div className="flex flex-col items-center justify-center py-12 gap-3">
             <Loader2 className="h-8 w-8 animate-spin text-primary" aria-hidden="true" />
-            <p className="text-sm text-muted-foreground">Executando 10 simulações…</p>
+            <p className="text-sm text-muted-foreground">Executando {count} simulações…</p>
           </div>
         )}
 
@@ -186,7 +226,7 @@ export function SimulationResultDialog({ open, onOpenChange, summary, running, o
           <Button
             variant={summary ? 'outline' : 'default'}
             size="sm"
-            onClick={() => onRun(trimmed)}
+            onClick={() => onRun(trimmed, count)}
             disabled={running || overLimit}
           >
             {summary ? (
