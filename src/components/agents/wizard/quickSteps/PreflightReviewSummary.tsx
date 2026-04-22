@@ -1,5 +1,6 @@
-import { useMemo } from 'react';
-import { Rocket, AlertTriangle, CheckCircle2, GitMerge } from 'lucide-react';
+import { useMemo, useState } from 'react';
+import { Rocket, AlertTriangle, CheckCircle2, GitMerge, Lightbulb, Copy, Check, ChevronDown } from 'lucide-react';
+import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
 import { compilePrompt } from '@/lib/promptCompiler';
 import {
