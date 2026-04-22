@@ -485,6 +485,49 @@ function LiveDiffPreview({
         </>
       )}
 
+      {/* Atalhos para ir direto à configuração no AgentBuilder. Disponíveis
+          mesmo sem mudanças, para permitir editar antes de restaurar. */}
+      <div className="pt-2 border-t border-border/30 space-y-1.5">
+        <p className="text-[9px] uppercase tracking-wider text-muted-foreground font-semibold">
+          Editar diretamente no agente
+        </p>
+        <div className="grid grid-cols-3 gap-1.5">
+          <Button
+            type="button"
+            variant="outline"
+            size="sm"
+            onClick={() => onGoToBuilder('prompt')}
+            className="h-8 text-[10px] gap-1 justify-start px-2 hover:border-primary/40 hover:bg-primary/5"
+            title="Abre a aba 'Prompts & Versões' do AgentBuilder"
+          >
+            <FileText className="h-3 w-3 shrink-0 text-primary" aria-hidden="true" />
+            <span className="truncate">Editar prompt</span>
+          </Button>
+          <Button
+            type="button"
+            variant="outline"
+            size="sm"
+            onClick={() => onGoToBuilder('tools')}
+            className="h-8 text-[10px] gap-1 justify-start px-2 hover:border-primary/40 hover:bg-primary/5"
+            title="Abre a aba 'Ferramentas & MCP' do AgentBuilder"
+          >
+            <Wrench className="h-3 w-3 shrink-0 text-primary" aria-hidden="true" />
+            <span className="truncate">Gerenciar tools</span>
+          </Button>
+          <Button
+            type="button"
+            variant="outline"
+            size="sm"
+            onClick={() => onGoToBuilder('brain')}
+            className="h-8 text-[10px] gap-1 justify-start px-2 hover:border-primary/40 hover:bg-primary/5"
+            title="Abre a aba 'Cérebro (LLM)' do AgentBuilder"
+          >
+            <Cpu className="h-3 w-3 shrink-0 text-primary" aria-hidden="true" />
+            <span className="truncate">Ajustar modelo</span>
+          </Button>
+        </div>
+      </div>
+
       {unchangedGroups.length > 0 && anyOptionSelected && (
         <p className="text-[10px] text-muted-foreground/70 pt-1 border-t border-border/30">
           Sem mudanças em: {unchangedGroups.map((g) => groupLabel[g]).join(' · ')}
