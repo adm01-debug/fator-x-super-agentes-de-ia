@@ -407,3 +407,78 @@ export function PromptSectionChecklist({
     </div>
   );
 }
+
+/**
+ * Per-section dropdown that lists every prebuilt template for that section.
+ * Picking a template inserts its body at the canonical position via the
+ * parent's `onPick` callback. Each template is pre-validated to clear the
+ * minimum-depth check (12+ prose words per section).
+ */
+function SectionTemplatePicker({
+  sectionKey,
+  sectionLabel,
+  onPick,
+}: {
+  sectionKey: PromptSectionKey;
+  sectionLabel: string;
+  onPick: (tpl: SectionTemplate) => void;
+}) {
+  const [open, setOpen] = useState(false);
+  const templates = SECTION_TEMPLATES[sectionKey];
+  return (
+    <Popover open={open} onOpenChange={setOpen}>
+      <PopoverTrigger asChild>
+        <Button
+          type="button"
+          size="sm"
+          variant="ghost"
+          className="h-7 px-1.5 text-primary hover:bg-primary/10 rounded-l-none"
+          aria-label={`Escolher template para ${sectionLabel}`}
+          title="Escolher um template pronto"
+        >
+          <ChevronDown className="h-3 w-3" />
+        </Button>
+      </PopoverTrigger>
+      <PopoverContent align="end" className="w-80 p-2">
+        <div className="px-2 py-1.5 mb-1 border-b border-border/40">
+          <p className="text-xs font-heading font-semibold text-foreground flex items-center gap-1.5">
+            <FileText className="h-3 w-3 text-primary" />
+            Templates para {sectionLabel}
+          </p>
+          <p className="text-[10px] text-muted-foreground mt-0.5">
+            Cada template já passa na validação de profundidade.
+          </p>
+        </div>
+        <ul className="space-y-0.5">
+          {templates.map((tpl) => {
+            const words = wordCount(tpl.body);
+            return (
+              <li key={tpl.id}>
+                <button
+                  type="button"
+                  onClick={() => {
+                    onPick(tpl);
+                    setOpen(false);
+                  }}
+                  className="w-full text-left rounded-md px-2 py-1.5 hover:bg-primary/10 focus-visible:bg-primary/10 focus-visible:outline-none transition-colors group"
+                >
+                  <div className="flex items-center justify-between gap-2">
+                    <span className="text-xs font-medium text-foreground group-hover:text-primary">
+                      {tpl.label}
+                    </span>
+                    <span className="text-[10px] font-mono text-muted-foreground tabular-nums">
+                      {words}p
+                    </span>
+                  </div>
+                  <p className="text-[10px] text-muted-foreground mt-0.5 leading-snug">
+                    {tpl.description}
+                  </p>
+                </button>
+              </li>
+            );
+          })}
+        </ul>
+      </PopoverContent>
+    </Popover>
+  );
+}
