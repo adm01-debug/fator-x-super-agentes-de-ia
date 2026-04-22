@@ -27,6 +27,13 @@ interface Props {
    */
   onInsert: (snippet: string, key?: PromptSectionKey) => void;
   /**
+   * Optional batch insert: receives every pending (snippet, key) pair in
+   * canonical order in a single call. Lets the parent splice them onto a
+   * shared working buffer (avoiding stale-state bugs from looping `onInsert`)
+   * and place the caret inside the last inserted block.
+   */
+  onInsertBatch?: (items: Array<{ snippet: string; key: PromptSectionKey }>) => void;
+  /**
    * Called when the user wants to jump the editor to a specific section.
    * If the section is missing, `snippetIfMissing` is provided so the parent
    * can insert the skeleton before scrolling.
@@ -65,6 +72,7 @@ function wordCount(text: string): number {
 export function PromptSectionChecklist({
   prompt,
   onInsert,
+  onInsertBatch,
   onJumpToSection,
   activeVariantPrompt,
   activeVariantLabel,
@@ -260,8 +268,18 @@ export function PromptSectionChecklist({
               size="sm"
               variant="outline"
               onClick={() => {
-                for (const k of incompleteKeys) {
-                  onInsert(effectiveSnippets[k].snippet, k);
+                const items = incompleteKeys.map((k) => ({
+                  snippet: effectiveSnippets[k].snippet,
+                  key: k,
+                }));
+                if (onInsertBatch) {
+                  // Preferred path: parent splices everything onto a shared
+                  // working buffer in one shot, then places the cursor inside
+                  // the last inserted block.
+                  onInsertBatch(items);
+                } else {
+                  // Legacy fallback — kept for callers that haven't migrated.
+                  for (const it of items) onInsert(it.snippet, it.key);
                 }
               }}
               className="h-7 gap-1.5 text-[11px] border-nexus-amber/40 text-nexus-amber hover:bg-nexus-amber/10 hover:text-nexus-amber hover:border-nexus-amber/60"
