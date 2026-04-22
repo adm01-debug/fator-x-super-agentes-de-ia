@@ -18,6 +18,8 @@ import { InteractiveSLOPanel } from './InteractiveSLOPanel';
 import { DayDrillDownDrawer } from './DayDrillDownDrawer';
 import { AgentFailuresTable } from './AgentFailuresTable';
 import { TrendInsightsBanner } from './TrendInsightsBanner';
+import { KPIDeepInsightsPanel } from './KPIDeepInsightsPanel';
+import { buildKPIInsights } from './kpiInsights';
 
 interface Props {
   agentId: string;
@@ -77,6 +79,19 @@ export function AgentRichMetrics({ agentId, agentName, days = 14 }: Props) {
           { key: 'cost', label: 'Custo', cmp: totals.costCmp, format: (v) => formatCost(v), priority: 3 },
           { key: 'requests', label: 'Volume de requisições', cmp: totals.reqCmp, format: (v) => formatNumber(Math.round(v)), priority: 4 },
         ]}
+      />
+
+      <KPIDeepInsightsPanel
+        insights={buildKPIInsights({
+          daily,
+          traces,
+          cmps: {
+            success: totals.successCmp,
+            latency: totals.latCmp,
+            cost: totals.costCmp,
+            requests: totals.reqCmp,
+          },
+        })}
       />
 
       {/* Top metric cards */}
