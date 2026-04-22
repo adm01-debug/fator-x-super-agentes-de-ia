@@ -147,7 +147,7 @@ export function SimulationResultDialog({ open, onOpenChange, summary, running, o
         {running && (
           <div className="flex flex-col items-center justify-center py-12 gap-3">
             <Loader2 className="h-8 w-8 animate-spin text-primary" aria-hidden="true" />
-            <p className="text-sm text-muted-foreground">Executando 10 simulações…</p>
+            <p className="text-sm text-muted-foreground">Executando {count} simulações…</p>
           </div>
         )}
 
