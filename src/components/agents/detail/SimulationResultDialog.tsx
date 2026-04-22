@@ -13,6 +13,7 @@ import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import type { SimulationSummary } from '@/services/agentTestSimulationService';
 import { saveRun } from '@/services/savedTestRunsStore';
+import { ErrorAnalysisPanel } from './ErrorAnalysisPanel';
 import { toast } from 'sonner';
 
 interface Props {
