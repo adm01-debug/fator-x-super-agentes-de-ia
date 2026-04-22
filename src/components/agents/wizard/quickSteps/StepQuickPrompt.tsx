@@ -211,6 +211,12 @@ export function StepQuickPrompt({ form, errors, update, onRestore, onApplyVarian
         onJumpToSection={jumpToSection}
       />
 
+      <PromptHistoryPanel
+        prompt={form.prompt}
+        type={form.type}
+        onRestore={(restored) => update('prompt', restored)}
+      />
+
       <AgentLivePreviewCard form={form} />
 
       {/* Pre-flight review summary — quick "ready to create?" snapshot */}
