@@ -18,6 +18,13 @@ import { VersionComparePanel } from "@/components/agents/versioning/VersionCompa
 import { NewVersionDialog } from "@/components/agents/versioning/NewVersionDialog";
 import { TimelinePresetBar } from "@/components/agents/versioning/TimelinePresetBar";
 import { TIMELINE_PRESETS, getPresetById, matchesPreset } from "@/components/agents/versioning/timelineFilters";
+import {
+  TimelineRangeFilter,
+  filterByRange,
+  parseRange,
+  serializeRange,
+  type TimelineRange,
+} from "@/components/agents/versioning/TimelineRangeFilter";
 
 export default function AgentVersioningPage() {
   const { id } = useParams();
