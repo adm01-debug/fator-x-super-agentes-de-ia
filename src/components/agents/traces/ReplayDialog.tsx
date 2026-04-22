@@ -77,6 +77,38 @@ export function ReplayDialog({ open, onOpenChange, execution, initialStep = 0, o
     return () => { if (timerRef.current) window.clearTimeout(timerRef.current); };
   }, [playing, step, speed, current, total]);
 
+  // Keyboard shortcuts while the dialog is open: ←/→ or j/k step, space toggles play,
+  // Home/End jump to bounds, R restarts. Ignored when typing in inputs.
+  useEffect(() => {
+    if (!open) return;
+    const handler = (e: KeyboardEvent) => {
+      const tgt = e.target as HTMLElement | null;
+      if (tgt && (tgt.tagName === 'INPUT' || tgt.tagName === 'TEXTAREA' || tgt.isContentEditable)) return;
+      if (e.key === 'ArrowRight' || e.key === 'l' || e.key === 'j') {
+        e.preventDefault();
+        setStep((s) => Math.min(total - 1, s + 1));
+      } else if (e.key === 'ArrowLeft' || e.key === 'h' || e.key === 'k') {
+        e.preventDefault();
+        setStep((s) => Math.max(0, s - 1));
+      } else if (e.key === ' ') {
+        e.preventDefault();
+        setPlaying((p) => !p);
+      } else if (e.key === 'Home') {
+        e.preventDefault();
+        setStep(0);
+      } else if (e.key === 'End') {
+        e.preventDefault();
+        setStep(Math.max(0, total - 1));
+      } else if (e.key === 'r' || e.key === 'R') {
+        e.preventDefault();
+        setStep(0);
+        setPlaying(false);
+      }
+    };
+    window.addEventListener('keydown', handler);
+    return () => window.removeEventListener('keydown', handler);
+  }, [open, total]);
+
   if (!execution) return null;
 
   const handleExport = () => {
