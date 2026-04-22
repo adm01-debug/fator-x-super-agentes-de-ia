@@ -16,9 +16,10 @@
  * single explicit range.
  */
 
-import type {
-  PromptContradiction,
-  ContradictionKind,
+import {
+  detectPromptContradictions,
+  type PromptContradiction,
+  type ContradictionKind,
 } from './promptContradictions';
 
 export interface ContradictionSuggestion {
