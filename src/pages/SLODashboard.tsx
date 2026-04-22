@@ -42,6 +42,16 @@ const DEFAULT_WINDOW_HOURS = 24;
 // URL query param keys — short on purpose so shared links stay clean.
 const QP_WINDOW = 'w';
 const QP_AUTO = 'auto';
+const QP_COMPARE = 'cmp';
+
+/** Human-readable label for a window in hours. */
+function windowLabel(hours: number): string {
+  if (hours === 1) return '1h';
+  if (hours < 24) return `${hours}h`;
+  if (hours === 24) return '24h';
+  if (hours === 168) return '7d';
+  return `${hours}h`;
+}
 
 function readStoredInterval(): number {
   try {
@@ -84,9 +94,42 @@ interface MetricCardProps {
   target: string;
   status: SLOStatus;
   icon: React.ElementType;
+  /** Optional comparison value (raw number) for delta computation. */
+  current?: number;
+  previous?: number;
+  /** When true, lower is better (latency). When false, higher is better (success rate). */
+  lowerIsBetter?: boolean;
+  /** Formatter applied to the previous value when shown. */
+  formatPrev?: (n: number) => string;
+  /** Label of the comparison window (e.g. "vs 7d"). */
+  compareLabel?: string;
 }
 
-function MetricCard({ title, value, target, status, icon: Icon }: MetricCardProps) {
+function formatDelta(curr: number, prev: number, lowerIsBetter: boolean): {
+  pct: number;
+  isImprovement: boolean;
+  arrow: '↑' | '↓' | '→';
+  className: string;
+} {
+  if (prev === 0) {
+    return { pct: 0, isImprovement: true, arrow: '→', className: 'text-muted-foreground' };
+  }
+  const pct = ((curr - prev) / prev) * 100;
+  const arrow = pct > 0.5 ? '↑' : pct < -0.5 ? '↓' : '→';
+  const isImprovement = lowerIsBetter ? pct < 0 : pct > 0;
+  const className =
+    Math.abs(pct) < 0.5 ? 'text-muted-foreground'
+      : isImprovement ? 'text-nexus-emerald'
+      : 'text-destructive';
+  return { pct, isImprovement, arrow, className };
+}
+
+function MetricCard({
+  title, value, target, status, icon: Icon,
+  current, previous, lowerIsBetter = true, formatPrev, compareLabel,
+}: MetricCardProps) {
+  const showDelta = current !== undefined && previous !== undefined;
+  const delta = showDelta ? formatDelta(current, previous, lowerIsBetter) : null;
   return (
     <Card className="relative overflow-hidden">
       <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
@@ -99,6 +142,19 @@ function MetricCard({ title, value, target, status, icon: Icon }: MetricCardProp
           <p className="text-xs text-muted-foreground">Alvo: {target}</p>
           <StatusBadge status={status} />
         </div>
+        {showDelta && delta && (
+          <div
+            className="mt-2 pt-2 border-t border-border/40 flex items-center justify-between text-[11px]"
+            title={`Comparado com ${compareLabel ?? 'janela anterior'}`}
+          >
+            <span className="text-muted-foreground font-mono">
+              {compareLabel ?? 'anterior'}: {formatPrev ? formatPrev(previous!) : previous}
+            </span>
+            <span className={`font-mono font-semibold tabular-nums ${delta.className}`}>
+              {delta.arrow} {Math.abs(delta.pct).toFixed(1)}%
+            </span>
+          </div>
+        )}
       </CardContent>
     </Card>
   );
@@ -120,6 +176,16 @@ export default function SLODashboard() {
   const [autoRefreshMs, setAutoRefreshMs] = useState<number>(() =>
     parseAutoParam(searchParams.get(QP_AUTO), readStoredInterval()),
   );
+  // Comparison window (0 = disabled). Encoded as `?cmp=` so a shared link
+  // shows the same side-by-side view. Validated against WINDOW_OPTIONS.
+  const [compareHours, setCompareHours] = useState<number>(() => {
+    const raw = searchParams.get(QP_COMPARE);
+    if (raw === null) return 0;
+    const n = Number(raw);
+    return (WINDOW_OPTIONS as readonly number[]).includes(n) ? n : 0;
+  });
+  const [compareSummary, setCompareSummary] = useState<SLOSummary | null>(null);
+
   const [lastRefreshAt, setLastRefreshAt] = useState<Date | null>(null);
   // Re-renders the "X seg atrás" pill once a second without re-fetching data.
   const [, setNowTick] = useState(0);
@@ -145,29 +211,43 @@ export default function SLODashboard() {
     if (autoRefreshMs === DEFAULT_AUTO_REFRESH_MS) next.delete(QP_AUTO);
     else next.set(QP_AUTO, String(autoRefreshMs));
 
+    if (compareHours <= 0) next.delete(QP_COMPARE);
+    else next.set(QP_COMPARE, String(compareHours));
+
     // Avoid an infinite update loop: only call setSearchParams when the
     // serialized result actually differs from what's already in the URL.
     if (next.toString() !== searchParams.toString()) {
       setSearchParams(next, { replace: true });
     }
-  }, [windowHours, autoRefreshMs, searchParams, setSearchParams]);
+  }, [windowHours, autoRefreshMs, compareHours, searchParams, setSearchParams]);
 
   // React to back/forward navigation (or another link that mutates the URL)
   // by re-reading the params into local state.
   useEffect(() => {
     const wFromUrl = parseWindowParam(searchParams.get(QP_WINDOW), DEFAULT_WINDOW_HOURS);
     const aFromUrl = parseAutoParam(searchParams.get(QP_AUTO), autoRefreshMs);
+    const cmpRaw = searchParams.get(QP_COMPARE);
+    const cmpFromUrl = cmpRaw === null
+      ? 0
+      : ((WINDOW_OPTIONS as readonly number[]).includes(Number(cmpRaw)) ? Number(cmpRaw) : 0);
     if (wFromUrl !== windowHours) setWindowHours(wFromUrl);
     if (aFromUrl !== autoRefreshMs) setAutoRefreshMs(aFromUrl);
+    if (cmpFromUrl !== compareHours) setCompareHours(cmpFromUrl);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [searchParams]);
 
   const load = useCallback(async (showSpinner = false) => {
     if (showSpinner) setRefreshing(true);
     try {
-      const data = await fetchSLOSummary(windowHours);
+      // Fetch primary + comparison windows in parallel so the side-by-side
+      // view updates atomically. If only one is selected, just await one.
+      const [data, cmpData] = await Promise.all([
+        fetchSLOSummary(windowHours),
+        compareHours > 0 ? fetchSLOSummary(compareHours) : Promise.resolve(null),
+      ]);
       if (!isMountedRef.current) return;
       setSummary(data);
+      setCompareSummary(cmpData);
       setLastRefreshAt(new Date());
     } catch (err) {
       logger.error('Failed to load SLO summary', err);
@@ -183,7 +263,7 @@ export default function SLODashboard() {
       setLoading(false);
       setRefreshing(false);
     }
-  }, [windowHours]);
+  }, [windowHours, compareHours]);
 
   // Initial load + scheduled auto-refresh. Runs invisibly (no spinner) so
   // the page doesn't flash; the manual button still shows the spinning icon.
@@ -295,6 +375,22 @@ export default function SLODashboard() {
             <option value={24}>Últimas 24h</option>
             <option value={168}>Últimos 7d</option>
           </select>
+          <select
+            value={compareHours}
+            onChange={(e) => setCompareHours(Number(e.target.value))}
+            className="rounded-md border border-input bg-background px-3 py-1.5 text-sm focus-ring"
+            aria-label="Janela de comparação"
+            title="Compara a janela atual com outra para ver tendências"
+          >
+            <option value={0}>Comparar: —</option>
+            {[1, 6, 24, 168]
+              .filter((h) => h !== windowHours)
+              .map((h) => (
+                <option key={h} value={h}>
+                  Comparar: {windowLabel(h)}
+                </option>
+              ))}
+          </select>
           <Button
             variant="outline"
             size="sm"
@@ -351,6 +447,11 @@ export default function SLODashboard() {
               target={`≥ ${SLO_TARGETS.successRatePct}%`}
               status={successStatus}
               icon={Check}
+              current={summary.success_rate}
+              previous={compareSummary?.success_rate}
+              lowerIsBetter={false}
+              formatPrev={(n) => `${n.toFixed(2)}%`}
+              compareLabel={compareSummary ? `vs ${windowLabel(compareHours)}` : undefined}
             />
             <MetricCard
               title="Latência P95"
@@ -358,6 +459,11 @@ export default function SLODashboard() {
               target={`< ${SLO_TARGETS.p95LatencyMs}ms`}
               status={p95Status}
               icon={Zap}
+              current={summary.p95_latency_ms}
+              previous={compareSummary?.p95_latency_ms}
+              lowerIsBetter
+              formatPrev={(n) => `${n}ms`}
+              compareLabel={compareSummary ? `vs ${windowLabel(compareHours)}` : undefined}
             />
             <MetricCard
               title="Latência P99"
@@ -365,6 +471,11 @@ export default function SLODashboard() {
               target={`< ${SLO_TARGETS.p99LatencyMs}ms`}
               status={p99Status}
               icon={TrendingUp}
+              current={summary.p99_latency_ms}
+              previous={compareSummary?.p99_latency_ms}
+              lowerIsBetter
+              formatPrev={(n) => `${n}ms`}
+              compareLabel={compareSummary ? `vs ${windowLabel(compareHours)}` : undefined}
             />
             <MetricCard
               title="Error Budget Consumido"
@@ -372,8 +483,76 @@ export default function SLODashboard() {
               target={`≤ 100%`}
               status={budgetStatus}
               icon={AlertTriangle}
+              current={errorBudgetConsumed}
+              previous={compareSummary && compareSummary.total_traces > 0
+                ? Math.min(((compareSummary.error_count / compareSummary.total_traces) * 100) / SLO_TARGETS.errorBudgetPct * 100, 999)
+                : undefined}
+              lowerIsBetter
+              formatPrev={(n) => `${n.toFixed(1)}%`}
+              compareLabel={compareSummary ? `vs ${windowLabel(compareHours)}` : undefined}
             />
           </div>
+
+          {compareSummary && (
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <TrendingUp className="h-4 w-4 text-primary" />
+                  Comparação: {windowLabel(windowHours)} vs {windowLabel(compareHours)}
+                </CardTitle>
+                <CardDescription>
+                  Lado a lado — latências, erros e violações entre as duas janelas.
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <div className="overflow-x-auto">
+                  <table className="w-full text-sm">
+                    <thead className="text-xs uppercase text-muted-foreground border-b">
+                      <tr>
+                        <th className="text-left py-2 font-semibold">Métrica</th>
+                        <th className="text-right py-2 font-semibold">{windowLabel(windowHours)} (atual)</th>
+                        <th className="text-right py-2 font-semibold">{windowLabel(compareHours)}</th>
+                        <th className="text-right py-2 font-semibold">Δ</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {([
+                        { label: 'P50 (latência)', curr: summary.p50_latency_ms, prev: compareSummary.p50_latency_ms, suffix: 'ms', lowerBetter: true },
+                        { label: 'P95 (latência)', curr: summary.p95_latency_ms, prev: compareSummary.p95_latency_ms, suffix: 'ms', lowerBetter: true },
+                        { label: 'P99 (latência)', curr: summary.p99_latency_ms, prev: compareSummary.p99_latency_ms, suffix: 'ms', lowerBetter: true },
+                        { label: 'Taxa de sucesso', curr: summary.success_rate, prev: compareSummary.success_rate, suffix: '%', lowerBetter: false, decimals: 2 },
+                        { label: 'Total de traces', curr: summary.total_traces, prev: compareSummary.total_traces, suffix: '', lowerBetter: false },
+                        { label: 'Erros', curr: summary.error_count, prev: compareSummary.error_count, suffix: '', lowerBetter: true },
+                        {
+                          label: 'Violações P95',
+                          curr: (summary.timeseries ?? []).filter((p) => p.p95_ms > SLO_TARGETS.p95LatencyMs).length,
+                          prev: (compareSummary.timeseries ?? []).filter((p) => p.p95_ms > SLO_TARGETS.p95LatencyMs).length,
+                          suffix: '',
+                          lowerBetter: true,
+                        },
+                        { label: 'Custo total', curr: summary.total_cost_usd, prev: compareSummary.total_cost_usd, suffix: '', prefix: '$', lowerBetter: true, decimals: 4 },
+                        { label: 'Tokens', curr: summary.total_tokens, prev: compareSummary.total_tokens, suffix: '', lowerBetter: true },
+                      ] as Array<{ label: string; curr: number; prev: number; suffix: string; prefix?: string; lowerBetter: boolean; decimals?: number }>).map((row) => {
+                        const fmt = (n: number) =>
+                          `${row.prefix ?? ''}${row.decimals !== undefined ? n.toFixed(row.decimals) : n.toLocaleString('pt-BR')}${row.suffix}`;
+                        const d = formatDelta(row.curr, row.prev, row.lowerBetter);
+                        return (
+                          <tr key={row.label} className="border-b last:border-b-0 hover:bg-secondary/30">
+                            <td className="py-2.5 font-medium">{row.label}</td>
+                            <td className="text-right tabular-nums font-semibold">{fmt(row.curr)}</td>
+                            <td className="text-right tabular-nums text-muted-foreground">{fmt(row.prev)}</td>
+                            <td className={`text-right tabular-nums font-mono font-semibold ${d.className}`}>
+                              {d.arrow} {Math.abs(d.pct).toFixed(1)}%
+                            </td>
+                          </tr>
+                        );
+                      })}
+                    </tbody>
+                  </table>
+                </div>
+              </CardContent>
+            </Card>
+          )}
 
           <div className="grid gap-4 lg:grid-cols-3">
             <Card className="lg:col-span-2">
