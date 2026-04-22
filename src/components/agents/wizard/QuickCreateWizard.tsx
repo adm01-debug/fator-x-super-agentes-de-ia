@@ -494,12 +494,37 @@ export function QuickCreateWizard({ onBack }: QuickCreateWizardProps) {
             Próximo <ArrowRight className="h-4 w-4" />
           </Button>
         ) : (
-          <Button onClick={saveAgent} disabled={saving} className="gap-2">
+          <Button onClick={requestCreate} disabled={saving} className="gap-2">
             {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : <Rocket className="h-4 w-4" />}
             {saving ? 'Criando…' : 'Criar agente'}
           </Button>
         )}
       </div>
+
+      <Dialog open={confirmOpen} onOpenChange={(o) => { if (!saving) setConfirmOpen(o); }}>
+        <DialogContent className="max-w-xl">
+          <DialogHeader>
+            <DialogTitle>
+              Criar {form.name.trim() ? `"${form.name.trim()}"` : 'agente'}?
+            </DialogTitle>
+            <DialogDescription>
+              Revise o resumo abaixo. Após confirmar, o agente será salvo como rascunho na sua biblioteca.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="max-h-[60vh] overflow-y-auto -mx-1 px-1">
+            <PreflightReviewSummary form={form} compact />
+          </div>
+          <DialogFooter>
+            <Button variant="ghost" onClick={() => setConfirmOpen(false)} disabled={saving}>
+              Cancelar
+            </Button>
+            <Button onClick={saveAgent} disabled={saving} className="gap-2">
+              {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : <Rocket className="h-4 w-4" />}
+              {saving ? 'Criando…' : 'Confirmar e criar'}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
