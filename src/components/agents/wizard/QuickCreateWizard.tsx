@@ -148,6 +148,13 @@ export function QuickCreateWizard({ onBack }: QuickCreateWizardProps) {
   const restoreDraft = (id: string) => {
     const target = pendingDrafts.find((d) => d.id === id);
     if (!target) return;
+    const check = checkDraftRestorable(target.form);
+    if (!check.canRestore) {
+      toast.warning(check.reason ?? 'Rascunho incompleto demais para retomar', {
+        description: `Próximo passo necessário: ${check.nextStep ?? 'Identidade'}. Continue daqui ou descarte.`,
+      });
+      return;
+    }
     setForm(target.form);
     lastTypeRef.current = target.form.type as QuickAgentType;
     const resumeIdx = STEPS.findIndex((s) => !s.schema.safeParse(target.form).success);
