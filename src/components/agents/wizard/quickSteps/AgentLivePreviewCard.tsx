@@ -250,5 +250,6 @@ export function AgentLivePreviewCard({ form }: Props) {
         )}
       </div>
     </div>
+    </TooltipProvider>
   );
 }
