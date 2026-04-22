@@ -4,7 +4,7 @@ import { Check, Star } from 'lucide-react';
 import { MODELS } from '../wizardConstants';
 import { QUICK_AGENT_TEMPLATES, type QuickAgentType } from '@/data/quickAgentTemplates';
 import type { QuickAgentForm } from '@/lib/validations/quickAgentSchema';
-import { useFieldHighlight, FIELD_HIGHLIGHT_CLS } from './useFieldHighlight';
+import { useFieldHighlight, useFieldHighlightClass } from './useFieldHighlight';
 
 interface Props {
   form: QuickAgentForm;
