@@ -211,8 +211,13 @@ export default function AgentVersioningPage() {
       ) : (
         <div className="grid lg:grid-cols-3 gap-6">
           <div className="lg:col-span-1">
+            <TimelinePresetBar
+              activePresetId={activePreset.id}
+              onChange={setPreset}
+              counts={presetCounts}
+            />
             <VersionTimeline
-              versions={versions}
+              versions={filteredVersions}
               selectedId={selectedId}
               selectedAId={aId}
               selectedBId={bId}
@@ -221,6 +226,11 @@ export default function AgentVersioningPage() {
               onPickB={(vid) => { setBId(vid); if (aId && vid !== aId) setMode('compare'); }}
               highlightId={highlightId}
             />
+            {activePreset.id !== 'all' && filteredVersions.length < versions.length && (
+              <p className="text-[10px] text-muted-foreground mt-2 px-1">
+                Mostrando {filteredVersions.length} de {versions.length} versões — preset "{activePreset.label}".
+              </p>
+            )}
           </div>
 
           <div className="lg:col-span-2 space-y-4">
