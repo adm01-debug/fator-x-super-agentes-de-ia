@@ -12,6 +12,9 @@ import {
   quickPromptSchema,
   QUICK_AGENT_DEFAULTS,
   isDraftMeaningful,
+  getMissingSections,
+  getThinSections,
+  REQUIRED_PROMPT_SECTIONS,
   type QuickAgentForm,
 } from '@/lib/validations/quickAgentSchema';
 import { detectPromptContradictions } from '@/lib/validations/promptContradictions';
