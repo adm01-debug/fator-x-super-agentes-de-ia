@@ -16,6 +16,46 @@ export interface DraftRestoreCheck {
  * Validates whether a draft has the minimum viable content to be restored.
  * Requires at least the identity step (name + emoji + mission) to pass.
  */
+export interface DraftResumeTarget {
+  stepIdx: number;
+  field?: keyof QuickAgentForm;
+}
+
+interface ResumeStepDef {
+  key: string;
+  schema: { safeParse: (v: unknown) => { success: boolean; error?: { errors: Array<{ path: (string | number)[]; message: string }> } } };
+  fields: readonly string[];
+}
+
+/**
+ * Computes which step to resume on AND which specific field within that step
+ * is the first one failing validation. Falls back to first empty field by heuristic
+ * when the schema error has no path (e.g. superRefine on prompt).
+ */
+export function computeResumeTarget(
+  form: QuickAgentForm,
+  steps: ReadonlyArray<ResumeStepDef>,
+): DraftResumeTarget {
+  for (let i = 0; i < steps.length; i++) {
+    const s = steps[i];
+    const r = s.schema.safeParse(form);
+    if (r.success) continue;
+    const path = r.error?.errors?.[0]?.path?.[0];
+    let field = typeof path === 'string' ? (path as keyof QuickAgentForm) : undefined;
+    if (!field) {
+      // Fallback: first declared field that looks empty/short
+      const empty = s.fields.find((fname) => {
+        const v = form[fname as keyof QuickAgentForm];
+        if (typeof v === 'string') return v.trim().length === 0;
+        return v == null;
+      });
+      field = (empty ?? s.fields[0]) as keyof QuickAgentForm;
+    }
+    return { stepIdx: i, field };
+  }
+  return { stepIdx: steps.length - 1 };
+}
+
 export function checkDraftRestorable(form: QuickAgentForm): DraftRestoreCheck {
   const result = quickIdentitySchema.safeParse(form);
   if (result.success) return { canRestore: true };
