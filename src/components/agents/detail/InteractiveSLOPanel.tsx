@@ -15,6 +15,7 @@ import {
 import type { AgentTrace } from '@/services/agentsService';
 import { SLOViolationTimeline } from './SLOViolationTimeline';
 import { generateSLOReportPdf } from './sloReportPdf';
+import { AlertRulesSimulator } from './AlertRulesSimulator';
 import { toast } from 'sonner';
 
 type EvalWindowKey = '1h' | '6h' | '24h' | '7d' | '14d' | '30d';
@@ -310,6 +311,9 @@ export function InteractiveSLOPanel({ agentId, agentName, slo, traces, daily, on
           </span>
         </div>
       </div>
+
+      {/* Simulador de regras de alerta */}
+      <AlertRulesSimulator traces={traces} days={14} />
     </div>
   );
 }
