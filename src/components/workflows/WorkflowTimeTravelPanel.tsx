@@ -308,12 +308,11 @@ export function WorkflowTimeTravelPanel({
                 const isSelected = selectedCheckpoint === entry.id;
                 const isLast = idx === timeline.length - 1;
 
-                return (
-                  <div key={entry.id} className="relative flex gap-3">
                 const isPickedA = compareMode && compareAId === entry.id;
                 const isPickedB = compareMode && compareBId === entry.id;
                 return (
                   <div key={entry.id} className="relative flex gap-3">
+
                     {/* Timeline Line */}
                     <div className="flex flex-col items-center">
                       <div
