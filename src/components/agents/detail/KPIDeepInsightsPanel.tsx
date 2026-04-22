@@ -317,11 +317,15 @@ export function KPIDeepInsightsPanel({ daily, traces, agentName }: Props) {
             <p className="text-[11px] text-muted-foreground">
               <span className="font-mono">{active.previousLabel}</span> →{' '}
               <span className="font-mono text-foreground font-semibold">{active.currentLabel}</span>
-              {active.cmp.hasPrev && active.cmp.trend !== 'flat' && (
-                <span className="ml-1.5">
-                  ({active.cmp.deltaPct >= 0 ? '+' : ''}{active.cmp.deltaPct.toFixed(1)}%)
-                </span>
-              )}
+              {active.cmp.hasPrev && active.cmp.trend !== 'flat' && (() => {
+                const unit = active.cmp.deltaUnit ?? '%';
+                const digits = unit === 'pp' ? 2 : 1;
+                return (
+                  <span className="ml-1.5">
+                    ({active.cmp.deltaPct >= 0 ? '+' : ''}{active.cmp.deltaPct.toFixed(digits)}{unit})
+                  </span>
+                );
+              })()}
               <span className="ml-1.5 text-muted-foreground/70">· {windowLabel}</span>
             </p>
           </div>
