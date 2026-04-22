@@ -356,12 +356,34 @@ export default function SLODashboard() {
     : 0;
   const budgetStatus = errorBudgetStatus(errorBudgetConsumed);
 
+  /**
+   * Classify a single timeseries bucket against the active failure-mode set.
+   * A bucket counts as a "violation" when it triggers at least one selected
+   * failure mode. We expose the matched modes so the chart can color-tag them.
+   */
+  const classifyBucket = useCallback((p: { errors: number; p95_ms: number }): FailureMode[] => {
+    const matched: FailureMode[] = [];
+    if (failureModes.has('error') && p.errors > 0) matched.push('error');
+    if (failureModes.has('critical') && p.p95_ms > SLO_TARGETS.p99LatencyMs) matched.push('critical');
+    if (failureModes.has('latency') && p.p95_ms > SLO_TARGETS.p95LatencyMs) matched.push('latency');
+    return matched;
+  }, [failureModes]);
+
   const chartData = summary?.timeseries.map((p) => ({
     time: new Date(p.bucket_hour).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' }),
     p95: p.p95_ms,
     p50: p.p50_ms,
     target: SLO_TARGETS.p95LatencyMs,
   })) ?? [];
+
+  // Total violation buckets under the current filter — surfaced in the
+  // comparison table and the timeline header chip.
+  const filteredViolations = (summary?.timeseries ?? []).filter(
+    (p) => classifyBucket(p).length > 0,
+  ).length;
+  const filteredViolationsCompare = (compareSummary?.timeseries ?? []).filter(
+    (p) => classifyBucket(p).length > 0,
+  ).length;
 
   return (
     <div className="space-y-6 p-6 page-enter">
