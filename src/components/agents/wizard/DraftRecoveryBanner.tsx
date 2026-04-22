@@ -30,9 +30,11 @@ export interface DraftBannerEntry {
   restoreBlockedReason?: string;
 }
 
+export type RestoreMode = 'full' | 'partial';
+
 interface DraftRecoveryBannerProps {
   drafts: DraftBannerEntry[];
-  onRestore: (id: string) => void;
+  onRestore: (id: string, mode: RestoreMode) => void;
   onDiscardOne: (id: string) => void;
   onDiscardAll: () => void;
   onRename: (id: string, newName: string) => void;
