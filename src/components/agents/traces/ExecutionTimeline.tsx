@@ -158,6 +158,9 @@ export function ExecutionTimeline({ execution, selectedStep, onSelectStep }: Pro
         onStepSearch={setStepSearch}
         matchCount={matchIndexes.length}
         onJumpMatch={jumpMatch}
+        bookmarks={bookmarks}
+        onJumpBookmark={jumpBookmark}
+        onBookmarksChange={setBookmarks}
       />
 
       <ol
@@ -169,6 +172,7 @@ export function ExecutionTimeline({ execution, selectedStep, onSelectStep }: Pro
         {execution.traces.map((t, i) => {
           const isMatch = matchSet.has(i);
           const dim = normalized.length > 0 && !isMatch;
+          const bookmark = bookmarkByTraceId.get(t.id);
           return (
             <TraceItem
               key={t.id}
@@ -181,6 +185,9 @@ export function ExecutionTimeline({ execution, selectedStep, onSelectStep }: Pro
               highlight={normalized}
               isMatch={isMatch}
               dim={dim}
+              sessionId={execution.session_id}
+              bookmark={bookmark}
+              onBookmarksChange={setBookmarks}
             />
           );
         })}
