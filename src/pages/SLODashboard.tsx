@@ -896,6 +896,135 @@ export default function SLODashboard() {
             </Card>
           )}
 
+          {/* Insights detalhados — evidências numéricas com indicadores de
+              tendência. Métricas derivadas (custo/req, tokens/req, taxa de
+              erro normalizada) são calculadas client-side a partir dos
+              agregados do RPC para evitar alterações de schema. */}
+          {(() => {
+            const cmp = compareSummary;
+            const safeRate = (n: number, d: number) => (d > 0 ? n / d : 0);
+
+            const costPerReq = safeRate(summary.total_cost_usd, summary.total_traces);
+            const tokensPerReq = safeRate(summary.total_tokens, summary.total_traces);
+            const errorRate = safeRate(summary.error_count, summary.total_traces) * 100;
+            const tailSpread = summary.p99_latency_ms - summary.p95_latency_ms;
+
+            const cmpCostPerReq = cmp ? safeRate(cmp.total_cost_usd, cmp.total_traces) : undefined;
+            const cmpTokensPerReq = cmp ? safeRate(cmp.total_tokens, cmp.total_traces) : undefined;
+            const cmpErrorRate = cmp ? safeRate(cmp.error_count, cmp.total_traces) * 100 : undefined;
+            const cmpTailSpread = cmp ? cmp.p99_latency_ms - cmp.p95_latency_ms : undefined;
+
+            type Trend = ReturnType<typeof formatDelta>;
+            const trend = (curr: number, prev: number | undefined, lowerIsBetter: boolean): Trend | null =>
+              prev === undefined ? null : formatDelta(curr, prev, lowerIsBetter);
+
+            const rows: Array<{
+              label: string;
+              value: string;
+              prevValue?: string;
+              prevLabel?: string;
+              trend: Trend | null;
+              hint: string;
+            }> = [
+              {
+                label: 'P99 (cauda extrema)',
+                value: `${summary.p99_latency_ms}ms`,
+                prevValue: cmp ? `${cmp.p99_latency_ms}ms` : undefined,
+                prevLabel: cmp ? `vs ${windowLabel(compareHours)}` : undefined,
+                trend: trend(summary.p99_latency_ms, cmp?.p99_latency_ms, true),
+                hint: 'Latência sentida pelos 1% piores casos. Spikes aqui indicam outliers críticos.',
+              },
+              {
+                label: 'Spread P95 → P99',
+                value: `${tailSpread}ms`,
+                prevValue: cmp ? `${cmpTailSpread}ms` : undefined,
+                prevLabel: cmp ? `vs ${windowLabel(compareHours)}` : undefined,
+                trend: trend(tailSpread, cmpTailSpread, true),
+                hint: 'Diferença entre P95 e P99. Spread grande = poucos requests dominam a cauda.',
+              },
+              {
+                label: 'Taxa de erro (level=error)',
+                value: `${errorRate.toFixed(2)}%`,
+                prevValue: cmpErrorRate !== undefined ? `${cmpErrorRate.toFixed(2)}%` : undefined,
+                prevLabel: cmp ? `vs ${windowLabel(compareHours)}` : undefined,
+                trend: trend(errorRate, cmpErrorRate, true),
+                hint: `${summary.error_count} de ${summary.total_traces.toLocaleString('pt-BR')} traces. Granularidade por nível (warn/critical/tool) requer extensão do RPC.`,
+              },
+              {
+                label: 'Custo médio por requisição',
+                value: `$${costPerReq.toFixed(6)}`,
+                prevValue: cmpCostPerReq !== undefined ? `$${cmpCostPerReq.toFixed(6)}` : undefined,
+                prevLabel: cmp ? `vs ${windowLabel(compareHours)}` : undefined,
+                trend: trend(costPerReq, cmpCostPerReq, true),
+                hint: `Total $${summary.total_cost_usd.toFixed(4)} ÷ ${summary.total_traces.toLocaleString('pt-BR')} traces.`,
+              },
+              {
+                label: 'Tokens médios por requisição',
+                value: tokensPerReq.toFixed(0),
+                prevValue: cmpTokensPerReq !== undefined ? cmpTokensPerReq.toFixed(0) : undefined,
+                prevLabel: cmp ? `vs ${windowLabel(compareHours)}` : undefined,
+                trend: trend(tokensPerReq, cmpTokensPerReq, true),
+                hint: `Total ${summary.total_tokens.toLocaleString('pt-BR')} tokens ÷ ${summary.total_traces.toLocaleString('pt-BR')} traces.`,
+              },
+              {
+                label: 'Taxa de sucesso',
+                value: `${summary.success_rate.toFixed(2)}%`,
+                prevValue: cmp ? `${cmp.success_rate.toFixed(2)}%` : undefined,
+                prevLabel: cmp ? `vs ${windowLabel(compareHours)}` : undefined,
+                trend: trend(summary.success_rate, cmp?.success_rate, false),
+                hint: `Alvo SLO ≥ ${SLO_TARGETS.successRatePct}%. Inverte a taxa de erro: 100 − error_rate.`,
+              },
+            ];
+
+            return (
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    <Activity className="h-4 w-4 text-primary" />
+                    Insights detalhados — evidências numéricas
+                  </CardTitle>
+                  <CardDescription>
+                    Métricas derivadas com {cmp ? `tendência vs. ${windowLabel(compareHours)}` : 'valores atuais (ative comparação para ver tendências)'}.
+                  </CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <div className="grid gap-3 md:grid-cols-2 lg:grid-cols-3">
+                    {rows.map((row) => (
+                      <div
+                        key={row.label}
+                        className="rounded-lg border border-border/40 bg-secondary/10 p-3 hover:bg-secondary/30 transition-colors"
+                        title={row.hint}
+                      >
+                        <p className="text-[11px] uppercase text-muted-foreground tracking-wide">
+                          {row.label}
+                        </p>
+                        <div className="flex items-baseline justify-between gap-2 mt-1">
+                          <p className="text-xl font-bold tabular-nums">{row.value}</p>
+                          {row.trend && (
+                            <span
+                              className={`text-xs font-mono font-semibold tabular-nums ${row.trend.className}`}
+                              aria-label={`Variação de ${Math.abs(row.trend.pct).toFixed(1)} por cento`}
+                            >
+                              {row.trend.arrow} {Math.abs(row.trend.pct).toFixed(1)}%
+                            </span>
+                          )}
+                        </div>
+                        {row.prevValue && (
+                          <p className="text-[11px] text-muted-foreground mt-1 font-mono">
+                            {row.prevLabel}: <span className="tabular-nums">{row.prevValue}</span>
+                          </p>
+                        )}
+                        <p className="text-[11px] text-muted-foreground/80 mt-2 leading-snug">
+                          {row.hint}
+                        </p>
+                      </div>
+                    ))}
+                  </div>
+                </CardContent>
+              </Card>
+            );
+          })()}
+
           <div className="grid gap-4 lg:grid-cols-3">
             <Card className="lg:col-span-2">
               <CardHeader>
