@@ -96,7 +96,7 @@ export function PromptLockEventLog({ events, max = 8 }: Props) {
       {open && (
         <ul className="divide-y divide-border/40 border-t border-border/40 max-h-40 overflow-y-auto" aria-label="Eventos de bloqueio do prompt">
           {sorted.map((ev) => {
-            const locked = ev.kind === 'locked-manual-edit';
+            const locked = ev.kind === 'locked-manual-edit' || ev.kind === 'locked-paste';
             return (
               <li key={ev.id} className="flex items-start gap-2 px-2.5 py-1.5">
                 <span
