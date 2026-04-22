@@ -21,10 +21,13 @@ import {
   Pencil,
   Eye,
   ArrowLeft,
+  ShieldAlert,
+  ShieldCheck,
+  Flame,
 } from "lucide-react";
 import type { AgentVersion, RestoreOptions } from "@/services/agentsService";
 import { getVersionTools, getVersionPrompt, getVersionScalar } from "@/lib/agentChangelog";
-import { computeRestoreDiff, type FieldChange } from "@/components/agents/detail/restoreDiffHelpers";
+import { computeRestoreDiff, type FieldChange, type RiskLevel } from "@/components/agents/detail/restoreDiffHelpers";
 
 interface Props {
   open: boolean;
@@ -141,6 +144,8 @@ export function RestoreVersionDialog({ open, onOpenChange, source, current, next
               anyOptionSelected={canConfirm}
               sourceVersion={source.version}
               currentVersion={current.version}
+              overallImpact={diff.overallImpact}
+              overallRisk={diff.overallRisk}
               onShowFullDiff={() => setShowFullDiff(true)}
             />
 
@@ -235,6 +240,87 @@ function ChangeKindBadge({ kind }: { kind: FieldChange['kind'] }) {
   );
 }
 
+/* ------------------------------------------------------------------ */
+/*  Risk badges / banner                                               */
+/* ------------------------------------------------------------------ */
+
+const RISK_META: Record<RiskLevel, { label: string; cls: string; Icon: typeof ShieldCheck; ringCls: string }> = {
+  critical: {
+    label: 'crítico',
+    cls: 'text-destructive bg-destructive/15 border-destructive/40',
+    Icon: Flame,
+    ringCls: 'border-l-destructive',
+  },
+  high: {
+    label: 'alto',
+    cls: 'text-nexus-amber bg-nexus-amber/15 border-nexus-amber/40',
+    Icon: ShieldAlert,
+    ringCls: 'border-l-nexus-amber',
+  },
+  medium: {
+    label: 'médio',
+    cls: 'text-primary bg-primary/10 border-primary/30',
+    Icon: ShieldAlert,
+    ringCls: 'border-l-primary',
+  },
+  low: {
+    label: 'baixo',
+    cls: 'text-nexus-emerald bg-nexus-emerald/10 border-nexus-emerald/30',
+    Icon: ShieldCheck,
+    ringCls: 'border-l-nexus-emerald/60',
+  },
+};
+
+function RiskBadge({ risk, score, showScore = false }: { risk: RiskLevel; score?: number; showScore?: boolean }) {
+  const meta = RISK_META[risk];
+  const { Icon } = meta;
+  return (
+    <span
+      className={`inline-flex items-center gap-1 rounded-full border px-1.5 py-0.5 text-[9px] font-mono font-semibold uppercase ${meta.cls}`}
+      title={score !== undefined ? `Score de impacto: ${score}/100` : undefined}
+    >
+      <Icon className="h-2.5 w-2.5" aria-hidden="true" />
+      {meta.label}
+      {showScore && score !== undefined && <span className="opacity-70">·{score}</span>}
+    </span>
+  );
+}
+
+function RiskBanner({ risk, score, changeCount }: { risk: RiskLevel; score: number; changeCount: number }) {
+  const meta = RISK_META[risk];
+  const { Icon } = meta;
+  const headlines: Record<RiskLevel, string> = {
+    critical: 'Restauração de risco crítico',
+    high: 'Restauração de risco alto',
+    medium: 'Restauração de risco moderado',
+    low: 'Restauração de baixo risco',
+  };
+  const subtitles: Record<RiskLevel, string> = {
+    critical: 'Inclui mudanças muito impactantes — revise os destaques abaixo antes de confirmar.',
+    high: 'Mudanças significativas detectadas. Verifique os itens com badge alto/crítico.',
+    medium: 'Mudanças moderadas no comportamento do agente.',
+    low: 'Apenas ajustes menores — comportamento deve permanecer estável.',
+  };
+  return (
+    <div className={`rounded-lg border ${meta.cls} px-3 py-2 flex items-start gap-2`}>
+      <Icon className="h-4 w-4 mt-0.5 shrink-0" aria-hidden="true" />
+      <div className="min-w-0 flex-1">
+        <div className="flex items-center gap-2 flex-wrap">
+          <p className="text-xs font-semibold">{headlines[risk]}</p>
+          <span className="text-[10px] font-mono opacity-80">
+            score {score}/100 · {changeCount} mudança{changeCount === 1 ? '' : 's'}
+          </span>
+        </div>
+        <p className="text-[11px] opacity-90 mt-0.5">{subtitles[risk]}</p>
+      </div>
+    </div>
+  );
+}
+
+/* ------------------------------------------------------------------ */
+/*  Live diff preview                                                  */
+/* ------------------------------------------------------------------ */
+
 function LiveDiffPreview({
   changes,
   toolsAdded,
@@ -244,6 +330,8 @@ function LiveDiffPreview({
   anyOptionSelected,
   sourceVersion,
   currentVersion,
+  overallImpact,
+  overallRisk,
   onShowFullDiff,
 }: {
   changes: FieldChange[];
@@ -254,6 +342,8 @@ function LiveDiffPreview({
   anyOptionSelected: boolean;
   sourceVersion: number;
   currentVersion: number;
+  overallImpact: number;
+  overallRisk: RiskLevel;
   onShowFullDiff: () => void;
 }) {
   const groupLabel: Record<'prompt' | 'tools' | 'model', string> = {
@@ -262,8 +352,12 @@ function LiveDiffPreview({
     model: 'Modelo & parâmetros',
   };
 
+  // Top-3 mudanças mais impactantes — destaque "Top changes" na UI.
+  const topChanges = changes.slice(0, Math.min(3, changes.length));
+  const topIds = new Set(topChanges.map((c) => `${c.group}-${c.field}`));
+
   return (
-    <div className="rounded-lg border border-primary/20 bg-primary/[0.03] px-3 py-3 space-y-2">
+    <div className="rounded-lg border border-primary/20 bg-primary/[0.03] px-3 py-3 space-y-2.5">
       <div className="flex items-center gap-1.5">
         <GitCompareArrows className="h-3.5 w-3.5 text-primary" aria-hidden="true" />
         <h4 className="text-xs font-semibold text-foreground">Diff em tempo real</h4>
@@ -282,10 +376,11 @@ function LiveDiffPreview({
         </p>
       ) : (
         <>
+          {/* Banner de risco geral */}
+          <RiskBanner risk={overallRisk} score={overallImpact} changeCount={changes.length} />
+
+          {/* Badges resumo */}
           <div className="flex flex-wrap items-center gap-1.5 text-[10px]">
-            <span className="font-mono text-muted-foreground">
-              {changes.length} alteraç{changes.length === 1 ? 'ão' : 'ões'}
-            </span>
             {toolsAdded.length > 0 && (
               <span className="inline-flex items-center gap-1 rounded-full border border-nexus-emerald/30 bg-nexus-emerald/10 text-nexus-emerald px-1.5 py-0.5 font-mono">
                 <Plus className="h-2.5 w-2.5" aria-hidden="true" />
@@ -320,27 +415,58 @@ function LiveDiffPreview({
             </Button>
           </div>
 
+          {/* Top mudanças (ranking) */}
+          {topChanges.length > 0 && (
+            <div className="rounded-md border border-border/40 bg-background/30 px-2 py-1.5">
+              <p className="text-[9px] uppercase tracking-wider text-muted-foreground mb-1 font-semibold flex items-center gap-1">
+                <Flame className="h-2.5 w-2.5 text-nexus-amber" aria-hidden="true" />
+                Top {topChanges.length} mudança{topChanges.length === 1 ? '' : 's'} de maior impacto
+              </p>
+              <ul className="space-y-0.5">
+                {topChanges.map((c, idx) => (
+                  <li key={`top-${c.group}-${c.field}`} className="flex items-center gap-1.5 text-[11px]">
+                    <span className="font-mono text-[9px] text-muted-foreground/70 w-3.5 shrink-0">#{idx + 1}</span>
+                    <RiskBadge risk={c.risk} score={c.impact} showScore />
+                    <span className="font-semibold text-foreground truncate">{c.label}</span>
+                    <span className="text-[10px] text-muted-foreground truncate" title={c.reason}>· {c.reason}</span>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          )}
+
+          {/* Lista completa ranqueada */}
           <ul className="space-y-1.5 max-h-48 overflow-y-auto pr-1">
-            {changes.map((c) => (
-              <li
-                key={`${c.group}-${c.field}`}
-                className="grid grid-cols-[auto_1fr] gap-2 items-start rounded-md border border-border/40 bg-background/40 px-2 py-1.5"
-              >
-                <div className="flex flex-col items-start gap-1 pt-0.5">
-                  <ChangeKindBadge kind={c.kind} />
-                  <span className="text-[9px] font-mono uppercase text-muted-foreground/70">{c.group}</span>
-                </div>
-                <div className="min-w-0">
-                  <p className="text-[11px] font-semibold text-foreground">{c.label}</p>
-                  <p className="text-[10px] font-mono text-muted-foreground truncate" title={fmtValue(c.before, 500)}>
-                    <span className="text-destructive/80">−</span> {fmtValue(c.before)}
-                  </p>
-                  <p className="text-[10px] font-mono text-foreground/90 truncate" title={fmtValue(c.after, 500)}>
-                    <span className="text-nexus-emerald">+</span> {fmtValue(c.after)}
-                  </p>
-                </div>
-              </li>
-            ))}
+            {changes.map((c) => {
+              const meta = RISK_META[c.risk];
+              const isTop = topIds.has(`${c.group}-${c.field}`);
+              return (
+                <li
+                  key={`${c.group}-${c.field}`}
+                  className={`grid grid-cols-[auto_1fr] gap-2 items-start rounded-md border bg-background/40 px-2 py-1.5 border-l-4 ${meta.ringCls} ${
+                    isTop ? 'border-border/60 shadow-sm' : 'border-border/40'
+                  }`}
+                >
+                  <div className="flex flex-col items-start gap-1 pt-0.5">
+                    <ChangeKindBadge kind={c.kind} />
+                    <RiskBadge risk={c.risk} score={c.impact} showScore />
+                    <span className="text-[9px] font-mono uppercase text-muted-foreground/70">{c.group}</span>
+                  </div>
+                  <div className="min-w-0">
+                    <p className="text-[11px] font-semibold text-foreground flex items-center gap-1.5">
+                      {c.label}
+                      <span className="text-[9px] font-normal text-muted-foreground/80 truncate">· {c.reason}</span>
+                    </p>
+                    <p className="text-[10px] font-mono text-muted-foreground truncate" title={fmtValue(c.before, 500)}>
+                      <span className="text-destructive/80">−</span> {fmtValue(c.before)}
+                    </p>
+                    <p className="text-[10px] font-mono text-foreground/90 truncate" title={fmtValue(c.after, 500)}>
+                      <span className="text-nexus-emerald">+</span> {fmtValue(c.after)}
+                    </p>
+                  </div>
+                </li>
+              );
+            })}
           </ul>
         </>
       )}
@@ -481,6 +607,7 @@ function DiffBlock({ change }: { change: FieldChange }) {
       <div className="flex items-center justify-between gap-2 px-3 py-2 bg-secondary/40 border-b border-border/50">
         <div className="flex items-center gap-2 min-w-0">
           <ChangeKindBadge kind={change.kind} />
+          <RiskBadge risk={change.risk} score={change.impact} showScore />
           <span className="text-xs font-semibold text-foreground truncate">{change.label}</span>
           <span className="text-[10px] font-mono uppercase text-muted-foreground/70">{change.group}</span>
         </div>
