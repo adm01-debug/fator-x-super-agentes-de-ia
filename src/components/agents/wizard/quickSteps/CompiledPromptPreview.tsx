@@ -265,6 +265,15 @@ export function CompiledPromptPreview({ form, defaultOpen = false, lastChangeKin
               ⚠ {unresolvedCount}
             </span>
           )}
+          {thinCount > 0 && (
+            <span
+              className="text-[10px] font-mono px-1.5 py-0.5 rounded-full border border-nexus-amber/40 bg-nexus-amber/15 text-nexus-amber inline-flex items-center gap-1"
+              title={`${thinCount} seção(ões) com conteúdo insuficiente — destacadas no preview`}
+            >
+              <AlertTriangle className="h-2.5 w-2.5" />
+              {thinCount} thin
+            </span>
+          )}
           <Badge variant="outline" className="text-[10px] font-mono">
             ~{compiled.stats.estimatedTokens.toLocaleString('pt-BR')} tokens
           </Badge>
