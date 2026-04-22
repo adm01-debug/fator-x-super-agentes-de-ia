@@ -325,7 +325,7 @@ export function StepQuickPrompt({ form, errors, onPromptManualEdit, onRestore, o
           </div>
         )}
         <div id="qa-prompt-feedback">
-          <PromptValidationFeedback prompt={form.prompt} />
+          <PromptValidationFeedback prompt={form.prompt} onApplyFix={handleApplyFix} />
         </div>
       </div>
 
