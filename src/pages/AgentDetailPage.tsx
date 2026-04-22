@@ -175,6 +175,20 @@ function VersionHistory({ agentId }: { agentId: string }) {
   const queryClient = useQueryClient();
   const [diffOpen, setDiffOpen] = useState(false);
   const [rollbackOpen, setRollbackOpen] = useState(false);
+  // Granular: usuário escolhe quais grupos copiar do snapshot anterior.
+  const [copyPrompt, setCopyPrompt] = useState(true);
+  const [copyTools, setCopyTools] = useState(true);
+  const [copyModel, setCopyModel] = useState(true);
+
+  // Reset das opções a cada abertura do diálogo (evita herdar estado da última tentativa).
+  useEffect(() => {
+    if (rollbackOpen) {
+      setCopyPrompt(true);
+      setCopyTools(true);
+      setCopyModel(true);
+    }
+  }, [rollbackOpen]);
+
   const { data: versions = [], isLoading } = useQuery({
     queryKey: ['agent_versions', agentId],
     queryFn: () => getAgentVersions(agentId, 20),
@@ -184,8 +198,11 @@ function VersionHistory({ agentId }: { agentId: string }) {
   const previous: AgentVersion | undefined = versions[1];
   const nextVersionNumber = (current?.version ?? 0) + 1;
 
+  const restoreOptions = { copyPrompt, copyTools, copyModel };
+  const hasAnyOptionSelected = copyPrompt || copyTools || copyModel;
+
   const rollbackMut = useMutation({
-    mutationFn: () => restoreAgentVersion(agentId, previous!, current, { copyPrompt: true, copyTools: true, copyModel: true }),
+    mutationFn: () => restoreAgentVersion(agentId, previous!, current, restoreOptions),
     onSuccess: (data) => {
       toast.success(`Rollback concluído — v${data.version} criada a partir de v${previous!.version}`);
       queryClient.invalidateQueries({ queryKey: ['agent_versions', agentId] });
