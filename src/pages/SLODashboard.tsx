@@ -186,6 +186,30 @@ export default function SLODashboard() {
   });
   const [compareSummary, setCompareSummary] = useState<SLOSummary | null>(null);
 
+  // Failure-mode filters for the timeline. Each toggle controls which kind of
+  // bucket is *highlighted* as a violation and counted in the violation total.
+  // Persisted in URL as `?fm=` (comma-separated) so a shared link reproduces
+  // the same view. `tool` is intentionally disabled — the SLO RPC doesn't yet
+  // break tool failures out of the generic `error` level.
+  const [failureModes, setFailureModes] = useState<Set<FailureMode>>(() => {
+    const raw = searchParams.get(QP_FAILURE_MODES);
+    if (raw === null) return new Set(ALL_FAILURE_MODES);
+    const picked = raw.split(',').filter((m): m is FailureMode =>
+      (ALL_FAILURE_MODES as readonly string[]).includes(m),
+    );
+    return picked.length ? new Set(picked) : new Set(ALL_FAILURE_MODES);
+  });
+  const toggleFailureMode = useCallback((mode: FailureMode) => {
+    setFailureModes((prev) => {
+      const next = new Set(prev);
+      if (next.has(mode)) next.delete(mode);
+      else next.add(mode);
+      // Always keep at least one selected to avoid an empty chart.
+      if (next.size === 0) return prev;
+      return next;
+    });
+  }, []);
+
   const [lastRefreshAt, setLastRefreshAt] = useState<Date | null>(null);
   // Re-renders the "X seg atrás" pill once a second without re-fetching data.
   const [, setNowTick] = useState(0);
