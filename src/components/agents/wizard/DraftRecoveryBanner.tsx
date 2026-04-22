@@ -15,6 +15,8 @@ export interface DraftBannerEntry {
   savedAt: string;
   summary: DraftSummary;
   typeLabel?: string;
+  restorable?: boolean;
+  restoreBlockedReason?: string;
 }
 
 interface DraftRecoveryBannerProps {
