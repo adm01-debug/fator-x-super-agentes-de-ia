@@ -290,9 +290,9 @@ export function StepQuickPrompt({ form, errors, onPromptManualEdit, onRestore, o
       const target = e.target as HTMLElement | null;
       const tag = target?.tagName;
       const isEditable =
-        target?.isContentEditable ||
-        (tag === 'INPUT' && target.id !== 'qa-prompt') ||
-        (tag === 'TEXTAREA' && target.id !== 'qa-prompt') ||
+        !!target?.isContentEditable ||
+        (tag === 'INPUT' && target?.id !== 'qa-prompt') ||
+        (tag === 'TEXTAREA' && target?.id !== 'qa-prompt') ||
         tag === 'SELECT';
       // Allow the shortcut from the prompt textarea itself; block from
       // unrelated inputs so we don't hijack browser/native behaviors.
