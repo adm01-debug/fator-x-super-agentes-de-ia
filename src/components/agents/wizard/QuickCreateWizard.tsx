@@ -140,6 +140,23 @@ export function QuickCreateWizard({ onBack }: QuickCreateWizardProps) {
   const promptWordCount = useMemo(() => countPromptWords(form.prompt), [form.prompt]);
   const meetsDepth = promptWordCount >= minPromptDepth;
 
+  // Real-time per-section completeness — recomputed every keystroke so the
+  // create button reflects the current state of Persona/Escopo/Formato/Regras
+  // without waiting for a step submit.
+  const sectionStatus = useMemo(() => {
+    const missing = getMissingSections(form.prompt);
+    const thin = getThinSections(form.prompt);
+    const labelOf = (k: string) =>
+      REQUIRED_PROMPT_SECTIONS.find((s) => s.key === k)?.label ?? k;
+    return {
+      missingKeys: missing,
+      thinKeys: thin.map((t) => t.key),
+      missingLabels: missing.map(labelOf),
+      thinLabels: thin.map((t) => t.label),
+      blocked: missing.length > 0 || thin.length > 0,
+    };
+  }, [form.prompt]);
+
   // Auto-clear field highlight after 4s
   useEffect(() => {
     if (!highlightField) return;
