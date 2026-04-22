@@ -3,6 +3,15 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Check, FileClock, FolderOpen, Minus, Pencil, X } from 'lucide-react';
 import { quickIdentitySchema } from '@/lib/validations/quickAgentSchema';
+import { ConfirmDialog } from '@/components/shared/ConfirmDialog';
+
+function discardCopy(name: string) {
+  const label = name.trim() ? `"${name.trim()}"` : 'sem nome ainda';
+  return {
+    title: 'Descartar este rascunho?',
+    description: `O rascunho ${label} será removido permanentemente. Esta ação não pode ser desfeita.`,
+  };
+}
 
 export interface DraftSummary {
   name: string;
@@ -227,9 +236,16 @@ export function DraftRecoveryBanner({
         </div>
 
         <div className="flex items-center justify-end gap-2 pt-1">
-          <Button variant="ghost" size="sm" onClick={() => onDiscardOne(only.id)} className="gap-1.5">
-            <X className="h-3.5 w-3.5" /> Descartar
-          </Button>
+          <ConfirmDialog
+            trigger={
+              <Button variant="ghost" size="sm" className="gap-1.5">
+                <X className="h-3.5 w-3.5" /> Descartar
+              </Button>
+            }
+            {...discardCopy(only.summary.name)}
+            confirmLabel="Descartar"
+            onConfirm={() => onDiscardOne(only.id)}
+          />
           <Button
             size="sm"
             onClick={() => onRestore(only.id)}
@@ -346,27 +362,40 @@ export function DraftRecoveryBanner({
                 </div>
               </div>
 
-              <button
-                type="button"
-                onClick={(e) => {
-                  e.stopPropagation();
-                  onDiscardOne(d.id);
-                }}
-                className="opacity-60 hover:opacity-100 hover:text-destructive transition shrink-0 p-1 rounded-md hover:bg-destructive/10"
-                aria-label={`Descartar rascunho ${subjectOf(d.summary)}`}
-                title="Descartar este rascunho"
-              >
-                <X className="h-3.5 w-3.5" />
-              </button>
+              <span onClick={(e) => e.stopPropagation()} onKeyDown={(e) => e.stopPropagation()}>
+                <ConfirmDialog
+                  trigger={
+                    <button
+                      type="button"
+                      className="opacity-60 hover:opacity-100 hover:text-destructive transition shrink-0 p-1 rounded-md hover:bg-destructive/10"
+                      aria-label={`Descartar rascunho ${subjectOf(d.summary)}`}
+                      title="Descartar este rascunho"
+                    >
+                      <X className="h-3.5 w-3.5" />
+                    </button>
+                  }
+                  {...discardCopy(d.summary.name)}
+                  confirmLabel="Descartar"
+                  onConfirm={() => onDiscardOne(d.id)}
+                />
+              </span>
             </div>
           );
         })}
       </div>
 
       <div className="flex items-center justify-between gap-2 pt-1">
-        <Button variant="ghost" size="sm" onClick={onDiscardAll} className="gap-1.5 text-muted-foreground hover:text-destructive">
-          <X className="h-3.5 w-3.5" /> Descartar todos
-        </Button>
+        <ConfirmDialog
+          trigger={
+            <Button variant="ghost" size="sm" className="gap-1.5 text-muted-foreground hover:text-destructive">
+              <X className="h-3.5 w-3.5" /> Descartar todos
+            </Button>
+          }
+          title={`Descartar todos os ${drafts.length} rascunhos?`}
+          description="Todos os rascunhos serão removidos permanentemente. Esta ação não pode ser desfeita."
+          confirmLabel="Descartar todos"
+          onConfirm={onDiscardAll}
+        />
         {(() => {
           const selected = drafts.find((d) => d.id === selectedId);
           const blocked = selected?.restorable === false;
