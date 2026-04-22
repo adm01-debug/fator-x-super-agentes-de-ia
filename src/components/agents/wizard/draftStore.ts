@@ -27,12 +27,30 @@ export interface DraftRestoreCheck {
 export interface DraftResumeTarget {
   stepIdx: number;
   field?: keyof QuickAgentForm;
+  /** Zod issue code (ou heurística) — usado para classificar o erro no UI. */
+  errorType?: 'required' | 'too_small' | 'too_big' | 'invalid_type' | 'custom' | 'unknown';
+  /** Mensagem original do schema, quando disponível. */
+  errorMessage?: string;
+  /** Label legível do passo onde o erro ocorreu. */
+  stepLabel?: string;
 }
 
 interface ResumeStepDef {
   key: string;
-  schema: { safeParse: (v: unknown) => { success: boolean; error?: { errors: Array<{ path: (string | number)[]; message: string }> } } };
+  label?: string;
+  schema: { safeParse: (v: unknown) => { success: boolean; error?: { errors: Array<{ path: (string | number)[]; message: string; code?: string }> } } };
   fields: readonly string[];
+}
+
+function classifyZodCode(code: string | undefined, message: string | undefined, isEmpty: boolean): DraftResumeTarget['errorType'] {
+  if (isEmpty) return 'required';
+  if (!code) return 'unknown';
+  if (code === 'too_small') return isEmpty ? 'required' : 'too_small';
+  if (code === 'too_big') return 'too_big';
+  if (code === 'invalid_type') return 'invalid_type';
+  if (code === 'custom') return 'custom';
+  if (message?.toLowerCase().includes('obrigat')) return 'required';
+  return 'unknown';
 }
 
 /**
@@ -48,10 +66,10 @@ export function computeResumeTarget(
     const s = steps[i];
     const r = s.schema.safeParse(form);
     if (r.success) continue;
-    const path = r.error?.errors?.[0]?.path?.[0];
+    const issue = r.error?.errors?.[0];
+    const path = issue?.path?.[0];
     let field = typeof path === 'string' ? (path as keyof QuickAgentForm) : undefined;
     if (!field) {
-      // Fallback: first declared field that looks empty/short
       const empty = s.fields.find((fname) => {
         const v = form[fname as keyof QuickAgentForm];
         if (typeof v === 'string') return v.trim().length === 0;
@@ -59,7 +77,15 @@ export function computeResumeTarget(
       });
       field = (empty ?? s.fields[0]) as keyof QuickAgentForm;
     }
-    return { stepIdx: i, field };
+    const fieldVal = form[field];
+    const isEmpty = typeof fieldVal === 'string' ? fieldVal.trim().length === 0 : fieldVal == null;
+    return {
+      stepIdx: i,
+      field,
+      errorType: classifyZodCode(issue?.code, issue?.message, isEmpty),
+      errorMessage: issue?.message,
+      stepLabel: s.label,
+    };
   }
   return { stepIdx: steps.length - 1 };
 }
