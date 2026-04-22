@@ -450,6 +450,16 @@ export function ReplayDialog({ open, onOpenChange, execution, initialStep = 0, o
           )}
         </div>
       </DialogContent>
+
+      <TraceCompareDialog
+        open={compareOpen}
+        onOpenChange={setCompareOpen}
+        traceA={traceA}
+        indexA={indexA}
+        traceB={traceB}
+        indexB={indexB}
+        onSwap={swapPicks}
+      />
     </Dialog>
   );
 }
