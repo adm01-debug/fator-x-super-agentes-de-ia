@@ -179,7 +179,7 @@ export function StepQuickPrompt({ form, errors, onPromptManualEdit, onRestore, o
    */
   const insertSectionSnippet = (key: PromptSectionKey, snippet: string): [number, number] => {
     const { prompt: nextPrompt, insertedRange } = insertSectionAt(form.prompt, key, snippet);
-    handleManualEdit(nextPrompt);
+    handleManualEdit(nextPrompt, 'checklist');
     return insertedRange;
   };
 
