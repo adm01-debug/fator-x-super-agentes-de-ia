@@ -117,8 +117,20 @@ export function WorkflowTimeTravelPanel({
     loadTimeline();
   }, [loadTimeline]);
 
-  // Inspect a checkpoint's state
+  // Inspect a checkpoint's state OR pick it as A/B in compare mode.
   const handleInspect = async (checkpointId: string) => {
+    if (compareMode) {
+      // Round-robin assignment: fill A first, then B, then replace A again.
+      if (!compareAId || (compareAId && compareBId)) {
+        setCompareAId(checkpointId);
+        setCompareBId(null);
+        setCompareA(null);
+        setCompareB(null);
+      } else if (checkpointId !== compareAId) {
+        setCompareBId(checkpointId);
+      }
+      return;
+    }
     try {
       setSelectedCheckpoint(checkpointId);
       const cp = await getCheckpoint(checkpointId);
@@ -126,6 +138,42 @@ export function WorkflowTimeTravelPanel({
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Erro ao inspecionar checkpoint');
     }
+  };
+
+  // Load A and B checkpoints whenever both ids are set.
+  useEffect(() => {
+    if (!compareMode || !compareAId || !compareBId) return;
+    let cancelled = false;
+    (async () => {
+      try {
+        setComparing(true);
+        const [a, b] = await Promise.all([getCheckpoint(compareAId), getCheckpoint(compareBId)]);
+        if (cancelled) return;
+        setCompareA(a);
+        setCompareB(b);
+      } catch (err) {
+        if (!cancelled) setError(err instanceof Error ? err.message : 'Erro ao carregar comparação');
+      } finally {
+        if (!cancelled) setComparing(false);
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [compareMode, compareAId, compareBId]);
+
+  const resetCompare = () => {
+    setCompareAId(null);
+    setCompareBId(null);
+    setCompareA(null);
+    setCompareB(null);
+  };
+
+  const swapCompare = () => {
+    setCompareAId(compareBId);
+    setCompareBId(compareAId);
+    setCompareA(compareB);
+    setCompareB(compareA);
   };
 
   // Fork from a checkpoint
