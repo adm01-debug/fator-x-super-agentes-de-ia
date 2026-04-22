@@ -121,6 +121,7 @@ interface QuickCreateWizardProps {
 
 export function QuickCreateWizard({ onBack }: QuickCreateWizardProps) {
   const navigate = useNavigate();
+  const [searchParams, setSearchParams] = useSearchParams();
   const { user } = useAuth();
   const [step, setStep] = useState(0);
   const [saving, setSaving] = useState(false);
