@@ -5,30 +5,40 @@ import { compilePrompt } from '@/lib/promptCompiler';
 import {
   detectPromptSections,
   getMissingSections,
+  analyzeSectionContent,
   REQUIRED_PROMPT_SECTIONS,
   type QuickAgentForm,
   type PromptSectionKey,
+  type SectionContentReport,
 } from '@/lib/validations/quickAgentSchema';
 
 export interface ReviewData {
   sections: Record<PromptSectionKey, boolean>;
   missingSections: PromptSectionKey[];
+  sectionReports: SectionContentReport[];
+  thinSections: SectionContentReport[];
   compiled: ReturnType<typeof compilePrompt>;
   hasUnresolved: boolean;
   hasMissingSections: boolean;
+  hasThinSections: boolean;
 }
 
 export function useReviewData(form: QuickAgentForm): ReviewData {
   return useMemo(() => {
     const sections = detectPromptSections(form.prompt);
     const missingSections = getMissingSections(form.prompt);
+    const sectionReports = analyzeSectionContent(form.prompt);
+    const thinSections = sectionReports.filter((r) => r.present && r.thinReason !== null);
     const compiled = compilePrompt(form);
     return {
       sections,
       missingSections,
+      sectionReports,
+      thinSections,
       compiled,
       hasUnresolved: compiled.unresolvedVariables.length > 0,
       hasMissingSections: missingSections.length > 0,
+      hasThinSections: thinSections.length > 0,
     };
   }, [form]);
 }
