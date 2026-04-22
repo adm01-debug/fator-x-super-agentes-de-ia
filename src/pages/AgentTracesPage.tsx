@@ -103,23 +103,43 @@ export default function AgentTracesPage() {
   );
 
   // Restore last viewed step whenever the effective session changes.
+  // Priority: URL ?step= → localStorage → 0. URL wins only on initial mount
+  // for that session (we consume it once via a ref-like flag).
   const effectiveSessionId = selected?.session_id ?? null;
   const effectiveTotal = selected?.traces.length ?? 0;
+  const [consumedUrlStepFor, setConsumedUrlStepFor] = useState<string | null>(null);
+
   useEffect(() => {
     if (!effectiveSessionId) { setSelectedStep(0); return; }
-    const map = readStepMap();
-    const saved = map[effectiveSessionId] ?? 0;
-    setSelectedStep(Math.max(0, Math.min(saved, Math.max(0, effectiveTotal - 1))));
+    let target: number;
+    if (urlStep != null && consumedUrlStepFor !== effectiveSessionId) {
+      target = urlStep;
+      setConsumedUrlStepFor(effectiveSessionId);
+    } else {
+      const map = readStepMap();
+      target = map[effectiveSessionId] ?? 0;
+    }
+    setSelectedStep(Math.max(0, Math.min(target, Math.max(0, effectiveTotal - 1))));
+    // urlStep intentionally excluded — only consulted on first session resolution.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [effectiveSessionId, effectiveTotal]);
 
-  // Persist step changes for the effective session.
+  // Persist step changes for the effective session to BOTH localStorage and URL.
   useEffect(() => {
     if (!effectiveSessionId) return;
     const map = readStepMap();
-    if (map[effectiveSessionId] === selectedStep) return;
-    map[effectiveSessionId] = selectedStep;
-    writeStepMap(map);
-  }, [effectiveSessionId, selectedStep]);
+    if (map[effectiveSessionId] !== selectedStep) {
+      map[effectiveSessionId] = selectedStep;
+      writeStepMap(map);
+    }
+    // Sync URL — replace history entry to avoid spamming back-stack while navigating steps.
+    const next = new URLSearchParams(searchParams);
+    if (next.get('session') !== effectiveSessionId) next.set('session', effectiveSessionId);
+    if (next.get('step') !== String(selectedStep)) next.set('step', String(selectedStep));
+    if (next.toString() !== searchParams.toString()) {
+      setSearchParams(next, { replace: true });
+    }
+  }, [effectiveSessionId, selectedStep, searchParams, setSearchParams]);
 
   const totals = useMemo(() => {
     const errors = traces.filter((t) => t.level === 'error').length;
