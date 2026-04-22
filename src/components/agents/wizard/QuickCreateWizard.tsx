@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { ArrowLeft, ArrowRight, Check, ChevronRight, Loader2, Rocket } from 'lucide-react';
@@ -23,7 +23,18 @@ import { StepQuickIdentity } from './quickSteps/StepQuickIdentity';
 import { StepQuickType } from './quickSteps/StepQuickType';
 import { StepQuickModel } from './quickSteps/StepQuickModel';
 import { StepQuickPrompt } from './quickSteps/StepQuickPrompt';
-import { DraftRecoveryBanner, type DraftSummary } from './DraftRecoveryBanner';
+import { DraftRecoveryBanner, type DraftBannerEntry } from './DraftRecoveryBanner';
+import {
+  loadDrafts,
+  saveDrafts,
+  upsertDraft,
+  removeDraft,
+  setActive,
+  summarizeForm,
+  DRAFT_TTL_MS,
+  type DraftsStoreV2,
+  type DraftEntry,
+} from './draftStore';
 
 const STEPS = [
   { key: 'identity', label: 'Identidade', schema: quickIdentitySchema, fields: ['name', 'emoji', 'mission', 'description'] },
@@ -32,41 +43,15 @@ const STEPS = [
   { key: 'prompt', label: 'Prompt', schema: quickPromptSchema, fields: ['prompt'] },
 ] as const;
 
-const DRAFT_KEY = 'quick-agent-wizard-draft';
-const DRAFT_TTL_MS = 7 * 24 * 60 * 60 * 1000; // 7 dias
-
-interface DraftEnvelope {
-  form: QuickAgentForm;
-  savedAt: string;
-}
-
-function readDraftEnvelope(): DraftEnvelope | null {
-  try {
-    const raw = localStorage.getItem(DRAFT_KEY);
-    if (!raw) return null;
-    const parsed = JSON.parse(raw);
-    if (parsed && typeof parsed === 'object' && 'form' in parsed && 'savedAt' in parsed) {
-      const env = parsed as DraftEnvelope;
-      return { form: { ...QUICK_AGENT_DEFAULTS, ...env.form }, savedAt: env.savedAt };
-    }
-    return { form: { ...QUICK_AGENT_DEFAULTS, ...parsed }, savedAt: new Date().toISOString() };
-  } catch {
-    return null;
-  }
-}
-
-function summarize(form: QuickAgentForm): DraftSummary {
-  return {
-    name: form.name,
-    hasIdentity:
-      form.name.trim().length > 0 ||
-      form.mission.trim().length > 0 ||
-      (form.description ?? '').trim().length > 0,
-    hasType: quickTypeSchema.safeParse(form).success,
-    hasModel: quickModelSchema.safeParse(form).success,
-    hasPrompt: form.prompt.trim().length >= 10,
-  };
-}
+const TYPE_LABEL: Record<QuickAgentType, string> = {
+  chatbot: 'Chatbot',
+  copilot: 'Copiloto',
+  analyst: 'Analista',
+  sdr: 'SDR',
+  support: 'Suporte',
+  researcher: 'Pesquisa',
+  orchestrator: 'Orquestrador',
+};
 
 interface QuickCreateWizardProps {
   onBack: () => void;
@@ -80,50 +65,126 @@ export function QuickCreateWizard({ onBack }: QuickCreateWizardProps) {
   const [errors, setErrors] = useState<Partial<Record<keyof QuickAgentForm, string>>>({});
 
   const [form, setForm] = useState<QuickAgentForm>(QUICK_AGENT_DEFAULTS);
-  const [pendingDraft, setPendingDraft] = useState<DraftEnvelope | null>(null);
+  const [draftsStore, setDraftsStore] = useState<DraftsStoreV2>({ version: 2, activeId: null, drafts: [] });
+  const [pendingDrafts, setPendingDrafts] = useState<DraftEntry[]>([]);
   const [draftDecided, setDraftDecided] = useState(false);
+  const lastTypeRef = useRef<QuickAgentType | null>(null);
 
-  // On mount: check for a meaningful, non-expired draft and offer recovery.
+  // On mount: load store, filter recoverable drafts.
   useEffect(() => {
-    const env = readDraftEnvelope();
-    if (!env) { setDraftDecided(true); return; }
-    const ageMs = Date.now() - new Date(env.savedAt).getTime();
-    if (!Number.isFinite(ageMs) || ageMs > DRAFT_TTL_MS || !isDraftMeaningful(env.form)) {
-      try { localStorage.removeItem(DRAFT_KEY); } catch {/* ignore */}
+    const store = loadDrafts();
+    const now = Date.now();
+    const recoverable = store.drafts
+      .filter((d) => {
+        const age = now - new Date(d.savedAt).getTime();
+        return Number.isFinite(age) && age <= DRAFT_TTL_MS && isDraftMeaningful(d.form);
+      })
+      .sort((a, b) => new Date(b.savedAt).getTime() - new Date(a.savedAt).getTime());
+
+    // Drop expired/empty entries from the persisted store too
+    const cleaned: DraftsStoreV2 = {
+      ...store,
+      drafts: recoverable,
+      activeId: recoverable.find((d) => d.id === store.activeId)?.id ?? null,
+    };
+    saveDrafts(cleaned);
+    setDraftsStore(cleaned);
+
+    if (recoverable.length === 0) {
       setDraftDecided(true);
-      return;
+    } else {
+      setPendingDrafts(recoverable);
     }
-    setPendingDraft(env);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  // Auto-save draft only after the user decided what to do with any prior draft.
+  // Auto-save current form into the active draft (after user resolved any pending recovery).
   useEffect(() => {
     if (!draftDecided) return;
-    try {
-      const envelope: DraftEnvelope = { form, savedAt: new Date().toISOString() };
-      localStorage.setItem(DRAFT_KEY, JSON.stringify(envelope));
-    } catch {/* ignore */}
+    if (!isDraftMeaningful(form) && !draftsStore.activeId) return;
+    setDraftsStore((prev) => {
+      const { store } = upsertDraft(prev, { id: prev.activeId ?? undefined, form });
+      saveDrafts(store);
+      return store;
+    });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [form, draftDecided]);
 
-  const restoreDraft = () => {
-    if (!pendingDraft) return;
-    setForm(pendingDraft.form);
-    const resumeIdx = STEPS.findIndex((s) => !s.schema.safeParse(pendingDraft.form).success);
-    const target = resumeIdx === -1 ? STEPS.length - 1 : resumeIdx;
-    setStep(target);
-    setPendingDraft(null);
+  // Heuristic: when user changes the type after editing a meaningful draft,
+  // offer to fork into a new draft (one per type).
+  useEffect(() => {
+    if (!draftDecided) return;
+    const prevType = lastTypeRef.current;
+    lastTypeRef.current = form.type as QuickAgentType;
+    if (!prevType || prevType === form.type) return;
+    if (!isDraftMeaningful(form)) return;
+    const activeId = draftsStore.activeId;
+    if (!activeId) return;
+
+    toast('Tipo alterado para ' + TYPE_LABEL[form.type as QuickAgentType], {
+      description: 'Quer manter o anterior e começar um novo rascunho?',
+      action: {
+        label: 'Salvar como novo',
+        onClick: () => {
+          setDraftsStore((prev) => {
+            // Re-anchor active draft to the previous type by reverting its stored type
+            const previous = prev.drafts.find((d) => d.id === activeId);
+            const restoredPrev = previous
+              ? { ...prev, drafts: prev.drafts.map((d) => d.id === activeId ? { ...d, form: { ...d.form, type: prevType } } : d) }
+              : prev;
+            // Create a fresh draft with the current form (new type)
+            const { store } = upsertDraft({ ...restoredPrev, activeId: null }, { form });
+            saveDrafts(store);
+            toast.success('Novo rascunho criado', { description: `Anterior preservado como ${TYPE_LABEL[prevType]}.` });
+            return store;
+          });
+        },
+      },
+    });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [form.type]);
+
+  const restoreDraft = (id: string) => {
+    const target = pendingDrafts.find((d) => d.id === id);
+    if (!target) return;
+    setForm(target.form);
+    lastTypeRef.current = target.form.type as QuickAgentType;
+    const resumeIdx = STEPS.findIndex((s) => !s.schema.safeParse(target.form).success);
+    const resumeStep = resumeIdx === -1 ? STEPS.length - 1 : resumeIdx;
+    setStep(resumeStep);
+    setDraftsStore((prev) => {
+      const next = setActive(prev, id);
+      saveDrafts(next);
+      return next;
+    });
+    setPendingDrafts([]);
     setDraftDecided(true);
     toast.success('Rascunho restaurado', {
-      description: `Continuando do passo: ${STEPS[target].label}`,
+      description: `Continuando do passo: ${STEPS[resumeStep].label}`,
     });
   };
 
-  const discardDraft = () => {
-    try { localStorage.removeItem(DRAFT_KEY); } catch {/* ignore */}
-    setPendingDraft(null);
-    setDraftDecided(true);
+  const discardOneDraft = (id: string) => {
+    setDraftsStore((prev) => {
+      const next = removeDraft(prev, id);
+      saveDrafts(next);
+      return next;
+    });
+    setPendingDrafts((prev) => {
+      const next = prev.filter((d) => d.id !== id);
+      if (next.length === 0) setDraftDecided(true);
+      return next;
+    });
     toast('Rascunho descartado');
+  };
+
+  const discardAllDrafts = () => {
+    const empty: DraftsStoreV2 = { version: 2, activeId: null, drafts: [] };
+    saveDrafts(empty);
+    setDraftsStore(empty);
+    setPendingDrafts([]);
+    setDraftDecided(true);
+    toast('Todos os rascunhos foram descartados');
   };
 
   const update = <K extends keyof QuickAgentForm>(key: K, value: QuickAgentForm[K]) => {
@@ -208,7 +269,6 @@ export function QuickCreateWizard({ onBack }: QuickCreateWizardProps) {
       navigate('/auth');
       return;
     }
-    // Validate all
     for (let i = 0; i < STEPS.length; i++) {
       if (!validateStep(i)) {
         setStep(i);
@@ -237,14 +297,20 @@ export function QuickCreateWizard({ onBack }: QuickCreateWizardProps) {
       toast.error('Erro ao salvar agente', { description: error.message });
       return;
     }
-    try { localStorage.removeItem(DRAFT_KEY); } catch {/* ignore */}
+    // Remove only the active draft (preserve other parallel drafts)
+    if (draftsStore.activeId) {
+      setDraftsStore((prev) => {
+        const next = removeDraft(prev, prev.activeId!);
+        saveDrafts(next);
+        return next;
+      });
+    }
     toast.success('Agente criado com sucesso!', { description: `${form.name} foi salvo como rascunho.` });
     navigate('/agents');
   };
 
   const isLast = step === STEPS.length - 1;
 
-  // Keyboard shortcuts
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
       const target = e.target as HTMLElement;
@@ -268,14 +334,24 @@ export function QuickCreateWizard({ onBack }: QuickCreateWizardProps) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [step, form, errors]);
 
+  const bannerEntries: DraftBannerEntry[] = useMemo(
+    () => pendingDrafts.map((d) => ({
+      id: d.id,
+      savedAt: d.savedAt,
+      summary: summarizeForm(d.form),
+      typeLabel: TYPE_LABEL[d.form.type as QuickAgentType] ?? String(d.form.type),
+    })),
+    [pendingDrafts],
+  );
+
   return (
     <div className="p-6 max-w-[1100px] mx-auto space-y-6">
-      {pendingDraft && (
+      {bannerEntries.length > 0 && (
         <DraftRecoveryBanner
-          savedAt={pendingDraft.savedAt}
-          summary={summarize(pendingDraft.form)}
+          drafts={bannerEntries}
           onRestore={restoreDraft}
-          onDiscard={discardDraft}
+          onDiscardOne={discardOneDraft}
+          onDiscardAll={discardAllDrafts}
         />
       )}
       <div className="flex items-center gap-3">
