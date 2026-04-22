@@ -163,6 +163,7 @@ export function PromptContradictionAutoFixPanel({ prompt, onApply }: Props) {
                     `Unificar regras (${CONTRADICTION_KIND_LABEL[builtFix.conflict.kind]})`,
                     builtFix.fixedPrompt,
                     `Linhas ${builtFix.conflict.lineA} e ${builtFix.conflict.lineB} substituídas pela sugestão escolhida.`,
+                    builtFix,
                   )
                 }
                 onApply={(builtFix) =>
