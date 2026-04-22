@@ -4,12 +4,13 @@ import { Button } from '@/components/ui/button';
 import { Slider } from '@/components/ui/slider';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
-import { Pause, Play, RotateCcw, SkipBack, SkipForward, Info, AlertTriangle, XCircle, Download, BookmarkCheck } from 'lucide-react';
+import { Pause, Play, RotateCcw, SkipBack, SkipForward, Info, AlertTriangle, XCircle, Download, BookmarkCheck, ArrowLeftRight, GitCompare } from 'lucide-react';
 import type { ExecutionGroup, TraceLevel } from '@/services/agentTracesService';
 import { downloadJSON } from '@/lib/agentExportImport';
 import { toast } from 'sonner';
 import { listBookmarks, type TraceBookmark } from '@/lib/traceBookmarks';
 import { BookmarkButton } from './BookmarkButton';
+import { TraceCompareDialog } from './TraceCompareDialog';
 import { cn } from '@/lib/utils';
 
 interface Props {
@@ -60,6 +61,36 @@ export function ReplayDialog({ open, onOpenChange, execution, initialStep = 0, o
     setStep(target);
     setPlaying(false);
   };
+
+  // A/B selection for side-by-side comparison. Stores trace ids so the choice
+  // survives play/seek without depending on the moving `step` cursor.
+  const [pickA, setPickA] = useState<string | null>(null);
+  const [pickB, setPickB] = useState<string | null>(null);
+  const [compareOpen, setCompareOpen] = useState(false);
+  // Reset picks whenever the user opens a different execution.
+  useEffect(() => { setPickA(null); setPickB(null); setCompareOpen(false); }, [sessionId]);
+
+  const indexA = pickA ? traces.findIndex((t) => t.id === pickA) : -1;
+  const indexB = pickB ? traces.findIndex((t) => t.id === pickB) : -1;
+  const traceA = indexA >= 0 ? traces[indexA] : null;
+  const traceB = indexB >= 0 ? traces[indexB] : null;
+  const currentIsA = current ? current.id === pickA : false;
+  const currentIsB = current ? current.id === pickB : false;
+
+  /** Mark current step as slot A or B. Re-clicking same slot clears it. */
+  const toggleSlot = (slot: 'A' | 'B') => {
+    if (!current) return;
+    const id = current.id;
+    if (slot === 'A') {
+      setPickA((prev) => (prev === id ? null : id));
+      if (pickB === id) setPickB(null);
+    } else {
+      setPickB((prev) => (prev === id ? null : id));
+      if (pickA === id) setPickA(null);
+    }
+  };
+  const swapPicks = () => { setPickA(pickB); setPickB(pickA); };
+  const canCompare = !!(pickA && pickB && pickA !== pickB);
 
   const accumulated = useMemo(() => {
     let ms = 0, tokens = 0, cost = 0;
@@ -258,6 +289,39 @@ export function ReplayDialog({ open, onOpenChange, execution, initialStep = 0, o
             </>
           )}
 
+          <span className="h-5 w-px bg-border/60 mx-1" aria-hidden />
+          {/* A/B compare quick-launch — disabled until two distinct steps are picked. */}
+          <Button
+            size="sm"
+            variant={canCompare ? 'default' : 'outline'}
+            className="h-8 px-2 gap-1.5 text-[11px]"
+            disabled={!canCompare}
+            onClick={() => setCompareOpen(true)}
+            title={canCompare
+              ? `Comparar passo #${indexA + 1} (A) com #${indexB + 1} (B)`
+              : 'Selecione dois passos como A e B para comparar'}
+          >
+            <GitCompare className="h-3.5 w-3.5" />
+            Comparar
+            {(pickA || pickB) && (
+              <span className="font-mono text-[10px] opacity-80">
+                {pickA ? `#${indexA + 1}` : '—'}/{pickB ? `#${indexB + 1}` : '—'}
+              </span>
+            )}
+          </Button>
+          {(pickA || pickB) && (
+            <Button
+              size="icon"
+              variant="ghost"
+              className="h-8 w-8 text-muted-foreground"
+              onClick={() => { setPickA(null); setPickB(null); }}
+              title="Limpar seleção A/B"
+              aria-label="Limpar seleção A/B"
+            >
+              <ArrowLeftRight className="h-3 w-3" />
+            </Button>
+          )}
+
           <div className="ml-2 flex items-center gap-2">
             <span className="text-[10px] uppercase text-muted-foreground">Velocidade</span>
             <Select value={String(speed)} onValueChange={(v) => setSpeed(Number(v))}>
@@ -329,6 +393,36 @@ export function ReplayDialog({ open, onOpenChange, execution, initialStep = 0, o
                     </p>
                   )}
                 </div>
+                <div className="flex items-center gap-1">
+                  <Button
+                    type="button"
+                    size="sm"
+                    variant={currentIsA ? 'default' : 'outline'}
+                    className={cn(
+                      'h-7 px-2 text-[11px] font-mono',
+                      currentIsA && 'bg-destructive text-destructive-foreground hover:bg-destructive/90',
+                    )}
+                    onClick={() => toggleSlot('A')}
+                    title={currentIsA ? 'Remover este passo do slot A' : 'Marcar este passo como A'}
+                    aria-pressed={currentIsA}
+                  >
+                    A
+                  </Button>
+                  <Button
+                    type="button"
+                    size="sm"
+                    variant={currentIsB ? 'default' : 'outline'}
+                    className={cn(
+                      'h-7 px-2 text-[11px] font-mono',
+                      currentIsB && 'bg-nexus-emerald text-white hover:bg-nexus-emerald/90',
+                    )}
+                    onClick={() => toggleSlot('B')}
+                    title={currentIsB ? 'Remover este passo do slot B' : 'Marcar este passo como B'}
+                    aria-pressed={currentIsB}
+                  >
+                    B
+                  </Button>
+                </div>
                 <BookmarkButton
                   sessionId={sessionId}
                   traceId={current.id}
@@ -356,6 +450,16 @@ export function ReplayDialog({ open, onOpenChange, execution, initialStep = 0, o
           )}
         </div>
       </DialogContent>
+
+      <TraceCompareDialog
+        open={compareOpen}
+        onOpenChange={setCompareOpen}
+        traceA={traceA}
+        indexA={indexA}
+        traceB={traceB}
+        indexB={indexB}
+        onSwap={swapPicks}
+      />
     </Dialog>
   );
 }
