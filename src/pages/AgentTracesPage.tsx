@@ -132,6 +132,8 @@ export default function AgentTracesPage() {
               onSelect={(e) => setSelectedId(e.session_id)}
               onReplay={(e) => { setSelectedId(e.session_id); setReplayOpen(true); }}
               loading={isLoading}
+              hasActiveFilters={hasActiveFilters}
+              onClearFilters={handleClearFilters}
             />
           </CardContent>
         </Card>
