@@ -43,6 +43,23 @@ const DEFAULT_WINDOW_HOURS = 24;
 const QP_WINDOW = 'w';
 const QP_AUTO = 'auto';
 const QP_COMPARE = 'cmp';
+const QP_FAILURE_MODES = 'fm';
+
+/**
+ * Failure modes that count toward "violations" in the timeline.
+ * - `error`    → bucket has any traces with level=error
+ * - `critical` → bucket P95 exceeds the P99 target (severe latency outliers)
+ * - `latency`  → bucket P95 exceeds the P95 target
+ * Tool-failure granularity isn't exposed by `get_slo_summary` yet, so we
+ * deliberately omit it instead of showing a filter that does nothing.
+ */
+type FailureMode = 'error' | 'critical' | 'latency';
+const ALL_FAILURE_MODES: readonly FailureMode[] = ['error', 'critical', 'latency'] as const;
+const FAILURE_MODE_META: Record<FailureMode, { label: string; description: string }> = {
+  error:    { label: 'Erros',    description: 'Buckets com pelo menos 1 trace com level=error' },
+  critical: { label: 'Crítico',  description: 'P95 do bucket excede o alvo de P99 (outliers severos)' },
+  latency:  { label: 'Latência', description: 'P95 do bucket excede o alvo de P95' },
+};
 
 /** Human-readable label for a window in hours. */
 function windowLabel(hours: number): string {
@@ -186,6 +203,30 @@ export default function SLODashboard() {
   });
   const [compareSummary, setCompareSummary] = useState<SLOSummary | null>(null);
 
+  // Failure-mode filters for the timeline. Each toggle controls which kind of
+  // bucket is *highlighted* as a violation and counted in the violation total.
+  // Persisted in URL as `?fm=` (comma-separated) so a shared link reproduces
+  // the same view. `tool` is intentionally disabled — the SLO RPC doesn't yet
+  // break tool failures out of the generic `error` level.
+  const [failureModes, setFailureModes] = useState<Set<FailureMode>>(() => {
+    const raw = searchParams.get(QP_FAILURE_MODES);
+    if (raw === null) return new Set(ALL_FAILURE_MODES);
+    const picked = raw.split(',').filter((m): m is FailureMode =>
+      (ALL_FAILURE_MODES as readonly string[]).includes(m),
+    );
+    return picked.length ? new Set(picked) : new Set(ALL_FAILURE_MODES);
+  });
+  const toggleFailureMode = useCallback((mode: FailureMode) => {
+    setFailureModes((prev) => {
+      const next = new Set(prev);
+      if (next.has(mode)) next.delete(mode);
+      else next.add(mode);
+      // Always keep at least one selected to avoid an empty chart.
+      if (next.size === 0) return prev;
+      return next;
+    });
+  }, []);
+
   const [lastRefreshAt, setLastRefreshAt] = useState<Date | null>(null);
   // Re-renders the "X seg atrás" pill once a second without re-fetching data.
   const [, setNowTick] = useState(0);
@@ -214,12 +255,18 @@ export default function SLODashboard() {
     if (compareHours <= 0) next.delete(QP_COMPARE);
     else next.set(QP_COMPARE, String(compareHours));
 
+    // Failure-mode filters: omit when "all selected" (default), otherwise
+    // serialize as a stable comma-separated list so URLs are deterministic.
+    const fmArr = ALL_FAILURE_MODES.filter((m) => failureModes.has(m));
+    if (fmArr.length === ALL_FAILURE_MODES.length) next.delete(QP_FAILURE_MODES);
+    else next.set(QP_FAILURE_MODES, fmArr.join(','));
+
     // Avoid an infinite update loop: only call setSearchParams when the
     // serialized result actually differs from what's already in the URL.
     if (next.toString() !== searchParams.toString()) {
       setSearchParams(next, { replace: true });
     }
-  }, [windowHours, autoRefreshMs, compareHours, searchParams, setSearchParams]);
+  }, [windowHours, autoRefreshMs, compareHours, failureModes, searchParams, setSearchParams]);
 
   // React to back/forward navigation (or another link that mutates the URL)
   // by re-reading the params into local state.
@@ -233,6 +280,20 @@ export default function SLODashboard() {
     if (wFromUrl !== windowHours) setWindowHours(wFromUrl);
     if (aFromUrl !== autoRefreshMs) setAutoRefreshMs(aFromUrl);
     if (cmpFromUrl !== compareHours) setCompareHours(cmpFromUrl);
+
+    const fmRaw = searchParams.get(QP_FAILURE_MODES);
+    const fmFromUrl = fmRaw === null
+      ? new Set<FailureMode>(ALL_FAILURE_MODES)
+      : new Set<FailureMode>(
+          fmRaw.split(',').filter((m): m is FailureMode =>
+            (ALL_FAILURE_MODES as readonly string[]).includes(m),
+          ),
+        );
+    if (fmFromUrl.size > 0) {
+      const sameMembers = fmFromUrl.size === failureModes.size
+        && [...fmFromUrl].every((m) => failureModes.has(m));
+      if (!sameMembers) setFailureModes(fmFromUrl);
+    }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [searchParams]);
 
@@ -309,12 +370,34 @@ export default function SLODashboard() {
     : 0;
   const budgetStatus = errorBudgetStatus(errorBudgetConsumed);
 
+  /**
+   * Classify a single timeseries bucket against the active failure-mode set.
+   * A bucket counts as a "violation" when it triggers at least one selected
+   * failure mode. We expose the matched modes so the chart can color-tag them.
+   */
+  const classifyBucket = useCallback((p: { errors: number; p95_ms: number }): FailureMode[] => {
+    const matched: FailureMode[] = [];
+    if (failureModes.has('error') && p.errors > 0) matched.push('error');
+    if (failureModes.has('critical') && p.p95_ms > SLO_TARGETS.p99LatencyMs) matched.push('critical');
+    if (failureModes.has('latency') && p.p95_ms > SLO_TARGETS.p95LatencyMs) matched.push('latency');
+    return matched;
+  }, [failureModes]);
+
   const chartData = summary?.timeseries.map((p) => ({
     time: new Date(p.bucket_hour).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' }),
     p95: p.p95_ms,
     p50: p.p50_ms,
     target: SLO_TARGETS.p95LatencyMs,
   })) ?? [];
+
+  // Total violation buckets under the current filter — surfaced in the
+  // comparison table and the timeline header chip.
+  const filteredViolations = (summary?.timeseries ?? []).filter(
+    (p) => classifyBucket(p).length > 0,
+  ).length;
+  const filteredViolationsCompare = (compareSummary?.timeseries ?? []).filter(
+    (p) => classifyBucket(p).length > 0,
+  ).length;
 
   return (
     <div className="space-y-6 p-6 page-enter">
@@ -624,9 +707,9 @@ export default function SLODashboard() {
                         { label: 'Total de traces', curr: summary.total_traces, prev: compareSummary.total_traces, suffix: '', lowerBetter: false },
                         { label: 'Erros', curr: summary.error_count, prev: compareSummary.error_count, suffix: '', lowerBetter: true },
                         {
-                          label: 'Violações P95',
-                          curr: (summary.timeseries ?? []).filter((p) => p.p95_ms > SLO_TARGETS.p95LatencyMs).length,
-                          prev: (compareSummary.timeseries ?? []).filter((p) => p.p95_ms > SLO_TARGETS.p95LatencyMs).length,
+                          label: `Violações (${[...failureModes].map((m) => FAILURE_MODE_META[m].label.toLowerCase()).join(' + ')})`,
+                          curr: filteredViolations,
+                          prev: filteredViolationsCompare,
                           suffix: '',
                           lowerBetter: true,
                         },
@@ -657,10 +740,53 @@ export default function SLODashboard() {
           <div className="grid gap-4 lg:grid-cols-3">
             <Card className="lg:col-span-2">
               <CardHeader>
-                <CardTitle>Latência ao longo do tempo</CardTitle>
-                <CardDescription>
-                  P95 e P50 — linha pontilhada indica o alvo de {SLO_TARGETS.p95LatencyMs}ms
-                </CardDescription>
+                <div className="flex items-start justify-between gap-3 flex-wrap">
+                  <div>
+                    <CardTitle>Latência ao longo do tempo</CardTitle>
+                    <CardDescription>
+                      P95 e P50 — linha pontilhada indica o alvo de {SLO_TARGETS.p95LatencyMs}ms.
+                      {' '}
+                      <span className="font-medium text-foreground">
+                        {filteredViolations} {filteredViolations === 1 ? 'violação' : 'violações'}
+                      </span>
+                      {' '}sob o filtro atual.
+                    </CardDescription>
+                  </div>
+                </div>
+                {/* Failure-mode filters: choose which signals count as a
+                    violation in the timeline + comparison table. */}
+                <div className="flex items-center gap-2 flex-wrap pt-2">
+                  <span className="text-[11px] uppercase text-muted-foreground tracking-wide">
+                    Tipos de falha:
+                  </span>
+                  {ALL_FAILURE_MODES.map((mode) => {
+                    const active = failureModes.has(mode);
+                    return (
+                      <button
+                        key={mode}
+                        type="button"
+                        onClick={() => toggleFailureMode(mode)}
+                        title={FAILURE_MODE_META[mode].description}
+                        aria-pressed={active}
+                        className={`px-2.5 py-1 text-xs rounded-full border transition-colors focus-ring ${
+                          active
+                            ? 'bg-primary/15 border-primary/40 text-primary font-medium'
+                            : 'bg-secondary/30 border-border text-muted-foreground hover:bg-secondary/60'
+                        }`}
+                      >
+                        {FAILURE_MODE_META[mode].label}
+                      </button>
+                    );
+                  })}
+                  <button
+                    type="button"
+                    disabled
+                    title="Granularidade de falhas de ferramentas requer extensão do RPC get_slo_summary — em breve."
+                    className="px-2.5 py-1 text-xs rounded-full border border-dashed border-border text-muted-foreground/60 cursor-not-allowed"
+                  >
+                    Tool failures (em breve)
+                  </button>
+                </div>
               </CardHeader>
               <CardContent>
                 {chartData.length === 0 ? (
