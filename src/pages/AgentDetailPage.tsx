@@ -98,7 +98,7 @@ export default function AgentDetailPage() {
             <Button variant="outline" size="sm" onClick={() => navigate(`/agents/${agent.id}/alerts`)}>
               <Bell className="h-3.5 w-3.5 mr-1.5" /> Alertas
             </Button>
-            <Button variant="outline" size="sm" onClick={handleSimulate} disabled={simRunning}>
+            <Button variant="outline" size="sm" onClick={handleOpenSimulator} disabled={simRunning}>
               <Play className="h-3.5 w-3.5 mr-1.5" /> Simular run
             </Button>
             <Button variant="outline" size="sm" onClick={() => navigate(`/builder/${agent.id}`)}>
