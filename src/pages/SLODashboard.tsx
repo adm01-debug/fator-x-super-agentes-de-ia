@@ -5,7 +5,7 @@
  * Sprint 27 — Continuous Hardening.
  */
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { useSearchParams } from 'react-router-dom';
+import { useSearchParams, Link } from 'react-router-dom';
 import { Activity, AlertTriangle, Check, Link2, RefreshCw, TrendingUp, Zap } from 'lucide-react';
 import { LightAreaChart } from '@/components/charts';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -576,7 +576,166 @@ export default function SLODashboard() {
             />
           </div>
 
-          {/* Coverage — how much of the window actually has data backing the metrics. */}
+          {/* Drill-down — only meaningful when a comparison window is selected,
+              because "contribution to delta" needs a baseline. We surface the
+              3 buckets/agents that pulled each KPI hardest, with deep links
+              into the trace explorer scoped to that hour or that agent. */}
+          {compareSummary && (() => {
+            const buckets = summary.timeseries ?? [];
+            // Per-bucket trace URL — TracesTimelinePage doesn't yet read these
+            // params, but we set a stable contract so the deep links keep working
+            // once the page is wired to filter by from/to/agent.
+            const bucketHref = (iso: string) => {
+              const from = new Date(iso);
+              const to = new Date(from.getTime() + 60 * 60 * 1000);
+              const qp = new URLSearchParams({
+                from: from.toISOString(),
+                to: to.toISOString(),
+              });
+              return `/traces?${qp.toString()}`;
+            };
+            const fmtBucketLabel = (iso: string) => {
+              const d = new Date(iso);
+              return d.toLocaleString('pt-BR', {
+                day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit',
+              });
+            };
+
+            // Average baseline from comparison window — represents "normal"
+            // behavior. Buckets are scored by absolute distance from baseline
+            // (signed so we can show whether they pushed the metric up/down).
+            const cmpBuckets = compareSummary.timeseries ?? [];
+            const baselineP95 = cmpBuckets.length
+              ? cmpBuckets.reduce((s, b) => s + b.p95_ms, 0) / cmpBuckets.length
+              : 0;
+            const baselineErrors = cmpBuckets.length
+              ? cmpBuckets.reduce((s, b) => s + b.errors, 0) / cmpBuckets.length
+              : 0;
+
+            type Contributor = {
+              key: string;
+              label: string;
+              detail: string;
+              delta: number;
+              deltaLabel: string;
+              href: string;
+              worse: boolean;
+            };
+
+            // Top 3 buckets that drove P95 the hardest (absolute deviation
+            // from comparison baseline). Sign tells us if it's regression.
+            const topLatency: Contributor[] = [...buckets]
+              .map((b) => ({
+                bucket: b,
+                delta: b.p95_ms - baselineP95,
+              }))
+              .sort((a, b) => Math.abs(b.delta) - Math.abs(a.delta))
+              .slice(0, 3)
+              .map((row) => ({
+                key: row.bucket.bucket_hour,
+                label: fmtBucketLabel(row.bucket.bucket_hour),
+                detail: `P95 ${row.bucket.p95_ms}ms · ${row.bucket.total} traces`,
+                delta: row.delta,
+                deltaLabel: `${row.delta > 0 ? '+' : ''}${Math.round(row.delta)}ms vs baseline`,
+                href: bucketHref(row.bucket.bucket_hour),
+                worse: row.delta > 0,
+              }));
+
+            // Top 3 buckets contributing the most errors above baseline.
+            const topErrors: Contributor[] = [...buckets]
+              .filter((b) => b.errors > 0)
+              .map((b) => ({ bucket: b, delta: b.errors - baselineErrors }))
+              .sort((a, b) => b.delta - a.delta)
+              .slice(0, 3)
+              .map((row) => ({
+                key: row.bucket.bucket_hour,
+                label: fmtBucketLabel(row.bucket.bucket_hour),
+                detail: `${row.bucket.errors} erros em ${row.bucket.total} traces`,
+                delta: row.delta,
+                deltaLabel: `${row.delta > 0 ? '+' : ''}${row.delta.toFixed(1)} vs média`,
+                href: bucketHref(row.bucket.bucket_hour),
+                worse: row.delta > 0,
+              }));
+
+            // Top 3 agents pulling P95 up — straight from the RPC's top_agents.
+            const topAgents: Contributor[] = (summary.top_agents ?? [])
+              .slice(0, 3)
+              .map((a) => ({
+                key: a.agent_id,
+                label: a.agent_name,
+                detail: `${a.traces} traces · ${a.errors} erros · ${(a.success_rate ?? 100).toFixed(1)}% sucesso`,
+                delta: a.p95_ms,
+                deltaLabel: `P95 ${a.p95_ms}ms`,
+                href: `/agents/${a.agent_id}/traces`,
+                worse: a.p95_ms > SLO_TARGETS.p95LatencyMs,
+              }));
+
+            const sections: Array<{ title: string; kpi: string; rows: Contributor[]; empty: string }> = [
+              { title: 'Latência (P95)', kpi: 'P95', rows: topLatency, empty: 'Sem buckets com latência registrada.' },
+              { title: 'Erros', kpi: 'erros', rows: topErrors, empty: 'Nenhum bucket com erros nesta janela.' },
+              { title: 'Agentes', kpi: 'agentes', rows: topAgents, empty: 'Nenhum agente com tráfego nesta janela.' },
+            ];
+
+            return (
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    <TrendingUp className="h-4 w-4 text-primary" />
+                    Drill-down do delta
+                  </CardTitle>
+                  <CardDescription>
+                    Top 3 contribuintes para cada KPI vs. baseline de {windowLabel(compareHours)}.
+                    Clique em um item para abrir os traces relacionados.
+                  </CardDescription>
+                </CardHeader>
+                <CardContent className="grid gap-4 md:grid-cols-3">
+                  {sections.map((section) => (
+                    <div key={section.title} className="space-y-2">
+                      <div className="flex items-center justify-between">
+                        <h4 className="text-xs font-semibold uppercase text-muted-foreground tracking-wide">
+                          {section.title}
+                        </h4>
+                        <Badge variant="outline" className="text-[10px]">{section.kpi}</Badge>
+                      </div>
+                      {section.rows.length === 0 ? (
+                        <p className="text-[11px] text-muted-foreground italic py-3">{section.empty}</p>
+                      ) : (
+                        <ul className="space-y-1.5">
+                          {section.rows.map((row, idx) => (
+                            <li key={row.key}>
+                              <Link
+                                to={row.href}
+                                className="flex items-start gap-2 p-2 rounded-md border border-border/40 bg-secondary/20 hover:bg-secondary/50 hover:border-primary/40 transition-colors group focus-ring"
+                                title={`Abrir traces: ${row.label}`}
+                              >
+                                <span className="text-[10px] font-bold text-muted-foreground tabular-nums w-4 mt-0.5">
+                                  #{idx + 1}
+                                </span>
+                                <span className="flex-1 min-w-0">
+                                  <span className="block text-xs font-medium text-foreground truncate group-hover:text-primary">
+                                    {row.label}
+                                  </span>
+                                  <span className="block text-[11px] text-muted-foreground truncate">
+                                    {row.detail}
+                                  </span>
+                                  <span className={`block text-[10px] font-mono font-semibold mt-0.5 ${
+                                    row.worse ? 'text-destructive' : 'text-nexus-emerald'
+                                  }`}>
+                                    {row.deltaLabel}
+                                  </span>
+                                </span>
+                              </Link>
+                            </li>
+                          ))}
+                        </ul>
+                      )}
+                    </div>
+                  ))}
+                </CardContent>
+              </Card>
+            );
+          })()}
+
           {(() => {
             const buckets = summary.timeseries ?? [];
             // RPC buckets are hourly; expected = window hours.
