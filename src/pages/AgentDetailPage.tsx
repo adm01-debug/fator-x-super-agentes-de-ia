@@ -10,6 +10,7 @@ import { VersionDiffDialog } from "@/components/agents/VersionDiffDialog";
 import { AgentCardViewer } from "@/components/agents/AgentCardViewer";
 import { AgentRichMetrics } from "@/components/agents/detail/AgentRichMetrics";
 import { SimulationResultDialog } from "@/components/agents/detail/SimulationResultDialog";
+import { SavedTestRunsPanel } from "@/components/agents/detail/SavedTestRunsPanel";
 import { simulateAgentRun, type SimulationSummary } from "@/services/agentTestSimulationService";
 import {
   AlertDialog, AlertDialogContent, AlertDialogHeader, AlertDialogFooter,
@@ -151,6 +152,7 @@ export default function AgentDetailPage() {
 
       {/* Agent Metrics — rich panel with charts, SLO and daily history */}
       <AgentRichMetrics agentId={id!} agentName={agent.name} days={14} />
+      <SavedTestRunsPanel agentId={id!} agentName={agent.name} />
       <VersionHistory agentId={id!} />
 
       <SimulationResultDialog
@@ -160,6 +162,7 @@ export default function AgentDetailPage() {
         running={simRunning}
         onRun={handleRunSimulation}
         agentName={agent.name}
+        agentId={id}
       />
     </div>
   );

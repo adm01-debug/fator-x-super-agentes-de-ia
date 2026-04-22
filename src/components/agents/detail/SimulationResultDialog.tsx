@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { Loader2, CheckCircle2, XCircle, Zap, DollarSign, Cpu, TrendingUp, RefreshCw, Play, Pencil } from 'lucide-react';
+import { Loader2, CheckCircle2, XCircle, Zap, DollarSign, Cpu, TrendingUp, RefreshCw, Play, Pencil, Save } from 'lucide-react';
 import {
   Dialog,
   DialogContent,
@@ -9,8 +9,11 @@ import {
   DialogFooter,
 } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import type { SimulationSummary } from '@/services/agentTestSimulationService';
+import { saveRun } from '@/services/savedTestRunsStore';
+import { toast } from 'sonner';
 
 interface Props {
   open: boolean;
@@ -20,6 +23,12 @@ interface Props {
   /** Disparado quando o usuário aciona "Executar simulação". */
   onRun: (customInput: string, count: number) => void;
   agentName: string;
+  /** Quando definido, substitui o título padrão (modo "ver run salvo"). */
+  readOnlyTitle?: string;
+  /** Esconde editor de prompt, seletor de contagem e botão Executar. */
+  hideRunControls?: boolean;
+  /** Necessário para salvar — id do agente atual. */
+  agentId?: string;
 }
 
 const MAX_PROMPT_LEN = 1000;
@@ -45,38 +54,65 @@ function successBg(rate: number): string {
   return 'bg-destructive/10 border-destructive/30';
 }
 
-export function SimulationResultDialog({ open, onOpenChange, summary, running, onRun, agentName }: Props) {
+export function SimulationResultDialog({
+  open, onOpenChange, summary, running, onRun, agentName,
+  readOnlyTitle, hideRunControls = false, agentId,
+}: Props) {
   const [prompt, setPrompt] = useState('');
   const [count, setCount] = useState<CountValue>(10);
+  const [saveName, setSaveName] = useState('');
+  const [justSavedId, setJustSavedId] = useState<string | null>(null);
 
   // Reseta o prompt cada vez que o diálogo abre sem resultado prévio
   useEffect(() => {
     if (open && !summary && !running) {
       setPrompt('');
     }
+    if (open) {
+      setJustSavedId(null);
+      setSaveName('');
+    }
   }, [open, summary, running]);
 
   const trimmed = prompt.trim();
   const usingCustom = trimmed.length > 0;
   const overLimit = trimmed.length > MAX_PROMPT_LEN;
+  const canSave = !!summary && !!agentId && !running;
+
+  const handleSave = () => {
+    if (!summary || !agentId) return;
+    const defaultName = `Run ${new Date().toLocaleString('pt-BR', { dateStyle: 'short', timeStyle: 'short' })} · ${summary.successRate.toFixed(0)}% · ${summary.total} runs`;
+    const saved = saveRun({
+      agentId,
+      name: saveName.trim() || defaultName,
+      prompt: trimmed,
+      summary,
+    });
+    setJustSavedId(saved.id);
+    toast.success(`Test Run salvo: "${saved.name}"`);
+  };
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-2xl">
+      <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
-            Simular execução do agente
-            {summary && !running && (
+            {readOnlyTitle ?? 'Simular execução do agente'}
+            {!readOnlyTitle && summary && !running && (
               <span className="ml-2 text-xs font-normal text-muted-foreground">
                 {summary.total} execuções · {agentName}
               </span>
             )}
           </DialogTitle>
           <DialogDescription>
-            Simulação client-side com base em traces reais. Não consome créditos de LLM.
+            {readOnlyTitle
+              ? 'Visualizando resultado salvo. Use “Simular run” no header para nova execução.'
+              : 'Simulação client-side com base em traces reais. Não consome créditos de LLM.'}
           </DialogDescription>
         </DialogHeader>
 
+        {!hideRunControls && (
+        <>
         {/* Editor de prompt — sempre visível para permitir editar e re-rodar */}
         <div className="space-y-1.5">
           <label htmlFor="sim-prompt" className="flex items-center gap-1.5 text-xs font-medium text-foreground">
@@ -143,6 +179,8 @@ export function SimulationResultDialog({ open, onOpenChange, summary, running, o
             </span>
           </div>
         </div>
+        </>
+        )}
 
         {running && (
           <div className="flex flex-col items-center justify-center py-12 gap-3">
@@ -222,23 +260,62 @@ export function SimulationResultDialog({ open, onOpenChange, summary, running, o
           </div>
         )}
 
-        <DialogFooter className="gap-2 sm:gap-2">
-          <Button
-            variant={summary ? 'outline' : 'default'}
-            size="sm"
-            onClick={() => onRun(trimmed, count)}
-            disabled={running || overLimit}
-          >
-            {summary ? (
-              <>
-                <RefreshCw className="h-3.5 w-3.5 mr-1.5" /> Repetir simulação
-              </>
-            ) : (
-              <>
-                <Play className="h-3.5 w-3.5 mr-1.5" /> Executar simulação
-              </>
+        {/* Salvar como Test Run — só com summary, agentId e fora do modo somente leitura */}
+        {canSave && !hideRunControls && (
+          <div className="rounded-lg border border-primary/30 bg-primary/5 p-3 space-y-2">
+            <label htmlFor="sim-save-name" className="flex items-center gap-1.5 text-xs font-medium text-foreground">
+              <Save className="h-3 w-3 text-primary" aria-hidden="true" />
+              Salvar este Test Run
+              <span className="text-muted-foreground font-normal">(opcional, fica no histórico do agente)</span>
+            </label>
+            <div className="flex items-center gap-2">
+              <Input
+                id="sim-save-name"
+                value={saveName}
+                onChange={(e) => setSaveName(e.target.value)}
+                placeholder={`Ex.: Baseline antes da v${new Date().getDate()} — deixe vazio para nome automático`}
+                disabled={!!justSavedId}
+                maxLength={80}
+                className="h-8 text-xs"
+              />
+              <Button
+                size="sm"
+                variant={justSavedId ? 'outline' : 'default'}
+                onClick={handleSave}
+                disabled={!!justSavedId}
+                className="h-8 gap-1.5 shrink-0"
+              >
+                <Save className="h-3.5 w-3.5" />
+                {justSavedId ? 'Salvo ✓' : 'Salvar'}
+              </Button>
+            </div>
+            {justSavedId && (
+              <p className="text-[10px] text-nexus-emerald">
+                Disponível em “Test Runs salvos” na página do agente.
+              </p>
             )}
-          </Button>
+          </div>
+        )}
+
+        <DialogFooter className="gap-2 sm:gap-2">
+          {!hideRunControls && (
+            <Button
+              variant={summary ? 'outline' : 'default'}
+              size="sm"
+              onClick={() => onRun(trimmed, count)}
+              disabled={running || overLimit}
+            >
+              {summary ? (
+                <>
+                  <RefreshCw className="h-3.5 w-3.5 mr-1.5" /> Repetir simulação
+                </>
+              ) : (
+                <>
+                  <Play className="h-3.5 w-3.5 mr-1.5" /> Executar simulação
+                </>
+              )}
+            </Button>
+          )}
           <Button variant={summary ? 'default' : 'outline'} size="sm" onClick={() => onOpenChange(false)}>
             Fechar
           </Button>
