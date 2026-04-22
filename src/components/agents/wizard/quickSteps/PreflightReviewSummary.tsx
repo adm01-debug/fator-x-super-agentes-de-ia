@@ -37,15 +37,18 @@ export function useReviewData(form: QuickAgentForm): ReviewData {
     const sectionReports = analyzeSectionContent(form.prompt);
     const thinSections = sectionReports.filter((r) => r.present && r.thinReason !== null);
     const compiled = compilePrompt(form);
+    const contradictions = detectPromptContradictions(form.prompt);
     return {
       sections,
       missingSections,
       sectionReports,
       thinSections,
       compiled,
+      contradictions,
       hasUnresolved: compiled.unresolvedVariables.length > 0,
       hasMissingSections: missingSections.length > 0,
       hasThinSections: thinSections.length > 0,
+      hasContradictions: contradictions.length > 0,
     };
   }, [form]);
 }
@@ -56,20 +59,24 @@ interface SummaryProps {
   compact?: boolean;
   /** When provided, problem chips become clickable and jump the editor to that section. */
   onJumpToSection?: (key: PromptSectionKey) => void;
+  /** When provided, contradiction cards become clickable and jump to a specific line. */
+  onJumpToLine?: (line: number) => void;
 }
 
-export function PreflightReviewSummary({ form, compact = false, onJumpToSection }: SummaryProps) {
+export function PreflightReviewSummary({ form, compact = false, onJumpToSection, onJumpToLine }: SummaryProps) {
   const {
     sectionReports,
     thinSections,
     compiled,
+    contradictions,
     hasUnresolved,
     hasMissingSections,
     hasThinSections,
+    hasContradictions,
   } = useReviewData(form);
   const totalSections = REQUIRED_PROMPT_SECTIONS.length;
   const presentOk = sectionReports.filter((r) => r.present && !r.thinReason).length;
-  const allGood = !hasMissingSections && !hasThinSections && !hasUnresolved;
+  const allGood = !hasMissingSections && !hasThinSections && !hasUnresolved && !hasContradictions;
 
   return (
     <div
