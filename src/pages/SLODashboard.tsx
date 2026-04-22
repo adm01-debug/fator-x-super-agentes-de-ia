@@ -493,6 +493,106 @@ export default function SLODashboard() {
             />
           </div>
 
+          {/* Coverage — how much of the window actually has data backing the metrics. */}
+          {(() => {
+            const buckets = summary.timeseries ?? [];
+            // RPC buckets are hourly; expected = window hours.
+            const expectedBuckets = Math.max(1, windowHours);
+            const bucketsWithData = buckets.filter((b) => (b.total ?? 0) > 0).length;
+            const coveragePct = Math.min(100, (bucketsWithData / expectedBuckets) * 100);
+            const missingBuckets = Math.max(0, expectedBuckets - bucketsWithData);
+            const tracesPerHour = summary.total_traces / expectedBuckets;
+            const coverageStatus: SLOStatus =
+              coveragePct >= 90 ? 'healthy' : coveragePct >= 60 ? 'warning' : 'breached';
+            const coverageColor =
+              coverageStatus === 'healthy' ? 'bg-nexus-emerald'
+                : coverageStatus === 'warning' ? 'bg-nexus-amber'
+                : 'bg-destructive';
+            return (
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    <Activity className="h-4 w-4 text-primary" />
+                    Cobertura dos dados
+                  </CardTitle>
+                  <CardDescription>
+                    Quantos traces e qual fração do período de {windowLabel(windowHours)} foi efetivamente usada no cálculo. Lacunas indicam dados faltantes — as métricas podem estar enviesadas.
+                  </CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  <div className="grid gap-3 md:grid-cols-4">
+                    <div className="rounded-lg border border-border/40 p-3">
+                      <p className="text-[11px] uppercase text-muted-foreground tracking-wide">Traces analisados</p>
+                      <p className="text-2xl font-bold tabular-nums mt-1">{summary.total_traces.toLocaleString('pt-BR')}</p>
+                      <p className="text-[11px] text-muted-foreground mt-0.5">
+                        ~{tracesPerHour.toFixed(tracesPerHour < 10 ? 1 : 0)}/h em média
+                      </p>
+                    </div>
+                    <div className="rounded-lg border border-border/40 p-3">
+                      <p className="text-[11px] uppercase text-muted-foreground tracking-wide">Cobertura temporal</p>
+                      <p className={`text-2xl font-bold tabular-nums mt-1 ${statusColor[coverageStatus]}`}>
+                        {coveragePct.toFixed(1)}%
+                      </p>
+                      <p className="text-[11px] text-muted-foreground mt-0.5">
+                        {bucketsWithData}/{expectedBuckets} janelas horárias com dados
+                      </p>
+                    </div>
+                    <div className="rounded-lg border border-border/40 p-3">
+                      <p className="text-[11px] uppercase text-muted-foreground tracking-wide">Lacunas</p>
+                      <p className="text-2xl font-bold tabular-nums mt-1">{missingBuckets}</p>
+                      <p className="text-[11px] text-muted-foreground mt-0.5">
+                        {missingBuckets === 0 ? 'sem horas vazias' : `hora${missingBuckets > 1 ? 's' : ''} sem traces`}
+                      </p>
+                    </div>
+                    <div className="rounded-lg border border-border/40 p-3">
+                      <p className="text-[11px] uppercase text-muted-foreground tracking-wide">Confiança</p>
+                      <p className={`text-2xl font-bold mt-1 ${statusColor[coverageStatus]}`}>
+                        {coverageStatus === 'healthy' ? 'Alta' : coverageStatus === 'warning' ? 'Média' : 'Baixa'}
+                      </p>
+                      <p className="text-[11px] text-muted-foreground mt-0.5">
+                        baseada na cobertura
+                      </p>
+                    </div>
+                  </div>
+
+                  {/* Visual bar — proportion of buckets with data. */}
+                  <div>
+                    <div className="flex items-center justify-between text-[11px] text-muted-foreground mb-1">
+                      <span>Janela de {windowLabel(windowHours)}</span>
+                      <span className="font-mono tabular-nums">
+                        {bucketsWithData} de {expectedBuckets} buckets
+                      </span>
+                    </div>
+                    <div
+                      className="h-2 w-full rounded-full bg-secondary/40 overflow-hidden"
+                      role="progressbar"
+                      aria-valuenow={Number(coveragePct.toFixed(1))}
+                      aria-valuemin={0}
+                      aria-valuemax={100}
+                      aria-label="Cobertura temporal dos dados"
+                    >
+                      <div
+                        className={`h-full ${coverageColor} transition-all`}
+                        style={{ width: `${coveragePct}%` }}
+                      />
+                    </div>
+                  </div>
+
+                  {missingBuckets > 0 && (
+                    <div className="flex items-start gap-2 text-[11px] p-2.5 rounded-md bg-nexus-amber/10 border border-nexus-amber/20 text-nexus-amber">
+                      <AlertTriangle className="h-3.5 w-3.5 shrink-0 mt-0.5" />
+                      <span>
+                        {missingBuckets} {missingBuckets > 1 ? 'horas não tiveram traces' : 'hora não teve traces'} no período.
+                        Os percentis (P50/P95/P99) refletem apenas as {bucketsWithData} {bucketsWithData > 1 ? 'horas com atividade' : 'hora com atividade'} —
+                        considere ampliar a janela ou verificar a ingestão se a lacuna for inesperada.
+                      </span>
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
+            );
+          })()}
+
           {compareSummary && (
             <Card>
               <CardHeader>
