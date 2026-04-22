@@ -27,6 +27,13 @@ interface Props {
    */
   onInsert: (snippet: string, key?: PromptSectionKey) => void;
   /**
+   * Optional batch insert: receives every pending (snippet, key) pair in
+   * canonical order in a single call. Lets the parent splice them onto a
+   * shared working buffer (avoiding stale-state bugs from looping `onInsert`)
+   * and place the caret inside the last inserted block.
+   */
+  onInsertBatch?: (items: Array<{ snippet: string; key: PromptSectionKey }>) => void;
+  /**
    * Called when the user wants to jump the editor to a specific section.
    * If the section is missing, `snippetIfMissing` is provided so the parent
    * can insert the skeleton before scrolling.
