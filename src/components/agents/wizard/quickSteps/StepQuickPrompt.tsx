@@ -34,6 +34,7 @@ import { PromptHistoryPanel } from './PromptHistoryPanel';
 import { PromptSectionGutter } from './PromptSectionGutter';
 import { PromptHighlightOverlay } from './PromptHighlightOverlay';
 import { sanitizePromptInput, PROMPT_LIMITS } from '@/lib/validations/promptSanitizer';
+import { useFieldHighlight, FIELD_HIGHLIGHT_CLS } from './useFieldHighlight';
 import {
   QUICK_AGENT_TEMPLATES,
   PROMPT_VARIANT_META,
