@@ -1,3 +1,4 @@
+import { useEffect, useRef } from "react";
 import { GitBranch, CircleDot, Circle } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -11,6 +12,8 @@ interface Props {
   onSelect: (id: string) => void;
   onPickA: (id: string) => void;
   onPickB: (id: string) => void;
+  /** Quando definido, rola até o item correspondente e aplica destaque temporário (pulse + ring). */
+  highlightId?: string | null;
 }
 
 function formatWhen(iso: string): string {
@@ -25,8 +28,21 @@ function formatWhen(iso: string): string {
 }
 
 export function VersionTimeline({
-  versions, selectedId, selectedAId, selectedBId, onSelect, onPickA, onPickB,
+  versions, selectedId, selectedAId, selectedBId, onSelect, onPickA, onPickB, highlightId,
 }: Props) {
+  // Refs para rolar automaticamente até a versão alvo logo após um restore.
+  const itemRefs = useRef<Record<string, HTMLDivElement | null>>({});
+
+  useEffect(() => {
+    if (!highlightId) return;
+    const el = itemRefs.current[highlightId];
+    if (el) {
+      requestAnimationFrame(() => {
+        el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      });
+    }
+  }, [highlightId, versions]);
+
   return (
     <div className="nexus-card">
       <div className="flex items-center justify-between mb-3">
@@ -40,14 +56,21 @@ export function VersionTimeline({
           const isSelected = v.id === selectedId;
           const isA = v.id === selectedAId;
           const isB = v.id === selectedBId;
+          const isHighlighted = v.id === highlightId;
           return (
-            <div key={v.id} className="relative">
+            <div
+              key={v.id}
+              ref={(el) => { itemRefs.current[v.id] = el; }}
+              className={`relative scroll-mt-4 ${isHighlighted ? 'animate-pulse-once' : ''}`}
+            >
               <button
                 type="button"
                 onClick={() => onSelect(v.id)}
                 aria-pressed={isSelected}
                 className={`w-full text-left rounded-lg border px-3 py-2.5 transition-all ${
-                  isSelected
+                  isHighlighted
+                    ? 'border-nexus-emerald/60 bg-nexus-emerald/10 ring-2 ring-nexus-emerald/40 shadow-[0_0_24px_-6px_hsl(var(--nexus-emerald)/0.5)]'
+                    : isSelected
                     ? 'border-primary/50 bg-primary/5 ring-1 ring-primary/30'
                     : 'border-border/50 bg-secondary/30 hover:bg-secondary/50'
                 }`}

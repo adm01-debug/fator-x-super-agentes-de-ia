@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-import { useParams, useNavigate } from "react-router-dom";
+import { useParams, useNavigate, useSearchParams } from "react-router-dom";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { Loader2, Plus, GitCompare, Eye, GitBranch } from "lucide-react";
@@ -21,12 +21,16 @@ export default function AgentVersioningPage() {
   const { id } = useParams();
   const navigate = useNavigate();
   const queryClient = useQueryClient();
+  const [searchParams, setSearchParams] = useSearchParams();
+  const focusId = searchParams.get('focus');
 
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [aId, setAId] = useState<string | null>(null);
   const [bId, setBId] = useState<string | null>(null);
   const [mode, setMode] = useState<'detail' | 'compare'>('detail');
   const [newOpen, setNewOpen] = useState(false);
+  // Quando vier um ?focus=<id>, destaca a versão por ~3s e remove o param da URL.
+  const [highlightId, setHighlightId] = useState<string | null>(null);
 
   const { data: agent } = useQuery({
     queryKey: ['agent', id],
@@ -42,14 +46,28 @@ export default function AgentVersioningPage() {
 
   // Auto-select latest, and last 2 for compare
   useEffect(() => {
-    if (versions.length > 0 && !selectedId) {
+    if (versions.length === 0) return;
+    // Prioridade 1: ?focus= vindo do Detail page após restore.
+    if (focusId && versions.some(v => v.id === focusId)) {
+      setSelectedId(focusId);
+      setHighlightId(focusId);
+      // Limpa o param para que refresh/voltar não re-destaque.
+      const next = new URLSearchParams(searchParams);
+      next.delete('focus');
+      setSearchParams(next, { replace: true });
+      // Auto-fade do destaque após ~2.8s (cobre 1 ciclo da animação pulse).
+      const t = setTimeout(() => setHighlightId(null), 2800);
+      return () => clearTimeout(t);
+    }
+    // Prioridade 2: seleção inicial padrão.
+    if (!selectedId) {
       setSelectedId(versions[0].id);
       if (versions.length >= 2) {
         setAId(versions[1].id);
         setBId(versions[0].id);
       }
     }
-  }, [versions, selectedId]);
+  }, [versions, focusId, selectedId, searchParams, setSearchParams]);
 
   const selected = useMemo(() => versions.find(v => v.id === selectedId) ?? versions[0] ?? null, [versions, selectedId]);
   const versionA = useMemo(() => versions.find(v => v.id === aId) ?? null, [versions, aId]);
@@ -66,7 +84,10 @@ export default function AgentVersioningPage() {
       toast.success(`Versão v${data.version} criada — ${data.change_summary ?? 'restauração'}`);
       queryClient.invalidateQueries({ queryKey: ['agent-versions', id] });
       queryClient.invalidateQueries({ queryKey: ['agent', id] });
+      // Sincroniza seleção + destaque para que o usuário veja a nova versão imediatamente.
       setSelectedId(data.id);
+      setHighlightId(data.id);
+      setTimeout(() => setHighlightId(null), 2800);
     },
     onError: (e: Error) => toast.error(e.message || 'Erro ao restaurar'),
   });
@@ -135,6 +156,7 @@ export default function AgentVersioningPage() {
               onSelect={(vid) => { setSelectedId(vid); setMode('detail'); }}
               onPickA={(vid) => { setAId(vid); if (bId && vid !== bId) setMode('compare'); }}
               onPickB={(vid) => { setBId(vid); if (aId && vid !== aId) setMode('compare'); }}
+              highlightId={highlightId}
             />
           </div>
 
