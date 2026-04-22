@@ -444,6 +444,14 @@ export function QuickCreateWizard({ onBack }: QuickCreateWizardProps) {
         return;
       }
     }
+    if (!meetsDepth) {
+      setStep(STEPS.length - 1);
+      setHighlightField('prompt');
+      toast.error('Prompt muito curto', {
+        description: `Mínimo configurado: ${minPromptDepth} palavras (atual: ${promptWordCount}). Ajuste o nível em "Profundidade mínima" se quiser ser menos rigoroso.`,
+      });
+      return;
+    }
     setConfirmOpen(true);
   };
 
