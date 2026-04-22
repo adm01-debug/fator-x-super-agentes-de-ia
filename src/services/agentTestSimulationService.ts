@@ -82,7 +82,9 @@ export function simulateAgentRun(
 
   const runs: SimulatedRun[] = [];
   for (let i = 0; i < count; i++) {
-    const input = MOCK_INPUTS[i % MOCK_INPUTS.length];
+    const input = customInput && customInput.length > 0
+      ? customInput
+      : MOCK_INPUTS[i % MOCK_INPUTS.length];
     const isError = Math.random() < errorRate;
     const latency = Math.round(jitter(avgLatencyBase, 0.3));
     const tokens = isError ? 0 : Math.round(jitter(avgTokensBase, 0.2));
