@@ -90,6 +90,7 @@ export function QuickCreateWizard({ onBack }: QuickCreateWizardProps) {
   const [pendingDrafts, setPendingDrafts] = useState<DraftEntry[]>([]);
   const [draftDecided, setDraftDecided] = useState(false);
   const [highlightField, setHighlightField] = useState<keyof QuickAgentForm | null>(null);
+  const [confirmOpen, setConfirmOpen] = useState(false);
   const lastTypeRef = useRef<QuickAgentType | null>(null);
 
   // Auto-clear field highlight after 4s
