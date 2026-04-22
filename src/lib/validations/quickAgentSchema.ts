@@ -212,6 +212,14 @@ export const quickPromptSchema = z.object({
           message: `Faltam seções obrigatórias: ${labels}. Use headings markdown (## Persona, ## Escopo, ## Formato, ## Regras).`,
         });
       }
+      const thin = getThinSections(value);
+      if (thin.length > 0) {
+        const details = thin.map((t) => `${t.label} (${t.thinReason})`).join('; ');
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          message: `Conteúdo insuficiente em ${thin.length === 1 ? 'uma seção' : `${thin.length} seções`}: ${details}. Mínimo: ${SECTION_CONTENT_LIMITS.MIN_WORDS} palavras por seção.`,
+        });
+      }
       const struct = analyzePromptStructure(value);
       if (struct.exceedsLineLimit) {
         ctx.addIssue({
