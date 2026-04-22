@@ -339,6 +339,7 @@ export function StepQuickPrompt({ form, errors, onPromptManualEdit, onRestore, o
         onSelect={handleApplyVariant}
         customLocked={customLocked}
         onUnlock={onUnlockCustom}
+        currentPrompt={form.prompt}
       />
 
       {lockEvents && lockEvents.length > 0 && <PromptLockEventLog events={lockEvents} />}
