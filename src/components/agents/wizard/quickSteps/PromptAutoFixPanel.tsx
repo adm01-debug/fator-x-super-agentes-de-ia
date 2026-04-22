@@ -137,10 +137,10 @@ export function PromptAutoFixPanel({ prompt, onApply }: Props) {
           {preview.result && (
             <div className="my-2 max-h-[420px] overflow-auto">
               <PromptDiff
-                currentPrompt={prompt}
-                nextPrompt={preview.result.fixed}
-                currentLabel="Atual"
-                nextLabel="Após correção"
+                textA={prompt}
+                textB={preview.result.fixed}
+                labelA="Atual"
+                labelB="Após correção"
               />
             </div>
           )}

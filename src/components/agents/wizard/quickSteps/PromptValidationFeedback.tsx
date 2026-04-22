@@ -1,8 +1,11 @@
 import { AlertCircle, AlertTriangle, FileText } from 'lucide-react';
 import { analyzePromptStructure, getPromptIssues, PROMPT_LIMITS } from '@/lib/validations/promptSanitizer';
+import { PromptAutoFixPanel } from './PromptAutoFixPanel';
 
 interface Props {
   prompt: string;
+  /** When provided, shows 1-click auto-fix actions for any detected issues. */
+  onApplyFix?: (fixed: string, summary: string) => void;
 }
 
 export function PromptValidationFeedback({ prompt }: Props) {
