@@ -447,6 +447,11 @@ export default function SLODashboard() {
               target={`≥ ${SLO_TARGETS.successRatePct}%`}
               status={successStatus}
               icon={Check}
+              current={summary.success_rate}
+              previous={compareSummary?.success_rate}
+              lowerIsBetter={false}
+              formatPrev={(n) => `${n.toFixed(2)}%`}
+              compareLabel={compareSummary ? `vs ${windowLabel(compareHours)}` : undefined}
             />
             <MetricCard
               title="Latência P95"
@@ -454,6 +459,11 @@ export default function SLODashboard() {
               target={`< ${SLO_TARGETS.p95LatencyMs}ms`}
               status={p95Status}
               icon={Zap}
+              current={summary.p95_latency_ms}
+              previous={compareSummary?.p95_latency_ms}
+              lowerIsBetter
+              formatPrev={(n) => `${n}ms`}
+              compareLabel={compareSummary ? `vs ${windowLabel(compareHours)}` : undefined}
             />
             <MetricCard
               title="Latência P99"
@@ -461,6 +471,11 @@ export default function SLODashboard() {
               target={`< ${SLO_TARGETS.p99LatencyMs}ms`}
               status={p99Status}
               icon={TrendingUp}
+              current={summary.p99_latency_ms}
+              previous={compareSummary?.p99_latency_ms}
+              lowerIsBetter
+              formatPrev={(n) => `${n}ms`}
+              compareLabel={compareSummary ? `vs ${windowLabel(compareHours)}` : undefined}
             />
             <MetricCard
               title="Error Budget Consumido"
@@ -468,8 +483,76 @@ export default function SLODashboard() {
               target={`≤ 100%`}
               status={budgetStatus}
               icon={AlertTriangle}
+              current={errorBudgetConsumed}
+              previous={compareSummary && compareSummary.total_traces > 0
+                ? Math.min(((compareSummary.error_count / compareSummary.total_traces) * 100) / SLO_TARGETS.errorBudgetPct * 100, 999)
+                : undefined}
+              lowerIsBetter
+              formatPrev={(n) => `${n.toFixed(1)}%`}
+              compareLabel={compareSummary ? `vs ${windowLabel(compareHours)}` : undefined}
             />
           </div>
+
+          {compareSummary && (
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <TrendingUp className="h-4 w-4 text-primary" />
+                  Comparação: {windowLabel(windowHours)} vs {windowLabel(compareHours)}
+                </CardTitle>
+                <CardDescription>
+                  Lado a lado — latências, erros e violações entre as duas janelas.
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <div className="overflow-x-auto">
+                  <table className="w-full text-sm">
+                    <thead className="text-xs uppercase text-muted-foreground border-b">
+                      <tr>
+                        <th className="text-left py-2 font-semibold">Métrica</th>
+                        <th className="text-right py-2 font-semibold">{windowLabel(windowHours)} (atual)</th>
+                        <th className="text-right py-2 font-semibold">{windowLabel(compareHours)}</th>
+                        <th className="text-right py-2 font-semibold">Δ</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {([
+                        { label: 'P50 (latência)', curr: summary.p50_latency_ms, prev: compareSummary.p50_latency_ms, suffix: 'ms', lowerBetter: true },
+                        { label: 'P95 (latência)', curr: summary.p95_latency_ms, prev: compareSummary.p95_latency_ms, suffix: 'ms', lowerBetter: true },
+                        { label: 'P99 (latência)', curr: summary.p99_latency_ms, prev: compareSummary.p99_latency_ms, suffix: 'ms', lowerBetter: true },
+                        { label: 'Taxa de sucesso', curr: summary.success_rate, prev: compareSummary.success_rate, suffix: '%', lowerBetter: false, decimals: 2 },
+                        { label: 'Total de traces', curr: summary.total_traces, prev: compareSummary.total_traces, suffix: '', lowerBetter: false },
+                        { label: 'Erros', curr: summary.error_count, prev: compareSummary.error_count, suffix: '', lowerBetter: true },
+                        {
+                          label: 'Violações P95',
+                          curr: (summary.timeseries ?? []).filter((p) => p.p95_ms > SLO_TARGETS.p95LatencyMs).length,
+                          prev: (compareSummary.timeseries ?? []).filter((p) => p.p95_ms > SLO_TARGETS.p95LatencyMs).length,
+                          suffix: '',
+                          lowerBetter: true,
+                        },
+                        { label: 'Custo total', curr: summary.total_cost_usd, prev: compareSummary.total_cost_usd, suffix: '', prefix: '$', lowerBetter: true, decimals: 4 },
+                        { label: 'Tokens', curr: summary.total_tokens, prev: compareSummary.total_tokens, suffix: '', lowerBetter: true },
+                      ] as Array<{ label: string; curr: number; prev: number; suffix: string; prefix?: string; lowerBetter: boolean; decimals?: number }>).map((row) => {
+                        const fmt = (n: number) =>
+                          `${row.prefix ?? ''}${row.decimals !== undefined ? n.toFixed(row.decimals) : n.toLocaleString('pt-BR')}${row.suffix}`;
+                        const d = formatDelta(row.curr, row.prev, row.lowerBetter);
+                        return (
+                          <tr key={row.label} className="border-b last:border-b-0 hover:bg-secondary/30">
+                            <td className="py-2.5 font-medium">{row.label}</td>
+                            <td className="text-right tabular-nums font-semibold">{fmt(row.curr)}</td>
+                            <td className="text-right tabular-nums text-muted-foreground">{fmt(row.prev)}</td>
+                            <td className={`text-right tabular-nums font-mono font-semibold ${d.className}`}>
+                              {d.arrow} {Math.abs(d.pct).toFixed(1)}%
+                            </td>
+                          </tr>
+                        );
+                      })}
+                    </tbody>
+                  </table>
+                </div>
+              </CardContent>
+            </Card>
+          )}
 
           <div className="grid gap-4 lg:grid-cols-3">
             <Card className="lg:col-span-2">
