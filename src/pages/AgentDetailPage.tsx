@@ -16,6 +16,7 @@ import { RestoreDiffPreview } from "@/components/agents/detail/RestoreDiffPrevie
 import { BehaviorImpactPanel } from "@/components/agents/detail/BehaviorImpactPanel";
 import { RestoreChangelogEditor, buildAutoSummary } from "@/components/agents/detail/RestoreChangelogEditor";
 import { RestoreSummaryShare } from "@/components/agents/detail/RestoreSummaryShare";
+import { HighRiskAcknowledge } from "@/components/agents/detail/HighRiskAcknowledge";
 import { computeRestoreDiff } from "@/components/agents/detail/restoreDiffHelpers";
 import { validateRestore } from "@/components/agents/detail/restoreValidation";
 import { RestoreValidationPanel } from "@/components/agents/detail/RestoreValidationPanel";
