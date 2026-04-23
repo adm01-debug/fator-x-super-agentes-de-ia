@@ -112,7 +112,7 @@ export function RestoreHistorySection({ agentId, versions }: Props) {
                 <ArrowRight className="h-3 w-3 text-nexus-amber" aria-hidden />
                 <button
                   type="button"
-                  onClick={() => navigate(`/agents/${agentId}/versions?focus=${entry.versionId}`)}
+                  onClick={() => navigate(`/agents/${agentId}/versions/v/${entry.versionId}`)}
                   className="font-bold text-primary hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40 rounded"
                   title={`Abrir v${entry.versionNumber} no gerenciador de versões`}
                 >
