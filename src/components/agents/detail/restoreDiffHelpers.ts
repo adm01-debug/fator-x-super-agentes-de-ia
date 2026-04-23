@@ -7,6 +7,15 @@ import type { AgentVersion } from '@/services/agentsService';
 
 export type RiskLevel = 'critical' | 'high' | 'medium' | 'low';
 
+/** Critério individual que contribuiu para o score de risco. Exibido na
+ * seção "Por que esse risco?" ao lado do badge para tornar o cálculo
+ * auditável (sem caixa-preta). */
+export interface RiskCriterion {
+  label: string;
+  points: number;
+  detail?: string;
+}
+
 export interface FieldChange<T = unknown> {
   field: string;
   label: string;
@@ -21,6 +30,8 @@ export interface FieldChange<T = unknown> {
   risk: RiskLevel;
   /** Razão curta do score, exibida como tooltip/legenda. */
   reason: string;
+  /** Critérios discriminados que compuseram o impact. */
+  criteria: RiskCriterion[];
 }
 
 export interface RestoreDiff {
@@ -41,19 +52,48 @@ export function riskFromImpact(impact: number): RiskLevel {
   return 'low';
 }
 
-/** Score de impacto para mudança de prompt baseado em delta de chars. */
-function scorePrompt(beforeLen: number, afterLen: number): { impact: number; reason: string } {
+/** Score de impacto para mudança de prompt baseado em delta de chars.
+ * Retorna também os critérios discriminados que somaram o score, para
+ * exibir na seção "Por que esse risco?". */
+function scorePrompt(beforeLen: number, afterLen: number): { impact: number; reason: string; criteria: RiskCriterion[] } {
   const delta = Math.abs(afterLen - beforeLen);
   const base = Math.max(beforeLen, afterLen, 1);
   const ratio = delta / base; // 0..1+
   // Empty → conteúdo (ou vice-versa) é crítico
   if (beforeLen === 0 || afterLen === 0) {
-    return { impact: 90, reason: afterLen === 0 ? 'Prompt esvaziado' : 'Prompt criado do zero' };
+    const reason = afterLen === 0 ? 'Prompt esvaziado' : 'Prompt criado do zero';
+    return {
+      impact: 90,
+      reason,
+      criteria: [
+        { label: afterLen === 0 ? 'Prompt esvaziado completamente' : 'Prompt criado do zero', points: 90, detail: `${beforeLen} → ${afterLen} chars` },
+      ],
+    };
   }
-  if (ratio >= 0.5) return { impact: 85, reason: `Reescrita massiva (${Math.round(ratio * 100)}% do prompt)` };
-  if (ratio >= 0.25) return { impact: 65, reason: `Mudança grande (${Math.round(ratio * 100)}% do prompt)` };
-  if (ratio >= 0.1) return { impact: 40, reason: `Mudança moderada (${Math.round(ratio * 100)}%)` };
-  return { impact: 20, reason: `Pequeno ajuste (${delta} chars)` };
+  if (ratio >= 0.5) return {
+    impact: 85, reason: `Reescrita massiva (${Math.round(ratio * 100)}% do prompt)`,
+    criteria: [
+      { label: 'Reescrita massiva (≥50%)', points: 85, detail: `${Math.round(ratio * 100)}% do conteúdo · Δ ${delta} chars` },
+    ],
+  };
+  if (ratio >= 0.25) return {
+    impact: 65, reason: `Mudança grande (${Math.round(ratio * 100)}% do prompt)`,
+    criteria: [
+      { label: 'Mudança grande (25–50%)', points: 65, detail: `${Math.round(ratio * 100)}% do conteúdo · Δ ${delta} chars` },
+    ],
+  };
+  if (ratio >= 0.1) return {
+    impact: 40, reason: `Mudança moderada (${Math.round(ratio * 100)}%)`,
+    criteria: [
+      { label: 'Mudança moderada (10–25%)', points: 40, detail: `${Math.round(ratio * 100)}% do conteúdo · Δ ${delta} chars` },
+    ],
+  };
+  return {
+    impact: 20, reason: `Pequeno ajuste (${delta} chars)`,
+    criteria: [
+      { label: 'Ajuste pequeno (<10%)', points: 20, detail: `Δ ${delta} chars` },
+    ],
+  };
 }
 
 function cfg(v?: AgentVersion | null): Record<string, unknown> {
@@ -100,8 +140,14 @@ export function computeRestoreDiff(
   const changes: FieldChange[] = [];
   const unchangedGroups: Array<'prompt' | 'tools' | 'model'> = [];
 
-  const push = (c: Omit<FieldChange, 'risk'> & { risk?: RiskLevel }) => {
-    changes.push({ ...c, risk: c.risk ?? riskFromImpact(c.impact) });
+  // criteria é opcional na entrada — preenchido com [] se ausente, para
+  // manter compat com call-sites simples (mission/persona/params).
+  const push = (c: Omit<FieldChange, 'risk' | 'criteria'> & { risk?: RiskLevel; criteria?: RiskCriterion[] }) => {
+    changes.push({
+      ...c,
+      criteria: c.criteria ?? [{ label: c.reason, points: c.impact }],
+      risk: c.risk ?? riskFromImpact(c.impact),
+    });
   };
 
   // ── Prompt group ──────────────────────────────────────────────
@@ -111,7 +157,7 @@ export function computeRestoreDiff(
     const sysBefore = String(cfgCur.system_prompt ?? '');
     const sysAfter = String(cfgSrc.system_prompt ?? '');
     if (sysBefore !== sysAfter) {
-      const { impact, reason } = scorePrompt(sysBefore.length, sysAfter.length);
+      const { impact, reason, criteria } = scorePrompt(sysBefore.length, sysAfter.length);
       push({
         field: 'system_prompt',
         label: 'System prompt',
@@ -121,6 +167,10 @@ export function computeRestoreDiff(
         kind: sysAfter ? (sysBefore ? 'modified' : 'added') : 'removed',
         impact,
         reason,
+        criteria: [
+          ...criteria,
+          { label: 'Campo crítico — define comportamento base', points: 0, detail: 'system_prompt afeta toda interação' },
+        ],
       });
       promptDeltaChars = sysAfter.length - sysBefore.length;
       promptHasChange = true;
@@ -128,7 +178,7 @@ export function computeRestoreDiff(
     if (!eqLoose(cfgCur.prompt, cfgSrc.prompt)) {
       const beforeStr = typeof cfgCur.prompt === 'string' ? cfgCur.prompt : JSON.stringify(cfgCur.prompt ?? '');
       const afterStr = typeof cfgSrc.prompt === 'string' ? cfgSrc.prompt : JSON.stringify(cfgSrc.prompt ?? '');
-      const { impact, reason } = scorePrompt(beforeStr.length, afterStr.length);
+      const { impact, reason, criteria } = scorePrompt(beforeStr.length, afterStr.length);
       push({
         field: 'prompt',
         label: 'Prompt (legacy)',
@@ -138,6 +188,10 @@ export function computeRestoreDiff(
         kind: cfgSrc.prompt ? (cfgCur.prompt ? 'modified' : 'added') : 'removed',
         impact: Math.max(15, impact - 10),
         reason,
+        criteria: [
+          ...criteria,
+          { label: 'Campo legacy — peso reduzido em −10 pts', points: -10, detail: 'system_prompt é prioritário' },
+        ],
       });
       promptHasChange = true;
     }
@@ -181,6 +235,28 @@ export function computeRestoreDiff(
       const reasonParts: string[] = [];
       if (toolsRemoved.length) reasonParts.push(`${toolsRemoved.length} tool(s) removida(s)`);
       if (toolsAdded.length) reasonParts.push(`${toolsAdded.length} tool(s) adicionada(s)`);
+      const toolsCriteria: RiskCriterion[] = [];
+      if (toolsRemoved.length) {
+        toolsCriteria.push({
+          label: 'Tools removidas (perda de capability)',
+          points: removalScore,
+          detail: `${toolsRemoved.length} × 25 pts (cap 60): ${toolsRemoved.slice(0, 3).join(', ')}${toolsRemoved.length > 3 ? '…' : ''}`,
+        });
+      }
+      if (toolsAdded.length) {
+        toolsCriteria.push({
+          label: 'Tools adicionadas',
+          points: additionScore,
+          detail: `${toolsAdded.length} × 10 pts (cap 30): ${toolsAdded.slice(0, 3).join(', ')}${toolsAdded.length > 3 ? '…' : ''}`,
+        });
+      }
+      if (ratioBoost > 0) {
+        toolsCriteria.push({
+          label: 'Proporção sobre o conjunto atual',
+          points: ratioBoost,
+          detail: `${totalChanged}/${curSize} tools afetadas`,
+        });
+      }
       push({
         field: 'tools',
         label: 'Ferramentas',
@@ -192,6 +268,7 @@ export function computeRestoreDiff(
           : 'modified',
         impact,
         reason: reasonParts.join(' · '),
+        criteria: toolsCriteria,
       });
       toolsHasChange = true;
     }
@@ -216,6 +293,14 @@ export function computeRestoreDiff(
         reason: crossFamily
           ? `Troca de provider (${curFam} → ${srcFam}) — comportamento pode mudar drasticamente`
           : 'Mudança de modelo na mesma família',
+        criteria: crossFamily
+          ? [
+              { label: 'Troca de provider', points: 70, detail: `${curFam} → ${srcFam} (famílias distintas)` },
+              { label: 'Capabilities podem divergir', points: 25, detail: 'tokenização, tool-calling e custo mudam' },
+            ]
+          : [
+              { label: 'Mesma família, modelo diferente', points: 70, detail: `${cur.model} → ${source.model}` },
+            ],
       });
       modelHasChange = true;
     }

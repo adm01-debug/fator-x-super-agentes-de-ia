@@ -2,6 +2,7 @@ import { useMemo, useState, useRef, useCallback, useEffect } from 'react';
 import { ArrowRight, Plus, Minus, Pencil, MessageSquare, Wrench, Cpu, CheckCircle2, Filter, ShieldAlert, AlertTriangle, Info, ShieldCheck, Flame, Pin, PinOff, ArrowDownUp } from 'lucide-react';
 import type { AgentVersion } from '@/services/agentsService';
 import { computeRestoreDiff, type FieldChange, type RiskLevel } from './restoreDiffHelpers';
+import { RiskExplainPopover } from './RiskExplainPopover';
 
 interface Props {
   current: AgentVersion | null | undefined;
@@ -455,12 +456,24 @@ export function RestoreDiffPreview({ current, source, options }: Props) {
                   const riskMeta = RISK_META[c.risk];
                   const RiskIcon = riskMeta.icon;
                   const riskBadge = (
-                    <span
-                      className={`inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded border text-[10px] font-mono ${riskMeta.chipTone}`}
-                      title={`Risco ${riskMeta.label.toLowerCase()} — ${c.reason} (impacto ${c.impact}/100)`}
-                    >
-                      <RiskIcon className="h-2.5 w-2.5" aria-hidden="true" />
-                      {riskMeta.label}
+                    <span className="inline-flex items-center gap-1">
+                      <span
+                        className={`inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded border text-[10px] font-mono ${riskMeta.chipTone}`}
+                        title={`Risco ${riskMeta.label.toLowerCase()} — ${c.reason} (impacto ${c.impact}/100)`}
+                      >
+                        <RiskIcon className="h-2.5 w-2.5" aria-hidden="true" />
+                        {riskMeta.label}
+                      </span>
+                      {/* "Por que esse risco?" — popover detalhando os critérios
+                          que somaram para o score, tornando o cálculo auditável. */}
+                      <RiskExplainPopover
+                        riskLabel={riskMeta.label}
+                        riskTone={riskMeta.chipTone}
+                        level={c.risk}
+                        impact={c.impact}
+                        criteria={c.criteria}
+                        reason={c.reason}
+                      />
                     </span>
                   );
                   // Para ferramentas, mostrar lista detalhada de adições/remoções
