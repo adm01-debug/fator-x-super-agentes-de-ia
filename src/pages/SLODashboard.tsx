@@ -80,10 +80,39 @@ function readStoredWindowName(): string {
  */
 type FailureMode = 'error' | 'critical' | 'latency';
 const ALL_FAILURE_MODES: readonly FailureMode[] = ['error', 'critical', 'latency'] as const;
-const FAILURE_MODE_META: Record<FailureMode, { label: string; description: string }> = {
-  error:    { label: 'Erros',    description: 'Buckets com pelo menos 1 trace com level=error' },
-  critical: { label: 'Crítico',  description: 'P95 do bucket excede o alvo de P99 (outliers severos)' },
-  latency:  { label: 'Latência', description: 'P95 do bucket excede o alvo de P95' },
+/**
+ * Per-mode metadata. `swatchClass` paints the legend dot + strip cell;
+ * we use distinct nexus-* tokens so the three modes are visually separable
+ * even for users with mild color-vision deficiency:
+ *   - error    → destructive red   (failures, top severity for "did it work?")
+ *   - critical → nexus-rose        (severe latency outliers, P95 > P99 target)
+ *   - latency  → nexus-amber       (warning band — slow but not catastrophic)
+ */
+const FAILURE_MODE_META: Record<FailureMode, {
+  label: string;
+  description: string;
+  swatchClass: string;
+  /** Hex-equivalent token used inline (SVG/CSS gradients can't read Tailwind class). */
+  cssVar: string;
+}> = {
+  error:    {
+    label: 'Erros',
+    description: 'Buckets com pelo menos 1 trace com level=error',
+    swatchClass: 'bg-destructive',
+    cssVar: 'hsl(var(--destructive))',
+  },
+  critical: {
+    label: 'Crítico',
+    description: 'P95 do bucket excede o alvo de P99 (outliers severos)',
+    swatchClass: 'bg-nexus-rose',
+    cssVar: 'hsl(var(--nexus-rose))',
+  },
+  latency:  {
+    label: 'Latência',
+    description: 'P95 do bucket excede o alvo de P95',
+    swatchClass: 'bg-nexus-amber',
+    cssVar: 'hsl(var(--nexus-amber))',
+  },
 };
 
 /** Human-readable label for a window in hours. */
