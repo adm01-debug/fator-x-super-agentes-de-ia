@@ -71,6 +71,23 @@ export default function AgentTracesPage() {
     return Number.isFinite(n) && n >= 0 ? Math.floor(n) : null;
   })();
 
+  // Absolute time window deep-link (e.g. SLO drill-down on a 1h bucket).
+  // Only ISO strings that parse to a valid Date are honoured; from must be < to.
+  const { urlFrom, urlTo } = (() => {
+    const fromRaw = searchParams.get('from');
+    const toRaw = searchParams.get('to');
+    if (!fromRaw || !toRaw) return { urlFrom: null, urlTo: null };
+    const fromMs = Date.parse(fromRaw);
+    const toMs = Date.parse(toRaw);
+    if (!Number.isFinite(fromMs) || !Number.isFinite(toMs) || fromMs >= toMs) {
+      return { urlFrom: null, urlTo: null };
+    }
+    return { urlFrom: new Date(fromMs).toISOString(), urlTo: new Date(toMs).toISOString() };
+  })();
+  const [windowOverride, setWindowOverride] = useState<{ from: string; to: string } | null>(
+    urlFrom && urlTo ? { from: urlFrom, to: urlTo } : null,
+  );
+
   const [selectedId, setSelectedId] = useState<string | null>(urlSession);
   const [selectedStep, setSelectedStep] = useState(urlStep ?? 0);
   const [replayOpen, setReplayOpen] = useState(false);
