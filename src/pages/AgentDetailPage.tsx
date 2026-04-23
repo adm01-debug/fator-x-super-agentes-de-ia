@@ -493,7 +493,7 @@ function VersionHistory({ agentId }: { agentId: string }) {
               }
             >
               {rollbackMut.isPending ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Undo2 className="h-3.5 w-3.5" />}
-              {restoreBlocked ? 'Bloqueado por validação' : 'Confirmar rollback'}
+              {restoreBlocked ? 'Bloqueado por validação' : ackBlocked ? 'Revisão de risco pendente' : 'Confirmar rollback'}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
