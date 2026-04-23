@@ -90,11 +90,13 @@ export function LightAreaChart({
     setTooltip({
       x: m.left + scaleX(idx),
       y: m.top + Math.min(...series.map(s => scaleY(Number(d[s.dataKey]) || 0))) - 4,
+      title: tooltipTitle?.(d, idx),
       items: series.map(s => ({
         label: s.name,
         value: tooltipFormatter ? tooltipFormatter(Number(d[s.dataKey]) || 0, s.name) : String(Number(d[s.dataKey]) || 0),
         color: s.stroke,
       })),
+      extras: tooltipExtras?.(d, idx),
     });
   };
 
