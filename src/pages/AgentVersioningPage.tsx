@@ -13,6 +13,7 @@ import {
   type RestoreOptions,
 } from "@/services/agentsService";
 import { VersionTimeline } from "@/components/agents/versioning/VersionTimeline";
+import { ShareTimelineState } from "@/components/agents/versioning/ShareTimelineState";
 import { VersionDetailPanel } from "@/components/agents/versioning/VersionDetailPanel";
 import { VersionComparePanel } from "@/components/agents/versioning/VersionComparePanel";
 import { NewVersionDialog } from "@/components/agents/versioning/NewVersionDialog";
