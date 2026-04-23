@@ -35,13 +35,27 @@ const RANGE_LABEL: Record<number, string> = {
   1: 'Última hora', 24: 'Últimas 24h', 168: 'Últimos 7 dias', 720: 'Últimos 30 dias', 0: 'Tudo',
 };
 
+/** UUID v4 sanity check — keeps malformed `?agent_id=` values out of state. */
+const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
 export default function AgentTracesPage() {
   const { id } = useParams();
   const [searchParams, setSearchParams] = useSearchParams();
 
+  // Drill-down deep-link: SLO Dashboard (and other pages) link here with
+  // `?agent_id=<uuid>` to pre-select the agent. We only honour valid UUIDs
+  // so a tampered URL can't pollute persisted filters.
+  const urlAgentId = (() => {
+    const raw = searchParams.get('agent_id');
+    return raw && UUID_RE.test(raw.trim()) ? raw.trim() : null;
+  })();
+
   const defaults = useMemo<PersistedFilters>(() => ({
-    search: '', level: 'all', event: 'all', agentFilter: id ?? 'all', sinceHours: 24,
-  }), [id]);
+    search: '', level: 'all', event: 'all',
+    // Priority: route param `:id` > `?agent_id=` deep-link > 'all'
+    agentFilter: id ?? urlAgentId ?? 'all',
+    sinceHours: 24,
+  }), [id, urlAgentId]);
 
   const { filters, setFilters, syncStatus, clearAll, restore } = useFilterPersistence<PersistedFilters>({
     scope: 'agent_traces', defaults, storageKey: STORAGE_KEY,
@@ -93,6 +107,26 @@ export default function AgentTracesPage() {
     queryKey: ['agent-summaries-traces'],
     queryFn: () => listAgentSummaries(100),
   });
+
+  // Apply `?agent_id=` deep-link once after mount: override the persisted
+  // agent filter, surface a toast confirming which agent was matched, then
+  // strip the param so further in-page filter changes aren't shadowed by it.
+  const appliedAgentParam = useRef<string | null>(null);
+  useEffect(() => {
+    if (!urlAgentId || appliedAgentParam.current === urlAgentId) return;
+    if (filters.agentFilter !== urlAgentId) {
+      setFilters((prev) => ({ ...prev, agentFilter: urlAgentId }));
+      const matched = agents.find((a) => a.id === urlAgentId);
+      toast.success(matched ? `Filtrando por: ${matched.name}` : 'Filtro de agente aplicado via link');
+    }
+    appliedAgentParam.current = urlAgentId;
+    const next = new URLSearchParams(searchParams);
+    next.delete('agent_id');
+    if (next.toString() !== searchParams.toString()) {
+      setSearchParams(next, { replace: true });
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [urlAgentId, agents]);
 
   const { data: events = [] } = useQuery({
     queryKey: ['agent-trace-events', effectiveAgentId],
