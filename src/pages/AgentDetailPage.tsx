@@ -194,6 +194,9 @@ function VersionHistory({ agentId }: { agentId: string }) {
   // Changelog editável: texto controlado + flag indicando se foi customizado.
   const [summaryDraft, setSummaryDraft] = useState("");
   const [summaryEdited, setSummaryEdited] = useState(false);
+  // Acknowledge para riscos high/critical — força o usuário a marcar
+  // explicitamente que revisou os itens em vermelho/âmbar.
+  const [riskAck, setRiskAck] = useState(false);
 
   // Reset das opções a cada abertura do diálogo. O default volta para "tudo
   // marcado" — se o usuário tiver um preset padrão, o `RestorePresetMenu` o
