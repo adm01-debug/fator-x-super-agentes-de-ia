@@ -7,6 +7,15 @@ import type { AgentVersion } from '@/services/agentsService';
 
 export type RiskLevel = 'critical' | 'high' | 'medium' | 'low';
 
+/** Critério individual que contribuiu para o score de risco. Exibido na
+ * seção "Por que esse risco?" ao lado do badge para tornar o cálculo
+ * auditável (sem caixa-preta). */
+export interface RiskCriterion {
+  label: string;
+  points: number;
+  detail?: string;
+}
+
 export interface FieldChange<T = unknown> {
   field: string;
   label: string;
@@ -21,6 +30,8 @@ export interface FieldChange<T = unknown> {
   risk: RiskLevel;
   /** Razão curta do score, exibida como tooltip/legenda. */
   reason: string;
+  /** Critérios discriminados que compuseram o impact. */
+  criteria: RiskCriterion[];
 }
 
 export interface RestoreDiff {
