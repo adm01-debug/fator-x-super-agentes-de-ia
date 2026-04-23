@@ -249,8 +249,28 @@ export default function AgentVersioningPage() {
     if (activePreset.id !== 'all') {
       list = list.filter((v) => pinnedIds.has(v.id) || matchesPreset(v, activePreset));
     }
+    if (activeTypes.size > 0) {
+      // AND com preset: a versão precisa ter pelo menos uma das tags ativas
+      // (OR entre tags selecionadas — comportamento esperado de chips toggle).
+      list = list.filter((v) => {
+        if (pinnedIds.has(v.id)) return true;
+        const tags = getVersionTags(v);
+        for (const t of activeTypes) if (tags.has(t)) return true;
+        return false;
+      });
+    }
     return list;
-  }, [versions, activePreset, pinnedIds, range]);
+  }, [versions, activePreset, pinnedIds, range, activeTypes]);
+  // Contagens por tag sobre a lista completa (não filtrada) — assim o número
+  // ao lado de cada chip mostra "quantas existem", não "quantas restam".
+  const typeCounts = useMemo(() => {
+    const counts: Partial<Record<TimelineTag, number>> = {};
+    for (const v of versions) {
+      const tags = getVersionTags(v);
+      for (const t of tags) counts[t] = (counts[t] ?? 0) + 1;
+    }
+    return counts;
+  }, [versions]);
   const presetCounts = useMemo(() => {
     const counts: Record<string, number> = {};
     for (const preset of TIMELINE_PRESETS) {
