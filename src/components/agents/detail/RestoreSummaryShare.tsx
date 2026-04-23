@@ -13,7 +13,7 @@ import { useMemo, useState } from 'react';
 import { Copy, Check, Share2, ChevronDown, ChevronUp } from 'lucide-react';
 import type { AgentVersion } from '@/services/agentsService';
 import type { RestoreDiff, FieldChange } from './restoreDiffHelpers';
-import type { ValidationResult } from './restoreValidationHelpers';
+import type { RestoreValidation } from './restoreValidation';
 
 interface Props {
   agentName: string;
@@ -22,7 +22,7 @@ interface Props {
   nextVersion: number;
   diff: RestoreDiff;
   options: { copyPrompt: boolean; copyTools: boolean; copyModel: boolean };
-  validation?: ValidationResult | null;
+  validation?: RestoreValidation | null;
 }
 
 const RISK_EMOJI: Record<FieldChange['risk'], string> = {
