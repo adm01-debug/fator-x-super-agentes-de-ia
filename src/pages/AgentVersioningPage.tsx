@@ -13,6 +13,7 @@ import {
   type RestoreOptions,
 } from "@/services/agentsService";
 import { VersionTimeline } from "@/components/agents/versioning/VersionTimeline";
+import { ShareTimelineState } from "@/components/agents/versioning/ShareTimelineState";
 import { VersionDetailPanel } from "@/components/agents/versioning/VersionDetailPanel";
 import { VersionComparePanel } from "@/components/agents/versioning/VersionComparePanel";
 import { NewVersionDialog } from "@/components/agents/versioning/NewVersionDialog";
@@ -291,6 +292,27 @@ export default function AgentVersioningPage() {
                 {range.mode !== 'off' && <> · intervalo ativo</>}.
               </p>
             )}
+            {/* Compartilhamento — resumo do estado (sel/A/B/modo/preset) +
+                link absoluto + bloco markdown copiável para colar em mensagens. */}
+            <div className="mt-4">
+              <ShareTimelineState
+                agentName={agent.name}
+                selected={selected}
+                versionA={versionA}
+                versionB={versionB}
+                mode={mode}
+                presetLabel={activePreset.label}
+                rangeLabel={
+                  range.mode === 'version' && (range.vMin !== undefined || range.vMax !== undefined)
+                    ? `v${range.vMin ?? '…'}–v${range.vMax ?? '…'}`
+                    : range.mode === 'time' && range.lastMinutes
+                    ? `últimos ${range.lastMinutes}min`
+                    : range.mode === 'time' && (range.fromIso || range.toIso)
+                    ? 'período custom'
+                    : undefined
+                }
+              />
+            </div>
           </div>
 
           <div className="lg:col-span-2 space-y-4">
