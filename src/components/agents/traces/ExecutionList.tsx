@@ -29,22 +29,39 @@ export function ExecutionList({ executions, selectedId, onSelect, onReplay, load
     );
   }
   if (executions.length === 0) {
-    return hasActiveFilters ? (
-      <EmptyState
-        icon={Filter}
-        illustration="search"
-        title="Nenhuma execução para esses filtros"
-        description="Ajuste o nível, evento, agente ou janela temporal para ampliar a busca."
-        actionLabel={onClearFilters ? 'Limpar filtros' : undefined}
-        onAction={onClearFilters}
-      />
-    ) : (
-      <EmptyState
-        icon={Inbox}
-        illustration="data"
-        title="Sem traces ainda"
-        description="Quando seus agentes começarem a executar, as sessões aparecerão aqui em tempo real."
-      />
+    if (!hasActiveFilters) {
+      return (
+        <EmptyState
+          icon={Inbox}
+          illustration="data"
+          title="Sem traces ainda"
+          description="Quando seus agentes começarem a executar, as sessões aparecerão aqui em tempo real."
+        />
+      );
+    }
+    const button = onClearFilters ? (
+      <Button onClick={onClearFilters} size="sm" className="gap-1.5">Limpar filtros</Button>
+    ) : null;
+    return (
+      <div className="flex flex-col items-center justify-center py-16 px-6 text-center animate-fade-in-up" role="status">
+        <div className="relative mb-6">
+          <div className="h-20 w-20 rounded-2xl bg-gradient-to-br from-primary/10 to-accent/10 flex items-center justify-center border border-primary/10" aria-hidden>
+            <span className="text-3xl">🔍</span>
+          </div>
+          <div className="absolute -bottom-1 -right-1 h-8 w-8 rounded-xl bg-card border border-border flex items-center justify-center shadow-sm">
+            <Filter className="h-4 w-4 text-muted-foreground" />
+          </div>
+        </div>
+        <h3 className="text-lg font-heading font-semibold text-foreground mb-1.5">Nenhuma execução para esses filtros</h3>
+        <p className="text-sm text-muted-foreground max-w-md leading-relaxed">
+          Ajuste o nível, evento, agente ou janela temporal para ampliar a busca.
+        </p>
+        {button && (
+          <div className="mt-5">
+            {clearFiltersWrapper ? clearFiltersWrapper(button) : button}
+          </div>
+        )}
+      </div>
     );
   }
 
