@@ -344,22 +344,7 @@ export default function AgentVersioningPage() {
         backTo={`/agents/${id}`}
         actions={
           <div className="flex items-center gap-2">
-            <Button
-              size="sm"
-              variant="outline"
-              className="gap-1.5"
-              onClick={async () => {
-                try {
-                  await navigator.clipboard.writeText(window.location.href);
-                  toast.success('Link copiado — a mesma visão da timeline será aberta');
-                } catch {
-                  toast.error('Não foi possível copiar o link');
-                }
-              }}
-              title="Copia a URL atual com a seleção da timeline (versão, A/B e modo)"
-            >
-              <Link2 className="h-3.5 w-3.5" /> Copiar link
-            </Button>
+            <CopyLinkButton />
             <Button
               size="sm"
               className="gap-1.5 nexus-gradient-bg text-primary-foreground hover:opacity-90"
