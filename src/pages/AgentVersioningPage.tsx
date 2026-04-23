@@ -292,6 +292,25 @@ export default function AgentVersioningPage() {
                 {range.mode !== 'off' && <> · intervalo ativo</>}.
               </p>
             )}
+            {/* Compartilhamento — resumo do estado (sel/A/B/modo/preset) +
+                link absoluto + bloco markdown copiável para colar em mensagens. */}
+            <div className="mt-4">
+              <ShareTimelineState
+                agentName={agent.name}
+                selected={selected}
+                versionA={versionA}
+                versionB={versionB}
+                mode={mode}
+                presetLabel={activePreset.label}
+                rangeLabel={
+                  range.mode === 'version'
+                    ? `v${range.vMin}–v${range.vMax}`
+                    : range.mode === 'time'
+                    ? (range.kind === 'rel' ? `últimos ${range.minutes}min` : 'período custom')
+                    : undefined
+                }
+              />
+            </div>
           </div>
 
           <div className="lg:col-span-2 space-y-4">
