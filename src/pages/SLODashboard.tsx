@@ -1110,6 +1110,83 @@ export default function SLODashboard() {
             </Card>
           )}
 
+          {/* Breakdown por modo de falha — sempre exibe os 3 modos lado a
+              lado, independente do filtro ativo, para comparar como cada
+              bucket de violação muda entre as duas janelas. */}
+          {compareSummary && modeCountsCompare && (
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <AlertTriangle className="h-4 w-4 text-nexus-amber" />
+                  Violações por tipo
+                </CardTitle>
+                <CardDescription>
+                  Quantos buckets de tempo dispararam cada modo de falha em cada janela.
+                  Um mesmo bucket pode contar em mais de um tipo.
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <div className="overflow-x-auto">
+                  <table className="w-full text-sm">
+                    <thead className="text-xs uppercase text-muted-foreground border-b">
+                      <tr>
+                        <th className="text-left py-2 font-semibold">Tipo</th>
+                        <th className="text-right py-2 font-semibold">{windowLabel(windowHours)} (atual)</th>
+                        <th className="text-right py-2 font-semibold">{windowLabel(compareHours)}</th>
+                        <th className="text-right py-2 font-semibold">Δ</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {ALL_FAILURE_MODES.map((mode) => {
+                        const meta = FAILURE_MODE_META[mode];
+                        const curr = modeCountsCurrent[mode];
+                        const prev = modeCountsCompare[mode];
+                        const currPct = totalBucketsCurrent > 0 ? (curr / totalBucketsCurrent) * 100 : 0;
+                        const prevPct = totalBucketsCompare > 0 ? (prev / totalBucketsCompare) * 100 : 0;
+                        const d = formatDelta(curr, prev, true);
+                        return (
+                          <tr key={mode} className="border-b last:border-b-0 hover:bg-secondary/30">
+                            <td className="py-2.5 font-medium">
+                              <span className="inline-flex items-center gap-2">
+                                <span
+                                  className={`inline-block h-2.5 w-2.5 rounded-full ${meta.swatchClass}`}
+                                  aria-hidden="true"
+                                />
+                                <span title={meta.description}>{meta.label}</span>
+                              </span>
+                            </td>
+                            <td className="text-right tabular-nums font-semibold">
+                              {curr.toLocaleString('pt-BR')}
+                              <span className="ml-1 text-xs font-normal text-muted-foreground">
+                                ({currPct.toFixed(1)}%)
+                              </span>
+                            </td>
+                            <td className="text-right tabular-nums text-muted-foreground">
+                              {prev.toLocaleString('pt-BR')}
+                              <span className="ml-1 text-xs">({prevPct.toFixed(1)}%)</span>
+                            </td>
+                            <td className={`text-right tabular-nums font-mono font-semibold ${d.className}`}>
+                              {d.arrow} {Math.abs(d.pct).toFixed(1)}%
+                            </td>
+                          </tr>
+                        );
+                      })}
+                    </tbody>
+                    <tfoot className="text-xs text-muted-foreground border-t">
+                      <tr>
+                        <td className="pt-2" colSpan={4}>
+                          Base: {totalBucketsCurrent} buckets na janela atual ·{' '}
+                          {totalBucketsCompare} buckets na comparação. Percentuais
+                          relativos ao total de buckets de cada janela.
+                        </td>
+                      </tr>
+                    </tfoot>
+                  </table>
+                </div>
+              </CardContent>
+            </Card>
+          )}
+
           {/* Insights detalhados — evidências numéricas com indicadores de
               tendência. Métricas derivadas (custo/req, tokens/req, taxa de
               erro normalizada) são calculadas client-side a partir dos
