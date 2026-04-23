@@ -452,6 +452,104 @@ export function ReplayDialog({ open, onOpenChange, execution, initialStep = 0, o
               })}
             </div>
           )}
+          {/* Marcadores de matches da busca sobre a barra — usam cor primária
+              para distinguir dos marcadores de bookmark (amber). Clicar pula. */}
+          {matchIndexes.length > 0 && total > 1 && (
+            <div className="absolute inset-x-0 bottom-0 pointer-events-none h-1.5">
+              {matchIndexes.map((idx) => {
+                const left = `${(idx / Math.max(1, total - 1)) * 100}%`;
+                return (
+                  <button
+                    key={`m-${idx}`}
+                    type="button"
+                    onClick={() => { setStep(idx); setPlaying(false); }}
+                    className="absolute -translate-x-1/2 top-0 w-1 h-1.5 rounded-sm bg-primary pointer-events-auto hover:scale-150 transition-transform"
+                    style={{ left }}
+                    aria-label={`Ir para resultado no passo ${idx + 1}`}
+                    title={`Resultado no passo ${idx + 1}`}
+                  />
+                );
+              })}
+            </div>
+          )}
+        </div>
+
+        {/* Toolbar de busca — input + contador + prev/next + clear.
+            Convenção: Enter=próximo, Shift+Enter=anterior, Esc=limpa+desfoca,
+            atalho global "/" foca o input, "n"/"N" navega quando focado fora. */}
+        <div className="flex items-center gap-2 px-1">
+          <div className="relative flex-1">
+            <Search className="h-3.5 w-3.5 text-muted-foreground absolute left-2 top-1/2 -translate-y-1/2 pointer-events-none" aria-hidden />
+            <Input
+              ref={searchInputRef}
+              value={query}
+              onChange={(e) => setQuery(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter') {
+                  e.preventDefault();
+                  if (matchIndexes.length > 0) jumpMatch(e.shiftKey ? -1 : 1);
+                } else if (e.key === 'Escape') {
+                  e.preventDefault();
+                  if (query) setQuery('');
+                  else (e.target as HTMLInputElement).blur();
+                }
+              }}
+              placeholder='Buscar nos passos (event, input, output, metadata) — atalho "/"'
+              className="h-8 pl-7 pr-2 text-xs"
+              aria-label="Buscar texto nos passos da execução"
+            />
+          </div>
+          {query && (
+            <>
+              <span
+                className={cn(
+                  'text-[11px] tabular-nums px-1.5 py-0.5 rounded font-mono',
+                  matchIndexes.length === 0
+                    ? 'bg-destructive/10 text-destructive border border-destructive/30'
+                    : stepMatches
+                    ? 'bg-primary/10 text-primary border border-primary/30'
+                    : 'bg-secondary/60 text-muted-foreground border border-border/40',
+                )}
+                aria-live="polite"
+              >
+                {matchIndexes.length === 0
+                  ? '0 resultados'
+                  : `${currentMatchPos} de ${matchIndexes.length}`}
+              </span>
+              <Button
+                size="icon"
+                variant="outline"
+                className="h-8 w-8"
+                disabled={matchIndexes.length === 0}
+                onClick={() => jumpMatch(-1)}
+                aria-label="Resultado anterior"
+                title="Resultado anterior (Shift+Enter ou N)"
+              >
+                <ChevronUp className="h-3.5 w-3.5" />
+              </Button>
+              <Button
+                size="icon"
+                variant="outline"
+                className="h-8 w-8"
+                disabled={matchIndexes.length === 0}
+                onClick={() => jumpMatch(1)}
+                aria-label="Próximo resultado"
+                title="Próximo resultado (Enter ou n)"
+              >
+                <ChevronDown className="h-3.5 w-3.5" />
+              </Button>
+              <Button
+                size="icon"
+                variant="ghost"
+                className="h-8 w-8 text-muted-foreground"
+                onClick={() => { setQuery(''); searchInputRef.current?.focus(); }}
+                aria-label="Limpar busca"
+                title="Limpar busca (Esc)"
+              >
+                <X className="h-3.5 w-3.5" />
+              </Button>
+            </>
+          )}
         </div>
 
         {/* Current step */}
