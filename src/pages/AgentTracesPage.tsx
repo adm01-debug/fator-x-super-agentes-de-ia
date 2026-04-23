@@ -73,20 +73,17 @@ export default function AgentTracesPage() {
 
   // Absolute time window deep-link (e.g. SLO drill-down on a 1h bucket).
   // Only ISO strings that parse to a valid Date are honoured; from must be < to.
-  const { urlFrom, urlTo } = (() => {
+  const parsedWindow = useMemo(() => {
     const fromRaw = searchParams.get('from');
     const toRaw = searchParams.get('to');
-    if (!fromRaw || !toRaw) return { urlFrom: null, urlTo: null };
+    if (!fromRaw || !toRaw) return null;
     const fromMs = Date.parse(fromRaw);
     const toMs = Date.parse(toRaw);
-    if (!Number.isFinite(fromMs) || !Number.isFinite(toMs) || fromMs >= toMs) {
-      return { urlFrom: null, urlTo: null };
-    }
-    return { urlFrom: new Date(fromMs).toISOString(), urlTo: new Date(toMs).toISOString() };
-  })();
-  const [windowOverride, setWindowOverride] = useState<{ from: string; to: string } | null>(
-    urlFrom && urlTo ? { from: urlFrom, to: urlTo } : null,
-  );
+    if (!Number.isFinite(fromMs) || !Number.isFinite(toMs) || fromMs >= toMs) return null;
+    return { from: new Date(fromMs).toISOString(), to: new Date(toMs).toISOString() };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+  const [windowOverride, setWindowOverride] = useState<{ from: string; to: string } | null>(parsedWindow);
 
   const [selectedId, setSelectedId] = useState<string | null>(urlSession);
   const [selectedStep, setSelectedStep] = useState(urlStep ?? 0);
