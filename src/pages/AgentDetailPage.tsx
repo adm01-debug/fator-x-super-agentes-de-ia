@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Bot, Loader2, GitCompare, GitBranch, Activity, Bell, Play, Undo2, AlertTriangle, MessageSquare, Wrench, Cpu } from "lucide-react";
 import { useQuery, useQueryClient, useMutation } from "@tanstack/react-query";
-import { getAgentById, getAgentVersions, getAgentDetailTraces, restoreAgentVersion, type AgentTrace, type AgentVersion } from "@/services/agentsService";
+import { getAgentById, getAgentVersions, getAgentDetailTraces, restoreAgentVersion, undoRestoreAgentVersion, type AgentTrace, type AgentVersion } from "@/services/agentsService";
 import { VersionDiffDialog } from "@/components/agents/VersionDiffDialog";
 import { AgentCardViewer } from "@/components/agents/AgentCardViewer";
 import { AgentRichMetrics } from "@/components/agents/detail/AgentRichMetrics";
@@ -215,6 +215,40 @@ function VersionHistory({ agentId }: { agentId: string }) {
     ? computeRestoreDiff(current, previous, restoreOptions)
     : null;
 
+  // Rastreia o último rollback ainda "desfazível" — habilita botão persistente
+  // de undo enquanto a versão criada pelo rollback continua sendo a mais recente.
+  // Guardamos o ID da versão de rollback (latest após o sucesso) e o snapshot
+  // pré-rollback (`baseline` = `current` no momento da execução). Isso evita
+  // depender só de detecção via `restore_metadata` e permite undo via toast
+  // mesmo antes da query reidratar.
+  const [lastRollback, setLastRollback] = useState<{
+    rollbackVersionId: string;
+    baseline: AgentVersion;
+  } | null>(null);
+
+  const undoMut = useMutation({
+    mutationFn: async () => {
+      if (!lastRollback) throw new Error('Nada para desfazer');
+      // Busca a versão de rollback atualizada — pode ter sido recém-criada.
+      const rollbackVer = versions.find((v) => v.id === lastRollback.rollbackVersionId);
+      if (!rollbackVer) throw new Error('Versão de rollback não encontrada — recarregue a página');
+      return undoRestoreAgentVersion(agentId, rollbackVer, lastRollback.baseline);
+    },
+    onSuccess: (data) => {
+      queryClient.invalidateQueries({ queryKey: ['agent_versions', agentId] });
+      queryClient.invalidateQueries({ queryKey: ['agent', agentId] });
+      setLastRollback(null);
+      toast.success(`Rollback desfeito — v${data.version} restaurou o estado anterior`, {
+        action: {
+          label: 'Ver na timeline',
+          onClick: () => navigate(`/agents/${agentId}/versions?focus=${data.id}`),
+        },
+        duration: 6000,
+      });
+    },
+    onError: (e: Error) => toast.error(e.message || 'Falha ao desfazer rollback'),
+  });
+
   const rollbackMut = useMutation({
     mutationFn: () => restoreAgentVersion(agentId, previous!, current, {
       ...restoreOptions,
@@ -227,17 +261,49 @@ function VersionHistory({ agentId }: { agentId: string }) {
       queryClient.invalidateQueries({ queryKey: ['agent_versions', agentId] });
       queryClient.invalidateQueries({ queryKey: ['agent', agentId] });
       setRollbackOpen(false);
-      // Toast com ação para abrir a timeline já destacando a nova versão.
+
+      // Captura snapshot pré-rollback para permitir undo simétrico depois.
+      // `current` no momento do clique é o estado que estamos sobrescrevendo.
+      const baseline = current!;
+      setLastRollback({ rollbackVersionId: data.id, baseline });
+
+      // Toast: ação primária para desfazer (janela curta, mas o botão
+      // persistente continua disponível enquanto o estado durar).
       toast.success(`Rollback concluído — v${data.version} criada a partir de v${previous!.version}`, {
         action: {
-          label: 'Ver na timeline',
-          onClick: () => navigate(`/agents/${agentId}/versions?focus=${data.id}`),
+          label: 'Desfazer',
+          onClick: () => {
+            // Dispara undo usando o snapshot já capturado.
+            undoRestoreAgentVersion(agentId, data, baseline)
+              .then((undone) => {
+                queryClient.invalidateQueries({ queryKey: ['agent_versions', agentId] });
+                queryClient.invalidateQueries({ queryKey: ['agent', agentId] });
+                setLastRollback(null);
+                toast.success(`Rollback desfeito — v${undone.version} criada`, {
+                  action: {
+                    label: 'Ver na timeline',
+                    onClick: () => navigate(`/agents/${agentId}/versions?focus=${undone.id}`),
+                  },
+                  duration: 5000,
+                });
+              })
+              .catch((err: Error) => toast.error(err.message || 'Falha ao desfazer rollback'));
+          },
         },
-        duration: 6000,
+        duration: 12000,
       });
     },
     onError: (e: Error) => toast.error(e.message || 'Falha no rollback'),
   });
+
+  // Limpa o estado de undo se a versão mais recente já não for mais o rollback
+  // (ex.: usuário criou outra versão depois) — undo deixa de fazer sentido.
+  useEffect(() => {
+    if (!lastRollback) return;
+    if (current && current.id !== lastRollback.rollbackVersionId) {
+      setLastRollback(null);
+    }
+  }, [current, lastRollback]);
 
   if (isLoading || versions.length === 0) return null;
 
@@ -260,6 +326,23 @@ function VersionHistory({ agentId }: { agentId: string }) {
             >
               {rollbackMut.isPending ? <Loader2 className="h-3 w-3 animate-spin" /> : <Undo2 className="h-3 w-3" />}
               Rollback v{previous.version}
+            </Button>
+          )}
+          {/* Botão persistente de "Desfazer rollback" — aparece enquanto a
+              versão criada pelo rollback for a mais recente. Clique cria uma
+              nova versão reversa e mantém histórico rastreável (entry com
+              `undo_of_version_id` no `restore_metadata`). */}
+          {lastRollback && current && current.id === lastRollback.rollbackVersionId && (
+            <Button
+              variant="outline"
+              size="sm"
+              className="gap-1.5 text-xs h-7 border-primary/40 text-primary hover:bg-primary/10 hover:text-primary"
+              onClick={() => undoMut.mutate()}
+              disabled={undoMut.isPending}
+              title={`Desfazer rollback v${current.version} (cria v${nextVersionNumber} reversa)`}
+            >
+              {undoMut.isPending ? <Loader2 className="h-3 w-3 animate-spin" /> : <Undo2 className="h-3 w-3 rotate-180" />}
+              Desfazer rollback
             </Button>
           )}
           <Button variant="outline" size="sm" className="gap-1.5 text-xs h-7" onClick={() => navigate(`/agents/${agentId}/versions`)}>
