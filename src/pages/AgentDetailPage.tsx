@@ -439,7 +439,7 @@ function VersionHistory({ agentId }: { agentId: string }) {
                     {/* Resumo copiável para alinhar com o time antes de confirmar.
                         Gera markdown com antes/depois, top riscos e validações. */}
                     <RestoreSummaryShare
-                      agentName={agent.name}
+                      agentName={agentName}
                       current={current}
                       source={previous}
                       nextVersion={nextVersionNumber}
