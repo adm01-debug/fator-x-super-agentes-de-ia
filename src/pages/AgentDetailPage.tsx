@@ -247,6 +247,11 @@ function VersionHistory({ agentId }: { agentId: string }) {
     : null;
   const restoreBlocked = !!validation?.blocked;
 
+  // Gate adicional: rollbacks high/critical exigem ack explícito do usuário.
+  const requiresHighRiskAck =
+    !!restoreDiff && (restoreDiff.overallRisk === 'high' || restoreDiff.overallRisk === 'critical');
+  const ackBlocked = requiresHighRiskAck && !riskAck;
+
   const rollbackMut = useMutation({
     mutationFn: () => restoreAgentVersion(agentId, previous!, current, {
       ...restoreOptions,
