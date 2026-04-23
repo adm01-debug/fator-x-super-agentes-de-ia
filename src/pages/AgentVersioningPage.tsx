@@ -508,3 +508,41 @@ export default function AgentVersioningPage() {
     </div>
   );
 }
+
+/**
+ * CopyLinkButton — botão local com estado de "copiado" para a URL atual.
+ *
+ * Fica no header da página de versionamento. Como TODOS os filtros
+ * (sel/a/b/mode/preset/range/types/run) já vivem na URL, copiar
+ * `window.location.href` é suficiente para reproduzir a investigação no time.
+ *
+ * Usar `useSearchParams` como dependência garante re-render — assim o
+ * `window.location.href` capturado no handler é sempre o atual.
+ */
+function CopyLinkButton() {
+  const [copied, setCopied] = useState(false);
+  // Re-render quando os params mudarem (handler pega href fresco).
+  useSearchParams();
+  const handleCopy = async () => {
+    try {
+      await navigator.clipboard.writeText(window.location.href);
+      setCopied(true);
+      toast.success('Link copiado — a mesma visão da timeline será aberta');
+      window.setTimeout(() => setCopied(false), 1800);
+    } catch {
+      toast.error('Não foi possível copiar o link');
+    }
+  };
+  return (
+    <Button
+      size="sm"
+      variant={copied ? 'default' : 'outline'}
+      className={`gap-1.5 ${copied ? 'bg-nexus-emerald/15 text-nexus-emerald hover:bg-nexus-emerald/25 border border-nexus-emerald/40' : ''}`}
+      onClick={handleCopy}
+      title="Copia a URL atual com TODOS os filtros (versão, A/B, modo, preset, intervalo, tipos, execução)"
+    >
+      {copied ? <Check className="h-3.5 w-3.5" /> : <Link2 className="h-3.5 w-3.5" />}
+      {copied ? 'Copiado' : 'Copiar link'}
+    </Button>
+  );
+}
