@@ -142,6 +142,25 @@ export default function AgentTracesPage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [urlAgentId, agents]);
 
+  // Apply `?from=&to=` deep-link once: surface a toast confirming the bucket
+  // window and strip the params so manual filter changes aren't shadowed by them.
+  const appliedWindowParam = useRef(false);
+  useEffect(() => {
+    if (appliedWindowParam.current || !parsedWindow) return;
+    appliedWindowParam.current = true;
+    const fmt = (iso: string) => new Date(iso).toLocaleString('pt-BR', {
+      day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit',
+    });
+    toast.success(`Janela aplicada: ${fmt(parsedWindow.from)} → ${fmt(parsedWindow.to)}`);
+    const next = new URLSearchParams(searchParams);
+    next.delete('from');
+    next.delete('to');
+    if (next.toString() !== searchParams.toString()) {
+      setSearchParams(next, { replace: true });
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [parsedWindow]);
+
   const { data: events = [] } = useQuery({
     queryKey: ['agent-trace-events', effectiveAgentId],
     queryFn: () => listAvailableEvents(effectiveAgentId),
