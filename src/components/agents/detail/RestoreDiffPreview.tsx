@@ -151,6 +151,20 @@ export function RestoreDiffPreview({ current, source, options }: Props) {
   const scrollRef = useRef<HTMLDivElement>(null);
   const [activeMarker, setActiveMarker] = useState<string | null>(null);
 
+  // Ordenação dos chips de destaque, persistida em localStorage. Quando "pinned",
+  // a ordem fica travada e não muda mesmo se o usuário alternar — útil para
+  // manter referência visual consistente ao comparar várias versões em sequência.
+  const [highlightSort, setHighlightSort] = useState<HighlightSort>(() => loadHighlightSort());
+  const [highlightPinned, setHighlightPinned] = useState<boolean>(() => loadHighlightPinned());
+
+  useEffect(() => {
+    try { window.localStorage.setItem(SORT_STORAGE_KEY, highlightSort); } catch { /* ignore quota */ }
+  }, [highlightSort]);
+
+  useEffect(() => {
+    try { window.localStorage.setItem(SORT_PINNED_KEY, highlightPinned ? '1' : '0'); } catch { /* ignore quota */ }
+  }, [highlightPinned]);
+
   const changeId = (c: FieldChange) => `change-${c.group}-${c.field}`;
 
   const highlights = useMemo(() => {
