@@ -16,6 +16,8 @@ import { RestoreDiffPreview } from "@/components/agents/detail/RestoreDiffPrevie
 import { BehaviorImpactPanel } from "@/components/agents/detail/BehaviorImpactPanel";
 import { RestoreChangelogEditor, buildAutoSummary } from "@/components/agents/detail/RestoreChangelogEditor";
 import { computeRestoreDiff } from "@/components/agents/detail/restoreDiffHelpers";
+import { validateRestore } from "@/components/agents/detail/restoreValidation";
+import { RestoreValidationPanel } from "@/components/agents/detail/RestoreValidationPanel";
 import { RestoreHistorySection } from "@/components/agents/detail/RestoreHistorySection";
 import { simulateAgentRun, type SimulationSummary } from "@/services/agentTestSimulationService";
 import {
@@ -215,6 +217,13 @@ function VersionHistory({ agentId }: { agentId: string }) {
     ? computeRestoreDiff(current, previous, restoreOptions)
     : null;
 
+  // Validação pré-restore — corre sempre que houver origem; bloqueia confirmação
+  // se algum erro estrutural/incompatibilidade for detectado no estado pós-merge.
+  const validation = previous
+    ? validateRestore(current, previous, restoreOptions)
+    : null;
+  const restoreBlocked = !!validation?.blocked;
+
   const rollbackMut = useMutation({
     mutationFn: () => restoreAgentVersion(agentId, previous!, current, {
       ...restoreOptions,
@@ -360,6 +369,12 @@ function VersionHistory({ agentId }: { agentId: string }) {
                   )}
                 </fieldset>
 
+                {/* Validação pré-restore — sempre visível quando há origem e ao menos
+                    um campo marcado, para que o usuário veja erros antes de tudo. */}
+                {previous && hasAnyOptionSelected && validation && (
+                  <RestoreValidationPanel validation={validation} />
+                )}
+
                 {previous && hasAnyOptionSelected && restoreDiff && (
                   <>
                     <RestoreDiffPreview
@@ -398,12 +413,16 @@ function VersionHistory({ agentId }: { agentId: string }) {
             <AlertDialogCancel disabled={rollbackMut.isPending}>Cancelar</AlertDialogCancel>
             <AlertDialogAction
               onClick={(e) => { e.preventDefault(); rollbackMut.mutate(); }}
-              disabled={rollbackMut.isPending || !hasAnyOptionSelected}
+              disabled={rollbackMut.isPending || !hasAnyOptionSelected || restoreBlocked}
               className="gap-1.5"
-              title={!hasAnyOptionSelected ? 'Selecione ao menos um campo' : undefined}
+              title={
+                !hasAnyOptionSelected ? 'Selecione ao menos um campo'
+                : restoreBlocked ? `Resolva ${validation?.errors.length ?? 0} erro(s) de validação para continuar`
+                : undefined
+              }
             >
               {rollbackMut.isPending ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Undo2 className="h-3.5 w-3.5" />}
-              Confirmar rollback
+              {restoreBlocked ? 'Bloqueado por validação' : 'Confirmar rollback'}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
