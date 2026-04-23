@@ -4633,6 +4633,42 @@ export type Database = {
         }
         Relationships: []
       }
+      restore_field_presets: {
+        Row: {
+          copy_model: boolean
+          copy_prompt: boolean
+          copy_tools: boolean
+          created_at: string
+          id: string
+          is_default: boolean
+          name: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          copy_model?: boolean
+          copy_prompt?: boolean
+          copy_tools?: boolean
+          created_at?: string
+          id?: string
+          is_default?: boolean
+          name: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          copy_model?: boolean
+          copy_prompt?: boolean
+          copy_tools?: boolean
+          created_at?: string
+          id?: string
+          is_default?: boolean
+          name?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       risk_register: {
         Row: {
           category: string
