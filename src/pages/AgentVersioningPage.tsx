@@ -401,7 +401,7 @@ export default function AgentVersioningPage() {
               <TimelineRangeFilter range={range} onChange={setRange} versions={versions} />
               {/* Filtro por execução: aplica a janela temporal (min/max
                   created_at dos traces) da sessão escolhida ao range geral. */}
-              <RunFilter agentId={id!} currentRange={range} onApply={setRange} />
+              <RunFilter agentId={id!} currentRange={range} activeRunId={runId} onApply={setRunAndRange} />
               {(versionA && versionB) && range.mode !== 'version' && (
                 <Button
                   type="button"
