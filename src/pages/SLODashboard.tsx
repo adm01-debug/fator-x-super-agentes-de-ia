@@ -216,6 +216,14 @@ export default function SLODashboard() {
     const n = Number(raw);
     return (WINDOW_OPTIONS as readonly number[]).includes(n) ? n : 0;
   });
+
+  // Custom name for this evaluation window (e.g. "Sprint 27 — pico do Black Friday").
+  // URL is the source of truth (so it travels with the shared link); fallback to
+  // the per-user localStorage value to remember the last name across sessions.
+  const [windowName, setWindowName] = useState<string>(() => {
+    const fromUrl = sanitizeWindowName(searchParams.get(QP_NAME));
+    return fromUrl || readStoredWindowName();
+  });
   const [compareSummary, setCompareSummary] = useState<SLOSummary | null>(null);
 
   // Failure-mode filters for the timeline. Each toggle controls which kind of
