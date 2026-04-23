@@ -25,6 +25,7 @@ import {
   type SLOStatus,
 } from '@/lib/slo/sloTargets';
 import { logger } from '@/lib/logger';
+import { exportDrilldownPdf, type DrilldownSection } from '@/lib/slo/exportDrilldownPdf';
 import { toast } from 'sonner';
 
 /** Auto-refresh interval options (ms). 0 = disabled. */
