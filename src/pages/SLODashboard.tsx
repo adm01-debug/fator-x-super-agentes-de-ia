@@ -1277,19 +1277,119 @@ export default function SLODashboard() {
                     Sem dados temporais para esta janela
                   </div>
                 ) : (
-                  <LightAreaChart
-                    data={chartData}
-                    xKey="time"
-                    height={280}
-                    yFormatter={(v) => `${v}ms`}
-                    tooltipFormatter={(v, name) => `${v}ms (${name})`}
-                    showLegend
-                    series={[
-                      { dataKey: 'p95', name: 'P95', stroke: 'hsl(var(--primary))', strokeWidth: 2 },
-                      { dataKey: 'p50', name: 'P50', stroke: 'hsl(var(--muted-foreground))', fill: 'transparent', strokeWidth: 1.5 },
-                      { dataKey: 'target', name: `Alvo ${SLO_TARGETS.p95LatencyMs}ms`, stroke: 'hsl(var(--destructive))', fill: 'transparent', strokeWidth: 1 },
-                    ]}
-                  />
+                  <>
+                    <LightAreaChart
+                      data={chartData}
+                      xKey="time"
+                      height={280}
+                      yFormatter={(v) => `${v}ms`}
+                      tooltipFormatter={(v, name) => `${v}ms (${name})`}
+                      showLegend
+                      series={[
+                        { dataKey: 'p95', name: 'P95', stroke: 'hsl(var(--primary))', strokeWidth: 2 },
+                        { dataKey: 'p50', name: 'P50', stroke: 'hsl(var(--muted-foreground))', fill: 'transparent', strokeWidth: 1.5 },
+                        { dataKey: 'target', name: `Alvo ${SLO_TARGETS.p95LatencyMs}ms`, stroke: 'hsl(var(--destructive))', fill: 'transparent', strokeWidth: 1 },
+                      ]}
+                    />
+
+                    {/* Violation strip — one cell per timeline bucket. Color
+                        signals which failure mode(s) matched. When multiple
+                        modes match the same bucket, the cell is split into
+                        equal-width vertical bands so all modes are visible.
+                        Hover reveals the bucket time + matched modes. */}
+                    <div className="mt-4 space-y-2">
+                      <div className="flex items-center justify-between gap-4 flex-wrap">
+                        <span className="text-[11px] uppercase tracking-wide text-muted-foreground">
+                          Violações por bucket
+                        </span>
+                        <div
+                          className="flex items-center gap-3 flex-wrap"
+                          role="list"
+                          aria-label="Legenda das cores das violações"
+                        >
+                          {ALL_FAILURE_MODES.map((mode) => {
+                            const meta = FAILURE_MODE_META[mode];
+                            const enabled = failureModes.has(mode);
+                            return (
+                              <div
+                                key={mode}
+                                role="listitem"
+                                title={meta.description}
+                                className={`flex items-center gap-1.5 text-[11px] ${
+                                  enabled ? 'text-foreground' : 'text-muted-foreground/60 line-through'
+                                }`}
+                              >
+                                <span
+                                  aria-hidden
+                                  className={`h-2.5 w-2.5 rounded-sm ${meta.swatchClass} ${
+                                    enabled ? '' : 'opacity-40'
+                                  }`}
+                                />
+                                <span>{meta.label}</span>
+                              </div>
+                            );
+                          })}
+                          <div
+                            role="listitem"
+                            title="Bucket sem violação sob o filtro atual"
+                            className="flex items-center gap-1.5 text-[11px] text-muted-foreground"
+                          >
+                            <span aria-hidden className="h-2.5 w-2.5 rounded-sm bg-secondary border border-border" />
+                            <span>Sem violação</span>
+                          </div>
+                        </div>
+                      </div>
+
+                      <div
+                        className="flex w-full overflow-hidden rounded-md border border-border bg-secondary/40 h-5"
+                        role="img"
+                        aria-label={`Tira de violações: ${filteredViolations} de ${chartData.length} buckets afetados`}
+                      >
+                        {(summary?.timeseries ?? []).map((bucket, i) => {
+                          const matched = classifyBucket(bucket);
+                          const time = new Date(bucket.bucket_hour).toLocaleString('pt-BR', {
+                            day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit',
+                          });
+                          const tooltip = matched.length === 0
+                            ? `${time} · sem violação`
+                            : `${time} · ${matched.map((m) => FAILURE_MODE_META[m].label).join(' + ')}`;
+
+                          // Single-mode (or zero-mode) cell — flat color.
+                          if (matched.length <= 1) {
+                            const bg = matched.length === 0
+                              ? undefined
+                              : FAILURE_MODE_META[matched[0]].cssVar;
+                            return (
+                              <div
+                                key={bucket.bucket_hour + i}
+                                title={tooltip}
+                                className="flex-1 h-full transition-opacity hover:opacity-80 border-r border-background/40 last:border-r-0"
+                                style={bg ? { backgroundColor: bg } : undefined}
+                              />
+                            );
+                          }
+
+                          // Multi-mode cell — split into equal vertical bands
+                          // so each matched mode is visually represented.
+                          return (
+                            <div
+                              key={bucket.bucket_hour + i}
+                              title={tooltip}
+                              className="flex flex-1 h-full transition-opacity hover:opacity-80 border-r border-background/40 last:border-r-0"
+                            >
+                              {matched.map((m) => (
+                                <div
+                                  key={m}
+                                  className="flex-1 h-full"
+                                  style={{ backgroundColor: FAILURE_MODE_META[m].cssVar }}
+                                />
+                              ))}
+                            </div>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  </>
                 )}
               </CardContent>
             </Card>
