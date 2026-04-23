@@ -18,7 +18,8 @@ import { VersionDetailPanel } from "@/components/agents/versioning/VersionDetail
 import { VersionComparePanel } from "@/components/agents/versioning/VersionComparePanel";
 import { NewVersionDialog } from "@/components/agents/versioning/NewVersionDialog";
 import { TimelinePresetBar } from "@/components/agents/versioning/TimelinePresetBar";
-import { TIMELINE_PRESETS, getPresetById, matchesPreset } from "@/components/agents/versioning/timelineFilters";
+import { TIMELINE_PRESETS, getPresetById, matchesPreset, getVersionTags, type TimelineTag } from "@/components/agents/versioning/timelineFilters";
+import { EventTypeFilter } from "@/components/agents/versioning/EventTypeFilter";
 import {
   TimelineRangeFilter,
   filterByRange,
@@ -67,6 +68,28 @@ export default function AgentVersioningPage() {
     updateParams((p) => { m === 'compare' ? p.set('mode', 'compare') : p.delete('mode'); });
   const setPreset = (pid: string) =>
     updateParams((p) => { pid && pid !== 'all' ? p.set('preset', pid) : p.delete('preset'); });
+
+  // Filtro multi-tag por tipo de evento — persiste na URL como `types=a,b,c`
+  // e aplica AND com o preset ativo (preset filtra "modo de uso", types
+  // restringe a categoria de mudança que estou investigando).
+  const typesParam = searchParams.get('types') ?? '';
+  const activeTypes = useMemo<Set<TimelineTag>>(() => {
+    if (!typesParam) return new Set();
+    return new Set(
+      typesParam.split(',').filter((t): t is TimelineTag =>
+        ['prompt', 'tools', 'model', 'guardrails', 'rag', 'rollback', 'failure'].includes(t),
+      ),
+    );
+  }, [typesParam]);
+  const toggleType = (tag: TimelineTag) => {
+    const next = new Set(activeTypes);
+    next.has(tag) ? next.delete(tag) : next.add(tag);
+    updateParams((p) => {
+      next.size > 0 ? p.set('types', Array.from(next).join(',')) : p.delete('types');
+    });
+  };
+  const clearTypes = () =>
+    updateParams((p) => { p.delete('types'); });
 
   // Intervalo (versão ou tempo) também persiste na URL via `range=` para
   // manter o link compartilhável com a mesma "fatia" da timeline.
@@ -226,8 +249,28 @@ export default function AgentVersioningPage() {
     if (activePreset.id !== 'all') {
       list = list.filter((v) => pinnedIds.has(v.id) || matchesPreset(v, activePreset));
     }
+    if (activeTypes.size > 0) {
+      // AND com preset: a versão precisa ter pelo menos uma das tags ativas
+      // (OR entre tags selecionadas — comportamento esperado de chips toggle).
+      list = list.filter((v) => {
+        if (pinnedIds.has(v.id)) return true;
+        const tags = getVersionTags(v);
+        for (const t of activeTypes) if (tags.has(t)) return true;
+        return false;
+      });
+    }
     return list;
-  }, [versions, activePreset, pinnedIds, range]);
+  }, [versions, activePreset, pinnedIds, range, activeTypes]);
+  // Contagens por tag sobre a lista completa (não filtrada) — assim o número
+  // ao lado de cada chip mostra "quantas existem", não "quantas restam".
+  const typeCounts = useMemo(() => {
+    const counts: Partial<Record<TimelineTag, number>> = {};
+    for (const v of versions) {
+      const tags = getVersionTags(v);
+      for (const t of tags) counts[t] = (counts[t] ?? 0) + 1;
+    }
+    return counts;
+  }, [versions]);
   const presetCounts = useMemo(() => {
     const counts: Record<string, number> = {};
     for (const preset of TIMELINE_PRESETS) {
@@ -333,6 +376,14 @@ export default function AgentVersioningPage() {
               onChange={setPreset}
               counts={presetCounts}
             />
+            {/* Filtro multi-tag por tipo de evento — aplica AND com o preset
+                e mostra contagem total por tag (não filtrada) para guiar a escolha. */}
+            <EventTypeFilter
+              active={activeTypes}
+              onToggle={toggleType}
+              onClear={clearTypes}
+              counts={typeCounts}
+            />
             <div className="flex items-center gap-1.5 mb-2 flex-wrap">
               <span className="text-[10px] uppercase tracking-wider text-muted-foreground font-semibold">
                 Intervalo
@@ -369,11 +420,12 @@ export default function AgentVersioningPage() {
               highlightId={highlightId}
               agentId={id!}
             />
-            {(activePreset.id !== 'all' || range.mode !== 'off') && filteredVersions.length < versions.length && (
+            {(activePreset.id !== 'all' || range.mode !== 'off' || activeTypes.size > 0) && filteredVersions.length < versions.length && (
               <p className="text-[10px] text-muted-foreground mt-2 px-1">
                 Mostrando {filteredVersions.length} de {versions.length} versões
                 {activePreset.id !== 'all' && <> · preset "{activePreset.label}"</>}
-                {range.mode !== 'off' && <> · intervalo ativo</>}.
+                {range.mode !== 'off' && <> · intervalo ativo</>}
+                {activeTypes.size > 0 && <> · tipos: {Array.from(activeTypes).join(', ')}</>}.
               </p>
             )}
             {/* Compartilhamento — resumo do estado (sel/A/B/modo/preset) +
