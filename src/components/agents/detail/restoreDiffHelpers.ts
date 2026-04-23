@@ -178,7 +178,7 @@ export function computeRestoreDiff(
     if (!eqLoose(cfgCur.prompt, cfgSrc.prompt)) {
       const beforeStr = typeof cfgCur.prompt === 'string' ? cfgCur.prompt : JSON.stringify(cfgCur.prompt ?? '');
       const afterStr = typeof cfgSrc.prompt === 'string' ? cfgSrc.prompt : JSON.stringify(cfgSrc.prompt ?? '');
-      const { impact, reason } = scorePrompt(beforeStr.length, afterStr.length);
+      const { impact, reason, criteria } = scorePrompt(beforeStr.length, afterStr.length);
       push({
         field: 'prompt',
         label: 'Prompt (legacy)',
@@ -188,6 +188,10 @@ export function computeRestoreDiff(
         kind: cfgSrc.prompt ? (cfgCur.prompt ? 'modified' : 'added') : 'removed',
         impact: Math.max(15, impact - 10),
         reason,
+        criteria: [
+          ...criteria,
+          { label: 'Campo legacy — peso reduzido em −10 pts', points: -10, detail: 'system_prompt é prioritário' },
+        ],
       });
       promptHasChange = true;
     }
