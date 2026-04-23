@@ -334,6 +334,89 @@ export async function restoreAgentVersion(
 }
 
 /**
+ * Undo a rollback by creating a NEW version that reverses the most recent
+ * restore. We reapply the *pre-rollback* baseline (`baselineVersion` — i.e.
+ * what was current right before the rollback ran) on top of the rollback
+ * version, using the same field selection that the rollback used. The
+ * resulting version embeds `restore_metadata.undo_of` so the history can
+ * render it as a paired entry and prevent double-undo confusion.
+ *
+ * Crucially: this is additive. Nothing is mutated/deleted — the rollback
+ * version stays in the audit log; the undo is just another version.
+ */
+export async function undoRestoreAgentVersion(
+  agentId: string,
+  rollbackVersion: AgentVersion,
+  baselineVersion: AgentVersion,
+): Promise<AgentVersion> {
+  // Recupera quais campos foram aplicados pelo rollback original — só
+  // desfazemos exatamente esses, mantendo simetria perfeita.
+  const cfg = (rollbackVersion.config ?? {}) as Record<string, unknown>;
+  const meta = cfg.restore_metadata as
+    | { options?: { copyPrompt?: boolean; copyTools?: boolean; copyModel?: boolean } }
+    | undefined;
+  const opts: RestoreOptions = {
+    copyPrompt: !!meta?.options?.copyPrompt,
+    copyTools: !!meta?.options?.copyTools,
+    copyModel: !!meta?.options?.copyModel,
+  };
+
+  // Recompila a config: parte do rollback (current) e sobrescreve com o
+  // baseline (pré-rollback) nos mesmos campos — efeito reverso.
+  const baseConfig = (rollbackVersion.config ?? {}) as Record<string, unknown>;
+  const baselineConfig = (baselineVersion.config ?? {}) as Record<string, unknown>;
+  const merged: Record<string, unknown> = { ...baseConfig };
+
+  let model = rollbackVersion.model;
+  let persona = rollbackVersion.persona;
+  let mission = rollbackVersion.mission;
+
+  if (opts.copyPrompt) {
+    mission = baselineVersion.mission;
+    if ('system_prompt' in baselineConfig) merged.system_prompt = baselineConfig.system_prompt;
+    if ('prompt' in baselineConfig) merged.prompt = baselineConfig.prompt;
+  }
+  if (opts.copyTools) {
+    if ('tools' in baselineConfig) merged.tools = baselineConfig.tools;
+  }
+  if (opts.copyModel) {
+    model = baselineVersion.model;
+    persona = baselineVersion.persona;
+    if ('temperature' in baselineConfig) merged.temperature = baselineConfig.temperature;
+    if ('max_tokens' in baselineConfig) merged.max_tokens = baselineConfig.max_tokens;
+    if ('reasoning' in baselineConfig) merged.reasoning = baselineConfig.reasoning;
+  }
+
+  // Marca explicitamente como undo — substitui (não acumula) o
+  // restore_metadata para que a UI trate este registro como reverso.
+  merged.restore_metadata = {
+    restored_from_version: baselineVersion.version,
+    restored_from_version_id: baselineVersion.id,
+    restored_at: new Date().toISOString(),
+    options: {
+      copyPrompt: !!opts.copyPrompt,
+      copyTools: !!opts.copyTools,
+      copyModel: !!opts.copyModel,
+    },
+    custom_summary: null,
+    // Campos extras que identificam este registro como "desfazer rollback":
+    undo_of_version: rollbackVersion.version,
+    undo_of_version_id: rollbackVersion.id,
+  };
+
+  const change_summary = `Desfeito rollback v${rollbackVersion.version} → restaurado estado pré-rollback (v${baselineVersion.version})`;
+
+  return createAgentVersion({
+    agentId,
+    model,
+    persona,
+    mission,
+    config: merged,
+    change_summary,
+  });
+}
+
+/**
  * Version history for a specific agent (latest N).
  */
 export async function getAgentVersions(agentId: string, limit = 20): Promise<AgentVersion[]> {
