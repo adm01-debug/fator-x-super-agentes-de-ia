@@ -282,6 +282,7 @@ export default function AgentVersioningPage() {
               onPickA={(vid) => { setAId(vid); if (bId && vid !== bId) setMode('compare'); }}
               onPickB={(vid) => { setBId(vid); if (aId && vid !== aId) setMode('compare'); }}
               highlightId={highlightId}
+              agentId={id!}
             />
             {(activePreset.id !== 'all' || range.mode !== 'off') && filteredVersions.length < versions.length && (
               <p className="text-[10px] text-muted-foreground mt-2 px-1">
