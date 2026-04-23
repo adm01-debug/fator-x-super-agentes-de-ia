@@ -148,13 +148,16 @@ export default function AgentTracesPage() {
   });
 
   const { data: traces = [], isLoading, refetch, isFetching } = useQuery({
-    queryKey: ['agent-traces', effectiveAgentId, level, event, debouncedSearch, sinceHours],
+    queryKey: ['agent-traces', effectiveAgentId, level, event, debouncedSearch, sinceHours, windowOverride?.from, windowOverride?.to],
     queryFn: () => listAgentTraces({
       agentId: effectiveAgentId,
       level,
       event,
       search: debouncedSearch,
-      sinceHours,
+      // Absolute window wins over `sinceHours` when present.
+      sinceHours: windowOverride ? 0 : sinceHours,
+      from: windowOverride?.from,
+      to: windowOverride?.to,
       limit: 500,
     }),
     staleTime: 30_000,
