@@ -89,14 +89,22 @@ export default function AgentVersioningPage() {
   // Auto-select latest, and last 2 for compare — só preenche se a URL ainda não trouxer estado.
   useEffect(() => {
     if (versions.length === 0) return;
-    // Prioridade 1: ?focus= vindo do Detail page após restore.
+    // Prioridade 1: foco vindo via path (/v/:id) ou query (?focus=).
     if (focusId && versions.some(v => v.id === focusId)) {
-      updateParams((p) => {
-        p.set('sel', focusId);
-        p.delete('focus');
-      }, { replace: true });
+      // Se o foco veio do path, navega para a URL base preservando outros
+      // params atuais — assim o destaque some sem deixar resíduo na barra.
+      if (pathVersionId) {
+        const next = new URLSearchParams(searchParams);
+        next.set('sel', focusId);
+        const qs = next.toString();
+        navigate(`/agents/${id}/versions${qs ? `?${qs}` : ''}`, { replace: true });
+      } else {
+        updateParams((p) => {
+          p.set('sel', focusId);
+          p.delete('focus');
+        }, { replace: true });
+      }
       setHighlightId(focusId);
-      // Auto-fade do destaque após ~2.8s (cobre 1 ciclo da animação pulse).
       const t = setTimeout(() => setHighlightId(null), 2800);
       return () => clearTimeout(t);
     }
