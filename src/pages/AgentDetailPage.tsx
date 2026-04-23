@@ -213,6 +213,10 @@ function VersionHistory({ agentId }: { agentId: string }) {
     queryFn: () => getAgentVersions(agentId, 20),
   });
 
+  // Reusa o cache do parent — evita refetch só para pegar o nome.
+  const cachedAgent = queryClient.getQueryData<{ name?: string }>(['agent', agentId]);
+  const agentName = cachedAgent?.name ?? 'Agente';
+
   const current: AgentVersion | undefined = versions[0];
   const previous: AgentVersion | undefined = versions[1];
   const nextVersionNumber = (current?.version ?? 0) + 1;
