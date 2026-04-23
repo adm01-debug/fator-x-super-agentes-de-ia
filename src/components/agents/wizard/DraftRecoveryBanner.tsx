@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState, type KeyboardEvent as ReactKeyboardEvent } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Check, FileClock, FolderOpen, Layers, Minus, Pencil, RotateCcw, SkipForward, Sparkles, Trash2, X, Zap } from 'lucide-react';
@@ -451,8 +452,24 @@ export function DraftRecoveryBanner({
   const [selectedId, setSelectedId] = useState<string>(drafts[0]?.id ?? '');
   const [editingId, setEditingId] = useState<string | null>(null);
   // Modo escolhido pelo usuário antes de clicar em Restaurar.
-  // Default: 'full' — mais previsível, retorna o estado exato salvo.
-  const [restoreMode, setRestoreMode] = useState<RestoreMode>('full');
+  // Persistido em ?restoreMode=full|partial para que recarregar a página
+  // mantenha o radio do seletor visualmente reflexivo. Default: 'full' —
+  // mais previsível, retorna o estado exato salvo. Valores inválidos no URL
+  // são ignorados e caem no default.
+  const [searchParams, setSearchParams] = useSearchParams();
+  const urlMode = searchParams.get('restoreMode');
+  const initialMode: RestoreMode = urlMode === 'partial' ? 'partial' : 'full';
+  const [restoreMode, setRestoreModeState] = useState<RestoreMode>(initialMode);
+  const setRestoreMode = (m: RestoreMode) => {
+    setRestoreModeState(m);
+    // `replace: true` evita poluir o histórico — alternar entre full/partial
+    // não deve gerar entradas no back button.
+    const next = new URLSearchParams(searchParams);
+    // Só serializa quando difere do default para manter URLs limpas.
+    if (m === 'partial') next.set('restoreMode', 'partial');
+    else next.delete('restoreMode');
+    setSearchParams(next, { replace: true });
+  };
   const itemsRef = useRef<Record<string, HTMLDivElement | null>>({});
 
   const handleConfirmRename = (id: string, newName: string) => {
