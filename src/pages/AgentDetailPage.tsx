@@ -16,6 +16,7 @@ import { RestoreDiffPreview } from "@/components/agents/detail/RestoreDiffPrevie
 import { BehaviorImpactPanel } from "@/components/agents/detail/BehaviorImpactPanel";
 import { RestoreChangelogEditor, buildAutoSummary } from "@/components/agents/detail/RestoreChangelogEditor";
 import { RestoreSummaryShare } from "@/components/agents/detail/RestoreSummaryShare";
+import { HighRiskAcknowledge } from "@/components/agents/detail/HighRiskAcknowledge";
 import { computeRestoreDiff } from "@/components/agents/detail/restoreDiffHelpers";
 import { validateRestore } from "@/components/agents/detail/restoreValidation";
 import { RestoreValidationPanel } from "@/components/agents/detail/RestoreValidationPanel";
@@ -193,6 +194,9 @@ function VersionHistory({ agentId }: { agentId: string }) {
   // Changelog editável: texto controlado + flag indicando se foi customizado.
   const [summaryDraft, setSummaryDraft] = useState("");
   const [summaryEdited, setSummaryEdited] = useState(false);
+  // Acknowledge para riscos high/critical — força o usuário a marcar
+  // explicitamente que revisou os itens em vermelho/âmbar.
+  const [riskAck, setRiskAck] = useState(false);
 
   // Reset das opções a cada abertura do diálogo. O default volta para "tudo
   // marcado" — se o usuário tiver um preset padrão, o `RestorePresetMenu` o
@@ -205,8 +209,15 @@ function VersionHistory({ agentId }: { agentId: string }) {
       setSummaryEdited(false);
       setSummaryDraft("");
       setPresetAutoApplied(false);
+      setRiskAck(false);
     }
   }, [rollbackOpen]);
+
+  // Reset do acknowledge sempre que mudar a versão de origem ou os campos
+  // selecionados — qualquer mudança invalida a revisão anterior.
+  useEffect(() => {
+    setRiskAck(false);
+  }, [copyPrompt, copyTools, copyModel]);
 
   const { data: versions = [], isLoading } = useQuery({
     queryKey: ['agent_versions', agentId],
@@ -235,6 +246,11 @@ function VersionHistory({ agentId }: { agentId: string }) {
     ? validateRestore(current, previous, restoreOptions)
     : null;
   const restoreBlocked = !!validation?.blocked;
+
+  // Gate adicional: rollbacks high/critical exigem ack explícito do usuário.
+  const requiresHighRiskAck =
+    !!restoreDiff && (restoreDiff.overallRisk === 'high' || restoreDiff.overallRisk === 'critical');
+  const ackBlocked = requiresHighRiskAck && !riskAck;
 
   const rollbackMut = useMutation({
     mutationFn: () => restoreAgentVersion(agentId, previous!, current, {
@@ -417,6 +433,14 @@ function VersionHistory({ agentId }: { agentId: string }) {
                       source={previous}
                       options={restoreOptions}
                     />
+                    {/* Etapa extra de confirmação para risco high/critical:
+                        lista os badges vermelho/âmbar e exige checkbox de revisão. */}
+                    <HighRiskAcknowledge
+                      diff={restoreDiff}
+                      acknowledged={riskAck}
+                      onAcknowledgedChange={setRiskAck}
+                      disabled={rollbackMut.isPending}
+                    />
                     {/* Impacto operacional — traduz a diff de configuração em
                         consequências reais (sessões afetadas, tools em uso,
                         métricas de modelo) puxando traces dos últimos 7d. */}
@@ -459,16 +483,17 @@ function VersionHistory({ agentId }: { agentId: string }) {
             <AlertDialogCancel disabled={rollbackMut.isPending}>Cancelar</AlertDialogCancel>
             <AlertDialogAction
               onClick={(e) => { e.preventDefault(); rollbackMut.mutate(); }}
-              disabled={rollbackMut.isPending || !hasAnyOptionSelected || restoreBlocked}
+              disabled={rollbackMut.isPending || !hasAnyOptionSelected || restoreBlocked || ackBlocked}
               className="gap-1.5"
               title={
                 !hasAnyOptionSelected ? 'Selecione ao menos um campo'
                 : restoreBlocked ? `Resolva ${validation?.errors.length ?? 0} erro(s) de validação para continuar`
+                : ackBlocked ? 'Revise e confirme os itens de risco alto/crítico'
                 : undefined
               }
             >
               {rollbackMut.isPending ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Undo2 className="h-3.5 w-3.5" />}
-              {restoreBlocked ? 'Bloqueado por validação' : 'Confirmar rollback'}
+              {restoreBlocked ? 'Bloqueado por validação' : ackBlocked ? 'Revisão de risco pendente' : 'Confirmar rollback'}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
