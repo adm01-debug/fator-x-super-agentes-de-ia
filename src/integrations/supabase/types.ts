@@ -5561,6 +5561,27 @@ export type Database = {
         }
         Relationships: []
       }
+      user_filter_preferences: {
+        Row: {
+          filters: Json
+          scope: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          filters?: Json
+          scope: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          filters?: Json
+          scope?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       user_roles: {
         Row: {
           assigned_by: string | null
