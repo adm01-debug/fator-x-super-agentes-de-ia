@@ -15,6 +15,9 @@ interface RestoreMetadata {
   restored_at: string;
   options: { copyPrompt: boolean; copyTools: boolean; copyModel: boolean };
   custom_summary: string | null;
+  /** Quando preenchido, este registro é um undo de outro rollback. */
+  undo_of_version: number | null;
+  undo_of_version_id: string | null;
 }
 
 interface Props {
@@ -47,6 +50,8 @@ function extractRestoreMeta(v: AgentVersion): RestoreMetadata | null {
       copyModel: !!opts.copyModel,
     },
     custom_summary: typeof m.custom_summary === "string" ? m.custom_summary : null,
+    undo_of_version: typeof m.undo_of_version === "number" ? m.undo_of_version : null,
+    undo_of_version_id: typeof m.undo_of_version_id === "string" ? m.undo_of_version_id : null,
   };
 }
 
@@ -100,16 +105,31 @@ export function RestoreHistorySection({ agentId, versions }: Props) {
       </div>
 
       <ol className="space-y-2 max-h-[280px] overflow-y-auto">
-        {entries.map((entry) => (
+        {entries.map((entry) => {
+          const isUndo = entry.meta.undo_of_version !== null;
+          return (
           <li
             key={entry.versionId}
-            className="rounded-lg border border-border/60 bg-secondary/20 hover:bg-secondary/30 transition-colors px-3 py-2.5"
+            className={`rounded-lg border transition-colors px-3 py-2.5 ${
+              isUndo
+                ? "border-primary/30 bg-primary/[0.04] hover:bg-primary/[0.07]"
+                : "border-border/60 bg-secondary/20 hover:bg-secondary/30"
+            }`}
           >
             {/* Linha principal: v{src} → v{new} + data */}
             <div className="flex items-center justify-between gap-2 mb-1.5">
               <div className="flex items-center gap-1.5 text-xs font-mono">
+                {isUndo && (
+                  <span
+                    className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[9px] font-semibold uppercase tracking-wider bg-primary/15 text-primary border border-primary/30 mr-1"
+                    title={`Reverte o rollback v${entry.meta.undo_of_version}`}
+                  >
+                    <Undo2 className="h-2.5 w-2.5 rotate-180" aria-hidden />
+                    Undo de v{entry.meta.undo_of_version}
+                  </span>
+                )}
                 <span className="text-muted-foreground">v{entry.meta.restored_from_version}</span>
-                <ArrowRight className="h-3 w-3 text-nexus-amber" aria-hidden />
+                <ArrowRight className={`h-3 w-3 ${isUndo ? "text-primary" : "text-nexus-amber"}`} aria-hidden />
                 <button
                   type="button"
                   onClick={() => navigate(`/agents/${agentId}/versions?focus=${entry.versionId}`)}
@@ -150,21 +170,22 @@ export function RestoreHistorySection({ agentId, versions }: Props) {
                 label="modelo"
               />
               {entry.meta.custom_summary && (
-                <span className="text-[9px] uppercase tracking-wider text-primary bg-primary/10 px-1.5 py-0.5 rounded font-semibold ml-auto">
+                <span className="text-[9px] uppercase tracking-wider text-primary bg-primary/10 px-1.5 py-0.5 rounded font-semibold">
                   personalizado
                 </span>
               )}
               <Button
                 variant="ghost"
                 size="sm"
-                className="h-5 px-1.5 text-[10px] gap-0.5 ml-auto data-[has-custom=true]:ml-1"
+                className="h-5 px-1.5 text-[10px] gap-0.5 ml-auto"
                 onClick={() => navigate(`/agents/${agentId}/versions?focus=${entry.versionId}`)}
               >
                 Ver versão <ArrowRight className="h-2.5 w-2.5" aria-hidden />
               </Button>
             </div>
           </li>
-        ))}
+        );
+        })}
       </ol>
     </div>
   );
