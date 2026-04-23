@@ -1354,6 +1354,13 @@ export default function SLODashboard() {
           </Card>
         </>
       )}
+      <ManualCopyDialog
+        open={manualCopyUrl !== null}
+        onOpenChange={(open) => { if (!open) setManualCopyUrl(null); }}
+        value={manualCopyUrl ?? ''}
+        label="URL do painel"
+        reason="O navegador bloqueou o acesso à área de transferência (permissão negada, contexto inseguro ou janela sem foco)."
+      />
     </div>
   );
 }
