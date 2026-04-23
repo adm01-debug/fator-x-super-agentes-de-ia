@@ -2,7 +2,7 @@ import { useState, useMemo, useId } from 'react';
 import { useChartDimensions } from './useChartDimensions';
 import { ChartTooltip } from './ChartTooltip';
 import { ChartLegend } from './ChartLegend';
-import type { ChartMargin, TooltipState } from './types';
+import type { ChartMargin, TooltipExtraSection, TooltipState } from './types';
 
 interface AreaSeries {
   dataKey: string;
@@ -21,6 +21,10 @@ interface Props {
   margin?: ChartMargin;
   yFormatter?: (v: number) => string;
   tooltipFormatter?: (value: number, name: string) => string;
+  /** Optional builder for the small title shown above tooltip items. */
+  tooltipTitle?: (datum: Record<string, any>, index: number) => string | undefined;
+  /** Optional builder for extra sections rendered below standard items. */
+  tooltipExtras?: (datum: Record<string, any>, index: number) => TooltipExtraSection[] | undefined;
   showLegend?: boolean;
   showGrid?: boolean;
 }
@@ -35,7 +39,8 @@ function niceMax(v: number) {
 
 export function LightAreaChart({
   data, xKey, series, height = 220, margin,
-  yFormatter = String, tooltipFormatter, showLegend = false, showGrid = true,
+  yFormatter = String, tooltipFormatter, tooltipTitle, tooltipExtras,
+  showLegend = false, showGrid = true,
 }: Props) {
   const { ref, width, margin: m, inner } = useChartDimensions(margin);
   const [tooltip, setTooltip] = useState<TooltipState | null>(null);
@@ -85,11 +90,13 @@ export function LightAreaChart({
     setTooltip({
       x: m.left + scaleX(idx),
       y: m.top + Math.min(...series.map(s => scaleY(Number(d[s.dataKey]) || 0))) - 4,
+      title: tooltipTitle?.(d, idx),
       items: series.map(s => ({
         label: s.name,
         value: tooltipFormatter ? tooltipFormatter(Number(d[s.dataKey]) || 0, s.name) : String(Number(d[s.dataKey]) || 0),
         color: s.stroke,
       })),
+      extras: tooltipExtras?.(d, idx),
     });
   };
 

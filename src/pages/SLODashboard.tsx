@@ -520,6 +520,10 @@ export default function SLODashboard() {
     p95: p.p95_ms,
     p50: p.p50_ms,
     target: SLO_TARGETS.p95LatencyMs,
+    // Extra fields consumed by the tooltip — not plotted as series.
+    _bucket_hour: p.bucket_hour,
+    _errors: p.errors,
+    _total: p.total,
   })) ?? [];
 
   // Total violation buckets under the current filter — surfaced in the
@@ -1380,6 +1384,57 @@ export default function SLODashboard() {
                       height={280}
                       yFormatter={(v) => `${v}ms`}
                       tooltipFormatter={(v, name) => `${v}ms (${name})`}
+                      tooltipTitle={(d) => {
+                        const iso = d._bucket_hour as string | undefined;
+                        if (!iso) return undefined;
+                        return new Date(iso).toLocaleString('pt-BR', {
+                          day: '2-digit', month: '2-digit',
+                          hour: '2-digit', minute: '2-digit',
+                        });
+                      }}
+                      tooltipExtras={(d) => {
+                        const p95 = Number(d.p95) || 0;
+                        const errors = Number(d._errors) || 0;
+                        const total = Number(d._total) || 0;
+                        // Evaluate ALL modes (independent of the active filter)
+                        // so the tooltip explains the full classification.
+                        const matched: FailureMode[] = [];
+                        if (errors > 0) matched.push('error');
+                        if (p95 > SLO_TARGETS.p99LatencyMs) matched.push('critical');
+                        if (p95 > SLO_TARGETS.p95LatencyMs) matched.push('latency');
+                        const matchedRows = matched.length
+                          ? matched.map((m) => ({
+                              color: FAILURE_MODE_META[m].cssVar,
+                              label: FAILURE_MODE_META[m].label,
+                              value: m === 'error'
+                                ? `${errors}/${total} traces`
+                                : `P95 ${p95}ms`,
+                            }))
+                          : [{ label: 'Nenhum modo disparado', value: '—' }];
+                        return [
+                          { title: 'Modos disparados', rows: matchedRows },
+                          {
+                            title: 'Limiares avaliados',
+                            rows: [
+                              {
+                                color: FAILURE_MODE_META.latency.cssVar,
+                                label: 'Alvo P95',
+                                value: `${SLO_TARGETS.p95LatencyMs}ms`,
+                              },
+                              {
+                                color: FAILURE_MODE_META.critical.cssVar,
+                                label: 'Alvo P99 (crítico)',
+                                value: `${SLO_TARGETS.p99LatencyMs}ms`,
+                              },
+                              {
+                                color: FAILURE_MODE_META.error.cssVar,
+                                label: 'Erros no bucket',
+                                value: errors > 0 ? `> 0 (${errors})` : '0',
+                              },
+                            ],
+                          },
+                        ];
+                      }}
                       showLegend
                       series={[
                         { dataKey: 'p95', name: 'P95', stroke: 'hsl(var(--primary))', strokeWidth: 2 },
