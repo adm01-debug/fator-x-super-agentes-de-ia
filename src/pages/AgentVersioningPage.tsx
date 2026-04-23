@@ -296,9 +296,9 @@ export default function AgentVersioningPage() {
               selectedId={selectedId}
               selectedAId={aId}
               selectedBId={bId}
-              onSelect={(vid) => { setSelectedId(vid); setMode('detail'); }}
-              onPickA={(vid) => { setAId(vid); if (bId && vid !== bId) setMode('compare'); }}
-              onPickB={(vid) => { setBId(vid); if (aId && vid !== aId) setMode('compare'); }}
+              onSelect={(vid) => { setSelectedId(vid); }}
+              onPickA={(vid) => { setAId(vid); }}
+              onPickB={(vid) => { setBId(vid); }}
               highlightId={highlightId}
               agentId={id!}
             />
