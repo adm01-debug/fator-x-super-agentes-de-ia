@@ -190,6 +190,9 @@ const App = () => (
                       <Route path="/agents/templates" element={<SafePage><AgentTemplatesPage /></SafePage>} />
                       <Route path="/agents/:id" element={<SafePage><AgentDetailPage /></SafePage>} />
                       <Route path="/agents/:id/versions" element={<SafePage><AgentVersioningPage /></SafePage>} />
+                      {/* Deep-link com versão alvo embutida no path — evita query params
+                          (?focus=) que poluem a URL e podem ser perdidos em proxies. */}
+                      <Route path="/agents/:id/versions/v/:versionId" element={<SafePage><AgentVersioningPage /></SafePage>} />
                       <Route path="/agents/:id/traces" element={<SafePage><AgentTracesPage /></SafePage>} />
                       <Route path="/agents/:id/alerts" element={<SafePage><AgentAlertsPage /></SafePage>} />
                       <Route path="/builder" element={<SafePage><AgentBuilder /></SafePage>} />
