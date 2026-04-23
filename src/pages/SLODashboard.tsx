@@ -12,6 +12,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
+import { ManualCopyDialog } from '@/components/shared/ManualCopyDialog';
 import { fetchSLOSummary, type SLOSummary } from '@/lib/slo/sloService';
 import {
   SLO_TARGETS,
@@ -233,6 +234,10 @@ export default function SLODashboard() {
   const [selectedAgentId, setSelectedAgentId] = useState<string>(
     () => sanitizeAgentId(searchParams.get(QP_SELECTED)),
   );
+
+  // When the Clipboard API is denied/unavailable, we open this modal with the
+  // URL so the user can copy it manually. `null` = closed; string = open.
+  const [manualCopyUrl, setManualCopyUrl] = useState<string | null>(null);
 
   // Custom name for this evaluation window (e.g. "Sprint 27 — pico do Black Friday").
   // URL is the source of truth (so it travels with the shared link); fallback to
