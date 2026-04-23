@@ -895,17 +895,76 @@ export default function SLODashboard() {
               { title: 'Agentes', kpi: 'agentes', rows: topAgents, empty: 'Nenhum agente com tráfego nesta janela.' },
             ];
 
+            // Build absolute-URL sections for the PDF (relative `/traces?...`
+            // links would be unusable outside the app).
+            const origin = typeof window !== 'undefined' ? window.location.origin : '';
+            const buildPdfSections = (): DrilldownSection[] =>
+              sections.map((s) => ({
+                title: s.title,
+                kpi: s.kpi,
+                empty: s.empty,
+                rows: s.rows.map((r, idx) => ({
+                  rank: idx + 1,
+                  label: r.label,
+                  detail: r.detail,
+                  deltaLabel: r.deltaLabel,
+                  href: r.href.startsWith('http') ? r.href : `${origin}${r.href}`,
+                  worse: r.worse,
+                })),
+              }));
+
+            const handleExportPdf = () => {
+              try {
+                const scopedAgent = selectedAgentId
+                  ? summary.top_agents.find((a) => a.agent_id === selectedAgentId)
+                  : null;
+                exportDrilldownPdf({
+                  windowLabel: windowLabel(windowHours),
+                  compareLabel: windowLabel(compareHours),
+                  windowName: sanitizeWindowName(windowName) || undefined,
+                  scopeLabel: scopedAgent?.agent_name,
+                  generatedAt: new Date(),
+                  sections: buildPdfSections(),
+                  dashboardUrl: typeof window !== 'undefined' ? window.location.href : '',
+                });
+                toast.success('PDF do drill-down exportado');
+              } catch (err) {
+                logger.error('exportDrilldownPdf failed', { err });
+                toast.error('Não foi possível gerar o PDF');
+              }
+            };
+
+            const totalRows = sections.reduce((acc, s) => acc + s.rows.length, 0);
+
             return (
               <Card>
                 <CardHeader>
-                  <CardTitle className="flex items-center gap-2">
-                    <TrendingUp className="h-4 w-4 text-primary" />
-                    Drill-down do delta
-                  </CardTitle>
-                  <CardDescription>
-                    Top 3 contribuintes para cada KPI vs. baseline de {windowLabel(compareHours)}.
-                    Clique em um item para abrir os traces relacionados.
-                  </CardDescription>
+                  <div className="flex items-start justify-between gap-3">
+                    <div className="space-y-1.5">
+                      <CardTitle className="flex items-center gap-2">
+                        <TrendingUp className="h-4 w-4 text-primary" />
+                        Drill-down do delta
+                      </CardTitle>
+                      <CardDescription>
+                        Top 3 contribuintes para cada KPI vs. baseline de {windowLabel(compareHours)}.
+                        Clique em um item para abrir os traces relacionados.
+                      </CardDescription>
+                    </div>
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      onClick={handleExportPdf}
+                      disabled={totalRows === 0}
+                      className="shrink-0 gap-1.5"
+                      title={totalRows === 0
+                        ? 'Sem contribuintes para exportar'
+                        : 'Exportar relatório PDF com top 3 por KPI'}
+                    >
+                      <Download className="h-3.5 w-3.5" />
+                      Exportar PDF
+                    </Button>
+                  </div>
                 </CardHeader>
                 <CardContent className="grid gap-4 md:grid-cols-3">
                   {sections.map((section) => (
