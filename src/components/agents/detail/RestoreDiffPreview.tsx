@@ -1,5 +1,5 @@
-import { useMemo, useState, useRef, useCallback } from 'react';
-import { ArrowRight, Plus, Minus, Pencil, MessageSquare, Wrench, Cpu, CheckCircle2, Filter, ShieldAlert, AlertTriangle, Info, ShieldCheck, Flame } from 'lucide-react';
+import { useMemo, useState, useRef, useCallback, useEffect } from 'react';
+import { ArrowRight, Plus, Minus, Pencil, MessageSquare, Wrench, Cpu, CheckCircle2, Filter, ShieldAlert, AlertTriangle, Info, ShieldCheck, Flame, Pin, PinOff, ArrowDownUp } from 'lucide-react';
 import type { AgentVersion } from '@/services/agentsService';
 import { computeRestoreDiff, type FieldChange, type RiskLevel } from './restoreDiffHelpers';
 
@@ -42,6 +42,30 @@ const PRESET_SETS: Record<Exclude<RiskPreset, 'custom'>, Set<RiskLevel>> = {
   critical_only: new Set(['critical']),
   medium_low: new Set(['medium', 'low']),
 };
+
+// Ordenação dos chips de destaque. "impact" = ordem padrão (impacto desc).
+// "type" = agrupa por tipo (modelo → tools removidas → prompt → demais).
+// A escolha é persistida em localStorage para manter consistência entre sessões.
+type HighlightSort = 'impact' | 'type';
+const SORT_STORAGE_KEY = 'restore-diff:highlight-sort';
+const SORT_PINNED_KEY = 'restore-diff:highlight-sort-pinned';
+
+const TYPE_ORDER: Record<string, number> = {
+  Modelo: 0,
+  'Tool removida': 1,
+  'Prompt grande': 2,
+};
+
+function loadHighlightSort(): HighlightSort {
+  if (typeof window === 'undefined') return 'impact';
+  const v = window.localStorage.getItem(SORT_STORAGE_KEY);
+  return v === 'type' || v === 'impact' ? v : 'impact';
+}
+
+function loadHighlightPinned(): boolean {
+  if (typeof window === 'undefined') return false;
+  return window.localStorage.getItem(SORT_PINNED_KEY) === '1';
+}
 
 function setsEqual(a: Set<RiskLevel>, b: Set<RiskLevel>): boolean {
   if (a.size !== b.size) return false;
@@ -127,6 +151,20 @@ export function RestoreDiffPreview({ current, source, options }: Props) {
   const scrollRef = useRef<HTMLDivElement>(null);
   const [activeMarker, setActiveMarker] = useState<string | null>(null);
 
+  // Ordenação dos chips de destaque, persistida em localStorage. Quando "pinned",
+  // a ordem fica travada e não muda mesmo se o usuário alternar — útil para
+  // manter referência visual consistente ao comparar várias versões em sequência.
+  const [highlightSort, setHighlightSort] = useState<HighlightSort>(() => loadHighlightSort());
+  const [highlightPinned, setHighlightPinned] = useState<boolean>(() => loadHighlightPinned());
+
+  useEffect(() => {
+    try { window.localStorage.setItem(SORT_STORAGE_KEY, highlightSort); } catch { /* ignore quota */ }
+  }, [highlightSort]);
+
+  useEffect(() => {
+    try { window.localStorage.setItem(SORT_PINNED_KEY, highlightPinned ? '1' : '0'); } catch { /* ignore quota */ }
+  }, [highlightPinned]);
+
   const changeId = (c: FieldChange) => `change-${c.group}-${c.field}`;
 
   const highlights = useMemo(() => {
@@ -177,8 +215,19 @@ export function RestoreDiffPreview({ current, source, options }: Props) {
         seen.add(id);
       }
     }
+    // Aplica a ordenação escolhida pelo usuário. Quando "pinned", mantemos
+    // exatamente a ordem definida pelo modo selecionado — sem reordenar
+    // dinamicamente caso o conjunto mude (mantém memória muscular do usuário).
+    if (highlightSort === 'type') {
+      return markers.sort((a, b) => {
+        const ta = TYPE_ORDER[a.label] ?? 99;
+        const tb = TYPE_ORDER[b.label] ?? 99;
+        if (ta !== tb) return ta - tb;
+        return b.impact - a.impact;
+      });
+    }
     return markers.sort((a, b) => b.impact - a.impact);
-  }, [filteredChanges, diff.toolsRemoved]);
+  }, [filteredChanges, diff.toolsRemoved, highlightSort]);
 
   const scrollToChange = useCallback((id: string) => {
     const el = itemRefs.current.get(id);
@@ -308,12 +357,56 @@ export function RestoreDiffPreview({ current, source, options }: Props) {
           então permanecem visíveis enquanto a lista é rolada. */}
       {highlights.length > 0 && (
         <div className="px-3 py-2 bg-card/60 border-b border-border/50">
-          <div className="flex items-center gap-1.5 mb-1.5">
+          <div className="flex items-center gap-1.5 mb-1.5 flex-wrap">
             <Flame className="h-3 w-3 text-nexus-amber shrink-0" aria-hidden="true" />
             <span className="text-[10px] uppercase tracking-wider text-muted-foreground font-semibold">
               Pular para destaque
             </span>
             <span className="text-[10px] text-muted-foreground">({highlights.length})</span>
+
+            {/* Controles de ordenação dos chips — preferência salva em localStorage
+                para manter a mesma ordem entre sessões de comparação. O "pin"
+                comunica que a ordem está travada (ícone muda para Pin sólido). */}
+            <div className="ml-auto flex items-center gap-1">
+              <ArrowDownUp className="h-2.5 w-2.5 text-muted-foreground" aria-hidden="true" />
+              {(['impact', 'type'] as const).map((mode) => {
+                const active = highlightSort === mode;
+                const label = mode === 'impact' ? 'Impacto' : 'Tipo';
+                return (
+                  <button
+                    key={mode}
+                    type="button"
+                    onClick={() => setHighlightSort(mode)}
+                    className={`px-1.5 py-0.5 rounded text-[10px] font-medium border transition-colors ${
+                      active
+                        ? 'bg-primary/15 text-primary border-primary/40'
+                        : 'bg-transparent text-muted-foreground border-border/50 hover:bg-muted/40 hover:text-foreground'
+                    }`}
+                    aria-pressed={active}
+                    title={`Ordenar por ${label.toLowerCase()}`}
+                  >
+                    {label}
+                  </button>
+                );
+              })}
+              <button
+                type="button"
+                onClick={() => setHighlightPinned((v) => !v)}
+                className={`inline-flex items-center gap-1 px-1.5 py-0.5 rounded border text-[10px] font-medium transition-colors ${
+                  highlightPinned
+                    ? 'bg-nexus-amber/15 text-nexus-amber border-nexus-amber/40'
+                    : 'bg-transparent text-muted-foreground border-border/50 hover:bg-muted/40 hover:text-foreground'
+                }`}
+                aria-pressed={highlightPinned}
+                title={highlightPinned
+                  ? 'Ordem fixada — preferência salva entre sessões'
+                  : 'Fixar ordem atual — salva preferência entre sessões'}
+              >
+                {highlightPinned
+                  ? <><Pin className="h-2.5 w-2.5" aria-hidden="true" />Fixado</>
+                  : <><PinOff className="h-2.5 w-2.5" aria-hidden="true" />Fixar</>}
+              </button>
+            </div>
           </div>
           <div className="flex items-center gap-1 flex-wrap">
             {highlights.map((h, idx) => {
