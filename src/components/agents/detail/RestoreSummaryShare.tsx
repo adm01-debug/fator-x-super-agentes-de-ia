@@ -79,8 +79,8 @@ function buildMarkdown({
   // Validação
   if (validation && (validation.errors.length || validation.warnings.length)) {
     lines.push('**⚠️ Validação:**');
-    validation.errors.forEach((e) => lines.push(`- ❌ ${e.message}`));
-    validation.warnings.forEach((w) => lines.push(`- ⚠️ ${w.message}`));
+    validation.errors.forEach((e) => lines.push(`- ❌ ${e.title}${e.detail ? ` — ${e.detail}` : ''}`));
+    validation.warnings.forEach((w) => lines.push(`- ⚠️ ${w.title}${w.detail ? ` — ${w.detail}` : ''}`));
     lines.push('');
   }
 
