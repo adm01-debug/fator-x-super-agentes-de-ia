@@ -1,25 +1,52 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { useParams, useSearchParams } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
-import { Activity, AlertTriangle, DollarSign, Filter, Inbox, Play, RefreshCw, Zap } from 'lucide-react';
+import { Activity, AlertTriangle, Cloud, CloudOff, DollarSign, Filter, Inbox, Loader2, Play, RefreshCw, Zap } from 'lucide-react';
+import { toast } from 'sonner';
 import { PageHeader } from '@/components/shared/PageHeader';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { EmptyState } from '@/components/shared/EmptyState';
 import { useDebounce } from '@/hooks/use-debounce';
+import { useFilterPersistence } from '@/hooks/useFilterPersistence';
 import {
   listAgentTraces, listAvailableEvents, groupBySession,
   type ExecutionGroup, type TraceLevel,
 } from '@/services/agentTracesService';
-import { listAgentSummaries, getAgentById } from '@/services/agentsService';
+import { listAgentSummaries, getAgentById, type AgentSummary } from '@/services/agentsService';
 import { TracesFilters } from '@/components/agents/traces/TracesFilters';
 import { ExecutionList } from '@/components/agents/traces/ExecutionList';
 import { ExecutionTimeline } from '@/components/agents/traces/ExecutionTimeline';
 import { ReplayDialog } from '@/components/agents/traces/ReplayDialog';
+import { ClearFiltersToast, type ClearedField } from '@/components/agents/traces/ClearFiltersToast';
+import { ClearFiltersConfirm } from '@/components/agents/traces/ClearFiltersConfirm';
+
+interface PersistedFilters extends Record<string, unknown> {
+  search: string;
+  level: TraceLevel | 'all';
+  event: string;
+  agentFilter: string;
+  sinceHours: number;
+}
+
+const STORAGE_KEY = 'nexus.traces.filters';
+
+const RANGE_LABEL: Record<number, string> = {
+  1: 'Última hora', 24: 'Últimas 24h', 168: 'Últimos 7 dias', 720: 'Últimos 30 dias', 0: 'Tudo',
+};
 
 export default function AgentTracesPage() {
   const { id } = useParams();
   const [searchParams, setSearchParams] = useSearchParams();
+
+  const defaults = useMemo<PersistedFilters>(() => ({
+    search: '', level: 'all', event: 'all', agentFilter: id ?? 'all', sinceHours: 24,
+  }), [id]);
+
+  const { filters, setFilters, syncStatus, clearAll, restore } = useFilterPersistence<PersistedFilters>({
+    scope: 'agent_traces', defaults, storageKey: STORAGE_KEY,
+  });
+  const { search, level, event, agentFilter, sinceHours } = filters;
 
   // URL is the source of truth on load; localStorage is the fallback.
   const urlSession = searchParams.get('session');
@@ -30,40 +57,29 @@ export default function AgentTracesPage() {
     return Number.isFinite(n) && n >= 0 ? Math.floor(n) : null;
   })();
 
-  const [agentFilter, setAgentFilter] = useState<string>(id ?? 'all');
-  const [level, setLevel] = useState<TraceLevel | 'all'>('all');
-  const [event, setEvent] = useState<string>('all');
-  const [search, setSearch] = useState('');
-  const [sinceHours, setSinceHours] = useState(24);
   const [selectedId, setSelectedId] = useState<string | null>(urlSession);
   const [selectedStep, setSelectedStep] = useState(urlStep ?? 0);
   const [replayOpen, setReplayOpen] = useState(false);
   const debouncedSearch = useDebounce(search, 300);
 
-  // Persist last step viewed per session_id so users can resume where they left off.
-  // Stored as { [session_id]: stepIndex } under a single key, capped to 50 entries.
+  // Undo snapshot (5s window). Stored in ref so changes don't re-render.
+  const undoSnapshot = useRef<PersistedFilters | null>(null);
+  const undoTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  // Per-session step memory (unchanged behaviour).
   const STEP_STORAGE_KEY = 'nexus.traces.lastStepBySession';
   const readStepMap = (): Record<string, number> => {
     try {
       const raw = localStorage.getItem(STEP_STORAGE_KEY);
       return raw ? (JSON.parse(raw) as Record<string, number>) : {};
-    } catch {
-      return {};
-    }
+    } catch { return {}; }
   };
   const writeStepMap = (map: Record<string, number>) => {
     try {
-      // Cap to last 50 sessions to avoid unbounded growth.
       const entries = Object.entries(map).slice(-50);
       localStorage.setItem(STEP_STORAGE_KEY, JSON.stringify(Object.fromEntries(entries)));
-    } catch {
-      /* quota or disabled — silently ignore */
-    }
+    } catch { /* ignore */ }
   };
-
-  // When the *effective* selected execution changes, restore its last viewed step
-  // (clamped to the current trace count). Runs after `selected` is computed below.
-  // Persist whenever the step changes for a known effective session.
 
   const effectiveAgentId = agentFilter === 'all' ? undefined : agentFilter;
 
@@ -102,9 +118,6 @@ export default function AgentTracesPage() {
     [executions, selectedId],
   );
 
-  // Restore last viewed step whenever the effective session changes.
-  // Priority: URL ?step= → localStorage → 0. URL wins only on initial mount
-  // for that session (we consume it once via a ref-like flag).
   const effectiveSessionId = selected?.session_id ?? null;
   const effectiveTotal = selected?.traces.length ?? 0;
   const [consumedUrlStepFor, setConsumedUrlStepFor] = useState<string | null>(null);
@@ -120,11 +133,9 @@ export default function AgentTracesPage() {
       target = map[effectiveSessionId] ?? 0;
     }
     setSelectedStep(Math.max(0, Math.min(target, Math.max(0, effectiveTotal - 1))));
-    // urlStep intentionally excluded — only consulted on first session resolution.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [effectiveSessionId, effectiveTotal]);
 
-  // Persist step changes for the effective session to BOTH localStorage and URL.
   useEffect(() => {
     if (!effectiveSessionId) return;
     const map = readStepMap();
@@ -132,7 +143,6 @@ export default function AgentTracesPage() {
       map[effectiveSessionId] = selectedStep;
       writeStepMap(map);
     }
-    // Sync URL — replace history entry to avoid spamming back-stack while navigating steps.
     const next = new URLSearchParams(searchParams);
     if (next.get('session') !== effectiveSessionId) next.set('session', effectiveSessionId);
     if (next.get('step') !== String(selectedStep)) next.set('step', String(selectedStep));
@@ -154,14 +164,111 @@ export default function AgentTracesPage() {
     (id ? agentFilter !== id : agentFilter !== 'all') ||
     sinceHours !== 24;
 
-  const handleClearFilters = () => {
-    setSearch('');
-    setLevel('all');
-    setEvent('all');
-    setAgentFilter(id ?? 'all');
-    setSinceHours(24);
-    setSelectedId(null);
+  const agentNameById = (aid: string) =>
+    agents.find((a: AgentSummary) => a.id === aid)?.name ?? aid.slice(0, 8);
+
+  /** Build human-readable diff of which fields changed back to defaults. */
+  const buildClearedFields = (snap: PersistedFilters): ClearedField[] => {
+    const out: ClearedField[] = [];
+    if (snap.search.trim() !== '') {
+      out.push({ label: 'Busca', from: `"${snap.search}"`, to: 'vazio' });
+    }
+    if (snap.level !== 'all') {
+      out.push({ label: 'Nível', from: snap.level, to: 'todos' });
+    }
+    if (snap.event !== 'all') {
+      out.push({ label: 'Evento', from: snap.event, to: 'todos' });
+    }
+    const defaultAgent = id ?? 'all';
+    if (snap.agentFilter !== defaultAgent) {
+      out.push({
+        label: 'Agente',
+        from: snap.agentFilter === 'all' ? 'todos' : agentNameById(snap.agentFilter),
+        to: defaultAgent === 'all' ? 'todos' : agentNameById(defaultAgent),
+      });
+    }
+    if (snap.sinceHours !== 24) {
+      out.push({
+        label: 'Janela',
+        from: RANGE_LABEL[snap.sinceHours] ?? `${snap.sinceHours}h`,
+        to: 'Últimas 24h',
+      });
+    }
+    return out;
   };
+
+  /** Active filters list for the confirmation modal. */
+  const activeFiltersForModal = useMemo(() => {
+    const out: Array<{ label: string; value: string }> = [];
+    if (search.trim()) out.push({ label: 'Busca', value: `"${search}"` });
+    if (level !== 'all') out.push({ label: 'Nível', value: level });
+    if (event !== 'all') out.push({ label: 'Evento', value: event });
+    const defaultAgent = id ?? 'all';
+    if (agentFilter !== defaultAgent) {
+      out.push({ label: 'Agente', value: agentFilter === 'all' ? 'todos' : agentNameById(agentFilter) });
+    }
+    if (sinceHours !== 24) out.push({ label: 'Janela', value: RANGE_LABEL[sinceHours] ?? `${sinceHours}h` });
+    return out;
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [search, level, event, agentFilter, sinceHours, id, agents]);
+
+  const handleClearFilters = () => {
+    // Snapshot current filters BEFORE reset for undo.
+    const snapshot: PersistedFilters = { search, level, event, agentFilter, sinceHours };
+    const cleared = buildClearedFields(snapshot);
+    undoSnapshot.current = snapshot;
+
+    // Reset state + Cloud + localStorage
+    clearAll();
+    setSelectedId(null);
+
+    // Custom toast with undo (5s) + grace (2s).
+    const toastId = toast.custom((t) => (
+      <ClearFiltersToast
+        toastId={t}
+        cleared={cleared}
+        storageKeys={[STORAGE_KEY]}
+        onUndo={() => {
+          if (undoSnapshot.current) {
+            restore(undoSnapshot.current);
+            undoSnapshot.current = null;
+            toast.success('Filtros restaurados');
+          }
+        }}
+        onClose={() => toast.dismiss(t)}
+      />
+    ), { duration: 7000 });
+
+    if (undoTimer.current) clearTimeout(undoTimer.current);
+    undoTimer.current = setTimeout(() => {
+      undoSnapshot.current = null;
+      toast.dismiss(toastId);
+    }, 7000);
+  };
+
+  // Invalidate undo if user changes any filter manually after clearing.
+  useEffect(() => {
+    if (!undoSnapshot.current) return;
+    const current = { search, level, event, agentFilter, sinceHours };
+    const isDefault =
+      current.search === defaults.search &&
+      current.level === defaults.level &&
+      current.event === defaults.event &&
+      current.agentFilter === defaults.agentFilter &&
+      current.sinceHours === defaults.sinceHours;
+    if (!isDefault) {
+      undoSnapshot.current = null;
+      if (undoTimer.current) { clearTimeout(undoTimer.current); undoTimer.current = null; }
+    }
+  }, [search, level, event, agentFilter, sinceHours, defaults]);
+
+  const renderClearWrapper = (button: React.ReactNode) => (
+    <ClearFiltersConfirm
+      trigger={button}
+      activeFilters={activeFiltersForModal}
+      onConfirm={handleClearFilters}
+    />
+  );
 
   return (
     <div className="p-6 sm:p-8 lg:p-10 space-y-5 max-w-[1500px] mx-auto animate-page-enter">
@@ -177,13 +284,19 @@ export default function AgentTracesPage() {
       />
 
       <TracesFilters
-        search={search} onSearch={setSearch}
-        level={level} onLevel={setLevel}
-        event={event} onEvent={setEvent}
-        agentId={agentFilter} onAgent={(v) => { setAgentFilter(v); setSelectedId(null); }}
-        sinceHours={sinceHours} onSinceHours={setSinceHours}
+        search={search} onSearch={(v) => setFilters((p) => ({ ...p, search: v }))}
+        level={level} onLevel={(v) => setFilters((p) => ({ ...p, level: v }))}
+        event={event} onEvent={(v) => setFilters((p) => ({ ...p, event: v }))}
+        agentId={agentFilter}
+        onAgent={(v) => { setFilters((p) => ({ ...p, agentFilter: v })); setSelectedId(null); }}
+        sinceHours={sinceHours} onSinceHours={(v) => setFilters((p) => ({ ...p, sinceHours: v }))}
         events={events} agents={agents}
       />
+
+      {/* Sync indicator */}
+      <div className="flex items-center justify-end -mt-2">
+        <SyncBadge status={syncStatus} />
+      </div>
 
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
         <Kpi icon={Activity} label="Execuções" value={totals.execs.toString()} />
@@ -206,6 +319,7 @@ export default function AgentTracesPage() {
               loading={isLoading}
               hasActiveFilters={hasActiveFilters}
               onClearFilters={handleClearFilters}
+              clearFiltersWrapper={renderClearWrapper}
             />
           </CardContent>
         </Card>
@@ -223,14 +337,19 @@ export default function AgentTracesPage() {
             {executions.length === 0 ? (
               <div className="h-[560px] flex items-center justify-center">
                 {hasActiveFilters ? (
-                  <EmptyState
-                    icon={Filter}
-                    illustration="search"
-                    title="Nenhuma execução para esses filtros"
-                    description="Ajuste o nível, evento, agente ou janela temporal para ampliar a busca."
-                    actionLabel="Limpar filtros"
-                    onAction={handleClearFilters}
-                  />
+                  <div className="text-center space-y-4">
+                    <EmptyState
+                      icon={Filter}
+                      illustration="search"
+                      title="Nenhuma execução para esses filtros"
+                      description="Ajuste o nível, evento, agente ou janela temporal para ampliar a busca."
+                    />
+                    <ClearFiltersConfirm
+                      trigger={<Button size="sm">Limpar filtros</Button>}
+                      activeFilters={activeFiltersForModal}
+                      onConfirm={handleClearFilters}
+                    />
+                  </div>
                 ) : (
                   <EmptyState
                     icon={Inbox}
@@ -269,6 +388,21 @@ export default function AgentTracesPage() {
         onStepChange={setSelectedStep}
       />
     </div>
+  );
+}
+
+function SyncBadge({ status }: { status: 'idle' | 'loading' | 'synced' | 'local' | 'saving' }) {
+  if (status === 'loading' || status === 'idle') return null;
+  const map = {
+    synced: { Icon: Cloud, text: 'Sincronizado', cls: 'text-nexus-emerald' },
+    local: { Icon: CloudOff, text: 'Salvo localmente', cls: 'text-nexus-amber' },
+    saving: { Icon: Loader2, text: 'Salvando...', cls: 'text-muted-foreground' },
+  } as const;
+  const { Icon, text, cls } = map[status];
+  return (
+    <span className={`flex items-center gap-1.5 text-[10px] ${cls}`} aria-live="polite">
+      <Icon className={`h-3 w-3 ${status === 'saving' ? 'animate-spin' : ''}`} /> {text}
+    </span>
   );
 }
 
