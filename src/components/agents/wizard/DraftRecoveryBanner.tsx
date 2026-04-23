@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState, type KeyboardEvent as ReactKeyboardEvent } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Check, FileClock, FolderOpen, Layers, Minus, Pencil, RotateCcw, SkipForward, Sparkles, Trash2, X, Zap } from 'lucide-react';
