@@ -9,6 +9,10 @@ export interface SLOTopAgent {
   agent_name: string;
   traces: number;
   errors: number;
+  /** Errors emitted as `tool.call` events. */
+  tool_errors?: number;
+  /** All other errors. */
+  non_tool_errors?: number;
   success_rate: number | null;
   p95_ms: number;
 }
@@ -17,8 +21,15 @@ export interface SLOTimeseriesPoint {
   bucket_hour: string;
   total: number;
   errors: number;
+  /** Errors from `tool.call` traces in this bucket. */
+  tool_errors?: number;
+  /** All other errors in this bucket. */
+  non_tool_errors?: number;
   p50_ms: number;
   p95_ms: number;
+  /** Latency percentiles excluding `tool.call` traces (for the toggle). */
+  p50_ms_no_tools?: number;
+  p95_ms_no_tools?: number;
 }
 
 export interface SLOSummary {
@@ -26,6 +37,10 @@ export interface SLOSummary {
   since: string;
   total_traces: number;
   error_count: number;
+  /** Errors with `event = 'tool.call'`. */
+  tool_error_count?: number;
+  /** All other errors. */
+  non_tool_error_count?: number;
   success_rate: number;
   p50_latency_ms: number;
   p95_latency_ms: number;
