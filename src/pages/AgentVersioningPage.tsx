@@ -69,6 +69,28 @@ export default function AgentVersioningPage() {
   const setPreset = (pid: string) =>
     updateParams((p) => { pid && pid !== 'all' ? p.set('preset', pid) : p.delete('preset'); });
 
+  // Filtro multi-tag por tipo de evento — persiste na URL como `types=a,b,c`
+  // e aplica AND com o preset ativo (preset filtra "modo de uso", types
+  // restringe a categoria de mudança que estou investigando).
+  const typesParam = searchParams.get('types') ?? '';
+  const activeTypes = useMemo<Set<TimelineTag>>(() => {
+    if (!typesParam) return new Set();
+    return new Set(
+      typesParam.split(',').filter((t): t is TimelineTag =>
+        ['prompt', 'tools', 'model', 'guardrails', 'rag', 'rollback', 'failure'].includes(t),
+      ),
+    );
+  }, [typesParam]);
+  const toggleType = (tag: TimelineTag) => {
+    const next = new Set(activeTypes);
+    next.has(tag) ? next.delete(tag) : next.add(tag);
+    updateParams((p) => {
+      next.size > 0 ? p.set('types', Array.from(next).join(',')) : p.delete('types');
+    });
+  };
+  const clearTypes = () =>
+    updateParams((p) => { p.delete('types'); });
+
   // Intervalo (versão ou tempo) também persiste na URL via `range=` para
   // manter o link compartilhável com a mesma "fatia" da timeline.
   const range: TimelineRange = parseRange(searchParams.get('range'));
