@@ -51,8 +51,10 @@ interface Props {
   agentId: string;
   /** Range atual aplicado à timeline — usado para detectar qual execução está ativa. */
   currentRange: TimelineRange;
+  /** session_id atualmente fixado via URL (?run=) — tem prioridade sobre matching por janela. */
+  activeRunId?: string | null;
   /** Callback que aplica o range temporal da execução escolhida. */
-  onApply: (range: TimelineRange) => void;
+  onApply: (range: TimelineRange, runId: string | null) => void;
 }
 
 /** Limites curados para "Top runs" — evitam listas longas e ruidosas. */
