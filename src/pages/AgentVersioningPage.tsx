@@ -27,6 +27,7 @@ import {
   type TimelineRange,
 } from "@/components/agents/versioning/TimelineRangeFilter";
 import { loadTimelinePrefs, saveTimelinePrefs } from "@/components/agents/versioning/timelinePrefs";
+import { RunFilter } from "@/components/agents/versioning/RunFilter";
 
 export default function AgentVersioningPage() {
   const { id, versionId: pathVersionId } = useParams();
