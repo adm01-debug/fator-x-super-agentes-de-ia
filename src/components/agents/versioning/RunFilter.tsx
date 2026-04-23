@@ -298,17 +298,43 @@ export function RunFilter({ agentId, currentRange, activeRunId, onApply }: Props
           />
           <CommandList className="max-h-[360px]">
             {isLoading ? (
-              <div className="flex items-center justify-center py-6 text-muted-foreground">
+              <div className="flex flex-col items-center justify-center py-8 gap-2 text-muted-foreground">
                 <Loader2 className="h-4 w-4 animate-spin" aria-hidden />
+                <span className="text-[10px]">Carregando execuções…</span>
               </div>
             ) : runs.length === 0 ? (
-              <CommandEmpty className="py-6 text-[11px]">
-                Nenhuma execução registrada para este agente ainda.
-              </CommandEmpty>
+              // Estado "agente nunca executou" — diferente de "busca sem match".
+              // Damos contexto + próximo passo claro para o usuário não ficar travado.
+              <div className="flex flex-col items-center text-center py-8 px-4 gap-2">
+                <div className="h-10 w-10 rounded-full bg-secondary/60 flex items-center justify-center">
+                  <Inbox className="h-5 w-5 text-muted-foreground" aria-hidden />
+                </div>
+                <p className="text-[12px] font-semibold text-foreground">
+                  Nenhuma execução ainda
+                </p>
+                <p className="text-[10px] text-muted-foreground leading-relaxed max-w-[260px]">
+                  Este agente não tem traces registrados. Rode uma conversa ou
+                  acione uma automação para que execuções apareçam aqui.
+                </p>
+              </div>
             ) : (
               <>
-                <CommandEmpty className="py-6 text-[11px]">
-                  Nenhuma execução corresponde à busca.
+                <CommandEmpty className="py-8">
+                  {/* Estado "busca sem match" — só aparece quando há runs mas o
+                      input filtra zero resultados. Mostra dica de buscar por
+                      session id ou nome de evento. */}
+                  <div className="flex flex-col items-center text-center px-4 gap-2">
+                    <div className="h-10 w-10 rounded-full bg-secondary/60 flex items-center justify-center">
+                      <SearchX className="h-5 w-5 text-muted-foreground" aria-hidden />
+                    </div>
+                    <p className="text-[12px] font-semibold text-foreground">
+                      Nada encontrado
+                    </p>
+                    <p className="text-[10px] text-muted-foreground leading-relaxed max-w-[260px]">
+                      Tente buscar pelos últimos 6 caracteres do session id ou
+                      pelo nome de um evento (ex: <span className="font-mono">tool_call</span>).
+                    </p>
+                  </div>
                 </CommandEmpty>
 
                 {topErrors.length > 0 && (
