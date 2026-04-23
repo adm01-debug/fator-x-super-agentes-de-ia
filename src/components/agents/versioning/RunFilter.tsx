@@ -51,8 +51,10 @@ interface Props {
   agentId: string;
   /** Range atual aplicado à timeline — usado para detectar qual execução está ativa. */
   currentRange: TimelineRange;
+  /** session_id atualmente fixado via URL (?run=) — tem prioridade sobre matching por janela. */
+  activeRunId?: string | null;
   /** Callback que aplica o range temporal da execução escolhida. */
-  onApply: (range: TimelineRange) => void;
+  onApply: (range: TimelineRange, runId: string | null) => void;
 }
 
 /** Limites curados para "Top runs" — evitam listas longas e ruidosas. */
@@ -193,10 +195,18 @@ function RunRow({ run, isActive, onPick, highlight = 'time' }: RunRowProps) {
   );
 }
 
-export function RunFilter({ agentId, currentRange, onApply }: Props) {
+export function RunFilter({ agentId, currentRange, activeRunId, onApply }: Props) {
   const [open, setOpen] = useState(false);
   const { data: runs = [], isLoading } = useAgentRuns(agentId);
-  const activeRun = useMemo(() => findActiveRun(runs, currentRange), [runs, currentRange]);
+  // Prioridade: ?run= explícito > matching por janela temporal. Assim o link
+  // "Run abc123" continua válido mesmo se outro range absoluto coincidir.
+  const activeRun = useMemo(() => {
+    if (activeRunId) {
+      const byId = runs.find((r) => r.session_id === activeRunId);
+      if (byId) return byId;
+    }
+    return findActiveRun(runs, currentRange);
+  }, [runs, currentRange, activeRunId]);
 
   // Top runs derivados — ordenamos cópias para não mutar a lista base
   // (que está em ordem cronológica reversa, usada na seção "Recentes").
@@ -218,12 +228,12 @@ export function RunFilter({ agentId, currentRange, onApply }: Props) {
       fromIso: run.start_at,
       toIso: run.end_at,
       lastMinutes: undefined,
-    });
+    }, run.session_id);
     setOpen(false);
   };
 
   const handleClear = () => {
-    onApply({ mode: 'off' });
+    onApply({ mode: 'off' }, null);
     setOpen(false);
   };
 

@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 import { useParams, useNavigate, useSearchParams } from "react-router-dom";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
-import { Loader2, Plus, GitCompare, Eye, GitBranch, Link2 } from "lucide-react";
+import { Loader2, Plus, GitCompare, Eye, GitBranch, Link2, Check } from "lucide-react";
 import { PageHeader } from "@/components/shared/PageHeader";
 import { toast } from "sonner";
 import {
@@ -98,6 +98,16 @@ export default function AgentVersioningPage() {
     updateParams((p) => {
       const s = serializeRange(r);
       s ? p.set('range', s) : p.delete('range');
+    });
+  // Execução (sessão) escolhida — persistida como ?run=<session_id> além do
+  // range absoluto. Isso torna o link autoexplicativo ("estou olhando a run X")
+  // e permite reidentificar a run mesmo se a janela for ajustada manualmente.
+  const runId = searchParams.get('run');
+  const setRunAndRange = (r: TimelineRange, rid: string | null) =>
+    updateParams((p) => {
+      const s = serializeRange(r);
+      s ? p.set('range', s) : p.delete('range');
+      rid ? p.set('run', rid) : p.delete('run');
     });
 
   const { data: agent } = useQuery({
@@ -334,22 +344,7 @@ export default function AgentVersioningPage() {
         backTo={`/agents/${id}`}
         actions={
           <div className="flex items-center gap-2">
-            <Button
-              size="sm"
-              variant="outline"
-              className="gap-1.5"
-              onClick={async () => {
-                try {
-                  await navigator.clipboard.writeText(window.location.href);
-                  toast.success('Link copiado — a mesma visão da timeline será aberta');
-                } catch {
-                  toast.error('Não foi possível copiar o link');
-                }
-              }}
-              title="Copia a URL atual com a seleção da timeline (versão, A/B e modo)"
-            >
-              <Link2 className="h-3.5 w-3.5" /> Copiar link
-            </Button>
+            <CopyLinkButton />
             <Button
               size="sm"
               className="gap-1.5 nexus-gradient-bg text-primary-foreground hover:opacity-90"
@@ -391,7 +386,7 @@ export default function AgentVersioningPage() {
               <TimelineRangeFilter range={range} onChange={setRange} versions={versions} />
               {/* Filtro por execução: aplica a janela temporal (min/max
                   created_at dos traces) da sessão escolhida ao range geral. */}
-              <RunFilter agentId={id!} currentRange={range} onApply={setRange} />
+              <RunFilter agentId={id!} currentRange={range} activeRunId={runId} onApply={setRunAndRange} />
               {(versionA && versionB) && range.mode !== 'version' && (
                 <Button
                   type="button"
@@ -438,6 +433,8 @@ export default function AgentVersioningPage() {
                 versionB={versionB}
                 mode={mode}
                 presetLabel={activePreset.label}
+                typesLabels={Array.from(activeTypes)}
+                runId={runId}
                 rangeLabel={
                   range.mode === 'version' && (range.vMin !== undefined || range.vMax !== undefined)
                     ? `v${range.vMin ?? '…'}–v${range.vMax ?? '…'}`
@@ -509,5 +506,43 @@ export default function AgentVersioningPage() {
         />
       )}
     </div>
+  );
+}
+
+/**
+ * CopyLinkButton — botão local com estado de "copiado" para a URL atual.
+ *
+ * Fica no header da página de versionamento. Como TODOS os filtros
+ * (sel/a/b/mode/preset/range/types/run) já vivem na URL, copiar
+ * `window.location.href` é suficiente para reproduzir a investigação no time.
+ *
+ * Usar `useSearchParams` como dependência garante re-render — assim o
+ * `window.location.href` capturado no handler é sempre o atual.
+ */
+function CopyLinkButton() {
+  const [copied, setCopied] = useState(false);
+  // Re-render quando os params mudarem (handler pega href fresco).
+  useSearchParams();
+  const handleCopy = async () => {
+    try {
+      await navigator.clipboard.writeText(window.location.href);
+      setCopied(true);
+      toast.success('Link copiado — a mesma visão da timeline será aberta');
+      window.setTimeout(() => setCopied(false), 1800);
+    } catch {
+      toast.error('Não foi possível copiar o link');
+    }
+  };
+  return (
+    <Button
+      size="sm"
+      variant={copied ? 'default' : 'outline'}
+      className={`gap-1.5 ${copied ? 'bg-nexus-emerald/15 text-nexus-emerald hover:bg-nexus-emerald/25 border border-nexus-emerald/40' : ''}`}
+      onClick={handleCopy}
+      title="Copia a URL atual com TODOS os filtros (versão, A/B, modo, preset, intervalo, tipos, execução)"
+    >
+      {copied ? <Check className="h-3.5 w-3.5" /> : <Link2 className="h-3.5 w-3.5" />}
+      {copied ? 'Copiado' : 'Copiar link'}
+    </Button>
   );
 }
