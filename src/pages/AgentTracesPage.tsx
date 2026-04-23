@@ -363,6 +363,36 @@ export default function AgentTracesPage() {
         events={events} agents={agents}
       />
 
+      {/* Active absolute window banner (drill-down from SLO bucket / KPI delta) */}
+      {windowOverride && (
+        <div className="flex items-center justify-between gap-3 rounded-lg border border-primary/30 bg-primary/5 px-3 py-2 text-xs">
+          <div className="flex items-center gap-2 min-w-0">
+            <CalendarClock className="h-3.5 w-3.5 text-primary shrink-0" />
+            <span className="text-muted-foreground">Janela ativa:</span>
+            <span className="font-medium tabular-nums truncate">
+              {new Date(windowOverride.from).toLocaleString('pt-BR', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' })}
+              {' → '}
+              {new Date(windowOverride.to).toLocaleString('pt-BR', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' })}
+            </span>
+            <span className="text-muted-foreground">
+              ({Math.max(1, Math.round((Date.parse(windowOverride.to) - Date.parse(windowOverride.from)) / 60000))} min)
+            </span>
+          </div>
+          <Button
+            variant="ghost"
+            size="sm"
+            className="h-7 text-xs gap-1"
+            onClick={() => {
+              setWindowOverride(null);
+              setSelectedId(null);
+              toast.success('Janela removida — voltando ao filtro relativo');
+            }}
+          >
+            <X className="h-3 w-3" /> Limpar janela
+          </Button>
+        </div>
+      )}
+
       {/* Sync indicator */}
       <div className="flex items-center justify-end -mt-2">
         <SyncBadge status={syncStatus} />
