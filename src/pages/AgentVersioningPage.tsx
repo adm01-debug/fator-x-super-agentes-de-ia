@@ -99,6 +99,16 @@ export default function AgentVersioningPage() {
       const s = serializeRange(r);
       s ? p.set('range', s) : p.delete('range');
     });
+  // Execução (sessão) escolhida — persistida como ?run=<session_id> além do
+  // range absoluto. Isso torna o link autoexplicativo ("estou olhando a run X")
+  // e permite reidentificar a run mesmo se a janela for ajustada manualmente.
+  const runId = searchParams.get('run');
+  const setRunAndRange = (r: TimelineRange, rid: string | null) =>
+    updateParams((p) => {
+      const s = serializeRange(r);
+      s ? p.set('range', s) : p.delete('range');
+      rid ? p.set('run', rid) : p.delete('run');
+    });
 
   const { data: agent } = useQuery({
     queryKey: ['agent', id],
