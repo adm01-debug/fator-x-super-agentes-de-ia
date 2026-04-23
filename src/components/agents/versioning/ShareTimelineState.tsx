@@ -35,11 +35,16 @@ function shortVer(v: AgentVersion | null): string {
 
 export function ShareTimelineState({
   agentName, selected, versionA, versionB, mode, presetLabel, rangeLabel,
+  typesLabels, runId,
 }: Props) {
   const [copiedLink, setCopiedLink] = useState(false);
   const [copiedMd, setCopiedMd] = useState(false);
 
   const url = typeof window !== 'undefined' ? window.location.href : '';
+  const hasTypes = !!typesLabels && typesLabels.length > 0;
+  // Encurta o session_id no resumo: cabeçalho legível + id completo entre
+  // parênteses para que o leitor consiga buscar nos logs também.
+  const runShort = runId ? runId.slice(-8) : null;
 
   const markdown = useMemo(() => {
     const lines: string[] = [];
@@ -54,13 +59,19 @@ export function ShareTimelineState({
     if (presetLabel && presetLabel !== 'Todas') {
       lines.push(`**Filtro:** ${presetLabel}`);
     }
+    if (hasTypes) {
+      lines.push(`**Tipos:** ${typesLabels!.join(', ')}`);
+    }
+    if (runId) {
+      lines.push(`**Execução:** \`${runId}\``);
+    }
     if (rangeLabel) {
       lines.push(`**Intervalo:** ${rangeLabel}`);
     }
     lines.push('');
     lines.push(`🔗 ${url}`);
     return lines.join('\n');
-  }, [agentName, selected, versionA, versionB, mode, presetLabel, rangeLabel, url]);
+  }, [agentName, selected, versionA, versionB, mode, presetLabel, rangeLabel, typesLabels, hasTypes, runId, url]);
 
   const handleCopy = async (text: string, kind: 'link' | 'md') => {
     try {
