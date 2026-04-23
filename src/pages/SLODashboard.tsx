@@ -995,7 +995,8 @@ export default function SLODashboard() {
                         Drill-down do delta
                       </CardTitle>
                       <CardDescription>
-                        Top 3 contribuintes para cada KPI vs. baseline de {windowLabel(compareHours)}.
+                        Top 3 contribuintes por <span className="font-medium text-foreground">impacto relativo</span>{' '}
+                        (% do delta) vs. baseline de {windowLabel(compareHours)}.
                         Clique em um item para abrir os traces relacionados.
                       </CardDescription>
                     </div>
