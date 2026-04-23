@@ -209,8 +209,15 @@ function VersionHistory({ agentId }: { agentId: string }) {
       setSummaryEdited(false);
       setSummaryDraft("");
       setPresetAutoApplied(false);
+      setRiskAck(false);
     }
   }, [rollbackOpen]);
+
+  // Reset do acknowledge sempre que mudar a versão de origem ou os campos
+  // selecionados — qualquer mudança invalida a revisão anterior.
+  useEffect(() => {
+    setRiskAck(false);
+  }, [copyPrompt, copyTools, copyModel]);
 
   const { data: versions = [], isLoading } = useQuery({
     queryKey: ['agent_versions', agentId],
