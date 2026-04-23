@@ -140,8 +140,14 @@ export function computeRestoreDiff(
   const changes: FieldChange[] = [];
   const unchangedGroups: Array<'prompt' | 'tools' | 'model'> = [];
 
-  const push = (c: Omit<FieldChange, 'risk'> & { risk?: RiskLevel }) => {
-    changes.push({ ...c, risk: c.risk ?? riskFromImpact(c.impact) });
+  // criteria é opcional na entrada — preenchido com [] se ausente, para
+  // manter compat com call-sites simples (mission/persona/params).
+  const push = (c: Omit<FieldChange, 'risk' | 'criteria'> & { risk?: RiskLevel; criteria?: RiskCriterion[] }) => {
+    changes.push({
+      ...c,
+      criteria: c.criteria ?? [{ label: c.reason, points: c.impact }],
+      risk: c.risk ?? riskFromImpact(c.impact),
+    });
   };
 
   // ── Prompt group ──────────────────────────────────────────────
