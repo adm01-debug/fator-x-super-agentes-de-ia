@@ -1,3 +1,4 @@
+import type { ReactNode } from 'react';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Button } from '@/components/ui/button';
 import { Activity, AlertTriangle, CheckCircle2, Clock, DollarSign, Filter, Inbox, Play, XCircle } from 'lucide-react';
@@ -13,9 +14,11 @@ interface Props {
   loading: boolean;
   hasActiveFilters?: boolean;
   onClearFilters?: () => void;
+  /** Optional renderer that wraps the "Limpar filtros" button (e.g. ConfirmDialog). */
+  clearFiltersWrapper?: (button: ReactNode) => ReactNode;
 }
 
-export function ExecutionList({ executions, selectedId, onSelect, onReplay, loading, hasActiveFilters, onClearFilters }: Props) {
+export function ExecutionList({ executions, selectedId, onSelect, onReplay, loading, hasActiveFilters, onClearFilters, clearFiltersWrapper }: Props) {
   if (loading) {
     return (
       <div className="p-3 space-y-2" aria-busy="true" aria-label="Carregando execuções">
