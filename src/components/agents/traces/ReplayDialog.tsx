@@ -419,8 +419,34 @@ export function ReplayDialog({ open, onOpenChange, execution, initialStep = 0, o
             </Select>
           </div>
 
-          <div className="ml-auto text-[11px] text-muted-foreground tabular-nums">
-            Passo {step + 1} / {total}
+          {/* Indicador de progresso + atalhos ativos — facilita onboarding e
+              evita que o usuário precise lembrar das teclas. */}
+          <div className="ml-auto flex items-center gap-2 flex-wrap justify-end">
+            <span
+              className="text-[11px] font-mono tabular-nums px-2 py-0.5 rounded-md bg-primary/10 text-primary border border-primary/20"
+              aria-live="polite"
+              title={`Passo ${step + 1} de ${total}`}
+            >
+              Passo <span className="font-semibold">{step + 1}</span>
+              <span className="text-primary/60"> / {total}</span>
+            </span>
+            <div className="hidden md:flex items-center gap-1 text-[10px] text-muted-foreground" aria-label="Atalhos de teclado disponíveis">
+              <kbd className="px-1.5 py-0.5 rounded border border-border/60 bg-muted/60 font-mono text-[10px]">←</kbd>
+              <kbd className="px-1.5 py-0.5 rounded border border-border/60 bg-muted/60 font-mono text-[10px]">→</kbd>
+              <span className="opacity-60">passo</span>
+              <span className="opacity-30 mx-0.5">·</span>
+              <kbd className="px-1.5 py-0.5 rounded border border-border/60 bg-muted/60 font-mono text-[10px]">Espaço</kbd>
+              <span className="opacity-60">play</span>
+              <span className="opacity-30 mx-0.5">·</span>
+              <kbd className="px-1.5 py-0.5 rounded border border-border/60 bg-muted/60 font-mono text-[10px]">Home</kbd>
+              <kbd className="px-1.5 py-0.5 rounded border border-border/60 bg-muted/60 font-mono text-[10px]">End</kbd>
+              <span className="opacity-30 mx-0.5">·</span>
+              <kbd className="px-1.5 py-0.5 rounded border border-border/60 bg-muted/60 font-mono text-[10px]">R</kbd>
+              <span className="opacity-60">reset</span>
+              <span className="opacity-30 mx-0.5">·</span>
+              <kbd className="px-1.5 py-0.5 rounded border border-border/60 bg-muted/60 font-mono text-[10px]">/</kbd>
+              <span className="opacity-60">buscar</span>
+            </div>
           </div>
         </div>
 
