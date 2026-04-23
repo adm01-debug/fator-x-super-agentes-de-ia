@@ -31,10 +31,35 @@ function formatWhen(iso: string): string {
 }
 
 export function VersionTimeline({
-  versions, selectedId, selectedAId, selectedBId, onSelect, onPickA, onPickB, highlightId,
+  versions, selectedId, selectedAId, selectedBId, onSelect, onPickA, onPickB, highlightId, agentId,
 }: Props) {
   // Refs para rolar automaticamente até a versão alvo logo após um restore.
   const itemRefs = useRef<Record<string, HTMLDivElement | null>>({});
+  // Marca qual versão acabou de ter o link copiado para feedback visual (~1.5s).
+  const [copiedId, setCopiedId] = useState<string | null>(null);
+
+  // Gera URL absoluta com o path-segment moderno — sem ?focus=. Inclui origin
+  // para ficar pronta para colar em e-mail/Slack/issue tracker.
+  const buildShareUrl = (versionId: string) =>
+    `${window.location.origin}/agents/${agentId}/versions/v/${versionId}`;
+
+  const handleCopyLink = async (versionId: string, versionNumber: number) => {
+    const url = buildShareUrl(versionId);
+    try {
+      await navigator.clipboard.writeText(url);
+      setCopiedId(versionId);
+      toast.success(`Link da v${versionNumber} copiado`, { duration: 2000 });
+      window.setTimeout(() => {
+        setCopiedId((cur) => (cur === versionId ? null : cur));
+      }, 1500);
+    } catch {
+      // Fallback: alguns browsers exigem HTTPS — exibimos a URL no toast para copy manual.
+      toast.error('Não foi possível copiar — selecione e copie manualmente', {
+        description: url,
+        duration: 6000,
+      });
+    }
+  };
 
   useEffect(() => {
     if (!highlightId) return;
