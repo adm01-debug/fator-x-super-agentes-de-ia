@@ -226,6 +226,14 @@ export default function SLODashboard() {
     return (WINDOW_OPTIONS as readonly number[]).includes(n) ? n : 0;
   });
 
+  // Selected agent — when set, the dashboard view is "scoped" to that agent.
+  // Persisted in the URL so a shared link reproduces the same drill-down.
+  // We keep the state but don't yet refetch by agent (the SLO RPC is global);
+  // selection drives the highlighted row + scope chip + deep-link target.
+  const [selectedAgentId, setSelectedAgentId] = useState<string>(
+    () => sanitizeAgentId(searchParams.get(QP_SELECTED)),
+  );
+
   // Custom name for this evaluation window (e.g. "Sprint 27 — pico do Black Friday").
   // URL is the source of truth (so it travels with the shared link); fallback to
   // the per-user localStorage value to remember the last name across sessions.
