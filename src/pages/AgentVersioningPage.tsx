@@ -27,6 +27,7 @@ import {
   type TimelineRange,
 } from "@/components/agents/versioning/TimelineRangeFilter";
 import { loadTimelinePrefs, saveTimelinePrefs } from "@/components/agents/versioning/timelinePrefs";
+import { RunFilter } from "@/components/agents/versioning/RunFilter";
 
 export default function AgentVersioningPage() {
   const { id, versionId: pathVersionId } = useParams();
@@ -332,11 +333,14 @@ export default function AgentVersioningPage() {
               onChange={setPreset}
               counts={presetCounts}
             />
-            <div className="flex items-center gap-1.5 mb-2">
+            <div className="flex items-center gap-1.5 mb-2 flex-wrap">
               <span className="text-[10px] uppercase tracking-wider text-muted-foreground font-semibold">
                 Intervalo
               </span>
               <TimelineRangeFilter range={range} onChange={setRange} versions={versions} />
+              {/* Filtro por execução: aplica a janela temporal (min/max
+                  created_at dos traces) da sessão escolhida ao range geral. */}
+              <RunFilter agentId={id!} currentRange={range} onApply={setRange} />
               {(versionA && versionB) && range.mode !== 'version' && (
                 <Button
                   type="button"
