@@ -1,7 +1,8 @@
-import { useEffect, useRef } from "react";
-import { GitBranch, CircleDot, Circle } from "lucide-react";
+import { useEffect, useRef, useState } from "react";
+import { GitBranch, CircleDot, Circle, Link2, Check } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { toast } from "sonner";
 import type { AgentVersion } from "@/services/agentsService";
 
 interface Props {
@@ -14,6 +15,8 @@ interface Props {
   onPickB: (id: string) => void;
   /** Quando definido, rola até o item correspondente e aplica destaque temporário (pulse + ring). */
   highlightId?: string | null;
+  /** Necessário para gerar o deep-link copiável que aponta para a versão. */
+  agentId: string;
 }
 
 function formatWhen(iso: string): string {
@@ -28,10 +31,35 @@ function formatWhen(iso: string): string {
 }
 
 export function VersionTimeline({
-  versions, selectedId, selectedAId, selectedBId, onSelect, onPickA, onPickB, highlightId,
+  versions, selectedId, selectedAId, selectedBId, onSelect, onPickA, onPickB, highlightId, agentId,
 }: Props) {
   // Refs para rolar automaticamente até a versão alvo logo após um restore.
   const itemRefs = useRef<Record<string, HTMLDivElement | null>>({});
+  // Marca qual versão acabou de ter o link copiado para feedback visual (~1.5s).
+  const [copiedId, setCopiedId] = useState<string | null>(null);
+
+  // Gera URL absoluta com o path-segment moderno — sem ?focus=. Inclui origin
+  // para ficar pronta para colar em e-mail/Slack/issue tracker.
+  const buildShareUrl = (versionId: string) =>
+    `${window.location.origin}/agents/${agentId}/versions/v/${versionId}`;
+
+  const handleCopyLink = async (versionId: string, versionNumber: number) => {
+    const url = buildShareUrl(versionId);
+    try {
+      await navigator.clipboard.writeText(url);
+      setCopiedId(versionId);
+      toast.success(`Link da v${versionNumber} copiado`, { duration: 2000 });
+      window.setTimeout(() => {
+        setCopiedId((cur) => (cur === versionId ? null : cur));
+      }, 1500);
+    } catch {
+      // Fallback: alguns browsers exigem HTTPS — exibimos a URL no toast para copy manual.
+      toast.error('Não foi possível copiar — selecione e copie manualmente', {
+        description: url,
+        duration: 6000,
+      });
+    }
+  };
 
   useEffect(() => {
     if (!highlightId) return;
@@ -112,6 +140,21 @@ export function VersionTimeline({
                   onClick={(e) => { e.stopPropagation(); onPickB(v.id); }}
                 >
                   <GitBranch className="h-2.5 w-2.5" /> B
+                </Button>
+                {/* Copia URL absoluta com path-segment (/v/:id) que abre a
+                    timeline já posicionada na versão, sem query params. */}
+                <Button
+                  variant="ghost" size="sm"
+                  className={`h-5 px-2 text-[10px] gap-1 ml-auto ${
+                    copiedId === v.id ? 'text-nexus-emerald' : 'text-muted-foreground hover:text-foreground'
+                  }`}
+                  onClick={(e) => { e.stopPropagation(); handleCopyLink(v.id, v.version); }}
+                  title="Copiar link direto para esta versão"
+                  aria-label={`Copiar link da versão ${v.version}`}
+                >
+                  {copiedId === v.id
+                    ? <><Check className="h-2.5 w-2.5" /> Copiado</>
+                    : <><Link2 className="h-2.5 w-2.5" /> Link</>}
                 </Button>
               </div>
             </div>

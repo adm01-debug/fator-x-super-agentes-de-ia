@@ -27,11 +27,13 @@ import {
 } from "@/components/agents/versioning/TimelineRangeFilter";
 
 export default function AgentVersioningPage() {
-  const { id } = useParams();
+  const { id, versionId: pathVersionId } = useParams();
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const [searchParams, setSearchParams] = useSearchParams();
-  const focusId = searchParams.get('focus');
+  // Compatibilidade: aceita tanto o path-segment moderno (/versions/v/:versionId)
+  // quanto o legado (?focus=). O path-segment tem prioridade quando presente.
+  const focusId = pathVersionId ?? searchParams.get('focus');
 
   // Estado da timeline persistido na URL para que o link possa ser compartilhado
   // ao vivo. Lemos sempre dos searchParams e escrevemos via setSearchParams.
@@ -87,14 +89,22 @@ export default function AgentVersioningPage() {
   // Auto-select latest, and last 2 for compare — só preenche se a URL ainda não trouxer estado.
   useEffect(() => {
     if (versions.length === 0) return;
-    // Prioridade 1: ?focus= vindo do Detail page após restore.
+    // Prioridade 1: foco vindo via path (/v/:id) ou query (?focus=).
     if (focusId && versions.some(v => v.id === focusId)) {
-      updateParams((p) => {
-        p.set('sel', focusId);
-        p.delete('focus');
-      }, { replace: true });
+      // Se o foco veio do path, navega para a URL base preservando outros
+      // params atuais — assim o destaque some sem deixar resíduo na barra.
+      if (pathVersionId) {
+        const next = new URLSearchParams(searchParams);
+        next.set('sel', focusId);
+        const qs = next.toString();
+        navigate(`/agents/${id}/versions${qs ? `?${qs}` : ''}`, { replace: true });
+      } else {
+        updateParams((p) => {
+          p.set('sel', focusId);
+          p.delete('focus');
+        }, { replace: true });
+      }
       setHighlightId(focusId);
-      // Auto-fade do destaque após ~2.8s (cobre 1 ciclo da animação pulse).
       const t = setTimeout(() => setHighlightId(null), 2800);
       return () => clearTimeout(t);
     }
@@ -272,6 +282,7 @@ export default function AgentVersioningPage() {
               onPickA={(vid) => { setAId(vid); if (bId && vid !== bId) setMode('compare'); }}
               onPickB={(vid) => { setBId(vid); if (aId && vid !== aId) setMode('compare'); }}
               highlightId={highlightId}
+              agentId={id!}
             />
             {(activePreset.id !== 'all' || range.mode !== 'off') && filteredVersions.length < versions.length && (
               <p className="text-[10px] text-muted-foreground mt-2 px-1">

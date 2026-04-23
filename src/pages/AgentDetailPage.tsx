@@ -268,7 +268,7 @@ function VersionHistory({ agentId }: { agentId: string }) {
       toast.success(`Rollback concluído — v${data.version} criada a partir de v${previous!.version}`, {
         action: {
           label: 'Ver na timeline',
-          onClick: () => navigate(`/agents/${agentId}/versions?focus=${data.id}`),
+          onClick: () => navigate(`/agents/${agentId}/versions/v/${data.id}`),
         },
         duration: 6000,
       });
