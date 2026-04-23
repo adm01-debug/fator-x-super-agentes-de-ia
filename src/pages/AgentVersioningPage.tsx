@@ -376,12 +376,12 @@ export default function AgentVersioningPage() {
             </span>
             <div className="flex items-center gap-1.5 flex-wrap">
               {runId && (
-                <span className="font-mono text-[10px] px-1.5 py-0.5 rounded bg-cyan-500/10 text-cyan-600 dark:text-cyan-400 border border-cyan-500/20">
+                <span className="font-mono text-[10px] px-1.5 py-0.5 rounded bg-nexus-cyan/10 text-nexus-cyan border border-nexus-cyan/20">
                   run: {runId.slice(0, 8)}…
                 </span>
               )}
               {(focusId || highlightId) && (
-                <span className="font-mono text-[10px] px-1.5 py-0.5 rounded bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-500/20">
+                <span className="font-mono text-[10px] px-1.5 py-0.5 rounded bg-nexus-amber/10 text-nexus-amber border border-nexus-amber/20">
                   versão destacada
                 </span>
               )}
@@ -422,6 +422,8 @@ export default function AgentVersioningPage() {
           </Button>
         </div>
       )}
+
+      {versions.length === 0 ? (
         <div className="nexus-card flex flex-col items-center justify-center py-16 text-center">
           <GitBranch className="h-10 w-10 text-muted-foreground/30 mb-3" aria-hidden />
           <h3 className="text-sm font-semibold text-foreground mb-1">Nenhuma versão registrada</h3>
