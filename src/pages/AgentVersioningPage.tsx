@@ -332,11 +332,14 @@ export default function AgentVersioningPage() {
               onChange={setPreset}
               counts={presetCounts}
             />
-            <div className="flex items-center gap-1.5 mb-2">
+            <div className="flex items-center gap-1.5 mb-2 flex-wrap">
               <span className="text-[10px] uppercase tracking-wider text-muted-foreground font-semibold">
                 Intervalo
               </span>
               <TimelineRangeFilter range={range} onChange={setRange} versions={versions} />
+              {/* Filtro por execução: aplica a janela temporal (min/max
+                  created_at dos traces) da sessão escolhida ao range geral. */}
+              <RunFilter agentId={id!} currentRange={range} onApply={setRange} />
               {(versionA && versionB) && range.mode !== 'version' && (
                 <Button
                   type="button"
