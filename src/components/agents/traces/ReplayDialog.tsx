@@ -559,6 +559,9 @@ export function ReplayDialog({ open, onOpenChange, execution, initialStep = 0, o
               <div className={cn(
                 'flex items-center gap-2 p-3 rounded-md border bg-muted/30',
                 currentBookmark ? 'border-nexus-amber/40 bg-nexus-amber/5' : 'border-border/40',
+                // Reforço visual quando o passo casa com a busca ativa — ring
+                // sutil em primary para não competir com o amber dos bookmarks.
+                stepMatches && 'ring-2 ring-primary/40 ring-offset-1 ring-offset-background',
               )}>
                 {LEVEL_ICON[current.level]}
                 <div className="min-w-0 flex-1">
