@@ -190,7 +190,9 @@ function VersionHistory({ agentId }: { agentId: string }) {
   const [summaryDraft, setSummaryDraft] = useState("");
   const [summaryEdited, setSummaryEdited] = useState(false);
 
-  // Reset das opções a cada abertura do diálogo (evita herdar estado da última tentativa).
+  // Reset das opções a cada abertura do diálogo. O default volta para "tudo
+  // marcado" — se o usuário tiver um preset padrão, o `RestorePresetMenu` o
+  // aplica automaticamente via `onPresetsLoaded` assim que a query resolver.
   useEffect(() => {
     if (rollbackOpen) {
       setCopyPrompt(true);
