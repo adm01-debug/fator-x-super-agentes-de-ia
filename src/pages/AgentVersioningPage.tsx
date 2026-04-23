@@ -433,6 +433,8 @@ export default function AgentVersioningPage() {
                 versionB={versionB}
                 mode={mode}
                 presetLabel={activePreset.label}
+                typesLabels={Array.from(activeTypes)}
+                runId={runId}
                 rangeLabel={
                   range.mode === 'version' && (range.vMin !== undefined || range.vMax !== undefined)
                     ? `v${range.vMin ?? '…'}–v${range.vMax ?? '…'}`
