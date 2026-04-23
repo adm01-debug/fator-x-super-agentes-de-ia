@@ -413,12 +413,16 @@ function VersionHistory({ agentId }: { agentId: string }) {
             <AlertDialogCancel disabled={rollbackMut.isPending}>Cancelar</AlertDialogCancel>
             <AlertDialogAction
               onClick={(e) => { e.preventDefault(); rollbackMut.mutate(); }}
-              disabled={rollbackMut.isPending || !hasAnyOptionSelected}
+              disabled={rollbackMut.isPending || !hasAnyOptionSelected || restoreBlocked}
               className="gap-1.5"
-              title={!hasAnyOptionSelected ? 'Selecione ao menos um campo' : undefined}
+              title={
+                !hasAnyOptionSelected ? 'Selecione ao menos um campo'
+                : restoreBlocked ? `Resolva ${validation?.errors.length ?? 0} erro(s) de validação para continuar`
+                : undefined
+              }
             >
               {rollbackMut.isPending ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Undo2 className="h-3.5 w-3.5" />}
-              Confirmar rollback
+              {restoreBlocked ? 'Bloqueado por validação' : 'Confirmar rollback'}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
