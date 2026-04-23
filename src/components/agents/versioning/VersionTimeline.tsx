@@ -15,6 +15,8 @@ interface Props {
   onPickB: (id: string) => void;
   /** Quando definido, rola até o item correspondente e aplica destaque temporário (pulse + ring). */
   highlightId?: string | null;
+  /** Necessário para gerar o deep-link copiável que aponta para a versão. */
+  agentId: string;
 }
 
 function formatWhen(iso: string): string {
