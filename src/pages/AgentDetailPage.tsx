@@ -19,6 +19,7 @@ import { computeRestoreDiff } from "@/components/agents/detail/restoreDiffHelper
 import { validateRestore } from "@/components/agents/detail/restoreValidation";
 import { RestoreValidationPanel } from "@/components/agents/detail/RestoreValidationPanel";
 import { RestoreHistorySection } from "@/components/agents/detail/RestoreHistorySection";
+import { RestorePresetMenu } from "@/components/agents/detail/RestorePresetMenu";
 import { simulateAgentRun, type SimulationSummary } from "@/services/agentTestSimulationService";
 import {
   AlertDialog, AlertDialogContent, AlertDialogHeader, AlertDialogFooter,
