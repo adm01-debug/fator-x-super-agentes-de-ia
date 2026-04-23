@@ -29,6 +29,7 @@ import {
 } from "@/components/agents/versioning/TimelineRangeFilter";
 import { loadTimelinePrefs, saveTimelinePrefs } from "@/components/agents/versioning/timelinePrefs";
 import { RunFilter } from "@/components/agents/versioning/RunFilter";
+import { FilteredEmptyState } from "@/components/agents/versioning/FilteredEmptyState";
 
 export default function AgentVersioningPage() {
   const { id, versionId: pathVersionId } = useParams();
@@ -404,22 +405,47 @@ export default function AgentVersioningPage() {
                 </Button>
               )}
             </div>
-            <VersionTimeline
-              versions={filteredVersions}
-              selectedId={selectedId}
-              selectedAId={aId}
-              selectedBId={bId}
-              onSelect={(vid) => { setSelectedId(vid); }}
-              onPickA={(vid) => { setAId(vid); }}
-              onPickB={(vid) => { setBId(vid); }}
-              highlightId={highlightId}
-              agentId={id!}
-            />
-            {(activePreset.id !== 'all' || range.mode !== 'off' || activeTypes.size > 0) && filteredVersions.length < versions.length && (
+            {filteredVersions.length === 0 && versions.length > 0 ? (
+              // Empty state rico: lista os filtros ativos como "chips clicáveis"
+              // que limpam exatamente aquele filtro. Reduz a fricção de "está
+              // vazio mas eu não sei o que tirar pra ver de novo".
+              <FilteredEmptyState
+                totalVersions={versions.length}
+                activePresetLabel={activePreset.id !== 'all' ? activePreset.label : null}
+                rangeActive={range.mode !== 'off'}
+                runId={runId}
+                activeTypes={Array.from(activeTypes)}
+                onClearPreset={() => setPreset('all')}
+                onClearRange={() => setRunAndRange({ mode: 'off' }, null)}
+                onClearTypes={clearTypes}
+                onClearAll={() => {
+                  updateParams((p) => {
+                    p.delete('preset');
+                    p.delete('range');
+                    p.delete('run');
+                    p.delete('types');
+                  });
+                }}
+              />
+            ) : (
+              <VersionTimeline
+                versions={filteredVersions}
+                selectedId={selectedId}
+                selectedAId={aId}
+                selectedBId={bId}
+                onSelect={(vid) => { setSelectedId(vid); }}
+                onPickA={(vid) => { setAId(vid); }}
+                onPickB={(vid) => { setBId(vid); }}
+                highlightId={highlightId}
+                agentId={id!}
+              />
+            )}
+            {(activePreset.id !== 'all' || range.mode !== 'off' || activeTypes.size > 0) && filteredVersions.length > 0 && filteredVersions.length < versions.length && (
               <p className="text-[10px] text-muted-foreground mt-2 px-1">
                 Mostrando {filteredVersions.length} de {versions.length} versões
                 {activePreset.id !== 'all' && <> · preset "{activePreset.label}"</>}
                 {range.mode !== 'off' && <> · intervalo ativo</>}
+                {runId && <> · run …{runId.slice(-6)}</>}
                 {activeTypes.size > 0 && <> · tipos: {Array.from(activeTypes).join(', ')}</>}.
               </p>
             )}
