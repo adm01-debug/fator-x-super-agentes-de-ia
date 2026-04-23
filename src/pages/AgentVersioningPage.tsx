@@ -27,11 +27,13 @@ import {
 } from "@/components/agents/versioning/TimelineRangeFilter";
 
 export default function AgentVersioningPage() {
-  const { id } = useParams();
+  const { id, versionId: pathVersionId } = useParams();
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const [searchParams, setSearchParams] = useSearchParams();
-  const focusId = searchParams.get('focus');
+  // Compatibilidade: aceita tanto o path-segment moderno (/versions/v/:versionId)
+  // quanto o legado (?focus=). O path-segment tem prioridade quando presente.
+  const focusId = pathVersionId ?? searchParams.get('focus');
 
   // Estado da timeline persistido na URL para que o link possa ser compartilhado
   // ao vivo. Lemos sempre dos searchParams e escrevemos via setSearchParams.
