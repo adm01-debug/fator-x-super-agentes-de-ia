@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { useParams, useSearchParams } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
-import { Activity, AlertTriangle, Cloud, CloudOff, DollarSign, Filter, Inbox, Loader2, Play, RefreshCw, Zap } from 'lucide-react';
+import { Activity, AlertTriangle, CalendarClock, Cloud, CloudOff, DollarSign, Filter, Inbox, Loader2, Play, RefreshCw, X, Zap } from 'lucide-react';
 import { toast } from 'sonner';
 import { PageHeader } from '@/components/shared/PageHeader';
 import { Button } from '@/components/ui/button';
@@ -71,6 +71,20 @@ export default function AgentTracesPage() {
     return Number.isFinite(n) && n >= 0 ? Math.floor(n) : null;
   })();
 
+  // Absolute time window deep-link (e.g. SLO drill-down on a 1h bucket).
+  // Only ISO strings that parse to a valid Date are honoured; from must be < to.
+  const parsedWindow = useMemo(() => {
+    const fromRaw = searchParams.get('from');
+    const toRaw = searchParams.get('to');
+    if (!fromRaw || !toRaw) return null;
+    const fromMs = Date.parse(fromRaw);
+    const toMs = Date.parse(toRaw);
+    if (!Number.isFinite(fromMs) || !Number.isFinite(toMs) || fromMs >= toMs) return null;
+    return { from: new Date(fromMs).toISOString(), to: new Date(toMs).toISOString() };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+  const [windowOverride, setWindowOverride] = useState<{ from: string; to: string } | null>(parsedWindow);
+
   const [selectedId, setSelectedId] = useState<string | null>(urlSession);
   const [selectedStep, setSelectedStep] = useState(urlStep ?? 0);
   const [replayOpen, setReplayOpen] = useState(false);
@@ -128,19 +142,41 @@ export default function AgentTracesPage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [urlAgentId, agents]);
 
+  // Apply `?from=&to=` deep-link once: surface a toast confirming the bucket
+  // window and strip the params so manual filter changes aren't shadowed by them.
+  const appliedWindowParam = useRef(false);
+  useEffect(() => {
+    if (appliedWindowParam.current || !parsedWindow) return;
+    appliedWindowParam.current = true;
+    const fmt = (iso: string) => new Date(iso).toLocaleString('pt-BR', {
+      day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit',
+    });
+    toast.success(`Janela aplicada: ${fmt(parsedWindow.from)} → ${fmt(parsedWindow.to)}`);
+    const next = new URLSearchParams(searchParams);
+    next.delete('from');
+    next.delete('to');
+    if (next.toString() !== searchParams.toString()) {
+      setSearchParams(next, { replace: true });
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [parsedWindow]);
+
   const { data: events = [] } = useQuery({
     queryKey: ['agent-trace-events', effectiveAgentId],
     queryFn: () => listAvailableEvents(effectiveAgentId),
   });
 
   const { data: traces = [], isLoading, refetch, isFetching } = useQuery({
-    queryKey: ['agent-traces', effectiveAgentId, level, event, debouncedSearch, sinceHours],
+    queryKey: ['agent-traces', effectiveAgentId, level, event, debouncedSearch, sinceHours, windowOverride?.from, windowOverride?.to],
     queryFn: () => listAgentTraces({
       agentId: effectiveAgentId,
       level,
       event,
       search: debouncedSearch,
-      sinceHours,
+      // Absolute window wins over `sinceHours` when present.
+      sinceHours: windowOverride ? 0 : sinceHours,
+      from: windowOverride?.from,
+      to: windowOverride?.to,
       limit: 500,
     }),
     staleTime: 30_000,
@@ -326,6 +362,36 @@ export default function AgentTracesPage() {
         sinceHours={sinceHours} onSinceHours={(v) => setFilters((p) => ({ ...p, sinceHours: v }))}
         events={events} agents={agents}
       />
+
+      {/* Active absolute window banner (drill-down from SLO bucket / KPI delta) */}
+      {windowOverride && (
+        <div className="flex items-center justify-between gap-3 rounded-lg border border-primary/30 bg-primary/5 px-3 py-2 text-xs">
+          <div className="flex items-center gap-2 min-w-0">
+            <CalendarClock className="h-3.5 w-3.5 text-primary shrink-0" />
+            <span className="text-muted-foreground">Janela ativa:</span>
+            <span className="font-medium tabular-nums truncate">
+              {new Date(windowOverride.from).toLocaleString('pt-BR', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' })}
+              {' → '}
+              {new Date(windowOverride.to).toLocaleString('pt-BR', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' })}
+            </span>
+            <span className="text-muted-foreground">
+              ({Math.max(1, Math.round((Date.parse(windowOverride.to) - Date.parse(windowOverride.from)) / 60000))} min)
+            </span>
+          </div>
+          <Button
+            variant="ghost"
+            size="sm"
+            className="h-7 text-xs gap-1"
+            onClick={() => {
+              setWindowOverride(null);
+              setSelectedId(null);
+              toast.success('Janela removida — voltando ao filtro relativo');
+            }}
+          >
+            <X className="h-3 w-3" /> Limpar janela
+          </Button>
+        </div>
+      )}
 
       {/* Sync indicator */}
       <div className="flex items-center justify-end -mt-2">
