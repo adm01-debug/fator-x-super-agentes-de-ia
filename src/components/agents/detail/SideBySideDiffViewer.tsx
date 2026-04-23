@@ -217,8 +217,8 @@ function FieldDiff({ change }: { change: FieldChange }) {
           </span>
         </div>
         <div className="flex items-center gap-2 text-[10px] font-mono shrink-0">
-          <span className="text-destructive">−{rems(stats.rems)}</span>
-          <span className="text-nexus-emerald">+{rems(stats.adds)}</span>
+          <span className="text-destructive">−{compactCount(stats.rems)}</span>
+          <span className="text-nexus-emerald">+{compactCount(stats.adds)}</span>
         </div>
       </header>
 
@@ -231,7 +231,7 @@ function FieldDiff({ change }: { change: FieldChange }) {
   );
 }
 
-function rems(n: number): string {
+function compactCount(n: number): string {
   // Formata contagem de chars de forma compacta — "1.2k" para >999.
   if (n < 1000) return String(n);
   return `${(n / 1000).toFixed(1).replace(/\.0$/, '')}k`;
