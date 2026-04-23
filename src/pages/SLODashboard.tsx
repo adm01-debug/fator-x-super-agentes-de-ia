@@ -364,7 +364,16 @@ export default function SLODashboard() {
     } catch { /* quota / disabled — silently ignore */ }
   }, [windowName]);
 
+  // Each fetch tags itself with a monotonically-increasing token. When a
+  // response arrives, we only commit it to state if the token is still the
+  // most recent one — this drops responses for filter combos the user has
+  // already moved past, preventing UI flicker / out-of-order writes. We
+  // can't AbortController the supabase-js RPC, so this is the cleanest
+  // equivalent we can do at the call site.
+  const requestTokenRef = useRef(0);
+
   const load = useCallback(async (showSpinner = false) => {
+    const myToken = ++requestTokenRef.current;
     if (showSpinner) setRefreshing(true);
     try {
       // Fetch primary + comparison windows in parallel so the side-by-side
@@ -374,6 +383,9 @@ export default function SLODashboard() {
         compareHours > 0 ? fetchSLOSummary(compareHours) : Promise.resolve(null),
       ]);
       if (!isMountedRef.current) return;
+      // Stale response — a newer request was kicked off after this one.
+      // Drop it silently; the in-flight newer request will populate state.
+      if (myToken !== requestTokenRef.current) return;
       setSummary(data);
       setCompareSummary(cmpData);
       setLastRefreshAt(new Date());
@@ -381,30 +393,49 @@ export default function SLODashboard() {
       logger.error('Failed to load SLO summary', err);
       // Silent on auto-refresh — only toast on user-initiated reloads to
       // avoid spamming the operator if the backend hiccups for a beat.
-      if (showSpinner) {
+      if (showSpinner && myToken === requestTokenRef.current) {
         toast.error('Erro ao carregar métricas SLO', {
           description: err instanceof Error ? err.message : 'Erro desconhecido',
         });
       }
     } finally {
       if (!isMountedRef.current) return;
-      setLoading(false);
-      setRefreshing(false);
+      // Only the latest request controls the spinner — stale ones don't
+      // get to flip it off prematurely.
+      if (myToken === requestTokenRef.current) {
+        setLoading(false);
+        setRefreshing(false);
+      }
     }
   }, [windowHours, compareHours]);
 
-  // Initial load + scheduled auto-refresh. Runs invisibly (no spinner) so
-  // the page doesn't flash; the manual button still shows the spinning icon.
+  // Initial load + scheduled auto-refresh.
+  //
+  // Debounce: when the user toggles filters quickly (e.g. clicks 1h → 6h →
+  // 24h in rapid succession), `load` changes identity on each render. Without
+  // a debounce we'd fire a request per click and racing responses could
+  // overwrite each other (the token guard above protects state, but we still
+  // want to spare the backend the wasted load). DEBOUNCE_MS sits below the
+  // perception threshold for "snappy" UI but above typical multi-click bursts.
+  const FILTER_DEBOUNCE_MS = 350;
   useEffect(() => {
-    load();
-    if (autoRefreshMs <= 0) return;
+    // First mount fires immediately so the page never sits empty waiting on
+    // the debounce timer; subsequent loads (filter changes) wait one tick.
+    const isFirstLoad = requestTokenRef.current === 0;
+    const delay = isFirstLoad ? 0 : FILTER_DEBOUNCE_MS;
+    const timer = window.setTimeout(() => load(), delay);
+
+    if (autoRefreshMs <= 0) return () => window.clearTimeout(timer);
     const id = window.setInterval(() => {
       // Don't pile up requests in background tabs — browsers throttle the
       // interval already, but skipping when hidden also saves the API call.
       if (document.visibilityState === 'hidden') return;
       load(false);
     }, autoRefreshMs);
-    return () => window.clearInterval(id);
+    return () => {
+      window.clearTimeout(timer);
+      window.clearInterval(id);
+    };
   }, [load, autoRefreshMs]);
 
   // Tick the relative-time label ("há Xs") every second.
