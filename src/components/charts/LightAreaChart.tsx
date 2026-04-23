@@ -2,7 +2,7 @@ import { useState, useMemo, useId } from 'react';
 import { useChartDimensions } from './useChartDimensions';
 import { ChartTooltip } from './ChartTooltip';
 import { ChartLegend } from './ChartLegend';
-import type { ChartMargin, TooltipState } from './types';
+import type { ChartMargin, TooltipExtraSection, TooltipState } from './types';
 
 interface AreaSeries {
   dataKey: string;
@@ -21,6 +21,10 @@ interface Props {
   margin?: ChartMargin;
   yFormatter?: (v: number) => string;
   tooltipFormatter?: (value: number, name: string) => string;
+  /** Optional builder for the small title shown above tooltip items. */
+  tooltipTitle?: (datum: Record<string, any>, index: number) => string | undefined;
+  /** Optional builder for extra sections rendered below standard items. */
+  tooltipExtras?: (datum: Record<string, any>, index: number) => TooltipExtraSection[] | undefined;
   showLegend?: boolean;
   showGrid?: boolean;
 }
