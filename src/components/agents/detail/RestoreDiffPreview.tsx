@@ -114,6 +114,86 @@ export function RestoreDiffPreview({ current, source, options }: Props) {
     });
   };
 
+  // ── Navegação por marcadores fixos ────────────────────────────
+  // Cada change recebe um id estável + ref. Os "highlights" são os itens
+  // mais críticos para revisar antes do rollback, escolhidos por heurística
+  // de impacto operacional (não apenas score numérico):
+  //   1. Troca de modelo (sempre, se houver)
+  //   2. Cada tool removida (perda de capability)
+  //   3. Mudanças grandes no prompt (ratio ≥ 25% → impact ≥ 65)
+  //   4. Demais mudanças com risco crítico/alto
+  // Ordenados por impacto desc para que o usuário ataque o pior primeiro.
+  const itemRefs = useRef<Map<string, HTMLLIElement>>(new Map());
+  const scrollRef = useRef<HTMLDivElement>(null);
+  const [activeMarker, setActiveMarker] = useState<string | null>(null);
+
+  const changeId = (c: FieldChange) => `change-${c.group}-${c.field}`;
+
+  const highlights = useMemo(() => {
+    type Marker = { id: string; label: string; sublabel: string; impact: number; tone: string; icon: typeof Flame };
+    const markers: Marker[] = [];
+    const seen = new Set<string>();
+
+    for (const c of filteredChanges) {
+      const id = changeId(c);
+      // Troca de modelo — sempre marca, é o gatilho mais visível de comportamento.
+      if (c.field === 'model') {
+        markers.push({
+          id, label: 'Modelo', sublabel: `${String(c.before).slice(0, 12)} → ${String(c.after).slice(0, 12)}`,
+          impact: c.impact, tone: 'border-nexus-emerald/50 text-nexus-emerald bg-nexus-emerald/10', icon: Cpu,
+        });
+        seen.add(id);
+        continue;
+      }
+      // Tool removida — uma marcação por tool, pois cada uma é uma capability perdida.
+      if (c.field === 'tools' && diff.toolsRemoved.length > 0) {
+        for (const tool of diff.toolsRemoved) {
+          const tid = `change-tools-removed-${tool}`;
+          markers.push({
+            id, label: 'Tool removida', sublabel: tool,
+            impact: c.impact, tone: 'border-destructive/50 text-destructive bg-destructive/10', icon: Wrench,
+          });
+          seen.add(tid);
+        }
+        seen.add(id);
+        continue;
+      }
+      // Prompt grande — só sinaliza se impacto ≥ 60 (corresponde a ratio ≥ 25%).
+      if (c.group === 'prompt' && c.impact >= 60) {
+        markers.push({
+          id, label: 'Prompt grande', sublabel: c.reason,
+          impact: c.impact, tone: 'border-primary/50 text-primary bg-primary/10', icon: MessageSquare,
+        });
+        seen.add(id);
+        continue;
+      }
+      // Restante: só inclui itens crítico/alto que sobraram.
+      if ((c.risk === 'critical' || c.risk === 'high') && !seen.has(id)) {
+        const meta = RISK_META[c.risk];
+        markers.push({
+          id, label: c.label, sublabel: c.reason,
+          impact: c.impact, tone: meta.chipTone, icon: meta.icon,
+        });
+        seen.add(id);
+      }
+    }
+    return markers.sort((a, b) => b.impact - a.impact);
+  }, [filteredChanges, diff.toolsRemoved]);
+
+  const scrollToChange = useCallback((id: string) => {
+    const el = itemRefs.current.get(id);
+    if (!el) return;
+    el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    setActiveMarker(id);
+    // Flash visual breve — o highlight some sozinho após 1.6s para não poluir.
+    window.setTimeout(() => setActiveMarker((curr) => (curr === id ? null : curr)), 1600);
+  }, []);
+
+  const registerItemRef = (id: string) => (el: HTMLLIElement | null) => {
+    if (el) itemRefs.current.set(id, el);
+    else itemRefs.current.delete(id);
+  };
+
   if (diff.changes.length === 0) {
     return (
       <div className="rounded-lg border border-nexus-emerald/30 bg-nexus-emerald/5 p-3 flex items-center gap-2.5">
