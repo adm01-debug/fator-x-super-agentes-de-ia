@@ -186,6 +186,9 @@ function VersionHistory({ agentId }: { agentId: string }) {
   const [copyPrompt, setCopyPrompt] = useState(true);
   const [copyTools, setCopyTools] = useState(true);
   const [copyModel, setCopyModel] = useState(true);
+  // Garante que o preset padrão é aplicado apenas uma vez por abertura — evita
+  // sobrescrever ajustes manuais que o usuário fez depois.
+  const [presetAutoApplied, setPresetAutoApplied] = useState(false);
   // Changelog editável: texto controlado + flag indicando se foi customizado.
   const [summaryDraft, setSummaryDraft] = useState("");
   const [summaryEdited, setSummaryEdited] = useState(false);
@@ -200,6 +203,7 @@ function VersionHistory({ agentId }: { agentId: string }) {
       setCopyModel(true);
       setSummaryEdited(false);
       setSummaryDraft("");
+      setPresetAutoApplied(false);
     }
   }, [rollbackOpen]);
 
@@ -331,9 +335,32 @@ function VersionHistory({ agentId }: { agentId: string }) {
 
                 {/* Seleção granular de campos a copiar — desmarcar tudo bloqueia o rollback */}
                 <fieldset className="rounded-lg border border-border bg-card/40 p-3 space-y-2">
-                  <legend className="text-[11px] font-semibold uppercase tracking-wider text-foreground px-1">
-                    Campos a copiar
-                  </legend>
+                  <div className="flex items-center justify-between gap-2 px-1">
+                    <legend className="text-[11px] font-semibold uppercase tracking-wider text-foreground p-0">
+                      Campos a copiar
+                    </legend>
+                    {/* Presets: aplica/salva combinações em 1 clique. O onPresetsLoaded
+                        roda só uma vez por abertura para auto-aplicar o default. */}
+                    <RestorePresetMenu
+                      current={restoreOptions}
+                      onApply={(p) => {
+                        setCopyPrompt(p.copyPrompt);
+                        setCopyTools(p.copyTools);
+                        setCopyModel(p.copyModel);
+                      }}
+                      onPresetsLoaded={(list) => {
+                        if (presetAutoApplied) return;
+                        setPresetAutoApplied(true);
+                        const def = list.find((p) => p.is_default);
+                        if (def) {
+                          setCopyPrompt(def.copy_prompt);
+                          setCopyTools(def.copy_tools);
+                          setCopyModel(def.copy_model);
+                        }
+                      }}
+                      disabled={rollbackMut.isPending}
+                    />
+                  </div>
                   <RestoreOptionRow
                     id="opt-prompt"
                     icon={MessageSquare}
