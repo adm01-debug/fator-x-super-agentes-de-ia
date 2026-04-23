@@ -520,6 +520,10 @@ export default function SLODashboard() {
     p95: p.p95_ms,
     p50: p.p50_ms,
     target: SLO_TARGETS.p95LatencyMs,
+    // Extra fields consumed by the tooltip — not plotted as series.
+    _bucket_hour: p.bucket_hour,
+    _errors: p.errors,
+    _total: p.total,
   })) ?? [];
 
   // Total violation buckets under the current filter — surfaced in the
