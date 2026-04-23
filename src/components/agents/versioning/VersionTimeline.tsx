@@ -141,6 +141,21 @@ export function VersionTimeline({
                 >
                   <GitBranch className="h-2.5 w-2.5" /> B
                 </Button>
+                {/* Copia URL absoluta com path-segment (/v/:id) que abre a
+                    timeline já posicionada na versão, sem query params. */}
+                <Button
+                  variant="ghost" size="sm"
+                  className={`h-5 px-2 text-[10px] gap-1 ml-auto ${
+                    copiedId === v.id ? 'text-nexus-emerald' : 'text-muted-foreground hover:text-foreground'
+                  }`}
+                  onClick={(e) => { e.stopPropagation(); handleCopyLink(v.id, v.version); }}
+                  title="Copiar link direto para esta versão"
+                  aria-label={`Copiar link da versão ${v.version}`}
+                >
+                  {copiedId === v.id
+                    ? <><Check className="h-2.5 w-2.5" /> Copiado</>
+                    : <><Link2 className="h-2.5 w-2.5" /> Link</>}
+                </Button>
               </div>
             </div>
           );
