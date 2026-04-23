@@ -4,7 +4,9 @@ import { Button } from '@/components/ui/button';
 import { Slider } from '@/components/ui/slider';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
-import { Pause, Play, RotateCcw, SkipBack, SkipForward, Info, AlertTriangle, XCircle, Download, BookmarkCheck, ArrowLeftRight, GitCompare } from 'lucide-react';
+import { Pause, Play, RotateCcw, SkipBack, SkipForward, Info, AlertTriangle, XCircle, Download, BookmarkCheck, ArrowLeftRight, GitCompare, Search, ChevronUp, ChevronDown, X } from 'lucide-react';
+import { Input } from '@/components/ui/input';
+import { useDebounce } from '@/hooks/use-debounce';
 import type { ExecutionGroup, TraceLevel } from '@/services/agentTracesService';
 import { downloadJSON } from '@/lib/agentExportImport';
 import { toast } from 'sonner';
@@ -92,6 +94,77 @@ export function ReplayDialog({ open, onOpenChange, execution, initialStep = 0, o
   const swapPicks = () => { setPickA(pickB); setPickB(pickA); };
   const canCompare = !!(pickA && pickB && pickA !== pickB);
 
+  // ── Busca dentro do replay ────────────────────────────────────────────
+  // Procura `query` em event/level/input/output/metadata de cada trace e
+  // produz a lista de índices que casam. O usuário navega entre matches
+  // com prev/next (botões + atalhos `n`/`N` ou Enter/Shift+Enter no input).
+  // Debounce evita refazer o JSON.stringify a cada tecla.
+  const [query, setQuery] = useState('');
+  const debouncedQuery = useDebounce(query, 150);
+  const searchInputRef = useRef<HTMLInputElement>(null);
+  // Reset busca ao trocar de execução — comportamento esperado de "novo contexto".
+  useEffect(() => { setQuery(''); }, [sessionId]);
+
+  /** Pré-stringifica o conteúdo buscável de cada trace UMA vez por execução. */
+  const haystacks = useMemo(() => {
+    return traces.map((t) => {
+      const parts: string[] = [t.event, t.level];
+      try { parts.push(typeof t.input === 'string' ? t.input : JSON.stringify(t.input ?? '')); } catch { /* ignore */ }
+      try { parts.push(typeof t.output === 'string' ? t.output : JSON.stringify(t.output ?? '')); } catch { /* ignore */ }
+      if (t.metadata) {
+        try { parts.push(JSON.stringify(t.metadata)); } catch { /* ignore */ }
+      }
+      return parts.join(' \u0001 ').toLowerCase();
+    });
+  }, [traces]);
+
+  const matchIndexes = useMemo(() => {
+    const q = debouncedQuery.trim().toLowerCase();
+    if (!q) return [] as number[];
+    const out: number[] = [];
+    for (let i = 0; i < haystacks.length; i++) {
+      if (haystacks[i].includes(q)) out.push(i);
+    }
+    return out;
+  }, [haystacks, debouncedQuery]);
+
+  // Posição do passo atual dentro dos matches (1-based para exibir "X de N").
+  // Se o passo atual não casa, mostra o "próximo" como referência.
+  const currentMatchPos = useMemo(() => {
+    if (matchIndexes.length === 0) return 0;
+    const idx = matchIndexes.indexOf(step);
+    if (idx >= 0) return idx + 1;
+    const next = matchIndexes.findIndex((i) => i >= step);
+    return (next === -1 ? matchIndexes.length : next + 1);
+  }, [matchIndexes, step]);
+  const stepMatches = matchIndexes.includes(step);
+
+  /**
+   * Salta para o match anterior/próximo. Usa wrap-around ("circular") para
+   * evitar dead-ends — chegar no fim e dar "next" volta ao primeiro.
+   */
+  const jumpMatch = (dir: 1 | -1) => {
+    if (matchIndexes.length === 0) return;
+    let target: number;
+    if (dir === 1) {
+      target = matchIndexes.find((i) => i > step) ?? matchIndexes[0];
+    } else {
+      target = [...matchIndexes].reverse().find((i) => i < step) ?? matchIndexes[matchIndexes.length - 1];
+    }
+    setStep(target);
+    setPlaying(false);
+  };
+
+  // Auto-pula para o primeiro match assim que o usuário começa a digitar e
+  // o passo atual ainda não casa — feedback imediato sem precisar clicar prev/next.
+  useEffect(() => {
+    if (matchIndexes.length === 0) return;
+    if (matchIndexes.includes(step)) return;
+    setStep(matchIndexes[0]);
+    setPlaying(false);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [debouncedQuery]);
+
   const accumulated = useMemo(() => {
     let ms = 0, tokens = 0, cost = 0;
     for (let i = 0; i <= step && i < traces.length; i++) {
@@ -163,13 +236,24 @@ export function ReplayDialog({ open, onOpenChange, execution, initialStep = 0, o
       } else if (e.key === 'B' && bookmarks.length > 0) {
         e.preventDefault();
         jumpBookmark(-1);
+      } else if (e.key === '/') {
+        // Foca o input de busca — convenção comum (gh, gmail, etc).
+        e.preventDefault();
+        searchInputRef.current?.focus();
+        searchInputRef.current?.select();
+      } else if (e.key === 'n' && matchIndexes.length > 0) {
+        e.preventDefault();
+        jumpMatch(1);
+      } else if (e.key === 'N' && matchIndexes.length > 0) {
+        e.preventDefault();
+        jumpMatch(-1);
       }
     };
     window.addEventListener('keydown', handler);
     return () => window.removeEventListener('keydown', handler);
-    // jumpBookmark closes over `step` but we read from setState callbacks; bookmarks list change retriggers.
+    // jumpBookmark/jumpMatch read from setState callbacks; bookmarks/matchIndexes change retriggers.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [open, total, bookmarks, step]);
+  }, [open, total, bookmarks, step, matchIndexes]);
 
   if (!execution) return null;
 
@@ -368,6 +452,104 @@ export function ReplayDialog({ open, onOpenChange, execution, initialStep = 0, o
               })}
             </div>
           )}
+          {/* Marcadores de matches da busca sobre a barra — usam cor primária
+              para distinguir dos marcadores de bookmark (amber). Clicar pula. */}
+          {matchIndexes.length > 0 && total > 1 && (
+            <div className="absolute inset-x-0 bottom-0 pointer-events-none h-1.5">
+              {matchIndexes.map((idx) => {
+                const left = `${(idx / Math.max(1, total - 1)) * 100}%`;
+                return (
+                  <button
+                    key={`m-${idx}`}
+                    type="button"
+                    onClick={() => { setStep(idx); setPlaying(false); }}
+                    className="absolute -translate-x-1/2 top-0 w-1 h-1.5 rounded-sm bg-primary pointer-events-auto hover:scale-150 transition-transform"
+                    style={{ left }}
+                    aria-label={`Ir para resultado no passo ${idx + 1}`}
+                    title={`Resultado no passo ${idx + 1}`}
+                  />
+                );
+              })}
+            </div>
+          )}
+        </div>
+
+        {/* Toolbar de busca — input + contador + prev/next + clear.
+            Convenção: Enter=próximo, Shift+Enter=anterior, Esc=limpa+desfoca,
+            atalho global "/" foca o input, "n"/"N" navega quando focado fora. */}
+        <div className="flex items-center gap-2 px-1">
+          <div className="relative flex-1">
+            <Search className="h-3.5 w-3.5 text-muted-foreground absolute left-2 top-1/2 -translate-y-1/2 pointer-events-none" aria-hidden />
+            <Input
+              ref={searchInputRef}
+              value={query}
+              onChange={(e) => setQuery(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter') {
+                  e.preventDefault();
+                  if (matchIndexes.length > 0) jumpMatch(e.shiftKey ? -1 : 1);
+                } else if (e.key === 'Escape') {
+                  e.preventDefault();
+                  if (query) setQuery('');
+                  else (e.target as HTMLInputElement).blur();
+                }
+              }}
+              placeholder='Buscar nos passos (event, input, output, metadata) — atalho "/"'
+              className="h-8 pl-7 pr-2 text-xs"
+              aria-label="Buscar texto nos passos da execução"
+            />
+          </div>
+          {query && (
+            <>
+              <span
+                className={cn(
+                  'text-[11px] tabular-nums px-1.5 py-0.5 rounded font-mono',
+                  matchIndexes.length === 0
+                    ? 'bg-destructive/10 text-destructive border border-destructive/30'
+                    : stepMatches
+                    ? 'bg-primary/10 text-primary border border-primary/30'
+                    : 'bg-secondary/60 text-muted-foreground border border-border/40',
+                )}
+                aria-live="polite"
+              >
+                {matchIndexes.length === 0
+                  ? '0 resultados'
+                  : `${currentMatchPos} de ${matchIndexes.length}`}
+              </span>
+              <Button
+                size="icon"
+                variant="outline"
+                className="h-8 w-8"
+                disabled={matchIndexes.length === 0}
+                onClick={() => jumpMatch(-1)}
+                aria-label="Resultado anterior"
+                title="Resultado anterior (Shift+Enter ou N)"
+              >
+                <ChevronUp className="h-3.5 w-3.5" />
+              </Button>
+              <Button
+                size="icon"
+                variant="outline"
+                className="h-8 w-8"
+                disabled={matchIndexes.length === 0}
+                onClick={() => jumpMatch(1)}
+                aria-label="Próximo resultado"
+                title="Próximo resultado (Enter ou n)"
+              >
+                <ChevronDown className="h-3.5 w-3.5" />
+              </Button>
+              <Button
+                size="icon"
+                variant="ghost"
+                className="h-8 w-8 text-muted-foreground"
+                onClick={() => { setQuery(''); searchInputRef.current?.focus(); }}
+                aria-label="Limpar busca"
+                title="Limpar busca (Esc)"
+              >
+                <X className="h-3.5 w-3.5" />
+              </Button>
+            </>
+          )}
         </div>
 
         {/* Current step */}
@@ -377,6 +559,9 @@ export function ReplayDialog({ open, onOpenChange, execution, initialStep = 0, o
               <div className={cn(
                 'flex items-center gap-2 p-3 rounded-md border bg-muted/30',
                 currentBookmark ? 'border-nexus-amber/40 bg-nexus-amber/5' : 'border-border/40',
+                // Reforço visual quando o passo casa com a busca ativa — ring
+                // sutil em primary para não competir com o amber dos bookmarks.
+                stepMatches && 'ring-2 ring-primary/40 ring-offset-1 ring-offset-background',
               )}>
                 {LEVEL_ICON[current.level]}
                 <div className="min-w-0 flex-1">
