@@ -13,6 +13,7 @@ import { AgentRichMetrics } from "@/components/agents/detail/AgentRichMetrics";
 import { SimulationResultDialog } from "@/components/agents/detail/SimulationResultDialog";
 import { SavedTestRunsPanel } from "@/components/agents/detail/SavedTestRunsPanel";
 import { RestoreDiffPreview } from "@/components/agents/detail/RestoreDiffPreview";
+import { SideBySideDiffViewer } from "@/components/agents/detail/SideBySideDiffViewer";
 import { RestoreChangelogEditor, buildAutoSummary } from "@/components/agents/detail/RestoreChangelogEditor";
 import { computeRestoreDiff } from "@/components/agents/detail/restoreDiffHelpers";
 import { RestoreHistorySection } from "@/components/agents/detail/RestoreHistorySection";
@@ -366,6 +367,24 @@ function VersionHistory({ agentId }: { agentId: string }) {
                       source={previous}
                       options={restoreOptions}
                     />
+                    {/* Diff lado a lado para prompt e parâmetros — colapsado
+                        por padrão para não inflar o dialog, mas disponível
+                        em um clique antes da confirmação. */}
+                    {restoreDiff.changes.some((c) => c.group === 'prompt' || c.group === 'model') && (
+                      <details className="rounded-lg border border-primary/20 bg-primary/[0.03]">
+                        <summary className="cursor-pointer px-3 py-2 text-xs font-semibold text-foreground hover:bg-primary/[0.06] select-none flex items-center gap-1.5">
+                          <GitCompare className="h-3.5 w-3.5 text-primary" aria-hidden />
+                          Ver diff lado a lado (prompt &amp; parâmetros)
+                        </summary>
+                        <div className="p-3 border-t border-border/50">
+                          <SideBySideDiffViewer
+                            changes={restoreDiff.changes}
+                            currentVersion={current!.version}
+                            sourceVersion={previous.version}
+                          />
+                        </div>
+                      </details>
+                    )}
                     <RestoreChangelogEditor
                       sourceVersion={previous.version}
                       nextVersion={nextVersionNumber}

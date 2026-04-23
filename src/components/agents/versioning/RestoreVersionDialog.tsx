@@ -31,6 +31,7 @@ import {
 import type { AgentVersion, RestoreOptions } from "@/services/agentsService";
 import { getVersionTools, getVersionPrompt, getVersionScalar } from "@/lib/agentChangelog";
 import { computeRestoreDiff, type FieldChange, type RiskLevel } from "@/components/agents/detail/restoreDiffHelpers";
+import { SideBySideDiffViewer } from "@/components/agents/detail/SideBySideDiffViewer";
 
 interface Props {
   open: boolean;
@@ -714,18 +715,29 @@ function FullDiffView({
         </div>
       </DialogHeader>
 
-      {relevant.length === 0 ? (
-        <div className="rounded-lg border border-border/50 bg-secondary/30 p-8 text-center">
-          <p className="text-sm text-muted-foreground">
-            Nenhuma diferença em prompt ou campos do modelo nas opções selecionadas.
-          </p>
-        </div>
-      ) : (
-        <div className="space-y-4">
-          {relevant.map((c) => (
-            <DiffBlock key={`${c.group}-${c.field}`} change={c} />
-          ))}
-        </div>
+      {/* Visualizador lado a lado — mostra prompt e parâmetros em duas
+          colunas com realce intra-linha (palavra a palavra) dos trechos
+          alterados. Substitui o antigo diff unificado para deixar
+          inequívoco o que será aplicado pelo rollback. */}
+      <SideBySideDiffViewer
+        changes={relevant}
+        currentVersion={currentVersion}
+        sourceVersion={sourceVersion}
+      />
+
+      {/* Mantém o diff unificado disponível abaixo como referência
+          (linha-a-linha estilo patch) para quem prefere essa visão. */}
+      {relevant.length > 0 && (
+        <details className="rounded-lg border border-border/50 bg-secondary/20">
+          <summary className="cursor-pointer px-3 py-2 text-[11px] font-semibold text-muted-foreground hover:text-foreground select-none">
+            Ver também diff unificado (linha-a-linha)
+          </summary>
+          <div className="p-3 space-y-3 border-t border-border/50">
+            {relevant.map((c) => (
+              <DiffBlock key={`unified-${c.group}-${c.field}`} change={c} />
+            ))}
+          </div>
+        </details>
       )}
 
       <DialogFooter>
