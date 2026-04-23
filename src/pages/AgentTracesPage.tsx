@@ -108,6 +108,26 @@ export default function AgentTracesPage() {
     queryFn: () => listAgentSummaries(100),
   });
 
+  // Apply `?agent_id=` deep-link once after mount: override the persisted
+  // agent filter, surface a toast confirming which agent was matched, then
+  // strip the param so further in-page filter changes aren't shadowed by it.
+  const appliedAgentParam = useRef<string | null>(null);
+  useEffect(() => {
+    if (!urlAgentId || appliedAgentParam.current === urlAgentId) return;
+    if (filters.agentFilter !== urlAgentId) {
+      setFilters((prev) => ({ ...prev, agentFilter: urlAgentId }));
+      const matched = agents.find((a) => a.id === urlAgentId);
+      toast.success(matched ? `Filtrando por: ${matched.name}` : 'Filtro de agente aplicado via link');
+    }
+    appliedAgentParam.current = urlAgentId;
+    const next = new URLSearchParams(searchParams);
+    next.delete('agent_id');
+    if (next.toString() !== searchParams.toString()) {
+      setSearchParams(next, { replace: true });
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [urlAgentId, agents]);
+
   const { data: events = [] } = useQuery({
     queryKey: ['agent-trace-events', effectiveAgentId],
     queryFn: () => listAvailableEvents(effectiveAgentId),
