@@ -124,6 +124,19 @@ export function ShareTimelineState({
             <Filter className="h-2.5 w-2.5" /> {presetLabel}
           </span>
         )}
+        {hasTypes && (
+          <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-full text-[10px] border border-nexus-violet/40 bg-nexus-violet/10 text-nexus-violet">
+            <Tag className="h-2.5 w-2.5" /> {typesLabels!.join(' · ')}
+          </span>
+        )}
+        {runId && (
+          <span
+            className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-full text-[10px] font-mono border border-nexus-cyan/40 bg-nexus-cyan/10 text-nexus-cyan"
+            title={runId}
+          >
+            <Activity className="h-2.5 w-2.5" /> run …{runShort}
+          </span>
+        )}
         {rangeLabel && (
           <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-full text-[10px] border border-border/60 bg-secondary/60 text-muted-foreground">
             {rangeLabel}
