@@ -483,11 +483,12 @@ function VersionHistory({ agentId }: { agentId: string }) {
             <AlertDialogCancel disabled={rollbackMut.isPending}>Cancelar</AlertDialogCancel>
             <AlertDialogAction
               onClick={(e) => { e.preventDefault(); rollbackMut.mutate(); }}
-              disabled={rollbackMut.isPending || !hasAnyOptionSelected || restoreBlocked}
+              disabled={rollbackMut.isPending || !hasAnyOptionSelected || restoreBlocked || ackBlocked}
               className="gap-1.5"
               title={
                 !hasAnyOptionSelected ? 'Selecione ao menos um campo'
                 : restoreBlocked ? `Resolva ${validation?.errors.length ?? 0} erro(s) de validação para continuar`
+                : ackBlocked ? 'Revise e confirme os itens de risco alto/crítico'
                 : undefined
               }
             >
