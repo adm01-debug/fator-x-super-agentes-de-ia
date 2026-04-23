@@ -215,8 +215,19 @@ export function RestoreDiffPreview({ current, source, options }: Props) {
         seen.add(id);
       }
     }
+    // Aplica a ordenação escolhida pelo usuário. Quando "pinned", mantemos
+    // exatamente a ordem definida pelo modo selecionado — sem reordenar
+    // dinamicamente caso o conjunto mude (mantém memória muscular do usuário).
+    if (highlightSort === 'type') {
+      return markers.sort((a, b) => {
+        const ta = TYPE_ORDER[a.label] ?? 99;
+        const tb = TYPE_ORDER[b.label] ?? 99;
+        if (ta !== tb) return ta - tb;
+        return b.impact - a.impact;
+      });
+    }
     return markers.sort((a, b) => b.impact - a.impact);
-  }, [filteredChanges, diff.toolsRemoved]);
+  }, [filteredChanges, diff.toolsRemoved, highlightSort]);
 
   const scrollToChange = useCallback((id: string) => {
     const el = itemRefs.current.get(id);
