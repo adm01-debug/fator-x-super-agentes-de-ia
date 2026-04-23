@@ -119,6 +119,7 @@ export default function AgentVersioningPage() {
     });
   }, [id, presetId, mode, searchParams]);
 
+  // Inicialização da URL: roda APENAS na primeira chegada das versões (ou quando
   // muda o `focusId`). Nunca reescreve `sel`/`a`/`b`/`mode` depois disso — assim
   // alternar entre detalhe/comparar ou recarregar a query NÃO muda o que o
   // usuário já tem selecionado/fixado.
