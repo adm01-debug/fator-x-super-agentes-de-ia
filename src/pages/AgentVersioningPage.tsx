@@ -420,11 +420,12 @@ export default function AgentVersioningPage() {
               highlightId={highlightId}
               agentId={id!}
             />
-            {(activePreset.id !== 'all' || range.mode !== 'off') && filteredVersions.length < versions.length && (
+            {(activePreset.id !== 'all' || range.mode !== 'off' || activeTypes.size > 0) && filteredVersions.length < versions.length && (
               <p className="text-[10px] text-muted-foreground mt-2 px-1">
                 Mostrando {filteredVersions.length} de {versions.length} versões
                 {activePreset.id !== 'all' && <> · preset "{activePreset.label}"</>}
-                {range.mode !== 'off' && <> · intervalo ativo</>}.
+                {range.mode !== 'off' && <> · intervalo ativo</>}
+                {activeTypes.size > 0 && <> · tipos: {Array.from(activeTypes).join(', ')}</>}.
               </p>
             )}
             {/* Compartilhamento — resumo do estado (sel/A/B/modo/preset) +
