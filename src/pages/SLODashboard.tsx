@@ -322,6 +322,9 @@ export default function SLODashboard() {
         && [...fmFromUrl].every((m) => failureModes.has(m));
       if (!sameMembers) setFailureModes(fmFromUrl);
     }
+
+    const nameFromUrl = sanitizeWindowName(searchParams.get(QP_NAME));
+    if (nameFromUrl !== sanitizeWindowName(windowName)) setWindowName(nameFromUrl);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [searchParams]);
 
