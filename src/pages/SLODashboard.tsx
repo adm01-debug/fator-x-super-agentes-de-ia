@@ -284,12 +284,17 @@ export default function SLODashboard() {
     if (fmArr.length === ALL_FAILURE_MODES.length) next.delete(QP_FAILURE_MODES);
     else next.set(QP_FAILURE_MODES, fmArr.join(','));
 
+    // Window name: omit when empty so the URL stays minimal.
+    const trimmedName = sanitizeWindowName(windowName);
+    if (!trimmedName) next.delete(QP_NAME);
+    else next.set(QP_NAME, trimmedName);
+
     // Avoid an infinite update loop: only call setSearchParams when the
     // serialized result actually differs from what's already in the URL.
     if (next.toString() !== searchParams.toString()) {
       setSearchParams(next, { replace: true });
     }
-  }, [windowHours, autoRefreshMs, compareHours, failureModes, searchParams, setSearchParams]);
+  }, [windowHours, autoRefreshMs, compareHours, failureModes, windowName, searchParams, setSearchParams]);
 
   // React to back/forward navigation (or another link that mutates the URL)
   // by re-reading the params into local state.
