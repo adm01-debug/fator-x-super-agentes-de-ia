@@ -358,7 +358,70 @@ export default function AgentVersioningPage() {
         }
       />
 
-      {versions.length === 0 ? (
+      {/* Banner de restauração de contexto — aparece quando o usuário chega
+          via link compartilhado com `?run=`, `?focus=` ou `?sel=` ativos.
+          O botão "Limpar contexto" remove esses params da URL, desfaz o
+          highlight e devolve a navegação ao estado neutro, evitando que o
+          destaque persista além do necessário. */}
+      {(runId || focusId || highlightId || selectedId) && (
+        <div
+          className="flex items-center justify-between gap-3 px-4 py-2.5 rounded-lg border border-primary/20 bg-primary/5 text-xs"
+          role="status"
+          aria-live="polite"
+        >
+          <div className="flex items-center gap-2 flex-wrap min-w-0">
+            <Link2 className="h-3.5 w-3.5 text-primary shrink-0" aria-hidden />
+            <span className="text-foreground/90 font-medium">
+              Contexto restaurado do link
+            </span>
+            <div className="flex items-center gap-1.5 flex-wrap">
+              {runId && (
+                <span className="font-mono text-[10px] px-1.5 py-0.5 rounded bg-cyan-500/10 text-cyan-600 dark:text-cyan-400 border border-cyan-500/20">
+                  run: {runId.slice(0, 8)}…
+                </span>
+              )}
+              {(focusId || highlightId) && (
+                <span className="font-mono text-[10px] px-1.5 py-0.5 rounded bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-500/20">
+                  versão destacada
+                </span>
+              )}
+              {selectedId && !focusId && !highlightId && (
+                <span className="font-mono text-[10px] px-1.5 py-0.5 rounded bg-secondary/60 text-muted-foreground border border-border/40">
+                  seleção: {selectedId.slice(0, 8)}…
+                </span>
+              )}
+            </div>
+          </div>
+          <Button
+            type="button"
+            size="sm"
+            variant="ghost"
+            className="h-7 px-2 text-[11px] gap-1 text-muted-foreground hover:text-foreground shrink-0"
+            onClick={() => {
+              // Remove todos os params de "contexto restaurado" e o highlight
+              // visual. Mantém preset/range/types/mode pois esses são filtros
+              // operacionais, não restauração de contexto.
+              updateParams((p) => {
+                p.delete('run');
+                p.delete('focus');
+                p.delete('sel');
+                p.delete('a');
+                p.delete('b');
+              }, { replace: true });
+              setHighlightId(null);
+              // Se a URL atual tem path-segment /v/:versionId, volta para a base.
+              if (pathVersionId) {
+                navigate(`/agents/${id}/versions`, { replace: true });
+              }
+              toast.success('Contexto limpo');
+            }}
+            title="Remove run, foco e seleção da URL — mantém filtros operacionais"
+          >
+            <Eye className="h-3 w-3" />
+            Limpar contexto
+          </Button>
+        </div>
+      )}
         <div className="nexus-card flex flex-col items-center justify-center py-16 text-center">
           <GitBranch className="h-10 w-10 text-muted-foreground/30 mb-3" aria-hidden />
           <h3 className="text-sm font-semibold text-foreground mb-1">Nenhuma versão registrada</h3>
