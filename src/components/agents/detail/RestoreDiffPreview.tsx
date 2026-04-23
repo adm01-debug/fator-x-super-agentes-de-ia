@@ -1,5 +1,5 @@
-import { useMemo, useState } from 'react';
-import { ArrowRight, Plus, Minus, Pencil, MessageSquare, Wrench, Cpu, CheckCircle2, Filter, ShieldAlert, AlertTriangle, Info, ShieldCheck } from 'lucide-react';
+import { useMemo, useState, useRef, useCallback } from 'react';
+import { ArrowRight, Plus, Minus, Pencil, MessageSquare, Wrench, Cpu, CheckCircle2, Filter, ShieldAlert, AlertTriangle, Info, ShieldCheck, Flame } from 'lucide-react';
 import type { AgentVersion } from '@/services/agentsService';
 import { computeRestoreDiff, type FieldChange, type RiskLevel } from './restoreDiffHelpers';
 
@@ -114,6 +114,86 @@ export function RestoreDiffPreview({ current, source, options }: Props) {
     });
   };
 
+  // ── Navegação por marcadores fixos ────────────────────────────
+  // Cada change recebe um id estável + ref. Os "highlights" são os itens
+  // mais críticos para revisar antes do rollback, escolhidos por heurística
+  // de impacto operacional (não apenas score numérico):
+  //   1. Troca de modelo (sempre, se houver)
+  //   2. Cada tool removida (perda de capability)
+  //   3. Mudanças grandes no prompt (ratio ≥ 25% → impact ≥ 65)
+  //   4. Demais mudanças com risco crítico/alto
+  // Ordenados por impacto desc para que o usuário ataque o pior primeiro.
+  const itemRefs = useRef<Map<string, HTMLLIElement>>(new Map());
+  const scrollRef = useRef<HTMLDivElement>(null);
+  const [activeMarker, setActiveMarker] = useState<string | null>(null);
+
+  const changeId = (c: FieldChange) => `change-${c.group}-${c.field}`;
+
+  const highlights = useMemo(() => {
+    type Marker = { id: string; label: string; sublabel: string; impact: number; tone: string; icon: typeof Flame };
+    const markers: Marker[] = [];
+    const seen = new Set<string>();
+
+    for (const c of filteredChanges) {
+      const id = changeId(c);
+      // Troca de modelo — sempre marca, é o gatilho mais visível de comportamento.
+      if (c.field === 'model') {
+        markers.push({
+          id, label: 'Modelo', sublabel: `${String(c.before).slice(0, 12)} → ${String(c.after).slice(0, 12)}`,
+          impact: c.impact, tone: 'border-nexus-emerald/50 text-nexus-emerald bg-nexus-emerald/10', icon: Cpu,
+        });
+        seen.add(id);
+        continue;
+      }
+      // Tool removida — uma marcação por tool, pois cada uma é uma capability perdida.
+      if (c.field === 'tools' && diff.toolsRemoved.length > 0) {
+        for (const tool of diff.toolsRemoved) {
+          const tid = `change-tools-removed-${tool}`;
+          markers.push({
+            id, label: 'Tool removida', sublabel: tool,
+            impact: c.impact, tone: 'border-destructive/50 text-destructive bg-destructive/10', icon: Wrench,
+          });
+          seen.add(tid);
+        }
+        seen.add(id);
+        continue;
+      }
+      // Prompt grande — só sinaliza se impacto ≥ 60 (corresponde a ratio ≥ 25%).
+      if (c.group === 'prompt' && c.impact >= 60) {
+        markers.push({
+          id, label: 'Prompt grande', sublabel: c.reason,
+          impact: c.impact, tone: 'border-primary/50 text-primary bg-primary/10', icon: MessageSquare,
+        });
+        seen.add(id);
+        continue;
+      }
+      // Restante: só inclui itens crítico/alto que sobraram.
+      if ((c.risk === 'critical' || c.risk === 'high') && !seen.has(id)) {
+        const meta = RISK_META[c.risk];
+        markers.push({
+          id, label: c.label, sublabel: c.reason,
+          impact: c.impact, tone: meta.chipTone, icon: meta.icon,
+        });
+        seen.add(id);
+      }
+    }
+    return markers.sort((a, b) => b.impact - a.impact);
+  }, [filteredChanges, diff.toolsRemoved]);
+
+  const scrollToChange = useCallback((id: string) => {
+    const el = itemRefs.current.get(id);
+    if (!el) return;
+    el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    setActiveMarker(id);
+    // Flash visual breve — o highlight some sozinho após 1.6s para não poluir.
+    window.setTimeout(() => setActiveMarker((curr) => (curr === id ? null : curr)), 1600);
+  }, []);
+
+  const registerItemRef = (id: string) => (el: HTMLLIElement | null) => {
+    if (el) itemRefs.current.set(id, el);
+    else itemRefs.current.delete(id);
+  };
+
   if (diff.changes.length === 0) {
     return (
       <div className="rounded-lg border border-nexus-emerald/30 bg-nexus-emerald/5 p-3 flex items-center gap-2.5">
@@ -223,7 +303,41 @@ export function RestoreDiffPreview({ current, source, options }: Props) {
         </div>
       </div>
 
-      <div className="max-h-[280px] overflow-y-auto divide-y divide-border/30">
+      {/* Marcadores de navegação fixos — chips ordenados por impacto que
+          rolam até o item correspondente. Ficam fora do container scrollável,
+          então permanecem visíveis enquanto a lista é rolada. */}
+      {highlights.length > 0 && (
+        <div className="px-3 py-2 bg-card/60 border-b border-border/50">
+          <div className="flex items-center gap-1.5 mb-1.5">
+            <Flame className="h-3 w-3 text-nexus-amber shrink-0" aria-hidden="true" />
+            <span className="text-[10px] uppercase tracking-wider text-muted-foreground font-semibold">
+              Pular para destaque
+            </span>
+            <span className="text-[10px] text-muted-foreground">({highlights.length})</span>
+          </div>
+          <div className="flex items-center gap-1 flex-wrap">
+            {highlights.map((h, idx) => {
+              const HIcon = h.icon;
+              return (
+                <button
+                  key={`${h.id}-${idx}`}
+                  type="button"
+                  onClick={() => scrollToChange(h.id)}
+                  className={`inline-flex items-center gap-1 px-1.5 py-0.5 rounded border text-[10px] font-medium transition-all hover:scale-[1.03] ${h.tone}`}
+                  title={`${h.label} — ${h.sublabel} (impacto ${h.impact}/100)`}
+                >
+                  <span className="font-mono opacity-60">{idx + 1}.</span>
+                  <HIcon className="h-2.5 w-2.5" aria-hidden="true" />
+                  <span className="font-semibold">{h.label}</span>
+                  <span className="opacity-70 max-w-[120px] truncate">{h.sublabel}</span>
+                </button>
+              );
+            })}
+          </div>
+        </div>
+      )}
+
+      <div ref={scrollRef} className="max-h-[280px] overflow-y-auto divide-y divide-border/30">
         {filteredChanges.length === 0 && (
           <div className="p-4 flex items-center justify-center gap-2 text-[11px] text-muted-foreground">
             <Filter className="h-3 w-3" aria-hidden="true" />
@@ -259,7 +373,16 @@ export function RestoreDiffPreview({ current, source, options }: Props) {
                   // Para ferramentas, mostrar lista detalhada de adições/remoções
                   if (c.field === 'tools') {
                     return (
-                      <li key={c.field} className="rounded-md border border-border/40 bg-background/50 p-2 text-[11px] space-y-1.5">
+                      <li
+                        key={c.field}
+                        ref={registerItemRef(changeId(c))}
+                        id={changeId(c)}
+                        className={`rounded-md border bg-background/50 p-2 text-[11px] space-y-1.5 transition-all duration-300 scroll-mt-2 ${
+                          activeMarker === changeId(c)
+                            ? 'border-nexus-amber ring-2 ring-nexus-amber/40 bg-nexus-amber/5'
+                            : 'border-border/40'
+                        }`}
+                      >
                         <div className="flex items-center gap-1.5 flex-wrap">
                           <span className={`inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded border text-[10px] font-mono ${kindMeta.tone}`}>
                             <KindIcon className="h-2.5 w-2.5" aria-hidden="true" />
@@ -282,7 +405,16 @@ export function RestoreDiffPreview({ current, source, options }: Props) {
                     );
                   }
                   return (
-                    <li key={c.field} className="rounded-md border border-border/40 bg-background/50 p-2 text-[11px]">
+                    <li
+                      key={c.field}
+                      ref={registerItemRef(changeId(c))}
+                      id={changeId(c)}
+                      className={`rounded-md border bg-background/50 p-2 text-[11px] transition-all duration-300 scroll-mt-2 ${
+                        activeMarker === changeId(c)
+                          ? 'border-nexus-amber ring-2 ring-nexus-amber/40 bg-nexus-amber/5'
+                          : 'border-border/40'
+                      }`}
+                    >
                       <div className="flex items-center gap-1.5 mb-1 flex-wrap">
                         <span className={`inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded border text-[10px] font-mono ${kindMeta.tone}`}>
                           <KindIcon className="h-2.5 w-2.5" aria-hidden="true" />
