@@ -157,7 +157,7 @@ export function computeRestoreDiff(
     const sysBefore = String(cfgCur.system_prompt ?? '');
     const sysAfter = String(cfgSrc.system_prompt ?? '');
     if (sysBefore !== sysAfter) {
-      const { impact, reason } = scorePrompt(sysBefore.length, sysAfter.length);
+      const { impact, reason, criteria } = scorePrompt(sysBefore.length, sysAfter.length);
       push({
         field: 'system_prompt',
         label: 'System prompt',
@@ -167,6 +167,10 @@ export function computeRestoreDiff(
         kind: sysAfter ? (sysBefore ? 'modified' : 'added') : 'removed',
         impact,
         reason,
+        criteria: [
+          ...criteria,
+          { label: 'Campo crítico — define comportamento base', points: 0, detail: 'system_prompt afeta toda interação' },
+        ],
       });
       promptDeltaChars = sysAfter.length - sysBefore.length;
       promptHasChange = true;
