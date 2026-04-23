@@ -990,20 +990,51 @@ export default function SLODashboard() {
                         Clique em um item para abrir os traces relacionados.
                       </CardDescription>
                     </div>
-                    <Button
-                      type="button"
-                      variant="outline"
-                      size="sm"
-                      onClick={handleExportPdf}
-                      disabled={totalRows === 0}
-                      className="shrink-0 gap-1.5"
-                      title={totalRows === 0
-                        ? 'Sem contribuintes para exportar'
-                        : 'Exportar relatório PDF com top 3 por KPI'}
-                    >
-                      <Download className="h-3.5 w-3.5" />
-                      Exportar PDF
-                    </Button>
+                    <div className="flex items-center gap-2 shrink-0">
+                      {/* Tool failures toggle — recomputes percentiles & error counts
+                          from the RPC's *_no_tools / non_tool_errors fields when off.
+                          Persisted in the URL as `?tools=0` so shared links keep
+                          the same view. */}
+                      <button
+                        type="button"
+                        role="switch"
+                        aria-checked={includeToolFailures}
+                        onClick={() => {
+                          setIncludeToolFailures((v) => {
+                            const next = !v;
+                            toast.success(next
+                              ? 'Tool failures incluídos no drill-down'
+                              : 'Tool failures excluídos — usando percentis e erros não-tool');
+                            return next;
+                          });
+                        }}
+                        className={`flex items-center gap-1.5 rounded-md border px-2.5 py-1.5 text-xs font-medium transition-colors focus-ring ${
+                          includeToolFailures
+                            ? 'border-primary/40 bg-primary/10 text-primary hover:bg-primary/15'
+                            : 'border-border/50 bg-background text-muted-foreground hover:bg-secondary/50'
+                        }`}
+                        title={includeToolFailures
+                          ? 'Tool failures contam como erros / latência. Clique para excluir.'
+                          : 'Tool failures excluídos do cálculo. Clique para incluir.'}
+                      >
+                        <Wrench className="h-3.5 w-3.5" />
+                        {includeToolFailures ? 'Com tool failures' : 'Sem tool failures'}
+                      </button>
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        onClick={handleExportPdf}
+                        disabled={totalRows === 0}
+                        className="gap-1.5"
+                        title={totalRows === 0
+                          ? 'Sem contribuintes para exportar'
+                          : 'Exportar relatório PDF com top 3 por KPI'}
+                      >
+                        <Download className="h-3.5 w-3.5" />
+                        Exportar PDF
+                      </Button>
+                    </div>
                   </div>
                 </CardHeader>
                 <CardContent className="grid gap-4 md:grid-cols-3">
