@@ -490,6 +490,15 @@ export function ReplayDialog({ open, onOpenChange, execution, initialStep = 0, o
               <span className="opacity-30 mx-0.5">·</span>
               <kbd className="px-1.5 py-0.5 rounded border border-border/60 bg-muted/60 font-mono text-[10px]">/</kbd>
               <span className="opacity-60">buscar</span>
+              <span className="opacity-30 mx-0.5">·</span>
+              <kbd className="px-1.5 py-0.5 rounded border border-border/60 bg-muted/60 font-mono text-[10px]">−</kbd>
+              <kbd className="px-1.5 py-0.5 rounded border border-border/60 bg-muted/60 font-mono text-[10px]">+</kbd>
+              <span className="opacity-60">
+                velocidade <span className="font-mono text-primary/80">({speed}x)</span>
+              </span>
+              <span className="opacity-30 mx-0.5">·</span>
+              <kbd className="px-1.5 py-0.5 rounded border border-border/60 bg-muted/60 font-mono text-[10px]">0</kbd>
+              <span className="opacity-60">reset</span>
             </div>
           </div>
         </div>
