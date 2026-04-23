@@ -12,6 +12,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
+import { ManualCopyDialog } from '@/components/shared/ManualCopyDialog';
 import { fetchSLOSummary, type SLOSummary } from '@/lib/slo/sloService';
 import {
   SLO_TARGETS,
@@ -233,6 +234,10 @@ export default function SLODashboard() {
   const [selectedAgentId, setSelectedAgentId] = useState<string>(
     () => sanitizeAgentId(searchParams.get(QP_SELECTED)),
   );
+
+  // When the Clipboard API is denied/unavailable, we open this modal with the
+  // URL so the user can copy it manually. `null` = closed; string = open.
+  const [manualCopyUrl, setManualCopyUrl] = useState<string | null>(null);
 
   // Custom name for this evaluation window (e.g. "Sprint 27 — pico do Black Friday").
   // URL is the source of truth (so it travels with the shared link); fallback to
@@ -625,21 +630,35 @@ export default function SLODashboard() {
           <Button
             variant="outline"
             size="sm"
-            onClick={() => {
+            onClick={async () => {
+              const url = window.location.href;
+              const named = sanitizeWindowName(windowName);
+              const sel = summary?.top_agents.find((a) => a.agent_id === selectedAgentId);
+              const scopeLabel = selectedAgentId
+                ? ` · escopo: ${sel?.agent_name ?? 'agente selecionado'}`
+                : '';
+              const successDescription = (named
+                ? `Janela "${named}" · cadência e filtros preservados na URL`
+                : 'Janela e cadência preservadas na URL') + scopeLabel;
+
+              // Clipboard API is gated by: (a) secure context (HTTPS / localhost),
+              // (b) Permissions-Policy `clipboard-write`, (c) document focus,
+              // (d) user activation. Any of these failing throws/rejects, so we
+              // need to guard both the *existence* of the API and the async call.
+              const clipboard = navigator.clipboard;
+              if (!clipboard?.writeText) {
+                logger.warn('Clipboard API unavailable; opening manual-copy fallback');
+                setManualCopyUrl(url);
+                return;
+              }
               try {
-                navigator.clipboard.writeText(window.location.href);
-                const named = sanitizeWindowName(windowName);
-                const sel = summary?.top_agents.find((a) => a.agent_id === selectedAgentId);
-                const scopeLabel = selectedAgentId
-                  ? ` · escopo: ${sel?.agent_name ?? 'agente selecionado'}`
-                  : '';
-                toast.success('Link copiado', {
-                  description: (named
-                    ? `Janela "${named}" · cadência e filtros preservados na URL`
-                    : 'Janela e cadência preservadas na URL') + scopeLabel,
-                });
-              } catch {
-                toast.error('Não foi possível copiar o link');
+                await clipboard.writeText(url);
+                toast.success('Link copiado', { description: successDescription });
+              } catch (err) {
+                // Permission denied, focus lost, or sandboxed iframe — show
+                // the manual-copy modal instead of just toasting an error.
+                logger.warn('clipboard.writeText rejected; showing manual fallback', err);
+                setManualCopyUrl(url);
               }
             }}
             aria-label="Copiar link compartilhável da visualização atual"
@@ -1335,6 +1354,13 @@ export default function SLODashboard() {
           </Card>
         </>
       )}
+      <ManualCopyDialog
+        open={manualCopyUrl !== null}
+        onOpenChange={(open) => { if (!open) setManualCopyUrl(null); }}
+        value={manualCopyUrl ?? ''}
+        label="URL do painel"
+        reason="O navegador bloqueou o acesso à área de transferência (permissão negada, contexto inseguro ou janela sem foco)."
+      />
     </div>
   );
 }
