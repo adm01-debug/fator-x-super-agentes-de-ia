@@ -1,5 +1,5 @@
-import { useMemo, useState } from 'react';
-import { ArrowRight, Plus, Minus, Pencil, MessageSquare, Wrench, Cpu, CheckCircle2, Filter, ShieldAlert, AlertTriangle, Info, ShieldCheck } from 'lucide-react';
+import { useMemo, useState, useRef, useCallback } from 'react';
+import { ArrowRight, Plus, Minus, Pencil, MessageSquare, Wrench, Cpu, CheckCircle2, Filter, ShieldAlert, AlertTriangle, Info, ShieldCheck, Flame } from 'lucide-react';
 import type { AgentVersion } from '@/services/agentsService';
 import { computeRestoreDiff, type FieldChange, type RiskLevel } from './restoreDiffHelpers';
 
