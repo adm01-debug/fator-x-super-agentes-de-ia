@@ -3,6 +3,7 @@ import { useParams, useNavigate, useSearchParams } from "react-router-dom";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { Loader2, Plus, GitCompare, Eye, GitBranch, Link2, Check } from "lucide-react";
+import { useLocation } from "react-router-dom";
 import { PageHeader } from "@/components/shared/PageHeader";
 import { toast } from "sonner";
 import {
