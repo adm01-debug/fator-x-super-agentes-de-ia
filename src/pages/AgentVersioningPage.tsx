@@ -26,6 +26,7 @@ import {
   serializeRange,
   type TimelineRange,
 } from "@/components/agents/versioning/TimelineRangeFilter";
+import { loadTimelinePrefs, saveTimelinePrefs } from "@/components/agents/versioning/timelinePrefs";
 
 export default function AgentVersioningPage() {
   const { id, versionId: pathVersionId } = useParams();
