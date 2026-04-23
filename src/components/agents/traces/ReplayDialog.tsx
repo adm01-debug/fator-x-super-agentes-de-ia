@@ -94,6 +94,77 @@ export function ReplayDialog({ open, onOpenChange, execution, initialStep = 0, o
   const swapPicks = () => { setPickA(pickB); setPickB(pickA); };
   const canCompare = !!(pickA && pickB && pickA !== pickB);
 
+  // ── Busca dentro do replay ────────────────────────────────────────────
+  // Procura `query` em event/level/input/output/metadata de cada trace e
+  // produz a lista de índices que casam. O usuário navega entre matches
+  // com prev/next (botões + atalhos `n`/`N` ou Enter/Shift+Enter no input).
+  // Debounce evita refazer o JSON.stringify a cada tecla.
+  const [query, setQuery] = useState('');
+  const debouncedQuery = useDebounce(query, 150);
+  const searchInputRef = useRef<HTMLInputElement>(null);
+  // Reset busca ao trocar de execução — comportamento esperado de "novo contexto".
+  useEffect(() => { setQuery(''); }, [sessionId]);
+
+  /** Pré-stringifica o conteúdo buscável de cada trace UMA vez por execução. */
+  const haystacks = useMemo(() => {
+    return traces.map((t) => {
+      const parts: string[] = [t.event, t.level];
+      try { parts.push(typeof t.input === 'string' ? t.input : JSON.stringify(t.input ?? '')); } catch { /* ignore */ }
+      try { parts.push(typeof t.output === 'string' ? t.output : JSON.stringify(t.output ?? '')); } catch { /* ignore */ }
+      if (t.metadata) {
+        try { parts.push(JSON.stringify(t.metadata)); } catch { /* ignore */ }
+      }
+      return parts.join(' \u0001 ').toLowerCase();
+    });
+  }, [traces]);
+
+  const matchIndexes = useMemo(() => {
+    const q = debouncedQuery.trim().toLowerCase();
+    if (!q) return [] as number[];
+    const out: number[] = [];
+    for (let i = 0; i < haystacks.length; i++) {
+      if (haystacks[i].includes(q)) out.push(i);
+    }
+    return out;
+  }, [haystacks, debouncedQuery]);
+
+  // Posição do passo atual dentro dos matches (1-based para exibir "X de N").
+  // Se o passo atual não casa, mostra o "próximo" como referência.
+  const currentMatchPos = useMemo(() => {
+    if (matchIndexes.length === 0) return 0;
+    const idx = matchIndexes.indexOf(step);
+    if (idx >= 0) return idx + 1;
+    const next = matchIndexes.findIndex((i) => i >= step);
+    return (next === -1 ? matchIndexes.length : next + 1);
+  }, [matchIndexes, step]);
+  const stepMatches = matchIndexes.includes(step);
+
+  /**
+   * Salta para o match anterior/próximo. Usa wrap-around ("circular") para
+   * evitar dead-ends — chegar no fim e dar "next" volta ao primeiro.
+   */
+  const jumpMatch = (dir: 1 | -1) => {
+    if (matchIndexes.length === 0) return;
+    let target: number;
+    if (dir === 1) {
+      target = matchIndexes.find((i) => i > step) ?? matchIndexes[0];
+    } else {
+      target = [...matchIndexes].reverse().find((i) => i < step) ?? matchIndexes[matchIndexes.length - 1];
+    }
+    setStep(target);
+    setPlaying(false);
+  };
+
+  // Auto-pula para o primeiro match assim que o usuário começa a digitar e
+  // o passo atual ainda não casa — feedback imediato sem precisar clicar prev/next.
+  useEffect(() => {
+    if (matchIndexes.length === 0) return;
+    if (matchIndexes.includes(step)) return;
+    setStep(matchIndexes[0]);
+    setPlaying(false);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [debouncedQuery]);
+
   const accumulated = useMemo(() => {
     let ms = 0, tokens = 0, cost = 0;
     for (let i = 0; i <= step && i < traces.length; i++) {
