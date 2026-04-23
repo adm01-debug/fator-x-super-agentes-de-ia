@@ -446,6 +446,14 @@ export default function SLODashboard() {
         <div>
           <h1 className="text-3xl font-bold tracking-tight bg-gradient-to-r from-foreground to-foreground/60 bg-clip-text">
             SLO Dashboard
+            {sanitizeWindowName(windowName) && (
+              <span
+                className="ml-3 align-middle text-base font-semibold text-primary bg-primary/10 border border-primary/20 px-2.5 py-0.5 rounded-md"
+                title="Nome desta janela de avaliação"
+              >
+                {sanitizeWindowName(windowName)}
+              </span>
+            )}
           </h1>
           <p className="text-muted-foreground mt-1">
             Service Level Objectives — saúde do sistema em tempo real
@@ -515,6 +523,17 @@ export default function SLODashboard() {
                 </option>
               ))}
           </select>
+          <input
+            type="text"
+            value={windowName}
+            onChange={(e) => setWindowName(e.target.value.slice(0, WINDOW_NAME_MAX_LEN))}
+            onBlur={(e) => setWindowName(sanitizeWindowName(e.target.value))}
+            placeholder="Nome da janela (ex: Sprint 27)"
+            maxLength={WINDOW_NAME_MAX_LEN}
+            className="rounded-md border border-input bg-background px-3 py-1.5 text-sm focus-ring w-44 md:w-56"
+            aria-label="Nome da janela de avaliação"
+            title="Adicione um rótulo a esta visualização. Vai junto no link compartilhado."
+          />
           <Button
             variant="outline"
             size="sm"
@@ -531,13 +550,18 @@ export default function SLODashboard() {
             onClick={() => {
               try {
                 navigator.clipboard.writeText(window.location.href);
-                toast.success('Link copiado', { description: 'Janela e cadência preservadas na URL' });
+                const named = sanitizeWindowName(windowName);
+                toast.success('Link copiado', {
+                  description: named
+                    ? `Janela "${named}" · cadência e filtros preservados na URL`
+                    : 'Janela e cadência preservadas na URL',
+                });
               } catch {
                 toast.error('Não foi possível copiar o link');
               }
             }}
             aria-label="Copiar link compartilhável da visualização atual"
-            title="Copia URL com janela e auto-atualização preservadas"
+            title="Copia URL com nome da janela, cadência e filtros preservados"
           >
             <Link2 className="h-4 w-4" />
             <span className="ml-2 hidden md:inline">Copiar link</span>
