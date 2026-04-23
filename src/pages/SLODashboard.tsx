@@ -1386,6 +1386,81 @@ export default function SLODashboard() {
                     </button>
                   )}
                 </div>
+                {/* Data-fidelity disclosure — explica que parte das classificações
+                    é aproximada a partir do P95 agregado por bucket (não temos
+                    granularidade por trace ainda) e que Tool failures depende
+                    de extensão do RPC. Em <details> para não poluir o cabeçalho. */}
+                <details className="mt-3 text-xs rounded-md border border-nexus-amber/30 bg-nexus-amber/5 group">
+                  <summary className="flex items-center gap-2 px-3 py-2 cursor-pointer list-none [&::-webkit-details-marker]:hidden focus-ring rounded-md">
+                    <AlertTriangle className="h-3.5 w-3.5 text-nexus-amber shrink-0" />
+                    <span className="font-medium text-foreground">
+                      Limitações de fidelidade dos filtros
+                    </span>
+                    <span className="ml-auto text-muted-foreground transition-transform group-open:rotate-180">
+                      ▾
+                    </span>
+                  </summary>
+                  <div className="px-3 pb-3 pt-1 space-y-2 text-muted-foreground border-t border-nexus-amber/20">
+                    <p>
+                      Os tipos de falha são derivados dos agregados por hora retornados
+                      pelo RPC <code className="text-foreground font-mono text-[11px] bg-secondary/50 px-1 rounded">get_slo_summary</code> —
+                      não há granularidade por trace individual.
+                    </p>
+                    <ul className="space-y-1.5 pl-1">
+                      <li className="flex items-start gap-2">
+                        <span
+                          className={`inline-block h-2 w-2 rounded-full mt-1 shrink-0 ${FAILURE_MODE_META.error.swatchClass}`}
+                          aria-hidden="true"
+                        />
+                        <span>
+                          <span className="font-medium text-foreground">Erros</span> — exato.
+                          Conta buckets com pelo menos 1 trace <code className="text-foreground font-mono text-[11px] bg-secondary/50 px-1 rounded">level=error</code>.
+                        </span>
+                      </li>
+                      <li className="flex items-start gap-2">
+                        <span
+                          className={`inline-block h-2 w-2 rounded-full mt-1 shrink-0 ${FAILURE_MODE_META.critical.swatchClass}`}
+                          aria-hidden="true"
+                        />
+                        <span>
+                          <span className="font-medium text-foreground">Crítico</span> —
+                          aproximado: P95 do bucket {'>'} alvo P99 ({SLO_TARGETS.p99LatencyMs}ms).
+                          Não distingue outliers individuais dentro do bucket.
+                        </span>
+                      </li>
+                      <li className="flex items-start gap-2">
+                        <span
+                          className={`inline-block h-2 w-2 rounded-full mt-1 shrink-0 ${FAILURE_MODE_META.latency.swatchClass}`}
+                          aria-hidden="true"
+                        />
+                        <span>
+                          <span className="font-medium text-foreground">Latência</span> —
+                          aproximado: P95 do bucket {'>'} alvo P95 ({SLO_TARGETS.p95LatencyMs}ms).
+                          Reflete a hora inteira, não cada chamada.
+                        </span>
+                      </li>
+                      <li className="flex items-start gap-2">
+                        <span
+                          className="inline-block h-2 w-2 rounded-full mt-1 shrink-0 border border-dashed border-muted-foreground/60"
+                          aria-hidden="true"
+                        />
+                        <span>
+                          <span className="font-medium text-foreground">Tool failures</span> —
+                          requer suporte do backend. O RPC ainda não separa erros de
+                          ferramenta dos erros gerais; quando disponível, este filtro
+                          será habilitado automaticamente.
+                        </span>
+                      </li>
+                    </ul>
+                    <p className="pt-1 border-t border-nexus-amber/20">
+                      Para investigação trace-a-trace, use a página{' '}
+                      <Link to="/agents/traces" className="text-primary hover:underline font-medium">
+                        Traces
+                      </Link>
+                      {' '}com filtro por <code className="text-foreground font-mono text-[11px] bg-secondary/50 px-1 rounded">level</code> e janela equivalente.
+                    </p>
+                  </div>
+                </details>
               </CardHeader>
               <CardContent>
                 {chartData.length === 0 ? (
