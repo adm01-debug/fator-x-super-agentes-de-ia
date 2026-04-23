@@ -133,6 +133,37 @@ export default function AgentVersioningPage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [mode, versions.length]);
 
+  // Sanitização defensiva da URL: se `sel`/`a`/`b` apontarem para IDs que não
+  // existem (link antigo, versão deletada, ID copiado de outro agente, typo),
+  // limpamos o param e caímos no default — sem quebrar a tela. Também rebaixa
+  // `mode=compare` para `detail` se A ou B ficarem inválidos. Roda só depois
+  // que `versions` carregou; nunca toca em params válidos.
+  useEffect(() => {
+    if (versions.length === 0) return;
+    const validIds = new Set(versions.map((v) => v.id));
+    const selInvalid = !!selectedId && !validIds.has(selectedId);
+    const aInvalid = !!aId && !validIds.has(aId);
+    const bInvalid = !!bId && !validIds.has(bId);
+    if (!selInvalid && !aInvalid && !bInvalid) return;
+    const stale: string[] = [];
+    if (selInvalid) stale.push('seleção');
+    if (aInvalid) stale.push('A');
+    if (bInvalid) stale.push('B');
+    updateParams((p) => {
+      if (selInvalid) p.set('sel', versions[0].id);
+      if (aInvalid) p.delete('a');
+      if (bInvalid) p.delete('b');
+      // Se estávamos comparando e A ou B ficou inválido, compare deixa de ter
+      // sentido — volta para detalhe até o usuário escolher novo par.
+      if ((aInvalid || bInvalid) && mode === 'compare') p.delete('mode');
+    }, { replace: true });
+    toast.info(
+      `Link ajustado — ${stale.join(', ')} apontava${stale.length > 1 ? 'm' : ''} para versões indisponíveis`,
+      { duration: 4000 },
+    );
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [versions, selectedId, aId, bId]);
+
   // Resolve seleção/A/B sempre contra a lista COMPLETA, nunca a filtrada — assim
   // mudar preset/intervalo nunca "perde" o que está selecionado. Só caímos no
   // fallback `versions[0]` se realmente não houver `selectedId` na URL.
