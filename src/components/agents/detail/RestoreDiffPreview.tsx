@@ -43,6 +43,30 @@ const PRESET_SETS: Record<Exclude<RiskPreset, 'custom'>, Set<RiskLevel>> = {
   medium_low: new Set(['medium', 'low']),
 };
 
+// Ordenação dos chips de destaque. "impact" = ordem padrão (impacto desc).
+// "type" = agrupa por tipo (modelo → tools removidas → prompt → demais).
+// A escolha é persistida em localStorage para manter consistência entre sessões.
+type HighlightSort = 'impact' | 'type';
+const SORT_STORAGE_KEY = 'restore-diff:highlight-sort';
+const SORT_PINNED_KEY = 'restore-diff:highlight-sort-pinned';
+
+const TYPE_ORDER: Record<string, number> = {
+  Modelo: 0,
+  'Tool removida': 1,
+  'Prompt grande': 2,
+};
+
+function loadHighlightSort(): HighlightSort {
+  if (typeof window === 'undefined') return 'impact';
+  const v = window.localStorage.getItem(SORT_STORAGE_KEY);
+  return v === 'type' || v === 'impact' ? v : 'impact';
+}
+
+function loadHighlightPinned(): boolean {
+  if (typeof window === 'undefined') return false;
+  return window.localStorage.getItem(SORT_PINNED_KEY) === '1';
+}
+
 function setsEqual(a: Set<RiskLevel>, b: Set<RiskLevel>): boolean {
   if (a.size !== b.size) return false;
   for (const v of a) if (!b.has(v)) return false;
