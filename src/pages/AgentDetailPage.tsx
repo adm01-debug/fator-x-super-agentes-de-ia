@@ -13,6 +13,7 @@ import { AgentRichMetrics } from "@/components/agents/detail/AgentRichMetrics";
 import { SimulationResultDialog } from "@/components/agents/detail/SimulationResultDialog";
 import { SavedTestRunsPanel } from "@/components/agents/detail/SavedTestRunsPanel";
 import { RestoreDiffPreview } from "@/components/agents/detail/RestoreDiffPreview";
+import { BehaviorImpactPanel } from "@/components/agents/detail/BehaviorImpactPanel";
 import { RestoreChangelogEditor, buildAutoSummary } from "@/components/agents/detail/RestoreChangelogEditor";
 import { computeRestoreDiff } from "@/components/agents/detail/restoreDiffHelpers";
 import { RestoreHistorySection } from "@/components/agents/detail/RestoreHistorySection";
@@ -364,6 +365,14 @@ function VersionHistory({ agentId }: { agentId: string }) {
                     <RestoreDiffPreview
                       current={current}
                       source={previous}
+                      options={restoreOptions}
+                    />
+                    {/* Impacto operacional — traduz a diff de configuração em
+                        consequências reais (sessões afetadas, tools em uso,
+                        métricas de modelo) puxando traces dos últimos 7d. */}
+                    <BehaviorImpactPanel
+                      agentId={agentId}
+                      diff={restoreDiff}
                       options={restoreOptions}
                     />
                     <RestoreChangelogEditor
