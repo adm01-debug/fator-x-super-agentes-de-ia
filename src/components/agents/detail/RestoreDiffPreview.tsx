@@ -357,12 +357,56 @@ export function RestoreDiffPreview({ current, source, options }: Props) {
           então permanecem visíveis enquanto a lista é rolada. */}
       {highlights.length > 0 && (
         <div className="px-3 py-2 bg-card/60 border-b border-border/50">
-          <div className="flex items-center gap-1.5 mb-1.5">
+          <div className="flex items-center gap-1.5 mb-1.5 flex-wrap">
             <Flame className="h-3 w-3 text-nexus-amber shrink-0" aria-hidden="true" />
             <span className="text-[10px] uppercase tracking-wider text-muted-foreground font-semibold">
               Pular para destaque
             </span>
             <span className="text-[10px] text-muted-foreground">({highlights.length})</span>
+
+            {/* Controles de ordenação dos chips — preferência salva em localStorage
+                para manter a mesma ordem entre sessões de comparação. O "pin"
+                comunica que a ordem está travada (ícone muda para Pin sólido). */}
+            <div className="ml-auto flex items-center gap-1">
+              <ArrowDownUp className="h-2.5 w-2.5 text-muted-foreground" aria-hidden="true" />
+              {(['impact', 'type'] as const).map((mode) => {
+                const active = highlightSort === mode;
+                const label = mode === 'impact' ? 'Impacto' : 'Tipo';
+                return (
+                  <button
+                    key={mode}
+                    type="button"
+                    onClick={() => setHighlightSort(mode)}
+                    className={`px-1.5 py-0.5 rounded text-[10px] font-medium border transition-colors ${
+                      active
+                        ? 'bg-primary/15 text-primary border-primary/40'
+                        : 'bg-transparent text-muted-foreground border-border/50 hover:bg-muted/40 hover:text-foreground'
+                    }`}
+                    aria-pressed={active}
+                    title={`Ordenar por ${label.toLowerCase()}`}
+                  >
+                    {label}
+                  </button>
+                );
+              })}
+              <button
+                type="button"
+                onClick={() => setHighlightPinned((v) => !v)}
+                className={`inline-flex items-center gap-1 px-1.5 py-0.5 rounded border text-[10px] font-medium transition-colors ${
+                  highlightPinned
+                    ? 'bg-nexus-amber/15 text-nexus-amber border-nexus-amber/40'
+                    : 'bg-transparent text-muted-foreground border-border/50 hover:bg-muted/40 hover:text-foreground'
+                }`}
+                aria-pressed={highlightPinned}
+                title={highlightPinned
+                  ? 'Ordem fixada — preferência salva entre sessões'
+                  : 'Fixar ordem atual — salva preferência entre sessões'}
+              >
+                {highlightPinned
+                  ? <><Pin className="h-2.5 w-2.5" aria-hidden="true" />Fixado</>
+                  : <><PinOff className="h-2.5 w-2.5" aria-hidden="true" />Fixar</>}
+              </button>
+            </div>
           </div>
           <div className="flex items-center gap-1 flex-wrap">
             {highlights.map((h, idx) => {
