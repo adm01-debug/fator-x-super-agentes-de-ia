@@ -44,6 +44,21 @@ const QP_WINDOW = 'w';
 const QP_AUTO = 'auto';
 const QP_COMPARE = 'cmp';
 const QP_FAILURE_MODES = 'fm';
+const QP_NAME = 'n';
+
+const WINDOW_NAME_STORAGE_KEY = 'nexus.slo.windowName';
+const WINDOW_NAME_MAX_LEN = 60;
+
+/** Trim, collapse whitespace, enforce max length so URLs stay readable. */
+function sanitizeWindowName(raw: string | null): string {
+  if (!raw) return '';
+  return raw.replace(/\s+/g, ' ').trim().slice(0, WINDOW_NAME_MAX_LEN);
+}
+
+function readStoredWindowName(): string {
+  try { return sanitizeWindowName(localStorage.getItem(WINDOW_NAME_STORAGE_KEY)); }
+  catch { return ''; }
+}
 
 /**
  * Failure modes that count toward "violations" in the timeline.
