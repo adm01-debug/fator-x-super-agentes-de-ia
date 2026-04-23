@@ -303,7 +303,41 @@ export function RestoreDiffPreview({ current, source, options }: Props) {
         </div>
       </div>
 
-      <div className="max-h-[280px] overflow-y-auto divide-y divide-border/30">
+      {/* Marcadores de navegação fixos — chips ordenados por impacto que
+          rolam até o item correspondente. Ficam fora do container scrollável,
+          então permanecem visíveis enquanto a lista é rolada. */}
+      {highlights.length > 0 && (
+        <div className="px-3 py-2 bg-card/60 border-b border-border/50">
+          <div className="flex items-center gap-1.5 mb-1.5">
+            <Flame className="h-3 w-3 text-nexus-amber shrink-0" aria-hidden="true" />
+            <span className="text-[10px] uppercase tracking-wider text-muted-foreground font-semibold">
+              Pular para destaque
+            </span>
+            <span className="text-[10px] text-muted-foreground">({highlights.length})</span>
+          </div>
+          <div className="flex items-center gap-1 flex-wrap">
+            {highlights.map((h, idx) => {
+              const HIcon = h.icon;
+              return (
+                <button
+                  key={`${h.id}-${idx}`}
+                  type="button"
+                  onClick={() => scrollToChange(h.id)}
+                  className={`inline-flex items-center gap-1 px-1.5 py-0.5 rounded border text-[10px] font-medium transition-all hover:scale-[1.03] ${h.tone}`}
+                  title={`${h.label} — ${h.sublabel} (impacto ${h.impact}/100)`}
+                >
+                  <span className="font-mono opacity-60">{idx + 1}.</span>
+                  <HIcon className="h-2.5 w-2.5" aria-hidden="true" />
+                  <span className="font-semibold">{h.label}</span>
+                  <span className="opacity-70 max-w-[120px] truncate">{h.sublabel}</span>
+                </button>
+              );
+            })}
+          </div>
+        </div>
+      )}
+
+      <div ref={scrollRef} className="max-h-[280px] overflow-y-auto divide-y divide-border/30">
         {filteredChanges.length === 0 && (
           <div className="p-4 flex items-center justify-center gap-2 text-[11px] text-muted-foreground">
             <Filter className="h-3 w-3" aria-hidden="true" />
