@@ -158,7 +158,7 @@ export function RestoreHistorySection({ agentId, versions }: Props) {
                 variant="ghost"
                 size="sm"
                 className="h-5 px-1.5 text-[10px] gap-0.5 ml-auto data-[has-custom=true]:ml-1"
-                onClick={() => navigate(`/agents/${agentId}/versions?focus=${entry.versionId}`)}
+                onClick={() => navigate(`/agents/${agentId}/versions/v/${entry.versionId}`)}
               >
                 Ver versão <ArrowRight className="h-2.5 w-2.5" aria-hidden />
               </Button>
