@@ -15,6 +15,7 @@ import { SavedTestRunsPanel } from "@/components/agents/detail/SavedTestRunsPane
 import { RestoreDiffPreview } from "@/components/agents/detail/RestoreDiffPreview";
 import { BehaviorImpactPanel } from "@/components/agents/detail/BehaviorImpactPanel";
 import { RestoreChangelogEditor, buildAutoSummary } from "@/components/agents/detail/RestoreChangelogEditor";
+import { RestoreSummaryShare } from "@/components/agents/detail/RestoreSummaryShare";
 import { computeRestoreDiff } from "@/components/agents/detail/restoreDiffHelpers";
 import { validateRestore } from "@/components/agents/detail/restoreValidation";
 import { RestoreValidationPanel } from "@/components/agents/detail/RestoreValidationPanel";
@@ -211,6 +212,10 @@ function VersionHistory({ agentId }: { agentId: string }) {
     queryKey: ['agent_versions', agentId],
     queryFn: () => getAgentVersions(agentId, 20),
   });
+
+  // Reusa o cache do parent — evita refetch só para pegar o nome.
+  const cachedAgent = queryClient.getQueryData<{ name?: string }>(['agent', agentId]);
+  const agentName = cachedAgent?.name ?? 'Agente';
 
   const current: AgentVersion | undefined = versions[0];
   const previous: AgentVersion | undefined = versions[1];
@@ -430,6 +435,17 @@ function VersionHistory({ agentId }: { agentId: string }) {
                       edited={summaryEdited}
                       onEditedChange={setSummaryEdited}
                       disabled={rollbackMut.isPending}
+                    />
+                    {/* Resumo copiável para alinhar com o time antes de confirmar.
+                        Gera markdown com antes/depois, top riscos e validações. */}
+                    <RestoreSummaryShare
+                      agentName={agentName}
+                      current={current}
+                      source={previous}
+                      nextVersion={nextVersionNumber}
+                      diff={restoreDiff}
+                      options={restoreOptions}
+                      validation={validation}
                     />
                   </>
                 )}
