@@ -235,7 +235,23 @@ export function ReplayDialog({ open, onOpenChange, execution, initialStep = 0, o
     if (!open) return;
     const handler = (e: KeyboardEvent) => {
       const tgt = e.target as HTMLElement | null;
-      if (tgt && (tgt.tagName === 'INPUT' || tgt.tagName === 'TEXTAREA' || tgt.isContentEditable)) return;
+      // Bloqueia atalhos quando o foco está em qualquer campo "editável" ou
+      // num componente de seleção/combobox (Radix Select/Popover usam <button>
+      // com role="combobox" — escapam do check INPUT/TEXTAREA tradicional).
+      // Também checamos role="searchbox" e o atributo `data-no-shortcuts`
+      // para permitir opt-out explícito em sub-componentes futuros.
+      if (tgt) {
+        const tag = tgt.tagName;
+        if (tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT') return;
+        if (tgt.isContentEditable) return;
+        const role = tgt.getAttribute('role');
+        if (role === 'combobox' || role === 'listbox' || role === 'option' ||
+            role === 'searchbox' || role === 'textbox' || role === 'menuitem') return;
+        // Sobe até 4 níveis procurando containers Radix abertos (popover/listbox).
+        // Garante que setas dentro de um Select aberto não pulem o passo.
+        if (tgt.closest('[role="listbox"],[role="dialog"][data-state="open"][data-radix-popper-content-wrapper],[data-radix-select-content],[data-radix-popover-content]')) return;
+        if (tgt.closest('[data-no-shortcuts="true"]')) return;
+      }
       if (e.key === 'ArrowRight' || e.key === 'l' || e.key === 'j') {
         e.preventDefault();
         setStep((s) => Math.min(total - 1, s + 1));
