@@ -1,7 +1,8 @@
-import { useEffect, useRef } from "react";
-import { GitBranch, CircleDot, Circle } from "lucide-react";
+import { useEffect, useRef, useState } from "react";
+import { GitBranch, CircleDot, Circle, Link2, Check } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { toast } from "sonner";
 import type { AgentVersion } from "@/services/agentsService";
 
 interface Props {
