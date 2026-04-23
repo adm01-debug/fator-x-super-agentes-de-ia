@@ -45,6 +45,15 @@ const QP_AUTO = 'auto';
 const QP_COMPARE = 'cmp';
 const QP_FAILURE_MODES = 'fm';
 const QP_NAME = 'n';
+const QP_SELECTED = 'sel';
+
+/** UUID v4 sanity check — keeps malicious / malformed values out of state. */
+const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+function sanitizeAgentId(raw: string | null): string {
+  if (!raw) return '';
+  const trimmed = raw.trim();
+  return UUID_RE.test(trimmed) ? trimmed : '';
+}
 
 const WINDOW_NAME_STORAGE_KEY = 'nexus.slo.windowName';
 const WINDOW_NAME_MAX_LEN = 60;
@@ -217,6 +226,14 @@ export default function SLODashboard() {
     return (WINDOW_OPTIONS as readonly number[]).includes(n) ? n : 0;
   });
 
+  // Selected agent — when set, the dashboard view is "scoped" to that agent.
+  // Persisted in the URL so a shared link reproduces the same drill-down.
+  // We keep the state but don't yet refetch by agent (the SLO RPC is global);
+  // selection drives the highlighted row + scope chip + deep-link target.
+  const [selectedAgentId, setSelectedAgentId] = useState<string>(
+    () => sanitizeAgentId(searchParams.get(QP_SELECTED)),
+  );
+
   // Custom name for this evaluation window (e.g. "Sprint 27 — pico do Black Friday").
   // URL is the source of truth (so it travels with the shared link); fallback to
   // the per-user localStorage value to remember the last name across sessions.
@@ -289,12 +306,18 @@ export default function SLODashboard() {
     if (!trimmedName) next.delete(QP_NAME);
     else next.set(QP_NAME, trimmedName);
 
+    // Selected agent (drill-down scope): omit when no selection so the URL
+    // stays clean by default. Only valid UUIDs are written.
+    const selClean = sanitizeAgentId(selectedAgentId);
+    if (!selClean) next.delete(QP_SELECTED);
+    else next.set(QP_SELECTED, selClean);
+
     // Avoid an infinite update loop: only call setSearchParams when the
     // serialized result actually differs from what's already in the URL.
     if (next.toString() !== searchParams.toString()) {
       setSearchParams(next, { replace: true });
     }
-  }, [windowHours, autoRefreshMs, compareHours, failureModes, windowName, searchParams, setSearchParams]);
+  }, [windowHours, autoRefreshMs, compareHours, failureModes, windowName, selectedAgentId, searchParams, setSearchParams]);
 
   // React to back/forward navigation (or another link that mutates the URL)
   // by re-reading the params into local state.
@@ -325,6 +348,9 @@ export default function SLODashboard() {
 
     const nameFromUrl = sanitizeWindowName(searchParams.get(QP_NAME));
     if (nameFromUrl !== sanitizeWindowName(windowName)) setWindowName(nameFromUrl);
+
+    const selFromUrl = sanitizeAgentId(searchParams.get(QP_SELECTED));
+    if (selFromUrl !== sanitizeAgentId(selectedAgentId)) setSelectedAgentId(selFromUrl);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [searchParams]);
 
@@ -458,6 +484,27 @@ export default function SLODashboard() {
           <p className="text-muted-foreground mt-1">
             Service Level Objectives — saúde do sistema em tempo real
           </p>
+          {/* Scope chip — surfaces the active drill-down so a shared link's
+              recipient instantly sees the view is filtered to one agent. */}
+          {selectedAgentId && (() => {
+            const sel = summary?.top_agents.find((a) => a.agent_id === selectedAgentId);
+            const label = sel?.agent_name ?? `agente ${selectedAgentId.slice(0, 8)}…`;
+            return (
+              <div className="mt-2 inline-flex items-center gap-2 rounded-full border border-primary/30 bg-primary/10 pl-3 pr-1 py-0.5 text-xs">
+                <span className="text-muted-foreground">Escopo:</span>
+                <span className="font-medium text-foreground">{label}</span>
+                <button
+                  type="button"
+                  onClick={() => setSelectedAgentId('')}
+                  className="ml-1 rounded-full p-0.5 hover:bg-primary/20 focus-ring"
+                  aria-label="Remover escopo de agente"
+                  title="Limpar seleção"
+                >
+                  <span aria-hidden className="block h-4 w-4 leading-4 text-center">×</span>
+                </button>
+              </div>
+            );
+          })()}
         </div>
         <div className="flex items-center gap-2 flex-wrap">
           {/* Last-updated indicator + live pulse when auto-refresh is on */}
@@ -551,10 +598,14 @@ export default function SLODashboard() {
               try {
                 navigator.clipboard.writeText(window.location.href);
                 const named = sanitizeWindowName(windowName);
+                const sel = summary?.top_agents.find((a) => a.agent_id === selectedAgentId);
+                const scopeLabel = selectedAgentId
+                  ? ` · escopo: ${sel?.agent_name ?? 'agente selecionado'}`
+                  : '';
                 toast.success('Link copiado', {
-                  description: named
+                  description: (named
                     ? `Janela "${named}" · cadência e filtros preservados na URL`
-                    : 'Janela e cadência preservadas na URL',
+                    : 'Janela e cadência preservadas na URL') + scopeLabel,
                 });
               } catch {
                 toast.error('Não foi possível copiar o link');
@@ -1220,9 +1271,23 @@ export default function SLODashboard() {
                     <tbody>
                       {summary.top_agents.map((a) => {
                         const s = latencyStatus(a.p95_ms, SLO_TARGETS.p95LatencyMs);
+                        const isSelected = a.agent_id === selectedAgentId;
                         return (
-                          <tr key={a.agent_id} className="border-b last:border-b-0 hover:bg-secondary/30">
-                            <td className="py-3 font-medium">{a.agent_name}</td>
+                          <tr
+                            key={a.agent_id}
+                            onClick={() => setSelectedAgentId(isSelected ? '' : a.agent_id)}
+                            className={`border-b last:border-b-0 cursor-pointer transition-colors ${
+                              isSelected
+                                ? 'bg-primary/10 hover:bg-primary/15'
+                                : 'hover:bg-secondary/30'
+                            }`}
+                            title={isSelected ? 'Clique para remover seleção' : 'Clique para focar este agente (URL preserva o recorte)'}
+                            aria-selected={isSelected}
+                          >
+                            <td className="py-3 font-medium">
+                              {isSelected && <span className="mr-1.5 text-primary" aria-hidden>●</span>}
+                              {a.agent_name}
+                            </td>
                             <td className="text-right tabular-nums">{a.traces}</td>
                             <td className="text-right tabular-nums text-destructive">{a.errors}</td>
                             <td className="text-right tabular-nums">{(a.success_rate ?? 100).toFixed(1)}%</td>
