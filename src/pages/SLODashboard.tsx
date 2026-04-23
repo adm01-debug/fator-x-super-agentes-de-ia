@@ -44,6 +44,21 @@ const QP_WINDOW = 'w';
 const QP_AUTO = 'auto';
 const QP_COMPARE = 'cmp';
 const QP_FAILURE_MODES = 'fm';
+const QP_NAME = 'n';
+
+const WINDOW_NAME_STORAGE_KEY = 'nexus.slo.windowName';
+const WINDOW_NAME_MAX_LEN = 60;
+
+/** Trim, collapse whitespace, enforce max length so URLs stay readable. */
+function sanitizeWindowName(raw: string | null): string {
+  if (!raw) return '';
+  return raw.replace(/\s+/g, ' ').trim().slice(0, WINDOW_NAME_MAX_LEN);
+}
+
+function readStoredWindowName(): string {
+  try { return sanitizeWindowName(localStorage.getItem(WINDOW_NAME_STORAGE_KEY)); }
+  catch { return ''; }
+}
 
 /**
  * Failure modes that count toward "violations" in the timeline.
@@ -201,6 +216,14 @@ export default function SLODashboard() {
     const n = Number(raw);
     return (WINDOW_OPTIONS as readonly number[]).includes(n) ? n : 0;
   });
+
+  // Custom name for this evaluation window (e.g. "Sprint 27 — pico do Black Friday").
+  // URL is the source of truth (so it travels with the shared link); fallback to
+  // the per-user localStorage value to remember the last name across sessions.
+  const [windowName, setWindowName] = useState<string>(() => {
+    const fromUrl = sanitizeWindowName(searchParams.get(QP_NAME));
+    return fromUrl || readStoredWindowName();
+  });
   const [compareSummary, setCompareSummary] = useState<SLOSummary | null>(null);
 
   // Failure-mode filters for the timeline. Each toggle controls which kind of
@@ -261,12 +284,17 @@ export default function SLODashboard() {
     if (fmArr.length === ALL_FAILURE_MODES.length) next.delete(QP_FAILURE_MODES);
     else next.set(QP_FAILURE_MODES, fmArr.join(','));
 
+    // Window name: omit when empty so the URL stays minimal.
+    const trimmedName = sanitizeWindowName(windowName);
+    if (!trimmedName) next.delete(QP_NAME);
+    else next.set(QP_NAME, trimmedName);
+
     // Avoid an infinite update loop: only call setSearchParams when the
     // serialized result actually differs from what's already in the URL.
     if (next.toString() !== searchParams.toString()) {
       setSearchParams(next, { replace: true });
     }
-  }, [windowHours, autoRefreshMs, compareHours, failureModes, searchParams, setSearchParams]);
+  }, [windowHours, autoRefreshMs, compareHours, failureModes, windowName, searchParams, setSearchParams]);
 
   // React to back/forward navigation (or another link that mutates the URL)
   // by re-reading the params into local state.
@@ -294,8 +322,21 @@ export default function SLODashboard() {
         && [...fmFromUrl].every((m) => failureModes.has(m));
       if (!sameMembers) setFailureModes(fmFromUrl);
     }
+
+    const nameFromUrl = sanitizeWindowName(searchParams.get(QP_NAME));
+    if (nameFromUrl !== sanitizeWindowName(windowName)) setWindowName(nameFromUrl);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [searchParams]);
+
+  // Persist the window name per-user so opening the page in a new tab keeps
+  // the last-used label even before any URL is loaded.
+  useEffect(() => {
+    const trimmed = sanitizeWindowName(windowName);
+    try {
+      if (trimmed) localStorage.setItem(WINDOW_NAME_STORAGE_KEY, trimmed);
+      else localStorage.removeItem(WINDOW_NAME_STORAGE_KEY);
+    } catch { /* quota / disabled — silently ignore */ }
+  }, [windowName]);
 
   const load = useCallback(async (showSpinner = false) => {
     if (showSpinner) setRefreshing(true);
@@ -405,6 +446,14 @@ export default function SLODashboard() {
         <div>
           <h1 className="text-3xl font-bold tracking-tight bg-gradient-to-r from-foreground to-foreground/60 bg-clip-text">
             SLO Dashboard
+            {sanitizeWindowName(windowName) && (
+              <span
+                className="ml-3 align-middle text-base font-semibold text-primary bg-primary/10 border border-primary/20 px-2.5 py-0.5 rounded-md"
+                title="Nome desta janela de avaliação"
+              >
+                {sanitizeWindowName(windowName)}
+              </span>
+            )}
           </h1>
           <p className="text-muted-foreground mt-1">
             Service Level Objectives — saúde do sistema em tempo real
@@ -474,6 +523,17 @@ export default function SLODashboard() {
                 </option>
               ))}
           </select>
+          <input
+            type="text"
+            value={windowName}
+            onChange={(e) => setWindowName(e.target.value.slice(0, WINDOW_NAME_MAX_LEN))}
+            onBlur={(e) => setWindowName(sanitizeWindowName(e.target.value))}
+            placeholder="Nome da janela (ex: Sprint 27)"
+            maxLength={WINDOW_NAME_MAX_LEN}
+            className="rounded-md border border-input bg-background px-3 py-1.5 text-sm focus-ring w-44 md:w-56"
+            aria-label="Nome da janela de avaliação"
+            title="Adicione um rótulo a esta visualização. Vai junto no link compartilhado."
+          />
           <Button
             variant="outline"
             size="sm"
@@ -490,13 +550,18 @@ export default function SLODashboard() {
             onClick={() => {
               try {
                 navigator.clipboard.writeText(window.location.href);
-                toast.success('Link copiado', { description: 'Janela e cadência preservadas na URL' });
+                const named = sanitizeWindowName(windowName);
+                toast.success('Link copiado', {
+                  description: named
+                    ? `Janela "${named}" · cadência e filtros preservados na URL`
+                    : 'Janela e cadência preservadas na URL',
+                });
               } catch {
                 toast.error('Não foi possível copiar o link');
               }
             }}
             aria-label="Copiar link compartilhável da visualização atual"
-            title="Copia URL com janela e auto-atualização preservadas"
+            title="Copia URL com nome da janela, cadência e filtros preservados"
           >
             <Link2 className="h-4 w-4" />
             <span className="ml-2 hidden md:inline">Copiar link</span>
