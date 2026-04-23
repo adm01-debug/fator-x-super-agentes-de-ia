@@ -15,7 +15,7 @@
  */
 import { useMemo, useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
-import { Activity, Loader2, X, ChevronDown, Clock, AlertTriangle, Zap } from 'lucide-react';
+import { Activity, Loader2, X, ChevronDown, Clock, AlertTriangle, Zap, SearchX, Inbox } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import {
   Popover,
