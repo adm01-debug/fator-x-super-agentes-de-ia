@@ -432,6 +432,17 @@ function VersionHistory({ agentId }: { agentId: string }) {
                       onEditedChange={setSummaryEdited}
                       disabled={rollbackMut.isPending}
                     />
+                    {/* Resumo copiável para alinhar com o time antes de confirmar.
+                        Gera markdown com antes/depois, top riscos e validações. */}
+                    <RestoreSummaryShare
+                      agentName={agent.name}
+                      current={current}
+                      source={previous}
+                      nextVersion={nextVersionNumber}
+                      diff={restoreDiff}
+                      options={restoreOptions}
+                      validation={validation}
+                    />
                   </>
                 )}
                 <p className="text-xs text-muted-foreground">
