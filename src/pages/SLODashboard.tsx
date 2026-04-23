@@ -1369,6 +1369,22 @@ export default function SLODashboard() {
                   >
                     Tool failures (em breve)
                   </button>
+                  {/* Reset — só aparece quando algo está fora do default
+                      (todos os modos ativos), evitando ruído visual quando
+                      já está no estado padrão. */}
+                  {failureModes.size !== ALL_FAILURE_MODES.length && (
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setFailureModes(new Set(ALL_FAILURE_MODES));
+                        toast.success('Filtros de falha resetados');
+                      }}
+                      title="Voltar para todos os tipos de falha selecionados"
+                      className="ml-auto px-2.5 py-1 text-xs rounded-full border border-border bg-secondary/30 text-muted-foreground hover:bg-secondary/60 hover:text-foreground transition-colors focus-ring"
+                    >
+                      Resetar filtros
+                    </button>
+                  )}
                 </div>
               </CardHeader>
               <CardContent>
