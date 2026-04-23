@@ -306,12 +306,18 @@ export default function SLODashboard() {
     if (!trimmedName) next.delete(QP_NAME);
     else next.set(QP_NAME, trimmedName);
 
+    // Selected agent (drill-down scope): omit when no selection so the URL
+    // stays clean by default. Only valid UUIDs are written.
+    const selClean = sanitizeAgentId(selectedAgentId);
+    if (!selClean) next.delete(QP_SELECTED);
+    else next.set(QP_SELECTED, selClean);
+
     // Avoid an infinite update loop: only call setSearchParams when the
     // serialized result actually differs from what's already in the URL.
     if (next.toString() !== searchParams.toString()) {
       setSearchParams(next, { replace: true });
     }
-  }, [windowHours, autoRefreshMs, compareHours, failureModes, windowName, searchParams, setSearchParams]);
+  }, [windowHours, autoRefreshMs, compareHours, failureModes, windowName, selectedAgentId, searchParams, setSearchParams]);
 
   // React to back/forward navigation (or another link that mutates the URL)
   // by re-reading the params into local state.
@@ -342,6 +348,9 @@ export default function SLODashboard() {
 
     const nameFromUrl = sanitizeWindowName(searchParams.get(QP_NAME));
     if (nameFromUrl !== sanitizeWindowName(windowName)) setWindowName(nameFromUrl);
+
+    const selFromUrl = sanitizeAgentId(searchParams.get(QP_SELECTED));
+    if (selFromUrl !== sanitizeAgentId(selectedAgentId)) setSelectedAgentId(selFromUrl);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [searchParams]);
 
