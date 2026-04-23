@@ -837,12 +837,26 @@ export default function SLODashboard() {
             // Average baseline from comparison window — represents "normal"
             // behavior. Buckets are scored by absolute distance from baseline
             // (signed so we can show whether they pushed the metric up/down).
+            //
+            // When `includeToolFailures` is OFF, we use the RPC's `*_no_tools`
+            // percentiles and `non_tool_errors` counts so the contributors
+            // ranking reflects only non-tool failures. Falls back gracefully
+            // for clients connected to an older RPC that doesn't expose them.
             const cmpBuckets = compareSummary.timeseries ?? [];
+            const pickP95 = (b: typeof cmpBuckets[number]): number =>
+              includeToolFailures
+                ? b.p95_ms
+                : (b.p95_ms_no_tools ?? b.p95_ms);
+            const pickErrors = (b: typeof cmpBuckets[number]): number =>
+              includeToolFailures
+                ? b.errors
+                : (b.non_tool_errors ?? b.errors);
+
             const baselineP95 = cmpBuckets.length
-              ? cmpBuckets.reduce((s, b) => s + b.p95_ms, 0) / cmpBuckets.length
+              ? cmpBuckets.reduce((s, b) => s + pickP95(b), 0) / cmpBuckets.length
               : 0;
             const baselineErrors = cmpBuckets.length
-              ? cmpBuckets.reduce((s, b) => s + b.errors, 0) / cmpBuckets.length
+              ? cmpBuckets.reduce((s, b) => s + pickErrors(b), 0) / cmpBuckets.length
               : 0;
 
             type Contributor = {
@@ -858,16 +872,17 @@ export default function SLODashboard() {
             // Top 3 buckets that drove P95 the hardest (absolute deviation
             // from comparison baseline). Sign tells us if it's regression.
             const topLatency: Contributor[] = [...buckets]
-              .map((b) => ({
-                bucket: b,
-                delta: b.p95_ms - baselineP95,
-              }))
+              .map((b) => {
+                const p95 = pickP95(b);
+                return { bucket: b, p95, delta: p95 - baselineP95 };
+              })
               .sort((a, b) => Math.abs(b.delta) - Math.abs(a.delta))
               .slice(0, 3)
               .map((row) => ({
                 key: row.bucket.bucket_hour,
                 label: fmtBucketLabel(row.bucket.bucket_hour),
-                detail: `P95 ${row.bucket.p95_ms}ms · ${row.bucket.total} traces`,
+                detail: `P95 ${row.p95}ms · ${row.bucket.total} traces` +
+                  (includeToolFailures ? '' : ' · sem tools'),
                 delta: row.delta,
                 deltaLabel: `${row.delta > 0 ? '+' : ''}${Math.round(row.delta)}ms vs baseline`,
                 href: bucketHref(row.bucket.bucket_hour),
@@ -876,14 +891,17 @@ export default function SLODashboard() {
 
             // Top 3 buckets contributing the most errors above baseline.
             const topErrors: Contributor[] = [...buckets]
-              .filter((b) => b.errors > 0)
-              .map((b) => ({ bucket: b, delta: b.errors - baselineErrors }))
+              .map((b) => {
+                const errs = pickErrors(b);
+                return { bucket: b, errs, delta: errs - baselineErrors };
+              })
+              .filter((row) => row.errs > 0)
               .sort((a, b) => b.delta - a.delta)
               .slice(0, 3)
               .map((row) => ({
                 key: row.bucket.bucket_hour,
                 label: fmtBucketLabel(row.bucket.bucket_hour),
-                detail: `${row.bucket.errors} erros em ${row.bucket.total} traces`,
+                detail: `${row.errs} ${includeToolFailures ? 'erros' : 'erros (não-tool)'} em ${row.bucket.total} traces`,
                 delta: row.delta,
                 deltaLabel: `${row.delta > 0 ? '+' : ''}${row.delta.toFixed(1)} vs média`,
                 href: bucketHref(row.bucket.bucket_hour),
@@ -891,17 +909,25 @@ export default function SLODashboard() {
               }));
 
             // Top 3 agents pulling P95 up — straight from the RPC's top_agents.
+            // The agent-level percentiles aren't recomputed without tools (the
+            // RPC doesn't expose that), so when the toggle is off we filter the
+            // displayed error count to non-tool only and label it accordingly.
             const topAgents: Contributor[] = (summary.top_agents ?? [])
               .slice(0, 3)
-              .map((a) => ({
-                key: a.agent_id,
-                label: a.agent_name,
-                detail: `${a.traces} traces · ${a.errors} erros · ${(a.success_rate ?? 100).toFixed(1)}% sucesso`,
-                delta: a.p95_ms,
-                deltaLabel: `P95 ${a.p95_ms}ms`,
-                href: `/agents/${a.agent_id}/traces`,
-                worse: a.p95_ms > SLO_TARGETS.p95LatencyMs,
-              }));
+              .map((a) => {
+                const errCount = includeToolFailures
+                  ? a.errors
+                  : (a.non_tool_errors ?? a.errors);
+                return {
+                  key: a.agent_id,
+                  label: a.agent_name,
+                  detail: `${a.traces} traces · ${errCount} ${includeToolFailures ? 'erros' : 'erros (não-tool)'} · ${(a.success_rate ?? 100).toFixed(1)}% sucesso`,
+                  delta: a.p95_ms,
+                  deltaLabel: `P95 ${a.p95_ms}ms`,
+                  href: `/agents/${a.agent_id}/traces`,
+                  worse: a.p95_ms > SLO_TARGETS.p95LatencyMs,
+                };
+              });
 
             const sections: Array<{ title: string; kpi: string; rows: Contributor[]; empty: string }> = [
               { title: 'Latência (P95)', kpi: 'P95', rows: topLatency, empty: 'Sem buckets com latência registrada.' },
