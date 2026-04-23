@@ -837,56 +837,105 @@ export default function SLODashboard() {
               detail: string;
               delta: number;
               deltaLabel: string;
+              /** Share of total impact (0–100). Drives the ranking. */
+              impactPct: number;
               href: string;
               worse: boolean;
             };
 
-            // Top 3 buckets that drove P95 the hardest (absolute deviation
-            // from comparison baseline). Sign tells us if it's regression.
-            const topLatency: Contributor[] = [...buckets]
-              .map((b) => ({
-                bucket: b,
-                delta: b.p95_ms - baselineP95,
+            /**
+             * Rank by *relative impact* — share of the total movement away
+             * from baseline — instead of raw absolute deviation. This way a
+             * 200ms spike in a quiet window outranks a 50ms blip from a
+             * busy one when it dominates the delta.
+             *
+             * Definition: impactPct = |delta_i| / Σ|delta_j| × 100, computed
+             * over buckets that moved in the *worse* direction (so neutral
+             * or improving buckets don't dilute the share). When everything
+             * is neutral we fall back to the unsigned deviation share.
+             */
+            const computeImpactShares = <T,>(
+              items: Array<{ row: T; delta: number }>,
+              opts: { worseSign: 1 | -1 } = { worseSign: 1 },
+            ): Array<{ row: T; delta: number; impactPct: number }> => {
+              const worseItems = items.filter((i) => i.delta * opts.worseSign > 0);
+              const pool = worseItems.length ? worseItems : items;
+              const totalAbs = pool.reduce((s, i) => s + Math.abs(i.delta), 0);
+              return items.map((i) => ({
+                ...i,
+                impactPct: totalAbs > 0 ? (Math.abs(i.delta) / totalAbs) * 100 : 0,
+              }));
+            };
+
+            const fmtImpact = (pct: number) =>
+              pct >= 10 ? `${pct.toFixed(0)}%` : `${pct.toFixed(1)}%`;
+
+            // Latency: rank by share of upward P95 deviation from baseline.
+            const topLatency: Contributor[] = computeImpactShares(
+              buckets.map((b) => ({ row: b, delta: b.p95_ms - baselineP95 })),
+            )
+              .sort((a, b) => b.impactPct - a.impactPct || Math.abs(b.delta) - Math.abs(a.delta))
+              .slice(0, 3)
+              .map((row) => ({
+                key: row.row.bucket_hour,
+                label: fmtBucketLabel(row.row.bucket_hour),
+                detail: `P95 ${row.row.p95_ms}ms · ${row.row.total} traces`,
+                delta: row.delta,
+                deltaLabel:
+                  `${fmtImpact(row.impactPct)} do delta · ` +
+                  `${row.delta > 0 ? '+' : ''}${Math.round(row.delta)}ms`,
+                impactPct: row.impactPct,
+                href: bucketHref(row.row.bucket_hour),
+                worse: row.delta > 0,
+              }));
+
+            // Errors: rank by share of error-volume above baseline.
+            const topErrors: Contributor[] = computeImpactShares(
+              buckets
+                .filter((b) => b.errors > 0)
+                .map((b) => ({ row: b, delta: b.errors - baselineErrors })),
+            )
+              .sort((a, b) => b.impactPct - a.impactPct || b.delta - a.delta)
+              .slice(0, 3)
+              .map((row) => ({
+                key: row.row.bucket_hour,
+                label: fmtBucketLabel(row.row.bucket_hour),
+                detail: `${row.row.errors} erros em ${row.row.total} traces`,
+                delta: row.delta,
+                deltaLabel:
+                  `${fmtImpact(row.impactPct)} do delta · ` +
+                  `${row.delta > 0 ? '+' : ''}${row.delta.toFixed(1)} vs média`,
+                impactPct: row.impactPct,
+                href: bucketHref(row.row.bucket_hour),
+                worse: row.delta > 0,
+              }));
+
+            // Agents: no per-agent baseline available, so impact = share of
+            // P95-ms *above target*. Agents within budget get 0% (they aren't
+            // contributing to the regression).
+            const agentItems = (summary.top_agents ?? []).map((a) => ({
+              row: a,
+              delta: Math.max(0, a.p95_ms - SLO_TARGETS.p95LatencyMs),
+            }));
+            const totalAgentImpact = agentItems.reduce((s, i) => s + i.delta, 0);
+            const topAgents: Contributor[] = agentItems
+              .map((i) => ({
+                ...i,
+                impactPct: totalAgentImpact > 0 ? (i.delta / totalAgentImpact) * 100 : 0,
               }))
-              .sort((a, b) => Math.abs(b.delta) - Math.abs(a.delta))
+              .sort((a, b) => b.impactPct - a.impactPct || b.row.p95_ms - a.row.p95_ms)
               .slice(0, 3)
               .map((row) => ({
-                key: row.bucket.bucket_hour,
-                label: fmtBucketLabel(row.bucket.bucket_hour),
-                detail: `P95 ${row.bucket.p95_ms}ms · ${row.bucket.total} traces`,
-                delta: row.delta,
-                deltaLabel: `${row.delta > 0 ? '+' : ''}${Math.round(row.delta)}ms vs baseline`,
-                href: bucketHref(row.bucket.bucket_hour),
-                worse: row.delta > 0,
-              }));
-
-            // Top 3 buckets contributing the most errors above baseline.
-            const topErrors: Contributor[] = [...buckets]
-              .filter((b) => b.errors > 0)
-              .map((b) => ({ bucket: b, delta: b.errors - baselineErrors }))
-              .sort((a, b) => b.delta - a.delta)
-              .slice(0, 3)
-              .map((row) => ({
-                key: row.bucket.bucket_hour,
-                label: fmtBucketLabel(row.bucket.bucket_hour),
-                detail: `${row.bucket.errors} erros em ${row.bucket.total} traces`,
-                delta: row.delta,
-                deltaLabel: `${row.delta > 0 ? '+' : ''}${row.delta.toFixed(1)} vs média`,
-                href: bucketHref(row.bucket.bucket_hour),
-                worse: row.delta > 0,
-              }));
-
-            // Top 3 agents pulling P95 up — straight from the RPC's top_agents.
-            const topAgents: Contributor[] = (summary.top_agents ?? [])
-              .slice(0, 3)
-              .map((a) => ({
-                key: a.agent_id,
-                label: a.agent_name,
-                detail: `${a.traces} traces · ${a.errors} erros · ${(a.success_rate ?? 100).toFixed(1)}% sucesso`,
-                delta: a.p95_ms,
-                deltaLabel: `P95 ${a.p95_ms}ms`,
-                href: `/agents/${a.agent_id}/traces`,
-                worse: a.p95_ms > SLO_TARGETS.p95LatencyMs,
+                key: row.row.agent_id,
+                label: row.row.agent_name,
+                detail: `${row.row.traces} traces · ${row.row.errors} erros · ${(row.row.success_rate ?? 100).toFixed(1)}% sucesso`,
+                delta: row.row.p95_ms,
+                deltaLabel: row.impactPct > 0
+                  ? `${fmtImpact(row.impactPct)} acima da meta · P95 ${row.row.p95_ms}ms`
+                  : `Dentro da meta · P95 ${row.row.p95_ms}ms`,
+                impactPct: row.impactPct,
+                href: `/agents/${row.row.agent_id}/traces`,
+                worse: row.row.p95_ms > SLO_TARGETS.p95LatencyMs,
               }));
 
             const sections: Array<{ title: string; kpi: string; rows: Contributor[]; empty: string }> = [
@@ -946,7 +995,8 @@ export default function SLODashboard() {
                         Drill-down do delta
                       </CardTitle>
                       <CardDescription>
-                        Top 3 contribuintes para cada KPI vs. baseline de {windowLabel(compareHours)}.
+                        Top 3 contribuintes por <span className="font-medium text-foreground">impacto relativo</span>{' '}
+                        (% do delta) vs. baseline de {windowLabel(compareHours)}.
                         Clique em um item para abrir os traces relacionados.
                       </CardDescription>
                     </div>
@@ -984,7 +1034,7 @@ export default function SLODashboard() {
                               <Link
                                 to={row.href}
                                 className="flex items-start gap-2 p-2 rounded-md border border-border/40 bg-secondary/20 hover:bg-secondary/50 hover:border-primary/40 transition-colors group focus-ring"
-                                title={`Abrir traces: ${row.label}`}
+                                title={`Abrir traces: ${row.label} — ${row.impactPct.toFixed(1)}% do impacto`}
                               >
                                 <span className="text-[10px] font-bold text-muted-foreground tabular-nums w-4 mt-0.5">
                                   #{idx + 1}
@@ -1001,6 +1051,18 @@ export default function SLODashboard() {
                                   }`}>
                                     {row.deltaLabel}
                                   </span>
+                                  {/* Impact share bar — visual scan of "how much of the delta is this?" */}
+                                  {row.impactPct > 0 && (
+                                    <span
+                                      className="mt-1 block h-1 w-full rounded-full bg-secondary/60 overflow-hidden"
+                                      aria-label={`Impacto: ${row.impactPct.toFixed(1)}%`}
+                                    >
+                                      <span
+                                        className={`block h-full ${row.worse ? 'bg-destructive/70' : 'bg-nexus-emerald/70'}`}
+                                        style={{ width: `${Math.min(100, Math.max(2, row.impactPct))}%` }}
+                                      />
+                                    </span>
+                                  )}
                                 </span>
                               </Link>
                             </li>
