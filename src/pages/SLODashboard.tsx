@@ -625,21 +625,35 @@ export default function SLODashboard() {
           <Button
             variant="outline"
             size="sm"
-            onClick={() => {
+            onClick={async () => {
+              const url = window.location.href;
+              const named = sanitizeWindowName(windowName);
+              const sel = summary?.top_agents.find((a) => a.agent_id === selectedAgentId);
+              const scopeLabel = selectedAgentId
+                ? ` · escopo: ${sel?.agent_name ?? 'agente selecionado'}`
+                : '';
+              const successDescription = (named
+                ? `Janela "${named}" · cadência e filtros preservados na URL`
+                : 'Janela e cadência preservadas na URL') + scopeLabel;
+
+              // Clipboard API is gated by: (a) secure context (HTTPS / localhost),
+              // (b) Permissions-Policy `clipboard-write`, (c) document focus,
+              // (d) user activation. Any of these failing throws/rejects, so we
+              // need to guard both the *existence* of the API and the async call.
+              const clipboard = navigator.clipboard;
+              if (!clipboard?.writeText) {
+                logger.warn('Clipboard API unavailable; opening manual-copy fallback');
+                setManualCopyUrl(url);
+                return;
+              }
               try {
-                navigator.clipboard.writeText(window.location.href);
-                const named = sanitizeWindowName(windowName);
-                const sel = summary?.top_agents.find((a) => a.agent_id === selectedAgentId);
-                const scopeLabel = selectedAgentId
-                  ? ` · escopo: ${sel?.agent_name ?? 'agente selecionado'}`
-                  : '';
-                toast.success('Link copiado', {
-                  description: (named
-                    ? `Janela "${named}" · cadência e filtros preservados na URL`
-                    : 'Janela e cadência preservadas na URL') + scopeLabel,
-                });
-              } catch {
-                toast.error('Não foi possível copiar o link');
+                await clipboard.writeText(url);
+                toast.success('Link copiado', { description: successDescription });
+              } catch (err) {
+                // Permission denied, focus lost, or sandboxed iframe — show
+                // the manual-copy modal instead of just toasting an error.
+                logger.warn('clipboard.writeText rejected; showing manual fallback', err);
+                setManualCopyUrl(url);
               }
             }}
             aria-label="Copiar link compartilhável da visualização atual"
