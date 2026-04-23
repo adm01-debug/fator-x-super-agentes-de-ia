@@ -52,19 +52,48 @@ export function riskFromImpact(impact: number): RiskLevel {
   return 'low';
 }
 
-/** Score de impacto para mudança de prompt baseado em delta de chars. */
-function scorePrompt(beforeLen: number, afterLen: number): { impact: number; reason: string } {
+/** Score de impacto para mudança de prompt baseado em delta de chars.
+ * Retorna também os critérios discriminados que somaram o score, para
+ * exibir na seção "Por que esse risco?". */
+function scorePrompt(beforeLen: number, afterLen: number): { impact: number; reason: string; criteria: RiskCriterion[] } {
   const delta = Math.abs(afterLen - beforeLen);
   const base = Math.max(beforeLen, afterLen, 1);
   const ratio = delta / base; // 0..1+
   // Empty → conteúdo (ou vice-versa) é crítico
   if (beforeLen === 0 || afterLen === 0) {
-    return { impact: 90, reason: afterLen === 0 ? 'Prompt esvaziado' : 'Prompt criado do zero' };
+    const reason = afterLen === 0 ? 'Prompt esvaziado' : 'Prompt criado do zero';
+    return {
+      impact: 90,
+      reason,
+      criteria: [
+        { label: afterLen === 0 ? 'Prompt esvaziado completamente' : 'Prompt criado do zero', points: 90, detail: `${beforeLen} → ${afterLen} chars` },
+      ],
+    };
   }
-  if (ratio >= 0.5) return { impact: 85, reason: `Reescrita massiva (${Math.round(ratio * 100)}% do prompt)` };
-  if (ratio >= 0.25) return { impact: 65, reason: `Mudança grande (${Math.round(ratio * 100)}% do prompt)` };
-  if (ratio >= 0.1) return { impact: 40, reason: `Mudança moderada (${Math.round(ratio * 100)}%)` };
-  return { impact: 20, reason: `Pequeno ajuste (${delta} chars)` };
+  if (ratio >= 0.5) return {
+    impact: 85, reason: `Reescrita massiva (${Math.round(ratio * 100)}% do prompt)`,
+    criteria: [
+      { label: 'Reescrita massiva (≥50%)', points: 85, detail: `${Math.round(ratio * 100)}% do conteúdo · Δ ${delta} chars` },
+    ],
+  };
+  if (ratio >= 0.25) return {
+    impact: 65, reason: `Mudança grande (${Math.round(ratio * 100)}% do prompt)`,
+    criteria: [
+      { label: 'Mudança grande (25–50%)', points: 65, detail: `${Math.round(ratio * 100)}% do conteúdo · Δ ${delta} chars` },
+    ],
+  };
+  if (ratio >= 0.1) return {
+    impact: 40, reason: `Mudança moderada (${Math.round(ratio * 100)}%)`,
+    criteria: [
+      { label: 'Mudança moderada (10–25%)', points: 40, detail: `${Math.round(ratio * 100)}% do conteúdo · Δ ${delta} chars` },
+    ],
+  };
+  return {
+    impact: 20, reason: `Pequeno ajuste (${delta} chars)`,
+    criteria: [
+      { label: 'Ajuste pequeno (<10%)', points: 20, detail: `Δ ${delta} chars` },
+    ],
+  };
 }
 
 function cfg(v?: AgentVersion | null): Record<string, unknown> {
