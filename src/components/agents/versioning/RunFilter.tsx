@@ -1,27 +1,36 @@
 /**
- * RunFilter — filtra a timeline de versões pelo período de uma execução
- * (sessão) específica do agente.
+ * RunFilter — seletor de execução (sessão) com autocomplete + "Top runs".
  *
- * Como cada `agent_traces` tem um `session_id` e um `created_at`, agrupamos as
- * sessões mais recentes do agente e usamos `min(created_at)`/`max(created_at)`
- * como janela temporal. Ao escolher uma execução, aplicamos um range absoluto
- * (`time:abs:from~to`) — assim a timeline já existente filtra normalmente,
- * sem precisar de novo modo de range.
+ * Filtra a timeline pelo período (min..max created_at) de uma sessão do agente.
+ * O range absoluto resultante (`time:abs:from~to`) reaproveita toda a infra de
+ * filtro temporal já existente — deep-link, share, presets continuam funcionando.
  *
- * Trade-off consciente: filtramos por *período* da execução, não por
- * "versões usadas". Versões raramente mudam dentro de uma execução, então o
- * período é o proxy correto e mantém o resto do sistema (deep-link, share,
- * presets) funcionando sem nenhuma mudança.
+ * UX: cmdk com busca por session_id/evento + agrupamentos curados:
+ *   • Mais recentes  — debug do "que aconteceu agora"
+ *   • Mais lentos    — investigação de performance
+ *   • Com erros      — root cause em runs que quebraram
+ *
+ * Trade-off: filtramos por *período*, não por "versões usadas" naquela run.
+ * Versões raramente mudam dentro de um run, então o período é o proxy correto.
  */
 import { useMemo, useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
-import { Activity, Loader2, X, ChevronDown } from 'lucide-react';
+import { Activity, Loader2, X, ChevronDown, Clock, AlertTriangle, Zap } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import {
   Popover,
   PopoverContent,
   PopoverTrigger,
 } from '@/components/ui/popover';
+import {
+  Command,
+  CommandEmpty,
+  CommandGroup,
+  CommandInput,
+  CommandItem,
+  CommandList,
+  CommandSeparator,
+} from '@/components/ui/command';
 import { supabaseExternal } from '@/integrations/supabase/externalClient';
 import type { TimelineRange } from './TimelineRangeFilter';
 
@@ -29,9 +38,13 @@ interface RunSummary {
   session_id: string;
   start_at: string;
   end_at: string;
+  duration_ms: number;
   event_count: number;
+  error_count: number;
   /** primeiro evento — útil para rotular a execução com algo legível. */
   first_event: string | null;
+  /** união dos eventos distintos da run, para alimentar a busca. */
+  events: string[];
 }
 
 interface Props {
@@ -42,8 +55,11 @@ interface Props {
   onApply: (range: TimelineRange) => void;
 }
 
+/** Limites curados para "Top runs" — evitam listas longas e ruidosas. */
+const TOP_LIMIT = 5;
+
 /**
- * Busca as últimas execuções (sessões) do agente. Limitamos a 100 traces
+ * Busca as últimas execuções (sessões) do agente. Limitamos a 300 traces
  * recentes e agrupamos no client para evitar dependência de RPC dedicada.
  */
 function useAgentRuns(agentId: string) {
@@ -54,26 +70,36 @@ function useAgentRuns(agentId: string) {
     queryFn: async (): Promise<RunSummary[]> => {
       const { data, error } = await supabaseExternal
         .from('agent_traces')
-        .select('session_id, created_at, event')
+        .select('session_id, created_at, event, level')
         .eq('agent_id', agentId)
         .not('session_id', 'is', null)
         .order('created_at', { ascending: false })
-        .limit(200);
+        .limit(300);
       if (error) throw error;
-      const bySession = new Map<string, RunSummary>();
-      for (const row of (data ?? []) as Array<{ session_id: string | null; created_at: string; event: string }>) {
+      const bySession = new Map<string, RunSummary & { _events: Set<string> }>();
+      for (const row of (data ?? []) as Array<{
+        session_id: string | null; created_at: string; event: string; level: string | null;
+      }>) {
         if (!row.session_id) continue;
         const existing = bySession.get(row.session_id);
+        const isError = row.level === 'error';
         if (!existing) {
+          const evSet = new Set<string>([row.event]);
           bySession.set(row.session_id, {
             session_id: row.session_id,
             start_at: row.created_at,
             end_at: row.created_at,
+            duration_ms: 0,
             event_count: 1,
+            error_count: isError ? 1 : 0,
             first_event: row.event,
+            events: [row.event],
+            _events: evSet,
           });
         } else {
           existing.event_count += 1;
+          if (isError) existing.error_count += 1;
+          existing._events.add(row.event);
           if (new Date(row.created_at) < new Date(existing.start_at)) {
             existing.start_at = row.created_at;
             existing.first_event = row.event;
@@ -83,15 +109,26 @@ function useAgentRuns(agentId: string) {
           }
         }
       }
-      return Array.from(bySession.values()).sort(
-        (a, b) => new Date(b.end_at).getTime() - new Date(a.end_at).getTime(),
-      );
+      // Materializa events array + duration e ordena por mais recente.
+      const out: RunSummary[] = [];
+      for (const r of bySession.values()) {
+        out.push({
+          session_id: r.session_id,
+          start_at: r.start_at,
+          end_at: r.end_at,
+          duration_ms: new Date(r.end_at).getTime() - new Date(r.start_at).getTime(),
+          event_count: r.event_count,
+          error_count: r.error_count,
+          first_event: r.first_event,
+          events: Array.from(r._events),
+        });
+      }
+      return out.sort((a, b) => +new Date(b.end_at) - +new Date(a.end_at));
     },
   });
 }
 
-function formatDuration(start: string, end: string): string {
-  const ms = new Date(end).getTime() - new Date(start).getTime();
+function formatDuration(ms: number): string {
   if (ms < 1000) return `${ms}ms`;
   if (ms < 60_000) return `${(ms / 1000).toFixed(1)}s`;
   if (ms < 3_600_000) return `${Math.round(ms / 60_000)}min`;
@@ -111,10 +148,69 @@ function findActiveRun(runs: RunSummary[], range: TimelineRange): RunSummary | n
   ) ?? null;
 }
 
+interface RunRowProps {
+  run: RunSummary;
+  isActive: boolean;
+  onPick: (run: RunSummary) => void;
+  /** Métrica destacada na linha: padrão = quando, mas "slow"/"errors" trocam. */
+  highlight?: 'time' | 'slow' | 'errors';
+}
+
+/**
+ * Linha de execução. Usa `value` único (session_id + métrica) para o cmdk
+ * conseguir filtrar e desambiguar a mesma run aparecendo em múltiplos grupos.
+ */
+function RunRow({ run, isActive, onPick, highlight = 'time' }: RunRowProps) {
+  const value = `${run.session_id} ${run.events.join(' ')}`;
+  return (
+    <CommandItem
+      value={value}
+      onSelect={() => onPick(run)}
+      className={`flex flex-col items-stretch gap-0.5 cursor-pointer ${
+        isActive ? 'bg-nexus-emerald/10 border-l-2 border-nexus-emerald' : ''
+      }`}
+    >
+      <div className="flex items-center justify-between gap-2 w-full">
+        <span className="text-[11px] font-mono font-semibold text-foreground truncate">
+          {run.session_id}
+        </span>
+        <span className="text-[10px] text-muted-foreground shrink-0 flex items-center gap-1.5">
+          {highlight === 'slow' && (
+            <span className="text-nexus-amber font-semibold">{formatDuration(run.duration_ms)}</span>
+          )}
+          {highlight === 'errors' && run.error_count > 0 && (
+            <span className="text-destructive font-semibold">{run.error_count} erros</span>
+          )}
+          <span>{run.event_count} ev</span>
+          {highlight !== 'slow' && <span>· {formatDuration(run.duration_ms)}</span>}
+        </span>
+      </div>
+      <div className="text-[10px] text-muted-foreground truncate">
+        {formatWhen(run.start_at)}
+        {run.first_event ? <> · primeiro: <span className="font-mono">{run.first_event}</span></> : null}
+      </div>
+    </CommandItem>
+  );
+}
+
 export function RunFilter({ agentId, currentRange, onApply }: Props) {
   const [open, setOpen] = useState(false);
   const { data: runs = [], isLoading } = useAgentRuns(agentId);
   const activeRun = useMemo(() => findActiveRun(runs, currentRange), [runs, currentRange]);
+
+  // Top runs derivados — ordenamos cópias para não mutar a lista base
+  // (que está em ordem cronológica reversa, usada na seção "Recentes").
+  const topSlow = useMemo(
+    () => [...runs].sort((a, b) => b.duration_ms - a.duration_ms).slice(0, TOP_LIMIT),
+    [runs],
+  );
+  const topErrors = useMemo(
+    () => runs.filter((r) => r.error_count > 0)
+      .sort((a, b) => b.error_count - a.error_count)
+      .slice(0, TOP_LIMIT),
+    [runs],
+  );
+  const recent = useMemo(() => runs.slice(0, TOP_LIMIT), [runs]);
 
   const handlePick = (run: RunSummary) => {
     onApply({
@@ -132,7 +228,7 @@ export function RunFilter({ agentId, currentRange, onApply }: Props) {
   };
 
   const triggerLabel = activeRun
-    ? `Execução ${activeRun.session_id.slice(-6)}`
+    ? `Run ${activeRun.session_id.slice(-6)}`
     : 'Execução';
 
   return (
@@ -177,59 +273,121 @@ export function RunFilter({ agentId, currentRange, onApply }: Props) {
           )}
         </Button>
       </PopoverTrigger>
-      <PopoverContent align="start" className="w-[360px] p-2">
-        <div className="px-1.5 py-1 mb-1.5 border-b border-border/50">
-          <p className="text-[10px] uppercase tracking-wider text-muted-foreground font-semibold">
-            Execuções recentes
-          </p>
-          <p className="text-[10px] text-muted-foreground mt-0.5">
-            Aplica como janela temporal — versões fora desse período somem da timeline.
-          </p>
-        </div>
+      <PopoverContent align="start" className="w-[380px] p-0">
+        <Command
+          // Filtro custom: o `value` da CommandItem é "session_id evento1 evento2…",
+          // então a busca casa tanto por id quanto por nome de evento.
+          filter={(value, search) => {
+            if (!search) return 1;
+            return value.toLowerCase().includes(search.toLowerCase()) ? 1 : 0;
+          }}
+        >
+          <CommandInput
+            placeholder="Buscar por session id ou evento…"
+            className="text-xs"
+          />
+          <CommandList className="max-h-[360px]">
+            {isLoading ? (
+              <div className="flex items-center justify-center py-6 text-muted-foreground">
+                <Loader2 className="h-4 w-4 animate-spin" aria-hidden />
+              </div>
+            ) : runs.length === 0 ? (
+              <CommandEmpty className="py-6 text-[11px]">
+                Nenhuma execução registrada para este agente ainda.
+              </CommandEmpty>
+            ) : (
+              <>
+                <CommandEmpty className="py-6 text-[11px]">
+                  Nenhuma execução corresponde à busca.
+                </CommandEmpty>
 
-        {isLoading ? (
-          <div className="flex items-center justify-center py-6 text-muted-foreground">
-            <Loader2 className="h-4 w-4 animate-spin" aria-hidden />
-          </div>
-        ) : runs.length === 0 ? (
-          <div className="py-6 text-center text-[11px] text-muted-foreground">
-            Nenhuma execução registrada para este agente ainda.
-          </div>
-        ) : (
-          <div className="max-h-[280px] overflow-y-auto space-y-0.5">
-            {runs.map((run) => {
-              const isActive = activeRun?.session_id === run.session_id;
-              return (
-                <button
-                  key={run.session_id}
-                  type="button"
-                  onClick={() => handlePick(run)}
-                  className={`w-full text-left rounded px-2 py-1.5 transition-colors ${
-                    isActive
-                      ? 'bg-nexus-emerald/15 border border-nexus-emerald/40'
-                      : 'hover:bg-secondary/60 border border-transparent'
-                  }`}
+                {topErrors.length > 0 && (
+                  <>
+                    <CommandGroup
+                      heading={
+                        <span className="flex items-center gap-1.5 text-destructive">
+                          <AlertTriangle className="h-3 w-3" /> Top com erros
+                        </span>
+                      }
+                    >
+                      {topErrors.map((run) => (
+                        <RunRow
+                          key={`err-${run.session_id}`}
+                          run={run}
+                          isActive={activeRun?.session_id === run.session_id}
+                          onPick={handlePick}
+                          highlight="errors"
+                        />
+                      ))}
+                    </CommandGroup>
+                    <CommandSeparator />
+                  </>
+                )}
+
+                <CommandGroup
+                  heading={
+                    <span className="flex items-center gap-1.5 text-nexus-amber">
+                      <Zap className="h-3 w-3" /> Top mais lentas
+                    </span>
+                  }
                 >
-                  <div className="flex items-center justify-between gap-2">
-                    <span className="text-[11px] font-mono font-semibold text-foreground truncate">
-                      {run.session_id}
+                  {topSlow.map((run) => (
+                    <RunRow
+                      key={`slow-${run.session_id}`}
+                      run={run}
+                      isActive={activeRun?.session_id === run.session_id}
+                      onPick={handlePick}
+                      highlight="slow"
+                    />
+                  ))}
+                </CommandGroup>
+                <CommandSeparator />
+
+                <CommandGroup
+                  heading={
+                    <span className="flex items-center gap-1.5 text-nexus-cyan">
+                      <Clock className="h-3 w-3" /> Mais recentes
                     </span>
-                    <span className="text-[10px] text-muted-foreground shrink-0">
-                      {run.event_count} ev · {formatDuration(run.start_at, run.end_at)}
-                    </span>
-                  </div>
-                  <div className="text-[10px] text-muted-foreground mt-0.5 truncate">
-                    {formatWhen(run.start_at)}
-                    {run.first_event ? <> · primeiro: <span className="font-mono">{run.first_event}</span></> : null}
-                  </div>
-                </button>
-              );
-            })}
-          </div>
-        )}
+                  }
+                >
+                  {recent.map((run) => (
+                    <RunRow
+                      key={`rec-${run.session_id}`}
+                      run={run}
+                      isActive={activeRun?.session_id === run.session_id}
+                      onPick={handlePick}
+                    />
+                  ))}
+                </CommandGroup>
+
+                {runs.length > recent.length && (
+                  <>
+                    <CommandSeparator />
+                    <CommandGroup
+                      heading={
+                        <span className="text-muted-foreground">
+                          Todas ({runs.length})
+                        </span>
+                      }
+                    >
+                      {runs.slice(recent.length).map((run) => (
+                        <RunRow
+                          key={`all-${run.session_id}`}
+                          run={run}
+                          isActive={activeRun?.session_id === run.session_id}
+                          onPick={handlePick}
+                        />
+                      ))}
+                    </CommandGroup>
+                  </>
+                )}
+              </>
+            )}
+          </CommandList>
+        </Command>
 
         {activeRun && (
-          <div className="flex items-center justify-between pt-2 mt-1.5 border-t border-border/50">
+          <div className="flex items-center justify-between p-2 border-t border-border/50">
             <span className="text-[10px] text-muted-foreground truncate">
               Janela: {formatWhen(activeRun.start_at)} → {formatWhen(activeRun.end_at)}
             </span>
