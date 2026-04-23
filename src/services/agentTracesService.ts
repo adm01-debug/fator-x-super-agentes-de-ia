@@ -39,11 +39,14 @@ export interface ListTracesParams {
   event?: string | 'all';
   search?: string;
   sinceHours?: number;
+  /** Absolute time window — overrides `sinceHours` when both `from` and `to` are provided. */
+  from?: string;
+  to?: string;
   limit?: number;
 }
 
 export async function listAgentTraces(params: ListTracesParams = {}): Promise<AgentTraceRow[]> {
-  const { agentId, level, event, search, sinceHours = 24, limit = 500 } = params;
+  const { agentId, level, event, search, sinceHours = 24, from, to, limit = 500 } = params;
   let q = supabase
     .from('agent_traces')
     .select('id, agent_id, session_id, level, event, input, output, metadata, latency_ms, tokens_used, cost_usd, created_at')
@@ -53,7 +56,11 @@ export async function listAgentTraces(params: ListTracesParams = {}): Promise<Ag
   if (agentId) q = q.eq('agent_id', agentId);
   if (level && level !== 'all') q = q.eq('level', level);
   if (event && event !== 'all') q = q.eq('event', event);
-  if (sinceHours > 0) {
+
+  // Absolute window takes priority over relative `sinceHours`.
+  if (from && to) {
+    q = q.gte('created_at', from).lte('created_at', to);
+  } else if (sinceHours > 0) {
     const since = new Date(Date.now() - sinceHours * 3600 * 1000).toISOString();
     q = q.gte('created_at', since);
   }
