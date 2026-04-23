@@ -484,6 +484,27 @@ export default function SLODashboard() {
           <p className="text-muted-foreground mt-1">
             Service Level Objectives — saúde do sistema em tempo real
           </p>
+          {/* Scope chip — surfaces the active drill-down so a shared link's
+              recipient instantly sees the view is filtered to one agent. */}
+          {selectedAgentId && (() => {
+            const sel = summary?.top_agents.find((a) => a.agent_id === selectedAgentId);
+            const label = sel?.agent_name ?? `agente ${selectedAgentId.slice(0, 8)}…`;
+            return (
+              <div className="mt-2 inline-flex items-center gap-2 rounded-full border border-primary/30 bg-primary/10 pl-3 pr-1 py-0.5 text-xs">
+                <span className="text-muted-foreground">Escopo:</span>
+                <span className="font-medium text-foreground">{label}</span>
+                <button
+                  type="button"
+                  onClick={() => setSelectedAgentId('')}
+                  className="ml-1 rounded-full p-0.5 hover:bg-primary/20 focus-ring"
+                  aria-label="Remover escopo de agente"
+                  title="Limpar seleção"
+                >
+                  <span aria-hidden className="block h-4 w-4 leading-4 text-center">×</span>
+                </button>
+              </div>
+            );
+          })()}
         </div>
         <div className="flex items-center gap-2 flex-wrap">
           {/* Last-updated indicator + live pulse when auto-refresh is on */}
@@ -577,10 +598,14 @@ export default function SLODashboard() {
               try {
                 navigator.clipboard.writeText(window.location.href);
                 const named = sanitizeWindowName(windowName);
+                const sel = summary?.top_agents.find((a) => a.agent_id === selectedAgentId);
+                const scopeLabel = selectedAgentId
+                  ? ` · escopo: ${sel?.agent_name ?? 'agente selecionado'}`
+                  : '';
                 toast.success('Link copiado', {
-                  description: named
+                  description: (named
                     ? `Janela "${named}" · cadência e filtros preservados na URL`
-                    : 'Janela e cadência preservadas na URL',
+                    : 'Janela e cadência preservadas na URL') + scopeLabel,
                 });
               } catch {
                 toast.error('Não foi possível copiar o link');
@@ -1246,9 +1271,23 @@ export default function SLODashboard() {
                     <tbody>
                       {summary.top_agents.map((a) => {
                         const s = latencyStatus(a.p95_ms, SLO_TARGETS.p95LatencyMs);
+                        const isSelected = a.agent_id === selectedAgentId;
                         return (
-                          <tr key={a.agent_id} className="border-b last:border-b-0 hover:bg-secondary/30">
-                            <td className="py-3 font-medium">{a.agent_name}</td>
+                          <tr
+                            key={a.agent_id}
+                            onClick={() => setSelectedAgentId(isSelected ? '' : a.agent_id)}
+                            className={`border-b last:border-b-0 cursor-pointer transition-colors ${
+                              isSelected
+                                ? 'bg-primary/10 hover:bg-primary/15'
+                                : 'hover:bg-secondary/30'
+                            }`}
+                            title={isSelected ? 'Clique para remover seleção' : 'Clique para focar este agente (URL preserva o recorte)'}
+                            aria-selected={isSelected}
+                          >
+                            <td className="py-3 font-medium">
+                              {isSelected && <span className="mr-1.5 text-primary" aria-hidden>●</span>}
+                              {a.agent_name}
+                            </td>
                             <td className="text-right tabular-nums">{a.traces}</td>
                             <td className="text-right tabular-nums text-destructive">{a.errors}</td>
                             <td className="text-right tabular-nums">{(a.success_rate ?? 100).toFixed(1)}%</td>
