@@ -217,6 +217,13 @@ function VersionHistory({ agentId }: { agentId: string }) {
     ? computeRestoreDiff(current, previous, restoreOptions)
     : null;
 
+  // Validação pré-restore — corre sempre que houver origem; bloqueia confirmação
+  // se algum erro estrutural/incompatibilidade for detectado no estado pós-merge.
+  const validation = previous
+    ? validateRestore(current, previous, restoreOptions)
+    : null;
+  const restoreBlocked = !!validation?.blocked;
+
   const rollbackMut = useMutation({
     mutationFn: () => restoreAgentVersion(agentId, previous!, current, {
       ...restoreOptions,
@@ -361,6 +368,12 @@ function VersionHistory({ agentId }: { agentId: string }) {
                     </div>
                   )}
                 </fieldset>
+
+                {/* Validação pré-restore — sempre visível quando há origem e ao menos
+                    um campo marcado, para que o usuário veja erros antes de tudo. */}
+                {previous && hasAnyOptionSelected && validation && (
+                  <RestoreValidationPanel validation={validation} />
+                )}
 
                 {previous && hasAnyOptionSelected && restoreDiff && (
                   <>
