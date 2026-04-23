@@ -304,6 +304,14 @@ export default function SLODashboard() {
     });
   }, []);
 
+  // Drill-down toggle — when off, tool-failure traces are excluded from error
+  // counts and latency percentiles used by the contributors ranking. Default ON
+  // (matches the previous behaviour of `error_count` including everything).
+  const [includeToolFailures, setIncludeToolFailures] = useState<boolean>(() => {
+    const raw = searchParams.get(QP_INCLUDE_TOOLS);
+    return raw === '0' ? false : true;
+  });
+
   const [lastRefreshAt, setLastRefreshAt] = useState<Date | null>(null);
   // Re-renders the "X seg atrás" pill once a second without re-fetching data.
   const [, setNowTick] = useState(0);
