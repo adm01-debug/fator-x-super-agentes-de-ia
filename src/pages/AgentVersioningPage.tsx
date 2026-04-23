@@ -88,7 +88,37 @@ export default function AgentVersioningPage() {
     enabled: !!id,
   });
 
-  // Inicialização da URL: roda APENAS na primeira chegada das versões (ou quando
+  // Hidratação dos filtros (preset/range/mode) a partir do localStorage por
+  // agente — só aplica quando a URL NÃO traz nenhum desses params, para que
+  // links compartilhados sempre vençam preferências locais. Roda uma única vez
+  // por agente (chave `id`).
+  useEffect(() => {
+    if (!id) return;
+    const hasUrlFilters =
+      searchParams.has('preset') || searchParams.has('range') || searchParams.has('mode');
+    if (hasUrlFilters) return;
+    const prefs = loadTimelinePrefs(id);
+    if (!prefs) return;
+    updateParams((p) => {
+      if (prefs.preset && prefs.preset !== 'all') p.set('preset', prefs.preset);
+      if (prefs.range) p.set('range', prefs.range);
+      if (prefs.mode === 'compare') p.set('mode', 'compare');
+    }, { replace: true });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [id]);
+
+  // Salva preferências sempre que filtros mudam — debounce simples via
+  // microtask não é necessário pois `updateParams` é síncrono e o usuário
+  // não dispara isso em loop.
+  useEffect(() => {
+    if (!id) return;
+    saveTimelinePrefs(id, {
+      preset: presetId,
+      range: serializeRange(range) ?? undefined,
+      mode,
+    });
+  }, [id, presetId, mode, searchParams]);
+
   // muda o `focusId`). Nunca reescreve `sel`/`a`/`b`/`mode` depois disso — assim
   // alternar entre detalhe/comparar ou recarregar a query NÃO muda o que o
   // usuário já tem selecionado/fixado.
