@@ -45,6 +45,15 @@ const QP_AUTO = 'auto';
 const QP_COMPARE = 'cmp';
 const QP_FAILURE_MODES = 'fm';
 const QP_NAME = 'n';
+const QP_SELECTED = 'sel';
+
+/** UUID v4 sanity check — keeps malicious / malformed values out of state. */
+const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+function sanitizeAgentId(raw: string | null): string {
+  if (!raw) return '';
+  const trimmed = raw.trim();
+  return UUID_RE.test(trimmed) ? trimmed : '';
+}
 
 const WINDOW_NAME_STORAGE_KEY = 'nexus.slo.windowName';
 const WINDOW_NAME_MAX_LEN = 60;
