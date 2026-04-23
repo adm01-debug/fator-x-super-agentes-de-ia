@@ -1034,7 +1034,7 @@ export default function SLODashboard() {
                               <Link
                                 to={row.href}
                                 className="flex items-start gap-2 p-2 rounded-md border border-border/40 bg-secondary/20 hover:bg-secondary/50 hover:border-primary/40 transition-colors group focus-ring"
-                                title={`Abrir traces: ${row.label}`}
+                                title={`Abrir traces: ${row.label} — ${row.impactPct.toFixed(1)}% do impacto`}
                               >
                                 <span className="text-[10px] font-bold text-muted-foreground tabular-nums w-4 mt-0.5">
                                   #{idx + 1}
@@ -1051,6 +1051,18 @@ export default function SLODashboard() {
                                   }`}>
                                     {row.deltaLabel}
                                   </span>
+                                  {/* Impact share bar — visual scan of "how much of the delta is this?" */}
+                                  {row.impactPct > 0 && (
+                                    <span
+                                      className="mt-1 block h-1 w-full rounded-full bg-secondary/60 overflow-hidden"
+                                      aria-label={`Impacto: ${row.impactPct.toFixed(1)}%`}
+                                    >
+                                      <span
+                                        className={`block h-full ${row.worse ? 'bg-destructive/70' : 'bg-nexus-emerald/70'}`}
+                                        style={{ width: `${Math.min(100, Math.max(2, row.impactPct))}%` }}
+                                      />
+                                    </span>
+                                  )}
                                 </span>
                               </Link>
                             </li>
