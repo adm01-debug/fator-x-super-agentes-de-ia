@@ -10,7 +10,7 @@
  * a URL ativa, então abrir em outra aba reproduz a mesma visão.
  */
 import { useMemo, useState } from 'react';
-import { Link2, Copy, Check, Share2, Eye, GitCompare, Filter } from 'lucide-react';
+import { Link2, Copy, Check, Share2, Eye, GitCompare, Filter, Tag, Activity } from 'lucide-react';
 import type { AgentVersion } from '@/services/agentsService';
 import { toast } from 'sonner';
 
@@ -22,6 +22,10 @@ interface Props {
   mode: 'detail' | 'compare';
   presetLabel: string;
   rangeLabel?: string;
+  /** Tags ativas no filtro multi-tag por tipo de evento (vazio = sem filtro). */
+  typesLabels?: string[];
+  /** session_id da execução fixada via ?run=, se houver. */
+  runId?: string | null;
 }
 
 function shortVer(v: AgentVersion | null): string {
