@@ -1,136 +1,86 @@
 
 
-## Estimativa de custo e tokens ao vivo na prévia
+## Plano: 4 melhorias para "Limpar filtros" em AgentTracesPage
 
-Hoje o `AgentLivePreviewCard` mostra `chars` e `seções X/Y`, mas **não** mostra quanto cada execução do agente vai custar. O usuário só descobre o impacto financeiro do prompt depois de rodar no LLM real — sem feedback durante a edição.
+Aplicar as 4 melhorias sequencialmente nos filtros existentes (busca, nível, evento, agente, janela temporal). Os termos "canais/datas/sentimento" do pedido são mapeados aos filtros reais da página (evento/janela/nível) — confirmo no toast com os rótulos reais.
 
-Já temos toda a infraestrutura pronta:
-- `useCostEstimate` (hook) — calcula tokens/custo USD/BRL/latência.
-- `llmPricing.ts` — tabela de preços dos 9 modelos suportados.
-- `QUICK_AGENT_MOCK_INPUTS[type]` — input típico por tipo de agente, pra estimativa realista.
+---
 
-Falta só **plugar isso no preview ao vivo**.
+### Melhoria 1 — Toast detalhado ao limpar filtros
 
-### O que muda na visão do usuário
+Ao clicar em "Limpar filtros", exibir toast Sonner detalhando exatamente o que foi limpo e o que foi removido do storage:
 
-Novo bloco compacto **"Custo estimado por execução"** dentro do `AgentLivePreviewCard`, logo abaixo da linha "modelo / seções / chars" e antes da Missão:
+- Lista de filtros que estavam ativos e voltaram ao padrão (ex.: `Busca: "checkout" → vazio`, `Nível: error → todos`, `Janela: 7 dias → 24h`).
+- Confirmação explícita de quais chaves de storage foram limpas (`nexus.traces.filters` quando aplicável).
+- Botão "Desfazer" embutido no toast (ver Melhoria 3).
 
-```
-┌─ 💰 Custo estimado por execução ───────────────────────┐
-│ ~3.240 tokens · US$ 0.0048 · R$ 0,02  · ~1.2s         │
-│ [▓▓▓▓▓░░░░░] entrada 2.140  ·  saída 600              │
-│                                                        │
-│ Em 100 execuções/dia: ~US$ 0,48/dia · R$ 2,40/dia     │
-└────────────────────────────────────────────────────────┘
-```
+### Melhoria 2 — Persistência de filtros na conta (Cloud) + fallback localStorage
 
-Detalhes:
-1. **Linha principal**: total de tokens, custo USD, custo BRL, latência média estimada — em fonte mono compacta.
-2. **Barra horizontal segmentada** mostrando proporção entrada/saída (visual rápido pra entender se o prompt está "pesado" no system).
-3. **Projeção diária** com base em volume médio (100 exec/dia como default) — ajuda a contextualizar custos minúsculos por chamada que viram contas relevantes em escala.
-4. **Cores semânticas**: verde se custo < $0.01, âmbar se $0.01–$0.05, vermelho se > $0.05 por execução.
-5. **Tooltip no ícone 💰** explicando: _"Estimativa baseada no prompt atual + input médio de teste do tipo "{type}". Custo real varia conforme o input do usuário e tamanho da resposta."_
-6. **Pulso de sincronização**: o bloco participa do mesmo `pulsing` que o resto do card (já existente) — pisca quando o prompt/modelo muda.
+Criar persistência por usuário, com sincronização cross-device:
 
-### Como funciona (técnico)
+- Nova tabela `user_filter_preferences` no Cloud:
+  ```
+  user_id uuid (FK auth.users)
+  scope   text          -- 'agent_traces' (multi-tela no futuro)
+  filters jsonb         -- { search, level, event, agentId, sinceHours }
+  updated_at timestamptz
+  PRIMARY KEY (user_id, scope)
+  ```
+  RLS: usuário só lê/escreve as próprias linhas.
+- Novo serviço `src/services/userFilterPreferencesService.ts` com `getFilters(scope)` / `saveFilters(scope, filters)` (debounced 800ms).
+- Novo hook `useFilterPersistence('agent_traces', defaults)` que:
+  1. Hidrata do Cloud no mount (com `isLoading`).
+  2. Faz fallback para `localStorage` (`nexus.traces.filters`) se o usuário estiver offline ou a chamada falhar.
+  3. Persiste em ambos (Cloud + localStorage) a cada mudança debounced.
+- Indicador discreto "✓ Sincronizado" / "💾 Salvo localmente" abaixo do `TracesFilters`.
 
-**1. Editar `AgentLivePreviewCard.tsx`** — adicionar uso do hook + render do bloco:
+### Melhoria 3 — Undo (5s) ao limpar filtros
 
-```tsx
-import { useCostEstimate } from '@/hooks/useCostEstimate';
-import { QUICK_AGENT_MOCK_INPUTS } from '@/lib/quickAgentTemplates';
-import { Coins } from 'lucide-react';
-import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
+Implementar snapshot + restauração:
 
-// Dentro do componente, após `sections`:
-const mockInput = QUICK_AGENT_MOCK_INPUTS[debounced.type]?.[0]?.input ?? '';
-const cost = useCostEstimate({
-  model: debounced.model,
-  systemPrompt: debounced.prompt,
-  userInput: mockInput,
-  maxTokens: 1000,
-  toolsCount: 0,
-});
+- Antes de aplicar o reset, capturar `snapshot = { search, level, event, agentFilter, sinceHours }`.
+- Toast Sonner com ação "Desfazer" visível por 5s; ao clicar, restaura o snapshot exato (estado React + Cloud + localStorage).
+- Se o usuário alterar qualquer filtro manualmente nesse intervalo, o undo é invalidado (botão removido).
+- Implementado dentro do mesmo toast detalhado da Melhoria 1 (uma única notificação rica).
 
-const dailyExecs = 100;
-const dailyUsd = cost.costUsd * dailyExecs;
-const dailyBrl = cost.costBrl * dailyExecs;
+### Melhoria 4 — Modal de confirmação antes de limpar
 
-const inputPct = Math.round((cost.inputTokens / cost.totalTokens) * 100);
+Reusar o componente existente `ConfirmDialog` (já em `src/components/shared/ConfirmDialog.tsx`):
 
-const tier: 'low' | 'mid' | 'high' =
-  cost.costUsd < 0.01 ? 'low' : cost.costUsd < 0.05 ? 'mid' : 'high';
-const tierColor = {
-  low: 'text-nexus-emerald',
-  mid: 'text-nexus-amber',
-  high: 'text-destructive',
-}[tier];
-```
+- Envolver os 2 gatilhos atuais de "Limpar filtros" (`ExecutionList` empty state + EmptyState do timeline).
+- Modal exibe: lista de filtros ativos que serão resetados + aviso de que preferências sincronizadas na conta também serão limpas.
+- Adicionar checkbox "Não perguntar novamente nesta sessão" (estado em `sessionStorage`, escopo: `agent_traces`).
+- Botão de confirmação destrutivo (vermelho); cancelar mantém tudo.
 
-**2. Render do bloco** (entre a identidade e a Missão, ~35 linhas):
+---
 
-```tsx
-<div className="space-y-2 pt-2 border-t border-border/50">
-  <div className="flex items-center gap-1.5">
-    <Coins className="h-3 w-3 text-nexus-amber" />
-    <p className="text-[10px] uppercase tracking-wider text-muted-foreground">
-      Custo estimado por execução
-    </p>
-    <Tooltip>
-      <TooltipTrigger className="ml-auto text-muted-foreground hover:text-foreground">
-        <Info className="h-3 w-3" />
-      </TooltipTrigger>
-      <TooltipContent className="max-w-[260px] text-xs">
-        Estimativa com base no prompt atual + input médio do tipo "{debounced.type}".
-        Custo real varia conforme input do usuário e tamanho da resposta.
-      </TooltipContent>
-    </Tooltip>
-  </div>
+### Ordem de execução (sequencial, autônoma)
 
-  <div className={`font-mono text-xs ${tierColor}`}>
-    ~{cost.totalTokens.toLocaleString('pt-BR')} tokens · US$ {cost.costUsd.toFixed(4)} ·
-    R$ {cost.costBrl.toFixed(2).replace('.', ',')} · ~{(cost.estLatencyMs / 1000).toFixed(1)}s
-  </div>
+1. **Migração SQL**: criar `user_filter_preferences` + RLS + índice por `(user_id, scope)`.
+2. **Serviço + hook**: `userFilterPreferencesService.ts` e `useFilterPersistence.ts` com fallback localStorage.
+3. **Integrar em AgentTracesPage**: hidratação + persistência debounced + indicador de sync.
+4. **Refator `handleClearFilters`**: snapshot → ConfirmDialog → reset → toast custom com detalhamento + Undo (5s).
+5. **Wrap dos gatilhos** em ConfirmDialog (com bypass por sessionStorage).
+6. **Testes**: unit do hook (hidrata Cloud, fallback localStorage, persiste debounced) + integração da UI (modal abre, undo restaura, toast lista campos).
 
-  {/* Barra entrada/saída */}
-  <div className="flex h-1.5 rounded-full overflow-hidden bg-secondary/40" aria-hidden>
-    <div className="bg-primary/70" style={{ width: `${inputPct}%` }} />
-    <div className="bg-nexus-amber/70" style={{ width: `${100 - inputPct}%` }} />
-  </div>
-  <div className="flex justify-between text-[10px] font-mono text-muted-foreground">
-    <span>entrada {cost.inputTokens.toLocaleString('pt-BR')}</span>
-    <span>saída {cost.outputTokens.toLocaleString('pt-BR')}</span>
-  </div>
+### Arquivos afetados
 
-  <p className="text-[10px] text-muted-foreground pt-0.5 border-t border-border/30">
-    Em {dailyExecs} execuções/dia: <span className="font-mono">US$ {dailyUsd.toFixed(2)}</span> ·
-    <span className="font-mono"> R$ {dailyBrl.toFixed(2).replace('.', ',')}/dia</span>
-  </p>
-</div>
-```
+Criados:
+- `supabase/migrations/<ts>_user_filter_preferences.sql`
+- `src/services/userFilterPreferencesService.ts`
+- `src/hooks/useFilterPersistence.ts`
+- `src/components/agents/traces/ClearFiltersToast.tsx` (toast custom com Undo)
+- `src/components/agents/traces/ClearFiltersConfirm.tsx` (wrapper ConfirmDialog)
+- Testes correspondentes em `__tests__/`
 
-**3. Edge cases**:
-- Prompt vazio → custo ~$0.0001 (só system mínimo); bloco renderiza normalmente em verde.
-- Modelo não mapeado em `LLM_PRICING` → `getModelPrice` faz fallback pra `gemini-2.5-flash` (já implementado).
-- `mockInput` indisponível pro tipo → usa string vazia (custo só do system prompt + output estimado).
+Editados:
+- `src/pages/AgentTracesPage.tsx` (handleClearFilters, hidratação, indicador)
+- `src/components/agents/traces/ExecutionList.tsx` (passar trigger ao ConfirmDialog em vez de callback direto)
 
-### Casos cobertos
+### Observações técnicas
 
-| Cenário | O que aparece |
-|---|---|
-| Prompt curto (500 chars) + Gemini Flash | `~830 tokens · US$ 0.0005 · R$ 0,00 · ~0.9s` (verde). |
-| Prompt grande (4.000 chars) + GPT-5 | `~1.700 tokens · US$ 0.0103 · R$ 0,05 · ~3.4s` (âmbar). |
-| Prompt enorme + GPT-5.2 + 4 ferramentas | `~3.900 tokens · US$ 0.0234 · R$ 0,12 · ~3.6s` (âmbar/vermelho). |
-| Trocou modelo de Pro → Flash | Bloco pulsa, valores caem na hora. |
-| Adicionou 1.000 chars no prompt | Tokens de entrada sobem em ~250, custo recalcula. |
-
-### Arquivos tocados
-
-- **Editar** `src/components/agents/wizard/quickSteps/AgentLivePreviewCard.tsx` — 3 imports + ~50 linhas de hook/render.
-
-### Impacto
-
-- **Zero schema/backend, zero dependência nova.**
-- **Zero quebra**: 100% aditivo no card existente; reaproveita `useCostEstimate` + `llmPricing` + `QUICK_AGENT_MOCK_INPUTS` sem tocá-los.
-- Resolve o ponto cego financeiro: o usuário vê **na hora** que trocar Gemini Flash por GPT-5.2 multiplica o custo por 20x — e decide com dado, não no susto da fatura.
+- Debounce de 800ms na escrita Cloud evita spam de UPDATEs ao digitar na busca.
+- Snapshot do undo vive em `useRef` (não dispara re-render) com timeout de 5s que limpa o ref.
+- O toast usa `toast.custom` (Sonner) para acomodar lista de campos + botão Undo + duração 7s (5s undo + 2s grace).
+- `ConfirmDialog` já existe e segue o design system — sem necessidade de novo componente Radix.
 
