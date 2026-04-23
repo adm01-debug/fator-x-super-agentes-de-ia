@@ -18,7 +18,8 @@ import { VersionDetailPanel } from "@/components/agents/versioning/VersionDetail
 import { VersionComparePanel } from "@/components/agents/versioning/VersionComparePanel";
 import { NewVersionDialog } from "@/components/agents/versioning/NewVersionDialog";
 import { TimelinePresetBar } from "@/components/agents/versioning/TimelinePresetBar";
-import { TIMELINE_PRESETS, getPresetById, matchesPreset } from "@/components/agents/versioning/timelineFilters";
+import { TIMELINE_PRESETS, getPresetById, matchesPreset, getVersionTags, type TimelineTag } from "@/components/agents/versioning/timelineFilters";
+import { EventTypeFilter } from "@/components/agents/versioning/EventTypeFilter";
 import {
   TimelineRangeFilter,
   filterByRange,
