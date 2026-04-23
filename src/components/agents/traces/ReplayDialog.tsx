@@ -11,6 +11,7 @@ import type { ExecutionGroup, TraceLevel } from '@/services/agentTracesService';
 import { downloadJSON } from '@/lib/agentExportImport';
 import { toast } from 'sonner';
 import { listBookmarks, type TraceBookmark } from '@/lib/traceBookmarks';
+import { loadReplayState, saveReplayState } from '@/lib/replayState';
 import { BookmarkButton } from './BookmarkButton';
 import { TraceCompareDialog } from './TraceCompareDialog';
 import { cn } from '@/lib/utils';
@@ -176,12 +177,28 @@ export function ReplayDialog({ open, onOpenChange, execution, initialStep = 0, o
   }, [step, traces]);
 
   // Sync starting step on open / execution change / requested initialStep change.
+  // Restaura step + velocidade + playing salvos para esta execução. Se o
+  // chamador passou um `initialStep` explícito (≠ 0), ele tem prioridade
+  // sobre o estado salvo — esse é o caminho de "abrir no passo X" via timeline.
   useEffect(() => {
     if (!open) return;
-    const clamped = Math.max(0, Math.min(initialStep, Math.max(0, total - 1)));
+    const saved = sessionId ? loadReplayState(sessionId) : null;
+    const explicitInitial = initialStep > 0;
+    const baseStep = explicitInitial ? initialStep : (saved?.step ?? 0);
+    const clamped = Math.max(0, Math.min(baseStep, Math.max(0, total - 1)));
     setStep(clamped);
-    setPlaying(false);
-  }, [open, execution?.session_id, initialStep, total]);
+    setSpeed(saved?.speed ?? 1);
+    // Não auto-tocamos ao reabrir mesmo se estava tocando — evita som/CPU
+    // surpresa. Mas se o usuário quiser podemos respeitar saved.playing:
+    setPlaying(saved?.playing ?? false);
+  }, [open, sessionId, initialStep, total]);
+
+  // Persistência: salva sempre que step/playing/speed mudam com o dialog aberto.
+  // Skip durante execução vazia (sem session) ou enquanto fechado.
+  useEffect(() => {
+    if (!open || !sessionId || total === 0) return;
+    saveReplayState(sessionId, { step, playing, speed });
+  }, [open, sessionId, step, playing, speed, total]);
 
   // Notify parent on every step change while the dialog is open so the external
   // timeline stays highlighted in sync with the replay.
