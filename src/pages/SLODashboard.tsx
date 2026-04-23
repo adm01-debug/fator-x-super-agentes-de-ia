@@ -328,6 +328,16 @@ export default function SLODashboard() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [searchParams]);
 
+  // Persist the window name per-user so opening the page in a new tab keeps
+  // the last-used label even before any URL is loaded.
+  useEffect(() => {
+    const trimmed = sanitizeWindowName(windowName);
+    try {
+      if (trimmed) localStorage.setItem(WINDOW_NAME_STORAGE_KEY, trimmed);
+      else localStorage.removeItem(WINDOW_NAME_STORAGE_KEY);
+    } catch { /* quota / disabled — silently ignore */ }
+  }, [windowName]);
+
   const load = useCallback(async (showSpinner = false) => {
     if (showSpinner) setRefreshing(true);
     try {
