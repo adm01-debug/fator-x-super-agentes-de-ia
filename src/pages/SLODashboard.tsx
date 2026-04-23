@@ -531,6 +531,25 @@ export default function SLODashboard() {
     (p) => classifyBucket(p).length > 0,
   ).length;
 
+  /**
+   * Per-mode violation counts (independent of the active filter set) so the
+   * breakdown table always shows all three modes side by side. A single bucket
+   * can count toward multiple modes (e.g. an error bucket that's also slow).
+   */
+  const countByMode = useCallback((series: SLOSummary['timeseries'] | undefined) => {
+    const acc: Record<FailureMode, number> = { error: 0, critical: 0, latency: 0 };
+    for (const p of series ?? []) {
+      if (p.errors > 0) acc.error += 1;
+      if (p.p95_ms > SLO_TARGETS.p99LatencyMs) acc.critical += 1;
+      if (p.p95_ms > SLO_TARGETS.p95LatencyMs) acc.latency += 1;
+    }
+    return acc;
+  }, []);
+  const modeCountsCurrent = countByMode(summary?.timeseries);
+  const modeCountsCompare = compareSummary ? countByMode(compareSummary.timeseries) : null;
+  const totalBucketsCurrent = summary?.timeseries.length ?? 0;
+  const totalBucketsCompare = compareSummary?.timeseries.length ?? 0;
+
   return (
     <div className="space-y-6 p-6 page-enter">
       <div className="flex items-center justify-between">
