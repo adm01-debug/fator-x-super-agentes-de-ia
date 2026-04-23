@@ -1,7 +1,7 @@
-import { useMemo } from 'react';
-import { ArrowRight, Plus, Minus, Pencil, MessageSquare, Wrench, Cpu, CheckCircle2 } from 'lucide-react';
+import { useMemo, useState } from 'react';
+import { ArrowRight, Plus, Minus, Pencil, MessageSquare, Wrench, Cpu, CheckCircle2, Filter, ShieldAlert, AlertTriangle, Info, ShieldCheck } from 'lucide-react';
 import type { AgentVersion } from '@/services/agentsService';
-import { computeRestoreDiff, type FieldChange } from './restoreDiffHelpers';
+import { computeRestoreDiff, type FieldChange, type RiskLevel } from './restoreDiffHelpers';
 
 interface Props {
   current: AgentVersion | null | undefined;
@@ -21,6 +21,41 @@ const KIND_META: Record<FieldChange['kind'], { icon: typeof Plus; tone: string; 
   modified: { icon: Pencil, tone: 'text-primary bg-primary/10 border-primary/30', label: 'Alterado' },
 };
 
+// Metadados por nível de risco — usados no filtro e no badge de cada item.
+// Ordem importa: 'critical' primeiro nos toggles para hierarquia visual.
+const RISK_META: Record<RiskLevel, { label: string; tone: string; chipTone: string; icon: typeof ShieldAlert }> = {
+  critical: { label: 'Crítico', tone: 'text-destructive', chipTone: 'bg-destructive/15 text-destructive border-destructive/40', icon: ShieldAlert },
+  high: { label: 'Alto', tone: 'text-nexus-amber', chipTone: 'bg-nexus-amber/15 text-nexus-amber border-nexus-amber/40', icon: AlertTriangle },
+  medium: { label: 'Médio', tone: 'text-primary', chipTone: 'bg-primary/15 text-primary border-primary/40', icon: Info },
+  low: { label: 'Baixo', tone: 'text-muted-foreground', chipTone: 'bg-muted text-muted-foreground border-border/60', icon: ShieldCheck },
+};
+
+const RISK_ORDER: RiskLevel[] = ['critical', 'high', 'medium', 'low'];
+
+// Presets do filtro: "Só alto risco" é o pedido principal; "Tudo" e "Só crítico"
+// cobrem os extremos. Usuários ainda podem alternar individualmente cada nível.
+type RiskPreset = 'all' | 'high_critical' | 'critical_only' | 'medium_low' | 'custom';
+
+const PRESET_SETS: Record<Exclude<RiskPreset, 'custom'>, Set<RiskLevel>> = {
+  all: new Set(['critical', 'high', 'medium', 'low']),
+  high_critical: new Set(['critical', 'high']),
+  critical_only: new Set(['critical']),
+  medium_low: new Set(['medium', 'low']),
+};
+
+function setsEqual(a: Set<RiskLevel>, b: Set<RiskLevel>): boolean {
+  if (a.size !== b.size) return false;
+  for (const v of a) if (!b.has(v)) return false;
+  return true;
+}
+
+function detectPreset(active: Set<RiskLevel>): RiskPreset {
+  for (const key of Object.keys(PRESET_SETS) as Array<Exclude<RiskPreset, 'custom'>>) {
+    if (setsEqual(active, PRESET_SETS[key])) return key;
+  }
+  return 'custom';
+}
+
 function preview(v: unknown, max = 70): string {
   if (v === null || v === undefined || v === '') return '—';
   if (Array.isArray(v)) {
@@ -33,14 +68,51 @@ function preview(v: unknown, max = 70): string {
 
 export function RestoreDiffPreview({ current, source, options }: Props) {
   const diff = useMemo(() => computeRestoreDiff(current, source, options), [current, source, options]);
+
+  // Default: mostrar tudo. Usuário pode focar em alto/crítico para revisar
+  // riscos primeiro, ou inverter para auditar mudanças cosméticas (médio/baixo).
+  const [activeRisks, setActiveRisks] = useState<Set<RiskLevel>>(() => new Set(RISK_ORDER));
+
+  // Contagem por nível ANTES do filtro — usada nos toggles para mostrar
+  // quantos itens existem em cada bucket (ex.: "Crítico (2)").
+  const riskCounts = useMemo(() => {
+    const counts: Record<RiskLevel, number> = { critical: 0, high: 0, medium: 0, low: 0 };
+    diff.changes.forEach((c) => { counts[c.risk] += 1; });
+    return counts;
+  }, [diff.changes]);
+
+  const filteredChanges = useMemo(
+    () => diff.changes.filter((c) => activeRisks.has(c.risk)),
+    [diff.changes, activeRisks],
+  );
+
   const grouped = useMemo(() => {
     const map = new Map<FieldChange['group'], FieldChange[]>();
-    diff.changes.forEach((c) => {
+    filteredChanges.forEach((c) => {
       if (!map.has(c.group)) map.set(c.group, []);
       map.get(c.group)!.push(c);
     });
     return map;
-  }, [diff.changes]);
+  }, [filteredChanges]);
+
+  const currentPreset = detectPreset(activeRisks);
+  const hiddenCount = diff.changes.length - filteredChanges.length;
+
+  const applyPreset = (preset: Exclude<RiskPreset, 'custom'>) => {
+    setActiveRisks(new Set(PRESET_SETS[preset]));
+  };
+
+  const toggleRisk = (level: RiskLevel) => {
+    setActiveRisks((prev) => {
+      const next = new Set(prev);
+      if (next.has(level)) next.delete(level);
+      else next.add(level);
+      // Garante que sempre haja pelo menos um nível ativo — caso contrário
+      // o painel ficaria sem sinal e o usuário precisaria adivinhar como voltar.
+      if (next.size === 0) return prev;
+      return next;
+    });
+  };
 
   if (diff.changes.length === 0) {
     return (
