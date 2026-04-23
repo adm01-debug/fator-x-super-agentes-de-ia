@@ -16,6 +16,8 @@ import { RestoreDiffPreview } from "@/components/agents/detail/RestoreDiffPrevie
 import { BehaviorImpactPanel } from "@/components/agents/detail/BehaviorImpactPanel";
 import { RestoreChangelogEditor, buildAutoSummary } from "@/components/agents/detail/RestoreChangelogEditor";
 import { computeRestoreDiff } from "@/components/agents/detail/restoreDiffHelpers";
+import { validateRestore } from "@/components/agents/detail/restoreValidation";
+import { RestoreValidationPanel } from "@/components/agents/detail/RestoreValidationPanel";
 import { RestoreHistorySection } from "@/components/agents/detail/RestoreHistorySection";
 import { simulateAgentRun, type SimulationSummary } from "@/services/agentTestSimulationService";
 import {
