@@ -10,6 +10,7 @@ export type TimelineTag =
   | 'tools'
   | 'model'
   | 'guardrails'
+  | 'rag'
   | 'rollback'
   | 'failure';
 
