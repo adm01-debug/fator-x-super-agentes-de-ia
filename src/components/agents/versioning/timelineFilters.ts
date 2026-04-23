@@ -77,6 +77,7 @@ export function getVersionTags(v: AgentVersion): Set<TimelineTag> {
   if (/tool|ferramenta/.test(haystack)) tags.add('tools');
   if (/model|gpt|claude|gemini|llama|temperature|max[_ ]tokens|par(â|a)metro/.test(haystack)) tags.add('model');
   if (/guardrail|policy|pol(í|i)tica|safety|seguran(ç|c)a/.test(haystack)) tags.add('guardrails');
+  if (/\brag\b|retrieval|knowledge[_ ]?base|kb |embedding|vetor|chunk|reranker/.test(haystack)) tags.add('rag');
   if (/restaurad|rollback|revert/.test(haystack)) tags.add('rollback');
   if (/falha|fail|regress|erro|bug/.test(haystack)) tags.add('failure');
 
