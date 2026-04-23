@@ -2,7 +2,7 @@ import { useState, useMemo, useId } from 'react';
 import { useChartDimensions } from './useChartDimensions';
 import { ChartTooltip } from './ChartTooltip';
 import { ChartLegend } from './ChartLegend';
-import type { ChartMargin, TooltipExtraSection, TooltipState } from './types';
+import type { ChartMargin, TooltipExtraSection } from './types';
 
 interface AreaSeries {
   dataKey: string;
