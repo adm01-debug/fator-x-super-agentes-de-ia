@@ -235,6 +235,28 @@ export function computeRestoreDiff(
       const reasonParts: string[] = [];
       if (toolsRemoved.length) reasonParts.push(`${toolsRemoved.length} tool(s) removida(s)`);
       if (toolsAdded.length) reasonParts.push(`${toolsAdded.length} tool(s) adicionada(s)`);
+      const toolsCriteria: RiskCriterion[] = [];
+      if (toolsRemoved.length) {
+        toolsCriteria.push({
+          label: 'Tools removidas (perda de capability)',
+          points: removalScore,
+          detail: `${toolsRemoved.length} × 25 pts (cap 60): ${toolsRemoved.slice(0, 3).join(', ')}${toolsRemoved.length > 3 ? '…' : ''}`,
+        });
+      }
+      if (toolsAdded.length) {
+        toolsCriteria.push({
+          label: 'Tools adicionadas',
+          points: additionScore,
+          detail: `${toolsAdded.length} × 10 pts (cap 30): ${toolsAdded.slice(0, 3).join(', ')}${toolsAdded.length > 3 ? '…' : ''}`,
+        });
+      }
+      if (ratioBoost > 0) {
+        toolsCriteria.push({
+          label: 'Proporção sobre o conjunto atual',
+          points: ratioBoost,
+          detail: `${totalChanged}/${curSize} tools afetadas`,
+        });
+      }
       push({
         field: 'tools',
         label: 'Ferramentas',
@@ -246,6 +268,7 @@ export function computeRestoreDiff(
           : 'modified',
         impact,
         reason: reasonParts.join(' · '),
+        criteria: toolsCriteria,
       });
       toolsHasChange = true;
     }
