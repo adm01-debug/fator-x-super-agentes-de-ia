@@ -433,6 +433,14 @@ function VersionHistory({ agentId }: { agentId: string }) {
                       source={previous}
                       options={restoreOptions}
                     />
+                    {/* Etapa extra de confirmação para risco high/critical:
+                        lista os badges vermelho/âmbar e exige checkbox de revisão. */}
+                    <HighRiskAcknowledge
+                      diff={restoreDiff}
+                      acknowledged={riskAck}
+                      onAcknowledgedChange={setRiskAck}
+                      disabled={rollbackMut.isPending}
+                    />
                     {/* Impacto operacional — traduz a diff de configuração em
                         consequências reais (sessões afetadas, tools em uso,
                         métricas de modelo) puxando traces dos últimos 7d. */}
