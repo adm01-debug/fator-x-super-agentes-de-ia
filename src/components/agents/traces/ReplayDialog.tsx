@@ -236,13 +236,24 @@ export function ReplayDialog({ open, onOpenChange, execution, initialStep = 0, o
       } else if (e.key === 'B' && bookmarks.length > 0) {
         e.preventDefault();
         jumpBookmark(-1);
+      } else if (e.key === '/') {
+        // Foca o input de busca — convenção comum (gh, gmail, etc).
+        e.preventDefault();
+        searchInputRef.current?.focus();
+        searchInputRef.current?.select();
+      } else if (e.key === 'n' && matchIndexes.length > 0) {
+        e.preventDefault();
+        jumpMatch(1);
+      } else if (e.key === 'N' && matchIndexes.length > 0) {
+        e.preventDefault();
+        jumpMatch(-1);
       }
     };
     window.addEventListener('keydown', handler);
     return () => window.removeEventListener('keydown', handler);
-    // jumpBookmark closes over `step` but we read from setState callbacks; bookmarks list change retriggers.
+    // jumpBookmark/jumpMatch read from setState callbacks; bookmarks/matchIndexes change retriggers.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [open, total, bookmarks, step]);
+  }, [open, total, bookmarks, step, matchIndexes]);
 
   if (!execution) return null;
 
