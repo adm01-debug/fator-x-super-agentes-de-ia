@@ -35,6 +35,14 @@ const LEVEL_ICON: Record<TraceLevel, JSX.Element> = {
   error: <XCircle className="h-3.5 w-3.5 text-destructive" aria-hidden />,
 };
 
+/**
+ * Velocidades disponíveis no player. A ordem importa: o atalho `+`/`-` move
+ * pelo array (com clamp nas pontas), e o select renderiza nesta ordem.
+ * 1x é o "default" e o destino do atalho `0` (reset).
+ */
+const SPEEDS = [0.5, 1, 1.5, 2, 4] as const;
+const DEFAULT_SPEED = 1;
+
 export function ReplayDialog({ open, onOpenChange, execution, initialStep = 0, onStepChange }: Props) {
   const [step, setStep] = useState(0);
   const [playing, setPlaying] = useState(false);
@@ -264,6 +272,26 @@ export function ReplayDialog({ open, onOpenChange, execution, initialStep = 0, o
       } else if (e.key === 'N' && matchIndexes.length > 0) {
         e.preventDefault();
         jumpMatch(-1);
+      } else if (e.key === '+' || e.key === '=' || (e.key === 'ArrowUp' && e.shiftKey)) {
+        // Acelera (vai para a próxima velocidade do array). `=` cobre teclados
+        // onde `+` exige Shift sem que precisemos checar o modificador.
+        e.preventDefault();
+        setSpeed((s) => {
+          const i = SPEEDS.indexOf(s as typeof SPEEDS[number]);
+          if (i === -1) return DEFAULT_SPEED;
+          return SPEEDS[Math.min(SPEEDS.length - 1, i + 1)];
+        });
+      } else if (e.key === '-' || e.key === '_' || (e.key === 'ArrowDown' && e.shiftKey)) {
+        e.preventDefault();
+        setSpeed((s) => {
+          const i = SPEEDS.indexOf(s as typeof SPEEDS[number]);
+          if (i === -1) return DEFAULT_SPEED;
+          return SPEEDS[Math.max(0, i - 1)];
+        });
+      } else if (e.key === '0') {
+        // Reset rápido para 1x — útil depois de "perder" a velocidade default.
+        e.preventDefault();
+        setSpeed(DEFAULT_SPEED);
       }
     };
     window.addEventListener('keydown', handler);
@@ -428,10 +456,9 @@ export function ReplayDialog({ open, onOpenChange, execution, initialStep = 0, o
             <Select value={String(speed)} onValueChange={(v) => setSpeed(Number(v))}>
               <SelectTrigger className="h-8 w-[80px] text-xs"><SelectValue /></SelectTrigger>
               <SelectContent>
-                <SelectItem value="0.5">0.5x</SelectItem>
-                <SelectItem value="1">1x</SelectItem>
-                <SelectItem value="2">2x</SelectItem>
-                <SelectItem value="4">4x</SelectItem>
+                {SPEEDS.map((s) => (
+                  <SelectItem key={s} value={String(s)}>{s}x</SelectItem>
+                ))}
               </SelectContent>
             </Select>
           </div>
