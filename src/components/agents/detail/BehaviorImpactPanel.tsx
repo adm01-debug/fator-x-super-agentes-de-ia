@@ -14,7 +14,7 @@
  */
 import { useQuery } from '@tanstack/react-query';
 import { useMemo } from 'react';
-import { Activity, AlertTriangle, Cpu, FileText, Loader2, MessageSquare, Wrench, ArrowRight, Sparkles } from 'lucide-react';
+import { Activity, AlertTriangle, Cpu, Loader2, MessageSquare, Wrench, ArrowRight, Sparkles } from 'lucide-react';
 import {
   getAgentBehaviorImpact,
   type AgentBehaviorImpact,
@@ -362,7 +362,7 @@ function ModelImpactCard({ data, diff }: { data: AgentBehaviorImpact; diff: Rest
             ))}
           </ul>
           <p className="text-[10px] text-muted-foreground italic mt-1">
-            {c => 'Esses ajustes alteram criatividade, tamanho e profundidade das respostas em todas as próximas execuções.'}
+            Esses ajustes alteram criatividade, tamanho e profundidade das respostas em todas as próximas execuções.
           </p>
         </div>
       )}
