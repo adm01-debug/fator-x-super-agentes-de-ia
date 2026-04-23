@@ -6,7 +6,7 @@
  */
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { useSearchParams, Link } from 'react-router-dom';
-import { Activity, AlertTriangle, Check, Download, Link2, RefreshCw, TrendingUp, Zap } from 'lucide-react';
+import { Activity, AlertTriangle, Check, Download, Link2, RefreshCw, TrendingUp, Wrench, Zap } from 'lucide-react';
 import { LightAreaChart } from '@/components/charts';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -48,6 +48,8 @@ const QP_COMPARE = 'cmp';
 const QP_FAILURE_MODES = 'fm';
 const QP_NAME = 'n';
 const QP_SELECTED = 'sel';
+/** Drill-down toggle: include tool failures in error counts / latency percentiles. */
+const QP_INCLUDE_TOOLS = 'tools';
 
 /** UUID v4 sanity check — keeps malicious / malformed values out of state. */
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
@@ -302,6 +304,14 @@ export default function SLODashboard() {
     });
   }, []);
 
+  // Drill-down toggle — when off, tool-failure traces are excluded from error
+  // counts and latency percentiles used by the contributors ranking. Default ON
+  // (matches the previous behaviour of `error_count` including everything).
+  const [includeToolFailures, setIncludeToolFailures] = useState<boolean>(() => {
+    const raw = searchParams.get(QP_INCLUDE_TOOLS);
+    return raw === '0' ? false : true;
+  });
+
   const [lastRefreshAt, setLastRefreshAt] = useState<Date | null>(null);
   // Re-renders the "X seg atrás" pill once a second without re-fetching data.
   const [, setNowTick] = useState(0);
@@ -347,12 +357,16 @@ export default function SLODashboard() {
     if (!selClean) next.delete(QP_SELECTED);
     else next.set(QP_SELECTED, selClean);
 
+    // Tool-failure inclusion toggle: only serialize when toggled OFF (default ON).
+    if (includeToolFailures) next.delete(QP_INCLUDE_TOOLS);
+    else next.set(QP_INCLUDE_TOOLS, '0');
+
     // Avoid an infinite update loop: only call setSearchParams when the
     // serialized result actually differs from what's already in the URL.
     if (next.toString() !== searchParams.toString()) {
       setSearchParams(next, { replace: true });
     }
-  }, [windowHours, autoRefreshMs, compareHours, failureModes, windowName, selectedAgentId, searchParams, setSearchParams]);
+  }, [windowHours, autoRefreshMs, compareHours, failureModes, windowName, selectedAgentId, includeToolFailures, searchParams, setSearchParams]);
 
   // React to back/forward navigation (or another link that mutates the URL)
   // by re-reading the params into local state.
@@ -823,12 +837,26 @@ export default function SLODashboard() {
             // Average baseline from comparison window — represents "normal"
             // behavior. Buckets are scored by absolute distance from baseline
             // (signed so we can show whether they pushed the metric up/down).
+            //
+            // When `includeToolFailures` is OFF, we use the RPC's `*_no_tools`
+            // percentiles and `non_tool_errors` counts so the contributors
+            // ranking reflects only non-tool failures. Falls back gracefully
+            // for clients connected to an older RPC that doesn't expose them.
             const cmpBuckets = compareSummary.timeseries ?? [];
+            const pickP95 = (b: typeof cmpBuckets[number]): number =>
+              includeToolFailures
+                ? b.p95_ms
+                : (b.p95_ms_no_tools ?? b.p95_ms);
+            const pickErrors = (b: typeof cmpBuckets[number]): number =>
+              includeToolFailures
+                ? b.errors
+                : (b.non_tool_errors ?? b.errors);
+
             const baselineP95 = cmpBuckets.length
-              ? cmpBuckets.reduce((s, b) => s + b.p95_ms, 0) / cmpBuckets.length
+              ? cmpBuckets.reduce((s, b) => s + pickP95(b), 0) / cmpBuckets.length
               : 0;
             const baselineErrors = cmpBuckets.length
-              ? cmpBuckets.reduce((s, b) => s + b.errors, 0) / cmpBuckets.length
+              ? cmpBuckets.reduce((s, b) => s + pickErrors(b), 0) / cmpBuckets.length
               : 0;
 
             type Contributor = {
@@ -837,106 +865,69 @@ export default function SLODashboard() {
               detail: string;
               delta: number;
               deltaLabel: string;
-              /** Share of total impact (0–100). Drives the ranking. */
-              impactPct: number;
               href: string;
               worse: boolean;
             };
 
-            /**
-             * Rank by *relative impact* — share of the total movement away
-             * from baseline — instead of raw absolute deviation. This way a
-             * 200ms spike in a quiet window outranks a 50ms blip from a
-             * busy one when it dominates the delta.
-             *
-             * Definition: impactPct = |delta_i| / Σ|delta_j| × 100, computed
-             * over buckets that moved in the *worse* direction (so neutral
-             * or improving buckets don't dilute the share). When everything
-             * is neutral we fall back to the unsigned deviation share.
-             */
-            const computeImpactShares = <T,>(
-              items: Array<{ row: T; delta: number }>,
-              opts: { worseSign: 1 | -1 } = { worseSign: 1 },
-            ): Array<{ row: T; delta: number; impactPct: number }> => {
-              const worseItems = items.filter((i) => i.delta * opts.worseSign > 0);
-              const pool = worseItems.length ? worseItems : items;
-              const totalAbs = pool.reduce((s, i) => s + Math.abs(i.delta), 0);
-              return items.map((i) => ({
-                ...i,
-                impactPct: totalAbs > 0 ? (Math.abs(i.delta) / totalAbs) * 100 : 0,
-              }));
-            };
-
-            const fmtImpact = (pct: number) =>
-              pct >= 10 ? `${pct.toFixed(0)}%` : `${pct.toFixed(1)}%`;
-
-            // Latency: rank by share of upward P95 deviation from baseline.
-            const topLatency: Contributor[] = computeImpactShares(
-              buckets.map((b) => ({ row: b, delta: b.p95_ms - baselineP95 })),
-            )
-              .sort((a, b) => b.impactPct - a.impactPct || Math.abs(b.delta) - Math.abs(a.delta))
+            // Top 3 buckets that drove P95 the hardest (absolute deviation
+            // from comparison baseline). Sign tells us if it's regression.
+            const topLatency: Contributor[] = [...buckets]
+              .map((b) => {
+                const p95 = pickP95(b);
+                return { bucket: b, p95, delta: p95 - baselineP95 };
+              })
+              .sort((a, b) => Math.abs(b.delta) - Math.abs(a.delta))
               .slice(0, 3)
               .map((row) => ({
-                key: row.row.bucket_hour,
-                label: fmtBucketLabel(row.row.bucket_hour),
-                detail: `P95 ${row.row.p95_ms}ms · ${row.row.total} traces`,
+                key: row.bucket.bucket_hour,
+                label: fmtBucketLabel(row.bucket.bucket_hour),
+                detail: `P95 ${row.p95}ms · ${row.bucket.total} traces` +
+                  (includeToolFailures ? '' : ' · sem tools'),
                 delta: row.delta,
-                deltaLabel:
-                  `${fmtImpact(row.impactPct)} do delta · ` +
-                  `${row.delta > 0 ? '+' : ''}${Math.round(row.delta)}ms`,
-                impactPct: row.impactPct,
-                href: bucketHref(row.row.bucket_hour),
+                deltaLabel: `${row.delta > 0 ? '+' : ''}${Math.round(row.delta)}ms vs baseline`,
+                href: bucketHref(row.bucket.bucket_hour),
                 worse: row.delta > 0,
               }));
 
-            // Errors: rank by share of error-volume above baseline.
-            const topErrors: Contributor[] = computeImpactShares(
-              buckets
-                .filter((b) => b.errors > 0)
-                .map((b) => ({ row: b, delta: b.errors - baselineErrors })),
-            )
-              .sort((a, b) => b.impactPct - a.impactPct || b.delta - a.delta)
+            // Top 3 buckets contributing the most errors above baseline.
+            const topErrors: Contributor[] = [...buckets]
+              .map((b) => {
+                const errs = pickErrors(b);
+                return { bucket: b, errs, delta: errs - baselineErrors };
+              })
+              .filter((row) => row.errs > 0)
+              .sort((a, b) => b.delta - a.delta)
               .slice(0, 3)
               .map((row) => ({
-                key: row.row.bucket_hour,
-                label: fmtBucketLabel(row.row.bucket_hour),
-                detail: `${row.row.errors} erros em ${row.row.total} traces`,
+                key: row.bucket.bucket_hour,
+                label: fmtBucketLabel(row.bucket.bucket_hour),
+                detail: `${row.errs} ${includeToolFailures ? 'erros' : 'erros (não-tool)'} em ${row.bucket.total} traces`,
                 delta: row.delta,
-                deltaLabel:
-                  `${fmtImpact(row.impactPct)} do delta · ` +
-                  `${row.delta > 0 ? '+' : ''}${row.delta.toFixed(1)} vs média`,
-                impactPct: row.impactPct,
-                href: bucketHref(row.row.bucket_hour),
+                deltaLabel: `${row.delta > 0 ? '+' : ''}${row.delta.toFixed(1)} vs média`,
+                href: bucketHref(row.bucket.bucket_hour),
                 worse: row.delta > 0,
               }));
 
-            // Agents: no per-agent baseline available, so impact = share of
-            // P95-ms *above target*. Agents within budget get 0% (they aren't
-            // contributing to the regression).
-            const agentItems = (summary.top_agents ?? []).map((a) => ({
-              row: a,
-              delta: Math.max(0, a.p95_ms - SLO_TARGETS.p95LatencyMs),
-            }));
-            const totalAgentImpact = agentItems.reduce((s, i) => s + i.delta, 0);
-            const topAgents: Contributor[] = agentItems
-              .map((i) => ({
-                ...i,
-                impactPct: totalAgentImpact > 0 ? (i.delta / totalAgentImpact) * 100 : 0,
-              }))
-              .sort((a, b) => b.impactPct - a.impactPct || b.row.p95_ms - a.row.p95_ms)
+            // Top 3 agents pulling P95 up — straight from the RPC's top_agents.
+            // The agent-level percentiles aren't recomputed without tools (the
+            // RPC doesn't expose that), so when the toggle is off we filter the
+            // displayed error count to non-tool only and label it accordingly.
+            const topAgents: Contributor[] = (summary.top_agents ?? [])
               .slice(0, 3)
-              .map((row) => ({
-                key: row.row.agent_id,
-                label: row.row.agent_name,
-                detail: `${row.row.traces} traces · ${row.row.errors} erros · ${(row.row.success_rate ?? 100).toFixed(1)}% sucesso`,
-                delta: row.row.p95_ms,
-                deltaLabel: row.impactPct > 0
-                  ? `${fmtImpact(row.impactPct)} acima da meta · P95 ${row.row.p95_ms}ms`
-                  : `Dentro da meta · P95 ${row.row.p95_ms}ms`,
-                impactPct: row.impactPct,
-                href: `/agents/${row.row.agent_id}/traces`,
-                worse: row.row.p95_ms > SLO_TARGETS.p95LatencyMs,
-              }));
+              .map((a) => {
+                const errCount = includeToolFailures
+                  ? a.errors
+                  : (a.non_tool_errors ?? a.errors);
+                return {
+                  key: a.agent_id,
+                  label: a.agent_name,
+                  detail: `${a.traces} traces · ${errCount} ${includeToolFailures ? 'erros' : 'erros (não-tool)'} · ${(a.success_rate ?? 100).toFixed(1)}% sucesso`,
+                  delta: a.p95_ms,
+                  deltaLabel: `P95 ${a.p95_ms}ms`,
+                  href: `/agents/${a.agent_id}/traces`,
+                  worse: a.p95_ms > SLO_TARGETS.p95LatencyMs,
+                };
+              });
 
             const sections: Array<{ title: string; kpi: string; rows: Contributor[]; empty: string }> = [
               { title: 'Latência (P95)', kpi: 'P95', rows: topLatency, empty: 'Sem buckets com latência registrada.' },
@@ -995,25 +986,55 @@ export default function SLODashboard() {
                         Drill-down do delta
                       </CardTitle>
                       <CardDescription>
-                        Top 3 contribuintes por <span className="font-medium text-foreground">impacto relativo</span>{' '}
-                        (% do delta) vs. baseline de {windowLabel(compareHours)}.
+                        Top 3 contribuintes para cada KPI vs. baseline de {windowLabel(compareHours)}.
                         Clique em um item para abrir os traces relacionados.
                       </CardDescription>
                     </div>
-                    <Button
-                      type="button"
-                      variant="outline"
-                      size="sm"
-                      onClick={handleExportPdf}
-                      disabled={totalRows === 0}
-                      className="shrink-0 gap-1.5"
-                      title={totalRows === 0
-                        ? 'Sem contribuintes para exportar'
-                        : 'Exportar relatório PDF com top 3 por KPI'}
-                    >
-                      <Download className="h-3.5 w-3.5" />
-                      Exportar PDF
-                    </Button>
+                    <div className="flex items-center gap-2 shrink-0">
+                      {/* Tool failures toggle — recomputes percentiles & error counts
+                          from the RPC's *_no_tools / non_tool_errors fields when off.
+                          Persisted in the URL as `?tools=0` so shared links keep
+                          the same view. */}
+                      <button
+                        type="button"
+                        role="switch"
+                        aria-checked={includeToolFailures}
+                        onClick={() => {
+                          setIncludeToolFailures((v) => {
+                            const next = !v;
+                            toast.success(next
+                              ? 'Tool failures incluídos no drill-down'
+                              : 'Tool failures excluídos — usando percentis e erros não-tool');
+                            return next;
+                          });
+                        }}
+                        className={`flex items-center gap-1.5 rounded-md border px-2.5 py-1.5 text-xs font-medium transition-colors focus-ring ${
+                          includeToolFailures
+                            ? 'border-primary/40 bg-primary/10 text-primary hover:bg-primary/15'
+                            : 'border-border/50 bg-background text-muted-foreground hover:bg-secondary/50'
+                        }`}
+                        title={includeToolFailures
+                          ? 'Tool failures contam como erros / latência. Clique para excluir.'
+                          : 'Tool failures excluídos do cálculo. Clique para incluir.'}
+                      >
+                        <Wrench className="h-3.5 w-3.5" />
+                        {includeToolFailures ? 'Com tool failures' : 'Sem tool failures'}
+                      </button>
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        onClick={handleExportPdf}
+                        disabled={totalRows === 0}
+                        className="gap-1.5"
+                        title={totalRows === 0
+                          ? 'Sem contribuintes para exportar'
+                          : 'Exportar relatório PDF com top 3 por KPI'}
+                      >
+                        <Download className="h-3.5 w-3.5" />
+                        Exportar PDF
+                      </Button>
+                    </div>
                   </div>
                 </CardHeader>
                 <CardContent className="grid gap-4 md:grid-cols-3">
@@ -1034,7 +1055,7 @@ export default function SLODashboard() {
                               <Link
                                 to={row.href}
                                 className="flex items-start gap-2 p-2 rounded-md border border-border/40 bg-secondary/20 hover:bg-secondary/50 hover:border-primary/40 transition-colors group focus-ring"
-                                title={`Abrir traces: ${row.label} — ${row.impactPct.toFixed(1)}% do impacto`}
+                                title={`Abrir traces: ${row.label}`}
                               >
                                 <span className="text-[10px] font-bold text-muted-foreground tabular-nums w-4 mt-0.5">
                                   #{idx + 1}
@@ -1051,18 +1072,6 @@ export default function SLODashboard() {
                                   }`}>
                                     {row.deltaLabel}
                                   </span>
-                                  {/* Impact share bar — visual scan of "how much of the delta is this?" */}
-                                  {row.impactPct > 0 && (
-                                    <span
-                                      className="mt-1 block h-1 w-full rounded-full bg-secondary/60 overflow-hidden"
-                                      aria-label={`Impacto: ${row.impactPct.toFixed(1)}%`}
-                                    >
-                                      <span
-                                        className={`block h-full ${row.worse ? 'bg-destructive/70' : 'bg-nexus-emerald/70'}`}
-                                        style={{ width: `${Math.min(100, Math.max(2, row.impactPct))}%` }}
-                                      />
-                                    </span>
-                                  )}
                                 </span>
                               </Link>
                             </li>
