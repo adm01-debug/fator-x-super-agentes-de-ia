@@ -376,6 +376,14 @@ export default function AgentVersioningPage() {
               onChange={setPreset}
               counts={presetCounts}
             />
+            {/* Filtro multi-tag por tipo de evento — aplica AND com o preset
+                e mostra contagem total por tag (não filtrada) para guiar a escolha. */}
+            <EventTypeFilter
+              active={activeTypes}
+              onToggle={toggleType}
+              onClear={clearTypes}
+              counts={typeCounts}
+            />
             <div className="flex items-center gap-1.5 mb-2 flex-wrap">
               <span className="text-[10px] uppercase tracking-wider text-muted-foreground font-semibold">
                 Intervalo
