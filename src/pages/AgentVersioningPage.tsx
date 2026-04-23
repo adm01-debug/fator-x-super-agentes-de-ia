@@ -87,13 +87,14 @@ export default function AgentVersioningPage() {
     enabled: !!id,
   });
 
-  // Auto-select latest, and last 2 for compare — só preenche se a URL ainda não trouxer estado.
+  // Inicialização da URL: roda APENAS na primeira chegada das versões (ou quando
+  // muda o `focusId`). Nunca reescreve `sel`/`a`/`b`/`mode` depois disso — assim
+  // alternar entre detalhe/comparar ou recarregar a query NÃO muda o que o
+  // usuário já tem selecionado/fixado.
   useEffect(() => {
     if (versions.length === 0) return;
     // Prioridade 1: foco vindo via path (/v/:id) ou query (?focus=).
     if (focusId && versions.some(v => v.id === focusId)) {
-      // Se o foco veio do path, navega para a URL base preservando outros
-      // params atuais — assim o destaque some sem deixar resíduo na barra.
       if (pathVersionId) {
         const next = new URLSearchParams(searchParams);
         next.set('sel', focusId);
@@ -109,20 +110,36 @@ export default function AgentVersioningPage() {
       const t = setTimeout(() => setHighlightId(null), 2800);
       return () => clearTimeout(t);
     }
-    // Prioridade 2: seleção inicial padrão — só se a URL não trouxer nada.
-    if (!selectedId && !aId && !bId) {
-      updateParams((p) => {
-        p.set('sel', versions[0].id);
-        if (versions.length >= 2) {
-          p.set('a', versions[1].id);
-          p.set('b', versions[0].id);
-        }
-      }, { replace: true });
+    // Prioridade 2: seeding inicial — só preenche `sel` se nada estiver setado.
+    // NÃO toca em A/B aqui: A/B só são auto-preenchidos quando o usuário entra
+    // explicitamente em "comparar" (efeito abaixo). Isso evita que recarregar a
+    // lista mude valores que o usuário já consolidou.
+    if (!selectedId) {
+      updateParams((p) => { p.set('sel', versions[0].id); }, { replace: true });
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [versions, focusId]);
+  }, [versions.length, focusId]);
 
-  const selected = useMemo(() => versions.find(v => v.id === selectedId) ?? versions[0] ?? null, [versions, selectedId]);
+  // Auto-preenche A/B uma única vez ao entrar em "comparar" — sem sobrescrever
+  // escolhas existentes e sem reagir a mudanças posteriores na lista.
+  useEffect(() => {
+    if (mode !== 'compare') return;
+    if (versions.length < 2) return;
+    if (aId && bId) return;
+    updateParams((p) => {
+      if (!aId) p.set('a', versions[1].id);
+      if (!bId) p.set('b', versions[0].id);
+    }, { replace: true });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [mode, versions.length]);
+
+  // Resolve seleção/A/B sempre contra a lista COMPLETA, nunca a filtrada — assim
+  // mudar preset/intervalo nunca "perde" o que está selecionado. Só caímos no
+  // fallback `versions[0]` se realmente não houver `selectedId` na URL.
+  const selected = useMemo(
+    () => (selectedId ? versions.find(v => v.id === selectedId) ?? null : versions[0] ?? null),
+    [versions, selectedId],
+  );
   const versionA = useMemo(() => versions.find(v => v.id === aId) ?? null, [versions, aId]);
   const versionB = useMemo(() => versions.find(v => v.id === bId) ?? null, [versions, bId]);
   const canCompare = !!versionA && !!versionB && versionA.id !== versionB.id;
@@ -279,9 +296,9 @@ export default function AgentVersioningPage() {
               selectedId={selectedId}
               selectedAId={aId}
               selectedBId={bId}
-              onSelect={(vid) => { setSelectedId(vid); setMode('detail'); }}
-              onPickA={(vid) => { setAId(vid); if (bId && vid !== bId) setMode('compare'); }}
-              onPickB={(vid) => { setBId(vid); if (aId && vid !== aId) setMode('compare'); }}
+              onSelect={(vid) => { setSelectedId(vid); }}
+              onPickA={(vid) => { setAId(vid); }}
+              onPickB={(vid) => { setBId(vid); }}
               highlightId={highlightId}
               agentId={id!}
             />
