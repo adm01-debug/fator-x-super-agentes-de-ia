@@ -303,10 +303,12 @@ export default function AgentVersioningPage() {
                 mode={mode}
                 presetLabel={activePreset.label}
                 rangeLabel={
-                  range.mode === 'version'
-                    ? `v${range.vMin}–v${range.vMax}`
-                    : range.mode === 'time'
-                    ? (range.kind === 'rel' ? `últimos ${range.minutes}min` : 'período custom')
+                  range.mode === 'version' && (range.vMin !== undefined || range.vMax !== undefined)
+                    ? `v${range.vMin ?? '…'}–v${range.vMax ?? '…'}`
+                    : range.mode === 'time' && range.lastMinutes
+                    ? `últimos ${range.lastMinutes}min`
+                    : range.mode === 'time' && (range.fromIso || range.toIso)
+                    ? 'período custom'
                     : undefined
                 }
               />
