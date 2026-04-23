@@ -133,7 +133,13 @@ export default function AgentVersioningPage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [mode, versions.length]);
 
-  const selected = useMemo(() => versions.find(v => v.id === selectedId) ?? versions[0] ?? null, [versions, selectedId]);
+  // Resolve seleção/A/B sempre contra a lista COMPLETA, nunca a filtrada — assim
+  // mudar preset/intervalo nunca "perde" o que está selecionado. Só caímos no
+  // fallback `versions[0]` se realmente não houver `selectedId` na URL.
+  const selected = useMemo(
+    () => (selectedId ? versions.find(v => v.id === selectedId) ?? null : versions[0] ?? null),
+    [versions, selectedId],
+  );
   const versionA = useMemo(() => versions.find(v => v.id === aId) ?? null, [versions, aId]);
   const versionB = useMemo(() => versions.find(v => v.id === bId) ?? null, [versions, bId]);
   const canCompare = !!versionA && !!versionB && versionA.id !== versionB.id;
