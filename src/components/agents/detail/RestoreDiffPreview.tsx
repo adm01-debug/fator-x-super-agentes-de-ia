@@ -373,7 +373,16 @@ export function RestoreDiffPreview({ current, source, options }: Props) {
                   // Para ferramentas, mostrar lista detalhada de adições/remoções
                   if (c.field === 'tools') {
                     return (
-                      <li key={c.field} className="rounded-md border border-border/40 bg-background/50 p-2 text-[11px] space-y-1.5">
+                      <li
+                        key={c.field}
+                        ref={registerItemRef(changeId(c))}
+                        id={changeId(c)}
+                        className={`rounded-md border bg-background/50 p-2 text-[11px] space-y-1.5 transition-all duration-300 scroll-mt-2 ${
+                          activeMarker === changeId(c)
+                            ? 'border-nexus-amber ring-2 ring-nexus-amber/40 bg-nexus-amber/5'
+                            : 'border-border/40'
+                        }`}
+                      >
                         <div className="flex items-center gap-1.5 flex-wrap">
                           <span className={`inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded border text-[10px] font-mono ${kindMeta.tone}`}>
                             <KindIcon className="h-2.5 w-2.5" aria-hidden="true" />
@@ -396,7 +405,16 @@ export function RestoreDiffPreview({ current, source, options }: Props) {
                     );
                   }
                   return (
-                    <li key={c.field} className="rounded-md border border-border/40 bg-background/50 p-2 text-[11px]">
+                    <li
+                      key={c.field}
+                      ref={registerItemRef(changeId(c))}
+                      id={changeId(c)}
+                      className={`rounded-md border bg-background/50 p-2 text-[11px] transition-all duration-300 scroll-mt-2 ${
+                        activeMarker === changeId(c)
+                          ? 'border-nexus-amber ring-2 ring-nexus-amber/40 bg-nexus-amber/5'
+                          : 'border-border/40'
+                      }`}
+                    >
                       <div className="flex items-center gap-1.5 mb-1 flex-wrap">
                         <span className={`inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded border text-[10px] font-mono ${kindMeta.tone}`}>
                           <KindIcon className="h-2.5 w-2.5" aria-hidden="true" />
