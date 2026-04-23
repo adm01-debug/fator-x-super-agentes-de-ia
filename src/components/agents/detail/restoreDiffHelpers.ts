@@ -293,6 +293,14 @@ export function computeRestoreDiff(
         reason: crossFamily
           ? `Troca de provider (${curFam} → ${srcFam}) — comportamento pode mudar drasticamente`
           : 'Mudança de modelo na mesma família',
+        criteria: crossFamily
+          ? [
+              { label: 'Troca de provider', points: 70, detail: `${curFam} → ${srcFam} (famílias distintas)` },
+              { label: 'Capabilities podem divergir', points: 25, detail: 'tokenização, tool-calling e custo mudam' },
+            ]
+          : [
+              { label: 'Mesma família, modelo diferente', points: 70, detail: `${cur.model} → ${source.model}` },
+            ],
       });
       modelHasChange = true;
     }
