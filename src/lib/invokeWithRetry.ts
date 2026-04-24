@@ -6,7 +6,9 @@
  * Usage:
  *   const { data, error } = await invokeWithRetry(supabase, 'datahub-query', { body });
  */
-import type { SupabaseClient, FunctionInvokeOptions, FunctionsResponse } from '@supabase/supabase-js';
+import type { SupabaseClient, FunctionInvokeOptions } from '@supabase/supabase-js';
+
+type InvokeResponse<T> = { data: T | null; error: Error | null };
 
 const TRANSIENT_PATTERNS = [
   'SUPABASE_EDGE_RUNTIME_ERROR',
