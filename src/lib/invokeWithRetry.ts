@@ -29,15 +29,15 @@ export async function invokeWithRetry<T = unknown>(
   fn: string,
   options?: FunctionInvokeOptions,
   { retries = 2, baseDelayMs = 400 }: { retries?: number; baseDelayMs?: number } = {},
-): Promise<FunctionsResponse<T>> {
-  let lastResp: FunctionsResponse<T> | null = null;
+): Promise<InvokeResponse<T>> {
+  let lastResp: InvokeResponse<T> | null = null;
   for (let attempt = 0; attempt <= retries; attempt++) {
-    const resp = (await client.functions.invoke<T>(fn, options)) as FunctionsResponse<T>;
+    const resp = (await client.functions.invoke<T>(fn, options)) as InvokeResponse<T>;
     lastResp = resp;
     if (!resp.error || !isTransient(resp.error)) return resp;
     if (attempt < retries) {
       await new Promise((r) => setTimeout(r, baseDelayMs * Math.pow(2, attempt)));
     }
   }
-  return lastResp as FunctionsResponse<T>;
+  return lastResp as InvokeResponse<T>;
 }
