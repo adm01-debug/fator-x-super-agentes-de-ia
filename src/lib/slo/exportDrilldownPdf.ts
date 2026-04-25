@@ -118,6 +118,89 @@ export function exportDrilldownPdf(report: DrilldownReport): void {
   doc.line(margin, y, pageWidth - margin, y);
   y += 14;
 
+  // ── Tool failures snapshot ──────────────────────────────────────────────
+  if (report.toolFailures) {
+    const tf = report.toolFailures;
+    ensureSpace(110);
+
+    doc.setFont('helvetica', 'bold');
+    doc.setFontSize(13);
+    doc.setTextColor(20);
+    doc.text('Filtro de tool failures', margin, y);
+    y += 16;
+
+    // State chip-style label
+    doc.setFont('helvetica', 'bold');
+    doc.setFontSize(10);
+    const stateLabel = tf.includeToolFailures
+      ? 'Estado atual: COM tool failures (incluídos em erros e percentis)'
+      : 'Estado atual: SEM tool failures (excluídos de erros e percentis)';
+    if (tf.includeToolFailures) doc.setTextColor(30, 110, 180);
+    else doc.setTextColor(150, 90, 20);
+    doc.text(stateLabel, margin, y);
+    y += 14;
+
+    doc.setFont('helvetica', 'normal');
+    doc.setFontSize(9);
+    doc.setTextColor(110);
+    const explain = tf.includeToolFailures
+      ? 'Erros e P95 abaixo refletem todas as falhas, incluindo as originadas por chamadas a ferramentas (tool.*).'
+      : 'Erros e P95 abaixo excluem falhas de ferramentas (tool.*); foram usadas as métricas non_tool_errors / p95_ms_no_tools quando disponíveis.';
+    for (const line of wrap(doc, explain, contentWidth)) {
+      doc.text(line, margin, y);
+      y += 11;
+    }
+    y += 4;
+
+    // Totals grid (two columns)
+    const fmtInt = (n: number) => n.toLocaleString('pt-BR');
+    const fmtMs = (n: number) => `${Math.round(n).toLocaleString('pt-BR')}ms`;
+    const toolErrors = Math.max(0, tf.totalErrors - tf.nonToolErrors);
+    const errorRate = tf.totalTraces > 0 ? (tf.totalErrors / tf.totalTraces) * 100 : 0;
+    const errorRateNoTools = tf.totalTraces > 0 ? (tf.nonToolErrors / tf.totalTraces) * 100 : 0;
+
+    const rows: Array<[string, string]> = [
+      ['Traces na janela', fmtInt(tf.totalTraces)],
+      ['Erros totais (com tools)', `${fmtInt(tf.totalErrors)} (${errorRate.toFixed(2)}%)`],
+      ['Erros não-tool', `${fmtInt(tf.nonToolErrors)} (${errorRateNoTools.toFixed(2)}%)`],
+      ['Tool failures isoladas', fmtInt(toolErrors)],
+      ['P95 com tools', fmtMs(tf.p95Ms)],
+      ['P95 sem tools', fmtMs(tf.p95MsNoTools)],
+    ];
+
+    const colWidth = contentWidth / 2;
+    const rowH = 14;
+    doc.setFillColor(247, 247, 250);
+    const gridHeight = Math.ceil(rows.length / 2) * rowH + 8;
+    ensureSpace(gridHeight + 8);
+    doc.rect(margin, y - 10, contentWidth, gridHeight, 'F');
+
+    for (let i = 0; i < rows.length; i++) {
+      const [label, value] = rows[i];
+      const col = i % 2;
+      const rowIdx = Math.floor(i / 2);
+      const cellX = margin + 8 + col * colWidth;
+      const cellY = y + rowIdx * rowH;
+
+      doc.setFont('helvetica', 'normal');
+      doc.setFontSize(8.5);
+      doc.setTextColor(120);
+      doc.text(label, cellX, cellY);
+
+      doc.setFont('helvetica', 'bold');
+      doc.setFontSize(10);
+      doc.setTextColor(25);
+      doc.text(value, cellX + colWidth - 16, cellY, { align: 'right' });
+    }
+    y += gridHeight + 8;
+    doc.setTextColor(0);
+
+    // Divider before sections
+    doc.setDrawColor(220);
+    doc.line(margin, y, pageWidth - margin, y);
+    y += 14;
+  }
+
   // ── Sections ────────────────────────────────────────────────────────────
   for (const section of report.sections) {
     ensureSpace(60);
