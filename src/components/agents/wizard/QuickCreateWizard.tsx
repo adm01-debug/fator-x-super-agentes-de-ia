@@ -329,6 +329,35 @@ export function QuickCreateWizard({ onBack }: QuickCreateWizardProps) {
     });
   };
 
+  // Auto-focus no mount quando o deeplink veio com rf_focus=1.
+  // Usa o mesmo caminho do "Corrigir agora" (rAF duplo + scroll + foco) para
+  // garantir que o input já esteja montado quando .focus() for chamado.
+  // Roda apenas uma vez — `initialDeeplink` é estável (useMemo sem deps).
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  useEffect(() => {
+    if (!initialDeeplink.valid || !initialDeeplink.autoFocus || !initialDeeplink.field) return;
+    const inputId = FIELD_INPUT_ID[initialDeeplink.field];
+    if (!inputId) return;
+    const stepLabel = STEPS[initialDeeplink.stepIdx]?.label;
+    const fieldLabel = FIELD_LABEL[initialDeeplink.field] ?? String(initialDeeplink.field);
+    requestAnimationFrame(() => {
+      requestAnimationFrame(() => {
+        const el = document.getElementById(inputId) as HTMLElement | null;
+        if (el && typeof el.focus === 'function') {
+          el.focus({ preventScroll: false });
+          const where = stepLabel ? ` no passo ${stepLabel}` : '';
+          setA11yFocusAnnounce(`Foco movido para o campo ${fieldLabel}${where}.`);
+          window.setTimeout(() => setA11yFocusAnnounce(''), 2000);
+        }
+      });
+    });
+    // Após aplicar o foco, remove rf_focus da URL para que recargas
+    // subsequentes não re-foquem (mas o destaque/banner persistem via rf_field).
+    const next = new URLSearchParams(searchParams);
+    next.delete('rf_focus');
+    setSearchParams(next, { replace: true });
+  }, []);
+
   // On mount: load store, filter recoverable drafts.
   useEffect(() => {
     const store = loadDrafts();
