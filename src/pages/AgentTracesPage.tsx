@@ -288,6 +288,17 @@ export default function AgentTracesPage() {
     const cleared = buildClearedFields(snapshot);
     undoSnapshot.current = snapshot;
 
+    // Inspeciona o localStorage ANTES do clear: só listamos chaves que
+    // realmente existiam, evitando dizer ao usuário que removemos algo
+    // que nunca esteve lá. STEP_STORAGE_KEY é estado de UI (último passo
+    // por sessão) e fica preservado intencionalmente — não é filtro.
+    const removedKeys: string[] = [];
+    try {
+      if (localStorage.getItem(STORAGE_KEY) !== null) removedKeys.push(STORAGE_KEY);
+    } catch {
+      /* localStorage indisponível (modo privado) — ignora. */
+    }
+
     // Reset state + Cloud + localStorage
     clearAll();
     setSelectedId(null);
@@ -297,7 +308,7 @@ export default function AgentTracesPage() {
       <ClearFiltersToast
         toastId={t}
         cleared={cleared}
-        storageKeys={[STORAGE_KEY]}
+        storageKeys={removedKeys}
         onUndo={() => {
           if (undoSnapshot.current) {
             restore(undoSnapshot.current);
