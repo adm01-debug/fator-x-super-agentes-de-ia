@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { useParams, useSearchParams } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
-import { Activity, AlertTriangle, CalendarClock, Cloud, CloudOff, DollarSign, Filter, Inbox, Loader2, Play, RefreshCw, X, Zap } from 'lucide-react';
+import { Activity, AlertTriangle, CalendarClock, Cloud, CloudOff, DollarSign, Filter, GitCompare, Inbox, Loader2, Play, RefreshCw, X, Zap } from 'lucide-react';
 import { toast } from 'sonner';
 import { PageHeader } from '@/components/shared/PageHeader';
 import { Button } from '@/components/ui/button';
