@@ -511,6 +511,17 @@ export default function SLODashboard() {
   const committedCountRef = useRef(0);
   const totalDurationRef = useRef(0);
 
+  // Aggregated inline error state. Replaces per-failure toasts so a burst of
+  // failed requests during rapid filter toggling collapses into one banner
+  // (count + last message + last timestamp) instead of N stacked toasts.
+  // Cleared automatically on the next successful committed fetch.
+  const [errorAgg, setErrorAgg] = useState<{
+    count: number;
+    lastMessage: string;
+    lastAt: Date;
+  } | null>(null);
+  const dismissError = useCallback(() => setErrorAgg(null), []);
+
   const load = useCallback(async (showSpinner = false) => {
     const myToken = ++requestTokenRef.current;
     const startedAt = performance.now();
