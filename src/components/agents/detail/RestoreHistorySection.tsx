@@ -220,6 +220,32 @@ export function RestoreHistorySection({ agentId, versions }: Props) {
 
   const undoMut = useMutation({
     mutationFn: async (entry: RestoreEntry) => {
+      // 0. Pre-flight: garante que NÃO foi criada uma versão posterior ao
+      //    rollback que estamos prestes a desfazer. Se existir, abortar e
+      //    pedir reload — desfazer cegamente sobrescreveria o trabalho novo.
+      const { data: latest, error: latestErr } = await supabaseExternal
+        .from("agent_versions")
+        .select("version, id, change_summary, created_at")
+        .eq("agent_id", agentId)
+        .order("version", { ascending: false })
+        .limit(1)
+        .maybeSingle();
+      if (latestErr) {
+        throw new Error(
+          `Não foi possível verificar a versão mais recente: ${latestErr.message}`,
+        );
+      }
+      if (latest && typeof latest.version === "number" && latest.version > entry.versionNumber) {
+        // Marcador especial para o onError exibir o toast com ação "Recarregar".
+        const err = new Error(
+          `Uma versão mais nova (v${latest.version}) foi criada depois deste rollback. ` +
+            `Recarregue antes de desfazer para evitar sobrescrever as mudanças mais recentes.`,
+        );
+        (err as Error & { stale?: boolean; latestVersion?: number }).stale = true;
+        (err as Error & { stale?: boolean; latestVersion?: number }).latestVersion = latest.version;
+        throw err;
+      }
+
       // 1. Tenta usar a versão de referência já presente no estado local.
       let preRollback: AgentVersion | null = entry.preRollback;
 
