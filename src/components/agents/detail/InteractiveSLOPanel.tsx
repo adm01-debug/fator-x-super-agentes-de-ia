@@ -1,7 +1,15 @@
 import { useMemo, useState } from 'react';
-import { CheckCircle2, AlertTriangle, XCircle, RotateCcw, Flame, Activity, Clock, Download } from 'lucide-react';
+import { CheckCircle2, AlertTriangle, XCircle, RotateCcw, Flame, Activity, Clock, Download, FileText, FileSpreadsheet } from 'lucide-react';
 import { Slider } from '@/components/ui/slider';
 import { Button } from '@/components/ui/button';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
 import { useAgentSLOTargets, DEFAULT_SLO_TARGETS, type SLOTargetsConfig } from '@/hooks/useAgentSLOTargets';
 import {
   buildViolationBuckets,
@@ -17,6 +25,7 @@ import { SLOViolationTimeline, type ViolationKind } from './SLOViolationTimeline
 import { ViolationDrillDownDialog } from './ViolationDrillDownDialog';
 import type { ViolationDay } from './agentMetricsHelpers';
 import { generateSLOReportPdf } from './sloReportPdf';
+import { buildTimelineCsv, downloadCsv } from './sloTimelineCsv';
 import { toast } from 'sonner';
 
 type EvalWindowKey = '1h' | '6h' | '24h' | '7d' | '14d' | '30d';
