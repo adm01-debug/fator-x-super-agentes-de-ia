@@ -226,6 +226,9 @@ export function validateRestore(
         title: 'System prompt ficaria vazio',
         detail: 'A versão de origem não tem system prompt nem prompt legado. Sem prompt o agente não tem instruções para operar.',
         hint: 'Desmarque "Prompt" para preservar o prompt atual.',
+        quickFixes: [
+          { kind: 'uncheck-prompt', label: 'Desmarcar Prompt', description: 'Mantém o prompt atual e libera o rollback.' },
+        ],
       });
     } else if (sp.length < 20 && !legacy) {
       issues.push({
@@ -234,6 +237,9 @@ export function validateRestore(
         group: 'prompt',
         title: 'Prompt muito curto',
         detail: `O prompt da origem tem apenas ${sp.length} caracteres — pode não ser suficiente para guiar o agente.`,
+        quickFixes: [
+          { kind: 'uncheck-prompt', label: 'Desmarcar Prompt' },
+        ],
       });
     }
   }
