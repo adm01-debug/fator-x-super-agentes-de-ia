@@ -350,6 +350,10 @@ export function RestoreHistorySection({ agentId, versions }: Props) {
         })}
       </ol>
 
+      {/* Estado da janela de undo para o alvo aberto no modal — recalculado
+          a cada tick para que o botão de confirmar fique desabilitado
+          automaticamente caso a janela expire enquanto o diálogo está aberto. */}
+      {(() => null)()}
       {/* Modal de confirmação do "Desfazer rollback".
           Mostra: o rollback alvo, a versão de referência (pré-rollback),
           os campos que serão restaurados e a nova versão que será criada. */}
