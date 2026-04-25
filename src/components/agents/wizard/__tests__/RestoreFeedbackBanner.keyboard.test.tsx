@@ -33,12 +33,6 @@ function getActionGroup() {
   return within(group);
 }
 
-function tabOrder(): string[] {
-  // Coleta o aria-label do elemento ativo após cada Tab — útil para
-  // verificar a ordem real percorrida pelo teclado.
-  const active = document.activeElement as HTMLElement | null;
-  return active?.getAttribute('aria-label')?.split(':')[0]?.trim() ? [active.getAttribute('aria-label')!] : [];
-}
 
 describe('RestoreFeedbackBanner — navegação por teclado', () => {
   beforeEach(() => {
