@@ -511,17 +511,24 @@ export function RestoreHistorySection({ agentId, versions }: Props) {
             <AlertDialogAction
               onClick={(e) => {
                 e.preventDefault();
-                if (undoTarget) undoMut.mutate(undoTarget);
+                if (undoTarget && !targetExpired) undoMut.mutate(undoTarget);
               }}
-              disabled={undoMut.isPending || !undoTarget?.preRollback}
+              disabled={undoMut.isPending || !undoTarget?.preRollback || targetExpired}
               className="gap-1.5"
+              title={
+                targetExpired
+                  ? `Janela de ${UNDO_WINDOW_MS / 60000} min para desfazer expirou`
+                  : !undoTarget?.preRollback
+                    ? "Sem versão de referência anterior"
+                    : `Confirmar — expira em ${formatRemaining(targetRemainingMs)}`
+              }
             >
               {undoMut.isPending ? (
                 <Loader2 className="h-3.5 w-3.5 animate-spin" />
               ) : (
                 <Undo2 className="h-3.5 w-3.5" aria-hidden />
               )}
-              Confirmar desfazer
+              {targetExpired ? "Janela expirada" : "Confirmar desfazer"}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
