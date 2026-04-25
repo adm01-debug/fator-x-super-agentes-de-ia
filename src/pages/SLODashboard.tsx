@@ -422,12 +422,16 @@ export default function SLODashboard() {
     if (includeToolFailures) next.delete(QP_INCLUDE_TOOLS);
     else next.set(QP_INCLUDE_TOOLS, '0');
 
+    // Compare-modes toggle: only serialize when ON (default OFF).
+    if (compareToolModes) next.set(QP_COMPARE_TOOLS, '1');
+    else next.delete(QP_COMPARE_TOOLS);
+
     // Avoid an infinite update loop: only call setSearchParams when the
     // serialized result actually differs from what's already in the URL.
     if (next.toString() !== searchParams.toString()) {
       setSearchParams(next, { replace: true });
     }
-  }, [windowHours, autoRefreshMs, compareHours, failureModes, windowName, selectedAgentId, includeToolFailures, searchParams, setSearchParams]);
+  }, [windowHours, autoRefreshMs, compareHours, failureModes, windowName, selectedAgentId, includeToolFailures, compareToolModes, searchParams, setSearchParams]);
 
   // React to back/forward navigation (or another link that mutates the URL)
   // by re-reading the params into local state.
