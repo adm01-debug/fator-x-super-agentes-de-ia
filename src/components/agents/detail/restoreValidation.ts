@@ -279,6 +279,11 @@ export function validateRestore(
           group: 'model',
           title: `Temperature inválida (${String(temp)})`,
           detail: 'Temperature precisa ser um número entre 0 e 2.',
+          quickFixes: [
+            { kind: 'set-temperature', value: 0.7, label: 'Redefinir para 0.7', description: 'Valor padrão equilibrado.' },
+            { kind: 'set-temperature', value: 1, label: 'Redefinir para 1' },
+            { kind: 'uncheck-model', label: 'Desmarcar Modelo & parâmetros' },
+          ],
         });
       } else if (!caps.supportsTemperature && temp !== 1) {
         issues.push({
@@ -288,6 +293,10 @@ export function validateRestore(
           title: 'Modelo não aceita temperature customizada',
           detail: `O modelo "${mergedModel}" é um reasoning model e ignora/rejeita temperature ≠ 1. A versão de origem define temperature=${temp}.`,
           hint: 'Restaure também o prompt para revisar — ou edite manualmente após o rollback.',
+          quickFixes: [
+            { kind: 'set-temperature', value: 1, label: 'Redefinir temperature para 1', description: 'Único valor aceito por reasoning models.' },
+            { kind: 'uncheck-model', label: 'Desmarcar Modelo & parâmetros' },
+          ],
         });
       }
     }
