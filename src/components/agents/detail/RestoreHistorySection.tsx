@@ -539,13 +539,30 @@ export function RestoreHistorySection({ agentId, versions }: Props) {
                   )
                 )}
 
-                {/* Aviso quando o rollback não tem referência (primeira versão do agente) */}
-                {undoTarget && !undoTarget.preRollback && (
+                {/* Aviso quando o rollback não tem nenhuma referência —
+                    nem local nem id no metadata (caso muito raro: rollback
+                    aplicado contra a primeira versão do agente). */}
+                {undoTarget &&
+                  !undoTarget.preRollback &&
+                  !undoTarget.meta.restored_from_version_id && (
                   <div className="flex items-start gap-2 rounded-lg border border-destructive/30 bg-destructive/5 p-2.5 text-xs text-destructive">
                     <AlertTriangle className="h-3.5 w-3.5 shrink-0 mt-0.5" aria-hidden />
                     <span>
                       Não há versão anterior ao rollback para usar como referência — não é
                       possível desfazer.
+                    </span>
+                  </div>
+                )}
+
+                {/* Aviso informativo: vamos recarregar do servidor on-confirm. */}
+                {undoTarget &&
+                  !undoTarget.preRollback &&
+                  undoTarget.meta.restored_from_version_id && (
+                  <div className="flex items-start gap-2 rounded-lg border border-nexus-amber/30 bg-nexus-amber/5 p-2.5 text-xs text-nexus-amber">
+                    <AlertTriangle className="h-3.5 w-3.5 shrink-0 mt-0.5" aria-hidden />
+                    <span>
+                      A versão de referência (v{undoTarget.meta.restored_from_version}) não
+                      está carregada localmente — será recarregada do servidor ao confirmar.
                     </span>
                   </div>
                 )}
@@ -564,12 +581,16 @@ export function RestoreHistorySection({ agentId, versions }: Props) {
                 e.preventDefault();
                 if (undoTarget && !targetExpired) undoMut.mutate(undoTarget);
               }}
-              disabled={undoMut.isPending || !undoTarget?.preRollback || targetExpired}
+              disabled={
+                undoMut.isPending ||
+                targetExpired ||
+                (!undoTarget?.preRollback && !undoTarget?.meta.restored_from_version_id)
+              }
               className="gap-1.5"
               title={
                 targetExpired
                   ? `Janela de ${UNDO_WINDOW_MS / 60000} min para desfazer expirou`
-                  : !undoTarget?.preRollback
+                  : !undoTarget?.preRollback && !undoTarget?.meta.restored_from_version_id
                     ? "Sem versão de referência anterior"
                     : `Confirmar — expira em ${formatRemaining(targetRemainingMs)}`
               }
