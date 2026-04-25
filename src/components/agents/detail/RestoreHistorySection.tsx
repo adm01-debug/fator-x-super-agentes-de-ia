@@ -492,6 +492,8 @@ export function RestoreHistorySection({ agentId, versions }: Props) {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+        );
+      })()}
     </div>
   );
 }
