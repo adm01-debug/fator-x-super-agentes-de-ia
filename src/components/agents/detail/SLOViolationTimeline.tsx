@@ -101,14 +101,63 @@ export function SLOViolationTimeline({ data, daily, onDayClick, onViolationClick
                   </div>
                 </div>
               </TooltipTrigger>
-              <TooltipContent side="top" className="text-xs">
-                <div className="space-y-0.5">
+              <TooltipContent side="top" className="text-xs max-w-[280px]">
+                <div className="space-y-1">
                   <p className="font-semibold">{day.label} · {day.total} trace{day.total !== 1 ? 's' : ''}</p>
-                  <p className="text-nexus-amber">⚠ {day.p95Violations} acima de p95</p>
-                  <p className="text-destructive">✕ {day.p99Violations} acima de p99</p>
-                  <p className="text-destructive">● {day.errors} erro{day.errors !== 1 ? 's' : ''}</p>
-                  <p className="text-muted-foreground pt-1 border-t border-border/50 mt-1">
-                    Clique numa pílula para drill-down por tipo · linha = visão geral
+
+                  <div className="pt-1 border-t border-border/50 space-y-0.5">
+                    <p className="text-[10px] uppercase tracking-wide text-muted-foreground font-semibold">Latência observada</p>
+                    <div className="flex justify-between gap-3 font-mono">
+                      <span className="text-muted-foreground">p50</span>
+                      <span>{day.p50Ms}ms</span>
+                    </div>
+                    <div className="flex justify-between gap-3 font-mono">
+                      <span className="text-muted-foreground">p95</span>
+                      <span className={day.p95Ms > day.thresholds.p95 ? 'text-nexus-amber font-semibold' : ''}>
+                        {day.p95Ms}ms
+                      </span>
+                    </div>
+                    {day.maxLatencyMs > day.thresholds.p99 && (
+                      <div className="flex justify-between gap-3 font-mono">
+                        <span className="text-muted-foreground">máx</span>
+                        <span className="text-destructive font-semibold">{day.maxLatencyMs}ms</span>
+                      </div>
+                    )}
+                  </div>
+
+                  {day.matchedRules.length > 0 ? (
+                    <div className="pt-1 border-t border-border/50 space-y-0.5">
+                      <p className="text-[10px] uppercase tracking-wide text-muted-foreground font-semibold">
+                        Regras correspondidas ({day.matchedRules.length})
+                      </p>
+                      {day.matchedRules.includes('p95') && (
+                        <p className="text-nexus-amber">
+                          ⚠ p95 &gt; {day.thresholds.p95}ms — {day.p95Violations} trace{day.p95Violations !== 1 ? 's' : ''}
+                          {day.p95Ms > day.thresholds.p95 && (
+                            <span className="text-muted-foreground"> (+{day.p95Ms - day.thresholds.p95}ms)</span>
+                          )}
+                        </p>
+                      )}
+                      {day.matchedRules.includes('p99') && (
+                        <p className="text-destructive">
+                          ✕ p99 &gt; {day.thresholds.p99}ms — {day.p99Violations} trace{day.p99Violations !== 1 ? 's' : ''}
+                          {day.maxLatencyMs > day.thresholds.p99 && (
+                            <span className="text-muted-foreground"> (+{day.maxLatencyMs - day.thresholds.p99}ms no pico)</span>
+                          )}
+                        </p>
+                      )}
+                      {day.matchedRules.includes('error') && (
+                        <p className="text-destructive">
+                          ● erro/critical — {day.errors} trace{day.errors !== 1 ? 's' : ''}
+                        </p>
+                      )}
+                    </div>
+                  ) : (
+                    <p className="pt-1 border-t border-border/50 text-nexus-emerald">✓ dentro dos SLOs</p>
+                  )}
+
+                  <p className="text-muted-foreground pt-1 border-t border-border/50 text-[10px]">
+                    Clique numa pílula para drill-down · linha = visão geral
                   </p>
                 </div>
               </TooltipContent>
