@@ -184,6 +184,10 @@ export function QuickCreateWizard({ onBack }: QuickCreateWizardProps) {
       : null,
   );
   const [confirmOpen, setConfirmOpen] = useState(false);
+  // Mensagem para a região live de A11y — anunciada para SR sempre que o
+  // foco for movido programaticamente (ex.: ao clicar em "Corrigir agora").
+  // Mantida no DOM via aria-live="polite" sr-only para não interromper o fluxo.
+  const [a11yFocusAnnounce, setA11yFocusAnnounce] = useState('');
   const [promptCustomLocked, setPromptCustomLocked] = useState(false);
   const [selectedVariant, setSelectedVariant] = useState<import('@/data/quickAgentTemplates').PromptVariantId | null>(null);
   const [pendingVariant, setPendingVariant] = useState<import('@/data/quickAgentTemplates').PromptVariantId | null>(null);
