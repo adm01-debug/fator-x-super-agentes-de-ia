@@ -96,6 +96,13 @@ export default function AgentTracesPage() {
   const [selectedId, setSelectedId] = useState<string | null>(urlSession);
   const [selectedStep, setSelectedStep] = useState(urlStep ?? 0);
   const [replayOpen, setReplayOpen] = useState(false);
+
+  // Compare mode: when active, the explorer shows checkboxes and the user
+  // picks two executions to diff side-by-side. Auto-opens the sheet when 2
+  // are picked; resets when sheet closes or compare mode is turned off.
+  const [compareMode, setCompareMode] = useState(false);
+  const [comparePicks, setComparePicks] = useState<string[]>([]);
+  const [compareOpen, setCompareOpen] = useState(false);
   const debouncedSearch = useDebounce(search, 300);
 
   // Undo snapshot (5s window). Stored in ref so changes don't re-render.
