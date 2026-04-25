@@ -196,15 +196,38 @@ export function InteractiveSLOPanel({ agentId, agentName, slo, traces, daily, on
               );
             })}
           </div>
-          <Button
-            variant="outline"
-            size="sm"
-            className="gap-1.5 text-xs h-7"
-            onClick={handleExportPdf}
-            aria-label="Exportar relatório SLO em PDF"
-          >
-            <Download className="h-3 w-3" /> Exportar PDF
-          </Button>
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button
+                variant="outline"
+                size="sm"
+                className="gap-1.5 text-xs h-7"
+                aria-label="Exportar timeline e classificações de violação"
+              >
+                <Download className="h-3 w-3" /> Exportar
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end" className="w-56">
+              <DropdownMenuLabel className="text-[10px] uppercase tracking-wide text-muted-foreground">
+                Janela {activeWindow.label} · {timeline.length} bucket{timeline.length !== 1 ? 's' : ''}
+              </DropdownMenuLabel>
+              <DropdownMenuSeparator />
+              <DropdownMenuItem onSelect={handleExportCsv} className="gap-2 text-xs cursor-pointer">
+                <FileSpreadsheet className="h-3.5 w-3.5 text-nexus-emerald" />
+                <div className="flex flex-col">
+                  <span>Baixar CSV</span>
+                  <span className="text-[10px] text-muted-foreground">Buckets e classificações</span>
+                </div>
+              </DropdownMenuItem>
+              <DropdownMenuItem onSelect={handleExportPdf} className="gap-2 text-xs cursor-pointer">
+                <FileText className="h-3.5 w-3.5 text-primary" />
+                <div className="flex flex-col">
+                  <span>Baixar PDF</span>
+                  <span className="text-[10px] text-muted-foreground">Relatório completo SLO</span>
+                </div>
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
           <Button variant="ghost" size="sm" className="gap-1.5 text-xs h-7" onClick={reset}>
             <RotateCcw className="h-3 w-3" /> Resetar metas
           </Button>
