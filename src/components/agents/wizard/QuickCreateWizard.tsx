@@ -245,40 +245,17 @@ export function QuickCreateWizard({ onBack }: QuickCreateWizardProps) {
     if (!highlightField && restoreFeedback) setRestoreFeedback(null);
   }, [highlightField, restoreFeedback]);
 
-  // Deeplink: na montagem, se a URL traz rf_field/rf_step/rf_type/rf_msg,
-  // hidratamos o highlight + restoreFeedback para reabrir o wizard exatamente
-  // no mesmo ponto que foi compartilhado.
+  // Deeplink rf_*: a hidratação do estado já foi feita SÍNCRONA via lazy
+  // initializers acima (sem flicker). Aqui só limpamos params inválidos da
+  // URL para não confundir o usuário em recargas futuras.
   // eslint-disable-next-line react-hooks/exhaustive-deps
   useEffect(() => {
     const rfField = searchParams.get('rf_field');
-    const rfStep = searchParams.get('rf_step');
-    if (!rfField) return;
-    const validFields: Array<keyof QuickAgentForm> = ['name', 'emoji', 'mission', 'description', 'type', 'model', 'prompt'];
-    if (!validFields.includes(rfField as keyof QuickAgentForm)) {
+    if (rfField && !RF_VALID_FIELDS.includes(rfField as keyof QuickAgentForm)) {
       const next = new URLSearchParams(searchParams);
       ['rf_field', 'rf_step', 'rf_type', 'rf_msg'].forEach((k) => next.delete(k));
       setSearchParams(next, { replace: true });
-      return;
     }
-    const stepIdx = Math.max(0, Math.min(STEPS.length - 1, Number(rfStep ?? 0) || 0));
-    const field = rfField as keyof QuickAgentForm;
-    const errorTypeRaw = searchParams.get('rf_type') ?? 'unknown';
-    const validTypes = ['required', 'too_small', 'too_big', 'invalid_type', 'custom', 'unknown'] as const;
-    const errorType = (validTypes as readonly string[]).includes(errorTypeRaw)
-      ? (errorTypeRaw as typeof validTypes[number])
-      : 'unknown';
-    const errorMessage = searchParams.get('rf_msg') ?? undefined;
-    setStep(stepIdx);
-    setHighlightField(field);
-    setRestoreFeedback({
-      stepIdx,
-      field,
-      errorType,
-      errorMessage,
-      stepLabel: STEPS[stepIdx]?.label,
-      fieldLabel: FIELD_LABEL[field] ?? String(field),
-      mode: 'full',
-    });
   }, []);
 
   // Gera URL atual + params rf_* e copia para o clipboard. Botão "Copiar link"
