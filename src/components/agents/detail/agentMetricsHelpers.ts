@@ -270,6 +270,9 @@ export function buildViolationTimeline(
   const today = new Date();
   today.setHours(0, 0, 0, 0);
 
+  // bucket -> latency samples (for percentile recomputation)
+  const samples = new Map<string, number[]>();
+
   for (let i = days - 1; i >= 0; i--) {
     const d = new Date(today);
     d.setDate(today.getDate() - i);
@@ -281,7 +284,13 @@ export function buildViolationTimeline(
       p99Violations: 0,
       errors: 0,
       total: 0,
+      p50Ms: 0,
+      p95Ms: 0,
+      maxLatencyMs: 0,
+      thresholds: { p95: targets.p95, p99: targets.p99 },
+      matchedRules: [],
     });
+    samples.set(iso, []);
   }
 
   traces.forEach((t) => {
@@ -292,9 +301,23 @@ export function buildViolationTimeline(
     if (!day) return;
     day.total += 1;
     const lat = Number(t.latency_ms ?? 0);
+    samples.get(iso)?.push(lat);
+    if (lat > day.maxLatencyMs) day.maxLatencyMs = lat;
     if (lat > targets.p99) day.p99Violations += 1;
     else if (lat > targets.p95) day.p95Violations += 1;
     if (t.level === 'error' || t.level === 'critical') day.errors += 1;
+  });
+
+  // Finalize percentiles + matched rules per bucket
+  map.forEach((day, iso) => {
+    const arr = samples.get(iso) ?? [];
+    day.p50Ms = Math.round(percentile(arr, 50));
+    day.p95Ms = Math.round(percentile(arr, 95));
+    const rules: ViolationRule[] = [];
+    if (day.p95Violations > 0) rules.push('p95');
+    if (day.p99Violations > 0) rules.push('p99');
+    if (day.errors > 0) rules.push('error');
+    day.matchedRules = rules;
   });
 
   return Array.from(map.values());
