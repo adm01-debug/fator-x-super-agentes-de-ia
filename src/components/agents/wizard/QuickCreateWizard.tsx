@@ -879,6 +879,17 @@ export function QuickCreateWizard({ onBack }: QuickCreateWizardProps) {
 
   return (
     <div className="p-6 max-w-[1100px] mx-auto space-y-6">
+      {/* Região live dedicada para anúncios de mudança de foco programática.
+          Visualmente oculta; assistive tech anuncia ao texto mudar. */}
+      <div
+        role="status"
+        aria-live="polite"
+        aria-atomic="true"
+        className="sr-only"
+        data-testid="qa-a11y-focus-announce"
+      >
+        {a11yFocusAnnounce}
+      </div>
       {bannerEntries.length > 0 && (
         <DraftRecoveryBanner
           drafts={bannerEntries}
