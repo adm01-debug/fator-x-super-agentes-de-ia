@@ -22,6 +22,7 @@ import { ClearFiltersToast, type ClearedField } from '@/components/agents/traces
 import { ClearFiltersConfirm } from '@/components/agents/traces/ClearFiltersConfirm';
 import { CompareTracesSheet } from '@/components/agents/traces/CompareTracesSheet';
 import { AgentContextPanel } from '@/components/agents/traces/AgentContextPanel';
+import { EmptyTracesForAgent, type SuggestionAction } from '@/components/agents/traces/EmptyTracesForAgent';
 import { useAgentDrilldownStore } from '@/stores/agentDrilldownStore';
 
 interface PersistedFilters extends Record<string, unknown> {
