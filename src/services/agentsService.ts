@@ -261,6 +261,24 @@ export interface RestoreOptions {
   copyModel?: boolean;
   /** Override do change_summary; quando vazio/undefined usa o auto-gerado. */
   customSummary?: string;
+  /**
+   * Overrides aplicados POR CIMA do estado pós-merge — usados pelas correções
+   * rápidas das validações (ex.: "redefinir temperature para 1", "trocar
+   * modelo para gpt-5", "remover reasoning"). Cada chave que estiver presente
+   * sobrescreve o valor que viria da `sourceVersion`.
+   *
+   * NÃO altera a lógica de qual grupo é copiado — apenas patcheia o resultado
+   * antes de gravar a nova versão. Mantém a auditabilidade: as overrides
+   * ficam registradas em `restore_metadata.config_overrides` /
+   * `restore_metadata.model_override`.
+   */
+  configOverrides?: Partial<{
+    temperature: number | null;
+    max_tokens: number | null;
+    reasoning: string | null;
+    tools: unknown[] | null;
+  }>;
+  modelOverride?: string | null;
 }
 
 /**
