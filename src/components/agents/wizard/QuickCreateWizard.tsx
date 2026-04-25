@@ -132,21 +132,27 @@ function parseDeeplinkParams(sp: URLSearchParams): {
   stepIdx: number;
   errorType: RfErrorType;
   errorMessage?: string;
+  /** Quando true, o wizard move o foco para o input do campo no mount. */
+  autoFocus: boolean;
 } {
   const rfField = sp.get('rf_field');
-  if (!rfField) return { valid: false, stepIdx: 0, errorType: 'unknown' };
+  if (!rfField) return { valid: false, stepIdx: 0, errorType: 'unknown', autoFocus: false };
   if (!RF_VALID_FIELDS.includes(rfField as keyof QuickAgentForm)) {
-    return { valid: false, stepIdx: 0, errorType: 'unknown' };
+    return { valid: false, stepIdx: 0, errorType: 'unknown', autoFocus: false };
   }
   const stepIdx = Math.max(0, Math.min(STEPS.length - 1, Number(sp.get('rf_step') ?? 0) || 0));
   const rawType = sp.get('rf_type') ?? 'unknown';
   const errorType = (RF_VALID_TYPES as readonly string[]).includes(rawType) ? (rawType as RfErrorType) : 'unknown';
+  // rf_focus=1 sinaliza "focar automaticamente o campo no carregamento".
+  // Default false para preservar o comportamento antigo dos links já gerados.
+  const autoFocus = sp.get('rf_focus') === '1';
   return {
     valid: true,
     field: rfField as keyof QuickAgentForm,
     stepIdx,
     errorType,
     errorMessage: sp.get('rf_msg') ?? undefined,
+    autoFocus,
   };
 }
 
@@ -257,7 +263,7 @@ export function QuickCreateWizard({ onBack }: QuickCreateWizardProps) {
     const rfField = searchParams.get('rf_field');
     if (rfField && !RF_VALID_FIELDS.includes(rfField as keyof QuickAgentForm)) {
       const next = new URLSearchParams(searchParams);
-      ['rf_field', 'rf_step', 'rf_type', 'rf_msg'].forEach((k) => next.delete(k));
+      ['rf_field', 'rf_step', 'rf_type', 'rf_msg', 'rf_focus'].forEach((k) => next.delete(k));
       setSearchParams(next, { replace: true });
     }
   }, []);
@@ -275,6 +281,9 @@ export function QuickCreateWizard({ onBack }: QuickCreateWizardProps) {
     url.searchParams.set('rf_step', String(restoreFeedback.stepIdx));
     if (restoreFeedback.errorType) url.searchParams.set('rf_type', restoreFeedback.errorType);
     if (restoreFeedback.errorMessage) url.searchParams.set('rf_msg', restoreFeedback.errorMessage);
+    // Sempre embute rf_focus=1 — quem abre o link recebe foco automático
+    // no campo inválido, sem precisar clicar em "Corrigir agora".
+    url.searchParams.set('rf_focus', '1');
     try {
       await navigator.clipboard.writeText(url.toString());
       toast.success('Link copiado', {
@@ -319,6 +328,35 @@ export function QuickCreateWizard({ onBack }: QuickCreateWizardProps) {
       });
     });
   };
+
+  // Auto-focus no mount quando o deeplink veio com rf_focus=1.
+  // Usa o mesmo caminho do "Corrigir agora" (rAF duplo + scroll + foco) para
+  // garantir que o input já esteja montado quando .focus() for chamado.
+  // Roda apenas uma vez — `initialDeeplink` é estável (useMemo sem deps).
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  useEffect(() => {
+    if (!initialDeeplink.valid || !initialDeeplink.autoFocus || !initialDeeplink.field) return;
+    const inputId = FIELD_INPUT_ID[initialDeeplink.field];
+    if (!inputId) return;
+    const stepLabel = STEPS[initialDeeplink.stepIdx]?.label;
+    const fieldLabel = FIELD_LABEL[initialDeeplink.field] ?? String(initialDeeplink.field);
+    requestAnimationFrame(() => {
+      requestAnimationFrame(() => {
+        const el = document.getElementById(inputId) as HTMLElement | null;
+        if (el && typeof el.focus === 'function') {
+          el.focus({ preventScroll: false });
+          const where = stepLabel ? ` no passo ${stepLabel}` : '';
+          setA11yFocusAnnounce(`Foco movido para o campo ${fieldLabel}${where}.`);
+          window.setTimeout(() => setA11yFocusAnnounce(''), 2000);
+        }
+      });
+    });
+    // Após aplicar o foco, remove rf_focus da URL para que recargas
+    // subsequentes não re-foquem (mas o destaque/banner persistem via rf_field).
+    const next = new URLSearchParams(searchParams);
+    next.delete('rf_focus');
+    setSearchParams(next, { replace: true });
+  }, []);
 
   // On mount: load store, filter recoverable drafts.
   useEffect(() => {
