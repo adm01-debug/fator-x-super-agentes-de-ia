@@ -629,6 +629,22 @@ export default function SLODashboard() {
           })()}
         </div>
         <div className="flex items-center gap-2 flex-wrap">
+          {/* Discreet "recomputing" chip — appears only while a debounced
+              filter change is being applied. Live region so screen readers
+              announce it without stealing focus. */}
+          <span
+            role="status"
+            aria-live="polite"
+            className={`inline-flex items-center gap-1.5 rounded-full border border-primary/30 bg-primary/10 px-2 py-0.5 text-[11px] font-medium text-primary transition-opacity duration-200 ${
+              recomputing ? 'opacity-100' : 'opacity-0 pointer-events-none'
+            }`}
+          >
+            <span aria-hidden className="relative inline-flex h-1.5 w-1.5">
+              <span className="absolute inline-flex h-full w-full rounded-full bg-primary opacity-60 animate-ping" />
+              <span className="relative inline-flex h-1.5 w-1.5 rounded-full bg-primary" />
+            </span>
+            Recalculando…
+          </span>
           {/* Last-updated indicator + live pulse when auto-refresh is on */}
           {lastRefreshAt && (
             <span
