@@ -24,6 +24,10 @@ interface Props {
   selectedForCompare?: string[];
   /** Toggle a row in/out of the comparison set. */
   onToggleCompare?: (e: ExecutionGroup) => void;
+  /** When provided AND `executions` is empty AND filters are active, this
+   *  node replaces the default "no results" empty state. Used by the page to
+   *  surface contextual suggestions when filtered to a single agent. */
+  agentEmptyState?: ReactNode;
 }
 
 /**
