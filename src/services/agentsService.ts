@@ -327,6 +327,29 @@ export async function restoreAgentVersion(
     : `Restaurado de v${sourceVersion.version} (sem alterações)`;
   const change_summary = options.customSummary?.trim() || autoSummary;
 
+  // Aplica overrides das correções rápidas — `null` apaga o campo,
+  // `undefined`/ausente não toca em nada.
+  const cfgOv = options.configOverrides ?? {};
+  if ('temperature' in cfgOv) {
+    if (cfgOv.temperature === null) delete merged.temperature;
+    else merged.temperature = cfgOv.temperature;
+  }
+  if ('max_tokens' in cfgOv) {
+    if (cfgOv.max_tokens === null) delete merged.max_tokens;
+    else merged.max_tokens = cfgOv.max_tokens;
+  }
+  if ('reasoning' in cfgOv) {
+    if (cfgOv.reasoning === null) delete merged.reasoning;
+    else merged.reasoning = cfgOv.reasoning;
+  }
+  if ('tools' in cfgOv) {
+    if (cfgOv.tools === null) delete merged.tools;
+    else merged.tools = cfgOv.tools;
+  }
+  if (options.modelOverride !== undefined) {
+    model = options.modelOverride;
+  }
+
   // Marca a nova versão como produto de um restore — usado pelo histórico de
   // restaurações na página de detalhes (não requer tabela extra).
   merged.restore_metadata = {
@@ -339,6 +362,8 @@ export async function restoreAgentVersion(
       copyModel: !!options.copyModel,
     },
     custom_summary: options.customSummary?.trim() || null,
+    config_overrides: Object.keys(cfgOv).length > 0 ? cfgOv : null,
+    model_override: options.modelOverride !== undefined ? options.modelOverride : null,
   };
 
   return createAgentVersion({
