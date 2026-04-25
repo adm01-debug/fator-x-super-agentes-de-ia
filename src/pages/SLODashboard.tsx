@@ -351,6 +351,18 @@ export default function SLODashboard() {
 
   // Audit log: tracks every meaningful filter/toggle change in this session
   // so reproductions of shared views can be inspected. Local-only (sessionStorage).
+  const failureModesKey = ALL_FAILURE_MODES
+    .filter((m) => failureModes.has(m))
+    .join(',');
+  const { entries: auditEntries, clear: clearAudit } = useDrilldownAuditLog({
+    windowHours,
+    compareHours,
+    windowName,
+    selectedAgentId,
+    includeToolFailures,
+    compareToolModes,
+    failureModesKey,
+  });
 
   const [lastRefreshAt, setLastRefreshAt] = useState<Date | null>(null);
   // Discreet "recomputing" indicator: lights up while a debounced filter
