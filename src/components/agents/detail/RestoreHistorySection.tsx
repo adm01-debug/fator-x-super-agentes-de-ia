@@ -220,6 +220,32 @@ export function RestoreHistorySection({ agentId, versions }: Props) {
 
   const undoMut = useMutation({
     mutationFn: async (entry: RestoreEntry) => {
+      // 0. Pre-flight: garante que NÃO foi criada uma versão posterior ao
+      //    rollback que estamos prestes a desfazer. Se existir, abortar e
+      //    pedir reload — desfazer cegamente sobrescreveria o trabalho novo.
+      const { data: latest, error: latestErr } = await supabaseExternal
+        .from("agent_versions")
+        .select("version, id, change_summary, created_at")
+        .eq("agent_id", agentId)
+        .order("version", { ascending: false })
+        .limit(1)
+        .maybeSingle();
+      if (latestErr) {
+        throw new Error(
+          `Não foi possível verificar a versão mais recente: ${latestErr.message}`,
+        );
+      }
+      if (latest && typeof latest.version === "number" && latest.version > entry.versionNumber) {
+        // Marcador especial para o onError exibir o toast com ação "Recarregar".
+        const err = new Error(
+          `Uma versão mais nova (v${latest.version}) foi criada depois deste rollback. ` +
+            `Recarregue antes de desfazer para evitar sobrescrever as mudanças mais recentes.`,
+        );
+        (err as Error & { stale?: boolean; latestVersion?: number }).stale = true;
+        (err as Error & { stale?: boolean; latestVersion?: number }).latestVersion = latest.version;
+        throw err;
+      }
+
       // 1. Tenta usar a versão de referência já presente no estado local.
       let preRollback: AgentVersion | null = entry.preRollback;
 
@@ -281,7 +307,29 @@ export function RestoreHistorySection({ agentId, versions }: Props) {
         },
       );
     },
-    onError: (e: Error) => toast.error(e.message || "Falha ao desfazer rollback"),
+    onError: (e: Error) => {
+      const stale = (e as Error & { stale?: boolean }).stale;
+      if (stale) {
+        // Caso "drift": já existe versão mais nova no servidor. Toast com
+        // ação para revalidar as queries — depois disso o componente
+        // re-renderiza com o estado correto e o usuário decide se ainda
+        // quer desfazer (provavelmente não, sem antes revisar a v nova).
+        setUndoTarget(null);
+        toast.error(e.message, {
+          duration: 10000,
+          action: {
+            label: "Recarregar",
+            onClick: () => {
+              queryClient.invalidateQueries({ queryKey: ["agent_versions", agentId] });
+              queryClient.invalidateQueries({ queryKey: ["agent-versions", agentId] });
+              queryClient.invalidateQueries({ queryKey: ["agent", agentId] });
+            },
+          },
+        });
+        return;
+      }
+      toast.error(e.message || "Falha ao desfazer rollback");
+    },
   });
 
   if (entries.length === 0) return null;
@@ -313,7 +361,10 @@ export function RestoreHistorySection({ agentId, versions }: Props) {
           // Pode desfazer se temos a versão de referência localmente OU
           // pelo menos o id dela (fallback recarrega do servidor on-click).
           const hasReference = !!entry.preRollback || !!entry.meta.restored_from_version_id;
-          const canUndo = hasReference && !expired;
+          // "Stale": existe versão local mais nova que a deste rollback.
+          // Bloqueia o undo até o usuário recarregar e revisar.
+          const stale = !!currentVersion && currentVersion.version > entry.versionNumber;
+          const canUndo = hasReference && !expired && !stale;
           const isUndoingThis = undoMut.isPending && undoTarget?.versionId === entry.versionId;
           return (
             <li
@@ -400,6 +451,17 @@ export function RestoreHistorySection({ agentId, versions }: Props) {
                       {formatRemaining(remainingMs)}
                     </span>
                   )}
+                  {/* Badge de "stale" — mostra quando há versão mais nova
+                      que torna o undo cego perigoso. */}
+                  {stale && (
+                    <span
+                      className="inline-flex items-center gap-1 rounded px-1.5 py-0.5 text-[10px] bg-destructive/10 text-destructive border border-destructive/30"
+                      title={`Versão atual v${currentVersion?.version} é posterior — recarregue antes de desfazer`}
+                    >
+                      <AlertTriangle className="h-2.5 w-2.5" aria-hidden />
+                      desatualizado
+                    </span>
+                  )}
                   <Button
                     variant="ghost"
                     size="sm"
@@ -409,9 +471,11 @@ export function RestoreHistorySection({ agentId, versions }: Props) {
                     title={
                       expired
                         ? `Janela de ${UNDO_WINDOW_MS / 60000} min para desfazer expirou — restaure manualmente pelo gerenciador de versões`
-                        : !entry.preRollback
-                          ? "Sem versão de referência anterior — não é possível desfazer"
-                          : `Desfazer este rollback restaurando os mesmos campos de v${entry.preRollback?.version} (expira em ${formatRemaining(remainingMs)})`
+                        : stale
+                          ? `Versão mais nova (v${currentVersion?.version}) já existe — recarregue antes de desfazer`
+                          : !entry.preRollback
+                            ? "Sem versão de referência anterior — não é possível desfazer"
+                            : `Desfazer este rollback restaurando os mesmos campos de v${entry.preRollback?.version} (expira em ${formatRemaining(remainingMs)})`
                     }
                   >
                     {isUndoingThis ? (
@@ -452,6 +516,13 @@ export function RestoreHistorySection({ agentId, versions }: Props) {
         const targetRemainingMs = targetExpiresAt - now;
         const targetExpired = !undoTarget || targetExpiresAt === 0 || targetRemainingMs <= 0;
         const targetUrgent = !targetExpired && targetRemainingMs < 60 * 1000;
+        // "Stale" segundo o estado LOCAL: outra versão (manual ou outro
+        // rollback) já foi criada depois deste rollback. Detectado pela
+        // diferença entre versionNumber do rollback e a versão head local.
+        // O check no servidor (no mutationFn) é o gate definitivo; este aqui
+        // é só para sinalizar visualmente antes do clique.
+        const targetStale =
+          !!undoTarget && !!currentVersion && currentVersion.version > undoTarget.versionNumber;
         return (
       <AlertDialog
         open={!!undoTarget}
@@ -602,6 +673,19 @@ export function RestoreHistorySection({ agentId, versions }: Props) {
                   </div>
                 )}
 
+                {/* Aviso de drift: versão mais nova já criada após o rollback. */}
+                {targetStale && undoTarget && (
+                  <div className="flex items-start gap-2 rounded-lg border border-destructive/30 bg-destructive/5 p-2.5 text-xs text-destructive">
+                    <AlertTriangle className="h-3.5 w-3.5 shrink-0 mt-0.5" aria-hidden />
+                    <span>
+                      Foi criada uma versão mais nova (v{currentVersion?.version}) depois
+                      deste rollback (v{undoTarget.versionNumber}). Recarregue antes de
+                      desfazer para revisar o que mudou — desfazer agora pode sobrescrever
+                      essas mudanças.
+                    </span>
+                  </div>
+                )}
+
                 <p className="text-xs text-muted-foreground">
                   Nenhum histórico será apagado — desfazer o rollback é não destrutivo e
                   cria uma nova versão.
@@ -610,24 +694,42 @@ export function RestoreHistorySection({ agentId, versions }: Props) {
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
+            {targetStale && (
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => {
+                  queryClient.invalidateQueries({ queryKey: ["agent_versions", agentId] });
+                  queryClient.invalidateQueries({ queryKey: ["agent-versions", agentId] });
+                  queryClient.invalidateQueries({ queryKey: ["agent", agentId] });
+                  setUndoTarget(null);
+                }}
+                disabled={undoMut.isPending}
+              >
+                Recarregar
+              </Button>
+            )}
             <AlertDialogCancel disabled={undoMut.isPending}>Cancelar</AlertDialogCancel>
             <AlertDialogAction
               onClick={(e) => {
                 e.preventDefault();
-                if (undoTarget && !targetExpired) undoMut.mutate(undoTarget);
+                if (undoTarget && !targetExpired && !targetStale) undoMut.mutate(undoTarget);
               }}
               disabled={
                 undoMut.isPending ||
                 targetExpired ||
+                targetStale ||
                 (!undoTarget?.preRollback && !undoTarget?.meta.restored_from_version_id)
               }
               className="gap-1.5"
               title={
                 targetExpired
                   ? `Janela de ${UNDO_WINDOW_MS / 60000} min para desfazer expirou`
-                  : !undoTarget?.preRollback && !undoTarget?.meta.restored_from_version_id
-                    ? "Sem versão de referência anterior"
-                    : `Confirmar — expira em ${formatRemaining(targetRemainingMs)}`
+                  : targetStale
+                    ? "Versão mais nova detectada — recarregue antes de desfazer"
+                    : !undoTarget?.preRollback && !undoTarget?.meta.restored_from_version_id
+                      ? "Sem versão de referência anterior"
+                      : `Confirmar — expira em ${formatRemaining(targetRemainingMs)}`
               }
             >
               {undoMut.isPending ? (
@@ -635,7 +737,11 @@ export function RestoreHistorySection({ agentId, versions }: Props) {
               ) : (
                 <Undo2 className="h-3.5 w-3.5" aria-hidden />
               )}
-              {targetExpired ? "Janela expirada" : "Confirmar desfazer"}
+              {targetExpired
+                ? "Janela expirada"
+                : targetStale
+                  ? "Recarregue antes"
+                  : "Confirmar desfazer"}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
