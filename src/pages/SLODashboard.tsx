@@ -349,6 +349,9 @@ export default function SLODashboard() {
     return searchParams.get(QP_COMPARE_TOOLS) === '1';
   });
 
+  // Audit log: tracks every meaningful filter/toggle change in this session
+  // so reproductions of shared views can be inspected. Local-only (sessionStorage).
+
   const [lastRefreshAt, setLastRefreshAt] = useState<Date | null>(null);
   // Discreet "recomputing" indicator: lights up while a debounced filter
   // change is in flight (or the fetch is awaiting). Distinct from `refreshing`
