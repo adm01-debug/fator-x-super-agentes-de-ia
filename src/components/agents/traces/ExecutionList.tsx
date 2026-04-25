@@ -235,6 +235,18 @@ export function ExecutionList({ executions, selectedId, onSelect, onReplay, load
                   >
                     <div className="flex items-center justify-between mb-1.5">
                       <div className="flex items-center gap-2 min-w-0">
+                        {compareMode && (
+                          <span
+                            className={`h-4 w-4 rounded border flex items-center justify-center text-[10px] font-mono shrink-0 transition-colors ${
+                              isPicked
+                                ? 'bg-primary border-primary text-primary-foreground'
+                                : 'border-border bg-background'
+                            }`}
+                            aria-hidden
+                          >
+                            {isPicked ? (pickIndex === 0 ? 'A' : 'B') : ''}
+                          </span>
+                        )}
                         <span className={`h-1.5 w-1.5 rounded-full shrink-0 ${dotColor}`} aria-hidden />
                         <span className="text-[11px] font-mono text-muted-foreground truncate max-w-[200px]">
                           {e.session_id.startsWith('auto-')
