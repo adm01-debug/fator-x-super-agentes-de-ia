@@ -238,6 +238,34 @@ export default function AgentTracesPage() {
     [executions, selectedId],
   );
 
+  // Auto-open compare sheet when 2 picks are accumulated.
+  useEffect(() => {
+    if (compareMode && comparePicks.length === 2) setCompareOpen(true);
+  }, [compareMode, comparePicks]);
+
+  const compareA = useMemo(
+    () => executions.find((e) => e.session_id === comparePicks[0]) ?? null,
+    [executions, comparePicks],
+  );
+  const compareB = useMemo(
+    () => executions.find((e) => e.session_id === comparePicks[1]) ?? null,
+    [executions, comparePicks],
+  );
+
+  const toggleCompare = (e: ExecutionGroup) => {
+    setComparePicks((prev) => {
+      if (prev.includes(e.session_id)) return prev.filter((x) => x !== e.session_id);
+      if (prev.length >= 2) return prev; // capped — UI also disables the row
+      return [...prev, e.session_id];
+    });
+  };
+
+  const exitCompareMode = () => {
+    setCompareMode(false);
+    setComparePicks([]);
+    setCompareOpen(false);
+  };
+
   const effectiveSessionId = selected?.session_id ?? null;
   const effectiveTotal = selected?.traces.length ?? 0;
   const [consumedUrlStepFor, setConsumedUrlStepFor] = useState<string | null>(null);
