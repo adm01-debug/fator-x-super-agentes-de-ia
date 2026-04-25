@@ -1939,7 +1939,6 @@ export default function SLODashboard() {
                             );
                           })}
                           <div
-                            role="listitem"
                             title="Bucket sem violação sob o filtro atual"
                             className="flex items-center gap-1.5 text-[11px] text-muted-foreground"
                           >
