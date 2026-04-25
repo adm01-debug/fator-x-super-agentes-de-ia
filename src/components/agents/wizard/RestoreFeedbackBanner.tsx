@@ -120,6 +120,17 @@ export function RestoreFeedbackBanner({ info, onJumpToField, onDismiss, onCopyDe
             )}
           </button>
         )}
+        {onFixNow && (
+          <button
+            type="button"
+            onClick={onFixNow}
+            data-testid="rfb-fix-now"
+            className="inline-flex items-center gap-1 h-7 px-2 rounded-md text-[11px] font-medium bg-primary text-primary-foreground hover:bg-primary/90 transition-colors"
+            title="Ir ao passo correto e focar o campo inválido"
+          >
+            <Wrench className="h-3 w-3" /> Corrigir agora
+          </button>
+        )}
         <button
           type="button"
           onClick={onJumpToField}
