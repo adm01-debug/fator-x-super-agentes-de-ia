@@ -698,11 +698,25 @@ export default function SLODashboard() {
             variant="outline"
             size="sm"
             onClick={async () => {
-              const url = window.location.href;
               const named = sanitizeWindowName(windowName);
               const sel = summary?.top_agents.find((a) => a.agent_id === selectedAgentId);
+              const selName = sel?.agent_name?.trim() ?? '';
+
+              // Build the URL with an extra `selname` param so the recipient
+              // sees the agent name in the link itself (not just the UUID).
+              // Also re-emit `n` (window name) to guarantee both labels travel
+              // even if the current URL was loaded before the user named it.
+              const u = new URL(window.location.href);
+              if (selectedAgentId && selName) {
+                u.searchParams.set('selname', selName.slice(0, WINDOW_NAME_MAX_LEN));
+              } else {
+                u.searchParams.delete('selname');
+              }
+              if (named) u.searchParams.set(QP_NAME, named);
+              const url = u.toString();
+
               const scopeLabel = selectedAgentId
-                ? ` · escopo: ${sel?.agent_name ?? 'agente selecionado'}`
+                ? ` · escopo: ${selName || 'agente selecionado'}`
                 : '';
               const successDescription = (named
                 ? `Janela "${named}" · cadência e filtros preservados na URL`
@@ -729,7 +743,7 @@ export default function SLODashboard() {
               }
             }}
             aria-label="Copiar link compartilhável da visualização atual"
-            title="Copia URL com nome da janela, cadência e filtros preservados"
+            title="Copia URL com nome da janela, agente selecionado, cadência e filtros preservados"
           >
             <Link2 className="h-4 w-4" />
             <span className="ml-2 hidden md:inline">Copiar link</span>
