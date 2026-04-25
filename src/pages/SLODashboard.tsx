@@ -445,6 +445,27 @@ export default function SLODashboard() {
     } catch { /* quota / disabled — silently ignore */ }
   }, [windowName]);
 
+  // Persist windowHours / compareHours per-user with the same debounce as the
+  // fetch, so a reload (or new tab without query string) restores the same
+  // view. URL still wins on first mount; this only writes the latest *settled*
+  // value to avoid thrashing localStorage during rapid toggling.
+  useEffect(() => {
+    const t = window.setTimeout(() => {
+      try { localStorage.setItem(WINDOW_HOURS_STORAGE_KEY, String(windowHours)); }
+      catch { /* quota / disabled — ignore */ }
+    }, FILTER_PERSIST_DEBOUNCE_MS);
+    return () => window.clearTimeout(t);
+  }, [windowHours]);
+  useEffect(() => {
+    const t = window.setTimeout(() => {
+      try {
+        if (compareHours > 0) localStorage.setItem(COMPARE_HOURS_STORAGE_KEY, String(compareHours));
+        else localStorage.removeItem(COMPARE_HOURS_STORAGE_KEY);
+      } catch { /* quota / disabled — ignore */ }
+    }, FILTER_PERSIST_DEBOUNCE_MS);
+    return () => window.clearTimeout(t);
+  }, [compareHours]);
+
   // Each fetch tags itself with a monotonically-increasing token. When a
   // response arrives, we only commit it to state if the token is still the
   // most recent one — this drops responses for filter combos the user has
