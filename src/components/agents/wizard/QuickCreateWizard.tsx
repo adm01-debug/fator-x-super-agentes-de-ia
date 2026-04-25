@@ -198,6 +198,65 @@ export function QuickCreateWizard({ onBack }: QuickCreateWizardProps) {
     if (!highlightField && restoreFeedback) setRestoreFeedback(null);
   }, [highlightField, restoreFeedback]);
 
+  // Deeplink: na montagem, se a URL traz rf_field/rf_step/rf_type/rf_msg,
+  // hidratamos o highlight + restoreFeedback para reabrir o wizard exatamente
+  // no mesmo ponto que foi compartilhado.
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  useEffect(() => {
+    const rfField = searchParams.get('rf_field');
+    const rfStep = searchParams.get('rf_step');
+    if (!rfField) return;
+    const validFields: Array<keyof QuickAgentForm> = ['name', 'emoji', 'mission', 'description', 'type', 'model', 'prompt'];
+    if (!validFields.includes(rfField as keyof QuickAgentForm)) {
+      const next = new URLSearchParams(searchParams);
+      ['rf_field', 'rf_step', 'rf_type', 'rf_msg'].forEach((k) => next.delete(k));
+      setSearchParams(next, { replace: true });
+      return;
+    }
+    const stepIdx = Math.max(0, Math.min(STEPS.length - 1, Number(rfStep ?? 0) || 0));
+    const field = rfField as keyof QuickAgentForm;
+    const errorTypeRaw = searchParams.get('rf_type') ?? 'unknown';
+    const validTypes = ['required', 'too_small', 'too_big', 'invalid_type', 'custom', 'unknown'] as const;
+    const errorType = (validTypes as readonly string[]).includes(errorTypeRaw)
+      ? (errorTypeRaw as typeof validTypes[number])
+      : 'unknown';
+    const errorMessage = searchParams.get('rf_msg') ?? undefined;
+    setStep(stepIdx);
+    setHighlightField(field);
+    setRestoreFeedback({
+      stepIdx,
+      field,
+      errorType,
+      errorMessage,
+      stepLabel: STEPS[stepIdx]?.label,
+      fieldLabel: FIELD_LABEL[field] ?? String(field),
+      mode: 'full',
+    });
+  }, []);
+
+  // Gera URL atual + params rf_* e copia para o clipboard. Botão "Copiar link"
+  // do RestoreFeedbackBanner: permite compartilhar um link que já abre o wizard
+  // no mesmo campo destacado + mesmo resumo de erro.
+  const copyDeeplinkToFeedback = async () => {
+    if (!restoreFeedback || !restoreFeedback.field) {
+      toast.error('Nada para compartilhar', { description: 'Sem campo destacado no momento.' });
+      return;
+    }
+    const url = new URL(window.location.href);
+    url.searchParams.set('rf_field', String(restoreFeedback.field));
+    url.searchParams.set('rf_step', String(restoreFeedback.stepIdx));
+    if (restoreFeedback.errorType) url.searchParams.set('rf_type', restoreFeedback.errorType);
+    if (restoreFeedback.errorMessage) url.searchParams.set('rf_msg', restoreFeedback.errorMessage);
+    try {
+      await navigator.clipboard.writeText(url.toString());
+      toast.success('Link copiado', {
+        description: `Reabre o wizard no campo "${restoreFeedback.fieldLabel ?? restoreFeedback.field}".`,
+      });
+    } catch {
+      toast.error('Não consegui copiar', { description: 'Copie manualmente da barra de endereço.' });
+    }
+  };
+
   // On mount: load store, filter recoverable drafts.
   useEffect(() => {
     const store = loadDrafts();
