@@ -27,6 +27,8 @@ import {
 } from '@/lib/slo/sloTargets';
 import { logger } from '@/lib/logger';
 import { exportDrilldownPdf, type DrilldownSection } from '@/lib/slo/exportDrilldownPdf';
+import { useDrilldownAuditLog } from '@/lib/slo/useDrilldownAuditLog';
+import { DrilldownAuditPanel } from '@/components/slo/DrilldownAuditPanel';
 import { toast } from 'sonner';
 
 /** Auto-refresh interval options (ms). 0 = disabled. */
@@ -345,6 +347,21 @@ export default function SLODashboard() {
   // drill-down. Off by default; persisted in the URL as `?cmp_tools=1`.
   const [compareToolModes, setCompareToolModes] = useState<boolean>(() => {
     return searchParams.get(QP_COMPARE_TOOLS) === '1';
+  });
+
+  // Audit log: tracks every meaningful filter/toggle change in this session
+  // so reproductions of shared views can be inspected. Local-only (sessionStorage).
+  const failureModesKey = ALL_FAILURE_MODES
+    .filter((m) => failureModes.has(m))
+    .join(',');
+  const { entries: auditEntries, clear: clearAudit } = useDrilldownAuditLog({
+    windowHours,
+    compareHours,
+    windowName,
+    selectedAgentId,
+    includeToolFailures,
+    compareToolModes,
+    failureModesKey,
   });
 
   const [lastRefreshAt, setLastRefreshAt] = useState<Date | null>(null);
@@ -1369,6 +1386,8 @@ export default function SLODashboard() {
                         <Columns2 className="h-3.5 w-3.5" />
                         {compareToolModes ? 'Comparando' : 'Comparar'}
                       </button>
+
+                      <DrilldownAuditPanel entries={auditEntries} onClear={clearAudit} />
 
                       <Button
                         type="button"
