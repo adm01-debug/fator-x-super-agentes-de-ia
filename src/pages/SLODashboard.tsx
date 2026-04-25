@@ -1902,20 +1902,31 @@ export default function SLODashboard() {
                         </span>
                         <div
                           className="flex items-center gap-3 flex-wrap"
-                          role="list"
-                          aria-label="Legenda das cores das violações"
+                          role="group"
+                          aria-label="Legenda clicável das cores das violações — clique para alternar o filtro"
                         >
                           {ALL_FAILURE_MODES.map((mode) => {
                             const meta = FAILURE_MODE_META[mode];
                             const enabled = failureModes.has(mode);
+                            // Prevent disabling the last enabled mode (would empty the strip).
+                            const isLastEnabled = enabled && failureModes.size === 1;
                             return (
-                              <div
+                              <button
                                 key={mode}
-                                role="listitem"
-                                title={meta.description}
-                                className={`flex items-center gap-1.5 text-[11px] ${
-                                  enabled ? 'text-foreground' : 'text-muted-foreground/60 line-through'
-                                }`}
+                                type="button"
+                                onClick={() => toggleFailureMode(mode)}
+                                disabled={isLastEnabled}
+                                aria-pressed={enabled}
+                                title={
+                                  isLastEnabled
+                                    ? 'Mantenha pelo menos um tipo selecionado'
+                                    : `${meta.description} — clique para ${enabled ? 'ocultar' : 'mostrar'}`
+                                }
+                                className={`flex items-center gap-1.5 text-[11px] rounded-md px-1.5 py-0.5 border transition-colors focus-ring ${
+                                  enabled
+                                    ? 'text-foreground border-border bg-secondary/40 hover:bg-secondary/70'
+                                    : 'text-muted-foreground/70 line-through border-transparent hover:bg-secondary/40 hover:text-muted-foreground'
+                                } ${isLastEnabled ? 'cursor-not-allowed opacity-80' : 'cursor-pointer'}`}
                               >
                                 <span
                                   aria-hidden
@@ -1924,7 +1935,7 @@ export default function SLODashboard() {
                                   }`}
                                 />
                                 <span>{meta.label}</span>
-                              </div>
+                              </button>
                             );
                           })}
                           <div
