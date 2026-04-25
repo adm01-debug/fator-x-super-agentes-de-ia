@@ -263,7 +263,7 @@ export function QuickCreateWizard({ onBack }: QuickCreateWizardProps) {
     const rfField = searchParams.get('rf_field');
     if (rfField && !RF_VALID_FIELDS.includes(rfField as keyof QuickAgentForm)) {
       const next = new URLSearchParams(searchParams);
-      ['rf_field', 'rf_step', 'rf_type', 'rf_msg'].forEach((k) => next.delete(k));
+      ['rf_field', 'rf_step', 'rf_type', 'rf_msg', 'rf_focus'].forEach((k) => next.delete(k));
       setSearchParams(next, { replace: true });
     }
   }, []);
