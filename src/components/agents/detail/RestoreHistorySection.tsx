@@ -350,13 +350,23 @@ export function RestoreHistorySection({ agentId, versions }: Props) {
         })}
       </ol>
 
-      {/* Estado da janela de undo para o alvo aberto no modal — recalculado
-          a cada tick para que o botão de confirmar fique desabilitado
-          automaticamente caso a janela expire enquanto o diálogo está aberto. */}
-      {(() => null)()}
       {/* Modal de confirmação do "Desfazer rollback".
           Mostra: o rollback alvo, a versão de referência (pré-rollback),
           os campos que serão restaurados e a nova versão que será criada. */}
+      {(() => {
+        // Estado da janela de undo para o alvo aberto no modal — recalculado
+        // a cada tick para que o botão de confirmar fique desabilitado
+        // automaticamente caso a janela expire enquanto o diálogo está aberto.
+        const targetRestoredAt = undoTarget
+          ? new Date(undoTarget.meta.restored_at).getTime()
+          : 0;
+        const targetExpiresAt = Number.isFinite(targetRestoredAt) && targetRestoredAt > 0
+          ? targetRestoredAt + UNDO_WINDOW_MS
+          : 0;
+        const targetRemainingMs = targetExpiresAt - now;
+        const targetExpired = !undoTarget || targetExpiresAt === 0 || targetRemainingMs <= 0;
+        const targetUrgent = !targetExpired && targetRemainingMs < 60 * 1000;
+        return (
       <AlertDialog
         open={!!undoTarget}
         onOpenChange={(open) => {
