@@ -132,21 +132,27 @@ function parseDeeplinkParams(sp: URLSearchParams): {
   stepIdx: number;
   errorType: RfErrorType;
   errorMessage?: string;
+  /** Quando true, o wizard move o foco para o input do campo no mount. */
+  autoFocus: boolean;
 } {
   const rfField = sp.get('rf_field');
-  if (!rfField) return { valid: false, stepIdx: 0, errorType: 'unknown' };
+  if (!rfField) return { valid: false, stepIdx: 0, errorType: 'unknown', autoFocus: false };
   if (!RF_VALID_FIELDS.includes(rfField as keyof QuickAgentForm)) {
-    return { valid: false, stepIdx: 0, errorType: 'unknown' };
+    return { valid: false, stepIdx: 0, errorType: 'unknown', autoFocus: false };
   }
   const stepIdx = Math.max(0, Math.min(STEPS.length - 1, Number(sp.get('rf_step') ?? 0) || 0));
   const rawType = sp.get('rf_type') ?? 'unknown';
   const errorType = (RF_VALID_TYPES as readonly string[]).includes(rawType) ? (rawType as RfErrorType) : 'unknown';
+  // rf_focus=1 sinaliza "focar automaticamente o campo no carregamento".
+  // Default false para preservar o comportamento antigo dos links já gerados.
+  const autoFocus = sp.get('rf_focus') === '1';
   return {
     valid: true,
     field: rfField as keyof QuickAgentForm,
     stepIdx,
     errorType,
     errorMessage: sp.get('rf_msg') ?? undefined,
+    autoFocus,
   };
 }
 
