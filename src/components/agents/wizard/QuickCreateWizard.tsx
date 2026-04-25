@@ -120,11 +120,44 @@ interface QuickCreateWizardProps {
   onBack: () => void;
 }
 
+// Parse síncrono dos params rf_* — usado para hidratar o estado inicial
+// ANTES do primeiro render, evitando flicker (sem passar por estado vazio).
+type RfErrorType = 'required' | 'too_small' | 'too_big' | 'invalid_type' | 'custom' | 'unknown';
+const RF_VALID_FIELDS: Array<keyof QuickAgentForm> = ['name', 'emoji', 'mission', 'description', 'type', 'model', 'prompt'];
+const RF_VALID_TYPES: readonly RfErrorType[] = ['required', 'too_small', 'too_big', 'invalid_type', 'custom', 'unknown'];
+
+function parseDeeplinkParams(sp: URLSearchParams): {
+  valid: boolean;
+  field?: keyof QuickAgentForm;
+  stepIdx: number;
+  errorType: RfErrorType;
+  errorMessage?: string;
+} {
+  const rfField = sp.get('rf_field');
+  if (!rfField) return { valid: false, stepIdx: 0, errorType: 'unknown' };
+  if (!RF_VALID_FIELDS.includes(rfField as keyof QuickAgentForm)) {
+    return { valid: false, stepIdx: 0, errorType: 'unknown' };
+  }
+  const stepIdx = Math.max(0, Math.min(STEPS.length - 1, Number(sp.get('rf_step') ?? 0) || 0));
+  const rawType = sp.get('rf_type') ?? 'unknown';
+  const errorType = (RF_VALID_TYPES as readonly string[]).includes(rawType) ? (rawType as RfErrorType) : 'unknown';
+  return {
+    valid: true,
+    field: rfField as keyof QuickAgentForm,
+    stepIdx,
+    errorType,
+    errorMessage: sp.get('rf_msg') ?? undefined,
+  };
+}
+
 export function QuickCreateWizard({ onBack }: QuickCreateWizardProps) {
   const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
   const { user } = useAuth();
-  const [step, setStep] = useState(0);
+  // Hidratação síncrona dos params rf_* — calculada UMA VEZ antes do
+  // primeiro render para evitar flicker entre "vazio → destacado".
+  const initialDeeplink = useMemo(() => parseDeeplinkParams(searchParams), []);
+  const [step, setStep] = useState(initialDeeplink.valid ? initialDeeplink.stepIdx : 0);
   const [saving, setSaving] = useState(false);
   const [errors, setErrors] = useState<Partial<Record<keyof QuickAgentForm, string>>>({});
 
@@ -132,10 +165,24 @@ export function QuickCreateWizard({ onBack }: QuickCreateWizardProps) {
   const [draftsStore, setDraftsStore] = useState<DraftsStoreV2>({ version: 2, activeId: null, drafts: [] });
   const [pendingDrafts, setPendingDrafts] = useState<DraftEntry[]>([]);
   const [draftDecided, setDraftDecided] = useState(false);
-  const [highlightField, setHighlightField] = useState<keyof QuickAgentForm | null>(null);
+  const [highlightField, setHighlightField] = useState<keyof QuickAgentForm | null>(
+    initialDeeplink.valid ? (initialDeeplink.field ?? null) : null,
+  );
   // Resumo visual do erro pós-restauração — exibido junto do highlightField.
   // Nulo = nenhum feedback ativo. Auto-limpa quando o usuário corrige o campo.
-  const [restoreFeedback, setRestoreFeedback] = useState<import('./RestoreFeedbackBanner').RestoreFeedbackInfo | null>(null);
+  const [restoreFeedback, setRestoreFeedback] = useState<import('./RestoreFeedbackBanner').RestoreFeedbackInfo | null>(
+    initialDeeplink.valid && initialDeeplink.field
+      ? {
+          stepIdx: initialDeeplink.stepIdx,
+          field: initialDeeplink.field,
+          errorType: initialDeeplink.errorType,
+          errorMessage: initialDeeplink.errorMessage,
+          stepLabel: STEPS[initialDeeplink.stepIdx]?.label,
+          fieldLabel: FIELD_LABEL[initialDeeplink.field] ?? String(initialDeeplink.field),
+          mode: 'full',
+        }
+      : null,
+  );
   const [confirmOpen, setConfirmOpen] = useState(false);
   const [promptCustomLocked, setPromptCustomLocked] = useState(false);
   const [selectedVariant, setSelectedVariant] = useState<import('@/data/quickAgentTemplates').PromptVariantId | null>(null);
@@ -198,40 +245,17 @@ export function QuickCreateWizard({ onBack }: QuickCreateWizardProps) {
     if (!highlightField && restoreFeedback) setRestoreFeedback(null);
   }, [highlightField, restoreFeedback]);
 
-  // Deeplink: na montagem, se a URL traz rf_field/rf_step/rf_type/rf_msg,
-  // hidratamos o highlight + restoreFeedback para reabrir o wizard exatamente
-  // no mesmo ponto que foi compartilhado.
+  // Deeplink rf_*: a hidratação do estado já foi feita SÍNCRONA via lazy
+  // initializers acima (sem flicker). Aqui só limpamos params inválidos da
+  // URL para não confundir o usuário em recargas futuras.
   // eslint-disable-next-line react-hooks/exhaustive-deps
   useEffect(() => {
     const rfField = searchParams.get('rf_field');
-    const rfStep = searchParams.get('rf_step');
-    if (!rfField) return;
-    const validFields: Array<keyof QuickAgentForm> = ['name', 'emoji', 'mission', 'description', 'type', 'model', 'prompt'];
-    if (!validFields.includes(rfField as keyof QuickAgentForm)) {
+    if (rfField && !RF_VALID_FIELDS.includes(rfField as keyof QuickAgentForm)) {
       const next = new URLSearchParams(searchParams);
       ['rf_field', 'rf_step', 'rf_type', 'rf_msg'].forEach((k) => next.delete(k));
       setSearchParams(next, { replace: true });
-      return;
     }
-    const stepIdx = Math.max(0, Math.min(STEPS.length - 1, Number(rfStep ?? 0) || 0));
-    const field = rfField as keyof QuickAgentForm;
-    const errorTypeRaw = searchParams.get('rf_type') ?? 'unknown';
-    const validTypes = ['required', 'too_small', 'too_big', 'invalid_type', 'custom', 'unknown'] as const;
-    const errorType = (validTypes as readonly string[]).includes(errorTypeRaw)
-      ? (errorTypeRaw as typeof validTypes[number])
-      : 'unknown';
-    const errorMessage = searchParams.get('rf_msg') ?? undefined;
-    setStep(stepIdx);
-    setHighlightField(field);
-    setRestoreFeedback({
-      stepIdx,
-      field,
-      errorType,
-      errorMessage,
-      stepLabel: STEPS[stepIdx]?.label,
-      fieldLabel: FIELD_LABEL[field] ?? String(field),
-      mode: 'full',
-    });
   }, []);
 
   // Gera URL atual + params rf_* e copia para o clipboard. Botão "Copiar link"
