@@ -184,6 +184,10 @@ export function QuickCreateWizard({ onBack }: QuickCreateWizardProps) {
       : null,
   );
   const [confirmOpen, setConfirmOpen] = useState(false);
+  // Mensagem para a região live de A11y — anunciada para SR sempre que o
+  // foco for movido programaticamente (ex.: ao clicar em "Corrigir agora").
+  // Mantida no DOM via aria-live="polite" sr-only para não interromper o fluxo.
+  const [a11yFocusAnnounce, setA11yFocusAnnounce] = useState('');
   const [promptCustomLocked, setPromptCustomLocked] = useState(false);
   const [selectedVariant, setSelectedVariant] = useState<import('@/data/quickAgentTemplates').PromptVariantId | null>(null);
   const [pendingVariant, setPendingVariant] = useState<import('@/data/quickAgentTemplates').PromptVariantId | null>(null);
@@ -294,7 +298,7 @@ export function QuickCreateWizard({ onBack }: QuickCreateWizardProps) {
   };
   const fixNowFromFeedback = () => {
     if (!restoreFeedback || !restoreFeedback.field) return;
-    const { stepIdx, field } = restoreFeedback;
+    const { stepIdx, field, fieldLabel, stepLabel } = restoreFeedback;
     setStep(stepIdx);
     setHighlightField(field);
     const inputId = FIELD_INPUT_ID[field];
@@ -304,6 +308,13 @@ export function QuickCreateWizard({ onBack }: QuickCreateWizardProps) {
         const el = document.getElementById(inputId) as HTMLElement | null;
         if (el && typeof el.focus === 'function') {
           el.focus({ preventScroll: false });
+          // Anuncia para leitores de tela: passo + campo focado.
+          // Limpa após 2s para que um novo "Corrigir agora" no mesmo campo
+          // re-dispare o anúncio (live regions só falam ao mudar texto).
+          const label = fieldLabel ?? field;
+          const where = stepLabel ? ` no passo ${stepLabel}` : '';
+          setA11yFocusAnnounce(`Foco movido para o campo ${label}${where}.`);
+          window.setTimeout(() => setA11yFocusAnnounce(''), 2000);
         }
       });
     });
@@ -868,6 +879,17 @@ export function QuickCreateWizard({ onBack }: QuickCreateWizardProps) {
 
   return (
     <div className="p-6 max-w-[1100px] mx-auto space-y-6">
+      {/* Região live dedicada para anúncios de mudança de foco programática.
+          Visualmente oculta; assistive tech anuncia ao texto mudar. */}
+      <div
+        role="status"
+        aria-live="polite"
+        aria-atomic="true"
+        className="sr-only"
+        data-testid="qa-a11y-focus-announce"
+      >
+        {a11yFocusAnnounce}
+      </div>
       {bannerEntries.length > 0 && (
         <DraftRecoveryBanner
           drafts={bannerEntries}
