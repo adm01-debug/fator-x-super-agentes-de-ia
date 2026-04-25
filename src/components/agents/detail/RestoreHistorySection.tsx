@@ -241,7 +241,7 @@ export function RestoreHistorySection({ agentId, versions }: Props) {
       queryClient.invalidateQueries({ queryKey: ["agent", agentId] });
       setUndoTarget(null);
       toast.success(
-        `Rollback desfeito — v${data.version} criada a partir de v${entry.preRollback?.version}`,
+        `Rollback desfeito — v${data.version} criada a partir de v${entry.preRollback?.version ?? entry.meta.restored_from_version}`,
         {
           action: {
             label: "Ver na timeline",
