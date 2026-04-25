@@ -345,6 +345,27 @@ export default function SLODashboard() {
   // (manual reload) and `loading` (initial empty state) so we never blank the
   // page during rapid filter toggling.
   const [recomputing, setRecomputing] = useState(false);
+  // Short cool-down (FILTER_DEBOUNCE_MS) applied right after a window/compare
+  // change so rapid clicking can't queue extra fetches before the debounce
+  // fires. Controls UI disable + visual cue. Doesn't lock the auto-refresh
+  // selector or the window-name input (those don't drive a refetch).
+  const [filtersLocked, setFiltersLocked] = useState(false);
+  const filtersLockTimerRef = useRef<number | null>(null);
+  const lockFiltersBriefly = useCallback(() => {
+    if (filtersLockTimerRef.current !== null) {
+      window.clearTimeout(filtersLockTimerRef.current);
+    }
+    setFiltersLocked(true);
+    filtersLockTimerRef.current = window.setTimeout(() => {
+      setFiltersLocked(false);
+      filtersLockTimerRef.current = null;
+    }, 350);
+  }, []);
+  useEffect(() => () => {
+    if (filtersLockTimerRef.current !== null) {
+      window.clearTimeout(filtersLockTimerRef.current);
+    }
+  }, []);
   // Re-renders the "X seg atrás" pill once a second without re-fetching data.
   const [, setNowTick] = useState(0);
   const isMountedRef = useRef(true);
@@ -760,9 +781,12 @@ export default function SLODashboard() {
           </select>
           <select
             value={windowHours}
-            onChange={(e) => setWindowHours(Number(e.target.value))}
-            className="rounded-md border border-input bg-background px-3 py-1.5 text-sm focus-ring"
+            onChange={(e) => { setWindowHours(Number(e.target.value)); lockFiltersBriefly(); }}
+            disabled={filtersLocked}
+            className="rounded-md border border-input bg-background px-3 py-1.5 text-sm focus-ring disabled:opacity-60 disabled:cursor-not-allowed"
             aria-label="Janela de tempo"
+            aria-busy={filtersLocked}
+            title={filtersLocked ? 'Aguarde — aplicando última troca…' : undefined}
           >
             <option value={1}>Última 1h</option>
             <option value={6}>Últimas 6h</option>
@@ -771,10 +795,12 @@ export default function SLODashboard() {
           </select>
           <select
             value={compareHours}
-            onChange={(e) => setCompareHours(Number(e.target.value))}
-            className="rounded-md border border-input bg-background px-3 py-1.5 text-sm focus-ring"
+            onChange={(e) => { setCompareHours(Number(e.target.value)); lockFiltersBriefly(); }}
+            disabled={filtersLocked}
+            className="rounded-md border border-input bg-background px-3 py-1.5 text-sm focus-ring disabled:opacity-60 disabled:cursor-not-allowed"
             aria-label="Janela de comparação"
-            title="Compara a janela atual com outra para ver tendências"
+            aria-busy={filtersLocked}
+            title={filtersLocked ? 'Aguarde — aplicando última troca…' : 'Compara a janela atual com outra para ver tendências'}
           >
             <option value={0}>Comparar: —</option>
             {[1, 6, 24, 168]
