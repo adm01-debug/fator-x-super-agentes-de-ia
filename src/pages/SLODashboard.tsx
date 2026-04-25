@@ -743,7 +743,7 @@ export default function SLODashboard() {
               }
             }}
             aria-label="Copiar link compartilhável da visualização atual"
-            title="Copia URL com nome da janela, cadência e filtros preservados"
+            title="Copia URL com nome da janela, agente selecionado, cadência e filtros preservados"
           >
             <Link2 className="h-4 w-4" />
             <span className="ml-2 hidden md:inline">Copiar link</span>
