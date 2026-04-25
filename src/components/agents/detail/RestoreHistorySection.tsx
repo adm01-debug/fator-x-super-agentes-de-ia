@@ -451,6 +451,17 @@ export function RestoreHistorySection({ agentId, versions }: Props) {
                       {formatRemaining(remainingMs)}
                     </span>
                   )}
+                  {/* Badge de "stale" — mostra quando há versão mais nova
+                      que torna o undo cego perigoso. */}
+                  {stale && (
+                    <span
+                      className="inline-flex items-center gap-1 rounded px-1.5 py-0.5 text-[10px] bg-destructive/10 text-destructive border border-destructive/30"
+                      title={`Versão atual v${currentVersion?.version} é posterior — recarregue antes de desfazer`}
+                    >
+                      <AlertTriangle className="h-2.5 w-2.5" aria-hidden />
+                      desatualizado
+                    </span>
+                  )}
                   <Button
                     variant="ghost"
                     size="sm"
@@ -460,9 +471,11 @@ export function RestoreHistorySection({ agentId, versions }: Props) {
                     title={
                       expired
                         ? `Janela de ${UNDO_WINDOW_MS / 60000} min para desfazer expirou — restaure manualmente pelo gerenciador de versões`
-                        : !entry.preRollback
-                          ? "Sem versão de referência anterior — não é possível desfazer"
-                          : `Desfazer este rollback restaurando os mesmos campos de v${entry.preRollback?.version} (expira em ${formatRemaining(remainingMs)})`
+                        : stale
+                          ? `Versão mais nova (v${currentVersion?.version}) já existe — recarregue antes de desfazer`
+                          : !entry.preRollback
+                            ? "Sem versão de referência anterior — não é possível desfazer"
+                            : `Desfazer este rollback restaurando os mesmos campos de v${entry.preRollback?.version} (expira em ${formatRemaining(remainingMs)})`
                     }
                   >
                     {isUndoingThis ? (
