@@ -42,6 +42,7 @@ const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/
 export default function AgentTracesPage() {
   const { id } = useParams();
   const [searchParams, setSearchParams] = useSearchParams();
+  const drilldown = useAgentDrilldownStore();
 
   // Drill-down deep-link: SLO Dashboard (and other pages) link here with
   // `?agent_id=<uuid>` to pre-select the agent. We only honour valid UUIDs
@@ -51,12 +52,17 @@ export default function AgentTracesPage() {
     return raw && UUID_RE.test(raw.trim()) ? raw.trim() : null;
   })();
 
+  // Session-scoped drill-down filter — survives navigation between related
+  // pages within the same tab. Captured once at mount so React Query cache
+  // keys stay stable across renders.
+  const initialDrilldownAgentId = useRef(drilldown.agentId).current;
+
   const defaults = useMemo<PersistedFilters>(() => ({
     search: '', level: 'all', event: 'all',
-    // Priority: route param `:id` > `?agent_id=` deep-link > 'all'
-    agentFilter: id ?? urlAgentId ?? 'all',
+    // Priority: route param `:id` > `?agent_id=` deep-link > session drill-down > 'all'
+    agentFilter: id ?? urlAgentId ?? initialDrilldownAgentId ?? 'all',
     sinceHours: 24,
-  }), [id, urlAgentId]);
+  }), [id, urlAgentId, initialDrilldownAgentId]);
 
   const { filters, setFilters, syncStatus, clearAll, restore } = useFilterPersistence<PersistedFilters>({
     scope: 'agent_traces', defaults, storageKey: STORAGE_KEY,
