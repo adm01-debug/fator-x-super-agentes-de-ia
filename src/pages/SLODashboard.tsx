@@ -907,6 +907,61 @@ export default function SLODashboard() {
         </div>
       </div>
 
+      {/* Aggregated inline error banner — collapses bursts of failures from
+          rapid filter toggling into a single dismissible row. Cleared on the
+          next successful committed fetch. */}
+      {errorAgg && (
+        <div
+          role="alert"
+          aria-live="polite"
+          className="flex items-start gap-3 rounded-md border border-destructive/40 bg-destructive/10 p-3 text-sm"
+        >
+          <AlertTriangle className="h-4 w-4 mt-0.5 text-destructive shrink-0" aria-hidden />
+          <div className="flex-1 min-w-0">
+            <div className="flex flex-wrap items-center gap-x-2 gap-y-0.5">
+              <span className="font-semibold text-destructive">
+                Falha ao carregar métricas SLO
+              </span>
+              {errorAgg.count > 1 && (
+                <span className="rounded-full border border-destructive/40 bg-destructive/15 px-1.5 py-0.5 text-[10px] font-mono text-destructive">
+                  {errorAgg.count} falhas agregadas
+                </span>
+              )}
+              <span
+                className="text-[11px] font-mono text-muted-foreground"
+                title={errorAgg.lastAt.toLocaleString('pt-BR')}
+              >
+                · última às {errorAgg.lastAt.toLocaleTimeString('pt-BR')}
+              </span>
+            </div>
+            <p className="mt-1 text-xs text-muted-foreground break-words">
+              {errorAgg.lastMessage}
+            </p>
+          </div>
+          <div className="flex items-center gap-1 shrink-0">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => load(true)}
+              disabled={refreshing}
+              aria-label="Tentar novamente"
+            >
+              <RefreshCw className={`h-3.5 w-3.5 ${refreshing ? 'animate-spin' : ''}`} />
+              <span className="ml-1.5 text-xs">Tentar novamente</span>
+            </Button>
+            <button
+              type="button"
+              onClick={dismissError}
+              className="rounded-md p-1 text-muted-foreground hover:bg-destructive/10 hover:text-destructive focus-ring"
+              aria-label="Dispensar aviso"
+              title="Dispensar"
+            >
+              <span aria-hidden className="block h-4 w-4 leading-4 text-center">×</span>
+            </button>
+          </div>
+        </div>
+      )}
+
       {loading ? (
         <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
           {[0, 1, 2, 3].map((i) => <Skeleton key={i} className="h-32" />)}
