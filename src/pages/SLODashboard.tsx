@@ -40,6 +40,29 @@ const DEFAULT_AUTO_REFRESH_MS = 60_000;
 /** Window options (hours). Used to validate the URL param. */
 const WINDOW_OPTIONS = [1, 6, 24, 168] as const;
 const DEFAULT_WINDOW_HOURS = 24;
+const WINDOW_HOURS_STORAGE_KEY = 'nexus.slo.windowHours';
+const COMPARE_HOURS_STORAGE_KEY = 'nexus.slo.compareHours';
+/** Debounce for persisting filter changes — matches the fetch debounce so
+    rapid toggling doesn't thrash localStorage. */
+const FILTER_PERSIST_DEBOUNCE_MS = 350;
+
+function readStoredWindowHours(): number {
+  try {
+    const raw = localStorage.getItem(WINDOW_HOURS_STORAGE_KEY);
+    if (raw === null) return DEFAULT_WINDOW_HOURS;
+    const n = Number(raw);
+    return (WINDOW_OPTIONS as readonly number[]).includes(n) ? n : DEFAULT_WINDOW_HOURS;
+  } catch { return DEFAULT_WINDOW_HOURS; }
+}
+function readStoredCompareHours(): number {
+  try {
+    const raw = localStorage.getItem(COMPARE_HOURS_STORAGE_KEY);
+    if (raw === null) return 0;
+    const n = Number(raw);
+    if (n === 0) return 0;
+    return (WINDOW_OPTIONS as readonly number[]).includes(n) ? n : 0;
+  } catch { return 0; }
+}
 
 // URL query param keys — short on purpose so shared links stay clean.
 const QP_WINDOW = 'w';
@@ -243,7 +266,9 @@ export default function SLODashboard() {
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [windowHours, setWindowHours] = useState<number>(() =>
-    parseWindowParam(searchParams.get(QP_WINDOW), DEFAULT_WINDOW_HOURS),
+    // URL wins; otherwise fall back to the persisted preference so reloading
+    // the page (without the query string) keeps the last-used window.
+    parseWindowParam(searchParams.get(QP_WINDOW), readStoredWindowHours()),
   );
   // User-controlled auto-refresh cadence. 0 = off. URL wins; otherwise fall
   // back to the persisted preference so opening the page fresh still works.
@@ -252,11 +277,13 @@ export default function SLODashboard() {
   );
   // Comparison window (0 = disabled). Encoded as `?cmp=` so a shared link
   // shows the same side-by-side view. Validated against WINDOW_OPTIONS.
+  // Reload fallback: persisted preference (so the comparison sticks across reloads).
   const [compareHours, setCompareHours] = useState<number>(() => {
     const raw = searchParams.get(QP_COMPARE);
-    if (raw === null) return 0;
+    if (raw === null) return readStoredCompareHours();
     const n = Number(raw);
-    return (WINDOW_OPTIONS as readonly number[]).includes(n) ? n : 0;
+    if (n === 0) return 0;
+    return (WINDOW_OPTIONS as readonly number[]).includes(n) ? n : readStoredCompareHours();
   });
 
   // Selected agent — when set, the dashboard view is "scoped" to that agent.
@@ -417,6 +444,27 @@ export default function SLODashboard() {
       else localStorage.removeItem(WINDOW_NAME_STORAGE_KEY);
     } catch { /* quota / disabled — silently ignore */ }
   }, [windowName]);
+
+  // Persist windowHours / compareHours per-user with the same debounce as the
+  // fetch, so a reload (or new tab without query string) restores the same
+  // view. URL still wins on first mount; this only writes the latest *settled*
+  // value to avoid thrashing localStorage during rapid toggling.
+  useEffect(() => {
+    const t = window.setTimeout(() => {
+      try { localStorage.setItem(WINDOW_HOURS_STORAGE_KEY, String(windowHours)); }
+      catch { /* quota / disabled — ignore */ }
+    }, FILTER_PERSIST_DEBOUNCE_MS);
+    return () => window.clearTimeout(t);
+  }, [windowHours]);
+  useEffect(() => {
+    const t = window.setTimeout(() => {
+      try {
+        if (compareHours > 0) localStorage.setItem(COMPARE_HOURS_STORAGE_KEY, String(compareHours));
+        else localStorage.removeItem(COMPARE_HOURS_STORAGE_KEY);
+      } catch { /* quota / disabled — ignore */ }
+    }, FILTER_PERSIST_DEBOUNCE_MS);
+    return () => window.clearTimeout(t);
+  }, [compareHours]);
 
   // Each fetch tags itself with a monotonically-increasing token. When a
   // response arrives, we only commit it to state if the token is still the
