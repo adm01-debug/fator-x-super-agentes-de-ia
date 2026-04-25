@@ -47,7 +47,7 @@ const ERROR_TYPE_TONE: Record<NonNullable<DraftResumeTarget['errorType']>, strin
  * Espelha o `highlightField` — quando o usuário corrige o campo, o banner
  * é dispensado pelo wizard.
  */
-export function RestoreFeedbackBanner({ info, onJumpToField, onDismiss, onCopyDeeplink }: Props) {
+export function RestoreFeedbackBanner({ info, onJumpToField, onDismiss, onCopyDeeplink, onFixNow }: Props) {
   const [copied, setCopied] = useState(false);
   const errorType = info.errorType ?? 'unknown';
   const typeLabel = ERROR_TYPE_LABEL[errorType];
