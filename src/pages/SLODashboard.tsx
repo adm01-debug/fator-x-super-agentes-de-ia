@@ -1075,26 +1075,11 @@ export default function SLODashboard() {
             // behavior. Buckets are scored by absolute distance from baseline
             // (signed so we can show whether they pushed the metric up/down).
             //
-            // When `includeToolFailures` is OFF, we use the RPC's `*_no_tools`
+            // When `includeTools` is OFF, we use the RPC's `*_no_tools`
             // percentiles and `non_tool_errors` counts so the contributors
             // ranking reflects only non-tool failures. Falls back gracefully
             // for clients connected to an older RPC that doesn't expose them.
             const cmpBuckets = compareSummary.timeseries ?? [];
-            const pickP95 = (b: typeof cmpBuckets[number]): number =>
-              includeToolFailures
-                ? b.p95_ms
-                : (b.p95_ms_no_tools ?? b.p95_ms);
-            const pickErrors = (b: typeof cmpBuckets[number]): number =>
-              includeToolFailures
-                ? b.errors
-                : (b.non_tool_errors ?? b.errors);
-
-            const baselineP95 = cmpBuckets.length
-              ? cmpBuckets.reduce((s, b) => s + pickP95(b), 0) / cmpBuckets.length
-              : 0;
-            const baselineErrors = cmpBuckets.length
-              ? cmpBuckets.reduce((s, b) => s + pickErrors(b), 0) / cmpBuckets.length
-              : 0;
 
             type Contributor = {
               key: string;
@@ -1106,71 +1091,85 @@ export default function SLODashboard() {
               worse: boolean;
             };
 
-            // Top 3 buckets that drove P95 the hardest (absolute deviation
-            // from comparison baseline). Sign tells us if it's regression.
-            const topLatency: Contributor[] = [...buckets]
-              .map((b) => {
-                const p95 = pickP95(b);
-                return { bucket: b, p95, delta: p95 - baselineP95 };
-              })
-              .sort((a, b) => Math.abs(b.delta) - Math.abs(a.delta))
-              .slice(0, 3)
-              .map((row) => ({
-                key: row.bucket.bucket_hour,
-                label: fmtBucketLabel(row.bucket.bucket_hour),
-                detail: `P95 ${row.p95}ms · ${row.bucket.total} traces` +
-                  (includeToolFailures ? '' : ' · sem tools'),
-                delta: row.delta,
-                deltaLabel: `${row.delta > 0 ? '+' : ''}${Math.round(row.delta)}ms vs baseline`,
-                href: bucketHref(row.bucket.bucket_hour),
-                worse: row.delta > 0,
-              }));
+            type SectionDef = { title: string; kpi: string; rows: Contributor[]; empty: string };
 
-            // Top 3 buckets contributing the most errors above baseline.
-            const topErrors: Contributor[] = [...buckets]
-              .map((b) => {
-                const errs = pickErrors(b);
-                return { bucket: b, errs, delta: errs - baselineErrors };
-              })
-              .filter((row) => row.errs > 0)
-              .sort((a, b) => b.delta - a.delta)
-              .slice(0, 3)
-              .map((row) => ({
-                key: row.bucket.bucket_hour,
-                label: fmtBucketLabel(row.bucket.bucket_hour),
-                detail: `${row.errs} ${includeToolFailures ? 'erros' : 'erros (não-tool)'} em ${row.bucket.total} traces`,
-                delta: row.delta,
-                deltaLabel: `${row.delta > 0 ? '+' : ''}${row.delta.toFixed(1)} vs média`,
-                href: bucketHref(row.bucket.bucket_hour),
-                worse: row.delta > 0,
-              }));
+            // Encapsulates the per-mode ranking so we can run it twice for the
+            // side-by-side compare view without duplicating logic.
+            const buildSectionsForMode = (includeTools: boolean): SectionDef[] => {
+              const pickP95 = (b: typeof cmpBuckets[number]): number =>
+                includeTools ? b.p95_ms : (b.p95_ms_no_tools ?? b.p95_ms);
+              const pickErrors = (b: typeof cmpBuckets[number]): number =>
+                includeTools ? b.errors : (b.non_tool_errors ?? b.errors);
 
-            // Top 3 agents pulling P95 up — straight from the RPC's top_agents.
-            // The agent-level percentiles aren't recomputed without tools (the
-            // RPC doesn't expose that), so when the toggle is off we filter the
-            // displayed error count to non-tool only and label it accordingly.
-            const topAgents: Contributor[] = (summary.top_agents ?? [])
-              .slice(0, 3)
-              .map((a) => {
-                const errCount = includeToolFailures
-                  ? a.errors
-                  : (a.non_tool_errors ?? a.errors);
-                return {
-                  key: a.agent_id,
-                  label: a.agent_name,
-                  detail: `${a.traces} traces · ${errCount} ${includeToolFailures ? 'erros' : 'erros (não-tool)'} · ${(a.success_rate ?? 100).toFixed(1)}% sucesso`,
-                  delta: a.p95_ms,
-                  deltaLabel: `P95 ${a.p95_ms}ms`,
-                  href: `/agents/${a.agent_id}/traces`,
-                  worse: a.p95_ms > SLO_TARGETS.p95LatencyMs,
-                };
-              });
+              const baselineP95 = cmpBuckets.length
+                ? cmpBuckets.reduce((s, b) => s + pickP95(b), 0) / cmpBuckets.length
+                : 0;
+              const baselineErrors = cmpBuckets.length
+                ? cmpBuckets.reduce((s, b) => s + pickErrors(b), 0) / cmpBuckets.length
+                : 0;
 
-            const sections: Array<{ title: string; kpi: string; rows: Contributor[]; empty: string }> = [
-              { title: 'Latência (P95)', kpi: 'P95', rows: topLatency, empty: 'Sem buckets com latência registrada.' },
-              { title: 'Erros', kpi: 'erros', rows: topErrors, empty: 'Nenhum bucket com erros nesta janela.' },
-              { title: 'Agentes', kpi: 'agentes', rows: topAgents, empty: 'Nenhum agente com tráfego nesta janela.' },
-            ];
+              const topLatency: Contributor[] = [...buckets]
+                .map((b) => {
+                  const p95 = pickP95(b);
+                  return { bucket: b, p95, delta: p95 - baselineP95 };
+                })
+                .sort((a, b) => Math.abs(b.delta) - Math.abs(a.delta))
+                .slice(0, 3)
+                .map((row) => ({
+                  key: row.bucket.bucket_hour,
+                  label: fmtBucketLabel(row.bucket.bucket_hour),
+                  detail: `P95 ${row.p95}ms · ${row.bucket.total} traces` +
+                    (includeTools ? '' : ' · sem tools'),
+                  delta: row.delta,
+                  deltaLabel: `${row.delta > 0 ? '+' : ''}${Math.round(row.delta)}ms vs baseline`,
+                  href: bucketHref(row.bucket.bucket_hour),
+                  worse: row.delta > 0,
+                }));
+
+              const topErrors: Contributor[] = [...buckets]
+                .map((b) => {
+                  const errs = pickErrors(b);
+                  return { bucket: b, errs, delta: errs - baselineErrors };
+                })
+                .filter((row) => row.errs > 0)
+                .sort((a, b) => b.delta - a.delta)
+                .slice(0, 3)
+                .map((row) => ({
+                  key: row.bucket.bucket_hour,
+                  label: fmtBucketLabel(row.bucket.bucket_hour),
+                  detail: `${row.errs} ${includeTools ? 'erros' : 'erros (não-tool)'} em ${row.bucket.total} traces`,
+                  delta: row.delta,
+                  deltaLabel: `${row.delta > 0 ? '+' : ''}${row.delta.toFixed(1)} vs média`,
+                  href: bucketHref(row.bucket.bucket_hour),
+                  worse: row.delta > 0,
+                }));
+
+              const topAgents: Contributor[] = (summary.top_agents ?? [])
+                .slice(0, 3)
+                .map((a) => {
+                  const errCount = includeTools ? a.errors : (a.non_tool_errors ?? a.errors);
+                  return {
+                    key: a.agent_id,
+                    label: a.agent_name,
+                    detail: `${a.traces} traces · ${errCount} ${includeTools ? 'erros' : 'erros (não-tool)'} · ${(a.success_rate ?? 100).toFixed(1)}% sucesso`,
+                    delta: a.p95_ms,
+                    deltaLabel: `P95 ${a.p95_ms}ms`,
+                    href: `/agents/${a.agent_id}/traces`,
+                    worse: a.p95_ms > SLO_TARGETS.p95LatencyMs,
+                  };
+                });
+
+              return [
+                { title: 'Latência (P95)', kpi: 'P95', rows: topLatency, empty: 'Sem buckets com latência registrada.' },
+                { title: 'Erros', kpi: 'erros', rows: topErrors, empty: 'Nenhum bucket com erros nesta janela.' },
+                { title: 'Agentes', kpi: 'agentes', rows: topAgents, empty: 'Nenhum agente com tráfego nesta janela.' },
+              ];
+            };
+
+            const sections = buildSectionsForMode(includeToolFailures);
+            const sectionsCompare = compareToolModes
+              ? buildSectionsForMode(!includeToolFailures)
+              : null;
 
             // Build absolute-URL sections for the PDF (relative `/traces?...`
             // links would be unusable outside the app).
