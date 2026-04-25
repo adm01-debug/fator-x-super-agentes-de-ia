@@ -24,6 +24,26 @@ import {
 } from "@/components/ui/alert-dialog";
 import { toast } from "sonner";
 import { restoreAgentVersion, type AgentVersion } from "@/services/agentsService";
+import { supabaseExternal } from "@/integrations/supabase/externalClient";
+
+/**
+ * Fallback: busca uma versão específica do agente direto do servidor.
+ *
+ * Usado quando o `entry.preRollback` não está presente no estado local
+ * (ex.: a lista `versions` é uma janela paginada / cacheada que não inclui
+ * versões muito antigas, ou a query do React Query ainda não revalidou após
+ * uma mudança em outra aba). Sem esse fallback, o "Desfazer" falharia com
+ * "Sem versão de referência" mesmo quando a versão existe no banco.
+ */
+async function fetchAgentVersionById(versionId: string): Promise<AgentVersion | null> {
+  const { data, error } = await supabaseExternal
+    .from("agent_versions")
+    .select("*")
+    .eq("id", versionId)
+    .maybeSingle();
+  if (error) throw error;
+  return (data as AgentVersion | null) ?? null;
+}
 
 interface RestoreMetadata {
   restored_from_version: number;
@@ -173,18 +193,46 @@ export function RestoreHistorySection({ agentId, versions }: Props) {
 
   const undoMut = useMutation({
     mutationFn: async (entry: RestoreEntry) => {
-      if (!entry.preRollback) {
-        throw new Error("Sem versão de referência para desfazer este rollback.");
+      // 1. Tenta usar a versão de referência já presente no estado local.
+      let preRollback: AgentVersion | null = entry.preRollback;
+
+      // 2. Fallback: se o estado local não tem a versão (lista paginada,
+      //    cache desatualizado, etc.), busca direto do servidor usando o
+      //    `restored_from_version_id` que o próprio rollback registrou.
+      if (!preRollback && entry.meta.restored_from_version_id) {
+        try {
+          preRollback = await fetchAgentVersionById(
+            entry.meta.restored_from_version_id,
+          );
+          // Revalida a lista para que próximas interações já tenham o estado correto.
+          if (preRollback) {
+            queryClient.invalidateQueries({ queryKey: ["agent_versions", agentId] });
+            queryClient.invalidateQueries({ queryKey: ["agent-versions", agentId] });
+          }
+        } catch (err) {
+          throw new Error(
+            `Falha ao recarregar a versão de referência (v${entry.meta.restored_from_version}) do servidor: ${
+              err instanceof Error ? err.message : "erro desconhecido"
+            }`,
+          );
+        }
       }
+
+      if (!preRollback) {
+        throw new Error(
+          `Versão de referência (v${entry.meta.restored_from_version}) não encontrada — pode ter sido apagada.`,
+        );
+      }
+
       return restoreAgentVersion(
         agentId,
-        entry.preRollback,
+        preRollback,
         currentVersion,
         {
           copyPrompt: entry.meta.options.copyPrompt,
           copyTools: entry.meta.options.copyTools,
           copyModel: entry.meta.options.copyModel,
-          customSummary: `Desfazer rollback v${entry.versionNumber} → restaurado de v${entry.preRollback.version}`,
+          customSummary: `Desfazer rollback v${entry.versionNumber} → restaurado de v${preRollback.version}`,
         },
       );
     },
@@ -193,7 +241,7 @@ export function RestoreHistorySection({ agentId, versions }: Props) {
       queryClient.invalidateQueries({ queryKey: ["agent", agentId] });
       setUndoTarget(null);
       toast.success(
-        `Rollback desfeito — v${data.version} criada a partir de v${entry.preRollback?.version}`,
+        `Rollback desfeito — v${data.version} criada a partir de v${entry.preRollback?.version ?? entry.meta.restored_from_version}`,
         {
           action: {
             label: "Ver na timeline",
@@ -232,7 +280,10 @@ export function RestoreHistorySection({ agentId, versions }: Props) {
           const expired = !Number.isFinite(restoredAtMs) || remainingMs <= 0;
           // Aviso visual quando faltar < 1 min — destaca a urgência da decisão.
           const urgent = !expired && remainingMs < 60 * 1000;
-          const canUndo = !!entry.preRollback && !expired;
+          // Pode desfazer se temos a versão de referência localmente OU
+          // pelo menos o id dela (fallback recarrega do servidor on-click).
+          const hasReference = !!entry.preRollback || !!entry.meta.restored_from_version_id;
+          const canUndo = hasReference && !expired;
           const isUndoingThis = undoMut.isPending && undoTarget?.versionId === entry.versionId;
           return (
             <li
@@ -488,13 +539,30 @@ export function RestoreHistorySection({ agentId, versions }: Props) {
                   )
                 )}
 
-                {/* Aviso quando o rollback não tem referência (primeira versão do agente) */}
-                {undoTarget && !undoTarget.preRollback && (
+                {/* Aviso quando o rollback não tem nenhuma referência —
+                    nem local nem id no metadata (caso muito raro: rollback
+                    aplicado contra a primeira versão do agente). */}
+                {undoTarget &&
+                  !undoTarget.preRollback &&
+                  !undoTarget.meta.restored_from_version_id && (
                   <div className="flex items-start gap-2 rounded-lg border border-destructive/30 bg-destructive/5 p-2.5 text-xs text-destructive">
                     <AlertTriangle className="h-3.5 w-3.5 shrink-0 mt-0.5" aria-hidden />
                     <span>
                       Não há versão anterior ao rollback para usar como referência — não é
                       possível desfazer.
+                    </span>
+                  </div>
+                )}
+
+                {/* Aviso informativo: vamos recarregar do servidor on-confirm. */}
+                {undoTarget &&
+                  !undoTarget.preRollback &&
+                  undoTarget.meta.restored_from_version_id && (
+                  <div className="flex items-start gap-2 rounded-lg border border-nexus-amber/30 bg-nexus-amber/5 p-2.5 text-xs text-nexus-amber">
+                    <AlertTriangle className="h-3.5 w-3.5 shrink-0 mt-0.5" aria-hidden />
+                    <span>
+                      A versão de referência (v{undoTarget.meta.restored_from_version}) não
+                      está carregada localmente — será recarregada do servidor ao confirmar.
                     </span>
                   </div>
                 )}
@@ -513,12 +581,16 @@ export function RestoreHistorySection({ agentId, versions }: Props) {
                 e.preventDefault();
                 if (undoTarget && !targetExpired) undoMut.mutate(undoTarget);
               }}
-              disabled={undoMut.isPending || !undoTarget?.preRollback || targetExpired}
+              disabled={
+                undoMut.isPending ||
+                targetExpired ||
+                (!undoTarget?.preRollback && !undoTarget?.meta.restored_from_version_id)
+              }
               className="gap-1.5"
               title={
                 targetExpired
                   ? `Janela de ${UNDO_WINDOW_MS / 60000} min para desfazer expirou`
-                  : !undoTarget?.preRollback
+                  : !undoTarget?.preRollback && !undoTarget?.meta.restored_from_version_id
                     ? "Sem versão de referência anterior"
                     : `Confirmar — expira em ${formatRemaining(targetRemainingMs)}`
               }
