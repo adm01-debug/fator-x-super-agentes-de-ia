@@ -125,6 +125,12 @@ export function ExecutionList({ executions, selectedId, onSelect, onReplay, load
         />
       );
     }
+    // Page-provided contextual empty state takes priority (e.g. when a single
+    // agent is selected, we show targeted suggestions instead of the generic
+    // "no results" copy).
+    if (agentEmptyState) {
+      return <>{agentEmptyState}</>;
+    }
     const button = onClearFilters ? (
       <Button onClick={onClearFilters} size="sm" className="gap-1.5">Limpar filtros</Button>
     ) : null;
