@@ -289,6 +289,31 @@ export function RestoreHistorySection({ agentId, versions }: Props) {
                   </span>
                 )}
                 <div className="ml-auto flex items-center gap-1">
+                  {/* Contador da janela de undo. Mostra mm:ss enquanto ativo,
+                      pisca em vermelho no último minuto, e vira "expirado"
+                      (com ícone de timer riscado) depois que a janela acaba. */}
+                  {expired ? (
+                    <span
+                      className="inline-flex items-center gap-1 rounded px-1.5 py-0.5 text-[10px] font-mono bg-muted/40 text-muted-foreground border border-border/40"
+                      title={`Janela de ${UNDO_WINDOW_MS / 60000} min para desfazer já expirou`}
+                    >
+                      <TimerOff className="h-2.5 w-2.5" aria-hidden />
+                      expirado
+                    </span>
+                  ) : (
+                    <span
+                      className={`inline-flex items-center gap-1 rounded px-1.5 py-0.5 text-[10px] font-mono tabular-nums border ${
+                        urgent
+                          ? "bg-destructive/10 text-destructive border-destructive/30 animate-pulse"
+                          : "bg-nexus-amber/10 text-nexus-amber border-nexus-amber/30"
+                      }`}
+                      title={`Você ainda pode desfazer este rollback por mais ${formatRemaining(remainingMs)} (janela total de ${UNDO_WINDOW_MS / 60000} min)`}
+                      aria-live="polite"
+                    >
+                      <Clock className="h-2.5 w-2.5" aria-hidden />
+                      {formatRemaining(remainingMs)}
+                    </span>
+                  )}
                   <Button
                     variant="ghost"
                     size="sm"
@@ -296,9 +321,11 @@ export function RestoreHistorySection({ agentId, versions }: Props) {
                     onClick={() => setUndoTarget(entry)}
                     disabled={!canUndo || undoMut.isPending}
                     title={
-                      canUndo
-                        ? `Desfazer este rollback restaurando os mesmos campos de v${entry.preRollback?.version}`
-                        : "Sem versão de referência anterior — não é possível desfazer"
+                      expired
+                        ? `Janela de ${UNDO_WINDOW_MS / 60000} min para desfazer expirou — restaure manualmente pelo gerenciador de versões`
+                        : !entry.preRollback
+                          ? "Sem versão de referência anterior — não é possível desfazer"
+                          : `Desfazer este rollback restaurando os mesmos campos de v${entry.preRollback?.version} (expira em ${formatRemaining(remainingMs)})`
                     }
                   >
                     {isUndoingThis ? (
