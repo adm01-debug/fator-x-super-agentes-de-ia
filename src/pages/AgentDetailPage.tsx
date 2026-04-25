@@ -197,6 +197,12 @@ function VersionHistory({ agentId }: { agentId: string }) {
   // Acknowledge para riscos high/critical — força o usuário a marcar
   // explicitamente que revisou os itens em vermelho/âmbar.
   const [riskAck, setRiskAck] = useState(false);
+  // Overrides aplicados via "correções rápidas" das validações — repassados
+  // para `restoreAgentVersion` via `configOverrides` / `modelOverride`.
+  const [fixOverrides, setFixOverrides] = useState<{
+    config: Partial<{ temperature: number | null; max_tokens: number | null; reasoning: string | null; tools: unknown[] | null }>;
+    model?: string | null;
+  }>({ config: {} });
 
   // Reset das opções a cada abertura do diálogo. O default volta para "tudo
   // marcado" — se o usuário tiver um preset padrão, o `RestorePresetMenu` o
@@ -210,13 +216,16 @@ function VersionHistory({ agentId }: { agentId: string }) {
       setSummaryDraft("");
       setPresetAutoApplied(false);
       setRiskAck(false);
+      setFixOverrides({ config: {} });
     }
   }, [rollbackOpen]);
 
-  // Reset do acknowledge sempre que mudar a versão de origem ou os campos
-  // selecionados — qualquer mudança invalida a revisão anterior.
+  // Reset do acknowledge e dos overrides sempre que mudar a versão de
+  // origem ou os campos selecionados — qualquer mudança invalida a
+  // revisão e as correções rápidas anteriores.
   useEffect(() => {
     setRiskAck(false);
+    setFixOverrides({ config: {} });
   }, [copyPrompt, copyTools, copyModel]);
 
   const { data: versions = [], isLoading } = useQuery({
