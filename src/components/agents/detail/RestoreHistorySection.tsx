@@ -226,7 +226,13 @@ export function RestoreHistorySection({ agentId, versions }: Props) {
 
       <ol className="space-y-2 max-h-[280px] overflow-y-auto">
         {entries.map((entry) => {
-          const canUndo = !!entry.preRollback;
+          const restoredAtMs = new Date(entry.meta.restored_at).getTime();
+          const expiresAt = Number.isFinite(restoredAtMs) ? restoredAtMs + UNDO_WINDOW_MS : 0;
+          const remainingMs = expiresAt - now;
+          const expired = !Number.isFinite(restoredAtMs) || remainingMs <= 0;
+          // Aviso visual quando faltar < 1 min — destaca a urgência da decisão.
+          const urgent = !expired && remainingMs < 60 * 1000;
+          const canUndo = !!entry.preRollback && !expired;
           const isUndoingThis = undoMut.isPending && undoTarget?.versionId === entry.versionId;
           return (
             <li
