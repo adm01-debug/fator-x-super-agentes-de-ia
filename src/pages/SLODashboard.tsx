@@ -579,7 +579,17 @@ export default function SLODashboard() {
   const totalBucketsCompare = compareSummary?.timeseries.length ?? 0;
 
   return (
-    <div className="space-y-6 p-6 page-enter">
+    <div className="space-y-6 p-6 page-enter relative">
+      {/* Discreet "recomputing" bar — fades in only when filter changes are
+          being applied. Doesn't block clicks, doesn't blank the page. */}
+      <div
+        aria-hidden={!recomputing}
+        className={`pointer-events-none fixed left-0 right-0 top-0 h-0.5 z-50 transition-opacity duration-200 ${
+          recomputing ? 'opacity-100' : 'opacity-0'
+        }`}
+      >
+        <div className="h-full w-1/3 bg-primary/70 rounded-full animate-[indeterminate_1.1s_ease-in-out_infinite]" />
+      </div>
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-3xl font-bold tracking-tight bg-gradient-to-r from-foreground to-foreground/60 bg-clip-text">
