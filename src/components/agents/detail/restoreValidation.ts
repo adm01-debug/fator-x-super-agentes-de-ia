@@ -254,6 +254,9 @@ export function validateRestore(
         title: 'Modelo obrigatório ausente',
         detail: 'A versão de origem não define um modelo. Restaurar deixaria o agente sem LLM configurado.',
         hint: 'Desmarque "Modelo & parâmetros" para manter o modelo atual.',
+        quickFixes: [
+          { kind: 'uncheck-model', label: 'Desmarcar Modelo & parâmetros', description: 'Preserva o modelo atual.' },
+        ],
       });
     }
     if (!mergedPersona || !String(mergedPersona).trim()) {
