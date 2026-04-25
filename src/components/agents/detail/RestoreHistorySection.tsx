@@ -100,21 +100,21 @@ export function RestoreHistorySection({ agentId, versions }: Props) {
   // versions vem ordenado do mais recente para o mais antigo. A versão
   // imediatamente posterior na lista (índice maior) é a "pré-rollback".
   const entries = useMemo<RestoreEntry[]>(() => {
-    return versions
-      .map((v, idx) => {
-        const meta = extractRestoreMeta(v);
-        if (!meta) return null;
-        const preRollback = versions[idx + 1] ?? null;
-        return {
-          versionId: v.id,
-          versionNumber: v.version,
-          changeSummary: v.change_summary,
-          meta,
-          preRollback,
-        } satisfies RestoreEntry;
-      })
-      .filter((e): e is RestoreEntry => e !== null)
-      .sort((a, b) => new Date(b.meta.restored_at).getTime() - new Date(a.meta.restored_at).getTime());
+    const result: RestoreEntry[] = [];
+    versions.forEach((v, idx) => {
+      const meta = extractRestoreMeta(v);
+      if (!meta) return;
+      result.push({
+        versionId: v.id,
+        versionNumber: v.version,
+        changeSummary: v.change_summary,
+        meta,
+        preRollback: versions[idx + 1] ?? null,
+      });
+    });
+    return result.sort(
+      (a, b) => new Date(b.meta.restored_at).getTime() - new Date(a.meta.restored_at).getTime(),
+    );
   }, [versions]);
 
   // A "versão atual" é sempre a primeira (mais recente) — usada como base do
