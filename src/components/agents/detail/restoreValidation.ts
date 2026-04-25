@@ -13,6 +13,26 @@ import type { AgentVersion } from '@/services/agentsService';
 
 export type IssueSeverity = 'error' | 'warning';
 
+/**
+ * Ação de correção rápida emitida junto com uma `ValidationIssue`.
+ *
+ * O `kind` é discriminado para que o handler na página possa rotear
+ * para a operação correta (atualizar checkbox de grupo OU registrar um
+ * override numérico/string que será aplicado por `restoreAgentVersion`).
+ *
+ * Cada fix carrega um `label` curto (texto do botão) e um `description`
+ * opcional (tooltip explicando o efeito) — dispostos lado a lado abaixo
+ * do detalhe da issue no `RestoreValidationPanel`.
+ */
+export type QuickFix =
+  | { kind: 'uncheck-prompt'; label: string; description?: string }
+  | { kind: 'uncheck-tools'; label: string; description?: string }
+  | { kind: 'uncheck-model'; label: string; description?: string }
+  | { kind: 'set-temperature'; value: number; label: string; description?: string }
+  | { kind: 'set-max-tokens'; value: number; label: string; description?: string }
+  | { kind: 'clear-reasoning'; label: string; description?: string }
+  | { kind: 'set-model'; value: string; label: string; description?: string };
+
 export interface ValidationIssue {
   /** ID estável — usado para keys de lista e para deduplicação. */
   id: string;
@@ -24,6 +44,8 @@ export interface ValidationIssue {
   detail: string;
   /** Sugestão acionável curta (ex.: "Marque também 'Modelo'"). */
   hint?: string;
+  /** Correções rápidas aplicáveis com 1 clique. */
+  quickFixes?: QuickFix[];
 }
 
 export interface RestoreValidation {
