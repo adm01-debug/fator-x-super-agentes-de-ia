@@ -552,14 +552,21 @@ export default function SLODashboard() {
       setSummary(data);
       setCompareSummary(cmpData);
       setLastRefreshAt(new Date());
+      // Successful commit clears any aggregated error state — the user can
+      // see things are healthy again without us posting a "recovered" toast.
+      setErrorAgg(null);
     } catch (err) {
       logger.error('Failed to load SLO summary', err);
-      // Silent on auto-refresh — only toast on user-initiated reloads to
-      // avoid spamming the operator if the backend hiccups for a beat.
-      if (showSpinner && myToken === requestTokenRef.current) {
-        toast.error('Erro ao carregar métricas SLO', {
-          description: err instanceof Error ? err.message : 'Erro desconhecido',
-        });
+      // Inline aggregator instead of per-failure toasts: rapid filter toggling
+      // can fire several requests; we want a single banner that summarizes the
+      // most recent error + how many failed since the last success.
+      if (myToken === requestTokenRef.current) {
+        const message = err instanceof Error ? err.message : 'Erro desconhecido';
+        setErrorAgg((prev) => ({
+          count: (prev?.count ?? 0) + 1,
+          lastMessage: message,
+          lastAt: new Date(),
+        }));
       }
     } finally {
       if (!isMountedRef.current) return;
