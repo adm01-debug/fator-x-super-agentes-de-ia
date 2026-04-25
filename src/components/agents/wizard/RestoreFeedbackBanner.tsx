@@ -97,6 +97,24 @@ export function RestoreFeedbackBanner({ info, onJumpToField, onDismiss, onCopyDe
       </div>
 
       <div className="flex items-center gap-1 shrink-0">
+        {onCopyDeeplink && (
+          <button
+            type="button"
+            onClick={handleCopy}
+            className="inline-flex items-center gap-1 h-7 px-2 rounded-md text-[11px] font-medium bg-secondary/60 text-foreground hover:bg-secondary transition-colors"
+            title="Copiar link que reabre o wizard com este campo destacado"
+          >
+            {copied ? (
+              <>
+                <Check className="h-3 w-3 text-nexus-emerald" /> Copiado
+              </>
+            ) : (
+              <>
+                <Link2 className="h-3 w-3" /> Copiar link
+              </>
+            )}
+          </button>
+        )}
         <button
           type="button"
           onClick={onJumpToField}
