@@ -17,6 +17,13 @@ interface Props {
   onClearFilters?: () => void;
   /** Optional renderer that wraps the "Limpar filtros" button (e.g. ConfirmDialog). */
   clearFiltersWrapper?: (button: ReactNode) => ReactNode;
+  /** Compare mode: when active, clicking a row toggles its inclusion in the
+   *  comparison set instead of selecting it for the timeline view. */
+  compareMode?: boolean;
+  /** IDs picked for comparison (max 2 enforced by parent). */
+  selectedForCompare?: string[];
+  /** Toggle a row in/out of the comparison set. */
+  onToggleCompare?: (e: ExecutionGroup) => void;
 }
 
 /**
@@ -85,7 +92,7 @@ function previewTags(t: AgentTraceRow): string[] {
   return tags.filter((x): x is string => typeof x === 'string').slice(0, 3);
 }
 
-export function ExecutionList({ executions, selectedId, onSelect, onReplay, loading, hasActiveFilters, onClearFilters, clearFiltersWrapper }: Props) {
+export function ExecutionList({ executions, selectedId, onSelect, onReplay, loading, hasActiveFilters, onClearFilters, clearFiltersWrapper, compareMode = false, selectedForCompare = [], onToggleCompare }: Props) {
   const [localQuery, setLocalQuery] = useState('');
 
   const filtered = useMemo(() => {
@@ -190,23 +197,56 @@ export function ExecutionList({ executions, selectedId, onSelect, onReplay, load
           <ul className="divide-y divide-border/40" role="listbox" aria-label="Execuções">
             {filtered.map((e) => {
               const active = selectedId === e.session_id;
+              const isPicked = selectedForCompare.includes(e.session_id);
+              const pickDisabled = compareMode && !isPicked && selectedForCompare.length >= 2;
+              const pickIndex = selectedForCompare.indexOf(e.session_id);
               const dotColor =
                 e.counts.error > 0 ? 'bg-destructive' :
                 e.counts.warning > 0 ? 'bg-nexus-amber' : 'bg-nexus-emerald';
               const preview = pickPreviewTrace(e, localQuery);
               const tags = preview ? previewTags(preview) : [];
+              const handleClick = () => {
+                if (compareMode) {
+                  if (pickDisabled) return;
+                  onToggleCompare?.(e);
+                } else {
+                  onSelect(e);
+                }
+              };
               return (
                 <li key={e.session_id} className="relative group">
                   <button
-                    onClick={() => onSelect(e)}
-                    aria-selected={active}
+                    onClick={handleClick}
+                    aria-selected={compareMode ? isPicked : active}
                     role="option"
-                    className={`w-full text-left p-3 transition-colors hover:bg-muted/40 ${
-                      active ? 'bg-primary/8 border-l-2 border-l-primary' : 'border-l-2 border-l-transparent'
+                    aria-disabled={pickDisabled}
+                    title={pickDisabled ? 'Limite de 2 selecionados — desmarque um para escolher outro' : undefined}
+                    className={`w-full text-left p-3 transition-colors ${
+                      compareMode
+                        ? isPicked
+                          ? 'bg-primary/15 border-l-2 border-l-primary'
+                          : pickDisabled
+                            ? 'opacity-50 cursor-not-allowed border-l-2 border-l-transparent'
+                            : 'hover:bg-muted/40 border-l-2 border-l-transparent'
+                        : active
+                          ? 'bg-primary/8 border-l-2 border-l-primary hover:bg-muted/40'
+                          : 'hover:bg-muted/40 border-l-2 border-l-transparent'
                     }`}
                   >
                     <div className="flex items-center justify-between mb-1.5">
                       <div className="flex items-center gap-2 min-w-0">
+                        {compareMode && (
+                          <span
+                            className={`h-4 w-4 rounded border flex items-center justify-center text-[10px] font-mono shrink-0 transition-colors ${
+                              isPicked
+                                ? 'bg-primary border-primary text-primary-foreground'
+                                : 'border-border bg-background'
+                            }`}
+                            aria-hidden
+                          >
+                            {isPicked ? (pickIndex === 0 ? 'A' : 'B') : ''}
+                          </span>
+                        )}
                         <span className={`h-1.5 w-1.5 rounded-full shrink-0 ${dotColor}`} aria-hidden />
                         <span className="text-[11px] font-mono text-muted-foreground truncate max-w-[200px]">
                           {e.session_id.startsWith('auto-')

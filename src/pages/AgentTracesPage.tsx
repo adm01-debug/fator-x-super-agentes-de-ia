@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { useParams, useSearchParams } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
-import { Activity, AlertTriangle, CalendarClock, Cloud, CloudOff, DollarSign, Filter, Inbox, Loader2, Play, RefreshCw, X, Zap } from 'lucide-react';
+import { Activity, AlertTriangle, CalendarClock, Cloud, CloudOff, DollarSign, Filter, GitCompare, Inbox, Loader2, Play, RefreshCw, X, Zap } from 'lucide-react';
 import { toast } from 'sonner';
 import { PageHeader } from '@/components/shared/PageHeader';
 import { Button } from '@/components/ui/button';
@@ -20,6 +20,7 @@ import { ExecutionTimeline } from '@/components/agents/traces/ExecutionTimeline'
 import { ReplayDialog } from '@/components/agents/traces/ReplayDialog';
 import { ClearFiltersToast, type ClearedField } from '@/components/agents/traces/ClearFiltersToast';
 import { ClearFiltersConfirm } from '@/components/agents/traces/ClearFiltersConfirm';
+import { CompareTracesSheet } from '@/components/agents/traces/CompareTracesSheet';
 import { useAgentDrilldownStore } from '@/stores/agentDrilldownStore';
 
 interface PersistedFilters extends Record<string, unknown> {
@@ -95,6 +96,13 @@ export default function AgentTracesPage() {
   const [selectedId, setSelectedId] = useState<string | null>(urlSession);
   const [selectedStep, setSelectedStep] = useState(urlStep ?? 0);
   const [replayOpen, setReplayOpen] = useState(false);
+
+  // Compare mode: when active, the explorer shows checkboxes and the user
+  // picks two executions to diff side-by-side. Auto-opens the sheet when 2
+  // are picked; resets when sheet closes or compare mode is turned off.
+  const [compareMode, setCompareMode] = useState(false);
+  const [comparePicks, setComparePicks] = useState<string[]>([]);
+  const [compareOpen, setCompareOpen] = useState(false);
   const debouncedSearch = useDebounce(search, 300);
 
   // Undo snapshot (5s window). Stored in ref so changes don't re-render.
@@ -229,6 +237,34 @@ export default function AgentTracesPage() {
     () => executions.find((e) => e.session_id === selectedId) ?? executions[0] ?? null,
     [executions, selectedId],
   );
+
+  // Auto-open compare sheet when 2 picks are accumulated.
+  useEffect(() => {
+    if (compareMode && comparePicks.length === 2) setCompareOpen(true);
+  }, [compareMode, comparePicks]);
+
+  const compareA = useMemo(
+    () => executions.find((e) => e.session_id === comparePicks[0]) ?? null,
+    [executions, comparePicks],
+  );
+  const compareB = useMemo(
+    () => executions.find((e) => e.session_id === comparePicks[1]) ?? null,
+    [executions, comparePicks],
+  );
+
+  const toggleCompare = (e: ExecutionGroup) => {
+    setComparePicks((prev) => {
+      if (prev.includes(e.session_id)) return prev.filter((x) => x !== e.session_id);
+      if (prev.length >= 2) return prev; // capped — UI also disables the row
+      return [...prev, e.session_id];
+    });
+  };
+
+  const exitCompareMode = () => {
+    setCompareMode(false);
+    setComparePicks([]);
+    setCompareOpen(false);
+  };
 
   const effectiveSessionId = selected?.session_id ?? null;
   const effectiveTotal = selected?.traces.length ?? 0;
@@ -401,9 +437,24 @@ export default function AgentTracesPage() {
         description="Inspecione cada execução agrupada por sessão. Filtre por nível, evento ou agente e reproduza passo a passo."
         backTo={id ? `/agents/${id}` : '/agents'}
         actions={
-          <Button variant="outline" size="sm" onClick={() => refetch()} disabled={isFetching}>
-            <RefreshCw className={`h-3.5 w-3.5 mr-1.5 ${isFetching ? 'animate-spin' : ''}`} /> Atualizar
-          </Button>
+          <div className="flex items-center gap-2">
+            <Button
+              variant={compareMode ? 'default' : 'outline'}
+              size="sm"
+              onClick={() => {
+                if (compareMode) exitCompareMode();
+                else { setCompareMode(true); setComparePicks([]); }
+              }}
+              aria-pressed={compareMode}
+              title={compareMode ? 'Sair do modo de comparação' : 'Selecionar 2 execuções para comparar'}
+            >
+              <GitCompare className="h-3.5 w-3.5 mr-1.5" />
+              {compareMode ? 'Cancelar comparação' : 'Comparar'}
+            </Button>
+            <Button variant="outline" size="sm" onClick={() => refetch()} disabled={isFetching}>
+              <RefreshCw className={`h-3.5 w-3.5 mr-1.5 ${isFetching ? 'animate-spin' : ''}`} /> Atualizar
+            </Button>
+          </div>
         }
       />
 
@@ -459,6 +510,35 @@ export default function AgentTracesPage() {
         <Kpi icon={DollarSign} label="Custo total" value={`$${totals.cost.toFixed(4)}`} />
       </div>
 
+      {/* Compare-mode helper banner */}
+      {compareMode && (
+        <div
+          className="flex items-center justify-between gap-3 rounded-lg border border-primary/30 bg-primary/5 px-3 py-2 text-xs animate-fade-in-up"
+          role="status"
+          aria-live="polite"
+        >
+          <div className="flex items-center gap-2 min-w-0">
+            <GitCompare className="h-3.5 w-3.5 text-primary shrink-0" aria-hidden />
+            <span className="text-foreground/90">
+              {comparePicks.length === 0 && 'Selecione 2 execuções na lista para comparar lado a lado.'}
+              {comparePicks.length === 1 && 'Selecione mais 1 execução para abrir a comparação.'}
+              {comparePicks.length === 2 && 'Comparação pronta — abrindo painel.'}
+            </span>
+            <span className="text-muted-foreground tabular-nums shrink-0">{comparePicks.length}/2</span>
+          </div>
+          <div className="flex items-center gap-1">
+            {comparePicks.length === 2 && (
+              <Button size="sm" variant="ghost" className="h-7 text-xs" onClick={() => setCompareOpen(true)}>
+                Reabrir painel
+              </Button>
+            )}
+            <Button size="sm" variant="ghost" className="h-7 text-xs" onClick={exitCompareMode}>
+              <X className="h-3 w-3 mr-1" /> Sair
+            </Button>
+          </div>
+        </div>
+      )}
+
       <div className="grid grid-cols-1 lg:grid-cols-[420px_1fr] gap-4">
         <Card>
           <CardHeader className="pb-2">
@@ -474,6 +554,9 @@ export default function AgentTracesPage() {
               hasActiveFilters={hasActiveFilters}
               onClearFilters={handleClearFilters}
               clearFiltersWrapper={renderClearWrapper}
+              compareMode={compareMode}
+              selectedForCompare={comparePicks}
+              onToggleCompare={toggleCompare}
             />
           </CardContent>
         </Card>
@@ -540,6 +623,18 @@ export default function AgentTracesPage() {
         execution={selected}
         initialStep={selectedStep}
         onStepChange={setSelectedStep}
+      />
+
+      <CompareTracesSheet
+        open={compareOpen}
+        onOpenChange={(open) => {
+          setCompareOpen(open);
+          // Closing the sheet keeps picks & compare mode so the user can adjust
+          // and reopen via the helper banner — only the explicit "Sair" button
+          // exits compare mode entirely.
+        }}
+        a={compareA}
+        b={compareB}
       />
     </div>
   );
