@@ -478,6 +478,9 @@ export default function SLODashboard() {
     // the debounce timer; subsequent loads (filter changes) wait one tick.
     const isFirstLoad = requestTokenRef.current === 0;
     const delay = isFirstLoad ? 0 : FILTER_DEBOUNCE_MS;
+    // Light up the discreet "recomputing" indicator the moment a filter
+    // changes — covers both the debounce window and the in-flight fetch.
+    if (!isFirstLoad) setRecomputing(true);
     const timer = window.setTimeout(() => load(), delay);
 
     if (autoRefreshMs <= 0) return () => window.clearTimeout(timer);
