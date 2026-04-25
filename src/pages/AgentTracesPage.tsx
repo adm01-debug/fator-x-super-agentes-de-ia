@@ -21,6 +21,7 @@ import { ReplayDialog } from '@/components/agents/traces/ReplayDialog';
 import { ClearFiltersToast, type ClearedField } from '@/components/agents/traces/ClearFiltersToast';
 import { ClearFiltersConfirm } from '@/components/agents/traces/ClearFiltersConfirm';
 import { CompareTracesSheet } from '@/components/agents/traces/CompareTracesSheet';
+import { AgentContextPanel } from '@/components/agents/traces/AgentContextPanel';
 import { useAgentDrilldownStore } from '@/stores/agentDrilldownStore';
 
 interface PersistedFilters extends Record<string, unknown> {
@@ -540,26 +541,32 @@ export default function AgentTracesPage() {
       )}
 
       <div className="grid grid-cols-1 lg:grid-cols-[420px_1fr] gap-4">
-        <Card>
-          <CardHeader className="pb-2">
-            <CardTitle className="text-sm">Execuções</CardTitle>
-          </CardHeader>
-          <CardContent className="p-0">
-            <ExecutionList
-              executions={executions}
-              selectedId={selected?.session_id ?? null}
-              onSelect={(e) => setSelectedId(e.session_id)}
-              onReplay={(e) => { setSelectedId(e.session_id); setReplayOpen(true); }}
-              loading={isLoading}
-              hasActiveFilters={hasActiveFilters}
-              onClearFilters={handleClearFilters}
-              clearFiltersWrapper={renderClearWrapper}
-              compareMode={compareMode}
-              selectedForCompare={comparePicks}
-              onToggleCompare={toggleCompare}
-            />
-          </CardContent>
-        </Card>
+        <div className="space-y-4 min-w-0">
+          {/* Contextual agent panel — only when filtered to a single agent. */}
+          {effectiveAgentId && (
+            <AgentContextPanel agentId={effectiveAgentId} executions={executions} />
+          )}
+          <Card>
+            <CardHeader className="pb-2">
+              <CardTitle className="text-sm">Execuções</CardTitle>
+            </CardHeader>
+            <CardContent className="p-0">
+              <ExecutionList
+                executions={executions}
+                selectedId={selected?.session_id ?? null}
+                onSelect={(e) => setSelectedId(e.session_id)}
+                onReplay={(e) => { setSelectedId(e.session_id); setReplayOpen(true); }}
+                loading={isLoading}
+                hasActiveFilters={hasActiveFilters}
+                onClearFilters={handleClearFilters}
+                clearFiltersWrapper={renderClearWrapper}
+                compareMode={compareMode}
+                selectedForCompare={comparePicks}
+                onToggleCompare={toggleCompare}
+              />
+            </CardContent>
+          </Card>
+        </div>
 
         <Card>
           <CardHeader className="pb-2 flex-row items-center justify-between space-y-0">
