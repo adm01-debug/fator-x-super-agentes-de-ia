@@ -8,8 +8,6 @@
  */
 import type { SupabaseClient, FunctionInvokeOptions } from '@supabase/supabase-js';
 
-type InvokeResponse<T> = { data: T | null; error: Error | null };
-
 const TRANSIENT_PATTERNS = [
   'SUPABASE_EDGE_RUNTIME_ERROR',
   'Service is temporarily unavailable',
@@ -29,15 +27,15 @@ export async function invokeWithRetry<T = unknown>(
   fn: string,
   options?: FunctionInvokeOptions,
   { retries = 2, baseDelayMs = 400 }: { retries?: number; baseDelayMs?: number } = {},
-): Promise<InvokeResponse<T>> {
-  let lastResp: InvokeResponse<T> | null = null;
+): Promise<{ data: T | null; error: Error | null }> {
+  let lastResp: { data: T | null; error: Error | null } = { data: null, error: null };
   for (let attempt = 0; attempt <= retries; attempt++) {
-    const resp = (await client.functions.invoke<T>(fn, options)) as InvokeResponse<T>;
+    const resp = (await client.functions.invoke<T>(fn, options)) as { data: T | null; error: Error | null };
     lastResp = resp;
     if (!resp.error || !isTransient(resp.error)) return resp;
     if (attempt < retries) {
       await new Promise((r) => setTimeout(r, baseDelayMs * Math.pow(2, attempt)));
     }
   }
-  return lastResp as InvokeResponse<T>;
+  return lastResp;
 }
