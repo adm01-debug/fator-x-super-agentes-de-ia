@@ -433,7 +433,31 @@ function VersionHistory({ agentId }: { agentId: string }) {
                 {/* Validação pré-restore — sempre visível quando há origem e ao menos
                     um campo marcado, para que o usuário veja erros antes de tudo. */}
                 {previous && hasAnyOptionSelected && validation && (
-                  <RestoreValidationPanel validation={validation} />
+                  <RestoreValidationPanel
+                    validation={validation}
+                    onApplyFix={(fix) => {
+                      // Cada quick-fix mapeia para 1) toggle de checkbox de
+                      // grupo OU 2) registro de override (config/model) que
+                      // será aplicado pelo `restoreAgentVersion`.
+                      switch (fix.kind) {
+                        case 'uncheck-prompt': setCopyPrompt(false); break;
+                        case 'uncheck-tools': setCopyTools(false); break;
+                        case 'uncheck-model': setCopyModel(false); break;
+                        case 'set-temperature':
+                          setFixOverrides((prev) => ({ ...prev, config: { ...prev.config, temperature: fix.value } }));
+                          break;
+                        case 'set-max-tokens':
+                          setFixOverrides((prev) => ({ ...prev, config: { ...prev.config, max_tokens: fix.value } }));
+                          break;
+                        case 'clear-reasoning':
+                          setFixOverrides((prev) => ({ ...prev, config: { ...prev.config, reasoning: null } }));
+                          break;
+                        case 'set-model':
+                          setFixOverrides((prev) => ({ ...prev, model: fix.value }));
+                          break;
+                      }
+                    }}
+                  />
                 )}
 
                 {previous && hasAnyOptionSelected && restoreDiff && (
