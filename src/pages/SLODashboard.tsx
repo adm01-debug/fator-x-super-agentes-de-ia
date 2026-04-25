@@ -313,6 +313,11 @@ export default function SLODashboard() {
   });
 
   const [lastRefreshAt, setLastRefreshAt] = useState<Date | null>(null);
+  // Discreet "recomputing" indicator: lights up while a debounced filter
+  // change is in flight (or the fetch is awaiting). Distinct from `refreshing`
+  // (manual reload) and `loading` (initial empty state) so we never blank the
+  // page during rapid filter toggling.
+  const [recomputing, setRecomputing] = useState(false);
   // Re-renders the "X seg atrás" pill once a second without re-fetching data.
   const [, setNowTick] = useState(0);
   const isMountedRef = useRef(true);
@@ -454,6 +459,7 @@ export default function SLODashboard() {
       if (myToken === requestTokenRef.current) {
         setLoading(false);
         setRefreshing(false);
+        setRecomputing(false);
       }
     }
   }, [windowHours, compareHours]);
@@ -472,6 +478,9 @@ export default function SLODashboard() {
     // the debounce timer; subsequent loads (filter changes) wait one tick.
     const isFirstLoad = requestTokenRef.current === 0;
     const delay = isFirstLoad ? 0 : FILTER_DEBOUNCE_MS;
+    // Light up the discreet "recomputing" indicator the moment a filter
+    // changes — covers both the debounce window and the in-flight fetch.
+    if (!isFirstLoad) setRecomputing(true);
     const timer = window.setTimeout(() => load(), delay);
 
     if (autoRefreshMs <= 0) return () => window.clearTimeout(timer);
@@ -570,7 +579,17 @@ export default function SLODashboard() {
   const totalBucketsCompare = compareSummary?.timeseries.length ?? 0;
 
   return (
-    <div className="space-y-6 p-6 page-enter">
+    <div className="space-y-6 p-6 page-enter relative">
+      {/* Discreet "recomputing" bar — fades in only when filter changes are
+          being applied. Doesn't block clicks, doesn't blank the page. */}
+      <div
+        aria-hidden={!recomputing}
+        className={`pointer-events-none fixed left-0 right-0 top-0 h-0.5 z-50 transition-opacity duration-200 ${
+          recomputing ? 'opacity-100' : 'opacity-0'
+        }`}
+      >
+        <div className="h-full w-1/3 bg-primary/70 rounded-full animate-[indeterminate_1.1s_ease-in-out_infinite]" />
+      </div>
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-3xl font-bold tracking-tight bg-gradient-to-r from-foreground to-foreground/60 bg-clip-text">
@@ -610,6 +629,22 @@ export default function SLODashboard() {
           })()}
         </div>
         <div className="flex items-center gap-2 flex-wrap">
+          {/* Discreet "recomputing" chip — appears only while a debounced
+              filter change is being applied. Live region so screen readers
+              announce it without stealing focus. */}
+          <span
+            role="status"
+            aria-live="polite"
+            className={`inline-flex items-center gap-1.5 rounded-full border border-primary/30 bg-primary/10 px-2 py-0.5 text-[11px] font-medium text-primary transition-opacity duration-200 ${
+              recomputing ? 'opacity-100' : 'opacity-0 pointer-events-none'
+            }`}
+          >
+            <span aria-hidden className="relative inline-flex h-1.5 w-1.5">
+              <span className="absolute inline-flex h-full w-full rounded-full bg-primary opacity-60 animate-ping" />
+              <span className="relative inline-flex h-1.5 w-1.5 rounded-full bg-primary" />
+            </span>
+            Recalculando…
+          </span>
           {/* Last-updated indicator + live pulse when auto-refresh is on */}
           {lastRefreshAt && (
             <span
