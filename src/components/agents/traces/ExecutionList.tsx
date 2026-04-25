@@ -24,6 +24,10 @@ interface Props {
   selectedForCompare?: string[];
   /** Toggle a row in/out of the comparison set. */
   onToggleCompare?: (e: ExecutionGroup) => void;
+  /** When provided AND `executions` is empty AND filters are active, this
+   *  node replaces the default "no results" empty state. Used by the page to
+   *  surface contextual suggestions when filtered to a single agent. */
+  agentEmptyState?: ReactNode;
 }
 
 /**
@@ -92,7 +96,7 @@ function previewTags(t: AgentTraceRow): string[] {
   return tags.filter((x): x is string => typeof x === 'string').slice(0, 3);
 }
 
-export function ExecutionList({ executions, selectedId, onSelect, onReplay, loading, hasActiveFilters, onClearFilters, clearFiltersWrapper, compareMode = false, selectedForCompare = [], onToggleCompare }: Props) {
+export function ExecutionList({ executions, selectedId, onSelect, onReplay, loading, hasActiveFilters, onClearFilters, clearFiltersWrapper, compareMode = false, selectedForCompare = [], onToggleCompare, agentEmptyState }: Props) {
   const [localQuery, setLocalQuery] = useState('');
 
   const filtered = useMemo(() => {
@@ -120,6 +124,12 @@ export function ExecutionList({ executions, selectedId, onSelect, onReplay, load
           description="Quando seus agentes começarem a executar, as sessões aparecerão aqui em tempo real."
         />
       );
+    }
+    // Page-provided contextual empty state takes priority (e.g. when a single
+    // agent is selected, we show targeted suggestions instead of the generic
+    // "no results" copy).
+    if (agentEmptyState) {
+      return <>{agentEmptyState}</>;
     }
     const button = onClearFilters ? (
       <Button onClick={onClearFilters} size="sm" className="gap-1.5">Limpar filtros</Button>
