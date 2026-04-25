@@ -890,6 +890,7 @@ export function QuickCreateWizard({ onBack }: QuickCreateWizardProps) {
           }}
           onDismiss={() => setRestoreFeedback(null)}
           onCopyDeeplink={copyDeeplinkToFeedback}
+          onFixNow={fixNowFromFeedback}
         />
       )}
       <div className="flex items-center gap-3">
