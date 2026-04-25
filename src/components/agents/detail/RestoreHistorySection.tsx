@@ -193,18 +193,46 @@ export function RestoreHistorySection({ agentId, versions }: Props) {
 
   const undoMut = useMutation({
     mutationFn: async (entry: RestoreEntry) => {
-      if (!entry.preRollback) {
-        throw new Error("Sem versão de referência para desfazer este rollback.");
+      // 1. Tenta usar a versão de referência já presente no estado local.
+      let preRollback: AgentVersion | null = entry.preRollback;
+
+      // 2. Fallback: se o estado local não tem a versão (lista paginada,
+      //    cache desatualizado, etc.), busca direto do servidor usando o
+      //    `restored_from_version_id` que o próprio rollback registrou.
+      if (!preRollback && entry.meta.restored_from_version_id) {
+        try {
+          preRollback = await fetchAgentVersionById(
+            entry.meta.restored_from_version_id,
+          );
+          // Revalida a lista para que próximas interações já tenham o estado correto.
+          if (preRollback) {
+            queryClient.invalidateQueries({ queryKey: ["agent_versions", agentId] });
+            queryClient.invalidateQueries({ queryKey: ["agent-versions", agentId] });
+          }
+        } catch (err) {
+          throw new Error(
+            `Falha ao recarregar a versão de referência (v${entry.meta.restored_from_version}) do servidor: ${
+              err instanceof Error ? err.message : "erro desconhecido"
+            }`,
+          );
+        }
       }
+
+      if (!preRollback) {
+        throw new Error(
+          `Versão de referência (v${entry.meta.restored_from_version}) não encontrada — pode ter sido apagada.`,
+        );
+      }
+
       return restoreAgentVersion(
         agentId,
-        entry.preRollback,
+        preRollback,
         currentVersion,
         {
           copyPrompt: entry.meta.options.copyPrompt,
           copyTools: entry.meta.options.copyTools,
           copyModel: entry.meta.options.copyModel,
-          customSummary: `Desfazer rollback v${entry.versionNumber} → restaurado de v${entry.preRollback.version}`,
+          customSummary: `Desfazer rollback v${entry.versionNumber} → restaurado de v${preRollback.version}`,
         },
       );
     },
