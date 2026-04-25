@@ -92,6 +92,40 @@ const FIELD_LABELS = {
   copyModel: "Modelo + reasoning",
 } as const;
 
+/**
+ * Janela após a qual o "Desfazer rollback" expira automaticamente.
+ * 5 minutos é uma janela curta o suficiente para forçar uma decisão rápida
+ * sobre o rollback recém-aplicado, e longa o suficiente para uma sanidade
+ * mínima (revisar diff, abrir gráficos, etc.).
+ */
+const UNDO_WINDOW_MS = 5 * 60 * 1000;
+
+/**
+ * Formata o tempo restante (em ms) como `m:ss` para exibição no contador.
+ * Valores ≤0 retornam "0:00" — o componente já trata isso como expirado.
+ */
+function formatRemaining(ms: number): string {
+  const total = Math.max(0, Math.floor(ms / 1000));
+  const m = Math.floor(total / 60);
+  const s = total % 60;
+  return `${m}:${s.toString().padStart(2, "0")}`;
+}
+
+/**
+ * Hook leve que retorna o "agora" e dispara re-render a cada segundo,
+ * mas APENAS enquanto `active` for `true`. Quando todas as entradas já
+ * expiraram, o intervalo é desligado e o componente para de re-renderizar.
+ */
+function useTickingNow(active: boolean): number {
+  const [now, setNow] = useState<number>(() => Date.now());
+  useEffect(() => {
+    if (!active) return;
+    const id = window.setInterval(() => setNow(Date.now()), 1000);
+    return () => window.clearInterval(id);
+  }, [active]);
+  return now;
+}
+
 export function RestoreHistorySection({ agentId, versions }: Props) {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
