@@ -122,21 +122,22 @@ export function RestoreFeedbackBanner({ info, onJumpToField, onDismiss, onCopyDe
         )}
       </div>
 
-      <div className="flex items-center gap-1 shrink-0">
+      <div className="flex items-center gap-1 shrink-0" role="group" aria-label="Ações de restauração">
         {onCopyDeeplink && (
           <button
             type="button"
             onClick={handleCopy}
+            aria-label={copied ? 'Link copiado para a área de transferência' : `Copiar link que reabre o wizard no campo ${fieldLabel}`}
             className="inline-flex items-center gap-1 h-7 px-2 rounded-md text-[11px] font-medium bg-secondary/60 text-foreground hover:bg-secondary transition-colors"
             title="Copiar link que reabre o wizard com este campo destacado"
           >
             {copied ? (
               <>
-                <Check className="h-3 w-3 text-nexus-emerald" /> Copiado
+                <Check className="h-3 w-3 text-nexus-emerald" aria-hidden /> Copiado
               </>
             ) : (
               <>
-                <Link2 className="h-3 w-3" /> Copiar link
+                <Link2 className="h-3 w-3" aria-hidden /> Copiar link
               </>
             )}
           </button>
@@ -146,15 +147,17 @@ export function RestoreFeedbackBanner({ info, onJumpToField, onDismiss, onCopyDe
             type="button"
             onClick={onFixNow}
             data-testid="rfb-fix-now"
+            aria-label={`Corrigir agora: ir ao passo${info.stepLabel ? ` ${info.stepLabel}` : ''} e focar o campo ${fieldLabel}`}
             className="inline-flex items-center gap-1 h-7 px-2 rounded-md text-[11px] font-medium bg-primary text-primary-foreground hover:bg-primary/90 transition-colors"
             title="Ir ao passo correto e focar o campo inválido"
           >
-            <Wrench className="h-3 w-3" /> Corrigir agora
+            <Wrench className="h-3 w-3" aria-hidden /> Corrigir agora
           </button>
         )}
         <button
           type="button"
           onClick={onJumpToField}
+          aria-label={`Ir ao campo ${fieldLabel} e destacá-lo`}
           className="inline-flex items-center gap-1 h-7 px-2 rounded-md text-[11px] font-medium bg-primary/10 text-primary hover:bg-primary/20 transition-colors"
           title="Rolar até o campo destacado"
         >
