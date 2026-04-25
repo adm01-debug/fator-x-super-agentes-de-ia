@@ -23,6 +23,26 @@ export interface DrilldownSection {
   empty: string;
 }
 
+/**
+ * Snapshot of the "tool failures" toggle and the totals it produces for the
+ * current drill-down window. Surfaces in the PDF so reviewers can tell at a
+ * glance whether tool errors are inflating (or hidden from) the metrics.
+ */
+export interface ToolFailuresSummary {
+  /** True when tool failures are counted in errors / percentiles. */
+  includeToolFailures: boolean;
+  /** Total traces in the filtered window. */
+  totalTraces: number;
+  /** All errors (includes tool failures). */
+  totalErrors: number;
+  /** Errors excluding tool failures. */
+  nonToolErrors: number;
+  /** P95 latency including tool failures (ms). */
+  p95Ms: number;
+  /** P95 latency excluding tool failures (ms). May equal p95Ms if RPC didn't expose it. */
+  p95MsNoTools: number;
+}
+
 export interface DrilldownReport {
   windowLabel: string;
   compareLabel: string;
@@ -32,6 +52,8 @@ export interface DrilldownReport {
   sections: DrilldownSection[];
   /** Absolute URL of the dashboard view at export time (so PDF links back here). */
   dashboardUrl: string;
+  /** Optional snapshot of the tool-failures toggle + totals. */
+  toolFailures?: ToolFailuresSummary;
 }
 
 /** Wraps a string to N chars max so long URLs/labels don't overflow the page. */
