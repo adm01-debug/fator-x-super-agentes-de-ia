@@ -13,6 +13,8 @@ interface Props {
   info: RestoreFeedbackInfo;
   onJumpToField: () => void;
   onDismiss: () => void;
+  /** Gera/copia um link compartilhável que reabre o wizard com o mesmo destaque. */
+  onCopyDeeplink?: () => Promise<void> | void;
 }
 
 // Tradução do tipo de erro vindo do zod para uma label curta e visual.
