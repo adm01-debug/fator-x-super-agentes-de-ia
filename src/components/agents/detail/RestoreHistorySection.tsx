@@ -280,7 +280,10 @@ export function RestoreHistorySection({ agentId, versions }: Props) {
           const expired = !Number.isFinite(restoredAtMs) || remainingMs <= 0;
           // Aviso visual quando faltar < 1 min — destaca a urgência da decisão.
           const urgent = !expired && remainingMs < 60 * 1000;
-          const canUndo = !!entry.preRollback && !expired;
+          // Pode desfazer se temos a versão de referência localmente OU
+          // pelo menos o id dela (fallback recarrega do servidor on-click).
+          const hasReference = !!entry.preRollback || !!entry.meta.restored_from_version_id;
+          const canUndo = hasReference && !expired;
           const isUndoingThis = undoMut.isPending && undoTarget?.versionId === entry.versionId;
           return (
             <li
