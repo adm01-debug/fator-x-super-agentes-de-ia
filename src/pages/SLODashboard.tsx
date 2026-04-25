@@ -341,6 +341,11 @@ export default function SLODashboard() {
     const raw = searchParams.get(QP_INCLUDE_TOOLS);
     return raw === '0' ? false : true;
   });
+  // Side-by-side compare of "Com tool failures" vs "Sem tool failures" in the
+  // drill-down. Off by default; persisted in the URL as `?cmp_tools=1`.
+  const [compareToolModes, setCompareToolModes] = useState<boolean>(() => {
+    return searchParams.get(QP_COMPARE_TOOLS) === '1';
+  });
 
   const [lastRefreshAt, setLastRefreshAt] = useState<Date | null>(null);
   // Discreet "recomputing" indicator: lights up while a debounced filter
