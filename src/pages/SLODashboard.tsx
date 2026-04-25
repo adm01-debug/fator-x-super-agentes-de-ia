@@ -1340,6 +1340,36 @@ export default function SLODashboard() {
                         <Wrench className="h-3.5 w-3.5" />
                         {includeToolFailures ? 'Com tool failures' : 'Sem tool failures'}
                       </button>
+
+                      {/* Side-by-side compare: renders the drill-down twice
+                          (Com vs Sem tool failures) so reviewers can spot the
+                          deltas in top contributors at a glance. */}
+                      <button
+                        type="button"
+                        role="switch"
+                        aria-checked={compareToolModes}
+                        onClick={() => {
+                          setCompareToolModes((v) => {
+                            const next = !v;
+                            toast.success(next
+                              ? 'Comparando lado a lado: com vs sem tool failures'
+                              : 'Comparação lado a lado desativada');
+                            return next;
+                          });
+                        }}
+                        className={`flex items-center gap-1.5 rounded-md border px-2.5 py-1.5 text-xs font-medium transition-colors focus-ring ${
+                          compareToolModes
+                            ? 'border-primary/40 bg-primary/10 text-primary hover:bg-primary/15'
+                            : 'border-border/50 bg-background text-muted-foreground hover:bg-secondary/50'
+                        }`}
+                        title={compareToolModes
+                          ? 'Comparação lado a lado ativa. Clique para desativar.'
+                          : 'Comparar lado a lado os top contribuintes com e sem tool failures.'}
+                      >
+                        <Columns2 className="h-3.5 w-3.5" />
+                        {compareToolModes ? 'Comparando' : 'Comparar'}
+                      </button>
+
                       <Button
                         type="button"
                         variant="outline"
