@@ -657,6 +657,19 @@ export function RestoreHistorySection({ agentId, versions }: Props) {
                   </div>
                 )}
 
+                {/* Aviso de drift: versão mais nova já criada após o rollback. */}
+                {targetStale && undoTarget && (
+                  <div className="flex items-start gap-2 rounded-lg border border-destructive/30 bg-destructive/5 p-2.5 text-xs text-destructive">
+                    <AlertTriangle className="h-3.5 w-3.5 shrink-0 mt-0.5" aria-hidden />
+                    <span>
+                      Foi criada uma versão mais nova (v{currentVersion?.version}) depois
+                      deste rollback (v{undoTarget.versionNumber}). Recarregue antes de
+                      desfazer para revisar o que mudou — desfazer agora pode sobrescrever
+                      essas mudanças.
+                    </span>
+                  </div>
+                )}
+
                 <p className="text-xs text-muted-foreground">
                   Nenhum histórico será apagado — desfazer o rollback é não destrutivo e
                   cria uma nova versão.
@@ -665,24 +678,42 @@ export function RestoreHistorySection({ agentId, versions }: Props) {
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
+            {targetStale && (
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => {
+                  queryClient.invalidateQueries({ queryKey: ["agent_versions", agentId] });
+                  queryClient.invalidateQueries({ queryKey: ["agent-versions", agentId] });
+                  queryClient.invalidateQueries({ queryKey: ["agent", agentId] });
+                  setUndoTarget(null);
+                }}
+                disabled={undoMut.isPending}
+              >
+                Recarregar
+              </Button>
+            )}
             <AlertDialogCancel disabled={undoMut.isPending}>Cancelar</AlertDialogCancel>
             <AlertDialogAction
               onClick={(e) => {
                 e.preventDefault();
-                if (undoTarget && !targetExpired) undoMut.mutate(undoTarget);
+                if (undoTarget && !targetExpired && !targetStale) undoMut.mutate(undoTarget);
               }}
               disabled={
                 undoMut.isPending ||
                 targetExpired ||
+                targetStale ||
                 (!undoTarget?.preRollback && !undoTarget?.meta.restored_from_version_id)
               }
               className="gap-1.5"
               title={
                 targetExpired
                   ? `Janela de ${UNDO_WINDOW_MS / 60000} min para desfazer expirou`
-                  : !undoTarget?.preRollback && !undoTarget?.meta.restored_from_version_id
-                    ? "Sem versão de referência anterior"
-                    : `Confirmar — expira em ${formatRemaining(targetRemainingMs)}`
+                  : targetStale
+                    ? "Versão mais nova detectada — recarregue antes de desfazer"
+                    : !undoTarget?.preRollback && !undoTarget?.meta.restored_from_version_id
+                      ? "Sem versão de referência anterior"
+                      : `Confirmar — expira em ${formatRemaining(targetRemainingMs)}`
               }
             >
               {undoMut.isPending ? (
@@ -690,7 +721,11 @@ export function RestoreHistorySection({ agentId, versions }: Props) {
               ) : (
                 <Undo2 className="h-3.5 w-3.5" aria-hidden />
               )}
-              {targetExpired ? "Janela expirada" : "Confirmar desfazer"}
+              {targetExpired
+                ? "Janela expirada"
+                : targetStale
+                  ? "Recarregue antes"
+                  : "Confirmar desfazer"}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
