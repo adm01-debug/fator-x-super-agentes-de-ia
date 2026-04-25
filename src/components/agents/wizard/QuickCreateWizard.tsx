@@ -281,6 +281,9 @@ export function QuickCreateWizard({ onBack }: QuickCreateWizardProps) {
     url.searchParams.set('rf_step', String(restoreFeedback.stepIdx));
     if (restoreFeedback.errorType) url.searchParams.set('rf_type', restoreFeedback.errorType);
     if (restoreFeedback.errorMessage) url.searchParams.set('rf_msg', restoreFeedback.errorMessage);
+    // Sempre embute rf_focus=1 — quem abre o link recebe foco automático
+    // no campo inválido, sem precisar clicar em "Corrigir agora".
+    url.searchParams.set('rf_focus', '1');
     try {
       await navigator.clipboard.writeText(url.toString());
       toast.success('Link copiado', {
