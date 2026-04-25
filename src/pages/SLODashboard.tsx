@@ -781,9 +781,12 @@ export default function SLODashboard() {
           </select>
           <select
             value={windowHours}
-            onChange={(e) => setWindowHours(Number(e.target.value))}
-            className="rounded-md border border-input bg-background px-3 py-1.5 text-sm focus-ring"
+            onChange={(e) => { setWindowHours(Number(e.target.value)); lockFiltersBriefly(); }}
+            disabled={filtersLocked}
+            className="rounded-md border border-input bg-background px-3 py-1.5 text-sm focus-ring disabled:opacity-60 disabled:cursor-not-allowed"
             aria-label="Janela de tempo"
+            aria-busy={filtersLocked}
+            title={filtersLocked ? 'Aguarde — aplicando última troca…' : undefined}
           >
             <option value={1}>Última 1h</option>
             <option value={6}>Últimas 6h</option>
@@ -792,10 +795,12 @@ export default function SLODashboard() {
           </select>
           <select
             value={compareHours}
-            onChange={(e) => setCompareHours(Number(e.target.value))}
-            className="rounded-md border border-input bg-background px-3 py-1.5 text-sm focus-ring"
+            onChange={(e) => { setCompareHours(Number(e.target.value)); lockFiltersBriefly(); }}
+            disabled={filtersLocked}
+            className="rounded-md border border-input bg-background px-3 py-1.5 text-sm focus-ring disabled:opacity-60 disabled:cursor-not-allowed"
             aria-label="Janela de comparação"
-            title="Compara a janela atual com outra para ver tendências"
+            aria-busy={filtersLocked}
+            title={filtersLocked ? 'Aguarde — aplicando última troca…' : 'Compara a janela atual com outra para ver tendências'}
           >
             <option value={0}>Comparar: —</option>
             {[1, 6, 24, 168]
