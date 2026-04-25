@@ -1,4 +1,5 @@
-import { AlertCircle, ArrowRight, X } from 'lucide-react';
+import { useState } from 'react';
+import { AlertCircle, ArrowRight, Check, Link2, X } from 'lucide-react';
 import type { DraftResumeTarget } from './draftStore';
 
 export interface RestoreFeedbackInfo extends DraftResumeTarget {
