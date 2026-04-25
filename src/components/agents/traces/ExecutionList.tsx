@@ -1,7 +1,7 @@
 import { useMemo, useState, type ReactNode } from 'react';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Button } from '@/components/ui/button';
-import { Activity, AlertTriangle, CheckCircle2, Clock, DollarSign, Filter, Inbox, Play, Search, X, XCircle } from 'lucide-react';
+import { Activity, AlertTriangle, CheckCircle2, Clock, DollarSign, Filter, Inbox, Play, Search, X, XCircle, Check } from 'lucide-react';
 import { Skeleton } from '@/components/ui/skeleton';
 import { EmptyState } from '@/components/shared/EmptyState';
 import type { ExecutionGroup, AgentTraceRow } from '@/services/agentTracesService';
@@ -17,6 +17,13 @@ interface Props {
   onClearFilters?: () => void;
   /** Optional renderer that wraps the "Limpar filtros" button (e.g. ConfirmDialog). */
   clearFiltersWrapper?: (button: ReactNode) => ReactNode;
+  /** Compare mode: when active, clicking a row toggles its inclusion in the
+   *  comparison set instead of selecting it for the timeline view. */
+  compareMode?: boolean;
+  /** IDs picked for comparison (max 2 enforced by parent). */
+  selectedForCompare?: string[];
+  /** Toggle a row in/out of the comparison set. */
+  onToggleCompare?: (e: ExecutionGroup) => void;
 }
 
 /**
