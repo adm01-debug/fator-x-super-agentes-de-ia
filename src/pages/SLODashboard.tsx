@@ -459,6 +459,7 @@ export default function SLODashboard() {
       if (myToken === requestTokenRef.current) {
         setLoading(false);
         setRefreshing(false);
+        setRecomputing(false);
       }
     }
   }, [windowHours, compareHours]);
