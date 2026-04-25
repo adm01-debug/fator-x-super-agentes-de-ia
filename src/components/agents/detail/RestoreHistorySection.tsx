@@ -7,10 +7,10 @@
  * copiando os mesmos campos da versão imediatamente anterior ao rollback
  * (a versão de referência), revertendo o efeito sem apagar histórico.
  */
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
-import { Undo2, FileText, Wrench, Cpu, ArrowRight, Clock, Loader2, AlertTriangle } from "lucide-react";
+import { Undo2, FileText, Wrench, Cpu, ArrowRight, Clock, Loader2, AlertTriangle, TimerOff } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
   AlertDialog,
@@ -92,6 +92,40 @@ const FIELD_LABELS = {
   copyModel: "Modelo + reasoning",
 } as const;
 
+/**
+ * Janela após a qual o "Desfazer rollback" expira automaticamente.
+ * 5 minutos é uma janela curta o suficiente para forçar uma decisão rápida
+ * sobre o rollback recém-aplicado, e longa o suficiente para uma sanidade
+ * mínima (revisar diff, abrir gráficos, etc.).
+ */
+const UNDO_WINDOW_MS = 5 * 60 * 1000;
+
+/**
+ * Formata o tempo restante (em ms) como `m:ss` para exibição no contador.
+ * Valores ≤0 retornam "0:00" — o componente já trata isso como expirado.
+ */
+function formatRemaining(ms: number): string {
+  const total = Math.max(0, Math.floor(ms / 1000));
+  const m = Math.floor(total / 60);
+  const s = total % 60;
+  return `${m}:${s.toString().padStart(2, "0")}`;
+}
+
+/**
+ * Hook leve que retorna o "agora" e dispara re-render a cada segundo,
+ * mas APENAS enquanto `active` for `true`. Quando todas as entradas já
+ * expiraram, o intervalo é desligado e o componente para de re-renderizar.
+ */
+function useTickingNow(active: boolean): number {
+  const [now, setNow] = useState<number>(() => Date.now());
+  useEffect(() => {
+    if (!active) return;
+    const id = window.setInterval(() => setNow(Date.now()), 1000);
+    return () => window.clearInterval(id);
+  }, [active]);
+  return now;
+}
+
 export function RestoreHistorySection({ agentId, versions }: Props) {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
@@ -120,6 +154,22 @@ export function RestoreHistorySection({ agentId, versions }: Props) {
   // A "versão atual" é sempre a primeira (mais recente) — usada como base do
   // merge ao desfazer, garantindo que campos não restaurados sejam preservados.
   const currentVersion = versions[0];
+
+  // Maior `restored_at` entre todas as entradas — usado para decidir se ainda
+  // vale a pena ligar o intervalo de tick. Se nem o rollback mais recente
+  // estiver dentro da janela, ninguém estará e podemos parar de re-renderizar.
+  const latestRestoredAt = useMemo<number>(() => {
+    let max = 0;
+    for (const e of entries) {
+      const ts = new Date(e.meta.restored_at).getTime();
+      if (Number.isFinite(ts) && ts > max) max = ts;
+    }
+    return max;
+  }, [entries]);
+
+  // Liga o tick somente enquanto pelo menos uma entrada ainda está na janela.
+  const tickActive = latestRestoredAt > 0 && Date.now() - latestRestoredAt < UNDO_WINDOW_MS;
+  const now = useTickingNow(tickActive);
 
   const undoMut = useMutation({
     mutationFn: async (entry: RestoreEntry) => {
@@ -176,7 +226,13 @@ export function RestoreHistorySection({ agentId, versions }: Props) {
 
       <ol className="space-y-2 max-h-[280px] overflow-y-auto">
         {entries.map((entry) => {
-          const canUndo = !!entry.preRollback;
+          const restoredAtMs = new Date(entry.meta.restored_at).getTime();
+          const expiresAt = Number.isFinite(restoredAtMs) ? restoredAtMs + UNDO_WINDOW_MS : 0;
+          const remainingMs = expiresAt - now;
+          const expired = !Number.isFinite(restoredAtMs) || remainingMs <= 0;
+          // Aviso visual quando faltar < 1 min — destaca a urgência da decisão.
+          const urgent = !expired && remainingMs < 60 * 1000;
+          const canUndo = !!entry.preRollback && !expired;
           const isUndoingThis = undoMut.isPending && undoTarget?.versionId === entry.versionId;
           return (
             <li
@@ -233,6 +289,31 @@ export function RestoreHistorySection({ agentId, versions }: Props) {
                   </span>
                 )}
                 <div className="ml-auto flex items-center gap-1">
+                  {/* Contador da janela de undo. Mostra mm:ss enquanto ativo,
+                      pisca em vermelho no último minuto, e vira "expirado"
+                      (com ícone de timer riscado) depois que a janela acaba. */}
+                  {expired ? (
+                    <span
+                      className="inline-flex items-center gap-1 rounded px-1.5 py-0.5 text-[10px] font-mono bg-muted/40 text-muted-foreground border border-border/40"
+                      title={`Janela de ${UNDO_WINDOW_MS / 60000} min para desfazer já expirou`}
+                    >
+                      <TimerOff className="h-2.5 w-2.5" aria-hidden />
+                      expirado
+                    </span>
+                  ) : (
+                    <span
+                      className={`inline-flex items-center gap-1 rounded px-1.5 py-0.5 text-[10px] font-mono tabular-nums border ${
+                        urgent
+                          ? "bg-destructive/10 text-destructive border-destructive/30 animate-pulse"
+                          : "bg-nexus-amber/10 text-nexus-amber border-nexus-amber/30"
+                      }`}
+                      title={`Você ainda pode desfazer este rollback por mais ${formatRemaining(remainingMs)} (janela total de ${UNDO_WINDOW_MS / 60000} min)`}
+                      aria-live="polite"
+                    >
+                      <Clock className="h-2.5 w-2.5" aria-hidden />
+                      {formatRemaining(remainingMs)}
+                    </span>
+                  )}
                   <Button
                     variant="ghost"
                     size="sm"
@@ -240,9 +321,11 @@ export function RestoreHistorySection({ agentId, versions }: Props) {
                     onClick={() => setUndoTarget(entry)}
                     disabled={!canUndo || undoMut.isPending}
                     title={
-                      canUndo
-                        ? `Desfazer este rollback restaurando os mesmos campos de v${entry.preRollback?.version}`
-                        : "Sem versão de referência anterior — não é possível desfazer"
+                      expired
+                        ? `Janela de ${UNDO_WINDOW_MS / 60000} min para desfazer expirou — restaure manualmente pelo gerenciador de versões`
+                        : !entry.preRollback
+                          ? "Sem versão de referência anterior — não é possível desfazer"
+                          : `Desfazer este rollback restaurando os mesmos campos de v${entry.preRollback?.version} (expira em ${formatRemaining(remainingMs)})`
                     }
                   >
                     {isUndoingThis ? (
@@ -270,6 +353,20 @@ export function RestoreHistorySection({ agentId, versions }: Props) {
       {/* Modal de confirmação do "Desfazer rollback".
           Mostra: o rollback alvo, a versão de referência (pré-rollback),
           os campos que serão restaurados e a nova versão que será criada. */}
+      {(() => {
+        // Estado da janela de undo para o alvo aberto no modal — recalculado
+        // a cada tick para que o botão de confirmar fique desabilitado
+        // automaticamente caso a janela expire enquanto o diálogo está aberto.
+        const targetRestoredAt = undoTarget
+          ? new Date(undoTarget.meta.restored_at).getTime()
+          : 0;
+        const targetExpiresAt = Number.isFinite(targetRestoredAt) && targetRestoredAt > 0
+          ? targetRestoredAt + UNDO_WINDOW_MS
+          : 0;
+        const targetRemainingMs = targetExpiresAt - now;
+        const targetExpired = !undoTarget || targetExpiresAt === 0 || targetRemainingMs <= 0;
+        const targetUrgent = !targetExpired && targetRemainingMs < 60 * 1000;
+        return (
       <AlertDialog
         open={!!undoTarget}
         onOpenChange={(open) => {
@@ -357,8 +454,42 @@ export function RestoreHistorySection({ agentId, versions }: Props) {
                   </ul>
                 </fieldset>
 
+                {/* Banner do contador da janela de undo dentro do modal —
+                    espelha o badge da lista para reforçar a urgência. */}
+                {undoTarget && (
+                  targetExpired ? (
+                    <div className="flex items-start gap-2 rounded-lg border border-destructive/30 bg-destructive/5 p-2.5 text-xs text-destructive">
+                      <AlertTriangle className="h-3.5 w-3.5 shrink-0 mt-0.5" aria-hidden />
+                      <span>
+                        A janela de <strong>{UNDO_WINDOW_MS / 60000} minutos</strong> para
+                        desfazer este rollback expirou. Para reverter, abra o gerenciador de
+                        versões e restaure manualmente a partir de v
+                        {undoTarget.preRollback?.version ?? "—"}.
+                      </span>
+                    </div>
+                  ) : (
+                    <div
+                      className={`flex items-center gap-2 rounded-lg border p-2.5 text-xs ${
+                        targetUrgent
+                          ? "border-destructive/30 bg-destructive/5 text-destructive"
+                          : "border-nexus-amber/30 bg-nexus-amber/5 text-nexus-amber"
+                      }`}
+                      aria-live="polite"
+                    >
+                      <Clock className="h-3.5 w-3.5 shrink-0" aria-hidden />
+                      <span>
+                        Janela para desfazer expira em{" "}
+                        <strong className="font-mono tabular-nums">
+                          {formatRemaining(targetRemainingMs)}
+                        </strong>
+                        . Após esse prazo, o botão de confirmar será desabilitado.
+                      </span>
+                    </div>
+                  )
+                )}
+
                 {/* Aviso quando o rollback não tem referência (primeira versão do agente) */}
-                {!undoTarget?.preRollback && (
+                {undoTarget && !undoTarget.preRollback && (
                   <div className="flex items-start gap-2 rounded-lg border border-destructive/30 bg-destructive/5 p-2.5 text-xs text-destructive">
                     <AlertTriangle className="h-3.5 w-3.5 shrink-0 mt-0.5" aria-hidden />
                     <span>
@@ -380,21 +511,30 @@ export function RestoreHistorySection({ agentId, versions }: Props) {
             <AlertDialogAction
               onClick={(e) => {
                 e.preventDefault();
-                if (undoTarget) undoMut.mutate(undoTarget);
+                if (undoTarget && !targetExpired) undoMut.mutate(undoTarget);
               }}
-              disabled={undoMut.isPending || !undoTarget?.preRollback}
+              disabled={undoMut.isPending || !undoTarget?.preRollback || targetExpired}
               className="gap-1.5"
+              title={
+                targetExpired
+                  ? `Janela de ${UNDO_WINDOW_MS / 60000} min para desfazer expirou`
+                  : !undoTarget?.preRollback
+                    ? "Sem versão de referência anterior"
+                    : `Confirmar — expira em ${formatRemaining(targetRemainingMs)}`
+              }
             >
               {undoMut.isPending ? (
                 <Loader2 className="h-3.5 w-3.5 animate-spin" />
               ) : (
                 <Undo2 className="h-3.5 w-3.5" aria-hidden />
               )}
-              Confirmar desfazer
+              {targetExpired ? "Janela expirada" : "Confirmar desfazer"}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+        );
+      })()}
     </div>
   );
 }
