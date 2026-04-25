@@ -240,6 +240,8 @@ export function computeBudgetBurn(
   return { consumedPct, daysToExhaustion, status };
 }
 
+export type ViolationRule = 'p95' | 'p99' | 'error';
+
 export interface ViolationDay {
   date: string;
   label: string;
@@ -247,6 +249,15 @@ export interface ViolationDay {
   p99Violations: number;
   errors: number;
   total: number;
+  /** Bucket-level latency percentiles (computed from traces in the bucket). */
+  p50Ms: number;
+  p95Ms: number;
+  /** Worst latency observed in the bucket — useful to show the "exceeded by" delta. */
+  maxLatencyMs: number;
+  /** Thresholds applied to this bucket (echoed for tooltip display). */
+  thresholds: { p95: number; p99: number };
+  /** Distinct rules that matched at least one trace in this bucket. */
+  matchedRules: ViolationRule[];
 }
 
 /** Agrupa traces por dia e conta violações vs. metas. */
