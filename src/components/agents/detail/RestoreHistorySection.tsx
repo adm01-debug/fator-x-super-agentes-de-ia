@@ -7,10 +7,10 @@
  * copiando os mesmos campos da versão imediatamente anterior ao rollback
  * (a versão de referência), revertendo o efeito sem apagar histórico.
  */
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
-import { Undo2, FileText, Wrench, Cpu, ArrowRight, Clock, Loader2, AlertTriangle } from "lucide-react";
+import { Undo2, FileText, Wrench, Cpu, ArrowRight, Clock, Loader2, AlertTriangle, TimerOff } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
   AlertDialog,
