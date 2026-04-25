@@ -624,6 +624,18 @@ export default function AgentTracesPage() {
         initialStep={selectedStep}
         onStepChange={setSelectedStep}
       />
+
+      <CompareTracesSheet
+        open={compareOpen}
+        onOpenChange={(open) => {
+          setCompareOpen(open);
+          // Closing the sheet keeps picks & compare mode so the user can adjust
+          // and reopen via the helper banner — only the explicit "Sair" button
+          // exits compare mode entirely.
+        }}
+        a={compareA}
+        b={compareB}
+      />
     </div>
   );
 }
