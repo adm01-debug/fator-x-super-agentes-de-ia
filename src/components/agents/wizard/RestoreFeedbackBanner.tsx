@@ -61,19 +61,40 @@ export function RestoreFeedbackBanner({ info, onJumpToField, onDismiss, onCopyDe
     window.setTimeout(() => setCopied(false), 1800);
   };
 
+  // IDs estáveis para amarrar título + descrição via aria — leitores de tela
+  // anunciam a região como "Restauração de rascunho: <título>. <descrição>".
+  const titleId = 'rfb-title';
+  const descId = 'rfb-desc';
+  const fullAnnouncement = [
+    `Rascunho restaurado${info.mode === 'partial' ? ' parcialmente' : ''}.`,
+    `${typeLabel} no campo ${fieldLabel}${info.stepLabel ? `, passo ${info.stepLabel}` : ''}.`,
+    info.errorMessage ? `Mensagem: ${info.errorMessage}.` : '',
+    'Use Corrigir agora para focar o campo.',
+  ]
+    .filter(Boolean)
+    .join(' ');
+
   return (
-    <div
-      role="status"
-      aria-live="polite"
+    <section
+      role="alert"
+      aria-live="assertive"
+      aria-atomic="true"
+      aria-labelledby={titleId}
+      aria-describedby={descId}
       className="nexus-card animate-page-enter border-primary/30 bg-primary/5 flex items-start gap-3 py-2.5 px-3"
     >
+      {/* Texto completo redundante para SR — visualmente oculto, mas garante
+          que o anúncio chegue como uma única frase coesa em vez de fragmentos. */}
+      <span className="sr-only" id={descId}>
+        {fullAnnouncement}
+      </span>
       <div className="h-7 w-7 rounded-md bg-primary/15 flex items-center justify-center shrink-0">
         <AlertCircle className="h-3.5 w-3.5 text-primary" aria-hidden />
       </div>
 
       <div className="min-w-0 flex-1 space-y-1.5">
         <div className="flex items-center gap-1.5 flex-wrap">
-          <span className="text-[11px] uppercase tracking-wider text-muted-foreground/70">
+          <span id={titleId} className="text-[11px] uppercase tracking-wider text-muted-foreground/70">
             Restaurado{info.mode === 'partial' ? ' (parcial)' : ''} — primeiro item a corrigir
           </span>
         </div>
