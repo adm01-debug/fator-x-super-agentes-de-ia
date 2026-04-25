@@ -307,7 +307,29 @@ export function RestoreHistorySection({ agentId, versions }: Props) {
         },
       );
     },
-    onError: (e: Error) => toast.error(e.message || "Falha ao desfazer rollback"),
+    onError: (e: Error) => {
+      const stale = (e as Error & { stale?: boolean }).stale;
+      if (stale) {
+        // Caso "drift": já existe versão mais nova no servidor. Toast com
+        // ação para revalidar as queries — depois disso o componente
+        // re-renderiza com o estado correto e o usuário decide se ainda
+        // quer desfazer (provavelmente não, sem antes revisar a v nova).
+        setUndoTarget(null);
+        toast.error(e.message, {
+          duration: 10000,
+          action: {
+            label: "Recarregar",
+            onClick: () => {
+              queryClient.invalidateQueries({ queryKey: ["agent_versions", agentId] });
+              queryClient.invalidateQueries({ queryKey: ["agent-versions", agentId] });
+              queryClient.invalidateQueries({ queryKey: ["agent", agentId] });
+            },
+          },
+        });
+        return;
+      }
+      toast.error(e.message || "Falha ao desfazer rollback");
+    },
   });
 
   if (entries.length === 0) return null;
