@@ -365,10 +365,27 @@ export function InteractiveSLOPanel({ agentId, agentName, slo, traces, daily, on
             <span className="sm:hidden"> · toque p/ detalhes</span>
           </span>
         </div>
-        {windowedTraces.length === 0 ? (
-          <p className="text-xs text-muted-foreground text-center py-6">
-            Sem traces na janela de {activeWindow.label}
-          </p>
+        {loading ? (
+          <TimelineSkeleton buckets={activeWindow.buckets} />
+        ) : windowedTraces.length === 0 ? (
+          <EmptyTimelineState
+            variant="no-data"
+            windowLabel={activeWindow.label}
+          />
+        ) : timeline.every((b) => b.matchedRules.length === 0) ? (
+          <>
+            <SLOViolationTimeline
+              data={timeline}
+              daily={daily}
+              onDayClick={onDayClick}
+              onViolationClick={handleViolationClick}
+            />
+            <EmptyTimelineState
+              variant="no-violations"
+              windowLabel={activeWindow.label}
+              traceCount={windowedTraces.length}
+            />
+          </>
         ) : (
           <SLOViolationTimeline
             data={timeline}
