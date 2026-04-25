@@ -27,6 +27,8 @@ import {
 } from '@/lib/slo/sloTargets';
 import { logger } from '@/lib/logger';
 import { exportDrilldownPdf, type DrilldownSection } from '@/lib/slo/exportDrilldownPdf';
+import { useDrilldownAuditLog } from '@/lib/slo/useDrilldownAuditLog';
+import { DrilldownAuditPanel } from '@/components/slo/DrilldownAuditPanel';
 import { toast } from 'sonner';
 
 /** Auto-refresh interval options (ms). 0 = disabled. */
