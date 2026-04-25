@@ -172,6 +172,7 @@ export function RestoreHistorySection({ agentId, versions }: Props) {
   const now = useTickingNow(tickActive);
 
   const undoMut = useMutation({
+    mutationFn: async (entry: RestoreEntry) => {
       if (!entry.preRollback) {
         throw new Error("Sem versão de referência para desfazer este rollback.");
       }
