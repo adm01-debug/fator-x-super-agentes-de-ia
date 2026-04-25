@@ -266,7 +266,9 @@ export default function SLODashboard() {
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [windowHours, setWindowHours] = useState<number>(() =>
-    parseWindowParam(searchParams.get(QP_WINDOW), DEFAULT_WINDOW_HOURS),
+    // URL wins; otherwise fall back to the persisted preference so reloading
+    // the page (without the query string) keeps the last-used window.
+    parseWindowParam(searchParams.get(QP_WINDOW), readStoredWindowHours()),
   );
   // User-controlled auto-refresh cadence. 0 = off. URL wins; otherwise fall
   // back to the persisted preference so opening the page fresh still works.
@@ -275,11 +277,13 @@ export default function SLODashboard() {
   );
   // Comparison window (0 = disabled). Encoded as `?cmp=` so a shared link
   // shows the same side-by-side view. Validated against WINDOW_OPTIONS.
+  // Reload fallback: persisted preference (so the comparison sticks across reloads).
   const [compareHours, setCompareHours] = useState<number>(() => {
     const raw = searchParams.get(QP_COMPARE);
-    if (raw === null) return 0;
+    if (raw === null) return readStoredCompareHours();
     const n = Number(raw);
-    return (WINDOW_OPTIONS as readonly number[]).includes(n) ? n : 0;
+    if (n === 0) return 0;
+    return (WINDOW_OPTIONS as readonly number[]).includes(n) ? n : readStoredCompareHours();
   });
 
   // Selected agent — when set, the dashboard view is "scoped" to that agent.
