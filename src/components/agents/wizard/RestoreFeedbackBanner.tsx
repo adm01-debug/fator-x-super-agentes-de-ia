@@ -15,6 +15,11 @@ interface Props {
   onDismiss: () => void;
   /** Gera/copia um link compartilhável que reabre o wizard com o mesmo destaque. */
   onCopyDeeplink?: () => Promise<void> | void;
+  /**
+   * Vai ao passo correto, destaca o campo e move o FOCO para o input inválido
+   * (acessível via Tab/Shift+Tab). Distinto do onJumpToField (que apenas rola/destaca).
+   */
+  onFixNow?: () => void;
 }
 
 // Tradução do tipo de erro vindo do zod para uma label curta e visual.
