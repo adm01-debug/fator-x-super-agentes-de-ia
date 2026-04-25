@@ -46,6 +46,8 @@ interface Props {
   traces: AgentTrace[];
   daily: DailyPoint[];
   onDayClick?: (day: DailyPoint) => void;
+  /** When true, renders skeletons in place of the timeline strip. */
+  loading?: boolean;
 }
 
 type Status = 'healthy' | 'warning' | 'critical';
@@ -69,7 +71,7 @@ function availabilityStatus(value: number, target: number): Status {
   return 'critical';
 }
 
-export function InteractiveSLOPanel({ agentId, agentName, slo, traces, daily, onDayClick }: Props) {
+export function InteractiveSLOPanel({ agentId, agentName, slo, traces, daily, onDayClick, loading = false }: Props) {
   const { targets, setTargets, reset } = useAgentSLOTargets(agentId);
 
   const [windowKey, setWindowKey] = useState<EvalWindowKey>('14d');
@@ -363,10 +365,27 @@ export function InteractiveSLOPanel({ agentId, agentName, slo, traces, daily, on
             <span className="sm:hidden"> · toque p/ detalhes</span>
           </span>
         </div>
-        {windowedTraces.length === 0 ? (
-          <p className="text-xs text-muted-foreground text-center py-6">
-            Sem traces na janela de {activeWindow.label}
-          </p>
+        {loading ? (
+          <TimelineSkeleton buckets={activeWindow.buckets} />
+        ) : windowedTraces.length === 0 ? (
+          <EmptyTimelineState
+            variant="no-data"
+            windowLabel={activeWindow.label}
+          />
+        ) : timeline.every((b) => b.matchedRules.length === 0) ? (
+          <>
+            <SLOViolationTimeline
+              data={timeline}
+              daily={daily}
+              onDayClick={onDayClick}
+              onViolationClick={handleViolationClick}
+            />
+            <EmptyTimelineState
+              variant="no-violations"
+              windowLabel={activeWindow.label}
+              traceCount={windowedTraces.length}
+            />
+          </>
         ) : (
           <SLOViolationTimeline
             data={timeline}
@@ -406,5 +425,76 @@ function LegendDot({ color, label }: { color: string; label: string }) {
       <span className={`h-2 w-2 rounded-sm ${color}`} />
       {label}
     </span>
+  );
+}
+
+function TimelineSkeleton({ buckets }: { buckets: number }) {
+  const SEGMENTS = 14;
+  return (
+    <div role="status" aria-busy="true" aria-label="Carregando timeline de violações" className="space-y-1.5">
+      {Array.from({ length: Math.min(buckets, 8) }).map((_, row) => (
+        <div
+          key={row}
+          className="grid items-center gap-2 sm:gap-3 py-1.5 sm:py-1 px-2 -mx-2 grid-cols-[40px_1fr] sm:grid-cols-[44px_1fr_auto]"
+        >
+          <div className="h-3 w-9 rounded bg-secondary/60 animate-pulse" />
+          <div className="flex items-center gap-0.5 col-start-2 sm:col-auto">
+            {Array.from({ length: SEGMENTS }).map((_, i) => (
+              <div
+                key={i}
+                className="h-2.5 flex-1 rounded-sm bg-secondary/60 animate-pulse"
+                style={{ animationDelay: `${(row * SEGMENTS + i) * 25}ms` }}
+              />
+            ))}
+          </div>
+          <div className="hidden sm:flex items-center gap-1 min-w-[80px] justify-end">
+            <div className="h-4 w-10 rounded bg-secondary/60 animate-pulse" />
+          </div>
+        </div>
+      ))}
+      <span className="sr-only">Carregando…</span>
+    </div>
+  );
+}
+
+function EmptyTimelineState({
+  variant,
+  windowLabel,
+  traceCount,
+}: {
+  variant: 'no-data' | 'no-violations';
+  windowLabel: string;
+  traceCount?: number;
+}) {
+  if (variant === 'no-data') {
+    return (
+      <div
+        role="status"
+        className="rounded-lg border border-dashed border-border/60 bg-secondary/20 px-4 py-8 text-center"
+      >
+        <Activity className="h-5 w-5 mx-auto text-muted-foreground/60 mb-2" aria-hidden />
+        <p className="text-xs font-medium text-foreground">Sem traces na janela de {windowLabel}</p>
+        <p className="text-[11px] text-muted-foreground mt-1 max-w-xs mx-auto">
+          Execute o agente ou amplie a janela acima para ver violações distribuídas no tempo.
+        </p>
+      </div>
+    );
+  }
+
+  return (
+    <div
+      role="status"
+      className="mt-3 rounded-lg border border-nexus-emerald/30 bg-nexus-emerald/5 px-4 py-3 flex items-start gap-2.5"
+    >
+      <CheckCircle2 className="h-4 w-4 text-nexus-emerald shrink-0 mt-0.5" aria-hidden />
+      <div className="flex-1 min-w-0">
+        <p className="text-xs font-medium text-foreground">
+          Tudo dentro dos SLOs nas últimas {windowLabel}
+        </p>
+        <p className="text-[11px] text-muted-foreground mt-0.5">
+          {traceCount ?? 0} trace{traceCount === 1 ? '' : 's'} avaliado{traceCount === 1 ? '' : 's'} · nenhuma violação de p95, p99 ou erro detectada.
+        </p>
+      </div>
+    </div>
   );
 }
