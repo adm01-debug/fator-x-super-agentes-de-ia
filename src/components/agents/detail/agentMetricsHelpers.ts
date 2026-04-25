@@ -340,6 +340,7 @@ export function buildViolationBuckets(
   const useTimeLabel = windowMs <= 24 * 60 * 60 * 1000;
 
   const buckets: ViolationDay[] = [];
+  const samples: number[][] = [];
   for (let i = 0; i < bucketCount; i++) {
     const bucketStart = new Date(start + i * bucketMs);
     let label: string;
@@ -355,7 +356,13 @@ export function buildViolationBuckets(
       p99Violations: 0,
       errors: 0,
       total: 0,
+      p50Ms: 0,
+      p95Ms: 0,
+      maxLatencyMs: 0,
+      thresholds: { p95: targets.p95, p99: targets.p99 },
+      matchedRules: [],
     });
+    samples.push([]);
   }
 
   traces.forEach((t) => {
@@ -367,9 +374,22 @@ export function buildViolationBuckets(
     const b = buckets[idx];
     b.total += 1;
     const lat = Number(t.latency_ms ?? 0);
+    samples[idx].push(lat);
+    if (lat > b.maxLatencyMs) b.maxLatencyMs = lat;
     if (lat > targets.p99) b.p99Violations += 1;
     else if (lat > targets.p95) b.p95Violations += 1;
     if (t.level === 'error' || t.level === 'critical') b.errors += 1;
+  });
+
+  buckets.forEach((b, i) => {
+    const arr = samples[i];
+    b.p50Ms = Math.round(percentile(arr, 50));
+    b.p95Ms = Math.round(percentile(arr, 95));
+    const rules: ViolationRule[] = [];
+    if (b.p95Violations > 0) rules.push('p95');
+    if (b.p99Violations > 0) rules.push('p99');
+    if (b.errors > 0) rules.push('error');
+    b.matchedRules = rules;
   });
 
   return buckets;
