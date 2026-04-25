@@ -264,10 +264,11 @@ function VersionHistory({ agentId }: { agentId: string }) {
   const rollbackMut = useMutation({
     mutationFn: () => restoreAgentVersion(agentId, previous!, current, {
       ...restoreOptions,
-      // Só envia override se o usuário realmente customizou e o texto difere do auto.
       customSummary: summaryEdited && summaryDraft.trim() && summaryDraft.trim() !== buildAutoSummary(previous!.version, restoreOptions)
         ? summaryDraft.trim()
         : undefined,
+      configOverrides: Object.keys(fixOverrides.config).length > 0 ? fixOverrides.config : undefined,
+      modelOverride: fixOverrides.model !== undefined ? fixOverrides.model : undefined,
     }),
     onSuccess: (data) => {
       queryClient.invalidateQueries({ queryKey: ['agent_versions', agentId] });
