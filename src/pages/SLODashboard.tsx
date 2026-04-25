@@ -1387,49 +1387,169 @@ export default function SLODashboard() {
                     </div>
                   </div>
                 </CardHeader>
-                <CardContent className="grid gap-4 md:grid-cols-3">
-                  {sections.map((section) => (
-                    <div key={section.title} className="space-y-2">
-                      <div className="flex items-center justify-between">
-                        <h4 className="text-xs font-semibold uppercase text-muted-foreground tracking-wide">
-                          {section.title}
-                        </h4>
-                        <Badge variant="outline" className="text-[10px]">{section.kpi}</Badge>
-                      </div>
-                      {section.rows.length === 0 ? (
-                        <p className="text-[11px] text-muted-foreground italic py-3">{section.empty}</p>
-                      ) : (
-                        <ul className="space-y-1.5">
-                          {section.rows.map((row, idx) => (
-                            <li key={row.key}>
-                              <Link
-                                to={row.href}
-                                className="flex items-start gap-2 p-2 rounded-md border border-border/40 bg-secondary/20 hover:bg-secondary/50 hover:border-primary/40 transition-colors group focus-ring"
-                                title={`Abrir traces: ${row.label}`}
-                              >
-                                <span className="text-[10px] font-bold text-muted-foreground tabular-nums w-4 mt-0.5">
-                                  #{idx + 1}
-                                </span>
-                                <span className="flex-1 min-w-0">
-                                  <span className="block text-xs font-medium text-foreground truncate group-hover:text-primary">
-                                    {row.label}
-                                  </span>
-                                  <span className="block text-[11px] text-muted-foreground truncate">
-                                    {row.detail}
-                                  </span>
-                                  <span className={`block text-[10px] font-mono font-semibold mt-0.5 ${
-                                    row.worse ? 'text-destructive' : 'text-nexus-emerald'
-                                  }`}>
-                                    {row.deltaLabel}
-                                  </span>
-                                </span>
-                              </Link>
-                            </li>
-                          ))}
-                        </ul>
-                      )}
+                <CardContent className="space-y-4">
+                  {compareToolModes && sectionsCompare && (
+                    <div className="flex flex-wrap items-center gap-2 rounded-md border border-primary/20 bg-primary/5 px-3 py-2 text-[11px]">
+                      <Columns2 className="h-3.5 w-3.5 text-primary" />
+                      <span className="text-foreground font-medium">Modo de comparação ativo:</span>
+                      <span className="text-muted-foreground">
+                        coluna esquerda mostra <strong className="text-foreground">{includeToolFailures ? 'Com' : 'Sem'} tool failures</strong>{' '},
+                        coluna direita mostra <strong className="text-foreground">{includeToolFailures ? 'Sem' : 'Com'} tool failures</strong>.
+                        Itens marcados como <span className="text-nexus-amber">novo</span> aparecem só em um dos lados;{' '}
+                        <span className="text-primary">↑/↓</span> indicam mudança de posição no ranking.
+                      </span>
                     </div>
-                  ))}
+                  )}
+
+                  {(() => {
+                    // Render helper: a single contributor row, optionally
+                    // annotated with rank/presence diff badges when comparing.
+                    const renderRow = (
+                      row: typeof sections[number]['rows'][number],
+                      idx: number,
+                      diff?: { rankDelta: number | null; isNew: boolean },
+                    ) => (
+                      <li key={row.key}>
+                        <Link
+                          to={row.href}
+                          className="flex items-start gap-2 p-2 rounded-md border border-border/40 bg-secondary/20 hover:bg-secondary/50 hover:border-primary/40 transition-colors group focus-ring"
+                          title={`Abrir traces: ${row.label}`}
+                        >
+                          <span className="text-[10px] font-bold text-muted-foreground tabular-nums w-4 mt-0.5">
+                            #{idx + 1}
+                          </span>
+                          <span className="flex-1 min-w-0">
+                            <span className="flex items-center gap-1.5">
+                              <span className="block text-xs font-medium text-foreground truncate group-hover:text-primary">
+                                {row.label}
+                              </span>
+                              {diff?.isNew && (
+                                <Badge variant="outline" className="text-[9px] px-1 py-0 h-4 border-nexus-amber/40 text-nexus-amber shrink-0">
+                                  novo
+                                </Badge>
+                              )}
+                              {diff && !diff.isNew && diff.rankDelta !== null && diff.rankDelta !== 0 && (
+                                <span
+                                  className={`text-[10px] font-mono shrink-0 ${
+                                    diff.rankDelta < 0 ? 'text-destructive' : 'text-nexus-emerald'
+                                  }`}
+                                  title={diff.rankDelta < 0
+                                    ? `Subiu ${Math.abs(diff.rankDelta)} posição(ões) no ranking — pior contribuinte agora`
+                                    : `Caiu ${diff.rankDelta} posição(ões) no ranking`}
+                                >
+                                  {diff.rankDelta < 0 ? `↑${Math.abs(diff.rankDelta)}` : `↓${diff.rankDelta}`}
+                                </span>
+                              )}
+                            </span>
+                            <span className="block text-[11px] text-muted-foreground truncate">
+                              {row.detail}
+                            </span>
+                            <span className={`block text-[10px] font-mono font-semibold mt-0.5 ${
+                              row.worse ? 'text-destructive' : 'text-nexus-emerald'
+                            }`}>
+                              {row.deltaLabel}
+                            </span>
+                          </span>
+                        </Link>
+                      </li>
+                    );
+
+                    // Compute rank/presence diffs between left (current mode)
+                    // and right (opposite mode) for each KPI section.
+                    const computeDiffs = (
+                      left: typeof sections[number]['rows'],
+                      right: typeof sections[number]['rows'],
+                    ) => {
+                      const leftKeys = new Map(left.map((r, i) => [r.key, i]));
+                      const rightKeys = new Map(right.map((r, i) => [r.key, i]));
+                      const leftDiffs = left.map((r, i) => {
+                        const otherIdx = rightKeys.get(r.key);
+                        if (otherIdx === undefined) return { rankDelta: null, isNew: true };
+                        return { rankDelta: i - otherIdx, isNew: false };
+                      });
+                      const rightDiffs = right.map((r, i) => {
+                        const otherIdx = leftKeys.get(r.key);
+                        if (otherIdx === undefined) return { rankDelta: null, isNew: true };
+                        return { rankDelta: i - otherIdx, isNew: false };
+                      });
+                      return { leftDiffs, rightDiffs };
+                    };
+
+                    if (!compareToolModes || !sectionsCompare) {
+                      return (
+                        <div className="grid gap-4 md:grid-cols-3">
+                          {sections.map((section) => (
+                            <div key={section.title} className="space-y-2">
+                              <div className="flex items-center justify-between">
+                                <h4 className="text-xs font-semibold uppercase text-muted-foreground tracking-wide">
+                                  {section.title}
+                                </h4>
+                                <Badge variant="outline" className="text-[10px]">{section.kpi}</Badge>
+                              </div>
+                              {section.rows.length === 0 ? (
+                                <p className="text-[11px] text-muted-foreground italic py-3">{section.empty}</p>
+                              ) : (
+                                <ul className="space-y-1.5">
+                                  {section.rows.map((row, idx) => renderRow(row, idx))}
+                                </ul>
+                              )}
+                            </div>
+                          ))}
+                        </div>
+                      );
+                    }
+
+                    // Compare mode: stack the 3 KPIs vertically; each KPI row
+                    // is split into 2 columns (left = current mode, right =
+                    // opposite). Side-by-side keeps deltas visually adjacent.
+                    const leftLabel = includeToolFailures ? 'Com tool failures' : 'Sem tool failures';
+                    const rightLabel = includeToolFailures ? 'Sem tool failures' : 'Com tool failures';
+
+                    return (
+                      <div className="space-y-5">
+                        {sections.map((section, sIdx) => {
+                          const compareSection = sectionsCompare[sIdx];
+                          const { leftDiffs, rightDiffs } = computeDiffs(section.rows, compareSection.rows);
+                          return (
+                            <div key={section.title} className="space-y-2">
+                              <div className="flex items-center justify-between">
+                                <h4 className="text-xs font-semibold uppercase text-muted-foreground tracking-wide">
+                                  {section.title}
+                                </h4>
+                                <Badge variant="outline" className="text-[10px]">{section.kpi}</Badge>
+                              </div>
+                              <div className="grid gap-3 md:grid-cols-2">
+                                <div className="space-y-1.5 rounded-md border border-primary/20 bg-primary/[0.03] p-2">
+                                  <p className="text-[10px] font-semibold uppercase tracking-wide text-primary/80">
+                                    {leftLabel}
+                                  </p>
+                                  {section.rows.length === 0 ? (
+                                    <p className="text-[11px] text-muted-foreground italic py-2">{section.empty}</p>
+                                  ) : (
+                                    <ul className="space-y-1.5">
+                                      {section.rows.map((row, idx) => renderRow(row, idx, leftDiffs[idx]))}
+                                    </ul>
+                                  )}
+                                </div>
+                                <div className="space-y-1.5 rounded-md border border-border/50 bg-secondary/10 p-2">
+                                  <p className="text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">
+                                    {rightLabel}
+                                  </p>
+                                  {compareSection.rows.length === 0 ? (
+                                    <p className="text-[11px] text-muted-foreground italic py-2">{compareSection.empty}</p>
+                                  ) : (
+                                    <ul className="space-y-1.5">
+                                      {compareSection.rows.map((row, idx) => renderRow(row, idx, rightDiffs[idx]))}
+                                    </ul>
+                                  )}
+                                </div>
+                              </div>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    );
+                  })()}
                 </CardContent>
               </Card>
             );
