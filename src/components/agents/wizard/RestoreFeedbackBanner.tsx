@@ -170,6 +170,6 @@ export function RestoreFeedbackBanner({ info, onJumpToField, onDismiss, onCopyDe
           <X className="h-3.5 w-3.5" />
         </button>
       </div>
-    </div>
+    </section>
   );
 }
