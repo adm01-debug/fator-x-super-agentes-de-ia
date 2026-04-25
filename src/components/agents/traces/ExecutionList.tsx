@@ -96,7 +96,7 @@ function previewTags(t: AgentTraceRow): string[] {
   return tags.filter((x): x is string => typeof x === 'string').slice(0, 3);
 }
 
-export function ExecutionList({ executions, selectedId, onSelect, onReplay, loading, hasActiveFilters, onClearFilters, clearFiltersWrapper, compareMode = false, selectedForCompare = [], onToggleCompare }: Props) {
+export function ExecutionList({ executions, selectedId, onSelect, onReplay, loading, hasActiveFilters, onClearFilters, clearFiltersWrapper, compareMode = false, selectedForCompare = [], onToggleCompare, agentEmptyState }: Props) {
   const [localQuery, setLocalQuery] = useState('');
 
   const filtered = useMemo(() => {
