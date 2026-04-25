@@ -454,8 +454,42 @@ export function RestoreHistorySection({ agentId, versions }: Props) {
                   </ul>
                 </fieldset>
 
+                {/* Banner do contador da janela de undo dentro do modal —
+                    espelha o badge da lista para reforçar a urgência. */}
+                {undoTarget && (
+                  targetExpired ? (
+                    <div className="flex items-start gap-2 rounded-lg border border-destructive/30 bg-destructive/5 p-2.5 text-xs text-destructive">
+                      <AlertTriangle className="h-3.5 w-3.5 shrink-0 mt-0.5" aria-hidden />
+                      <span>
+                        A janela de <strong>{UNDO_WINDOW_MS / 60000} minutos</strong> para
+                        desfazer este rollback expirou. Para reverter, abra o gerenciador de
+                        versões e restaure manualmente a partir de v
+                        {undoTarget.preRollback?.version ?? "—"}.
+                      </span>
+                    </div>
+                  ) : (
+                    <div
+                      className={`flex items-center gap-2 rounded-lg border p-2.5 text-xs ${
+                        targetUrgent
+                          ? "border-destructive/30 bg-destructive/5 text-destructive"
+                          : "border-nexus-amber/30 bg-nexus-amber/5 text-nexus-amber"
+                      }`}
+                      aria-live="polite"
+                    >
+                      <Clock className="h-3.5 w-3.5 shrink-0" aria-hidden />
+                      <span>
+                        Janela para desfazer expira em{" "}
+                        <strong className="font-mono tabular-nums">
+                          {formatRemaining(targetRemainingMs)}
+                        </strong>
+                        . Após esse prazo, o botão de confirmar será desabilitado.
+                      </span>
+                    </div>
+                  )
+                )}
+
                 {/* Aviso quando o rollback não tem referência (primeira versão do agente) */}
-                {!undoTarget?.preRollback && (
+                {undoTarget && !undoTarget.preRollback && (
                   <div className="flex items-start gap-2 rounded-lg border border-destructive/30 bg-destructive/5 p-2.5 text-xs text-destructive">
                     <AlertTriangle className="h-3.5 w-3.5 shrink-0 mt-0.5" aria-hidden />
                     <span>
