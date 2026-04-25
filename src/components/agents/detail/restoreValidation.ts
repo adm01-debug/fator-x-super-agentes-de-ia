@@ -164,6 +164,15 @@ export function validateRestore(
   current: AgentVersion | null | undefined,
   source: AgentVersion | null | undefined,
   options: { copyPrompt: boolean; copyTools: boolean; copyModel: boolean },
+  /**
+   * Overrides aplicados pelas correções rápidas — quando presentes, são
+   * pacheados sobre o estado pós-merge ANTES das checagens, para que o
+   * painel reflita imediatamente que a issue foi resolvida.
+   */
+  overrides?: {
+    config?: Partial<{ temperature: number | null; max_tokens: number | null; reasoning: string | null; tools: unknown[] | null }>;
+    model?: string | null;
+  },
 ): RestoreValidation {
   const issues: ValidationIssue[] = [];
 
