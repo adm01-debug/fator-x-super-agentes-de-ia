@@ -430,6 +430,10 @@ export function validateRestore(
         title: 'Prompt referencia tools que serão removidas',
         detail: `O prompt menciona "${missing.join('", "')}" mas essas tools não estão na versão de origem. O agente tentará chamá-las e falhará.`,
         hint: 'Desmarque "Ferramentas" ou desmarque "Prompt" para evitar a inconsistência.',
+        quickFixes: [
+          { kind: 'uncheck-tools', label: 'Desmarcar Ferramentas', description: 'Mantém as tools atuais.' },
+          { kind: 'uncheck-prompt', label: 'Desmarcar Prompt', description: 'Mantém o prompt atual.' },
+        ],
       });
     }
   }
