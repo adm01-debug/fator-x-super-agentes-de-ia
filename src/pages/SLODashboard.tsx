@@ -313,6 +313,11 @@ export default function SLODashboard() {
   });
 
   const [lastRefreshAt, setLastRefreshAt] = useState<Date | null>(null);
+  // Discreet "recomputing" indicator: lights up while a debounced filter
+  // change is in flight (or the fetch is awaiting). Distinct from `refreshing`
+  // (manual reload) and `loading` (initial empty state) so we never blank the
+  // page during rapid filter toggling.
+  const [recomputing, setRecomputing] = useState(false);
   // Re-renders the "X seg atrás" pill once a second without re-fetching data.
   const [, setNowTick] = useState(0);
   const isMountedRef = useRef(true);
