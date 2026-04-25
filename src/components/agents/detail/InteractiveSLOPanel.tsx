@@ -46,6 +46,8 @@ interface Props {
   traces: AgentTrace[];
   daily: DailyPoint[];
   onDayClick?: (day: DailyPoint) => void;
+  /** When true, renders skeletons in place of the timeline strip. */
+  loading?: boolean;
 }
 
 type Status = 'healthy' | 'warning' | 'critical';
