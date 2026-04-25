@@ -342,10 +342,15 @@ export function RestoreHistorySection({ agentId, versions }: Props) {
 
               {/* Summary (custom ou auto) */}
               {entry.changeSummary && (
-                <p className="text-xs text-foreground mb-1.5 truncate" title={entry.changeSummary}>
+                <p className="text-xs text-foreground mb-1 truncate" title={entry.changeSummary}>
                   {entry.changeSummary}
                 </p>
               )}
+
+              {/* Resumo curto das opções (sempre presente, complementa os badges) */}
+              <p className="text-[10px] text-muted-foreground italic mb-1.5">
+                {summarizeRestoreOptions(entry.meta.options)}
+              </p>
 
               {/* Badges das opções restauradas + ações */}
               <div className="flex items-center gap-1 flex-wrap">
