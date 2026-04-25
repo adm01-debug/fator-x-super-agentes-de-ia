@@ -74,6 +74,8 @@ const QP_NAME = 'n';
 const QP_SELECTED = 'sel';
 /** Drill-down toggle: include tool failures in error counts / latency percentiles. */
 const QP_INCLUDE_TOOLS = 'tools';
+/** Drill-down compare-mode: render Com vs. Sem tool failures side-by-side. */
+const QP_COMPARE_TOOLS = 'cmp_tools';
 
 /** UUID v4 sanity check — keeps malicious / malformed values out of state. */
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
