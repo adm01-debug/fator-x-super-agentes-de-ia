@@ -298,7 +298,7 @@ export function QuickCreateWizard({ onBack }: QuickCreateWizardProps) {
   };
   const fixNowFromFeedback = () => {
     if (!restoreFeedback || !restoreFeedback.field) return;
-    const { stepIdx, field } = restoreFeedback;
+    const { stepIdx, field, fieldLabel, stepLabel } = restoreFeedback;
     setStep(stepIdx);
     setHighlightField(field);
     const inputId = FIELD_INPUT_ID[field];
@@ -308,6 +308,13 @@ export function QuickCreateWizard({ onBack }: QuickCreateWizardProps) {
         const el = document.getElementById(inputId) as HTMLElement | null;
         if (el && typeof el.focus === 'function') {
           el.focus({ preventScroll: false });
+          // Anuncia para leitores de tela: passo + campo focado.
+          // Limpa após 2s para que um novo "Corrigir agora" no mesmo campo
+          // re-dispare o anúncio (live regions só falam ao mudar texto).
+          const label = fieldLabel ?? field;
+          const where = stepLabel ? ` no passo ${stepLabel}` : '';
+          setA11yFocusAnnounce(`Foco movido para o campo ${label}${where}.`);
+          window.setTimeout(() => setA11yFocusAnnounce(''), 2000);
         }
       });
     });
