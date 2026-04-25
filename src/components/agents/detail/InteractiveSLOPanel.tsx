@@ -133,9 +133,53 @@ export function InteractiveSLOPanel({ agentId, agentName, slo, traces, daily, on
 
   const burnStyle = STATUS[burn.status];
 
+  const safeAgentSlug = (agentName || 'agente').toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
+
   const handleExportPdf = () => {
     try {
       const doc = generateSLOReportPdf({
+        agentName: agentName || 'Agente',
+        windowLabel: activeWindow.label,
+        windowTraces: windowedTraces.length,
+        generatedAt: new Date(),
+        slo: effectiveSlo,
+        targets,
+        burn,
+        timeline,
+        daily,
+      });
+      const stamp = new Date().toISOString().slice(0, 10);
+      doc.save(`relatorio-slo-${safeAgentSlug}-${activeWindow.label}-${stamp}.pdf`);
+      toast.success('Relatório SLO exportado', {
+        description: `Janela ${activeWindow.label} · ${windowedTraces.length} traces`,
+      });
+    } catch (e) {
+      console.error('Erro ao gerar relatório SLO:', e);
+      toast.error('Falha ao gerar o relatório PDF');
+    }
+  };
+
+  const handleExportCsv = () => {
+    try {
+      if (timeline.length === 0) {
+        toast.warning('Nada a exportar', { description: 'Sem buckets na janela atual.' });
+        return;
+      }
+      const csv = buildTimelineCsv(timeline, bucketMs, {
+        agentName: agentName || 'Agente',
+        windowLabel: activeWindow.label,
+        generatedAt: new Date(),
+      });
+      const stamp = new Date().toISOString().slice(0, 10);
+      downloadCsv(`timeline-slo-${safeAgentSlug}-${activeWindow.label}-${stamp}.csv`, csv);
+      toast.success('Timeline exportada em CSV', {
+        description: `${timeline.length} buckets · janela ${activeWindow.label}`,
+      });
+    } catch (e) {
+      console.error('Erro ao gerar CSV da timeline:', e);
+      toast.error('Falha ao gerar o CSV');
+    }
+  };
         agentName: agentName || 'Agente',
         windowLabel: activeWindow.label,
         windowTraces: windowedTraces.length,
