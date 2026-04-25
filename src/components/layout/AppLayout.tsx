@@ -197,6 +197,7 @@ export function AppLayout({ children }: AppLayoutProps) {
                 </button>
               </div>
               <div className="flex items-center gap-2 sm:gap-2.5">
+                <AgentDrilldownBadge />
                 <ThemeToggle />
                 <NotificationBell />
                 <NotificationsDrawer />
