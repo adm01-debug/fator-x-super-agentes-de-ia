@@ -437,9 +437,24 @@ export default function AgentTracesPage() {
         description="Inspecione cada execução agrupada por sessão. Filtre por nível, evento ou agente e reproduza passo a passo."
         backTo={id ? `/agents/${id}` : '/agents'}
         actions={
-          <Button variant="outline" size="sm" onClick={() => refetch()} disabled={isFetching}>
-            <RefreshCw className={`h-3.5 w-3.5 mr-1.5 ${isFetching ? 'animate-spin' : ''}`} /> Atualizar
-          </Button>
+          <div className="flex items-center gap-2">
+            <Button
+              variant={compareMode ? 'default' : 'outline'}
+              size="sm"
+              onClick={() => {
+                if (compareMode) exitCompareMode();
+                else { setCompareMode(true); setComparePicks([]); }
+              }}
+              aria-pressed={compareMode}
+              title={compareMode ? 'Sair do modo de comparação' : 'Selecionar 2 execuções para comparar'}
+            >
+              <GitCompare className="h-3.5 w-3.5 mr-1.5" />
+              {compareMode ? 'Cancelar comparação' : 'Comparar'}
+            </Button>
+            <Button variant="outline" size="sm" onClick={() => refetch()} disabled={isFetching}>
+              <RefreshCw className={`h-3.5 w-3.5 mr-1.5 ${isFetching ? 'animate-spin' : ''}`} /> Atualizar
+            </Button>
+          </div>
         }
       />
 
