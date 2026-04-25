@@ -24,6 +24,26 @@ import {
 } from "@/components/ui/alert-dialog";
 import { toast } from "sonner";
 import { restoreAgentVersion, type AgentVersion } from "@/services/agentsService";
+import { supabaseExternal } from "@/integrations/supabase/externalClient";
+
+/**
+ * Fallback: busca uma versão específica do agente direto do servidor.
+ *
+ * Usado quando o `entry.preRollback` não está presente no estado local
+ * (ex.: a lista `versions` é uma janela paginada / cacheada que não inclui
+ * versões muito antigas, ou a query do React Query ainda não revalidou após
+ * uma mudança em outra aba). Sem esse fallback, o "Desfazer" falharia com
+ * "Sem versão de referência" mesmo quando a versão existe no banco.
+ */
+async function fetchAgentVersionById(versionId: string): Promise<AgentVersion | null> {
+  const { data, error } = await supabaseExternal
+    .from("agent_versions")
+    .select("*")
+    .eq("id", versionId)
+    .maybeSingle();
+  if (error) throw error;
+  return (data as AgentVersion | null) ?? null;
+}
 
 interface RestoreMetadata {
   restored_from_version: number;
