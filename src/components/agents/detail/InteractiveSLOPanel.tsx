@@ -1,7 +1,15 @@
 import { useMemo, useState } from 'react';
-import { CheckCircle2, AlertTriangle, XCircle, RotateCcw, Flame, Activity, Clock, Download } from 'lucide-react';
+import { CheckCircle2, AlertTriangle, XCircle, RotateCcw, Flame, Activity, Clock, Download, FileText, FileSpreadsheet } from 'lucide-react';
 import { Slider } from '@/components/ui/slider';
 import { Button } from '@/components/ui/button';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
 import { useAgentSLOTargets, DEFAULT_SLO_TARGETS, type SLOTargetsConfig } from '@/hooks/useAgentSLOTargets';
 import {
   buildViolationBuckets,
@@ -17,6 +25,7 @@ import { SLOViolationTimeline, type ViolationKind } from './SLOViolationTimeline
 import { ViolationDrillDownDialog } from './ViolationDrillDownDialog';
 import type { ViolationDay } from './agentMetricsHelpers';
 import { generateSLOReportPdf } from './sloReportPdf';
+import { buildTimelineCsv, downloadCsv } from './sloTimelineCsv';
 import { toast } from 'sonner';
 
 type EvalWindowKey = '1h' | '6h' | '24h' | '7d' | '14d' | '30d';
@@ -124,6 +133,8 @@ export function InteractiveSLOPanel({ agentId, agentName, slo, traces, daily, on
 
   const burnStyle = STATUS[burn.status];
 
+  const safeAgentSlug = (agentName || 'agente').toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
+
   const handleExportPdf = () => {
     try {
       const doc = generateSLOReportPdf({
@@ -137,9 +148,8 @@ export function InteractiveSLOPanel({ agentId, agentName, slo, traces, daily, on
         timeline,
         daily,
       });
-      const safeName = (agentName || 'agente').toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
       const stamp = new Date().toISOString().slice(0, 10);
-      doc.save(`relatorio-slo-${safeName}-${activeWindow.label}-${stamp}.pdf`);
+      doc.save(`relatorio-slo-${safeAgentSlug}-${activeWindow.label}-${stamp}.pdf`);
       toast.success('Relatório SLO exportado', {
         description: `Janela ${activeWindow.label} · ${windowedTraces.length} traces`,
       });
@@ -148,6 +158,29 @@ export function InteractiveSLOPanel({ agentId, agentName, slo, traces, daily, on
       toast.error('Falha ao gerar o relatório PDF');
     }
   };
+
+  const handleExportCsv = () => {
+    try {
+      if (timeline.length === 0) {
+        toast.warning('Nada a exportar', { description: 'Sem buckets na janela atual.' });
+        return;
+      }
+      const csv = buildTimelineCsv(timeline, bucketMs, {
+        agentName: agentName || 'Agente',
+        windowLabel: activeWindow.label,
+        generatedAt: new Date(),
+      });
+      const stamp = new Date().toISOString().slice(0, 10);
+      downloadCsv(`timeline-slo-${safeAgentSlug}-${activeWindow.label}-${stamp}.csv`, csv);
+      toast.success('Timeline exportada em CSV', {
+        description: `${timeline.length} buckets · janela ${activeWindow.label}`,
+      });
+    } catch (e) {
+      console.error('Erro ao gerar CSV da timeline:', e);
+      toast.error('Falha ao gerar o CSV');
+    }
+  };
+
 
   return (
     <div className="nexus-card" role="region" aria-label="Painel SLO interativo">
@@ -187,15 +220,38 @@ export function InteractiveSLOPanel({ agentId, agentName, slo, traces, daily, on
               );
             })}
           </div>
-          <Button
-            variant="outline"
-            size="sm"
-            className="gap-1.5 text-xs h-7"
-            onClick={handleExportPdf}
-            aria-label="Exportar relatório SLO em PDF"
-          >
-            <Download className="h-3 w-3" /> Exportar PDF
-          </Button>
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button
+                variant="outline"
+                size="sm"
+                className="gap-1.5 text-xs h-7"
+                aria-label="Exportar timeline e classificações de violação"
+              >
+                <Download className="h-3 w-3" /> Exportar
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end" className="w-56">
+              <DropdownMenuLabel className="text-[10px] uppercase tracking-wide text-muted-foreground">
+                Janela {activeWindow.label} · {timeline.length} bucket{timeline.length !== 1 ? 's' : ''}
+              </DropdownMenuLabel>
+              <DropdownMenuSeparator />
+              <DropdownMenuItem onSelect={handleExportCsv} className="gap-2 text-xs cursor-pointer">
+                <FileSpreadsheet className="h-3.5 w-3.5 text-nexus-emerald" />
+                <div className="flex flex-col">
+                  <span>Baixar CSV</span>
+                  <span className="text-[10px] text-muted-foreground">Buckets e classificações</span>
+                </div>
+              </DropdownMenuItem>
+              <DropdownMenuItem onSelect={handleExportPdf} className="gap-2 text-xs cursor-pointer">
+                <FileText className="h-3.5 w-3.5 text-primary" />
+                <div className="flex flex-col">
+                  <span>Baixar PDF</span>
+                  <span className="text-[10px] text-muted-foreground">Relatório completo SLO</span>
+                </div>
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
           <Button variant="ghost" size="sm" className="gap-1.5 text-xs h-7" onClick={reset}>
             <RotateCcw className="h-3 w-3" /> Resetar metas
           </Button>
