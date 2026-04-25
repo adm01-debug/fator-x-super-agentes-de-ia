@@ -6,7 +6,8 @@
  */
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { useSearchParams, Link } from 'react-router-dom';
-import { Activity, AlertTriangle, Check, Download, Link2, RefreshCw, TrendingUp, Wrench, Zap } from 'lucide-react';
+import { Activity, AlertTriangle, Check, Download, Info, Link2, RefreshCw, TrendingUp, Wrench, Zap } from 'lucide-react';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { LightAreaChart } from '@/components/charts';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
