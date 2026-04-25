@@ -1184,6 +1184,25 @@ export default function SLODashboard() {
                 const scopedAgent = selectedAgentId
                   ? summary.top_agents.find((a) => a.agent_id === selectedAgentId)
                   : null;
+
+                // Snapshot of the tool-failures toggle + totals across the
+                // currently filtered drill-down window. Sums use the same
+                // bucket source as the on-screen sections so the numbers in
+                // the PDF match what the reviewer is looking at.
+                const totalTraces = buckets.reduce((s, b) => s + (b.total ?? 0), 0);
+                const totalErrors = buckets.reduce((s, b) => s + (b.errors ?? 0), 0);
+                const nonToolErrors = buckets.reduce(
+                  (s, b) => s + (b.non_tool_errors ?? b.errors ?? 0),
+                  0,
+                );
+                const p95Ms = buckets.length
+                  ? buckets.reduce((s, b) => s + (b.p95_ms ?? 0), 0) / buckets.length
+                  : 0;
+                const p95MsNoTools = buckets.length
+                  ? buckets.reduce((s, b) => s + (b.p95_ms_no_tools ?? b.p95_ms ?? 0), 0) /
+                    buckets.length
+                  : 0;
+
                 exportDrilldownPdf({
                   windowLabel: windowLabel(windowHours),
                   compareLabel: windowLabel(compareHours),
@@ -1192,6 +1211,14 @@ export default function SLODashboard() {
                   generatedAt: new Date(),
                   sections: buildPdfSections(),
                   dashboardUrl: typeof window !== 'undefined' ? window.location.href : '',
+                  toolFailures: {
+                    includeToolFailures,
+                    totalTraces,
+                    totalErrors,
+                    nonToolErrors,
+                    p95Ms,
+                    p95MsNoTools,
+                  },
                 });
                 toast.success('PDF do drill-down exportado');
               } catch (err) {
