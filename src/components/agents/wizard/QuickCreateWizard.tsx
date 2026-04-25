@@ -281,6 +281,34 @@ export function QuickCreateWizard({ onBack }: QuickCreateWizardProps) {
     }
   };
 
+  // Handler do botão "Corrigir agora": vai ao passo correto, destaca o campo
+  // E move o foco para o input inválido — útil para teclado/leitores de tela.
+  // O foco real é solicitado num rAF para garantir que o passo já trocou
+  // (e o input está montado) antes de chamar .focus().
+  const FIELD_INPUT_ID: Partial<Record<keyof QuickAgentForm, string>> = {
+    name: 'qa-name',
+    emoji: 'qa-emoji',
+    mission: 'qa-mission',
+    description: 'qa-desc',
+    prompt: 'qa-prompt',
+  };
+  const fixNowFromFeedback = () => {
+    if (!restoreFeedback || !restoreFeedback.field) return;
+    const { stepIdx, field } = restoreFeedback;
+    setStep(stepIdx);
+    setHighlightField(field);
+    const inputId = FIELD_INPUT_ID[field];
+    if (!inputId) return;
+    requestAnimationFrame(() => {
+      requestAnimationFrame(() => {
+        const el = document.getElementById(inputId) as HTMLElement | null;
+        if (el && typeof el.focus === 'function') {
+          el.focus({ preventScroll: false });
+        }
+      });
+    });
+  };
+
   // On mount: load store, filter recoverable drafts.
   useEffect(() => {
     const store = loadDrafts();
