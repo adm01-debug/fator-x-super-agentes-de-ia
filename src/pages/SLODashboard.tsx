@@ -1387,6 +1387,8 @@ export default function SLODashboard() {
                         {compareToolModes ? 'Comparando' : 'Comparar'}
                       </button>
 
+                      <DrilldownAuditPanel entries={auditEntries} onClear={clearAudit} />
+
                       <Button
                         type="button"
                         variant="outline"
