@@ -1221,6 +1221,63 @@ export default function SLODashboard() {
                           from the RPC's *_no_tools / non_tool_errors fields when off.
                           Persisted in the URL as `?tools=0` so shared links keep
                           the same view. */}
+                      <Popover>
+                        <PopoverTrigger asChild>
+                          <button
+                            type="button"
+                            aria-label="Sobre tool failures e percentis"
+                            className="h-7 w-7 inline-flex items-center justify-center rounded-md border border-border/50 bg-background text-muted-foreground hover:text-foreground hover:bg-secondary/50 transition-colors focus-ring"
+                          >
+                            <Info className="h-3.5 w-3.5" />
+                          </button>
+                        </PopoverTrigger>
+                        <PopoverContent
+                          align="end"
+                          className="w-80 text-xs leading-relaxed space-y-3"
+                        >
+                          <div className="space-y-1">
+                            <p className="text-sm font-semibold text-foreground">
+                              O que conta como tool failure?
+                            </p>
+                            <p className="text-muted-foreground">
+                              Traces de erro originados em <span className="font-medium text-foreground">chamadas de ferramenta</span>{' '}
+                              (eventos com prefixo <code className="px-1 py-0.5 rounded bg-muted text-foreground/90 font-mono text-[10px]">tool.*</code>{' '}
+                              ou <code className="px-1 py-0.5 rounded bg-muted text-foreground/90 font-mono text-[10px]">metadata.tool</code> presente).
+                              São falhas de integração externa — não erros do agente em si.
+                            </p>
+                          </div>
+
+                          <div className="space-y-1.5 pt-2 border-t border-border/40">
+                            <p className="text-sm font-semibold text-foreground">
+                              Como o toggle muda os percentis
+                            </p>
+                            <ul className="space-y-1 text-muted-foreground">
+                              <li className="flex gap-2">
+                                <span className="text-primary shrink-0" aria-hidden>•</span>
+                                <span>
+                                  <span className="font-medium text-foreground">Com tool failures</span> (padrão):
+                                  p50/p95/p99 incluem todas as chamadas, e o ranking conta cada erro.
+                                </span>
+                              </li>
+                              <li className="flex gap-2">
+                                <span className="text-primary shrink-0" aria-hidden>•</span>
+                                <span>
+                                  <span className="font-medium text-foreground">Sem tool failures</span>:
+                                  os percentis são recalculados a partir dos campos{' '}
+                                  <code className="px-1 py-0.5 rounded bg-muted font-mono text-[10px]">*_no_tools</code> da RPC,
+                                  e o ranking usa <code className="px-1 py-0.5 rounded bg-muted font-mono text-[10px]">non_tool_errors</code>.
+                                  Útil para isolar regressões do próprio agente.
+                                </span>
+                              </li>
+                            </ul>
+                          </div>
+
+                          <p className="text-[10px] text-muted-foreground/80 pt-2 border-t border-border/40">
+                            A escolha é persistida na URL (<code className="font-mono">?tools=0</code>) — links compartilhados preservam a visão.
+                          </p>
+                        </PopoverContent>
+                      </Popover>
+
                       <button
                         type="button"
                         role="switch"
