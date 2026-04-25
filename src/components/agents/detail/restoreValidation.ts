@@ -98,6 +98,27 @@ function detectModelCaps(modelRaw: string | null | undefined): ModelCaps {
   return { supportsReasoning: true, supportsTemperature: true, maxTokensCap: 32_000, family: 'unknown' };
 }
 
+/**
+ * Sugere um modelo "drop-in" da MESMA família que cobre a capacidade
+ * faltante (ex.: reasoning). Retorna `null` quando já estamos no melhor
+ * candidato ou quando a família é desconhecida.
+ *
+ * Mantemos a lista mínima e estável — quick fixes não devem expor um
+ * catálogo grande, só um "bom default" por família.
+ */
+function suggestModelForReasoning(currentModel: string | null | undefined): string | null {
+  const m = String(currentModel ?? '').toLowerCase();
+  if (/claude/.test(m) && !/3\.7|sonnet-4|opus-4|claude-4/.test(m)) {
+    return 'claude-3-7-sonnet-latest';
+  }
+  if (/^gpt-[34]/.test(m) && !/gpt-4\.5|gpt-5/.test(m)) {
+    return 'gpt-5';
+  }
+  if (/gemini/.test(m) && !/2\.5|3\./.test(m)) {
+    return 'gemini-2.5-flash';
+  }
+  return null;
+}
 /* ─────────────────────────────────────────────────────────────────── */
 /*  Helpers de extração                                                */
 /* ─────────────────────────────────────────────────────────────────── */
