@@ -155,7 +155,23 @@ export function RestoreHistorySection({ agentId, versions }: Props) {
   // merge ao desfazer, garantindo que campos não restaurados sejam preservados.
   const currentVersion = versions[0];
 
-  const undoMut = useMutation({
+  // Maior `restored_at` entre todas as entradas — usado para decidir se ainda
+  // vale a pena ligar o intervalo de tick. Se nem o rollback mais recente
+  // estiver dentro da janela, ninguém estará e podemos parar de re-renderizar.
+  const latestRestoredAt = useMemo<number>(() => {
+    let max = 0;
+    for (const e of entries) {
+      const ts = new Date(e.meta.restored_at).getTime();
+      if (Number.isFinite(ts) && ts > max) max = ts;
+    }
+    return max;
+  }, [entries]);
+
+  // Liga o tick somente enquanto pelo menos uma entrada ainda está na janela.
+  const tickActive = latestRestoredAt > 0 && Date.now() - latestRestoredAt < UNDO_WINDOW_MS;
+  const now = useTickingNow(tickActive);
+
+
     mutationFn: async (entry: RestoreEntry) => {
       if (!entry.preRollback) {
         throw new Error("Sem versão de referência para desfazer este rollback.");
