@@ -40,6 +40,29 @@ const DEFAULT_AUTO_REFRESH_MS = 60_000;
 /** Window options (hours). Used to validate the URL param. */
 const WINDOW_OPTIONS = [1, 6, 24, 168] as const;
 const DEFAULT_WINDOW_HOURS = 24;
+const WINDOW_HOURS_STORAGE_KEY = 'nexus.slo.windowHours';
+const COMPARE_HOURS_STORAGE_KEY = 'nexus.slo.compareHours';
+/** Debounce for persisting filter changes — matches the fetch debounce so
+    rapid toggling doesn't thrash localStorage. */
+const FILTER_PERSIST_DEBOUNCE_MS = 350;
+
+function readStoredWindowHours(): number {
+  try {
+    const raw = localStorage.getItem(WINDOW_HOURS_STORAGE_KEY);
+    if (raw === null) return DEFAULT_WINDOW_HOURS;
+    const n = Number(raw);
+    return (WINDOW_OPTIONS as readonly number[]).includes(n) ? n : DEFAULT_WINDOW_HOURS;
+  } catch { return DEFAULT_WINDOW_HOURS; }
+}
+function readStoredCompareHours(): number {
+  try {
+    const raw = localStorage.getItem(COMPARE_HOURS_STORAGE_KEY);
+    if (raw === null) return 0;
+    const n = Number(raw);
+    if (n === 0) return 0;
+    return (WINDOW_OPTIONS as readonly number[]).includes(n) ? n : 0;
+  } catch { return 0; }
+}
 
 // URL query param keys — short on purpose so shared links stay clean.
 const QP_WINDOW = 'w';
