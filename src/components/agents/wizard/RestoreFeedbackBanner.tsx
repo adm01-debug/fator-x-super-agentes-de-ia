@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { AlertCircle, ArrowRight, Check, Link2, X } from 'lucide-react';
+import { AlertCircle, ArrowRight, Check, Link2, Wrench, X } from 'lucide-react';
 import type { DraftResumeTarget } from './draftStore';
 
 export interface RestoreFeedbackInfo extends DraftResumeTarget {
@@ -15,6 +15,11 @@ interface Props {
   onDismiss: () => void;
   /** Gera/copia um link compartilhável que reabre o wizard com o mesmo destaque. */
   onCopyDeeplink?: () => Promise<void> | void;
+  /**
+   * Vai ao passo correto, destaca o campo e move o FOCO para o input inválido
+   * (acessível via Tab/Shift+Tab). Distinto do onJumpToField (que apenas rola/destaca).
+   */
+  onFixNow?: () => void;
 }
 
 // Tradução do tipo de erro vindo do zod para uma label curta e visual.
@@ -42,7 +47,7 @@ const ERROR_TYPE_TONE: Record<NonNullable<DraftResumeTarget['errorType']>, strin
  * Espelha o `highlightField` — quando o usuário corrige o campo, o banner
  * é dispensado pelo wizard.
  */
-export function RestoreFeedbackBanner({ info, onJumpToField, onDismiss, onCopyDeeplink }: Props) {
+export function RestoreFeedbackBanner({ info, onJumpToField, onDismiss, onCopyDeeplink, onFixNow }: Props) {
   const [copied, setCopied] = useState(false);
   const errorType = info.errorType ?? 'unknown';
   const typeLabel = ERROR_TYPE_LABEL[errorType];
@@ -113,6 +118,17 @@ export function RestoreFeedbackBanner({ info, onJumpToField, onDismiss, onCopyDe
                 <Link2 className="h-3 w-3" /> Copiar link
               </>
             )}
+          </button>
+        )}
+        {onFixNow && (
+          <button
+            type="button"
+            onClick={onFixNow}
+            data-testid="rfb-fix-now"
+            className="inline-flex items-center gap-1 h-7 px-2 rounded-md text-[11px] font-medium bg-primary text-primary-foreground hover:bg-primary/90 transition-colors"
+            title="Ir ao passo correto e focar o campo inválido"
+          >
+            <Wrench className="h-3 w-3" /> Corrigir agora
           </button>
         )}
         <button
