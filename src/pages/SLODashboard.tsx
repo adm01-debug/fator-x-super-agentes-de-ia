@@ -1982,6 +1982,21 @@ export default function SLODashboard() {
           </Card>
         </>
       )}
+      {/* Internal debounce telemetry — small, monospaced, muted. Lets an
+          operator audit whether rapid filter toggling is actually being
+          coalesced (dropped > 0 means the token guard saved a render). */}
+      <div
+        className="flex flex-wrap items-center gap-x-3 gap-y-1 text-[10px] font-mono text-muted-foreground/80 border-t border-border/40 pt-2"
+        role="status"
+        aria-label="Telemetria interna do debounce"
+        title="Métricas internas: ajuda a auditar se o debounce/token-guard está coalescendo trocas rápidas de filtro"
+      >
+        <span>debounce telemetry</span>
+        <span>· requests: <span className="text-foreground">{debounceStats.requested}</span></span>
+        <span>· dropped (token): <span className={debounceStats.dropped > 0 ? 'text-nexus-emerald' : 'text-foreground'}>{debounceStats.dropped}</span></span>
+        <span>· last: <span className="text-foreground">{debounceStats.lastDurationMs ?? '—'}{debounceStats.lastDurationMs != null ? 'ms' : ''}</span></span>
+        <span>· avg: <span className="text-foreground">{debounceStats.avgDurationMs ?? '—'}{debounceStats.avgDurationMs != null ? 'ms' : ''}</span></span>
+      </div>
       <ManualCopyDialog
         open={manualCopyUrl !== null}
         onOpenChange={(open) => { if (!open) setManualCopyUrl(null); }}
