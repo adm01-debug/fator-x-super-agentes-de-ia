@@ -474,8 +474,26 @@ export default function SLODashboard() {
   // equivalent we can do at the call site.
   const requestTokenRef = useRef(0);
 
+  // Internal debounce-effectiveness telemetry. Surfaced as a small footer chip
+  // so operators can audit whether the debounce/token guard is actually saving
+  // backend calls. Not persisted — resets on page reload.
+  //  • requested        = times `load()` was invoked (after debounce fired)
+  //  • dropped          = responses thrown away because a newer token superseded them
+  //  • lastDurationMs   = wall-clock of the most recent committed fetch
+  //  • avgDurationMs    = rolling average across committed fetches
+  const [debounceStats, setDebounceStats] = useState<{
+    requested: number;
+    dropped: number;
+    lastDurationMs: number | null;
+    avgDurationMs: number | null;
+  }>({ requested: 0, dropped: 0, lastDurationMs: null, avgDurationMs: null });
+  const committedCountRef = useRef(0);
+  const totalDurationRef = useRef(0);
+
   const load = useCallback(async (showSpinner = false) => {
     const myToken = ++requestTokenRef.current;
+    const startedAt = performance.now();
+    setDebounceStats((s) => ({ ...s, requested: s.requested + 1 }));
     if (showSpinner) setRefreshing(true);
     try {
       // Fetch primary + comparison windows in parallel so the side-by-side
@@ -487,7 +505,18 @@ export default function SLODashboard() {
       if (!isMountedRef.current) return;
       // Stale response — a newer request was kicked off after this one.
       // Drop it silently; the in-flight newer request will populate state.
-      if (myToken !== requestTokenRef.current) return;
+      if (myToken !== requestTokenRef.current) {
+        setDebounceStats((s) => ({ ...s, dropped: s.dropped + 1 }));
+        return;
+      }
+      const durationMs = Math.round(performance.now() - startedAt);
+      committedCountRef.current += 1;
+      totalDurationRef.current += durationMs;
+      setDebounceStats((s) => ({
+        ...s,
+        lastDurationMs: durationMs,
+        avgDurationMs: Math.round(totalDurationRef.current / committedCountRef.current),
+      }));
       setSummary(data);
       setCompareSummary(cmpData);
       setLastRefreshAt(new Date());
@@ -1953,6 +1982,21 @@ export default function SLODashboard() {
           </Card>
         </>
       )}
+      {/* Internal debounce telemetry — small, monospaced, muted. Lets an
+          operator audit whether rapid filter toggling is actually being
+          coalesced (dropped > 0 means the token guard saved a render). */}
+      <div
+        className="flex flex-wrap items-center gap-x-3 gap-y-1 text-[10px] font-mono text-muted-foreground/80 border-t border-border/40 pt-2"
+        role="status"
+        aria-label="Telemetria interna do debounce"
+        title="Métricas internas: ajuda a auditar se o debounce/token-guard está coalescendo trocas rápidas de filtro"
+      >
+        <span>debounce telemetry</span>
+        <span>· requests: <span className="text-foreground">{debounceStats.requested}</span></span>
+        <span>· dropped (token): <span className={debounceStats.dropped > 0 ? 'text-nexus-emerald' : 'text-foreground'}>{debounceStats.dropped}</span></span>
+        <span>· last: <span className="text-foreground">{debounceStats.lastDurationMs ?? '—'}{debounceStats.lastDurationMs != null ? 'ms' : ''}</span></span>
+        <span>· avg: <span className="text-foreground">{debounceStats.avgDurationMs ?? '—'}{debounceStats.avgDurationMs != null ? 'ms' : ''}</span></span>
+      </div>
       <ManualCopyDialog
         open={manualCopyUrl !== null}
         onOpenChange={(open) => { if (!open) setManualCopyUrl(null); }}
