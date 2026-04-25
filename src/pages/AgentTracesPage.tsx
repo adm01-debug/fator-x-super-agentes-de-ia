@@ -343,6 +343,7 @@ export default function AgentTracesPage() {
 
     // Reset state + Cloud + localStorage
     clearAll();
+    drilldown.clearDrilldown();
     setSelectedId(null);
 
     // Custom toast with undo (5s) + grace (2s).
