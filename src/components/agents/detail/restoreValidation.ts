@@ -311,6 +311,10 @@ export function validateRestore(
           group: 'model',
           title: `max_tokens inválido (${String(mx)})`,
           detail: 'max_tokens precisa ser um inteiro positivo.',
+          quickFixes: [
+            { kind: 'set-max-tokens', value: 4096, label: 'Redefinir para 4 096' },
+            { kind: 'uncheck-model', label: 'Desmarcar Modelo & parâmetros' },
+          ],
         });
       } else if (mx > caps.maxTokensCap) {
         issues.push({
@@ -320,6 +324,15 @@ export function validateRestore(
           title: `max_tokens acima do limite do modelo`,
           detail: `O modelo "${mergedModel}" suporta no máximo ${caps.maxTokensCap.toLocaleString('pt-BR')} tokens, mas a origem define ${mx.toLocaleString('pt-BR')}.`,
           hint: 'O modelo recusará a requisição. Edite o agente após o rollback ou escolha outra versão de origem.',
+          quickFixes: [
+            {
+              kind: 'set-max-tokens',
+              value: caps.maxTokensCap,
+              label: `Ajustar para o limite (${caps.maxTokensCap.toLocaleString('pt-BR')})`,
+              description: 'Usa o teto suportado pelo modelo.',
+            },
+            { kind: 'uncheck-model', label: 'Desmarcar Modelo & parâmetros' },
+          ],
         });
       } else if (mx > caps.maxTokensCap * 0.8) {
         issues.push({
@@ -336,6 +349,19 @@ export function validateRestore(
     const rsn = merged.reasoning;
     if (rsn !== undefined && rsn !== null && String(rsn).trim() && String(rsn).toLowerCase() !== 'none') {
       if (!caps.supportsReasoning) {
+        const swap = suggestModelForReasoning(mergedModel);
+        const fixes: QuickFix[] = [
+          { kind: 'clear-reasoning', label: 'Remover reasoning', description: 'Mantém o modelo atual e descarta o parâmetro incompatível.' },
+        ];
+        if (swap) {
+          fixes.push({
+            kind: 'set-model',
+            value: swap,
+            label: `Trocar modelo para ${swap}`,
+            description: 'Modelo da mesma família que aceita reasoning estendido.',
+          });
+        }
+        fixes.push({ kind: 'uncheck-model', label: 'Desmarcar Modelo & parâmetros' });
         issues.push({
           id: 'reasoning-unsupported',
           severity: 'error',
@@ -343,6 +369,7 @@ export function validateRestore(
           title: 'Modelo não suporta reasoning estendido',
           detail: `O parâmetro reasoning="${rsn}" é incompatível com "${mergedModel}". Apenas modelos com extended thinking (Claude 3.7+, GPT-5/o-series, Gemini 2.5 Thinking) aceitam esse campo.`,
           hint: 'Desmarque "Modelo & parâmetros" ou troque a versão de origem.',
+          quickFixes: fixes,
         });
       }
     }
