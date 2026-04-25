@@ -47,10 +47,17 @@ export function SLOViolationTimeline({ data, daily, onDayClick, onViolationClick
                   tabIndex={0}
                   onClick={() => handleClick(day.date)}
                   onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); handleClick(day.date); } }}
-                  className="grid grid-cols-[44px_1fr_auto] items-center gap-3 py-1 px-2 -mx-2 rounded-md hover:bg-secondary/40 cursor-pointer transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                  className="
+                    grid items-center gap-2 sm:gap-3 py-1.5 sm:py-1 px-2 -mx-2 rounded-md
+                    hover:bg-secondary/40 cursor-pointer transition-colors
+                    focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring
+                    grid-cols-[40px_1fr] sm:grid-cols-[44px_1fr_auto]
+                  "
                 >
                   <span className="text-[11px] font-mono text-muted-foreground tabular-nums">{day.label}</span>
-                  <div className="flex items-center gap-0.5">
+
+                  {/* Strip — span full row on mobile (pills go on second row) */}
+                  <div className="flex items-center gap-0.5 col-start-2 sm:col-auto" aria-hidden>
                     {Array.from({ length: SEGMENTS }).map((_, i) => (
                       <div
                         key={i}
@@ -58,7 +65,14 @@ export function SLOViolationTimeline({ data, daily, onDayClick, onViolationClick
                       />
                     ))}
                   </div>
-                  <div className="flex items-center gap-1 min-w-[80px] justify-end">
+
+                  {/* Pills — stack below strip on mobile, sit inline on sm+ */}
+                  <div className="
+                    flex items-center gap-1 flex-wrap
+                    col-start-2 sm:col-auto
+                    justify-start sm:justify-end
+                    sm:min-w-[80px]
+                  ">
                     {totalViolations === 0 ? (
                       <span className="text-[11px] tabular-nums text-muted-foreground">sem violações</span>
                     ) : (
