@@ -197,6 +197,12 @@ function VersionHistory({ agentId }: { agentId: string }) {
   // Acknowledge para riscos high/critical — força o usuário a marcar
   // explicitamente que revisou os itens em vermelho/âmbar.
   const [riskAck, setRiskAck] = useState(false);
+  // Overrides aplicados via "correções rápidas" das validações — repassados
+  // para `restoreAgentVersion` via `configOverrides` / `modelOverride`.
+  const [fixOverrides, setFixOverrides] = useState<{
+    config: Partial<{ temperature: number | null; max_tokens: number | null; reasoning: string | null; tools: unknown[] | null }>;
+    model?: string | null;
+  }>({ config: {} });
 
   // Reset das opções a cada abertura do diálogo. O default volta para "tudo
   // marcado" — se o usuário tiver um preset padrão, o `RestorePresetMenu` o
@@ -210,13 +216,16 @@ function VersionHistory({ agentId }: { agentId: string }) {
       setSummaryDraft("");
       setPresetAutoApplied(false);
       setRiskAck(false);
+      setFixOverrides({ config: {} });
     }
   }, [rollbackOpen]);
 
-  // Reset do acknowledge sempre que mudar a versão de origem ou os campos
-  // selecionados — qualquer mudança invalida a revisão anterior.
+  // Reset do acknowledge e dos overrides sempre que mudar a versão de
+  // origem ou os campos selecionados — qualquer mudança invalida a
+  // revisão e as correções rápidas anteriores.
   useEffect(() => {
     setRiskAck(false);
+    setFixOverrides({ config: {} });
   }, [copyPrompt, copyTools, copyModel]);
 
   const { data: versions = [], isLoading } = useQuery({
@@ -255,10 +264,11 @@ function VersionHistory({ agentId }: { agentId: string }) {
   const rollbackMut = useMutation({
     mutationFn: () => restoreAgentVersion(agentId, previous!, current, {
       ...restoreOptions,
-      // Só envia override se o usuário realmente customizou e o texto difere do auto.
       customSummary: summaryEdited && summaryDraft.trim() && summaryDraft.trim() !== buildAutoSummary(previous!.version, restoreOptions)
         ? summaryDraft.trim()
         : undefined,
+      configOverrides: Object.keys(fixOverrides.config).length > 0 ? fixOverrides.config : undefined,
+      modelOverride: fixOverrides.model !== undefined ? fixOverrides.model : undefined,
     }),
     onSuccess: (data) => {
       queryClient.invalidateQueries({ queryKey: ['agent_versions', agentId] });
@@ -423,7 +433,31 @@ function VersionHistory({ agentId }: { agentId: string }) {
                 {/* Validação pré-restore — sempre visível quando há origem e ao menos
                     um campo marcado, para que o usuário veja erros antes de tudo. */}
                 {previous && hasAnyOptionSelected && validation && (
-                  <RestoreValidationPanel validation={validation} />
+                  <RestoreValidationPanel
+                    validation={validation}
+                    onApplyFix={(fix) => {
+                      // Cada quick-fix mapeia para 1) toggle de checkbox de
+                      // grupo OU 2) registro de override (config/model) que
+                      // será aplicado pelo `restoreAgentVersion`.
+                      switch (fix.kind) {
+                        case 'uncheck-prompt': setCopyPrompt(false); break;
+                        case 'uncheck-tools': setCopyTools(false); break;
+                        case 'uncheck-model': setCopyModel(false); break;
+                        case 'set-temperature':
+                          setFixOverrides((prev) => ({ ...prev, config: { ...prev.config, temperature: fix.value } }));
+                          break;
+                        case 'set-max-tokens':
+                          setFixOverrides((prev) => ({ ...prev, config: { ...prev.config, max_tokens: fix.value } }));
+                          break;
+                        case 'clear-reasoning':
+                          setFixOverrides((prev) => ({ ...prev, config: { ...prev.config, reasoning: null } }));
+                          break;
+                        case 'set-model':
+                          setFixOverrides((prev) => ({ ...prev, model: fix.value }));
+                          break;
+                      }
+                    }}
+                  />
                 )}
 
                 {previous && hasAnyOptionSelected && restoreDiff && (

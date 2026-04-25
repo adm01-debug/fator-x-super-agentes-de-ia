@@ -2,13 +2,20 @@
  * RestoreValidationPanel — exibe issues de pré-validação do rollback.
  * Errors aparecem com tom destrutivo e bloqueiam a confirmação;
  * warnings ficam em âmbar e são apenas informativos.
+ *
+ * Cada issue pode trazer `quickFixes`: botões de 1 clique que aplicam
+ * a correção (desmarcar grupo, ajustar parâmetro numérico, trocar modelo)
+ * sem que o usuário precise abrir a edição manual do agente.
  */
-import { AlertOctagon, AlertTriangle, CheckCircle2, ChevronDown, ChevronRight, Info } from 'lucide-react';
+import { AlertOctagon, AlertTriangle, CheckCircle2, ChevronDown, ChevronRight, Info, Wand2 } from 'lucide-react';
 import { useState } from 'react';
-import type { RestoreValidation, ValidationIssue } from './restoreValidation';
+import { Button } from '@/components/ui/button';
+import type { QuickFix, RestoreValidation, ValidationIssue } from './restoreValidation';
 
 interface Props {
   validation: RestoreValidation;
+  /** Handler invocado quando o usuário clica em uma correção rápida. */
+  onApplyFix?: (fix: QuickFix) => void;
 }
 
 const groupLabel: Record<ValidationIssue['group'], string> = {
@@ -18,7 +25,7 @@ const groupLabel: Record<ValidationIssue['group'], string> = {
   general: 'Geral',
 };
 
-export function RestoreValidationPanel({ validation }: Props) {
+export function RestoreValidationPanel({ validation, onApplyFix }: Props) {
   const { errors, warnings, issues } = validation;
 
   if (issues.length === 0) {
@@ -71,14 +78,14 @@ export function RestoreValidationPanel({ validation }: Props) {
 
       <ul className="divide-y divide-border/40">
         {issues.map((issue) => (
-          <IssueRow key={issue.id} issue={issue} />
+          <IssueRow key={issue.id} issue={issue} onApplyFix={onApplyFix} />
         ))}
       </ul>
     </div>
   );
 }
 
-function IssueRow({ issue }: { issue: ValidationIssue }) {
+function IssueRow({ issue, onApplyFix }: { issue: ValidationIssue; onApplyFix?: (fix: QuickFix) => void }) {
   const [open, setOpen] = useState(issue.severity === 'error');
   const isError = issue.severity === 'error';
   const Icon = isError ? AlertOctagon : Info;
@@ -101,6 +108,12 @@ function IssueRow({ issue }: { issue: ValidationIssue }) {
             <span className="text-[9px] font-mono uppercase tracking-wider px-1 py-0.5 rounded bg-muted/60 text-muted-foreground">
               {groupLabel[issue.group]}
             </span>
+            {issue.quickFixes && issue.quickFixes.length > 0 && (
+              <span className="text-[9px] font-mono uppercase tracking-wider px-1 py-0.5 rounded bg-primary/10 text-primary border border-primary/20 inline-flex items-center gap-0.5">
+                <Wand2 className="h-2.5 w-2.5" aria-hidden />
+                {issue.quickFixes.length} correç{issue.quickFixes.length === 1 ? 'ão' : 'ões'}
+              </span>
+            )}
           </div>
         </div>
         {open ? (
@@ -110,12 +123,34 @@ function IssueRow({ issue }: { issue: ValidationIssue }) {
         )}
       </button>
       {open && (
-        <div className="px-3 pb-2.5 pl-8 space-y-1">
+        <div className="px-3 pb-2.5 pl-8 space-y-1.5">
           <p className="text-[11px] text-foreground/85 leading-relaxed">{issue.detail}</p>
           {issue.hint && (
             <p className="text-[10px] text-muted-foreground italic border-l-2 border-border pl-2">
               💡 {issue.hint}
             </p>
+          )}
+          {issue.quickFixes && issue.quickFixes.length > 0 && onApplyFix && (
+            <div
+              className="flex flex-wrap items-center gap-1.5 pt-1"
+              role="group"
+              aria-label="Correções rápidas"
+            >
+              {issue.quickFixes.map((fix, idx) => (
+                <Button
+                  key={`${issue.id}-fix-${idx}`}
+                  type="button"
+                  size="sm"
+                  variant="outline"
+                  className="h-6 px-2 text-[10px] gap-1 border-primary/30 text-primary hover:bg-primary/10 hover:text-primary"
+                  onClick={() => onApplyFix(fix)}
+                  title={fix.description ?? fix.label}
+                >
+                  <Wand2 className="h-2.5 w-2.5" aria-hidden />
+                  {fix.label}
+                </Button>
+              ))}
+            </div>
           )}
         </div>
       )}

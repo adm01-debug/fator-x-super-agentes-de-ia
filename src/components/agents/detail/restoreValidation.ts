@@ -13,6 +13,26 @@ import type { AgentVersion } from '@/services/agentsService';
 
 export type IssueSeverity = 'error' | 'warning';
 
+/**
+ * Ação de correção rápida emitida junto com uma `ValidationIssue`.
+ *
+ * O `kind` é discriminado para que o handler na página possa rotear
+ * para a operação correta (atualizar checkbox de grupo OU registrar um
+ * override numérico/string que será aplicado por `restoreAgentVersion`).
+ *
+ * Cada fix carrega um `label` curto (texto do botão) e um `description`
+ * opcional (tooltip explicando o efeito) — dispostos lado a lado abaixo
+ * do detalhe da issue no `RestoreValidationPanel`.
+ */
+export type QuickFix =
+  | { kind: 'uncheck-prompt'; label: string; description?: string }
+  | { kind: 'uncheck-tools'; label: string; description?: string }
+  | { kind: 'uncheck-model'; label: string; description?: string }
+  | { kind: 'set-temperature'; value: number; label: string; description?: string }
+  | { kind: 'set-max-tokens'; value: number; label: string; description?: string }
+  | { kind: 'clear-reasoning'; label: string; description?: string }
+  | { kind: 'set-model'; value: string; label: string; description?: string };
+
 export interface ValidationIssue {
   /** ID estável — usado para keys de lista e para deduplicação. */
   id: string;
@@ -24,6 +44,8 @@ export interface ValidationIssue {
   detail: string;
   /** Sugestão acionável curta (ex.: "Marque também 'Modelo'"). */
   hint?: string;
+  /** Correções rápidas aplicáveis com 1 clique. */
+  quickFixes?: QuickFix[];
 }
 
 export interface RestoreValidation {
@@ -76,6 +98,27 @@ function detectModelCaps(modelRaw: string | null | undefined): ModelCaps {
   return { supportsReasoning: true, supportsTemperature: true, maxTokensCap: 32_000, family: 'unknown' };
 }
 
+/**
+ * Sugere um modelo "drop-in" da MESMA família que cobre a capacidade
+ * faltante (ex.: reasoning). Retorna `null` quando já estamos no melhor
+ * candidato ou quando a família é desconhecida.
+ *
+ * Mantemos a lista mínima e estável — quick fixes não devem expor um
+ * catálogo grande, só um "bom default" por família.
+ */
+function suggestModelForReasoning(currentModel: string | null | undefined): string | null {
+  const m = String(currentModel ?? '').toLowerCase();
+  if (/claude/.test(m) && !/3\.7|sonnet-4|opus-4|claude-4/.test(m)) {
+    return 'claude-3-7-sonnet-latest';
+  }
+  if (/^gpt-[34]/.test(m) && !/gpt-4\.5|gpt-5/.test(m)) {
+    return 'gpt-5';
+  }
+  if (/gemini/.test(m) && !/2\.5|3\./.test(m)) {
+    return 'gemini-2.5-flash';
+  }
+  return null;
+}
 /* ─────────────────────────────────────────────────────────────────── */
 /*  Helpers de extração                                                */
 /* ─────────────────────────────────────────────────────────────────── */
@@ -121,6 +164,15 @@ export function validateRestore(
   current: AgentVersion | null | undefined,
   source: AgentVersion | null | undefined,
   options: { copyPrompt: boolean; copyTools: boolean; copyModel: boolean },
+  /**
+   * Overrides aplicados pelas correções rápidas — quando presentes, são
+   * pacheados sobre o estado pós-merge ANTES das checagens, para que o
+   * painel reflita imediatamente que a issue foi resolvida.
+   */
+  overrides?: {
+    config?: Partial<{ temperature: number | null; max_tokens: number | null; reasoning: string | null; tools: unknown[] | null }>;
+    model?: string | null;
+  },
 ): RestoreValidation {
   const issues: ValidationIssue[] = [];
 
@@ -183,6 +235,9 @@ export function validateRestore(
         title: 'System prompt ficaria vazio',
         detail: 'A versão de origem não tem system prompt nem prompt legado. Sem prompt o agente não tem instruções para operar.',
         hint: 'Desmarque "Prompt" para preservar o prompt atual.',
+        quickFixes: [
+          { kind: 'uncheck-prompt', label: 'Desmarcar Prompt', description: 'Mantém o prompt atual e libera o rollback.' },
+        ],
       });
     } else if (sp.length < 20 && !legacy) {
       issues.push({
@@ -191,6 +246,9 @@ export function validateRestore(
         group: 'prompt',
         title: 'Prompt muito curto',
         detail: `O prompt da origem tem apenas ${sp.length} caracteres — pode não ser suficiente para guiar o agente.`,
+        quickFixes: [
+          { kind: 'uncheck-prompt', label: 'Desmarcar Prompt' },
+        ],
       });
     }
   }
@@ -205,6 +263,9 @@ export function validateRestore(
         title: 'Modelo obrigatório ausente',
         detail: 'A versão de origem não define um modelo. Restaurar deixaria o agente sem LLM configurado.',
         hint: 'Desmarque "Modelo & parâmetros" para manter o modelo atual.',
+        quickFixes: [
+          { kind: 'uncheck-model', label: 'Desmarcar Modelo & parâmetros', description: 'Preserva o modelo atual.' },
+        ],
       });
     }
     if (!mergedPersona || !String(mergedPersona).trim()) {
@@ -227,6 +288,11 @@ export function validateRestore(
           group: 'model',
           title: `Temperature inválida (${String(temp)})`,
           detail: 'Temperature precisa ser um número entre 0 e 2.',
+          quickFixes: [
+            { kind: 'set-temperature', value: 0.7, label: 'Redefinir para 0.7', description: 'Valor padrão equilibrado.' },
+            { kind: 'set-temperature', value: 1, label: 'Redefinir para 1' },
+            { kind: 'uncheck-model', label: 'Desmarcar Modelo & parâmetros' },
+          ],
         });
       } else if (!caps.supportsTemperature && temp !== 1) {
         issues.push({
@@ -236,6 +302,10 @@ export function validateRestore(
           title: 'Modelo não aceita temperature customizada',
           detail: `O modelo "${mergedModel}" é um reasoning model e ignora/rejeita temperature ≠ 1. A versão de origem define temperature=${temp}.`,
           hint: 'Restaure também o prompt para revisar — ou edite manualmente após o rollback.',
+          quickFixes: [
+            { kind: 'set-temperature', value: 1, label: 'Redefinir temperature para 1', description: 'Único valor aceito por reasoning models.' },
+            { kind: 'uncheck-model', label: 'Desmarcar Modelo & parâmetros' },
+          ],
         });
       }
     }
@@ -250,6 +320,10 @@ export function validateRestore(
           group: 'model',
           title: `max_tokens inválido (${String(mx)})`,
           detail: 'max_tokens precisa ser um inteiro positivo.',
+          quickFixes: [
+            { kind: 'set-max-tokens', value: 4096, label: 'Redefinir para 4 096' },
+            { kind: 'uncheck-model', label: 'Desmarcar Modelo & parâmetros' },
+          ],
         });
       } else if (mx > caps.maxTokensCap) {
         issues.push({
@@ -259,6 +333,15 @@ export function validateRestore(
           title: `max_tokens acima do limite do modelo`,
           detail: `O modelo "${mergedModel}" suporta no máximo ${caps.maxTokensCap.toLocaleString('pt-BR')} tokens, mas a origem define ${mx.toLocaleString('pt-BR')}.`,
           hint: 'O modelo recusará a requisição. Edite o agente após o rollback ou escolha outra versão de origem.',
+          quickFixes: [
+            {
+              kind: 'set-max-tokens',
+              value: caps.maxTokensCap,
+              label: `Ajustar para o limite (${caps.maxTokensCap.toLocaleString('pt-BR')})`,
+              description: 'Usa o teto suportado pelo modelo.',
+            },
+            { kind: 'uncheck-model', label: 'Desmarcar Modelo & parâmetros' },
+          ],
         });
       } else if (mx > caps.maxTokensCap * 0.8) {
         issues.push({
@@ -275,6 +358,19 @@ export function validateRestore(
     const rsn = merged.reasoning;
     if (rsn !== undefined && rsn !== null && String(rsn).trim() && String(rsn).toLowerCase() !== 'none') {
       if (!caps.supportsReasoning) {
+        const swap = suggestModelForReasoning(mergedModel);
+        const fixes: QuickFix[] = [
+          { kind: 'clear-reasoning', label: 'Remover reasoning', description: 'Mantém o modelo atual e descarta o parâmetro incompatível.' },
+        ];
+        if (swap) {
+          fixes.push({
+            kind: 'set-model',
+            value: swap,
+            label: `Trocar modelo para ${swap}`,
+            description: 'Modelo da mesma família que aceita reasoning estendido.',
+          });
+        }
+        fixes.push({ kind: 'uncheck-model', label: 'Desmarcar Modelo & parâmetros' });
         issues.push({
           id: 'reasoning-unsupported',
           severity: 'error',
@@ -282,6 +378,7 @@ export function validateRestore(
           title: 'Modelo não suporta reasoning estendido',
           detail: `O parâmetro reasoning="${rsn}" é incompatível com "${mergedModel}". Apenas modelos com extended thinking (Claude 3.7+, GPT-5/o-series, Gemini 2.5 Thinking) aceitam esse campo.`,
           hint: 'Desmarque "Modelo & parâmetros" ou troque a versão de origem.',
+          quickFixes: fixes,
         });
       }
     }
@@ -342,6 +439,10 @@ export function validateRestore(
         title: 'Prompt referencia tools que serão removidas',
         detail: `O prompt menciona "${missing.join('", "')}" mas essas tools não estão na versão de origem. O agente tentará chamá-las e falhará.`,
         hint: 'Desmarque "Ferramentas" ou desmarque "Prompt" para evitar a inconsistência.',
+        quickFixes: [
+          { kind: 'uncheck-tools', label: 'Desmarcar Ferramentas', description: 'Mantém as tools atuais.' },
+          { kind: 'uncheck-prompt', label: 'Desmarcar Prompt', description: 'Mantém o prompt atual.' },
+        ],
       });
     }
   }
