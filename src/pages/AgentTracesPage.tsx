@@ -592,6 +592,22 @@ export default function AgentTracesPage() {
                 compareMode={compareMode}
                 selectedForCompare={comparePicks}
                 onToggleCompare={toggleCompare}
+                agentEmptyState={
+                  effectiveAgentId ? (
+                    <EmptyTracesForAgent
+                      agentName={agentNameById(effectiveAgentId)}
+                      currentHours={sinceHours}
+                      hasLevelFilter={level !== 'all'}
+                      hasEventFilter={event !== 'all'}
+                      hasAbsoluteWindow={!!windowOverride}
+                      onApply={handleAgentEmptySuggestion}
+                      onReleaseWindow={() => {
+                        setWindowOverride(null);
+                        toast.success('Janela absoluta removida — usando filtro relativo');
+                      }}
+                    />
+                  ) : undefined
+                }
               />
             </CardContent>
           </Card>
