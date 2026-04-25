@@ -214,6 +214,7 @@ export function AgentRichMetrics({ agentId, agentName, days = 14 }: Props) {
             traces={traces}
             daily={daily}
             onDayClick={setSelectedDay}
+            loading={tracesLoading || usageLoading}
           />
         </div>
 
