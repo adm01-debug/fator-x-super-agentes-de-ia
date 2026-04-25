@@ -20,6 +20,7 @@ import { ExecutionTimeline } from '@/components/agents/traces/ExecutionTimeline'
 import { ReplayDialog } from '@/components/agents/traces/ReplayDialog';
 import { ClearFiltersToast, type ClearedField } from '@/components/agents/traces/ClearFiltersToast';
 import { ClearFiltersConfirm } from '@/components/agents/traces/ClearFiltersConfirm';
+import { useAgentDrilldownStore } from '@/stores/agentDrilldownStore';
 
 interface PersistedFilters extends Record<string, unknown> {
   search: string;
