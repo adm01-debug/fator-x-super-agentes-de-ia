@@ -432,6 +432,34 @@ export default function AgentTracesPage() {
     />
   );
 
+  /**
+   * Apply a single suggestion from the contextual empty state. Each action
+   * targets exactly one filter dimension so the user can iterate without
+   * losing the rest of their context (e.g. drop the level filter but keep
+   * the agent + window).
+   */
+  const handleAgentEmptySuggestion = (action: SuggestionAction) => {
+    switch (action.type) {
+      case 'widen-window':
+        setFilters((prev) => ({ ...prev, sinceHours: action.toHours }));
+        toast.success(`Janela ampliada para ${action.label}`);
+        break;
+      case 'clear-level':
+        setFilters((prev) => ({ ...prev, level: 'all' }));
+        toast.success('Filtro de nível removido');
+        break;
+      case 'clear-event':
+        setFilters((prev) => ({ ...prev, event: 'all' }));
+        toast.success('Filtro de evento removido');
+        break;
+      case 'remove-agent':
+        setFilters((prev) => ({ ...prev, agentFilter: 'all' }));
+        drilldown.clearDrilldown();
+        toast.success('Filtro de agente removido');
+        break;
+    }
+  };
+
   return (
     <div className="p-6 sm:p-8 lg:p-10 space-y-5 max-w-[1500px] mx-auto animate-page-enter">
       <PageHeader
