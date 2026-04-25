@@ -358,7 +358,9 @@ export function InteractiveSLOPanel({ agentId, agentName, slo, traces, daily, on
             </h4>
           </div>
           <span className="text-[10px] text-muted-foreground">
-            {activeWindow.buckets} bucket{activeWindow.buckets !== 1 ? 's' : ''} · hover para detalhes
+            {activeWindow.buckets} bucket{activeWindow.buckets !== 1 ? 's' : ''}
+            <span className="hidden sm:inline"> · hover para detalhes</span>
+            <span className="sm:hidden"> · toque p/ detalhes</span>
           </span>
         </div>
         {windowedTraces.length === 0 ? (
@@ -373,12 +375,13 @@ export function InteractiveSLOPanel({ agentId, agentName, slo, traces, daily, on
             onViolationClick={handleViolationClick}
           />
         )}
-        <div className="flex items-center gap-3 mt-3 text-[10px] text-muted-foreground flex-wrap">
+        <div className="flex items-center gap-x-3 gap-y-1.5 mt-3 text-[10px] text-muted-foreground flex-wrap">
           <LegendDot color="bg-nexus-emerald" label="Saudável" />
           <LegendDot color="bg-nexus-amber" label="Acima de p95" />
           <LegendDot color="bg-destructive" label="Acima de p99 / erro" />
-          <span className="ml-auto font-mono">
-            Defaults: p50 {DEFAULT_SLO_TARGETS.p50}ms · p95 {DEFAULT_SLO_TARGETS.p95}ms · p99 {DEFAULT_SLO_TARGETS.p99}ms · {DEFAULT_SLO_TARGETS.availability}%
+          <span className="font-mono w-full sm:w-auto sm:ml-auto sm:text-right">
+            <span className="hidden sm:inline">Defaults: </span>
+            p50 {DEFAULT_SLO_TARGETS.p50}ms · p95 {DEFAULT_SLO_TARGETS.p95}ms · p99 {DEFAULT_SLO_TARGETS.p99}ms · {DEFAULT_SLO_TARGETS.availability}%
           </span>
         </div>
       </div>
