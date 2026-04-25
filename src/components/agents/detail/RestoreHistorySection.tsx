@@ -500,6 +500,13 @@ export function RestoreHistorySection({ agentId, versions }: Props) {
         const targetRemainingMs = targetExpiresAt - now;
         const targetExpired = !undoTarget || targetExpiresAt === 0 || targetRemainingMs <= 0;
         const targetUrgent = !targetExpired && targetRemainingMs < 60 * 1000;
+        // "Stale" segundo o estado LOCAL: outra versão (manual ou outro
+        // rollback) já foi criada depois deste rollback. Detectado pela
+        // diferença entre versionNumber do rollback e a versão head local.
+        // O check no servidor (no mutationFn) é o gate definitivo; este aqui
+        // é só para sinalizar visualmente antes do clique.
+        const targetStale =
+          !!undoTarget && !!currentVersion && currentVersion.version > undoTarget.versionNumber;
         return (
       <AlertDialog
         open={!!undoTarget}
