@@ -113,6 +113,33 @@ const FIELD_LABELS = {
 } as const;
 
 /**
+ * Resumo curto e legível das opções de um rollback/undo.
+ *
+ * Ex.: { copyPrompt:true, copyTools:true } → "restaurou prompt e ferramentas"
+ *      { copyModel:true }                  → "restaurou modelo e parâmetros"
+ *      todas false                          → "nenhum campo restaurado"
+ *      todas true                           → "restaurou prompt, ferramentas e modelo"
+ *
+ * Usado tanto no toast de sucesso do undo quanto na timeline de restaurações,
+ * para que o usuário veja em uma linha o que de fato mudou — sem precisar
+ * decodificar os badges individuais.
+ */
+function summarizeRestoreOptions(opts: {
+  copyPrompt: boolean;
+  copyTools: boolean;
+  copyModel: boolean;
+}): string {
+  const parts: string[] = [];
+  if (opts.copyPrompt) parts.push("prompt");
+  if (opts.copyTools) parts.push("ferramentas");
+  if (opts.copyModel) parts.push("modelo e parâmetros");
+  if (parts.length === 0) return "nenhum campo restaurado";
+  if (parts.length === 1) return `restaurou ${parts[0]}`;
+  if (parts.length === 2) return `restaurou ${parts[0]} e ${parts[1]}`;
+  return `restaurou ${parts.slice(0, -1).join(", ")} e ${parts[parts.length - 1]}`;
+}
+
+/**
  * Janela após a qual o "Desfazer rollback" expira automaticamente.
  * 5 minutos é uma janela curta o suficiente para forçar uma decisão rápida
  * sobre o rollback recém-aplicado, e longa o suficiente para uma sanidade
@@ -240,9 +267,12 @@ export function RestoreHistorySection({ agentId, versions }: Props) {
       queryClient.invalidateQueries({ queryKey: ["agent_versions", agentId] });
       queryClient.invalidateQueries({ queryKey: ["agent", agentId] });
       setUndoTarget(null);
+      const summary = summarizeRestoreOptions(entry.meta.options);
       toast.success(
         `Rollback desfeito — v${data.version} criada a partir de v${entry.preRollback?.version ?? entry.meta.restored_from_version}`,
         {
+          // Resumo curto das opções restauradas (mesmas do rollback original).
+          description: summary.charAt(0).toUpperCase() + summary.slice(1) + ".",
           action: {
             label: "Ver na timeline",
             onClick: () => navigate(`/agents/${agentId}/versions/v/${data.id}`),
@@ -312,10 +342,15 @@ export function RestoreHistorySection({ agentId, versions }: Props) {
 
               {/* Summary (custom ou auto) */}
               {entry.changeSummary && (
-                <p className="text-xs text-foreground mb-1.5 truncate" title={entry.changeSummary}>
+                <p className="text-xs text-foreground mb-1 truncate" title={entry.changeSummary}>
                   {entry.changeSummary}
                 </p>
               )}
+
+              {/* Resumo curto das opções (sempre presente, complementa os badges) */}
+              <p className="text-[10px] text-muted-foreground italic mb-1.5">
+                {summarizeRestoreOptions(entry.meta.options)}
+              </p>
 
               {/* Badges das opções restauradas + ações */}
               <div className="flex items-center gap-1 flex-wrap">
