@@ -510,6 +510,35 @@ export default function AgentTracesPage() {
         <Kpi icon={DollarSign} label="Custo total" value={`$${totals.cost.toFixed(4)}`} />
       </div>
 
+      {/* Compare-mode helper banner */}
+      {compareMode && (
+        <div
+          className="flex items-center justify-between gap-3 rounded-lg border border-primary/30 bg-primary/5 px-3 py-2 text-xs animate-fade-in-up"
+          role="status"
+          aria-live="polite"
+        >
+          <div className="flex items-center gap-2 min-w-0">
+            <GitCompare className="h-3.5 w-3.5 text-primary shrink-0" aria-hidden />
+            <span className="text-foreground/90">
+              {comparePicks.length === 0 && 'Selecione 2 execuções na lista para comparar lado a lado.'}
+              {comparePicks.length === 1 && 'Selecione mais 1 execução para abrir a comparação.'}
+              {comparePicks.length === 2 && 'Comparação pronta — abrindo painel.'}
+            </span>
+            <span className="text-muted-foreground tabular-nums shrink-0">{comparePicks.length}/2</span>
+          </div>
+          <div className="flex items-center gap-1">
+            {comparePicks.length === 2 && (
+              <Button size="sm" variant="ghost" className="h-7 text-xs" onClick={() => setCompareOpen(true)}>
+                Reabrir painel
+              </Button>
+            )}
+            <Button size="sm" variant="ghost" className="h-7 text-xs" onClick={exitCompareMode}>
+              <X className="h-3 w-3 mr-1" /> Sair
+            </Button>
+          </div>
+        </div>
+      )}
+
       <div className="grid grid-cols-1 lg:grid-cols-[420px_1fr] gap-4">
         <Card>
           <CardHeader className="pb-2">
@@ -525,6 +554,9 @@ export default function AgentTracesPage() {
               hasActiveFilters={hasActiveFilters}
               onClearFilters={handleClearFilters}
               clearFiltersWrapper={renderClearWrapper}
+              compareMode={compareMode}
+              selectedForCompare={comparePicks}
+              onToggleCompare={toggleCompare}
             />
           </CardContent>
         </Card>
