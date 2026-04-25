@@ -130,14 +130,16 @@ export default function AgentTracesPage() {
   });
 
   // Apply `?agent_id=` deep-link once after mount: override the persisted
-  // agent filter, surface a toast confirming which agent was matched, then
-  // strip the param so further in-page filter changes aren't shadowed by it.
+  // agent filter, push it to the session-scoped drilldown store (so it
+  // survives navigation between related pages within the tab), surface a
+  // toast confirming which agent was matched, then strip the param.
   const appliedAgentParam = useRef<string | null>(null);
   useEffect(() => {
     if (!urlAgentId || appliedAgentParam.current === urlAgentId) return;
     if (filters.agentFilter !== urlAgentId) {
       setFilters((prev) => ({ ...prev, agentFilter: urlAgentId }));
       const matched = agents.find((a) => a.id === urlAgentId);
+      drilldown.setDrilldown(urlAgentId, matched?.name ?? null, 'deep-link');
       toast.success(matched ? `Filtrando por: ${matched.name}` : 'Filtro de agente aplicado via link');
     }
     appliedAgentParam.current = urlAgentId;
@@ -148,6 +150,39 @@ export default function AgentTracesPage() {
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [urlAgentId, agents]);
+
+  // Keep the global drilldown store in sync with manual filter changes:
+  // selecting a specific agent in the dropdown promotes it to "active drill",
+  // selecting "todos" releases the drill (so the badge disappears across pages).
+  // We skip this when on a route-pinned agent (`/agents/:id/traces`) so the
+  // route param doesn't accidentally hijack a different drill context.
+  useEffect(() => {
+    if (id) return; // route param wins, don't propagate
+    if (agentFilter === 'all') {
+      if (drilldown.agentId !== null) drilldown.clearDrilldown();
+      return;
+    }
+    if (drilldown.agentId !== agentFilter) {
+      const matched = agents.find((a) => a.id === agentFilter);
+      drilldown.setDrilldown(agentFilter, matched?.name ?? null, 'manual');
+    } else if (!drilldown.agentName) {
+      // Backfill the cached name once agents finish loading.
+      const matched = agents.find((a) => a.id === agentFilter);
+      if (matched) drilldown.setDrilldown(agentFilter, matched.name, drilldown.origin ?? 'manual');
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [agentFilter, agents, id]);
+
+  // External clears (badge ✕ in another page or this one) should pull the
+  // local filter back to 'all' so the page reflects reality immediately.
+  useEffect(() => {
+    if (id) return;
+    if (drilldown.agentId === null && agentFilter !== 'all') {
+      setFilters((prev) => ({ ...prev, agentFilter: 'all' }));
+      setSelectedId(null);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [drilldown.agentId, id]);
 
   // Apply `?from=&to=` deep-link once: surface a toast confirming the bucket
   // window and strip the params so manual filter changes aren't shadowed by them.
